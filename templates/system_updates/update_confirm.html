@@ -1,0 +1,79 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Confirmer la mise à jour — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Mises à jour</p>
+    <h1 class="orion-page-title">Confirmer la mise à jour</h1>
+    <p class="orion-page-subtitle">
+      Une sauvegarde sera lancée automatiquement avant l'installation.
+    </p>
+  </div>
+</div>
+
+<div class="orion-alert warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>Attention</strong> — Cette action peut rendre Orion ERP temporairement indisponible.
+  Vérifiez qu'aucun utilisateur ne travaille actuellement avant de continuer.
+</div>
+
+{% if latest_check %}
+<div class="orion-card mb-4">
+  <div class="orion-orion-orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Détails de la mise à jour</h2>
+  </div>
+  <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Commit actuel</span>
+      <div style="font-family:monospace;font-size:13px;margin-top:4px">{{ latest_check.current_commit|default:"—" }}</div>
+    </div>
+    <div>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Commit distant</span>
+      <div style="font-family:monospace;font-size:13px;margin-top:4px">{{ latest_check.remote_commit|default:"—" }}</div>
+    </div>
+    <div>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Branche</span>
+      <div style="font-size:13px;margin-top:4px">{{ latest_check.branch|default:"—" }}</div>
+    </div>
+    <div>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Commits de retard</span>
+      <div style="font-size:13px;font-weight:700;margin-top:4px;color:var(--orion-warning)">{{ latest_check.commits_behind }}</div>
+    </div>
+  </div>
+  {% if latest_check.changelog %}
+  <div style="padding:0 16px 16px">
+    <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Changelog</span>
+    <pre style="font-size:12px;line-height:1.6;padding:12px;background:var(--orion-surface-alt);border-radius:8px;margin-top:8px;white-space:pre-wrap;overflow-x:auto">{{ latest_check.changelog }}</pre>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Confirmation</h2>
+  </div>
+  <form method="post" style="padding:16px">
+    {% csrf_token %}
+    {% for field in form %}
+    <div style="margin-bottom:12px;display:flex;align-items:flex-start;gap:10px">
+      {{ field }}
+      <label for="{{ field.id_for_label }}" style="font-size:13px;line-height:1.5">
+        {{ field.label }}
+      </label>
+    </div>
+    {% if field.errors %}
+    <div style="font-size:11.5px;color:var(--orion-danger);margin-bottom:8px">{{ field.errors.0 }}</div>
+    {% endif %}
+    {% endfor %}
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button type="submit" class="orion-btn danger">
+        <i class="bi bi-cloud-download me-1"></i>Lancer la mise à jour
+      </button>
+      <a href="{% url 'system_updates:dashboard' %}" class="orion-btn">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

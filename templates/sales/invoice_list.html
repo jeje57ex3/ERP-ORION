@@ -1,0 +1,194 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Factures clients — {{ request.current_company.name|default:'Orion ERP' }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:index' %}">Ventes</a></li>
+<li class="breadcrumb-item active">Factures</li>
+{% endblock %}
+
+{% block page_title %}Factures clients{% endblock %}
+{% block page_subtitle %}Gérez la facturation, les paiements, les relances et les avoirs.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:invoice_create' %}" class="orion-btn orion-orion-btn primary">
+  <i class="bi bi-plus-lg"></i>Nouvelle facture
+</a>
+<a href="?export=csv{% if status %}&status={{ status }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-download"></i>Exporter
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">
+  {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-receipt"></i></div>
+      <div class="orion-kpi-value">{{ total_ttc|floatformat:0|default:'0' }} €</div>
+      <div class="orion-kpi-label">Total facturé TTC</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
+      <div class="orion-kpi-value">{{ total_paid|floatformat:0|default:'0' }} €</div>
+      <div class="orion-kpi-label">Payé</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-clock-history"></i></div>
+      <div class="orion-kpi-value">{{ total_due|floatformat:0|default:'0' }} €</div>
+      <div class="orion-kpi-label">Reste dû</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="orion-kpi-value">{{ count_overdue|default:'0' }}</div>
+      <div class="orion-kpi-label">En retard</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chips statut -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'sales:invoice_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  <a href="?status=draft" class="orion-filter-chip {% if status == 'draft' %}active{% endif %}">Brouillon</a>
+  <a href="?status=sent" class="orion-filter-chip {% if status == 'sent' %}active{% endif %}">Envoyée</a>
+  <a href="?status=partial" class="orion-filter-chip {% if status == 'partial' %}active{% endif %}">Part. payée</a>
+  <a href="?status=paid" class="orion-filter-chip {% if status == 'paid' %}active{% endif %}">Payée</a>
+  <a href="?status=overdue" class="orion-filter-chip {% if status == 'overdue' %}active{% endif %}">En retard</a>
+  <a href="?status=cancelled" class="orion-filter-chip {% if status == 'cancelled' %}active{% endif %}">Annulée</a>
+</div>
+
+<!-- Table -->
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h5 class="orion-card-title"><i class="bi bi-receipt me-2"></i>Factures</h5>
+    <form method="get" class="orion-filter-bar" style="margin:0;padding:0;background:none;border:none;box-shadow:none">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <div class="position-relative">
+        <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="N° facture ou client…" class="orion-search-input ps-4" style="width:220px">
+      </div>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel"></i></button>
+      {% if q %}<a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-lg"></i></a>{% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>N° Facture</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Échéance</th>
+          <th class="text-end">HT</th>
+          <th class="text-end">TTC</th>
+          <th class="text-end">Payé</th>
+          <th>Statut</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td>
+            <a href="{% url 'sales:invoice_detail' inv.pk %}" class="fw-semibold text-decoration-none" style="color:var(--orion-text)">
+              {{ inv.number|default:'FAC-...' }}
+            </a>
+          </td>
+          <td>
+            <a href="{% url 'crm:customer_detail' inv.customer.pk %}" class="text-decoration-none text-muted small">
+              {{ inv.customer.name }}
+            </a>
+          </td>
+          <td class="small text-muted text-nowrap">{{ inv.issue_date|date:"d/m/Y" }}</td>
+          <td class="small text-nowrap {% if inv.due_date and inv.due_date < today and inv.status not in 'paid,cancelled' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+            {{ inv.due_date|date:"d/m/Y"|default:'—' }}
+            {% if inv.due_date and inv.due_date < today and inv.status not in 'paid,cancelled' %}
+            <i class="bi bi-alarm ms-1"></i>
+            {% endif %}
+          </td>
+          <td class="text-end small fw-semibold">{{ inv.total_ht|floatformat:2 }} €</td>
+          <td class="text-end small fw-bold">{{ inv.total_ttc|floatformat:2 }} €</td>
+          <td class="text-end small text-muted">{{ inv.paid_amount|floatformat:2|default:'0.00' }} €</td>
+          <td>
+            {% if inv.status == 'paid' %}<span class="orion-badge orion-badge-success">Payée</span>
+            {% elif inv.status == 'partial' %}<span class="orion-badge orion-badge-info">Part. payée</span>
+            {% elif inv.status == 'sent' %}<span class="orion-badge orion-badge-secondary">Envoyée</span>
+            {% elif inv.status == 'draft' %}<span class="orion-badge orion-badge-secondary">Brouillon</span>
+            {% elif inv.status == 'overdue' %}<span class="orion-badge orion-badge-danger">En retard</span>
+            {% elif inv.status == 'cancelled' %}<span class="orion-badge orion-badge-secondary">Annulée</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">{{ inv.get_status_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'sales:invoice_detail' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+              {% if inv.status not in 'paid,cancelled' %}
+              <a href="{% url 'sales:invoice_mark_paid' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Marquer payée" style="color:#16A34A"><i class="bi bi-check-circle"></i></a>
+              {% endif %}
+              <a href="{% url 'sales:invoice_edit' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+              <a href="{% url 'sales:invoice_delete' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-receipt"></i></div>
+              <div class="orion-empty-title">Aucune facture{% if status %} dans ce statut{% endif %}</div>
+              <div class="orion-empty-text">
+                {% if q or status %}Modifiez les filtres ou <a href="{% url 'sales:invoice_list' %}">affichez tout</a>.
+                {% else %}Créez votre première facture ou convertissez un devis.{% endif %}
+              </div>
+              <a href="{% url 'sales:invoice_create' %}" class="orion-btn orion-orion-btn primary mt-3">
+                <i class="bi bi-plus-lg"></i>Créer une facture
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav class="orion-pagination mt-4" aria-label="Pages">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-page-btn"><i class="bi bi-chevron-left"></i></a>
+  {% endif %}
+  {% for num in page_obj.paginator.page_range %}
+  {% if page_obj.number == num %}
+  <span class="orion-page-btn active">{{ num }}</span>
+  {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+  <a href="?page={{ num }}{% if status %}&status={{ status }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-page-btn">{{ num }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-page-btn"><i class="bi bi-chevron-right"></i></a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'hr:private_folder_list' %}">Dossiers privés</a></li>
+<li class="breadcrumb-item active">{{ employee.first_name }} {{ employee.last_name }}</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'hr:private_document_add' employee.pk %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter un document</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header d-flex align-items-center gap-3">
+        <div class="avatar-circle" style="width:48px;height:48px;font-size:1.1rem;">{{ employee.first_name.0 }}{{ employee.last_name.0 }}</div>
+        <div>
+          <h6 class="erp-card-title mb-0">{{ employee.first_name }} {{ employee.last_name }}</h6>
+          <small class="text-muted">{{ employee.job_title|default:"" }} {% if employee.department %}— {{ employee.department }}{% endif %}</small>
+        </div>
+        <div class="ms-auto">
+          {% if folder.is_locked %}<span class="orion-badge danger"><i class="bi bi-lock me-1"></i>Verrouillé</span>{% endif %}
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="erp-orion-orion-card-body border-bottom">
+        <form method="get" class="d-flex gap-2 flex-wrap">
+          <select name="doc_type" class="form-select form-select-sm" style="width:220px" onchange="this.form.submit()">
+            <option value="">Tous les types</option>
+            {% for val, label in doc_type_choices %}
+            <option value="{{ val }}" {% if doc_type_filter == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+
+      <div class="erp-orion-orion-card-body p-0">
+        {% if documents %}
+        <div class="table-responsive">
+          <table class="orion-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Confidentialité</th>
+                <th>Expire le</th>
+                <th>Visible salarié</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in documents %}
+              <tr {% if doc.is_expired %}class="table-danger"{% elif doc.expires_soon %}class="table-warning"{% endif %}>
+                <td>
+                  <div class="fw-semibold">{{ doc.title }}</div>
+                  {% if doc.description %}<small class="text-muted">{{ doc.description|truncatechars:60 }}</small>{% endif %}
+                </td>
+                <td><span class="orion-badge neutral">{{ doc.get_document_type_display }}</span></td>
+                <td>
+                  {% if doc.confidentiality_level == 'direction_only' %}<span class="orion-badge danger">Direction</span>
+                  {% elif doc.confidentiality_level == 'hr_only' %}<span class="orion-badge warning text-dark">RH seul</span>
+                  {% elif doc.confidentiality_level == 'very_confidential' %}<span class="badge bg-dark">Très confidentiel</span>
+                  {% elif doc.confidentiality_level == 'confidential' %}<span class="orion-badge gold">Confidentiel</span>
+                  {% else %}<span class="orion-badge neutral">Standard</span>{% endif %}
+                </td>
+                <td>
+                  {% if doc.expires_at %}
+                    {% if doc.is_expired %}<span class="text-danger fw-semibold">{{ doc.expires_at|date:"d/m/Y" }} <i class="bi bi-x-circle-fill"></i></span>
+                    {% elif doc.expires_soon %}<span class="text-warning fw-semibold">{{ doc.expires_at|date:"d/m/Y" }} <i class="bi bi-exclamation-triangle-fill"></i></span>
+                    {% else %}{{ doc.expires_at|date:"d/m/Y" }}{% endif %}
+                  {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td class="text-center">
+                  {% if doc.visible_to_employee %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'hr:private_document_download' doc.pk %}" class="orion-btn sm btn-outline-primary" title="Télécharger"><i class="bi bi-download"></i></a>
+                  <form method="post" action="{% url 'hr:private_document_delete' doc.pk %}" class="d-inline" onsubmit="return confirm('Supprimer ce document ?')">
+                    {% csrf_token %}
+                    <button type="submit" class="orion-btn sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-5">
+          <i class="bi bi-file-lock2 display-5 text-muted mb-3 d-block"></i>
+          <p class="text-muted">Aucun document dans ce dossier.</p>
+          <a href="{% url 'hr:private_document_add' employee.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Ajouter</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-info-circle me-2"></i>Infos dossier</h6></div>
+      <div class="erp-orion-orion-card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-6">N° employé</dt><dd class="col-6">{{ employee.employee_number }}</dd>
+          <dt class="col-6">Date d'entrée</dt><dd class="col-6">{{ employee.hire_date|date:"d/m/Y"|default:"—" }}</dd>
+          <dt class="col-6">Docs expirés</dt><dd class="col-6 text-danger">{{ folder.expired_count }}</dd>
+          <dt class="col-6">Expirent bientôt</dt><dd class="col-6 text-warning">{{ folder.expiring_soon_count }}</dd>
+          <dt class="col-6">Signatures att.</dt><dd class="col-6 text-purple">{{ folder.pending_signature_count }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {% if recent_logs %}
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-clock-history me-2"></i>Derniers accès</h6></div>
+      <div class="erp-orion-orion-card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for log in recent_logs %}
+          <li class="list-group-item small">
+            <div class="d-flex justify-content-between">
+              <span><strong>{{ log.user.get_full_name|default:log.user.username }}</strong> — {{ log.get_action_display }}</span>
+              <span class="text-muted">{{ log.created_at|date:"d/m H:i" }}</span>
+            </div>
+            <small class="text-muted">{{ log.document.title }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

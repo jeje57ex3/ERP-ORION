@@ -1,0 +1,108 @@
+{% extends "electricity/base_electricity.html" %}
+{% block title %}Récapitulatif — Étape 4{% endblock %}
+{% block content %}
+<div class="bg-white border-bottom py-3">
+  <div class="container">
+    <div class="d-flex align-items-center gap-3">
+      <div class="wizard-progress-step done"><i class="bi bi-check"></i></div>
+      <div style="flex:1;height:3px;background:#059669"></div>
+      <div class="wizard-progress-step done"><i class="bi bi-check"></i></div>
+      <div style="flex:1;height:3px;background:#059669"></div>
+      <div class="wizard-progress-step done"><i class="bi bi-check"></i></div>
+      <div style="flex:1;height:3px;background:#059669"></div>
+      <div class="wizard-progress-step active">4</div>
+    </div>
+    <div class="d-flex justify-content-between small text-muted mt-2">
+      <span>Type</span><span>Questions</span><span>Coordonnées</span><span><strong>Validation</strong></span>
+    </div>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row g-4 justify-content-center">
+    <div class="col-12 col-lg-7">
+      <h2 class="fw-bold mb-4">Récapitulatif de votre demande</h2>
+
+      <!-- Type de demande -->
+      <div class="border rounded-3 p-4 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-tag me-2 text-warning"></i>Type de demande</h6>
+        <span class="orion-badge warning text-dark fs-6 px-3 py-2">{{ request_type }}</span>
+      </div>
+
+      <!-- Coordonnées -->
+      <div class="border rounded-3 p-4 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-person me-2"></i>Vos coordonnées</h6>
+        <div class="row g-1 small">
+          <div class="col-4 text-muted">Nom</div><div class="col-8 fw-semibold">{{ contact.first_name }} {{ contact.last_name }}</div>
+          <div class="col-4 text-muted">Email</div><div class="col-8">{{ contact.email }}</div>
+          <div class="col-4 text-muted">Téléphone</div><div class="col-8">{{ contact.phone }}</div>
+          <div class="col-4 text-muted">Adresse</div><div class="col-8">{{ contact.address }}, {{ contact.zip_code }} {{ contact.city }}</div>
+          {% if contact.preferred_slots %}
+          <div class="col-4 text-muted">Créneaux</div><div class="col-8">{{ contact.preferred_slots }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Réponses -->
+      {% if answers %}
+      <div class="border rounded-3 p-4 mb-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-list-check me-2"></i>Vos réponses</h6>
+        <div class="row g-1 small">
+          {% if answers.urgency %}<div class="col-5 text-muted">Urgence</div><div class="col-7">{{ answers.urgency }}</div>{% endif %}
+          {% if answers.problem_type %}<div class="col-5 text-muted">Problème</div><div class="col-7">{{ answers.problem_type }}</div>{% endif %}
+          {% if answers.property_type %}<div class="col-5 text-muted">Type de bien</div><div class="col-7">{{ answers.property_type }}</div>{% endif %}
+          {% if answers.surface %}<div class="col-5 text-muted">Surface</div><div class="col-7">{{ answers.surface }}</div>{% endif %}
+          {% if answers.nb_prises %}<div class="col-5 text-muted">Prises</div><div class="col-7">{{ answers.nb_prises }}</div>{% endif %}
+          {% if answers.nb_lights %}<div class="col-5 text-muted">Points lumineux</div><div class="col-7">{{ answers.nb_lights }}</div>{% endif %}
+          {% if answers.borne_recharge %}<div class="col-5 text-muted">Borne recharge</div><div class="col-7">Oui</div>{% endif %}
+          {% if answers.domotique %}<div class="col-5 text-muted">Domotique</div><div class="col-7">Oui</div>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Disclaimer -->
+      <div class="alert alert-light border mb-4 small">
+        <i class="bi bi-info-circle me-2"></i>
+        En validant, vous acceptez d'être contacté par notre équipe pour analyser votre demande et vous transmettre un devis. Vos données ne seront pas communiquées à des tiers.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-electric w-100 py-3 fw-bold fs-5">
+          <i class="bi bi-send me-2"></i>Envoyer ma demande
+        </button>
+        <div class="text-center mt-3">
+          <a href="{% url 'guided_quote:wizard_step3' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Modifier mes informations</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sidebar droite -->
+    <div class="col-12 col-lg-4">
+      <div class="border rounded-3 p-4 bg-white sticky-top" style="top:80px">
+        <h6 class="fw-bold mb-3">Ce qui va se passer</h6>
+        <div class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold" style="width:32px;height:32px;font-size:.85rem">1</div>
+            <div><div class="fw-semibold small">Votre demande est enregistrée</div><div class="text-muted" style="font-size:.8rem">Vous recevez un email de confirmation</div></div>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold" style="width:32px;height:32px;font-size:.85rem">2</div>
+            <div><div class="fw-semibold small">Un responsable analyse votre demande</div><div class="text-muted" style="font-size:.8rem">Sous 24h en général</div></div>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold" style="width:32px;height:32px;font-size:.85rem">3</div>
+            <div><div class="fw-semibold small">Vous recevez un devis ou un créneau</div><div class="text-muted" style="font-size:.8rem">Gratuit, sans engagement</div></div>
+          </div>
+        </div>
+        <hr>
+        <div class="d-flex gap-2 flex-column">
+          <div class="badge-trust"><i class="bi bi-shield-check me-1"></i>Artisan certifié RGE</div>
+          <div class="badge-trust"><i class="bi bi-award me-1"></i>Devis gratuit et sans engagement</div>
+          <div class="badge-trust"><i class="bi bi-lock me-1"></i>Données sécurisées</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:order_list' %}">Commandes web</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'ecommerce:order_detail' order.pk %}">{{ order.order_number }}</a></li><li class="breadcrumb-item active">Modifier</li>
+{% else %}<li class="breadcrumb-item active">Nouvelle commande</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ order.order_number }}{% else %}Nouvelle commande web{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Informations client</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Client (CRM)</label>
+              {{ form.customer }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Nom client *</label>
+              {{ form.customer_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Email *</label>
+              {{ form.customer_email }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Téléphone</label>
+              {{ form.customer_phone }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Adresse de livraison</label>
+              {{ form.shipping_address }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-credit-card me-1 text-primary"></i>Paiement & livraison</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Mode de paiement</label>
+              {{ form.payment_method }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Statut paiement</label>
+              {{ form.payment_status }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Canal</label>
+              {{ form.channel }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">N° de suivi</label>
+              {{ form.tracking_number }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+        <div class="orion-orion-card-body">{{ form.notes }}</div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Statut</h6></div>
+        <div class="orion-orion-card-body">
+          <label class="form-label form-label-sm">Statut commande</label>
+          {{ form.status }}
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-calculator me-1 text-primary"></i>Montants</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="mb-2">
+            <label class="form-label form-label-sm">Sous-total HT</label>
+            {{ form.subtotal }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label form-label-sm">Frais de port</label>
+            {{ form.shipping_cost }}
+          </div>
+          <div>
+            <label class="form-label form-label-sm">Total TTC</label>
+            {{ form.total_ttc }}
+          </div>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer la commande{% endif %}</button>
+        {% if action == 'edit' %}
+        <a href="{% url 'ecommerce:order_detail' order.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        {% else %}
+        <a href="{% url 'ecommerce:order_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

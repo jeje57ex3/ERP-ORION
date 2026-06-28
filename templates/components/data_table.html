@@ -1,0 +1,52 @@
+{# Composant tableau de données générique
+   Variables :
+     columns   — liste de dicts {label, key, sortable, align}
+     rows      — queryset ou liste
+     empty_msg — message quand vide
+     sort      — colonne active
+     order     — 'asc' ou 'desc'
+#}
+<div class="table-responsive">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        {% for col in columns %}
+        <th {% if col.align %}class="text-{{ col.align }}"{% endif %}>
+          {% if col.sortable %}
+          <a href="?sort={{ col.key }}&order={% if sort == col.key and order == 'asc' %}desc{% else %}asc{% endif %}"
+             class="text-decoration-none d-flex align-items-center gap-1"
+             style="color:inherit">
+            {{ col.label }}
+            {% if sort == col.key %}
+            <i class="bi bi-chevron-{% if order == 'asc' %}up{% else %}down{% endif %} opacity-50" style="font-size:.7rem"></i>
+            {% else %}
+            <i class="bi bi-chevron-expand opacity-25" style="font-size:.7rem"></i>
+            {% endif %}
+          </a>
+          {% else %}
+          {{ col.label }}
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for col in columns %}
+        <td {% if col.align %}class="text-{{ col.align }}"{% endif %}>
+          {{ row|get_col:col.key }}
+        </td>
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="{{ columns|length }}" class="text-center py-5 text-muted">
+          <i class="bi bi-inbox fs-2 d-block mb-2 opacity-40"></i>
+          {{ empty_msg|default:'Aucune donnée.' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

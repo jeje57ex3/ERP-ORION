@@ -1,0 +1,49 @@
+{% load dashboard_tags %}
+{% with followup_data=widget_data|dict_get:"crm_followups" %}
+{% with opps_data=widget_data|dict_get:"crm_open_opportunities" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'crm_followups' %}
+  {% if followup_data.prospects %}
+  <div class="mb-2"><span class="badge bg-info">{{ followup_data.total }} à relancer</span></div>
+  <div>
+    {% for prospect in followup_data.prospects %}
+    <a href="/crm/prospects/{{ prospect.pk }}/" class="widget-item">
+      <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-person-plus"></i></div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ prospect.name|truncatechars:35 }}</div>
+        <div class="widget-item-sub">{% if prospect.next_action_date %}Action prévue : {{ prospect.next_action_date|date:"d/m/Y" }}{% else %}{{ prospect.get_status_display }}{% endif %}</div>
+      </div>
+      <div class="widget-item-meta"><span class="badge bg-info bg-opacity-10 text-info border border-info-subtle" style="font-size:.65rem">{{ prospect.get_status_display }}</span></div>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="dashboard-widget-footer"><a href="/crm/prospects/" class="small text-muted">Voir tous les prospects →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-person-plus"></i><p>Aucun prospect à relancer cette semaine.</p></div>
+  {% endif %}
+
+{% elif code == 'crm_open_opportunities' %}
+  {% if opps_data.opportunities %}
+  {% if opps_data.total_value %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ opps_data.total_value|floatformat:0 }} € potentiel</span></div>
+  {% endif %}
+  <div>
+    {% for opp in opps_data.opportunities %}
+    <a href="/crm/opportunities/{{ opp.pk }}/" class="widget-item">
+      <div class="widget-item-icon" style="background:#fef9c3;color:#CA8A04"><i class="bi bi-trophy"></i></div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ opp.name|truncatechars:35 }}</div>
+        <div class="widget-item-sub">{{ opp.customer.name|truncatechars:25 }} · {{ opp.get_status_display }}</div>
+      </div>
+      <div class="widget-item-meta">{% if opp.estimated_value %}<span class="fw-semibold" style="font-size:.78rem;color:var(--dashboard-secondary)">{{ opp.estimated_value|floatformat:0 }} €</span>{% endif %}</div>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="dashboard-widget-footer"><a href="/crm/opportunities/" class="small text-muted">Voir le pipeline →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-trophy"></i><p>Aucune opportunité en cours.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}

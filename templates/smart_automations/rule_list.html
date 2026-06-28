@@ -1,0 +1,61 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Automatisations</div>
+    <h1 class="orion-page-title">Règles d'automatisation</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'smart_automations:create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle règle</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3"><div class="orion-metric-header">Règles totales</div><div class="orion-metric-value">{{ stats.total }}</div></div>
+  <div class="orion-metric col-3"><div class="orion-metric-header">Actives</div><div class="orion-metric-value" style="color:var(--orion-success)">{{ stats.active }}</div></div>
+  <div class="orion-metric col-3"><div class="orion-metric-header">Exécutions</div><div class="orion-metric-value">{{ stats.total_runs }}</div></div>
+  <div class="orion-metric col-3"><div class="orion-metric-header">Échecs</div><div class="orion-metric-value" style="color:var(--orion-danger)">{{ stats.failed_runs }}</div></div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    {% if rules %}
+    <div class="list-group list-group-flush">
+      {% for rule in rules %}
+      <div class="list-group-item px-4 py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:10px;height:10px;border-radius:50%;background:{% if rule.is_active %}var(--orion-success){% else %}var(--orion-muted){% endif %};flex-shrink:0"></div>
+          <div class="flex-grow-1">
+            <div style="font-weight:600;font-size:14px">{{ rule.name }}</div>
+            <div style="font-size:12.5px;color:var(--orion-text-soft)">
+              Déclencheur : {{ rule.get_trigger_type_display }}
+              · {{ rule.run_count }} exécution{{ rule.run_count|pluralize }}
+              {% if rule.last_run_at %} · Dernière : {{ rule.last_run_at|date:"d/m/Y H:i" }}{% endif %}
+            </div>
+          </div>
+          <div class="d-flex gap-1">
+            <a href="{% url 'smart_automations:run_list' rule.pk %}" class="orion-btn sm ghost" title="Historique"><i class="bi bi-clock-history"></i></a>
+            <a href="{% url 'smart_automations:edit' rule.pk %}" class="orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'smart_automations:run' rule.pk %}">{% csrf_token %}
+              <button class="orion-btn sm accent" type="submit" title="Exécuter maintenant"><i class="bi bi-play-fill"></i></button>
+            </form>
+            <form method="post" action="{% url 'smart_automations:toggle' rule.pk %}">{% csrf_token %}
+              <button class="orion-btn sm {% if rule.is_active %}danger{% else %}success{% endif %}" type="submit">
+                {% if rule.is_active %}Désactiver{% else %}Activer{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-lightning-charge" style="font-size:32px;color:var(--orion-muted)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucune règle. <a href="{% url 'smart_automations:create' %}">Créer la première règle</a></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

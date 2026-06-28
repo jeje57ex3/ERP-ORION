@@ -1,0 +1,181 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">Chantiers</a></li>
+<li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ project.name }}</h1>
+      <div class="detail-meta">
+        <span class="badge-status badge-{{ project.status }}">{{ project.get_status_display }}</span>
+        {% if project.code %}<span>{{ project.code }}</span>{% endif %}
+        <span><i class="bi bi-person me-1"></i>{{ project.customer.name }}</span>
+        {% if project.site_foreman %}<span><i class="bi bi-hard-hat me-1"></i>{{ project.site_foreman }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'btp:quote_create' %}?project={{ project.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-file-text me-1"></i>Nouveau devis</a>
+      <a href="{% url 'btp:situation_create' %}?project={{ project.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-graph-up me-1"></i>Situation</a>
+      <a href="{% url 'btp:project_edit' project.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'btp:project_delete' project.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'btp:project_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+  <div class="erp-tabs mt-3">
+    <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>Informations</a>
+    <a href="?tab=quotes" class="erp-tab {% if tab == 'quotes' %}active{% endif %}"><i class="bi bi-file-text me-1"></i>Devis ({{ quotes.count }})</a>
+    <a href="?tab=situations" class="erp-tab {% if tab == 'situations' %}active{% endif %}"><i class="bi bi-graph-up me-1"></i>Situations</a>
+    <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>Pointage</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if tab == 'quotes' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-file-text me-1 text-primary"></i>Devis BTP</h6>
+    <a href="{% url 'btp:quote_create' %}?project={{ project.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Nouveau devis</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>N°</th><th>Objet</th><th>Date</th><th class="text-end">Total HT</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for q in quotes %}
+        <tr>
+          <td><a href="{% url 'btp:quote_detail' q.pk %}" class="fw-semibold text-dark text-decoration-none">{{ q.number }}</a></td>
+          <td class="small text-muted">{{ q.subject|default:"—" }}</td>
+          <td class="small text-muted">{{ q.issue_date|date:"d/m/Y" }}</td>
+          <td class="text-end fw-semibold small">{{ q.total_ht|floatformat:2 }} €</td>
+          <td><span class="badge-status badge-{{ q.status }}">{{ q.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-3 small">Aucun devis pour ce chantier.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif tab == 'situations' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-graph-up me-1 text-primary"></i>Situations de travaux</h6>
+    <a href="{% url 'btp:situation_create' %}?project={{ project.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Nouvelle situation</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>N° Situation</th><th>Période</th><th class="text-end">Montant période HT</th><th class="text-end">Cumulé HT</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for s in situations %}
+        <tr>
+          <td><a href="{% url 'btp:situation_detail' s.pk %}" class="fw-semibold text-dark text-decoration-none">Situation n°{{ s.number }}</a></td>
+          <td class="small text-muted">{{ s.period_start|date:"d/m/Y" }} → {{ s.period_end|date:"d/m/Y" }}</td>
+          <td class="text-end fw-semibold small">{{ s.period_amount|floatformat:2 }} €</td>
+          <td class="text-end fw-semibold small">{{ s.cumulative_amount|floatformat:2 }} €</td>
+          <td><span class="badge-status badge-{{ s.status }}">{{ s.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune situation de travaux enregistrée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif tab == 'timesheet' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-clock me-1 text-primary"></i>Pointages</h6>
+    <a href="{% url 'btp:timesheet_create' %}?project={{ project.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Saisir un pointage</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>Date</th><th>Employé</th><th class="text-end">Heures</th><th class="text-end">H. sup</th><th>Tâche</th><th>Validé</th></tr></thead>
+      <tbody>
+        {% for ts in timesheets %}
+        <tr>
+          <td class="small">{{ ts.work_date|date:"d/m/Y" }}</td>
+          <td class="small text-muted">{{ ts.employee.get_full_name }}</td>
+          <td class="text-end small fw-semibold">{{ ts.hours }}h</td>
+          <td class="text-end small text-muted">{{ ts.overtime_hours }}h</td>
+          <td class="small text-muted">{{ ts.task_description|default:"—" }}</td>
+          <td>{% if ts.is_validated %}<span class="badge-status badge-active">Oui</span>{% else %}<span class="badge-status badge-pending">Non</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-3 small">Aucun pointage enregistré.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="row g-3">
+  <div class="col-12 col-md-4">
+    <div class="kpi-card" style="--kpi-color:#2563EB">
+      <div class="kpi-icon"><i class="bi bi-currency-euro"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ project.estimated_budget|floatformat:0 }} €</div><div class="kpi-label">Budget prévu HT</div></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="kpi-card" style="--kpi-color:{% if project.actual_cost > project.estimated_budget %}#DC2626{% else %}#16A34A{% endif %}">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ project.actual_cost|floatformat:0 }} €</div><div class="kpi-label">Coût réel HT</div></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="kpi-card" style="--kpi-color:#F59E0B">
+      <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ project.invoiced_amount|floatformat:0 }} €</div><div class="kpi-label">Facturé HT</div></div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Client</label><div class="value"><a href="{% url 'crm:customer_detail' project.customer.pk %}">{{ project.customer.name }}</a></div></div>
+        <div class="info-item"><label>Code chantier</label><div class="value {% if not project.code %}empty{% endif %}">{{ project.code|default:"—" }}</div></div>
+        <div class="info-item"><label>Chef de projet</label><div class="value {% if not project.project_manager %}empty{% endif %}">{{ project.project_manager.get_full_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Chef de chantier</label><div class="value {% if not project.site_foreman %}empty{% endif %}">{{ project.site_foreman|default:"—" }}</div></div>
+        <div class="info-item"><label>Début prévu</label><div class="value {% if not project.start_date %}empty{% endif %}">{{ project.start_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Fin prévue</label><div class="value {% if not project.end_date %}empty{% endif %}">{{ project.end_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Retenue garantie</label><div class="value">{{ project.retention_rate }} %</div></div>
+        <div class="info-item"><label>N° marché</label><div class="value {% if not project.market_number %}empty{% endif %}">{{ project.market_number|default:"—" }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    {% if project.start_date and project.end_date %}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-calendar-range me-1 text-primary"></i>Avancement temporel</h6></div>
+      <div class="p-3">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+          <span>{{ project.start_date|date:"d/m/Y" }}</span>
+          <span class="fw-semibold">{{ project.completion_rate }}%</span>
+          <span>{{ project.end_date|date:"d/m/Y" }}</span>
+        </div>
+        <div class="progress-erp"><div class="progress-erp-bar" style="width:{{ project.completion_rate }}%;background:var(--color-primary)"></div></div>
+      </div>
+    </div>
+    {% endif %}
+    {% if project.description %}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Description</h6></div>
+      <div class="p-3 small text-muted">{{ project.description|linebreaks }}</div>
+    </div>
+    {% endif %}
+    {% if project.address %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-geo-alt me-1 text-primary"></i>Adresse du chantier</h6></div>
+      <div class="p-3 small text-muted">{{ project.address }}<br>{{ project.zip_code }} {{ project.city }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

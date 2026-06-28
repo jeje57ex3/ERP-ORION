@@ -1,0 +1,48 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Marketplaces — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">Marketplaces</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% for acc in accounts %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="fw-semibold">{{ acc.account_name }}</div>
+            <div class="text-muted small">{{ acc.get_marketplace_type_display }}</div>
+          </div>
+          <span class="orion-badge orion-badge-{% if acc.status == 'active' %}success{% elif acc.status == 'suspended' %}warning{% else %}secondary{% endif %}">{{ acc.get_status_display }}</span>
+        </div>
+        <div class="small text-muted mb-2">
+          {% if acc.seller_id %}<div>ID vendeur : {{ acc.seller_id }}</div>{% endif %}
+          <div>Commission : {{ acc.commission_rate }}%</div>
+          <div>{{ acc.listing_count }} listing{{ acc.listing_count|pluralize }}</div>
+          {% if acc.last_sync %}<div>Sync : {{ acc.last_sync|date:"d/m/Y H:i" }}</div>{% endif %}
+        </div>
+        <div class="d-flex gap-1 justify-content-end mt-3">
+          <a href="{% url 'ecommerce:marketplace_edit' acc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil me-1"></i>Configurer</a>
+          <a href="{% url 'ecommerce:marketplace_listing_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-plus me-1"></i>Listing</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-shop"></i></div>
+      <div class="orion-empty-title">Aucun compte marketplace connecté.</div>
+      <div class="orion-empty-text">Connectez Amazon, Cdiscount, Fnac, ManoMano ou eBay.</div>
+      <a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary mt-2">Ajouter une marketplace</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

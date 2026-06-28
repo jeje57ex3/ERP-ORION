@@ -1,0 +1,128 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px;">
+
+  <div class="d-flex align-items-center mb-4">
+    <a href="{% url 'continuous_improvement:cycle_list' %}" class="btn btn-sm btn-outline-secondary me-3">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <h1 class="h3 fw-bold mb-0">{{ page_title }}</h1>
+  </div>
+
+  {% if templates and not is_edit %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0">
+      <h6 class="fw-semibold mb-0"><i class="bi bi-layout-text-window-reverse me-1 text-primary"></i>Démarrer depuis un modèle</h6>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2">
+        {% for t in templates %}
+        <a href="?template={{ t.pk }}" class="btn btn-sm {% if selected_template and selected_template.pk == t.pk %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          {{ t.title }}
+        </a>
+        {% endfor %}
+        {% if selected_template %}
+        <a href="{% url 'continuous_improvement:cycle_create' %}" class="btn btn-sm btn-link text-muted">Annuler modèle</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Titre *</label>
+            {{ form.title }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Catégorie</label>
+            {{ form.category }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Priorité</label>
+            {{ form.priority }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Description du problème *</label>
+            {{ form.problem_statement }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Objectif visé *</label>
+            {{ form.objective }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Cause racine</label>
+            {{ form.root_cause }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Critères de succès</label>
+            {{ form.success_criteria }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Résultat attendu</label>
+            {{ form.expected_result }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Propriétaire</label>
+            {{ form.owner }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Module lié</label>
+            {{ form.related_module }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Date de début</label>
+            {{ form.start_date }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Date cible</label>
+            {{ form.target_date }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Marque / Brand key</label>
+            {{ form.brand_key }}
+          </div>
+          {% if is_edit %}
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Statut</label>
+            {{ form.status }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Résultat réel</label>
+            {{ form.actual_result }}
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Raison d'échec</label>
+            {{ form.failure_reason }}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if form.errors %}
+        <div class="alert alert-danger mt-3">
+          {% for field, errors in form.errors.items %}
+          {% for error in errors %}<div>{{ error }}</div>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+      <div class="card-footer bg-transparent border-0 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2 me-1"></i>{% if is_edit %}Enregistrer{% else %}Créer le cycle{% endif %}
+        </button>
+        <a href="{% if cycle %}{% url 'continuous_improvement:cycle_detail' cycle.pk %}{% else %}{% url 'continuous_improvement:cycle_list' %}{% endif %}" class="btn btn-outline-secondary">
+          Annuler
+        </a>
+      </div>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

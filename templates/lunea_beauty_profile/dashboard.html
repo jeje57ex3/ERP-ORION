@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Lunea — Profils Beauté{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h1 class="h3 mb-4">Lunea — Profils Beauté</h1>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-primary">{{ stats.total_profiles }}</div>
+          <div class="text-muted small">Profils</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-success">{{ stats.total_recommendations }}</div>
+          <div class="text-muted small">Recommandations</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-warning">{{ stats.applied_recommendations }}</div>
+          <div class="text-muted small">Appliquées</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-info">{{ stats.pending_recommendations }}</div>
+          <div class="text-muted small">En attente</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Profils récents</span>
+      <a href="{% url 'lunea_beauty_profile:profile_list' %}" class="btn btn-sm btn-outline-primary">Tous les profils</a>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr>
+          <th>Client</th><th>Type de peau</th><th>Type de cheveux</th><th>Mis à jour</th>
+        </tr></thead>
+        <tbody>
+          {% for p in recent %}
+          <tr>
+            <td><a href="{% url 'lunea_beauty_profile:profile_detail' p.pk %}">{{ p.customer }}</a></td>
+            <td>{{ p.get_skin_type_display }}</td>
+            <td>{{ p.get_hair_type_display }}</td>
+            <td>{{ p.updated_at|date:"d/m/Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-3">Aucun profil</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

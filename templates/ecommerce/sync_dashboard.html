@@ -1,0 +1,84 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">Synchronisation</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">Tableau de bord synchronisation</h1>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for connector in connectors %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="erp-card h-100">
+      <div class="orion-orion-card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="card-title mb-0">{{ connector.get_connector_type_display }}</h6>
+          <span class="badge-status badge-{% if connector.status == 'active' %}paid{% elif connector.status == 'error' %}cancelled{% else %}pending{% endif %}">{{ connector.get_status_display }}</span>
+        </div>
+        <div class="text-muted small">{{ connector.sales_channel.name }}</div>
+      </div>
+      <div class="orion-orion-card-body">
+        <div class="small">
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span>Produits</span>
+            <span class="text-muted">{% if connector.last_sync_products %}{{ connector.last_sync_products|date:"d/m H:i" }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span>Stocks</span>
+            <span class="text-muted">{% if connector.last_sync_stock %}{{ connector.last_sync_stock|date:"d/m H:i" }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span>Commandes</span>
+            <span class="text-muted">{% if connector.last_sync_orders %}{{ connector.last_sync_orders|date:"d/m H:i" }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span>Clients</span>
+            <span class="text-muted">{% if connector.last_sync_customers %}{{ connector.last_sync_customers|date:"d/m H:i" }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+        {% if connector.last_error %}
+        <div class="orion-alert danger mt-2 p-2 small mb-0">{{ connector.last_error|truncatechars:100 }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="empty-state">
+      <i class="bi bi-arrow-repeat empty-state-icon"></i>
+      <div>Aucun connecteur configuré.</div>
+      <a href="{% url 'ecommerce:sales_channel_list' %}" class="orion-btn primary orion-btn sm mt-2">Configurer un canal</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if recent_logs %}
+<div class="erp-card">
+  <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-clock-history me-1 text-primary"></i>Logs récents</h6></div>
+  <div class="table-responsive">
+    <table class="erp-table">
+      <thead>
+        <tr><th>Connecteur</th><th>Type</th><th>Statut</th><th>Traités</th><th>Erreurs</th><th>Durée</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td class="small">{{ log.connector }}</td>
+          <td>{{ log.get_sync_type_display }}</td>
+          <td><span class="badge-status badge-{% if log.status == 'success' %}paid{% elif log.status == 'error' %}cancelled{% elif log.status == 'running' %}pending{% else %}info{% endif %}">{{ log.get_status_display }}</span></td>
+          <td>{{ log.items_processed }}</td>
+          <td>{% if log.items_error %}<span class="text-danger fw-semibold">{{ log.items_error }}</span>{% else %}0{% endif %}</td>
+          <td class="text-muted small">{% if log.duration_seconds %}{{ log.duration_seconds }}s{% else %}—{% endif %}</td>
+          <td class="text-muted small">{{ log.started_at|date:"d/m H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

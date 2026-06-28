@@ -1,0 +1,17 @@
+{% extends "erp_base.html" %}
+{% block content %}
+<div class="delete-confirm-card erp-card p-4 text-center">
+  <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+  <h4 class="mb-2">Supprimer ce prospect ?</h4>
+  <p class="fw-semibold fs-5 mb-3">{{ prospect.name }}</p>
+  <div class="orion-alert warning text-start mb-4">
+    <i class="bi bi-exclamation-circle me-2"></i>
+    <strong>Cette action est irréversible.</strong>
+  </div>
+  <form method="post" class="d-flex gap-2 justify-content-center">
+    {% csrf_token %}
+    <a href="{% url 'crm:prospect_detail' prospect.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+    <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>Confirmer la suppression</button>
+  </form>
+</div>
+{% endblock %}

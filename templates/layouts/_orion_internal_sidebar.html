@@ -1,0 +1,167 @@
+{% load static %}
+<aside class="orion-sidebar" id="orionSidebar" role="navigation" aria-label="Navigation principale">
+
+  {# ── Marque ────────────────────────────────────────────────────────── #}
+  <a href="{% block sidebar_home_url %}{% url 'core:home' %}{% endblock %}" class="orion-sidebar-brand" aria-label="Accueil">
+    {% if current_company and current_company.logo %}
+      <img src="{{ current_company.logo.url }}" alt="" class="orion-sidebar-logo">
+    {% else %}
+      <img src="{% static 'img/brand/orion-icon.svg' %}" alt="" class="orion-sidebar-logo" onerror="this.style.display='none'">
+    {% endif %}
+    <div>
+      <div class="orion-sidebar-brand-name">{% block sidebar_brand_name %}{{ brand_name|default:"Orion ERP" }}{% endblock %}</div>
+      <div class="orion-sidebar-brand-tag">{% block sidebar_brand_tag %}ERP{% endblock %}</div>
+    </div>
+  </a>
+
+  {# ── Entreprise (sélecteur) ─────────────────────────────────────────── #}
+  {% if companies and current_company %}
+  <div style="padding:8px 10px;border-bottom:1px solid var(--orion-border-soft)">
+    <div class="dropdown">
+      <button class="orion-nav-link w-100 text-start" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false" aria-label="Changer d'entreprise"
+              style="gap:8px;padding:8px 12px">
+        <i class="bi bi-building" style="color:{% if current_company.sector_color %}{{ current_company.sector_color }}{% else %}var(--orion-text-muted){% endif %}" aria-hidden="true"></i>
+        <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_company.name|truncatechars:22 }}</span>
+        <i class="bi bi-chevron-expand" style="font-size:10px;opacity:.45" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu" style="min-width:220px;margin-top:4px">
+        {% for comp in companies %}
+        <li>
+          <a class="dropdown-item {% if current_company.pk == comp.pk %}active{% endif %}"
+             href="{% url 'core:switch_company' comp.pk %}?next={{ request.path }}"
+             style="font-size:13px;padding:8px 14px">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ comp.sector_color|default:'var(--orion-text-muted)' }};margin-right:9px;flex-shrink:0"></span>
+            {{ comp.name }}
+            {% if current_company.pk == comp.pk %}
+              <i class="bi bi-check2" style="float:right;margin-top:2px;color:var(--orion-gold)" aria-hidden="true"></i>
+            {% endif %}
+          </a>
+        </li>
+        {% endfor %}
+        {% if request.user.is_superuser %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:13px;padding:8px 14px">
+            <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Nouvelle entreprise
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Navigation ────────────────────────────────────────────────────── #}
+  <nav class="orion-sidebar-nav" aria-label="Modules">
+    {% for group in nav_groups %}
+    <div class="orion-nav-section">
+      {% if group.label %}
+      <span class="orion-nav-section-label">{{ group.label }}</span>
+      {% endif %}
+      <ul>
+        {% for module in group.items %}
+        {% if module.children %}
+        {# Module avec sous-menu #}
+        <li class="orion-nav-item">
+          <button class="orion-nav-link w-100 text-start {% if active_module == module.id %}active{% endif %}"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#navSub-{{ module.id }}"
+                  aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %} aria-hidden="true"></i>
+            <span style="flex:1">{{ module.label }}</span>
+            <i class="bi bi-chevron-down" style="font-size:11px;opacity:.5;transition:transform .2s" aria-hidden="true"></i>
+          </button>
+          <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navSub-{{ module.id }}">
+            <div class="orion-subnav">
+              {% for child in module.children %}
+              <a class="orion-subnav-link {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+                 href="{% url child.url_name %}">
+                <i class="bi {{ child.icon }}" style="font-size:12px;opacity:.7;margin-right:4px" aria-hidden="true"></i>
+                {{ child.label }}
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+        </li>
+        {% else %}
+        {# Module simple #}
+        <li class="orion-nav-item">
+          <a class="orion-nav-link {% if active_module == module.id %}active{% endif %}"
+             href="{% url module.url_name %}">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %} aria-hidden="true"></i>
+            <span>{{ module.label }}</span>
+          </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% empty %}
+    {# Fallback : ancienne structure nav_modules plate #}
+    {% for module in nav_modules %}
+    <div class="orion-nav-section">
+      <ul>
+        {% if module.children %}
+        <li class="orion-nav-item">
+          <button class="orion-nav-link w-100 text-start {% if active_module == module.id %}active{% endif %}"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#navMod-{{ module.id }}"
+                  aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %} aria-hidden="true"></i>
+            <span style="flex:1">{{ module.label }}</span>
+            <i class="bi bi-chevron-down" style="font-size:11px;opacity:.5" aria-hidden="true"></i>
+          </button>
+          <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navMod-{{ module.id }}">
+            <div class="orion-subnav">
+              {% for child in module.children %}
+              <a class="orion-subnav-link {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+                 href="{% url child.url_name %}">
+                <i class="bi {{ child.icon }}" style="font-size:12px;opacity:.7;margin-right:4px" aria-hidden="true"></i>
+                {{ child.label }}
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+        </li>
+        {% else %}
+        <li class="orion-nav-item">
+          <a class="orion-nav-link {% if active_module == module.id %}active{% endif %}"
+             href="{% url module.url_name %}">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %} aria-hidden="true"></i>
+            <span>{{ module.label }}</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+
+  {# ── Pied de sidebar ───────────────────────────────────────────────── #}
+  <div class="orion-sidebar-footer">
+    {% if request.user.is_authenticated %}
+    <a class="orion-sidebar-user" href="{% url 'core:profile' %}" title="Profil">
+      <div class="orion-sidebar-avatar">
+        {% if request.user.profile_picture %}
+          <img src="{{ request.user.profile_picture.url }}" alt="">
+        {% else %}
+          {{ request.user.get_full_name|default:request.user.username|first|upper }}
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="orion-sidebar-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        {% if request.user.is_superuser %}
+        <div class="orion-sidebar-user-role">Super Admin</div>
+        {% elif request.user.is_staff %}
+        <div class="orion-sidebar-user-role">Admin</div>
+        {% endif %}
+      </div>
+    </a>
+    {% endif %}
+  </div>
+
+</aside>

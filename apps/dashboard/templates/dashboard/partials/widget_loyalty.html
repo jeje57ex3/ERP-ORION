@@ -1,0 +1,76 @@
+{% load dashboard_tags %}
+{% with points=widget_data|dict_get:"loyalty_points_issued" %}
+{% with members=widget_data|dict_get:"loyalty_members_active" %}
+{% with redemptions=widget_data|dict_get:"loyalty_redemptions" %}
+{% with tiers=widget_data|dict_get:"loyalty_tier_distribution" %}
+{% with expiring=widget_data|dict_get:"loyalty_expiring_points" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'loyalty_points_issued' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#f5f3ff;color:#7C3AED;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-gem"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ points.points|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">points fidélité émis cette semaine</div>
+    </div>
+  </div>
+
+{% elif code == 'loyalty_members_active' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-person-heart"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ members.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">membres actifs dans le programme</div>
+    </div>
+  </div>
+
+{% elif code == 'loyalty_redemptions' %}
+  {% if redemptions.has_data %}
+  <div class="mb-2"><span class="badge" style="background:#C4936A">{{ redemptions.count }} rédemption(s) récente(s)</span></div>
+  {% for r in redemptions.redemptions %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fdf4ec;color:#C4936A"><i class="bi bi-gift"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.account.customer_email|default:"—" }}</div>
+      <div class="widget-item-sub">{{ r.points }} pts · {{ r.created_at|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-gift"></i><p>Aucune rédemption récente.</p></div>
+  {% endif %}
+
+{% elif code == 'loyalty_tier_distribution' %}
+  {% if tiers.tiers %}
+  {% for t in tiers.tiers %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-bar-chart-steps"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ t.tier.name }}</div>
+      <div class="widget-item-sub">À partir de {{ t.tier.min_points }} pts</div>
+    </div>
+    <span class="badge bg-secondary" style="font-size:.7rem">{{ t.count }} membre(s)</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-bar-chart-steps"></i><p>Aucun palier de fidélité configuré.</p></div>
+  {% endif %}
+
+{% elif code == 'loyalty_expiring_points' %}
+  {% if expiring.has_data %}
+  <div class="mb-2"><span class="badge bg-danger">{{ expiring.count }} expiration(s) dans 30 jours</span></div>
+  {% for t in expiring.transactions %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-hourglass-split"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ t.account.customer_email|default:"—" }}</div>
+      <div class="widget-item-sub">{{ t.points }} pts · Expire le {{ t.expires_at|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-hourglass-split"></i><p>Aucun point expirant dans les 30 jours.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

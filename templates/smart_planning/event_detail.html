@@ -1,0 +1,30 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'smart_planning:planning' %}">Planning</a></div>
+    <h1 class="orion-page-title">{{ event.title }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Détails</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Type</dt><dd>{{ event.get_event_type_display }}</dd>
+          <dt>Statut</dt><dd><span class="orion-badge {% if event.status == 'done' %}success{% elif event.status == 'cancelled' %}danger{% else %}neutral{% endif %}">{{ event.get_status_display }}</span></dd>
+          <dt>Début</dt><dd>{{ event.start_at|date:"d/m/Y H:i" }}</dd>
+          <dt>Fin</dt><dd>{{ event.end_at|date:"d/m/Y H:i" }}</dd>
+          {% if event.location %}<dt>Lieu</dt><dd>{{ event.location }}</dd>{% endif %}
+          {% if event.employee %}<dt>Employé</dt><dd>{{ event.employee.full_name }}</dd>{% endif %}
+          {% if event.customer %}<dt>Client</dt><dd>{{ event.customer.name }}</dd>{% endif %}
+          {% if event.project_id %}<dt>Projet</dt><dd>{{ event.project_id }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

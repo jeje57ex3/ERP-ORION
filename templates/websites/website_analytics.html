@@ -1,0 +1,157 @@
+{% extends "erp_base.html" %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item active">Analytics</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4 fw-semibold mb-0">Statistiques du site</h1>
+    <form method="get" class="d-flex gap-2 align-items-center">
+      <label class="text-muted small">Période :</label>
+      <select name="period" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        <option value="7" {% if period == '7' %}selected{% endif %}>7 jours</option>
+        <option value="30" {% if period == '30' %}selected{% endif %}>30 jours</option>
+        <option value="90" {% if period == '90' %}selected{% endif %}>90 jours</option>
+        <option value="365" {% if period == '365' %}selected{% endif %}>1 an</option>
+      </select>
+    </form>
+  </div>
+
+  {# KPIs #}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="orion-orion-card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small mb-1">Pages vues</div>
+              <div class="h4 fw-bold mb-0">{{ page_views|intcomma }}</div>
+            </div>
+            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:44px;height:44px">
+              <i class="bi bi-eye text-primary"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="orion-orion-card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small mb-1">Messages reçus</div>
+              <div class="h4 fw-bold mb-0">{{ contact_messages|intcomma }}</div>
+            </div>
+            <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:44px;height:44px">
+              <i class="bi bi-envelope text-info"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="orion-orion-card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small mb-1">Demandes de devis</div>
+              <div class="h4 fw-bold mb-0">{{ quote_requests|intcomma }}</div>
+            </div>
+            <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:44px;height:44px">
+              <i class="bi bi-file-text text-warning"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="orion-orion-card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small mb-1">Commandes boutique</div>
+              <div class="h4 fw-bold mb-0">{{ store_orders|intcomma }}</div>
+            </div>
+            <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:44px;height:44px">
+              <i class="bi bi-bag text-success"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Pages les plus vues #}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">Pages les plus vues</h6>
+        </div>
+        {% if top_pages %}
+        <div class="orion-orion-card-body p-0">
+          <div class="table-responsive">
+            <table class="orion-table mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>#</th>
+                  <th>Page</th>
+                  <th class="text-end">Vues</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in top_pages %}
+                <tr>
+                  <td class="text-muted small">{{ forloop.counter }}</td>
+                  <td><code class="small">{{ p.path }}</code></td>
+                  <td class="text-end fw-medium">{{ p.count|intcomma }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="orion-orion-card-body text-center py-4">
+          <i class="bi bi-bar-chart text-muted fs-3 mb-2"></i>
+          <div class="text-muted small">Aucune donnée de navigation pour cette période.</div>
+          <div class="text-muted" style="font-size:0.75rem">Les vues sont enregistrées lorsque le middleware Analytics est actif.</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">Résumé activité</h6>
+        </div>
+        <div class="orion-orion-card-body">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item d-flex justify-content-between px-0">
+              <span><i class="bi bi-cursor me-2 text-muted"></i>Clics formulaires</span>
+              <span class="fw-medium">{{ form_submissions|intcomma }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0">
+              <span><i class="bi bi-box-seam me-2 text-muted"></i>Vues produits</span>
+              <span class="fw-medium">{{ product_views|intcomma }}</span>
+            </div>
+          </div>
+          <div class="alert alert-light mt-3 mb-0" style="font-size:0.8rem">
+            <i class="bi bi-shield-check me-1 text-success"></i>
+            Les adresses IP sont <strong>hachées</strong> et ne sont jamais stockées en clair.
+            Aucun cookie de tracking tiers n'est utilisé.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

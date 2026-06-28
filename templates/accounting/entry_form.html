@@ -1,0 +1,133 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:entry_list' %}">Écritures</a></li>
+<li class="breadcrumb-item active">Nouvelle écriture</li>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-plus me-2"></i>Nouvelle écriture comptable</h6></div>
+  <div class="erp-orion-orion-card-body">
+    <form method="post" id="entryForm">
+      {% csrf_token %}
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Journal <span class="text-danger">*</span></label>
+          <select name="journal" class="form-select" required>
+            <option value="">-- Sélectionner --</option>
+            {% for j in journals %}
+            <option value="{{ j.pk }}">{{ j.code }} — {{ j.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+          <input type="date" name="entry_date" class="form-control" required>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+          <input type="text" name="description" class="form-control" required placeholder="Libellé de l'écriture">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Référence</label>
+          <input type="text" name="reference" class="form-control" placeholder="ex. FAC-2025-001">
+        </div>
+      </div>
+
+      <h6 class="fw-semibold mb-3">Lignes d'écriture</h6>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle" id="linesTable">
+          <thead class="table-light">
+            <tr>
+              <th style="min-width:280px">Compte</th>
+              <th style="min-width:200px">Libellé</th>
+              <th style="min-width:130px">Débit (€)</th>
+              <th style="min-width:130px">Crédit (€)</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="linesBody">
+            {% for i in "01234"|make_list %}
+            <tr class="entry-line-row">
+              <td>
+                <select name="account_id[]" class="form-select form-select-sm">
+                  <option value="">-- Compte --</option>
+                  {% for acc in accounts %}
+                  <option value="{{ acc.pk }}">{{ acc.number }} — {{ acc.name }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input type="text" name="label[]" class="form-control form-control-sm" placeholder="Libellé ligne"></td>
+              <td><input type="number" name="debit[]" class="form-control form-control-sm debit-input" step="0.01" min="0" value="0" oninput="updateTotals()"></td>
+              <td><input type="number" name="credit[]" class="form-control form-control-sm credit-input" step="0.01" min="0" value="0" oninput="updateTotals()"></td>
+              <td class="text-center"><button type="button" class="orion-btn sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="2" class="fw-semibold text-end">Totaux</td>
+              <td><span id="totalDebit" class="fw-semibold text-success">0.00</span></td>
+              <td><span id="totalCredit" class="fw-semibold text-danger">0.00</span></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="d-flex gap-2 align-items-center mt-2 mb-4">
+        <button type="button" class="btn btn-outline-secondary orion-btn sm" id="addLine"><i class="bi bi-plus me-1"></i>Ajouter une ligne</button>
+        <div id="balanceAlert" class="orion-alert danger py-1 px-3 mb-0 small d-none"><i class="bi bi-exclamation-triangle me-1"></i>L'écriture n'est pas équilibrée (débit ≠ crédit)</div>
+        <div id="balanceOk" class="orion-alert success py-1 px-3 mb-0 small d-none"><i class="bi bi-check-circle me-1"></i>Écriture équilibrée</div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-floppy me-1"></i>Enregistrer</button>
+        <a href="{% url 'accounting:entry_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const lineTemplate = `<tr class="entry-line-row">
+  <td>
+    <select name="account_id[]" class="form-select form-select-sm">
+      <option value="">-- Compte --</option>
+      {% for acc in accounts %}<option value="{{ acc.pk }}">{{ acc.number }} — {{ acc.name }}</option>{% endfor %}
+    </select>
+  </td>
+  <td><input type="text" name="label[]" class="form-control form-control-sm" placeholder="Libellé ligne"></td>
+  <td><input type="number" name="debit[]" class="form-control form-control-sm debit-input" step="0.01" min="0" value="0" oninput="updateTotals()"></td>
+  <td><input type="number" name="credit[]" class="form-control form-control-sm credit-input" step="0.01" min="0" value="0" oninput="updateTotals()"></td>
+  <td class="text-center"><button type="button" class="orion-btn sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
+</tr>`;
+
+document.getElementById('addLine').addEventListener('click', () => {
+  document.getElementById('linesBody').insertAdjacentHTML('beforeend', lineTemplate);
+  bindRemoveButtons();
+});
+
+function bindRemoveButtons() {
+  document.querySelectorAll('.remove-line').forEach(btn => {
+    btn.onclick = () => { btn.closest('tr').remove(); updateTotals(); };
+  });
+}
+
+function updateTotals() {
+  let debit = 0, credit = 0;
+  document.querySelectorAll('.debit-input').forEach(i => debit += parseFloat(i.value) || 0);
+  document.querySelectorAll('.credit-input').forEach(i => credit += parseFloat(i.value) || 0);
+  document.getElementById('totalDebit').textContent = debit.toFixed(2);
+  document.getElementById('totalCredit').textContent = credit.toFixed(2);
+  const balanced = Math.abs(debit - credit) < 0.01;
+  document.getElementById('balanceAlert').classList.toggle('d-none', balanced || (debit === 0 && credit === 0));
+  document.getElementById('balanceOk').classList.toggle('d-none', !balanced || (debit === 0 && credit === 0));
+}
+
+bindRemoveButtons();
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{# Composant breadcrumb réutilisable
+   Usage : {% include "components/breadcrumb.html" with items=breadcrumb_items %}
+   items = liste de dicts :
+     - {'label': 'CRM', 'url': '/crm/'}         → lien cliquable
+     - {'label': 'Jean Dupont'}                  → dernier élément (pas de lien)
+   Si le premier item n'a pas de 'url', une icône home est affichée à la place du label.
+#}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb mb-0">
+    {% for item in items %}
+      {% if forloop.first and not item.url %}
+        {# Premier item sans URL → icône home #}
+        <li class="breadcrumb-item">
+          <a href="{% url 'core:dashboard' %}" class="text-decoration-none">
+            <i class="bi bi-house"></i>
+          </a>
+        </li>
+      {% elif forloop.last and not item.url %}
+        {# Dernier item → actif, sans lien #}
+        <li class="breadcrumb-item active" aria-current="page">{{ item.label }}</li>
+      {% elif item.url %}
+        <li class="breadcrumb-item">
+          <a href="{{ item.url }}" class="text-decoration-none">{{ item.label }}</a>
+        </li>
+      {% else %}
+        <li class="breadcrumb-item active" aria-current="page">{{ item.label }}</li>
+      {% endif %}
+    {% empty %}
+      <li class="breadcrumb-item">
+        <a href="{% url 'core:dashboard' %}" class="text-decoration-none">
+          <i class="bi bi-house"></i>
+        </a>
+      </li>
+    {% endfor %}
+  </ol>
+</nav>

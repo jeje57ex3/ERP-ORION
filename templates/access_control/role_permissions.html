@@ -1,0 +1,83 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:role_list' %}">Rôles</a></li>
+<li class="breadcrumb-item active">{{ role.name }}</li>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Matrice des permissions par module et action.</p>{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header d-flex align-items-center gap-3 flex-wrap">
+    <h6 class="erp-card-title mb-0"><i class="bi bi-shield-lock me-2"></i>{{ role.name }} <code class="fs-6">{{ role.code }}</code></h6>
+    <div class="ms-auto d-flex gap-2">
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action_type" value="full_access">
+        <button type="submit" class="orion-btn sm orion-btn success" onclick="return confirm('Accorder tous les accès ?')">
+          <i class="bi bi-check2-all me-1"></i>Accès complet
+        </button>
+      </form>
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action_type" value="readonly">
+        <button type="submit" class="orion-btn sm btn-info">
+          <i class="bi bi-eye me-1"></i>Lecture seule
+        </button>
+      </form>
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action_type" value="clear">
+        <button type="submit" class="orion-btn sm btn-outline-danger" onclick="return confirm('Supprimer toutes les permissions ?')">
+          <i class="bi bi-x-circle me-1"></i>Tout effacer
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="erp-orion-orion-card-body">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action_type" value="save">
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle" style="min-width:700px">
+          <thead class="table-dark">
+            <tr>
+              <th style="min-width:160px">Module</th>
+              {% for action in actions %}
+              <th class="text-center" style="min-width:80px">
+                <small>{{ action.name }}</small>
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for module in modules %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi {{ module.icon|default:'bi-grid' }}" style="color:{{ module.color|default:'#6366F1' }}"></i>
+                  <span class="fw-semibold small">{{ module.name }}</span>
+                </div>
+              </td>
+              {% for action in actions %}
+              {% with key=module.code|add:"__"|add:action.code %}
+              <td class="text-center p-1">
+                <input type="checkbox" name="{{ key }}" value="1" class="form-check-input"
+                  {% if key in existing %}checked{% endif %}>
+              </td>
+              {% endwith %}
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-floppy me-1"></i>Enregistrer</button>
+        <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-secondary">Retour</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

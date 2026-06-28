@@ -1,0 +1,51 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:sales_channel_list' %}">Canaux de vente</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}Modifier {{ channel.name }}{% else %}Nouveau canal{% endif %}</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ channel.name }}{% else %}Nouveau canal de vente{% endif %}</h1>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-diagram-3 me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Nom *</label>{{ form.name }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Type *</label>{{ form.channel_type }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Statut</label>{{ form.status }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Devise</label>{{ form.currency }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Langue</label>{{ form.language }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Pays</label>{{ form.country }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">URL</label>{{ form.url }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
+            <a href="{% url 'ecommerce:sales_channel_list' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

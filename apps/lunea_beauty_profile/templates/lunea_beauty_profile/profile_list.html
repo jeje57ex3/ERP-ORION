@@ -1,0 +1,71 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Profils beauté — LUNEA{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">LUNEA · Profils beauté</p>
+    <h1 class="orion-page-title">Tous les profils</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'lunea_beauty_profile:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Type de peau</th>
+        <th>Type de cheveux</th>
+        <th>Allergies</th>
+        <th>Préoccupations peau</th>
+        <th>Dernier rdv</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for profile in profiles %}
+      <tr>
+        <td>
+          <div style="font-weight:500">{{ profile.customer }}</div>
+        </td>
+        <td>{{ profile.get_skin_type_display }}</td>
+        <td>{{ profile.get_hair_type_display }}</td>
+        <td style="font-size:12px">
+          {% if profile.allergies %}
+          {{ profile.allergies|join:", "|truncatechars:40 }}
+          {% else %}
+          <span style="color:var(--orion-muted)">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px">
+          {% for concern in profile.skin_concerns|slice:":3" %}
+          <span class="orion-badge neutral me-1">{{ concern }}</span>
+          {% empty %}
+          <span style="color:var(--orion-muted)">—</span>
+          {% endfor %}
+        </td>
+        <td style="font-size:12px;color:var(--orion-muted)">
+          {{ profile.last_appointment_at|date:"d/m/Y"|default:"—" }}
+        </td>
+        <td>
+          <a href="{% url 'lunea_beauty_profile:profile_detail' profile.pk %}" class="orion-btn sm">Voir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:var(--orion-muted);padding:48px">
+          <i class="bi bi-person-heart d-block mb-2" style="font-size:32px;opacity:.3"></i>
+          Aucun profil beauté.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

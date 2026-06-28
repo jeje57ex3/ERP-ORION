@@ -1,0 +1,99 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
+    <h1>Serveurs Orion</h1>
+    <p class="orion-page-subtitle">Principal + 2 secondaires.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">Vérifier les serveurs</a>
+    <a class="orion-btn orion-btn--primary" href="{% url 'high_availability:admin_settings' %}">Paramètres HA</a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body" style="padding:0;">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Priorité</th>
+          <th>Serveur</th>
+          <th>Rôle</th>
+          <th>URL</th>
+          <th>Statut</th>
+          <th>Heartbeat</th>
+          <th>Lag DB</th>
+          <th>Actif</th>
+          <th>Failover</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for node in nodes %}
+        <tr>
+          <td><strong>{{ node.priority }}</strong></td>
+          <td>
+            {{ node.name }}<br>
+            <small class="orion-text-muted">{{ node.node_id }}</small>
+          </td>
+          <td>{{ node.get_role_display }}</td>
+          <td>
+            {% if node.base_url %}
+              <a href="{{ node.base_url }}" target="_blank" rel="noopener" style="font-size:12px;">{{ node.base_url }}</a>
+            {% else %}
+              <span class="orion-text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="orion-status-dot orion-status-dot--{{ node.status }}"></span>
+            {{ node.get_status_display }}
+          </td>
+          <td>
+            {% if node.heartbeat_age_seconds is not None %}
+              {{ node.heartbeat_age_seconds }}s
+              {% if node.is_stale %}<span class="orion-badge orion-badge--warning">stale</span>{% endif %}
+            {% else %}
+              <span class="orion-text-muted">Jamais</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if node.replication_lag_seconds is not None %}
+              {{ node.replication_lag_seconds }}s
+            {% else %}
+              <span class="orion-text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if node.is_current_active %}
+              <span class="orion-badge orion-badge--success">Actif</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if node.is_failover_target %}
+              <span class="orion-badge orion-badge--info">Cible</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <a class="orion-btn orion-btn--sm" href="{% url 'high_availability:admin_node_detail' node.pk %}">Modifier</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" class="orion-table-empty">
+            Aucun serveur configuré. Exécutez <code>python manage.py ha_seed</code>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

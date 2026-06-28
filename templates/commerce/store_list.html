@@ -1,0 +1,65 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Magasins — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Magasins</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Gérez vos points de vente physiques.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'commerce:store_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau magasin</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3E8FF;color:#9333EA"><i class="bi bi-shop"></i></div>
+      <div class="orion-kpi-value">{{ total }}</div>
+      <div class="orion-kpi-label">Total magasins</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
+      <div class="orion-kpi-value">{{ active }}</div>
+      <div class="orion-kpi-label">Actifs</div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead><tr><th>Code</th><th>Nom</th><th>Ville</th><th>Téléphone</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+          {% for store in stores %}
+          <tr>
+            <td class="small text-muted">{{ store.code|default:"—" }}</td>
+            <td><a href="{% url 'commerce:store_detail' store.pk %}" class="fw-semibold text-dark text-decoration-none small">{{ store.name }}</a></td>
+            <td class="small text-muted">{{ store.city|default:"—" }}</td>
+            <td class="small text-muted">{{ store.phone|default:"—" }}</td>
+            <td>{% if store.is_active %}<span class="orion-badge orion-badge-success">Actif</span>{% else %}<span class="orion-badge orion-badge-secondary">Inactif</span>{% endif %}</td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'commerce:store_detail' store.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'commerce:store_edit' store.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'commerce:store_delete' store.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-shop"></i></div>
+              <div class="orion-empty-title">Aucun magasin</div>
+              <div class="orion-empty-text">Ajoutez votre premier point de vente pour commencer.</div>
+              <a href="{% url 'commerce:store_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau magasin</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

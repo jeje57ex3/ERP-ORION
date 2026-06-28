@@ -1,0 +1,29 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"hr_my_hours" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="p-3 row g-2 text-center">
+  <div class="col-4">
+    <div class="p-2 rounded-3" style="background:#DBEAFE">
+      <div class="fw-bold text-primary fs-6">{{ data.hours_week|floatformat:1 }}h</div>
+      <div class="text-muted" style="font-size:.7rem">Cette semaine</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="p-2 rounded-3" style="background:#FEF3C7">
+      <div class="fw-bold text-warning fs-6">{{ data.hours_pending }}</div>
+      <div class="text-muted" style="font-size:.7rem">En attente</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="p-2 rounded-3" style="background:#DCFCE7">
+      <div class="fw-bold text-success fs-6">{{ data.hours_validated }}</div>
+      <div class="text-muted" style="font-size:.7rem">Validées</div>
+    </div>
+  </div>
+</div>
+<div class="p-2 text-center"><a href="/btp/timesheets/" class="btn btn-sm btn-outline-primary" style="font-size:.75rem">Saisir mes heures</a></div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-stopwatch"></i><p class="mt-2 mb-0">Aucun pointage cette semaine.</p></div>
+{% endif %}
+{% endwith %}

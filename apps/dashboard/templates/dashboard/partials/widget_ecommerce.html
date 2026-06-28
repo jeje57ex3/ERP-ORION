@@ -1,0 +1,87 @@
+{% load dashboard_tags %}
+{% with orders_data=widget_data|dict_get:"ecommerce_orders_to_prepare" %}
+{% with stock_data=widget_data|dict_get:"inventory_low_stock_products" %}
+{% with returns_data=widget_data|dict_get:"ecommerce_returns_pending" %}
+{% with sales_data=widget_data|dict_get:"commerce_daily_sales" %}
+{% with cc_data=widget_data|dict_get:"commerce_click_collect_pending" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'ecommerce_orders_to_prepare' %}
+  {% if orders_data.orders %}
+  <div class="mb-2"><span class="badge bg-primary">{{ orders_data.count }} commande(s)</span></div>
+  {% for o in orders_data.orders %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-bag-check"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">Commande #{{ o.pk }}</div>
+      <div class="widget-item-sub">{{ o.created_at|date:"d/m H:i" }}</div>
+    </div>
+    <a href="/ecommerce/orders/{{ o.pk }}/" class="btn btn-xs btn-sm btn-outline-primary py-0 px-2" style="font-size:.7rem">Préparer</a>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-bag-check"></i><p>Aucune commande à préparer.</p></div>
+  {% endif %}
+
+{% elif code == 'inventory_low_stock_products' %}
+  {% if stock_data.products %}
+  <div class="mb-2"><span class="badge bg-danger">{{ stock_data.count }} produit(s)</span></div>
+  {% for p in stock_data.products %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-boxes"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ p.name|truncatechars:35 }}</div>
+      <div class="widget-item-sub">Stock : {{ p.stock_quantity|default:"0" }}</div>
+    </div>
+    <a href="/inventory/products/{{ p.pk }}/" class="btn btn-xs btn-sm btn-outline-danger py-0 px-2" style="font-size:.7rem">Voir</a>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-boxes"></i><p>Aucun produit en rupture de stock.</p></div>
+  {% endif %}
+
+{% elif code == 'ecommerce_returns_pending' %}
+  {% if returns_data.returns %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ returns_data.count }} retour(s)</span></div>
+  {% for r in returns_data.returns %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-arrow-return-left"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">Retour #{{ r.pk }}</div>
+      <div class="widget-item-sub">{{ r.created_at|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-arrow-return-left"></i><p>Aucun retour en attente.</p></div>
+  {% endif %}
+
+{% elif code == 'commerce_daily_sales' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-cash-register"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ sales_data.today_revenue|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">{{ sales_data.transactions }} transaction(s) aujourd'hui</div>
+    </div>
+  </div>
+
+{% elif code == 'commerce_click_collect_pending' %}
+  {% if cc_data.orders %}
+  <div class="mb-2"><span class="badge bg-info">{{ cc_data.count }} commande(s)</span></div>
+  {% for o in cc_data.orders %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-shop-window"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">Commande #{{ o.pk }}</div>
+      <div class="widget-item-sub">{{ o.created_at|date:"d/m H:i" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-shop-window"></i><p>Aucun Click & Collect en attente.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

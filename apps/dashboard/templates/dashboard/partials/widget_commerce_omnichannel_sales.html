@@ -1,0 +1,17 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"commerce_omnichannel_sales" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="d-flex gap-2 p-3 flex-wrap">
+  {% for channel in data.channels %}
+  <div class="flex-grow-1 p-3 rounded-3 text-center" style="background:#f8f9fa;min-width:110px">
+    <i class="{{ channel.icon }} fs-3 mb-2" style="color:{{ channel.color }}"></i>
+    <div class="fw-bold" style="color:{{ channel.color }}">{{ channel.amount|floatformat:0 }} €</div>
+    <div class="text-muted" style="font-size:.72rem">{{ channel.label }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-diagram-3"></i><p class="mt-2 mb-0">Aucune donnée de vente omnicanal.</p></div>
+{% endif %}
+{% endwith %}

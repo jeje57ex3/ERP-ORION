@@ -1,0 +1,20 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"sales_quotes_expiring_soon" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}{% if data.count %}<span class="badge bg-warning text-dark ms-2">{{ data.count }}</span>{% endif %}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for q in data.quotes %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <i class="bi bi-file-earmark-exclamation text-warning flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <a href="/sales/quotes/{{ q.pk }}/" class="text-decoration-none fw-semibold" style="font-size:.84rem">{{ q }}</a>
+      {% if q.customer %}<div class="text-muted" style="font-size:.72rem">{{ q.customer }}</div>{% endif %}
+    </div>
+    <span class="badge bg-warning text-dark flex-shrink-0" style="font-size:.65rem">{{ q.expiry_date|date:"d/m" }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-file-earmark-check"></i><p class="mt-2 mb-0">Aucun devis n'expire dans les 7 prochains jours.</p></div>
+{% endif %}
+{% endwith %}

@@ -1,0 +1,58 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Articles blog — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Articles blog</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Articles publiés sur vos sites web.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'websites:blog_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel article</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="orion-filter-bar d-flex gap-2 ms-auto">
+      <select name="site" class="form-select form-select-sm" style="width:160px;" onchange="this.form.submit()">
+        <option value="">Tous les sites</option>
+        {% for s in sites %}<option value="{{ s.pk }}" {% if site_id == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+      </select>
+      <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:200px" placeholder="Rechercher..."></div>
+      <button class="orion-btn orion-btn-outline"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead><tr><th>Titre</th><th>Site</th><th>Catégorie</th><th>Tps lecture</th><th>Statut</th><th>Date</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for post in posts %}
+        <tr>
+          <td class="small fw-semibold">{{ post.title }}</td>
+          <td class="small text-muted">{{ post.website.name }}</td>
+          <td class="small text-muted">{{ post.category.name|default:"—" }}</td>
+          <td class="small text-muted">{{ post.reading_time }} min</td>
+          <td>
+            {% if post.status == 'published' %}<span class="orion-badge orion-badge-success">Publié</span>
+            {% elif post.status == 'draft' %}<span class="orion-badge orion-badge-secondary">Brouillon</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">Archivé</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ post.created_at|date:"d/m/Y" }}</td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'websites:blog_edit' post.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-journal-text"></i></div>
+            <div class="orion-empty-title">Aucun article</div>
+            <div class="orion-empty-text">Commencez à rédiger des articles pour votre blog.</div>
+            <a href="{% url 'websites:blog_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel article</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

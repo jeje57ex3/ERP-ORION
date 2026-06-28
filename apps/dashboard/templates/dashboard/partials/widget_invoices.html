@@ -1,0 +1,57 @@
+{% load dashboard_tags %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'sales_unpaid_invoices' %}
+  {% with data=widget_data|dict_get:"sales_unpaid_invoices" %}
+  {% if data.invoices %}
+  <div class="mb-2"><span class="badge bg-danger">{{ data.count }} · {{ data.total_amount|floatformat:2 }} € TTC</span></div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light"><tr><th>Client</th><th>Échéance</th><th class="text-end">TTC</th><th></th></tr></thead>
+      <tbody>
+      {% for inv in data.invoices %}
+      <tr>
+        <td class="small fw-semibold">{{ inv.customer.name|truncatechars:25 }}</td>
+        <td class="small text-muted">{{ inv.due_date|date:"d/m/Y"|default:"—" }}</td>
+        <td class="small text-end fw-semibold">{{ inv.total_ttc|floatformat:2 }} €</td>
+        <td><a href="/sales/invoices/{{ inv.pk }}/" class="btn btn-xs btn-sm btn-outline-danger py-0 px-2" style="font-size:.7rem">Voir</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="dashboard-widget-footer"><a href="/sales/invoices/" class="small text-muted">Voir toutes les factures →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-receipt-cutoff"></i><p>Aucune facture impayée. Excellent !</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'accounting_overdue_customer_invoices' %}
+  {% with data=widget_data|dict_get:"accounting_overdue_customer_invoices" %}
+  {% if data.invoices %}
+  <div class="mb-2"><span class="badge bg-danger">{{ data.count }} en retard · {{ data.total_amount|floatformat:2 }} €</span></div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light"><tr><th>Client</th><th>Échéance</th><th class="text-end">TTC</th><th></th></tr></thead>
+      <tbody>
+      {% for inv in data.invoices %}
+      <tr class="table-danger">
+        <td class="small fw-semibold">{{ inv.customer.name|truncatechars:25 }}</td>
+        <td class="small text-danger fw-semibold">{{ inv.due_date|date:"d/m/Y" }}</td>
+        <td class="small text-end fw-semibold">{{ inv.total_ttc|floatformat:2 }} €</td>
+        <td><a href="/sales/invoices/{{ inv.pk }}/" class="btn btn-xs btn-sm btn-outline-danger py-0 px-2" style="font-size:.7rem">Voir</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-exclamation-octagon"></i><p>Aucune facture en retard.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% else %}
+  <div class="widget-empty-state"><i class="bi bi-receipt-cutoff"></i><p>Aucune facture.</p></div>
+{% endif %}
+
+{% endwith %}

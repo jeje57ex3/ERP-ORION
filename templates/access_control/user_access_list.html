@@ -1,0 +1,53 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
+<li class="breadcrumb-item active">Accès utilisateurs</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'access_control:user_access_create' %}" class="orion-btn primary"><i class="bi bi-person-plus me-1"></i>Ajouter un accès</a>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-person-check me-2"></i>Accès utilisateurs à la société</h6></div>
+  <div class="erp-orion-orion-card-body">
+    {% if accesses %}
+    <div class="table-responsive">
+      <table class="orion-table align-middle">
+        <thead>
+          <tr><th>Utilisateur</th><th>Rôle</th><th class="text-center">Actif</th><th class="text-center">Multi-société</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for access in accesses %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ access.user.get_full_name|default:access.user.username }}</div>
+              <small class="text-muted">{{ access.user.email }}</small>
+            </td>
+            <td>
+              {% if access.role %}<span class="orion-badge gold">{{ access.role.name }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if access.is_active %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if access.can_switch_company %}<i class="bi bi-check-circle-fill text-info"></i>{% else %}<i class="bi bi-dash text-muted"></i>{% endif %}
+            </td>
+            <td class="text-end">
+              <form method="post" action="{% url 'access_control:user_access_delete' access.pk %}" class="d-inline" onsubmit="return confirm('Supprimer cet accès ?')">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">Aucun utilisateur configuré.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

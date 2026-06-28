@@ -1,0 +1,23 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"favorite_shortcuts" %}
+{% if data.shortcuts %}
+<div class="shortcut-grid">
+  {% for sc in data.shortcuts %}
+  <a href="{{ sc.get_resolved_url }}" class="shortcut-card">
+    <div class="shortcut-icon" style="background-color:{{ sc.color }}"><i class="{{ sc.icon }}"></i></div>
+    <span class="shortcut-label">{{ sc.label|truncatechars:16 }}</span>
+  </a>
+  {% endfor %}
+  <a href="{% url 'dashboard:shortcut_create' %}" class="shortcut-add-card">
+    <i class="bi bi-plus-circle fs-5"></i>
+    <span style="font-size:.72rem">Ajouter</span>
+  </a>
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-lightning-charge"></i>
+  <p>Aucun raccourci favori. Ajoutez vos actions fréquentes pour gagner du temps.</p>
+  <a href="{% url 'dashboard:shortcut_create' %}" class="btn btn-sm btn-warning">Créer un raccourci</a>
+</div>
+{% endif %}
+{% endwith %}

@@ -1,0 +1,194 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Pointages chantier — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Pointages chantier</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Suivi des heures travaillées par chantier et par salarié.</p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{% url 'btp:timesheet_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau pointage</a>
+  <button type="button" class="orion-btn orion-btn-outline" id="btnValidateSelected" disabled onclick="submitValidateSelected()">
+    <i class="bi bi-check2-all me-1"></i>Valider sélection
+  </button>
+  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if employee %}&employee={{ employee }}{% endif %}{% if project %}&project={{ project }}{% endif %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-download me-1"></i>Exporter heures
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check2-circle"></i></div>
+      <div class="orion-kpi-value">{{ total_hours|floatformat:1|default:"0" }} h</div>
+      <div class="orion-kpi-label">Heures validées</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-hourglass-split"></i></div>
+      <div class="orion-kpi-value">{{ pending_hours|floatformat:1|default:"0" }} h</div>
+      <div class="orion-kpi-label">En attente validation</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-x-circle"></i></div>
+      <div class="orion-kpi-value">{{ rejected_hours|floatformat:1|default:"0" }} h</div>
+      <div class="orion-kpi-label">Heures rejetées</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-people"></i></div>
+      <div class="orion-kpi-value">{{ active_employees|default:"0" }}</div>
+      <div class="orion-kpi-label">Salariés actifs ce mois</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chips statut -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'btp:timesheet_list' %}{% if project %}?project={{ project }}{% endif %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="?status=pending{% if project %}&project={{ project }}{% endif %}{% if employee %}&employee={{ employee }}{% endif %}" class="orion-filter-chip {% if status == 'pending' %}active{% endif %}"><i class="bi bi-hourglass-split me-1 text-warning"></i>En attente</a>
+  <a href="?status=validated{% if project %}&project={{ project }}{% endif %}{% if employee %}&employee={{ employee }}{% endif %}" class="orion-filter-chip {% if status == 'validated' %}active{% endif %}"><i class="bi bi-check-circle me-1 text-success"></i>Validé</a>
+  <a href="?status=rejected{% if project %}&project={{ project }}{% endif %}{% if employee %}&employee={{ employee }}{% endif %}" class="orion-filter-chip {% if status == 'rejected' %}active{% endif %}"><i class="bi bi-x-circle me-1 text-danger"></i>Refusé</a>
+</div>
+
+<!-- Tableau -->
+<form method="post" action="{% url 'btp:timesheet_validate_bulk' %}" id="formValidateBulk">
+{% csrf_token %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <div class="d-flex gap-2 flex-wrap flex-grow-1">
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="Salarié, chantier, tâche..." value="{{ q }}" form="formSearch" style="flex:1;min-width:180px">
+      <select name="employee" class="form-select form-select-sm" style="max-width:180px" onchange="window.location='?employee='+this.value+'{% if status %}&status={{ status }}{% endif %}{% if project %}&project={{ project }}{% endif %}'">
+        <option value="">Tous salariés</option>
+        {% for emp in employees_list %}
+        <option value="{{ emp.pk }}" {% if employee == emp.pk|stringformat:'s' %}selected{% endif %}>{{ emp.get_full_name }}</option>
+        {% endfor %}
+      </select>
+      <select name="project" class="form-select form-select-sm" style="max-width:200px" onchange="window.location='?project='+this.value+'{% if status %}&status={{ status }}{% endif %}{% if employee %}&employee={{ employee }}{% endif %}'">
+        <option value="">Tous chantiers</option>
+        {% for pr in projects_list %}
+        <option value="{{ pr.pk }}" {% if project == pr.pk|stringformat:'s' %}selected{% endif %}>{{ pr.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm" form="formSearch"><i class="bi bi-search"></i></button>
+    </div>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr>
+            <th style="width:40px">
+              <input type="checkbox" class="form-check-input" id="checkAll" onchange="toggleAll(this)">
+            </th>
+            <th>Date</th>
+            <th>Salarié</th>
+            <th>Chantier</th>
+            <th>Tâche</th>
+            <th class="text-end">Heures</th>
+            <th>Statut</th>
+            <th class="text-center">Visible client</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ts in timesheets %}
+          <tr>
+            <td>
+              {% if ts.status == 'pending' %}
+              <input type="checkbox" class="form-check-input row-check" name="ids" value="{{ ts.pk }}" onchange="updateBulkBtn()">
+              {% endif %}
+            </td>
+            <td class="small text-muted text-nowrap">{{ ts.work_date|date:"d/m/Y" }}</td>
+            <td>
+              <span class="small fw-semibold">{{ ts.employee.get_full_name|default:"—" }}</span>
+            </td>
+            <td>
+              <a href="{% url 'btp:project_detail' ts.project.pk %}" class="text-muted small">{{ ts.project.name }}</a>
+            </td>
+            <td class="small text-muted">{{ ts.task_description|truncatechars:50|default:"—" }}</td>
+            <td class="text-end small fw-semibold">
+              {{ ts.hours }}h
+              {% if ts.overtime_hours %}<span class="text-muted small"> + {{ ts.overtime_hours }}h sup.</span>{% endif %}
+            </td>
+            <td>
+              {% if ts.status == 'validated' or ts.is_validated %}
+                <span class="orion-badge orion-badge-success"><i class="bi bi-check-circle me-1"></i>Validé</span>
+              {% elif ts.status == 'rejected' %}
+                <span class="orion-badge orion-badge-danger"><i class="bi bi-x-circle me-1"></i>Refusé</span>
+              {% else %}
+                <span class="orion-badge orion-badge-warning"><i class="bi bi-hourglass-split me-1"></i>En attente</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if ts.client_visible %}
+                <i class="bi bi-eye-fill text-success" title="Visible client"></i>
+              {% else %}
+                <i class="bi bi-eye-slash text-muted" title="Non visible"></i>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                {% if ts.status == 'pending' or not ts.is_validated %}
+                <form method="post" action="{% url 'btp:timesheet_validate' ts.pk %}" class="d-inline">{% csrf_token %}
+                  <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="Valider"><i class="bi bi-check-circle text-success"></i></button>
+                </form>
+                <form method="post" action="{% url 'btp:timesheet_reject' ts.pk %}" class="d-inline">{% csrf_token %}
+                  <button class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Refuser"><i class="bi bi-x-circle"></i></button>
+                </form>
+                {% endif %}
+                <a href="{% url 'btp:timesheet_detail' ts.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="orion-empty">
+                <div class="orion-empty-icon"><i class="bi bi-clock"></i></div>
+                <div class="orion-empty-title">Aucun pointage trouvé</div>
+                <div class="orion-empty-text">{% if q or status or employee or project %}Aucun pointage ne correspond aux filtres.{% else %}Enregistrez les heures de travail pour chaque chantier et salarié.{% endif %}</div>
+                <a href="{% url 'btp:timesheet_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau pointage</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</form>
+
+<form id="formSearch" method="get">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  {% if employee %}<input type="hidden" name="employee" value="{{ employee }}">{% endif %}
+  {% if project %}<input type="hidden" name="project" value="{{ project }}">{% endif %}
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(cb) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  updateBulkBtn();
+}
+function updateBulkBtn() {
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const btn = document.getElementById('btnValidateSelected');
+  btn.disabled = checked === 0;
+  if (checked > 0) { btn.innerHTML = `<i class="bi bi-check2-all me-1"></i>Valider sélection (${checked})`; }
+  else { btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>Valider sélection'; }
+}
+function submitValidateSelected() {
+  document.getElementById('formValidateBulk').submit();
+}
+</script>
+{% endblock %}

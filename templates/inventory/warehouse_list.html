@@ -1,0 +1,102 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Entrepôts — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Entrepôts</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Gérez vos entrepôts et emplacements de stockage.</p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'inventory:warehouse_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel entrepôt</a>
+  <a href="{% url 'inventory:movement_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-clipboard-check me-1"></i>Inventaire général</a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if warehouses %}
+<div class="row g-4">
+  {% for wh in warehouses %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100 d-flex flex-column" style="border-top:3px solid var(--color-primary,#3A2A1A)">
+      <div class="orion-orion-orion-card-body flex-grow-1">
+        <!-- En-tête carte -->
+        <div class="d-flex align-items-start justify-content-between mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="orion-kpi-icon" style="width:48px;height:48px;background:#FEF9EC;color:#C6A15B;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-building" style="font-size:1.4rem"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">
+                <a href="{% url 'inventory:warehouse_detail' wh.pk %}" class="text-dark text-decoration-none">{{ wh.name }}</a>
+              </h5>
+              {% if wh.code %}<span class="small text-muted">{{ wh.code }}</span>{% endif %}
+            </div>
+          </div>
+          {% if wh.is_active %}
+            <span class="orion-badge orion-badge-success">Actif</span>
+          {% else %}
+            <span class="orion-badge orion-badge-secondary">Inactif</span>
+          {% endif %}
+        </div>
+
+        <!-- Infos -->
+        <ul class="list-unstyled mb-3 small text-muted">
+          {% if wh.address %}
+          <li class="d-flex gap-2 mb-1">
+            <i class="bi bi-geo-alt mt-1 flex-shrink-0"></i>
+            <span>{{ wh.address }}{% if wh.city %}, {{ wh.city }}{% endif %}</span>
+          </li>
+          {% endif %}
+          {% if wh.manager %}
+          <li class="d-flex gap-2 mb-1">
+            <i class="bi bi-person mt-1 flex-shrink-0"></i>
+            <span>{{ wh.manager.get_full_name }}</span>
+          </li>
+          {% endif %}
+          {% if wh.phone %}
+          <li class="d-flex gap-2 mb-1">
+            <i class="bi bi-telephone mt-1 flex-shrink-0"></i>
+            <span>{{ wh.phone }}</span>
+          </li>
+          {% endif %}
+        </ul>
+
+        <!-- Stats -->
+        <div class="row g-2 text-center">
+          <div class="col-6">
+            <div style="background:#F8F3EA;border-radius:8px;padding:10px 8px">
+              <div class="fw-bold fs-5" style="color:#3A2A1A">{{ wh.locations.count|default:"0" }}</div>
+              <div class="small text-muted">Emplacements</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:#F8F3EA;border-radius:8px;padding:10px 8px">
+              <div class="fw-bold fs-5" style="color:#C6A15B">—</div>
+              <div class="small text-muted">Valeur stock</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="orion-orion-orion-card-header border-top px-4 py-2 d-flex justify-content-end gap-2">
+        <a href="{% url 'inventory:warehouse_detail' wh.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+        <a href="{% url 'inventory:warehouse_edit' wh.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+        <a href="{% url 'inventory:warehouse_delete' wh.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body">
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
+      <div class="orion-empty-title">Aucun entrepôt configuré</div>
+      <div class="orion-empty-text">Créez votre premier entrepôt pour organiser vos emplacements de stockage et gérer votre stock efficacement.</div>
+      <a href="{% url 'inventory:warehouse_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouvel entrepôt</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

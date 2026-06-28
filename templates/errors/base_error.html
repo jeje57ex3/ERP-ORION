@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block error_title %}Erreur{% endblock %} — Orion ERP</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F8FAFC;
+      color: #1E293B;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .error-card {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 3rem 2.5rem;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .error-code {
+      font-size: 5rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: .5rem;
+    }
+    .error-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .error-text {
+      color: #64748B;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+    .btn-home {
+      display: inline-block;
+      background: #2563EB;
+      color: #fff;
+      text-decoration: none;
+      padding: .65rem 1.5rem;
+      border-radius: .5rem;
+      font-weight: 500;
+      transition: background .2s;
+    }
+    .btn-home:hover { background: #1D4ED8; }
+    .btn-back {
+      display: inline-block;
+      color: #64748B;
+      text-decoration: none;
+      padding: .65rem 1.5rem;
+      margin-left: .5rem;
+    }
+    .orion-brand {
+      margin-top: 2.5rem;
+      font-size: .8rem;
+      color: #CBD5E1;
+      letter-spacing: .05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="error-code" style="color: {% block code_color %}#2563EB{% endblock %}">
+      {% block error_code %}{% endblock %}
+    </div>
+    <div class="error-title">{% block error_heading %}{% endblock %}</div>
+    <p class="error-text">{% block error_body %}{% endblock %}</p>
+    <a href="/" class="btn-home">Accueil</a>
+    <a href="javascript:history.back()" class="btn-back">Retour</a>
+    <div class="orion-brand">ORION ERP</div>
+  </div>
+</body>
+</html>

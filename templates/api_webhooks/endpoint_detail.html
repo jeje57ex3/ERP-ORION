@@ -1,0 +1,54 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'api_webhooks:list' %}">Webhooks</a></div>
+    <h1 class="orion-page-title">{{ endpoint.name }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Configuration</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>URL</dt><dd><code>{{ endpoint.url }}</code></dd>
+          <dt>Événements</dt><dd>{% for ev in endpoint.events %}<span class="orion-badge neutral me-1">{{ ev }}</span>{% empty %}<em>Aucun</em>{% endfor %}</dd>
+          <dt>Statut</dt><dd><span class="orion-badge {% if endpoint.is_active %}success{% else %}neutral{% endif %}">{% if endpoint.is_active %}Actif{% else %}Inactif{% endif %}</span></dd>
+          <dt>Créé le</dt><dd>{{ endpoint.created_at|date:"d/m/Y H:i" }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Historique livraisons</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if deliveries %}
+        <div class="list-group list-group-flush">
+          {% for d in deliveries %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <span class="orion-badge {% if d.status == 'success' %}success{% elif d.status == 'failed' %}danger{% else %}neutral{% endif %}">{{ d.get_status_display }}</span>
+              <span style="font-size:13px">{{ d.event_type }}</span>
+              {% if d.response_code %}<span class="orion-badge neutral" style="font-size:11px">HTTP {{ d.response_code }}</span>{% endif %}
+              <span style="font-size:11px;color:var(--orion-muted);margin-left:auto">{{ d.created_at|date:"d/m H:i" }} · {{ d.attempts }} tentative(s)</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if deliveries.has_other_pages %}
+        <nav class="orion-pagination p-3">
+          {% if deliveries.has_previous %}<a href="?page={{ deliveries.previous_page_number }}" class="orion-page-btn">‹</a>{% endif %}
+          <span class="orion-page-btn">{{ deliveries.number }}/{{ deliveries.paginator.num_pages }}</span>
+          {% if deliveries.has_next %}<a href="?page={{ deliveries.next_page_number }}" class="orion-page-btn">›</a>{% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <p class="px-4 py-3 text-muted mb-0" style="font-size:13px">Aucune livraison enregistrée.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

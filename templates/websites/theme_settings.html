@@ -1,0 +1,183 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:theme_list' website.pk %}">Thèmes</a></li>
+      <li class="breadcrumb-item active">Paramètres thème</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    {# Formulaire #}
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm sticky-top" style="top:70px">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">
+            <i class="bi bi-palette me-2"></i>
+            {% if theme %}Modifier « {{ theme.name }} »{% else %}Aucun thème{% endif %}
+          </h6>
+        </div>
+        {% if theme %}
+        <div class="orion-orion-card-body">
+          <form method="post" id="themeForm">
+            {% csrf_token %}
+            <div class="row g-2 mb-3">
+              {% with colors=theme.primary_color|add:'|'|add:theme.secondary_color|add:'|'|add:theme.accent_color|add:'|'|add:theme.background_color|add:'|'|add:theme.text_color|add:'|'|add:theme.button_color|add:'|'|add:theme.header_bg_color|add:'|'|add:theme.footer_bg_color %}
+              <div class="col-6">
+                <label class="form-label small fw-medium">Couleur primaire</label>
+                <input type="color" name="primary_color" class="form-control form-control-color w-100"
+                  value="{{ theme.primary_color }}" id="primaryColor">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Couleur secondaire</label>
+                <input type="color" name="secondary_color" class="form-control form-control-color w-100"
+                  value="{{ theme.secondary_color }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Accent</label>
+                <input type="color" name="accent_color" class="form-control form-control-color w-100"
+                  value="{{ theme.accent_color }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Fond</label>
+                <input type="color" name="background_color" class="form-control form-control-color w-100"
+                  value="{{ theme.background_color }}" id="bgColor">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Texte</label>
+                <input type="color" name="text_color" class="form-control form-control-color w-100"
+                  value="{{ theme.text_color }}" id="textColor">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Boutons</label>
+                <input type="color" name="button_color" class="form-control form-control-color w-100"
+                  value="{{ theme.button_color }}" id="btnColor">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Fond header</label>
+                <input type="color" name="header_bg_color" class="form-control form-control-color w-100"
+                  value="{{ theme.header_bg_color }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-medium">Fond footer</label>
+                <input type="color" name="footer_bg_color" class="form-control form-control-color w-100"
+                  value="{{ theme.footer_bg_color }}">
+              </div>
+              {% endwith %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Police principale</label>
+              <select name="font_primary" class="form-select form-select-sm">
+                {% for val, label in font_choices %}
+                <option value="{{ val }}" {% if theme.font_primary == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Style boutons</label>
+              <select name="button_style" class="form-select form-select-sm">
+                {% for val, label in button_style_choices %}
+                <option value="{{ val }}" {% if theme.button_style == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-medium">Rayon bordures</label>
+              <input type="text" name="border_radius" class="form-control form-control-sm"
+                value="{{ theme.border_radius }}" placeholder="0.5rem">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-medium">CSS personnalisé</label>
+              <textarea name="custom_css" class="form-control form-control-sm font-monospace" rows="4"
+                placeholder="/* CSS personnalisé */">{{ theme.custom_css }}</textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+              <a href="{% url 'websites:theme_list' website.pk %}" class="orion-orion-btn sm">
+                Annuler
+              </a>
+              <button type="submit" class="orion-btn primary orion-btn sm flex-grow-1">
+                <i class="bi bi-check-lg me-1"></i>Enregistrer le thème
+              </button>
+            </div>
+          </form>
+        </div>
+        {% else %}
+        <div class="orion-orion-card-body text-center py-4">
+          <p class="text-muted">Aucun thème actif. <a href="{% url 'websites:theme_list' website.pk %}">Choisissez un thème</a>.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Prévisualisation live #}
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-eye me-2"></i>Aperçu live</h6>
+        </div>
+        <div class="orion-orion-card-body p-0">
+          <div id="themePreview" style="background:{{ theme.background_color|default:'#fff' }};min-height:400px;border-radius:0 0 0.5rem 0.5rem;overflow:hidden">
+            {# Header preview #}
+            <div id="previewHeader" style="background:{{ theme.header_bg_color|default:'#fff' }};padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.1)">
+              <span style="font-weight:700;color:{{ theme.primary_color|default:'#000' }};font-family:{{ theme.font_primary|default:'Inter' }},sans-serif">
+                {{ website.name }}
+              </span>
+              <div style="display:flex;gap:1rem">
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Accueil</span>
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Services</span>
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Contact</span>
+              </div>
+            </div>
+            {# Hero preview #}
+            <div style="background:{{ theme.primary_color|default:'#2563eb' }};padding:3rem 2rem;text-align:center">
+              <h2 style="color:#fff;font-family:{{ theme.font_primary|default:'Inter' }},sans-serif;margin-bottom:1rem">
+                Bienvenue sur {{ website.name }}
+              </h2>
+              <p style="color:rgba(255,255,255,0.8);margin-bottom:1.5rem">
+                Votre présence web professionnelle avec Orion ERP.
+              </p>
+              <button id="previewBtn" style="
+                background:{{ theme.button_color|default:'#fff' }};
+                color:{{ theme.primary_color|default:'#2563eb' }};
+                border:none;padding:0.75rem 2rem;
+                border-radius:{% if theme.button_style == 'pill' %}9999px{% elif theme.button_style == 'square' %}0{% else %}{{ theme.border_radius|default:'0.5rem' }}{% endif %};
+                font-family:{{ theme.font_primary|default:'Inter' }},sans-serif;
+                font-weight:600;cursor:pointer">
+                Nous contacter
+              </button>
+            </div>
+            {# Content preview #}
+            <div style="padding:2rem 2rem;color:{{ theme.text_color|default:'#111' }};font-family:{{ theme.font_primary|default:'Inter' }},sans-serif">
+              <h3 style="color:{{ theme.primary_color|default:'#2563eb' }};margin-bottom:1rem">Nos services</h3>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+                {% for label in 'Service 1,Service 2,Service 3'|split:',' %}
+                <div style="background:{{ theme.secondary_color|default:'#f1f5f9' }};padding:1rem;border-radius:{{ theme.border_radius|default:'0.5rem' }}">
+                  <strong>{{ label }}</strong>
+                  <p style="color:{{ theme.text_color|default:'#111' }};opacity:0.7;font-size:0.875rem;margin:0.5rem 0 0">
+                    Description du service proposé.
+                  </p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {# Footer preview #}
+            <div style="background:{{ theme.footer_bg_color|default:'#111' }};padding:1.5rem 2rem;color:{{ theme.footer_text_color|default:'#cbd5e1' }};font-size:0.875rem;text-align:center">
+              © 2025 {{ website.name }} — Tous droits réservés
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

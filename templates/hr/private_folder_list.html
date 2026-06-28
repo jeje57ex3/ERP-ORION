@@ -1,0 +1,106 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Dossiers privés salariés — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dossiers privés salariés</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Accès sécurisé aux documents confidentiels de chaque salarié.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#CCFBF1;color:#0D9488"><i class="bi bi-folder-lock"></i></div>
+      <div class="orion-kpi-value">{{ folders|length }}</div>
+      <div class="orion-kpi-label">Dossiers</div>
+    </div>
+  </div>
+  {% if expiring %}
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="orion-kpi-value">{{ expiring }}</div>
+      <div class="orion-kpi-label">Documents expirant bientôt</div>
+    </div>
+  </div>
+  {% endif %}
+  {% if expired %}
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#EF4444"><i class="bi bi-x-circle"></i></div>
+      <div class="orion-kpi-value">{{ expired }}</div>
+      <div class="orion-kpi-label">Documents expirés</div>
+    </div>
+  </div>
+  {% endif %}
+  {% if pending_sig %}
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EDE9FE;color:#8B5CF6"><i class="bi bi-pen"></i></div>
+      <div class="orion-kpi-value">{{ pending_sig }}</div>
+      <div class="orion-kpi-label">Signatures en attente</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-folder-lock me-2"></i>Dossiers salariés</h6></div>
+  <div class="orion-orion-orion-card-body">
+    {% if folders %}
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th>Salarié</th>
+            <th>Service</th>
+            <th>Poste</th>
+            <th class="text-center">Alertes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in folders %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="width:36px;height:36px;font-size:.85rem;">{{ item.employee.first_name.0 }}{{ item.employee.last_name.0 }}</div>
+                <div>
+                  <div class="fw-semibold">{{ item.employee.first_name }} {{ item.employee.last_name }}</div>
+                  <small class="text-muted">{{ item.employee.employee_number }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ item.employee.department|default:"-" }}</td>
+            <td>{{ item.employee.job_title|default:"-" }}</td>
+            <td class="text-center">
+              {% if item.folder.expired_count %}
+              <span class="orion-badge orion-badge-danger me-1"><i class="bi bi-x-circle me-1"></i>{{ item.folder.expired_count }} expirés</span>
+              {% endif %}
+              {% if item.folder.expiring_soon_count %}
+              <span class="orion-badge orion-badge-warning me-1"><i class="bi bi-clock me-1"></i>{{ item.folder.expiring_soon_count }} expirent</span>
+              {% endif %}
+              {% if item.folder.pending_signature_count %}
+              <span class="badge bg-purple me-1"><i class="bi bi-pen me-1"></i>{{ item.folder.pending_signature_count }} signatures</span>
+              {% endif %}
+              {% if not item.folder.expired_count and not item.folder.expiring_soon_count and not item.folder.pending_signature_count %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'hr:private_folder_detail' item.employee.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+                <i class="bi bi-folder-open me-1"></i>Ouvrir
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-folder-lock"></i></div>
+      <div class="orion-empty-title">Aucun salarié actif</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

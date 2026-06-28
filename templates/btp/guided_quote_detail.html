@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Demande {{ quote.reference }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{% url 'btp:guided_quote_list' %}" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Demandes guidées</a>
+    <h4 class="fw-bold mb-0 mt-1">{{ quote.reference|default:"Nouvelle demande" }}</h4>
+  </div>
+  <div class="d-flex gap-2">
+    {% if not quote.btp_project %}
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" name="action" value="create_project" class="orion-btn success orion-btn sm"><i class="bi bi-building-add me-1"></i>Créer chantier</button>
+    </form>
+    {% endif %}
+    {% if not quote.btp_quote %}
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" name="action" value="create_quote" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>Créer devis</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Colonne principale -->
+  <div class="col-12 col-lg-8">
+    <!-- Type & statut -->
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <span class="badge {% if quote.request_type == 'depannage' %}bg-danger{% else %}bg-primary{% endif %} me-2">
+            {% if quote.request_type == 'depannage' %}Dépannage{% elif quote.request_type == 'travaux' %}Travaux{% elif quote.request_type == 'renovation' %}Rénovation{% else %}{{ quote.get_request_type_display }}{% endif %}
+          </span>
+          {% if quote.answers.safety_issue %}<span class="orion-badge danger"><i class="bi bi-exclamation-triangle me-1"></i>Problème de sécurité</span>{% endif %}
+        </div>
+        <form method="post" class="d-flex align-items-center gap-2">
+          {% csrf_token %}
+          <select name="status" class="form-select form-select-sm" style="width:auto">
+            <option value="new" {% if quote.status == 'new' %}selected{% endif %}>Nouveau</option>
+            <option value="contacted" {% if quote.status == 'contacted' %}selected{% endif %}>Contacté</option>
+            <option value="visit_scheduled" {% if quote.status == 'visit_scheduled' %}selected{% endif %}>Visite planifiée</option>
+            <option value="quote_sent" {% if quote.status == 'quote_sent' %}selected{% endif %}>Devis envoyé</option>
+            <option value="converted" {% if quote.status == 'converted' %}selected{% endif %}>Converti</option>
+            <option value="lost" {% if quote.status == 'lost' %}selected{% endif %}>Perdu</option>
+          </select>
+          <button type="submit" name="action" value="update_status" class="orion-btn sm orion-btn warning">Enregistrer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Réponses questionnaire -->
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Réponses du questionnaire</h6>
+      {% if quote.answers %}
+      <dl class="row mb-0">
+        {% for key, val in quote.answers.items %}
+        <dt class="col-sm-5 text-muted small">{{ key }}</dt>
+        <dd class="col-sm-7 small">{{ val }}</dd>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <div class="text-muted small">Aucune réponse enregistrée</div>
+      {% endif %}
+    </div>
+
+    <!-- Photos & documents -->
+    {% if photos %}
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Photos & documents</h6>
+      <div class="d-flex flex-wrap gap-3">
+        {% for doc in photos %}
+        <div class="text-center">
+          {% if doc.is_image %}
+          <img src="{{ doc.file.url }}" style="width:100px;height:100px;object-fit:cover;border-radius:8px">
+          {% else %}
+          <div class="bg-light border rounded p-3 text-center" style="width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <i class="bi bi-file-earmark fs-3 text-muted"></i>
+            <div style="font-size:.65rem" class="text-muted mt-1">{{ doc.doc_type }}</div>
+          </div>
+          {% endif %}
+          <div class="mt-1"><a href="{{ doc.file.url }}" class="btn btn-link orion-btn sm p-0 text-muted" download><i class="bi bi-download"></i></a></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Notes internes -->
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Notes internes</h6>
+      <form method="post">
+        {% csrf_token %}
+        <textarea name="internal_notes" class="form-control mb-2" rows="3">{{ quote.internal_notes }}</textarea>
+        <button type="submit" name="action" value="update_notes" class="orion-btn sm btn-outline-secondary">Sauvegarder</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-12 col-lg-4">
+    <!-- Contact -->
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Contact</h6>
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div style="width:44px;height:44px;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0F172A;flex-shrink:0">{{ quote.client_first_name|first }}</div>
+        <div>
+          <div class="fw-bold">{{ quote.client_first_name }} {{ quote.client_last_name }}</div>
+          <div class="small text-muted">{{ quote.city }}</div>
+        </div>
+      </div>
+      <div class="d-flex flex-column gap-1 small">
+        <a href="tel:{{ quote.client_phone }}" class="text-decoration-none text-dark"><i class="bi bi-telephone me-2 text-warning"></i>{{ quote.client_phone }}</a>
+        <a href="mailto:{{ quote.client_email }}" class="text-decoration-none text-dark"><i class="bi bi-envelope me-2 text-warning"></i>{{ quote.client_email }}</a>
+        {% if quote.address %}<div><i class="bi bi-geo-alt me-2 text-muted"></i>{{ quote.address }}, {{ quote.zip_code }} {{ quote.city }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Pré-devis estimatif -->
+    {% if quote.estimate %}
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Pré-devis estimatif</h6>
+      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">Minimum</span><span class="fw-semibold">{{ quote.estimate.amount_min_ht|floatformat:2 }} € HT</span></div>
+      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">Estimé</span><span class="fw-bold text-success fs-6">{{ quote.estimate.amount_avg_ht|floatformat:2 }} € HT</span></div>
+      <div class="d-flex justify-content-between mb-3 small"><span class="text-muted">Maximum</span><span class="fw-semibold">{{ quote.estimate.amount_max_ht|floatformat:2 }} € HT</span></div>
+      <div class="border-top pt-2"><div class="d-flex justify-content-between small fw-bold"><span>Total TTC</span><span class="text-warning">{{ quote.estimate.total_ttc|floatformat:2 }} €</span></div></div>
+      {% if quote.estimate.items.exists %}
+      <div class="mt-3">
+        <div class="small text-muted fw-semibold mb-2">Détail :</div>
+        {% for line in quote.estimate.items.all %}
+        <div class="d-flex justify-content-between small text-muted mb-1">
+          <span>{{ line.label }}</span>
+          <span>{{ line.unit_price_avg|floatformat:0 }} €</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Liens ERP -->
+    {% if quote.btp_project or quote.btp_quote %}
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Liens ERP</h6>
+      {% if quote.btp_project %}<a href="{% url 'btp:project_detail' quote.btp_project.pk %}" class="btn btn-outline-success orion-btn sm w-100 mb-2"><i class="bi bi-building me-1"></i>Chantier : {{ quote.btp_project.name }}</a>{% endif %}
+      {% if quote.btp_quote %}<a href="{% url 'btp:quote_detail' quote.btp_quote.pk %}" class="btn btn-outline-primary orion-btn sm w-100"><i class="bi bi-file-earmark-text me-1"></i>Devis : {{ quote.btp_quote.reference }}</a>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Infos -->
+    <div class="bg-white border rounded-3 p-4 text-muted small">
+      <div class="mb-1"><strong>Référence :</strong> {{ quote.reference|default:"—" }}</div>
+      <div class="mb-1"><strong>Reçue le :</strong> {{ quote.created_at|date:"d/m/Y H:i" }}</div>
+      {% if quote.preferred_slots %}<div class="mb-1"><strong>Créneaux souhaités :</strong> {{ quote.preferred_slots }}</div>{% endif %}
+      {% if quote.create_portal_account %}<span class="orion-badge success-subtle text-success border">Compte portail à créer</span>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

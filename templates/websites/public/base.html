@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="{{ site.language|default:'fr' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>{% block meta_title %}{% if page_title %}{{ page_title }} — {% endif %}{{ site.name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ site.meta_description }}{% endblock %}">
+  {% if page and not page.is_indexable %}<meta name="robots" content="noindex, nofollow">{% endif %}
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  {% if theme %}
+  <!-- Thème dynamique -->
+  <link href="https://fonts.googleapis.com/css2?family={{ theme.font_primary|urlencode }}:wght@300;400;500;600;700&family={{ theme.font_secondary|urlencode }}:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% else %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  {% endif %}
+
+  <style>
+    :root {
+      {% if theme %}
+      --site-primary:     {{ theme.primary_color }};
+      --site-secondary:   {{ theme.secondary_color }};
+      --site-accent:      {{ theme.accent_color }};
+      --site-bg:          {{ theme.background_color }};
+      --site-text:        {{ theme.text_color }};
+      --site-btn:         {{ theme.button_color }};
+      --site-header-bg:   {{ theme.header_bg_color }};
+      --site-footer-bg:   {{ theme.footer_bg_color }};
+      --site-footer-text: {{ theme.footer_text_color }};
+      --site-radius:      {{ theme.border_radius }};
+      --site-font:        '{{ theme.font_primary }}', Inter, sans-serif;
+      {% else %}
+      --site-primary:     #2563EB;
+      --site-secondary:   #0F172A;
+      --site-accent:      #38BDF8;
+      --site-bg:          #FFFFFF;
+      --site-text:        #111827;
+      --site-btn:         #2563EB;
+      --site-header-bg:   #FFFFFF;
+      --site-footer-bg:   #0F172A;
+      --site-footer-text: #CBD5E1;
+      --site-radius:      0.5rem;
+      --site-font:        'Inter', sans-serif;
+      {% endif %}
+    }
+
+    body {
+      font-family: var(--site-font);
+      background-color: var(--site-bg);
+      color: var(--site-text);
+    }
+
+    /* Boutons thème */
+    .btn-site {
+      background-color: var(--site-btn);
+      color: white;
+      border: none;
+      border-radius: var(--site-radius);
+      padding: 0.75rem 1.75rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-site:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      color: white;
+    }
+
+    .btn-site-outline {
+      background: transparent;
+      color: var(--site-primary);
+      border: 2px solid var(--site-primary);
+      border-radius: var(--site-radius);
+      padding: 0.7rem 1.75rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-site-outline:hover {
+      background: var(--site-primary);
+      color: white;
+    }
+
+    /* Header */
+    .site-header {
+      background: var(--site-header-bg);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+    }
+
+    .navbar-brand {
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--site-primary) !important;
+    }
+
+    .nav-link {
+      color: var(--site-text) !important;
+      font-weight: 500;
+      font-size: 0.925rem;
+      padding: 0.5rem 0.75rem !important;
+      border-radius: 0.375rem;
+      transition: all 0.15s;
+    }
+    .nav-link:hover { color: var(--site-primary) !important; background: rgba(0,0,0,0.04); }
+
+    /* Footer */
+    .site-footer {
+      background: var(--site-footer-bg);
+      color: var(--site-footer-text);
+      padding: 3.5rem 0 1.5rem;
+    }
+    .site-footer a { color: var(--site-footer-text); text-decoration: none; opacity: 0.7; }
+    .site-footer a:hover { opacity: 1; color: var(--site-accent); }
+    .footer-title { color: white; font-weight: 600; margin-bottom: 1rem; font-size: 0.9rem; }
+    .footer-divider { border-color: rgba(255,255,255,0.1); }
+    .footer-bottom { font-size: 0.82rem; opacity: 0.6; }
+
+    /* Sections */
+    .section-title {
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      font-weight: 700;
+      color: var(--site-secondary);
+      margin-bottom: 1rem;
+    }
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: #6B7280;
+      max-width: 600px;
+    }
+
+    /* Couleur primaire sur les accents */
+    .text-site-primary { color: var(--site-primary) !important; }
+    .bg-site-primary { background-color: var(--site-primary) !important; }
+
+    /* Cards */
+    .site-card {
+      background: white;
+      border: 1px solid #E5E7EB;
+      border-radius: calc(var(--site-radius) * 2);
+      overflow: hidden;
+      transition: all 0.25s;
+      height: 100%;
+    }
+    .site-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+      border-color: var(--site-primary);
+    }
+
+    /* Formulaire */
+    .site-form-control {
+      border: 1.5px solid #E5E7EB;
+      border-radius: var(--site-radius);
+      padding: 0.7rem 1rem;
+      font-size: 0.9rem;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    .site-form-control:focus {
+      outline: none;
+      border-color: var(--site-primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    {% if theme and theme.custom_css %}
+    /* CSS personnalisé */
+    {{ theme.custom_css|safe }}
+    {% endif %}
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <nav class="navbar navbar-expand-lg" style="padding: 0.75rem 0;">
+      <div class="container">
+        <a class="navbar-brand" href="{% url 'public_websites:home' site.public_slug %}">
+          {% if site.logo %}
+            <img src="{{ site.logo.url }}" alt="{{ site.name }}" height="40" class="me-2">
+          {% else %}
+            {{ site.name }}
+          {% endif %}
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="siteNav">
+          <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+            {% for item in menu_items %}
+            {% if item.children.all %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ item.label }}</a>
+              <ul class="dropdown-menu">
+                {% for child in item.children.all %}
+                <li><a class="dropdown-item" href="{{ child.link }}"{% if child.open_new_tab %} target="_blank"{% endif %}>{{ child.label }}</a></li>
+                {% endfor %}
+              </ul>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ item.link }}"{% if item.open_new_tab %} target="_blank"{% endif %}>{{ item.label }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            <!-- CTA devis -->
+            <li class="nav-item ms-lg-2">
+              <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                <i class="bi bi-envelope me-1"></i>Demander un devis
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="row g-4">
+        <!-- Colonne 1 : Présentation -->
+        <div class="col-12 col-md-4">
+          <div class="footer-title fs-5">{{ site.company.name }}</div>
+          {% if site.company.address %}
+          <p class="small" style="opacity:0.6;">{{ site.company.address }}</p>
+          {% endif %}
+          {% if site.contact_email %}
+          <p class="small"><i class="bi bi-envelope me-2"></i><a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></p>
+          {% endif %}
+          {% if site.contact_phone %}
+          <p class="small"><i class="bi bi-telephone me-2"></i><a href="tel:{{ site.contact_phone }}">{{ site.contact_phone }}</a></p>
+          {% endif %}
+          <!-- Réseaux sociaux -->
+          <div class="d-flex gap-2 mt-3">
+            {% if site.facebook_url %}<a href="{{ site.facebook_url }}" target="_blank" class="social-link"><i class="bi bi-facebook fs-5"></i></a>{% endif %}
+            {% if site.instagram_url %}<a href="{{ site.instagram_url }}" target="_blank" class="social-link"><i class="bi bi-instagram fs-5"></i></a>{% endif %}
+            {% if site.linkedin_url %}<a href="{{ site.linkedin_url }}" target="_blank" class="social-link"><i class="bi bi-linkedin fs-5"></i></a>{% endif %}
+            {% if site.twitter_url %}<a href="{{ site.twitter_url }}" target="_blank" class="social-link"><i class="bi bi-twitter-x fs-5"></i></a>{% endif %}
+          </div>
+        </div>
+
+        <!-- Colonne 2 : Liens footer -->
+        <div class="col-12 col-md-4">
+          {% if footer_links %}
+          <div class="footer-title">Navigation</div>
+          <ul class="list-unstyled">
+            {% for link in footer_links %}
+            <li class="mb-1">
+              <a href="{{ link.link }}" class="small">{{ link.label }}</a>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+
+        <!-- Colonne 3 : Contact -->
+        <div class="col-12 col-md-4">
+          <div class="footer-title">Contactez-nous</div>
+          <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site-outline" style="color: var(--site-accent); border-color: var(--site-accent); font-size:0.85rem; padding:0.5rem 1.25rem;">
+            <i class="bi bi-envelope me-1"></i>Nous contacter
+          </a>
+          <br><br>
+          <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site" style="font-size:0.85rem; padding:0.5rem 1.25rem;">
+            <i class="bi bi-file-text me-1"></i>Demande de devis
+          </a>
+        </div>
+      </div>
+
+      <hr class="footer-divider my-4">
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center footer-bottom">
+        <span>© {% now "Y" %} {{ site.company.name }}. Tous droits réservés.</span>
+        <span class="d-flex align-items-center gap-3">
+          {% if site.company.siret %}<span>SIRET : {{ site.company.siret }}</span>{% endif %}
+          {% if site.show_powered_by_orion %}
+          {% load static %}
+          <a href="#" class="orion-powered-badge">
+            Propulsé par
+            <img src="{% static brand_logo_white_path|default:'img/brand/orion-logo-white.svg' %}" alt="Orion ERP">
+          </a>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <style>
+  .social-link { color: var(--site-footer-text); opacity: 0.6; transition: all 0.2s; }
+  .social-link:hover { opacity: 1; color: var(--site-accent); transform: translateY(-2px); }
+  </style>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {% if site.google_analytics_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ site.google_analytics_id }}');
+  </script>
+  {% endif %}
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

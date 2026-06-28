@@ -1,0 +1,9 @@
+{% extends "errors/base_error.html" %}
+{% block error_code %}500{% endblock %}
+{% block code_color %}#EF4444{% endblock %}
+{% block error_heading %}Erreur serveur interne{% endblock %}
+{% block error_body %}
+  Une erreur interne inattendue s'est produite.
+  Notre équipe technique a été notifiée et travaille à résoudre le problème.
+  Veuillez réessayer dans quelques instants.
+{% endblock %}

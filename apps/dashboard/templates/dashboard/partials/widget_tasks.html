@@ -1,0 +1,23 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"my_tasks" %}
+{% if data.tasks %}
+<div>
+  {% for task in data.tasks %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f0fdf4;color:#16A34A">
+      <i class="bi bi-check2-square"></i>
+    </div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ task.label|truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ task.due_date }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-check2-square"></i>
+  <p>Aucune tâche en attente.</p>
+</div>
+{% endif %}
+{% endwith %}

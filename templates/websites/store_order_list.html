@@ -1,0 +1,80 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Commandes boutique — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:store_dashboard' website.pk %}">{{ website.name }}</a></li>
+<li class="breadcrumb-item active">Commandes boutique</li>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#10B981"><i class="bi bi-cash-stack"></i></div>
+      <div class="orion-kpi-value">{{ revenue|floatformat:0 }}€</div>
+      <div class="orion-kpi-label">CA total (payé)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-hourglass-split"></i></div>
+      <div class="orion-kpi-value">{{ pending }}</div>
+      <div class="orion-kpi-label">En attente</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-cart-check"></i></div>
+      <div class="orion-kpi-value">{{ total }}</div>
+      <div class="orion-kpi-label">Total commandes</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+  <div class="d-flex flex-wrap gap-2">
+    <a href="?" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+    {% for val, label in status_choices %}
+    <a href="?status={{ val }}" class="orion-filter-chip {% if status == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <form class="d-flex gap-2 ms-auto" method="get">
+    <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:200px" placeholder="N° ou client..."></div>
+    <button type="submit" class="orion-btn orion-btn-outline">Chercher</button>
+  </form>
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr><th>N°</th><th>Client</th><th>Total</th><th>Statut</th><th>Paiement</th><th>Date</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><a href="{% url 'websites:store_order_detail' website.pk order.pk %}" class="fw-semibold">{{ order.order_number }}</a></td>
+          <td>
+            <div>{{ order.customer_name }}</div>
+            <div class="text-muted small">{{ order.customer_email }}</div>
+          </td>
+          <td class="fw-semibold">{{ order.grand_total|floatformat:2 }}€</td>
+          <td><span class="orion-badge orion-badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+          <td><span class="orion-badge orion-badge-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span></td>
+          <td class="text-muted small">{{ order.created_at|date:"d/m/Y H:i" }}</td>
+          <td><a href="{% url 'websites:store_order_detail' website.pk order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-cart"></i></div>
+            <div class="orion-empty-title">Aucune commande boutique pour le moment.</div>
+            <div class="orion-empty-text">Les nouvelles commandes apparaîtront ici dès qu'un client passera commande.</div>
+            <a href="{% url 'websites:store_dashboard' website.pk %}" class="orion-btn orion-btn-outline mt-2">Voir la boutique</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

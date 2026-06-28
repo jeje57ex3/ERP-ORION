@@ -1,0 +1,95 @@
+{% load dashboard_tags %}
+{% with last=widget_data|dict_get:"backups_last_status" %}
+{% with pending=widget_data|dict_get:"backups_pending" %}
+{% with failed=widget_data|dict_get:"backups_failed" %}
+{% with size=widget_data|dict_get:"backups_size_used" %}
+{% with scheduled=widget_data|dict_get:"backups_scheduled" %}
+{% with restores=widget_data|dict_get:"backups_recent_restores" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'backups_last_status' %}
+  <div class="d-flex align-items-center gap-3">
+    {% if last.status == 'success' %}
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-cloud-check"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1rem;color:#16A34A">Sauvegarde réussie</div>
+      <div class="text-muted" style="font-size:.78rem">{% if last.last_run %}{{ last.last_run|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div>
+    </div>
+    {% elif last.status == 'failed' %}
+    <div style="background:#fee2e2;color:#DC2626;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-cloud-slash"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1rem;color:#DC2626">Sauvegarde échouée</div>
+      <div class="text-muted" style="font-size:.78rem">{% if last.last_run %}{{ last.last_run|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div>
+    </div>
+    {% else %}
+    <div style="background:#f3f4f6;color:#6B7280;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-cloud"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1rem;color:#6B7280">Statut inconnu</div>
+      <div class="text-muted" style="font-size:.78rem">Aucune donnée disponible</div>
+    </div>
+    {% endif %}
+  </div>
+
+{% elif code == 'backups_pending' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fef3c7;color:#D97706;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-clock"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ pending.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">sauvegarde(s) en attente</div>
+    </div>
+  </div>
+
+{% elif code == 'backups_failed' %}
+  {% if failed.items %}
+  <div class="mb-2"><span class="badge bg-danger">{{ failed.count }} échec(s)</span></div>
+  {% for item in failed.items %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-cloud-slash"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ item.name|default:"Sauvegarde" }}</div>
+      <div class="widget-item-sub">{{ item.error|default:"Erreur inconnue" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-cloud-check"></i><p>Aucune sauvegarde en échec.</p></div>
+  {% endif %}
+
+{% elif code == 'backups_size_used' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#f3f4f6;color:#6B7280;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-hdd"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ size.size_gb|default:"0" }} Go</div>
+      <div class="text-muted" style="font-size:.78rem">utilisés sur {{ size.limit_gb|default:"—" }} Go</div>
+    </div>
+  </div>
+
+{% elif code == 'backups_scheduled' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dbeafe;color:#2563EB;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-calendar-check"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:.95rem;color:var(--dashboard-primary)">
+        {% if scheduled.next_run %}{{ scheduled.next_run|date:"d/m/Y H:i" }}{% else %}Non planifiée{% endif %}
+      </div>
+      <div class="text-muted" style="font-size:.78rem">prochaine sauvegarde planifiée</div>
+    </div>
+  </div>
+
+{% elif code == 'backups_recent_restores' %}
+  {% if restores.restores %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ restores.count }} restauration(s)</span></div>
+  {% for r in restores.restores %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-arrow-counterclockwise"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.name|default:"Restauration" }}</div>
+      <div class="widget-item-sub">{{ r.date|date:"d/m/Y H:i"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-arrow-counterclockwise"></i><p>Aucune restauration récente.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

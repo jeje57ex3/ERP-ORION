@@ -1,0 +1,27 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"accounting_bank_balances" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="p-3">
+  <div class="row g-2 mb-3">
+    <div class="col-12">
+      <div class="p-3 rounded-3 text-center" style="background:linear-gradient(135deg,#10B981,#059669);color:#fff">
+        <div class="text-white-50 small">Solde total</div>
+        <div class="fw-bold fs-4">{{ data.total|floatformat:2 }} €</div>
+      </div>
+    </div>
+  </div>
+  <ul class="list-unstyled mb-0">
+    {% for account in data.accounts %}
+    <li class="d-flex align-items-center gap-3 py-2 border-bottom">
+      <i class="bi bi-bank2 text-success flex-shrink-0"></i>
+      <span class="flex-grow-1 small">{{ account }}</span>
+      <span class="fw-semibold {% if account.current_balance >= 0 %}text-success{% else %}text-danger{% endif %}">{{ account.current_balance|floatformat:2 }} €</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-bank2"></i><p class="mt-2 mb-0">Aucun compte bancaire configuré.</p></div>
+{% endif %}
+{% endwith %}

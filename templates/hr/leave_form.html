@@ -1,0 +1,36 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'hr:leave_list' %}">Congés</a></li>
+<li class="breadcrumb-item active">Nouvelle demande</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-calendar-x me-1 text-primary"></i>Demande de congé</h6></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-12"><label class="form-label">Salarié *</label>{{ form.employee }}{% if form.employee.errors %}<div class="invalid-feedback d-block">{{ form.employee.errors }}</div>{% endif %}</div>
+            <div class="col-md-6"><label class="form-label">Type de congé</label>{{ form.leave_type }}</div>
+            <div class="col-md-6"><label class="form-label">Statut</label>{{ form.status }}</div>
+            <div class="col-md-4"><label class="form-label">Début</label>{{ form.start_date }}</div>
+            <div class="col-md-4"><label class="form-label">Fin</label>{{ form.end_date }}</div>
+            <div class="col-md-4"><label class="form-label">Nombre de jours</label>{{ form.days_count }}</div>
+            <div class="col-12"><label class="form-label">Motif</label>{{ form.reason }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2 justify-content-end mt-3">
+    <a href="{% url 'hr:leave_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer la demande</button>
+  </div>
+</form>
+{% endblock %}

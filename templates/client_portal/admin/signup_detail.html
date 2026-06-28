@@ -1,0 +1,213 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}{{ signup.full_name }} — Inscription client{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'portals:index' %}">Portails</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'portals:signup_list' %}">Inscriptions</a></li>
+  <li class="breadcrumb-item active">{{ signup.full_name }}</li>
+{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  {% if signup.status == 'pending_approval' or signup.status == 'pending_email_verification' %}
+  <form method="post" action="{% url 'portals:signup_approve' signup.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="orion-btn orion-orion-btn primary"
+            onclick="return confirm('Valider et créer le compte portail ?')">
+      <i class="bi bi-check-lg me-1"></i>Valider et créer l'espace client
+    </button>
+  </form>
+  {% endif %}
+  <a href="{% url 'portals:signup_list' %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  {# ── Colonne principale ── #}
+  <div class="col-12 col-lg-8">
+
+    {# Informations client #}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="card-title mb-0">Informations du demandeur</h6>
+        <span class="badge bg-{{ signup.status_badge_class }}-subtle text-{{ signup.status_badge_class }}-emphasis border border-{{ signup.status_badge_class }}-subtle">
+          {{ signup.get_status_display }}
+        </span>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="small text-muted fw-semibold mb-1">Prénom</div>
+            <div>{{ signup.first_name }}</div>
+          </div>
+          <div class="col-6">
+            <div class="small text-muted fw-semibold mb-1">Nom</div>
+            <div>{{ signup.last_name }}</div>
+          </div>
+          <div class="col-6">
+            <div class="small text-muted fw-semibold mb-1">Email</div>
+            <div>
+              <a href="mailto:{{ signup.email }}">{{ signup.email }}</a>
+              {% if signup.email_verified %}
+              <span class="orion-badge success-subtle text-success border border-success-subtle ms-1" style="font-size:.68rem">Vérifié</span>
+              {% else %}
+              <span class="orion-badge warning-subtle text-warning-emphasis border border-warning-subtle ms-1" style="font-size:.68rem">Non vérifié</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="small text-muted fw-semibold mb-1">Téléphone</div>
+            <div>{{ signup.phone|default:"—" }}</div>
+          </div>
+          {% if signup.company_name %}
+          <div class="col-12">
+            <div class="small text-muted fw-semibold mb-1">Entreprise</div>
+            <div>{{ signup.company_name }}</div>
+          </div>
+          {% endif %}
+          {% if signup.message %}
+          <div class="col-12">
+            <div class="small text-muted fw-semibold mb-1">Message</div>
+            <div class="p-2 rounded" style="background:#f9fafb;font-size:.9rem;font-style:italic">{{ signup.message }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Liens CRM #}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="card-title mb-0">Liaison CRM</h6>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        {% if signup.linked_customer_id %}
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-person-check-fill text-success"></i>
+          <span class="small">Client CRM trouvé (ID : {{ signup.linked_customer_id }})</span>
+          <a href="/crm/customers/{{ signup.linked_customer_id }}/" class="orion-btn orion-btn-outline orion-orion-btn sm ms-auto">
+            Voir le client
+          </a>
+        </div>
+        {% else %}
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-person-dash text-muted"></i>
+          <span class="small text-muted">Aucun client CRM associé à cet email.</span>
+        </div>
+        {% endif %}
+        {% if signup.linked_portal_account %}
+        <hr class="my-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-check-circle-fill text-success"></i>
+          <span class="small">Compte portail créé : {{ signup.linked_portal_account.full_name }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Journal d'activité #}
+    {% if activities %}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="card-title mb-0">Historique</h6>
+      </div>
+      <div class="orion-orion-orion-card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for act in activities %}
+          <li class="list-group-item d-flex align-items-center gap-3 py-2">
+            <i class="bi bi-clock text-muted" style="font-size:.85rem;flex-shrink:0"></i>
+            <span class="small text-muted" style="min-width:130px">{{ act.created_at|date:"d/m/Y H:i" }}</span>
+            <span class="small">{{ act.get_action_display }}</span>
+            {% if act.performed_by %}<span class="small text-muted ms-auto">par {{ act.performed_by.get_full_name|default:act.performed_by.username }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── Colonne actions ── #}
+  <div class="col-12 col-lg-4">
+
+    {# Sécurité #}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="card-title mb-0">Informations techniques</h6>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        <div class="small text-muted fw-semibold mb-1">Adresse IP</div>
+        <div class="small mb-3" style="font-family:monospace">{{ signup.ip_address|default:"—" }}</div>
+        <div class="small text-muted fw-semibold mb-1">Date de demande</div>
+        <div class="small mb-3">{{ signup.created_at|date:"d/m/Y à H:i" }}</div>
+        <div class="small text-muted fw-semibold mb-1">Dernière mise à jour</div>
+        <div class="small mb-3">{{ signup.updated_at|date:"d/m/Y à H:i" }}</div>
+        {% if signup.user_agent %}
+        <div class="small text-muted fw-semibold mb-1">User-Agent</div>
+        <div class="small text-truncate" style="font-family:monospace;color:#9ca3af" title="{{ signup.user_agent }}">
+          {{ signup.user_agent|truncatechars:80 }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Validation #}
+    {% if signup.approved_by %}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header"><h6 class="card-title mb-0">Validation</h6></div>
+      <div class="orion-orion-orion-card-body">
+        <div class="small text-muted fw-semibold mb-1">Validé par</div>
+        <div class="small mb-2">{{ signup.approved_by.get_full_name|default:signup.approved_by.username }}</div>
+        <div class="small text-muted fw-semibold mb-1">Le</div>
+        <div class="small">{{ signup.approved_at|date:"d/m/Y à H:i" }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Refus #}
+    {% if signup.rejected_by %}
+    <div class="orion-card mb-3" style="border-color:#fecaca">
+      <div class="orion-orion-orion-card-header"><h6 class="card-title mb-0 text-danger">Refus</h6></div>
+      <div class="orion-orion-orion-card-body">
+        <div class="small text-muted fw-semibold mb-1">Refusé par</div>
+        <div class="small mb-2">{{ signup.rejected_by.get_full_name|default:signup.rejected_by.username }}</div>
+        <div class="small text-muted fw-semibold mb-1">Le</div>
+        <div class="small mb-2">{{ signup.rejected_at|date:"d/m/Y à H:i" }}</div>
+        {% if signup.rejection_reason %}
+        <div class="small text-muted fw-semibold mb-1">Raison</div>
+        <div class="small p-2 rounded" style="background:#fef2f2;color:#991b1b">{{ signup.rejection_reason }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Action : Refuser #}
+    {% if signup.status == 'pending_approval' or signup.status == 'pending_email_verification' %}
+    <div class="orion-card" style="border-color:#fecaca">
+      <div class="orion-orion-orion-card-header"><h6 class="card-title mb-0 text-danger">Refuser la demande</h6></div>
+      <div class="orion-orion-orion-card-body">
+        <form method="post" action="{% url 'portals:signup_reject' signup.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            {{ reject_form.reason.label_tag }}
+            {{ reject_form.reason }}
+          </div>
+          <button type="submit" class="orion-btn orion-orion-btn sm w-100"
+                  style="background:#dc2626;color:#fff;border:none"
+                  onclick="return confirm('Refuser définitivement cette demande ?')">
+            <i class="bi bi-x-lg me-1"></i>Refuser la demande
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

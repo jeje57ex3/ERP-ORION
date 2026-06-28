@@ -1,0 +1,129 @@
+{# Composant : dropdown notifications pour la navbar
+   Usage : {% include "components/notification_dropdown.html" %}
+   Contexte attendu (injecté par context_processors.py) :
+     - unread_notifications : queryset des notifications non lues
+     - unread_count         : nombre de notifications non lues
+   Polling AJAX toutes les 60s vers /notifications/count/ pour mettre à jour le badge.
+#}
+<div class="dropdown" id="notificationDropdown">
+  {# Bouton cloche #}
+  <button
+    class="navbar-icon-btn position-relative"
+    type="button"
+    data-bs-toggle="dropdown"
+    aria-label="Notifications"
+    aria-expanded="false"
+    id="notifDropdownToggle"
+  >
+    <i class="bi bi-bell"></i>
+    {% if unread_count > 0 %}
+    <span class="notification-badge" id="notifBadge">{{ unread_count }}</span>
+    {% else %}
+    <span class="notification-badge d-none" id="notifBadge">0</span>
+    {% endif %}
+  </button>
+
+  {# Dropdown #}
+  <div class="dropdown-menu dropdown-menu-end orion-notification-dropdown" style="min-width:340px;max-width:360px;">
+    {# Header #}
+    <div class="notif-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+      <span class="fw-semibold">
+        <i class="bi bi-bell me-1 text-primary"></i>Notifications
+        {% if unread_count > 0 %}
+        <span class="orion-badge danger ms-1" id="notifHeaderCount">{{ unread_count }}</span>
+        {% endif %}
+      </span>
+      {% if unread_count > 0 %}
+      <a href="{% url 'core:notifications_read_all' %}" class="btn btn-link orion-btn sm p-0 text-muted small text-decoration-none" title="Marquer tout comme lu">
+        <i class="bi bi-check2-all me-1"></i>Tout lire
+      </a>
+      {% endif %}
+    </div>
+
+    {# Liste des notifications #}
+    <div class="notif-list" style="max-height:380px;overflow-y:auto;">
+      {% if unread_notifications %}
+        {% for notif in unread_notifications|slice:":5" %}
+        <a
+          class="dropdown-item notification-item d-flex align-items-start gap-2 py-2 px-3 {% if not notif.is_read %}unread{% endif %}"
+          href="{% url 'core:notification_read' notif.pk %}"
+        >
+          {# Icône selon le niveau #}
+          <div class="notif-icon flex-shrink-0 mt-1 level-{{ notif.level }}">
+            <i class="bi bi-{% if notif.level == 'success' %}check-circle-fill text-success{% elif notif.level == 'danger' %}exclamation-triangle-fill text-danger{% elif notif.level == 'warning' %}exclamation-circle-fill text-warning{% else %}info-circle-fill text-info{% endif %} fs-5"></i>
+          </div>
+          {# Contenu #}
+          <div class="notif-content flex-grow-1 min-w-0">
+            <div class="notif-title fw-medium text-truncate small">{{ notif.title }}</div>
+            {% if notif.message %}
+            <div class="notif-msg text-muted small text-truncate">{{ notif.message|truncatechars:60 }}</div>
+            {% endif %}
+            <div class="notif-time text-muted" style="font-size:.7rem;">
+              <i class="bi bi-clock me-1"></i>
+              il y a {{ notif.created_at|timesince }}
+            </div>
+          </div>
+          {# Point non-lu #}
+          {% if not notif.is_read %}
+          <div class="flex-shrink-0 mt-2">
+            <span class="rounded-circle bg-primary d-inline-block" style="width:7px;height:7px;"></span>
+          </div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted text-center py-5 px-3">
+          <i class="bi bi-bell-slash d-block fs-2 mb-2 opacity-25"></i>
+          <small>Aucune notification</small>
+        </div>
+      {% endif %}
+    </div>
+
+    {# Footer #}
+    <div class="notif-footer border-top px-3 py-2 text-center">
+      <a href="{% url 'core:notifications' %}" class="small text-muted text-decoration-none">
+        <i class="bi bi-list-ul me-1"></i>Voir toutes les notifications
+      </a>
+    </div>
+  </div>
+</div>
+
+{# Polling AJAX pour mettre à jour le badge toutes les 60s #}
+<script>
+(function() {
+  var badge       = document.getElementById('notifBadge');
+  var headerCount = document.getElementById('notifHeaderCount');
+
+  function pollNotifCount() {
+    fetch('/notifications/count/', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (!data || typeof data.count === 'undefined') return;
+      var count = parseInt(data.count, 10) || 0;
+      if (!badge) return;
+      badge.textContent = count;
+      if (count > 0) {
+        badge.classList.remove('d-none');
+      } else {
+        badge.classList.add('d-none');
+      }
+      if (headerCount) {
+        headerCount.textContent = count;
+        headerCount.style.display = count > 0 ? '' : 'none';
+      }
+    })
+    .catch(function() { /* silencieux */ });
+  }
+
+  // Premier poll après 10s, puis toutes les 60s
+  if (badge) {
+    setTimeout(function() {
+      pollNotifCount();
+      setInterval(pollNotifCount, 60000);
+    }, 10000);
+  }
+})();
+</script>

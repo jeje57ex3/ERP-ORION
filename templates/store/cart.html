@@ -1,0 +1,108 @@
+{% extends "store/base_store.html" %}
+{% block title %}Panier — {{ website.name }}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-bold mb-4"><i class="bi bi-cart3 me-2"></i>Mon panier</h1>
+
+  {% if items %}
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+      <!-- Lignes panier -->
+      <div class="border rounded-3 overflow-hidden">
+        {% for item in items %}
+        <div class="p-3 d-flex align-items-center gap-3 {% if not forloop.last %}border-bottom{% endif %}">
+          <!-- Image -->
+          <div style="width:80px;height:80px;background:#f3f4f6;border-radius:8px;overflow:hidden;flex-shrink:0">
+            {% if item.product.images.first %}<img src="{{ item.product.images.first.image.url }}" style="width:100%;height:100%;object-fit:cover" alt="{{ item.product.name }}">
+            {% else %}<div class="d-flex align-items-center justify-content-center h-100"><i class="bi bi-image text-muted"></i></div>{% endif %}
+          </div>
+          <!-- Infos -->
+          <div class="flex-grow-1">
+            <div class="fw-semibold">{{ item.product.name }}</div>
+            <div class="text-muted small">{{ item.unit_price|floatformat:2 }}€ / unité</div>
+          </div>
+          <!-- Quantité -->
+          <form method="post" action="{% url 'store:cart_update' %}" class="d-flex align-items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ item.pk }}">
+            <div class="d-flex align-items-center border rounded">
+              <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}" class="btn border-0 px-2 py-1">−</button>
+              <span class="px-2 fw-semibold">{{ item.quantity }}</span>
+              <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}" class="btn border-0 px-2 py-1">+</button>
+            </div>
+          </form>
+          <!-- Total ligne -->
+          <div class="fw-bold text-end" style="min-width:80px">{{ item.total|floatformat:2 }}€</div>
+          <!-- Supprimer -->
+          <form method="post" action="{% url 'store:cart_remove' %}">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ item.pk }}">
+            <button type="submit" class="btn btn-sm text-danger border-0"><i class="bi bi-x-lg"></i></button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-3 d-flex gap-2">
+        <a href="{% url 'store:store_home' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Continuer mes achats</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <!-- Résumé -->
+      <div class="border rounded-3 p-4">
+        <h5 class="fw-bold mb-4">Récapitulatif</h5>
+
+        <!-- Code promo -->
+        <form method="post" action="{% url 'store:cart_apply_coupon' %}" class="mb-4">
+          {% csrf_token %}
+          <label class="form-label small fw-semibold">Code promo</label>
+          <div class="input-group">
+            <input type="text" name="coupon_code" class="form-control" placeholder="CODE" {% if cart.coupon_code %}value="{{ cart.coupon_code }}"{% endif %}>
+            <button type="submit" class="btn btn-outline-secondary">Appliquer</button>
+          </div>
+          {% if cart.coupon_code %}<div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>Code « {{ cart.coupon_code }} » appliqué</div>{% endif %}
+        </form>
+
+        <!-- Totaux -->
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Sous-total</span>
+          <span class="fw-semibold">{{ cart.subtotal|floatformat:2 }}€</span>
+        </div>
+        {% if cart.discount_amount %}
+        <div class="d-flex justify-content-between mb-2 text-success">
+          <span>Remise</span>
+          <span>-{{ cart.discount_amount|floatformat:2 }}€</span>
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-between mb-2 text-muted small">
+          <span>Livraison</span>
+          <span>Calculée à l'étape suivante</span>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between mb-4">
+          <span class="fw-bold fs-5">Total</span>
+          <span class="fw-bold fs-5 text-primary">{{ cart.total|floatformat:2 }}€</span>
+        </div>
+        <a href="{% url 'store:checkout' %}" class="btn btn-store-primary w-100 btn-lg">
+          <i class="bi bi-lock me-2"></i>Passer commande
+        </a>
+        <div class="text-center mt-3">
+          <div class="d-flex justify-content-center gap-2 text-muted small">
+            <span><i class="bi bi-shield-check me-1"></i>Paiement sécurisé</span>
+            <span><i class="bi bi-truck me-1"></i>Livraison rapide</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-cart3 text-muted" style="font-size:5rem"></i>
+    <h4 class="mt-3">Votre panier est vide</h4>
+    <p class="text-muted">Ajoutez des produits depuis notre boutique.</p>
+    <a href="{% url 'store:store_home' %}" class="btn btn-store-primary mt-3">Découvrir la boutique</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

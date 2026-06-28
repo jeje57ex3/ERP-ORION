@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ creation.title }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'siecle_creations:catalog' %}" class="btn btn-sm btn-outline-secondary">&larr; Retour</a>
+    <h1 class="h3 mb-0">{{ creation.title }}</h1>
+    <span class="badge bg-secondary">{{ creation.get_status_display }}</span>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header">Détails</div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Référence</dt><dd class="col-sm-8">{{ creation.reference }}</dd>
+            <dt class="col-sm-4">Catégorie</dt><dd class="col-sm-8">{{ creation.get_category_display }}</dd>
+            <dt class="col-sm-4">Prix HT</dt><dd class="col-sm-8">{{ creation.price_ht }} €</dd>
+            <dt class="col-sm-4">Prix TTC</dt><dd class="col-sm-8">{{ creation.price_ttc }} €</dd>
+            <dt class="col-sm-4">Stock</dt><dd class="col-sm-8">{{ creation.stock_qty }}</dd>
+            <dt class="col-sm-4">Édition limitée</dt><dd class="col-sm-8">{% if creation.is_limited_edition %}Oui ({{ creation.limited_qty }}){% else %}Non{% endif %}</dd>
+          </dl>
+        </div>
+        <div class="card-footer d-flex gap-2">
+          {% if creation.status == 'draft' %}
+          <form method="post" action="{% url 'siecle_creations:publish' creation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success">Publier</button>
+          </form>
+          {% endif %}
+          {% if creation.status != 'archived' %}
+          <form method="post" action="{% url 'siecle_creations:archive' creation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Archiver</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Commandes récentes</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Client</th><th>Qté</th><th>Total</th><th>Statut</th></tr></thead>
+            <tbody>
+              {% for o in orders %}
+              <tr>
+                <td>{{ o.customer }}</td>
+                <td>{{ o.quantity }}</td>
+                <td>{{ o.total_price }} €</td>
+                <td><span class="badge bg-secondary">{{ o.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-3">Aucune commande</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

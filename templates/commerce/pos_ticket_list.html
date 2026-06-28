@@ -1,0 +1,52 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Tickets de caisse — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Tickets de caisse</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Historique des ventes en caisse.</p>{% endblock %}
+{% block page_actions %}
+<form method="get" class="d-flex gap-2">
+  <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:200px" placeholder="N° ticket..."></div>
+  <button class="orion-btn orion-btn-outline"><i class="bi bi-search"></i></button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-currency-euro"></i></div>
+      <div class="orion-kpi-value">{{ total_ca|floatformat:0 }} €</div>
+      <div class="orion-kpi-label">CA total</div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead><tr><th>N° Ticket</th><th>Session / Magasin</th><th>Client</th><th>Paiement</th><th class="text-end">Total TTC</th><th>Remboursé</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for ticket in tickets %}
+        <tr>
+          <td class="small fw-semibold">{{ ticket.ticket_number|default:"—" }}</td>
+          <td class="small text-muted">{{ ticket.session.store.name }}</td>
+          <td class="small">{{ ticket.customer.name|default:"Anonyme" }}</td>
+          <td class="small text-muted">{{ ticket.payment_method }}</td>
+          <td class="text-end small fw-semibold">{{ ticket.total_ttc }} €</td>
+          <td>{% if ticket.is_refunded %}<span class="orion-badge orion-badge-danger">Oui</span>{% else %}<span class="orion-badge orion-badge-success">Non</span>{% endif %}</td>
+          <td class="small text-muted">{{ ticket.created_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-receipt"></i></div>
+            <div class="orion-empty-title">Aucun ticket</div>
+            <div class="orion-empty-text">Les tickets de caisse apparaîtront ici après les ventes.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

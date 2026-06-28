@@ -1,0 +1,140 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'hr:employee_list' %}">Salariés</a></li>
+<li class="breadcrumb-item active">{{ employee.first_name }} {{ employee.last_name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar" style="width:56px;height:56px;font-size:1.4rem">{{ employee.first_name|slice:":1" }}{{ employee.last_name|slice:":1" }}</div>
+      <div>
+        <h1 class="detail-title">{{ employee.first_name }} {{ employee.last_name }}</h1>
+        <div class="detail-meta">
+          {% if employee.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}
+          {% if employee.job_title %}<span>{{ employee.job_title }}</span>{% endif %}
+          {% if employee.department %}<span><i class="bi bi-building me-1"></i>{{ employee.department }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-calendar-x me-1"></i>Demande congé</a>
+      <a href="{% url 'hr:employee_edit' employee.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'hr:employee_delete' employee.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'hr:employee_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Informations personnelles</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>N° salarié</label><div class="value {% if not employee.employee_number %}empty{% endif %}">{{ employee.employee_number|default:"—" }}</div></div>
+        <div class="info-item"><label>Email</label><div class="value {% if not employee.email %}empty{% endif %}">{% if employee.email %}<a href="mailto:{{ employee.email }}">{{ employee.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Téléphone</label><div class="value {% if not employee.phone %}empty{% endif %}">{{ employee.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>Manager</label><div class="value {% if not employee.manager %}empty{% endif %}">{% if employee.manager %}<a href="{% url 'hr:employee_detail' employee.manager.pk %}">{{ employee.manager }}</a>{% else %}—{% endif %}</div></div>
+      </div>
+    </div>
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Contrat</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Type de contrat</label><div class="value">{{ employee.get_contract_type_display }}</div></div>
+        <div class="info-item"><label>Date d'entrée</label><div class="value {% if not employee.hire_date %}empty{% endif %}">{{ employee.hire_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Date de fin</label><div class="value {% if not employee.end_date %}empty{% endif %}">{{ employee.end_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Salaire brut</label><div class="value fw-semibold">{{ employee.gross_salary|floatformat:2 }} €</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-calendar-x me-1 text-primary"></i>Congés récents</h6>
+        <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Demande</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>Type</th><th>Dates</th><th>Jours</th><th>Statut</th></tr></thead>
+          <tbody>
+            {% for leave in leaves %}
+            <tr>
+              <td class="small">{{ leave.get_leave_type_display }}</td>
+              <td class="small text-muted">{{ leave.start_date|date:"d/m/Y" }} → {{ leave.end_date|date:"d/m/Y" }}</td>
+              <td class="small text-muted">{{ leave.days_count }}j</td>
+              <td><span class="badge-status badge-{{ leave.status }}">{{ leave.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3 small">Aucune demande de congé.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ── Compte utilisateur ──────────────────────────────────────────────── #}
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title"><i class="bi bi-person-lock me-2"></i>Compte utilisateur</h5>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        {% if employee.user %}
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div style="width:42px;height:42px;border-radius:10px;background:var(--orion-accent-soft);color:var(--orion-accent-strong);display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0">
+              {{ employee.user.first_name|slice:":1"|default:employee.user.username|slice:":1" }}{{ employee.user.last_name|slice:":1" }}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:14px">{{ employee.user.get_full_name|default:employee.user.username }}</div>
+              <div style="font-size:12px;color:var(--orion-muted)">{{ employee.user.email }}</div>
+            </div>
+            {% if employee.user.is_active %}
+              <span class="orion-badge success ms-auto">Actif</span>
+            {% else %}
+              <span class="orion-badge neutral ms-auto">Inactif</span>
+            {% endif %}
+          </div>
+          <dl style="display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:13px;margin-bottom:14px">
+            <dt style="color:var(--orion-muted)">Identifiant</dt>
+            <dd style="margin:0;font-weight:600">{{ employee.user.username }}</dd>
+            <dt style="color:var(--orion-muted)">Rôle</dt>
+            <dd style="margin:0">
+              {% if employee.user.profile %}
+                <span class="orion-badge {% if employee.user.profile.role in 'superadmin,admin' %}accent{% else %}neutral{% endif %}">
+                  {{ employee.user.profile.get_role_display }}
+                </span>
+              {% else %}—{% endif %}
+            </dd>
+            <dt style="color:var(--orion-muted)">Dernière connexion</dt>
+            <dd style="margin:0">{{ employee.user.last_login|date:"d/m/Y H:i"|default:"—" }}</dd>
+          </dl>
+          {% if request.user.is_superuser or request.user.profile.role in 'admin,superadmin' %}
+          <a href="{% url 'accounts:user_detail' employee.user.pk %}" class="orion-btn sm">
+            <i class="bi bi-arrow-right-circle"></i> Voir le profil utilisateur
+          </a>
+          {% endif %}
+        {% else %}
+          {% if request.user.is_superuser or request.user.profile.role in 'admin,superadmin' %}
+            <div style="padding:18px;border:1.5px dashed rgba(100,100,100,.25);background:var(--orion-surface);border-radius:10px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <i class="bi bi-person-x" style="font-size:20px;color:var(--orion-muted)"></i>
+                <span style="color:var(--orion-text-soft);font-size:13px">Aucun compte utilisateur associé à ce salarié.</span>
+              </div>
+              <a href="{% url 'accounts:user_create' %}?employee={{ employee.pk }}" class="orion-btn sm primary">
+                <i class="bi bi-plus-circle"></i> Créer un compte utilisateur
+              </a>
+            </div>
+          {% else %}
+            <div style="display:flex;align-items:center;gap:10px;color:var(--orion-muted);font-size:13px">
+              <i class="bi bi-person-dash" style="font-size:18px"></i>
+              <span>Pas de compte utilisateur associé.</span>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

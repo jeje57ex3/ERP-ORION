@@ -1,0 +1,23 @@
+{% load i18n %}
+{#
+  Selecteur de langue pour les sites publics.
+  Variables attendues dans le contexte :
+    site                 — objet Website
+    website_languages    — liste de dicts {code, native_name, flag_icon, is_current, url}
+  Usage : {% include "websites/public/components/language_switcher.html" %}
+#}
+{% if website_languages %}
+<div class="site-language-switcher d-flex align-items-center gap-2">
+  {% for lang in website_languages %}
+    <a href="{{ lang.url }}"
+       class="site-lang-link {% if lang.is_current %}active{% endif %}"
+       title="{{ lang.native_name }}"
+       hreflang="{{ lang.code }}">
+      {% if lang.flag_icon %}
+        <span class="lang-flag" aria-hidden="true">{{ lang.flag_icon }}</span>
+      {% endif %}
+      <span class="lang-name">{{ lang.native_name }}</span>
+    </a>
+  {% endfor %}
+</div>
+{% endif %}

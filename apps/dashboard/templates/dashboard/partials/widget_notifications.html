@@ -1,0 +1,28 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"my_notifications" %}
+{% if data.notifications %}
+<div class="mb-2">
+  {% if data.unread_count %}<span class="badge bg-primary">{{ data.unread_count }} non lue(s)</span>{% endif %}
+</div>
+<div>
+  {% for notif in data.notifications %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#ede9fe;color:#7C3AED"><i class="bi bi-bell"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ notif.title|default:notif.message|truncatechars:45 }}</div>
+      <div class="widget-item-sub">{{ notif.created_at|timesince }} ago</div>
+    </div>
+    {% if not notif.is_read %}<div class="widget-item-meta"><span class="badge bg-primary rounded-circle p-1" style="font-size:.5rem">&nbsp;</span></div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="dashboard-widget-footer text-center">
+  <a href="{% url 'core:notifications_read_all' %}" class="text-muted small">Tout marquer comme lu</a>
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-bell-slash"></i>
+  <p>Aucune notification récente.</p>
+</div>
+{% endif %}
+{% endwith %}

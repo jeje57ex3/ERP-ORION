@@ -1,0 +1,64 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'backup_center:dashboard' %}">Sauvegardes</a></div>
+    <h1 class="orion-page-title">{{ job.name }}</h1>
+  </div>
+  <div class="orion-page-actions">
+    <form method="post" action="{% url 'backup_center:run' job.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn" {% if not job.is_active %}disabled{% endif %}>
+        <i class="bi bi-play-fill me-1"></i>Exécuter maintenant
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-4">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Configuration</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Type</dt><dd>{{ job.get_job_type_display }}</dd>
+          <dt>Planification</dt><dd>{{ job.get_schedule_display }}</dd>
+          <dt>Stockage</dt><dd>{{ job.get_storage_target_display }}</dd>
+          <dt>Rétention</dt><dd>{{ job.retention_days }} jours</dd>
+          <dt>Statut</dt><dd><span class="orion-badge {% if job.is_active %}success{% else %}neutral{% endif %}">{% if job.is_active %}Active{% else %}Inactive{% endif %}</span></dd>
+          {% if job.last_run_at %}<dt>Dernier run</dt><dd>{{ job.last_run_at|date:"d/m/Y H:i" }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Historique des exécutions</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if runs %}
+        <div class="list-group list-group-flush">
+          {% for run in runs %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <span class="orion-badge {% if run.status == 'success' %}success{% elif run.status == 'failed' %}danger{% elif run.status == 'running' %}warning{% else %}neutral{% endif %}">
+                {{ run.get_status_display }}
+              </span>
+              <div class="flex-grow-1">
+                <div style="font-size:13px">{{ run.started_at|date:"d/m/Y H:i" }}</div>
+                {% if run.file_size_bytes %}<div style="font-size:11px;color:var(--orion-muted)">{{ run.file_size_mb }} Mo{% if run.file_path %} · {{ run.file_path|truncatechars:40 }}{% endif %}</div>{% endif %}
+                {% if run.error_message %}<div style="font-size:11px;color:var(--orion-danger)">{{ run.error_message|truncatechars:80 }}</div>{% endif %}
+              </div>
+              {% if run.duration_seconds %}<span style="font-size:11px;color:var(--orion-muted)">{{ run.duration_seconds|floatformat:1 }}s</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-4 py-3 text-muted mb-0" style="font-size:13px">Aucune exécution enregistrée.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

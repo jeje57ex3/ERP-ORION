@@ -1,0 +1,38 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Paramètres SaaS privé — Super Admin{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
+<li class="breadcrumb-item active">Paramètres SaaS</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-card-header py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-sliders me-2 text-primary"></i>Paramètres SaaS privé Orion ERP</h6>
+      </div>
+      <div class="orion-orion-card-body">
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="col-12">
+            <div class="form-check form-switch">
+              {{ field }}
+              <label class="form-check-label fw-medium ms-2" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            </div>
+            {% if field.help_text %}<div class="text-muted small ms-4">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+            <a href="{% url 'private_saas:dashboard' %}" class="orion-btn orion-btn-outline">Annuler</a>
+            <button type="submit" class="orion-btn orion-orion-btn primary">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

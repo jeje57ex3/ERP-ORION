@@ -1,0 +1,20 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"weekly_agenda" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for event in data.events %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <div class="text-center flex-shrink-0" style="width:42px">
+      <div class="fw-bold" style="font-size:.85rem;color:{{ event.color }}">{{ event.date|date:"d" }}</div>
+      <div class="text-muted" style="font-size:.65rem">{{ event.date|date:"M" }}</div>
+    </div>
+    <i class="{{ event.icon }} flex-shrink-0" style="color:{{ event.color }}"></i>
+    <span style="font-size:.82rem">{{ event.label }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-calendar-week"></i><p class="mt-2 mb-0">Aucun événement cette semaine.</p></div>
+{% endif %}
+{% endwith %}

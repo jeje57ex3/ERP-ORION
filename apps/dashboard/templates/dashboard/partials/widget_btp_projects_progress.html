@@ -1,0 +1,22 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"btp_projects_progress" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="p-3 d-flex flex-column gap-3">
+  {% for row in data.projects %}
+  <div>
+    <div class="d-flex justify-content-between mb-1">
+      <a href="/btp/projects/{{ row.project.pk }}/" class="text-decoration-none text-body" style="font-size:.82rem;font-weight:600">{{ row.project.name|truncatechars:32 }}</a>
+      <span class="text-muted" style="font-size:.78rem">{{ row.progress }} %</span>
+    </div>
+    <div class="progress" style="height:8px;border-radius:4px">
+      <div class="progress-bar {% if row.progress >= 80 %}bg-success{% elif row.progress >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+           role="progressbar" style="width:{{ row.progress }}%" aria-valuenow="{{ row.progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-bar-chart-steps"></i><p class="mt-2 mb-0">Aucun chantier en cours.</p></div>
+{% endif %}
+{% endwith %}

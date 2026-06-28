@@ -1,0 +1,452 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{{ page_title|default:"Orion ERP" }}{% endblock %} — {{ brand_name|default:"Orion ERP" }}</title>
+
+  <!-- Anti-FOUC theme -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('orion-theme')||'light';
+      if(t==='system') t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+      document.documentElement.setAttribute('data-bs-theme',t);
+    })();
+  </script>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Orion Desktop Design System -->
+  <link href="{% static 'css/orion-desktop.css' %}" rel="stylesheet">
+  <link href="{% static 'css/orion-sidebar.css' %}" rel="stylesheet">
+  <link href="{% static 'css/orion-forms.css' %}" rel="stylesheet">
+  <link href="{% static 'css/orion-tabs.css' %}" rel="stylesheet">
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="orion-desktop">
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════ -->
+<aside class="orion-sidebar" id="orionSidebar">
+
+  <!-- Brand -->
+  <a href="{% url 'core:dashboard' %}" class="orion-sidebar-brand">
+    <div class="orion-sidebar-logo-wrap">
+      <img src="{% static brand_logo_white_path|default:'img/brand/orion-logo-white.svg' %}" alt="{{ brand_name|default:'Orion ERP' }}" class="orion-sidebar-logo"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span style="display:none;width:34px;height:34px;background:var(--orion-secondary);border-radius:6px;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--orion-primary)">O</span>
+    </div>
+    <div class="orion-sidebar-brand-text">
+      <span class="orion-sidebar-brand-name">{{ brand_name|default:"Orion ERP" }}</span>
+      {% if current_company %}
+      <span class="orion-sidebar-company">{{ current_company.name|truncatechars:22 }}</span>
+      {% else %}
+      <span class="orion-sidebar-company">{{ brand_tagline|default:"Multi-sociétés" }}</span>
+      {% endif %}
+    </div>
+  </a>
+
+  <!-- Scroll menu -->
+  <div class="orion-sidebar-scroll">
+
+    <!-- Sélecteur entreprise -->
+    {% if companies %}
+    <div style="padding:8px 12px 6px">
+      <div class="dropdown w-100">
+        <button class="d-flex align-items-center gap-2 w-100 text-start px-2 py-1 rounded"
+                style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(248,243,234,.8);font-size:12px;cursor:pointer"
+                data-bs-toggle="dropdown" type="button">
+          {% if current_company %}
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ current_company.sector_color }};flex-shrink:0"></span>
+          <span class="flex-1 text-truncate">{{ current_company.name|truncatechars:18 }}</span>
+          {% else %}
+          <i class="bi bi-building" style="font-size:12px"></i>
+          <span class="flex-1">Sélectionner...</span>
+          {% endif %}
+          <i class="bi bi-chevron-expand ms-auto" style="font-size:10px;opacity:.5"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark" style="min-width:200px">
+          {% for comp in companies %}
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 py-1{% if current_company.pk == comp.pk %} active{% endif %}"
+               href="{% url 'core:switch_company' comp.pk %}?next={{ request.path }}" style="font-size:12.5px">
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ comp.sector_color }};flex-shrink:0"></span>
+              {{ comp.name }}
+              {% if current_company.pk == comp.pk %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+          {% if request.user.is_superuser %}
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:12px"><i class="bi bi-plus-circle me-2"></i>Nouvelle</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation -->
+    <nav>
+      {% for module in nav_modules %}
+
+      {% if module.children %}
+      <!-- Groupe avec sous-menu -->
+      <button class="orion-sidebar-item has-children{% if active_module == module.id %} open{% endif %}">
+        <i class="bi {{ module.icon }} orion-sidebar-icon" style="color:{{ module.color }}"></i>
+        <span class="orion-sidebar-label">{{ module.label }}</span>
+        <i class="bi bi-chevron-down orion-sidebar-arrow"></i>
+      </button>
+      <div class="orion-sidebar-submenu{% if active_module == module.id %} show{% endif %}">
+        {% for child in module.children %}
+        <a class="orion-sidebar-sublink{% if request.resolver_match.url_name == child.url_name %} active{% endif %}"
+           href="{% url child.url_name %}">
+          <i class="bi {{ child.icon }}"></i>
+          <span>{{ child.label }}</span>
+        </a>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <!-- Item simple -->
+      <a class="orion-sidebar-item{% if active_module == module.id %} active{% endif %}"
+         href="{% url module.url_name %}">
+        <i class="bi {{ module.icon }} orion-sidebar-icon" style="color:{{ module.color }}"></i>
+        <span class="orion-sidebar-label">{{ module.label }}</span>
+      </a>
+      {% endif %}
+
+      {% endfor %}
+    </nav>
+
+    <div class="orion-sidebar-divider" style="margin:8px 0"></div>
+
+    <!-- Admin -->
+    {% if request.user.is_superuser %}
+    <a class="orion-sidebar-item" href="{% url 'admin:index' %}">
+      <i class="bi bi-shield-check orion-sidebar-icon" style="color:#6B7280"></i>
+      <span class="orion-sidebar-label">Administration</span>
+    </a>
+    {% endif %}
+
+  </div>
+  <!-- /scroll -->
+
+  <!-- Footer utilisateur -->
+  <div class="orion-sidebar-footer">
+    <a href="{% url 'accounts:profile' %}" class="orion-sidebar-user-avatar" title="{{ request.user.profile.display_name }}">
+      {% if request.user.profile.avatar %}
+        <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+      {% else %}
+        <span>{{ request.user.profile.initials }}</span>
+      {% endif %}
+    </a>
+    <div class="orion-sidebar-footer-info">
+      <div class="orion-sidebar-footer-name">{{ request.user.profile.display_name|truncatechars:20 }}</div>
+      <div class="orion-sidebar-footer-role">{{ request.user.profile.get_role_display }}</div>
+    </div>
+    <div class="orion-sidebar-footer-actions">
+      <button class="orion-sidebar-footer-btn" id="orionSidebarToggle" title="Mode compact">
+        <i class="bi bi-layout-sidebar"></i>
+      </button>
+      <a href="{% url 'accounts:logout' %}" class="orion-sidebar-footer-btn" title="Déconnexion">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+
+</aside>
+<!-- /SIDEBAR -->
+
+<!-- Overlay mobile -->
+<div class="orion-sidebar-overlay" id="orionSidebarOverlay"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ZONE PRINCIPALE
+═══════════════════════════════════════════════════════════ -->
+<div class="orion-main" id="orionMain">
+
+  <!-- Topbar -->
+  <header class="orion-topbar">
+    <div class="orion-topbar-left">
+
+      <!-- Menu mobile -->
+      <button class="orion-icon-btn d-lg-none" id="orionMobileMenuBtn" aria-label="Menu">
+        <i class="bi bi-list" style="font-size:18px"></i>
+      </button>
+
+      <!-- Retour / avancer -->
+      <button class="orion-icon-btn d-none d-md-flex" onclick="history.back()" title="Retour (Alt+←)">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <button class="orion-icon-btn d-none d-md-flex" onclick="history.forward()" title="Suivant">
+        <i class="bi bi-arrow-right"></i>
+      </button>
+      <button class="orion-icon-btn d-none d-md-flex" onclick="location.reload()" title="Actualiser">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+
+      <!-- Recherche mini -->
+      <div class="orion-search-mini" role="button"
+           data-bs-toggle="modal" data-bs-target="#globalSearchModal"
+           title="Recherche globale (Ctrl+K)">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Rechercher…" readonly tabindex="-1" style="pointer-events:none">
+        <kbd>Ctrl+K</kbd>
+      </div>
+
+    </div>
+
+    <!-- Titre centré -->
+    <div class="orion-topbar-center orion-breadcrumb">
+      <a href="{% url 'core:dashboard' %}"><i class="bi bi-house-fill"></i></a>
+      {% block breadcrumb %}
+      {% if page_title %}
+      <span class="orion-breadcrumb-sep">›</span>
+      <span>{{ page_title }}</span>
+      {% endif %}
+      {% endblock %}
+    </div>
+
+    <div class="orion-topbar-right">
+
+      <!-- Indicateur non sauvegardé -->
+      <span id="orionDirtyIndicator" style="display:none;font-size:11px;color:var(--orion-warning);align-items:center;gap:4px">
+        <i class="bi bi-circle-fill" style="font-size:6px"></i> Non enregistré
+      </span>
+
+      <!-- Créer rapide -->
+      <div class="dropdown d-none d-lg-block">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Créer (bouton +)">
+          <i class="bi bi-plus-circle"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:210px;font-size:12.5px">
+          <li class="dropdown-header" style="font-size:10.5px">CRÉER</li>
+          <li><a class="dropdown-item py-1" href="{% url 'crm:customer_create' %}"><i class="bi bi-person me-2 text-primary"></i>Client</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'sales:quote_create' %}"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>Devis</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'sales:invoice_create' %}"><i class="bi bi-receipt me-2 text-success"></i>Facture</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'btp:project_create' %}"><i class="bi bi-building-gear me-2 text-info"></i>Chantier</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1 text-muted" href="#" onclick="OrionCommandPalette&&OrionCommandPalette.open();return false">
+            <i class="bi bi-command me-2"></i>Toutes les commandes <kbd class="ms-1" style="font-size:10px">Ctrl+K</kbd></a></li>
+        </ul>
+      </div>
+
+      <!-- Densité interface -->
+      <div class="dropdown d-none d-lg-block">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Densité interface" id="orionCompactToggle">
+          <i class="bi bi-layout-three-columns"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:160px;font-size:12.5px">
+          <li class="dropdown-header" style="font-size:10.5px">DENSITÉ</li>
+          <li><button class="dropdown-item py-1" data-density="comfort"><i class="bi bi-border-outer me-2"></i>Confort</button></li>
+          <li><button class="dropdown-item py-1" data-density="standard"><i class="bi bi-border-middle me-2"></i>Standard</button></li>
+          <li><button class="dropdown-item py-1" data-density="compact"><i class="bi bi-border-inner me-2"></i>Compact</button></li>
+          <li><button class="dropdown-item py-1" data-density="dense"><i class="bi bi-layout-text-sidebar me-2"></i>Dense ERP</button></li>
+        </ul>
+      </div>
+
+      <!-- Thème -->
+      <button class="orion-icon-btn" id="orionThemeToggle" title="Thème">
+        <i class="bi bi-moon-stars" id="orionThemeIcon"></i>
+      </button>
+
+      <!-- Notifications -->
+      <div class="dropdown orion-notif-btn">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Notifications">
+          <i class="bi bi-bell"></i>
+          {% if unread_count > 0 %}<span class="orion-notif-badge">{{ unread_count }}</span>{% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" style="min-width:280px;max-height:400px;overflow-y:auto">
+          <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+            <span class="fw-600" style="font-size:13px">Notifications</span>
+            {% if unread_count > 0 %}
+            <a href="{% url 'notifications:mark_all_read' %}" style="font-size:11.5px" class="text-muted">Tout lire</a>
+            {% endif %}
+          </div>
+          {% if unread_notifications %}
+            {% for notif in unread_notifications %}
+            <a class="dropdown-item d-flex gap-2 py-2 border-bottom"
+               href="{% url 'notifications:mark_read' notif.pk %}{% if notif.link_url %}?next={{ notif.link_url }}{% endif %}"
+               style="font-size:12px">
+              <i class="bi {{ notif.icon|default:'bi-bell' }} text-{{ notif.icon_color|default:'primary' }} mt-1"></i>
+              <div>
+                <div class="fw-600">{{ notif.title }}</div>
+                {% if notif.message %}<div class="text-muted" style="font-size:11px">{{ notif.message|truncatechars:50 }}</div>{% endif %}
+                <div class="text-muted" style="font-size:10.5px">{{ notif.created_at|timesince }}</div>
+              </div>
+            </a>
+            {% endfor %}
+          {% else %}
+          <div class="text-center py-4 text-muted" style="font-size:12px">
+            <i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-25"></i>Aucune notification
+          </div>
+          {% endif %}
+          <a class="dropdown-item text-center py-2 text-muted border-top" href="{% url 'notifications:list' %}" style="font-size:12px">
+            Voir toutes
+          </a>
+        </div>
+      </div>
+
+      <!-- Utilisateur -->
+      <div class="dropdown">
+        <button class="orion-topbar-user dropdown-toggle" style="border:none;background:none" data-bs-toggle="dropdown" type="button">
+          <div class="orion-topbar-avatar">
+            {% if request.user.profile.avatar %}
+              <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+            {% else %}
+              <span>{{ request.user.profile.initials }}</span>
+            {% endif %}
+          </div>
+          <span class="orion-user-name d-none d-md-inline">{{ request.user.profile.display_name|truncatechars:14 }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:210px;font-size:12.5px">
+          <li class="dropdown-header" style="font-size:11px">
+            {{ request.user.get_full_name|default:request.user.username }}<br>
+            <span class="text-muted" style="font-size:10.5px">{{ request.user.email }}</span>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Mon profil</a></li>
+          {% if request.user.is_superuser %}
+          <li><a class="dropdown-item py-1" href="{% url 'core:company_list' %}"><i class="bi bi-building me-2"></i>Entreprises</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'admin:index' %}"><i class="bi bi-shield-check me-2"></i>Administration</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1 text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+        </ul>
+      </div>
+
+    </div>
+  </header>
+  <!-- /Topbar -->
+
+  <!-- Barre d'onglets ouverts -->
+  <nav class="orion-open-tabs" id="orionOpenTabs" aria-label="Onglets ouverts">
+    <!-- Peuplé par orion-desktop.js via localStorage -->
+  </nav>
+
+  <!-- Messages Django -->
+  {% if messages %}
+  <div style="padding:8px 22px 0">
+    {% for message in messages %}
+    <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible" role="alert">
+      <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+      {{ message }}
+      <button type="button" style="background:none;border:none;margin-left:auto;cursor:pointer;opacity:.7;font-size:16px" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Contenu de la page -->
+  <section class="orion-content">
+    {% block content %}{% endblock %}
+  </section>
+
+  <!-- Footer mince -->
+  <footer style="height:32px;display:flex;align-items:center;padding:0 22px;border-top:1px solid var(--orion-border-light);background:#fff;font-size:11px;color:var(--orion-muted);gap:12px;flex-shrink:0">
+    <span>{{ brand_name|default:"Orion ERP" }} &copy; {% now "Y" %}</span>
+    {% if current_company %}<span>·</span><span>{{ current_company.name }}</span>{% endif %}
+    <span>·</span><span>v1.0.0</span>
+  </footer>
+
+</div>
+<!-- /MAIN -->
+
+<!-- Toast container -->
+{% include "components/toast.html" %}
+
+<!-- Modal recherche globale -->
+<div class="modal fade" id="globalSearchModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:6px">
+      <div class="modal-header border-0 pb-0 pt-3">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent border-0 ps-3"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="globalSearchModalInput" class="form-control border-0 shadow-none" placeholder="Rechercher clients, devis, factures, chantiers…" autocomplete="off" style="font-size:15px">
+          <button class="orion-btn sm btn-outline-secondary me-2" data-bs-dismiss="modal"><kbd>Esc</kbd></button>
+        </div>
+      </div>
+      <div class="modal-body pt-0" id="globalSearchModalResults">
+        <div class="text-center text-muted py-5" id="globalSearchEmpty" style="font-size:13px">
+          <i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>Tapez pour rechercher…
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Orion UI (base) -->
+<script src="{% static 'js/erp.js' %}"></script>
+<script src="{% static 'js/orion-ui.js' %}"></script>
+<!-- Orion Desktop -->
+<script src="{% static 'js/orion-desktop.js' %}"></script>
+
+<!-- Thème toggle -->
+<script>
+(function(){
+  var btn=document.getElementById('orionThemeToggle');
+  var icon=document.getElementById('orionThemeIcon');
+  function setTheme(t){
+    document.documentElement.setAttribute('data-bs-theme',t);
+    localStorage.setItem('orion-theme',t);
+    if(icon) icon.className=t==='dark'?'bi bi-sun':'bi bi-moon-stars';
+  }
+  var current=localStorage.getItem('orion-theme')||'light';
+  setTheme(current);
+  if(btn) btn.addEventListener('click',function(){ setTheme(current==='dark'?'light':'dark'); current=localStorage.getItem('orion-theme'); });
+})();
+</script>
+
+<!-- Recherche AJAX -->
+<script>
+(function(){
+  var modal=document.getElementById('globalSearchModal');
+  var input=document.getElementById('globalSearchModalInput');
+  var results=document.getElementById('globalSearchModalResults');
+  var empty=document.getElementById('globalSearchEmpty');
+  if(!input||!modal) return;
+  var timer;
+  input.addEventListener('input',function(){
+    clearTimeout(timer);
+    var q=this.value.trim();
+    if(q.length<2){results.innerHTML='';results.appendChild(empty);return;}
+    timer=setTimeout(function(){
+      fetch('/search/?q='+encodeURIComponent(q)+'&format=json',{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(data){
+        if(!data||!data.results||!data.results.length){
+          results.innerHTML='<div class="text-center py-4 text-muted" style="font-size:12.5px"><i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>Aucun résultat</div>';return;
+        }
+        var html='',byType={};
+        data.results.forEach(function(r){if(!byType[r.label])byType[r.label]=[];byType[r.label].push(r);});
+        Object.entries(byType).forEach(function(e){
+          html+='<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-bold" style="font-size:.68rem;letter-spacing:.07em">'+e[0]+'</small></div>';
+          e[1].forEach(function(item){
+            html+='<a href="'+item.url+'" class="d-flex align-items-center gap-3 px-3 py-2 text-decoration-none rounded mx-2 mb-1" style="font-size:13px;transition:background .1s" onmouseover="this.style.background=\'#F6F1E6\'" onmouseout="this.style.background=\'\'">'
+              +'<span class="text-'+( item.color||'secondary')+'"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
+              +'<span><span class="d-block fw-500">'+item.title+'</span>'+(item.subtitle?'<span class="d-block text-muted" style="font-size:11.5px">'+item.subtitle+'</span>':'')+'</span></a>';
+          });
+        });
+        results.innerHTML=html;
+      }).catch(function(){results.innerHTML='<div class="text-center py-3 text-muted" style="font-size:12px"><i class="bi bi-wifi-off me-1"></i>Erreur réseau</div>';});
+    },280);
+  });
+  modal.addEventListener('shown.bs.modal',function(){input.focus();input.value='';results.innerHTML='';results.appendChild(empty);});
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

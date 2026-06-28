@@ -1,0 +1,94 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Intelligence</div>
+    <h1 class="orion-page-title">Analytique prédictive</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Prévisions actives</div>
+    <div class="orion-metric-value">{{ stats.total_forecasts }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Insights actifs</div>
+    <div class="orion-metric-value" style="color:var(--orion-accent)">{{ stats.active_insights }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Non lus</div>
+    <div class="orion-metric-value" style="color:var(--orion-warning)">{{ stats.unread_insights }}</div>
+  </div>
+</div>
+
+{% if revenue_forecasts %}
+<div class="orion-card mb-4">
+  <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Prévisions CA</h3></div>
+  <div class="orion-orion-orion-card-body">
+    <div class="d-flex gap-3 flex-wrap">
+      {% for f in revenue_forecasts %}
+      <div class="orion-metric" style="min-width:140px">
+        <div class="orion-metric-header">{{ f.period }}</div>
+        <div class="orion-metric-value" style="font-size:22px">{{ f.value|floatformat:0 }} €</div>
+        <div style="font-size:11px;color:var(--orion-muted)">Confiance {{ f.confidence|floatformat:0 }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<form method="get" class="orion-filter-bar mb-3">
+  <select name="type" class="form-select form-select-sm" style="width:auto">
+    <option value="">Tous les types</option>
+    <option value="opportunity" {% if filter_type == 'opportunity' %}selected{% endif %}>Opportunités</option>
+    <option value="risk" {% if filter_type == 'risk' %}selected{% endif %}>Risques</option>
+    <option value="trend" {% if filter_type == 'trend' %}selected{% endif %}>Tendances</option>
+    <option value="anomaly" {% if filter_type == 'anomaly' %}selected{% endif %}>Anomalies</option>
+    <option value="recommendation" {% if filter_type == 'recommendation' %}selected{% endif %}>Recommandations</option>
+  </select>
+  <button type="submit" class="orion-btn sm">Filtrer</button>
+  {% if filter_type %}<a href="{% url 'predictive_analytics:dashboard' %}" class="orion-btn sm ghost">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Insights</h3></div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if insights %}
+    <div class="list-group list-group-flush">
+      {% for insight in insights %}
+      <div class="list-group-item px-4 py-3" style="border-left:4px solid {% if insight.insight_type == 'risk' %}var(--orion-danger){% elif insight.insight_type == 'opportunity' %}var(--orion-success){% elif insight.insight_type == 'anomaly' %}var(--orion-warning){% else %}var(--orion-accent){% endif %}">
+        <div class="d-flex align-items-start gap-3">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="orion-badge {% if insight.insight_type == 'risk' %}danger{% elif insight.insight_type == 'opportunity' %}success{% elif insight.insight_type == 'anomaly' %}warning{% else %}info{% endif %}">
+                {{ insight.get_insight_type_display }}
+              </span>
+              {% if insight.brand_key %}<span class="orion-badge accent" style="font-size:11px">{{ insight.brand_key }}</span>{% endif %}
+              {% if not insight.is_read %}<span class="orion-badge warning dot">Nouveau</span>{% endif %}
+            </div>
+            <div style="font-weight:600;font-size:14px">{{ insight.title }}</div>
+            <div style="font-size:12.5px;color:var(--orion-text-soft);margin-top:2px">{{ insight.message|truncatechars:150 }}</div>
+            <div style="font-size:11px;color:var(--orion-muted);margin-top:4px">
+              Score {{ insight.score|floatformat:1 }} · {{ insight.created_at|date:"d/m/Y" }}
+            </div>
+          </div>
+          <form method="post" action="{% url 'predictive_analytics:dismiss_insight' insight.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm ghost" title="Ignorer"><i class="bi bi-x-lg"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-graph-up" style="font-size:32px;color:var(--orion-muted)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucun insight disponible.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+﻿{% extends "erp_base.html" %}
+{% block content %}
+<div class="card erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between">
+    <h5 class="card-title mb-0">Utilisateurs</h5>
+    <a href="{% url 'accounts:user_create' %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Nouveau</a>
+  </div>
+  <div class="orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table erp-table mb-0">
+        <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Email</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar" style="width:32px;height:32px;">
+                  <span style="font-size:0.7rem;">{{ u.profile.initials }}</span>
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                  <div class="small text-muted">{{ u.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="status-badge status-primary">{{ u.profile.get_role_display }}</span></td>
+            <td>{{ u.email }}</td>
+            <td>
+              {% if u.is_active %}<span class="status-badge status-success">Actif</span>
+              {% else %}<span class="status-badge status-danger">Inactif</span>{% endif %}
+            </td>
+            <td><a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-xs btn-outline-primary">Voir</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center py-4 text-muted">Aucun utilisateur</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

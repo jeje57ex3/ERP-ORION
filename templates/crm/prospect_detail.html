@@ -1,0 +1,107 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'crm:prospect_list' %}">Prospects</a></li>
+<li class="breadcrumb-item active">{{ prospect.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ prospect.name }}</h1>
+      <div class="detail-meta">
+        {% if prospect.contact_name %}<span><i class="bi bi-person me-1"></i>{{ prospect.contact_name }}</span>{% endif %}
+        {% if prospect.city %}<span><i class="bi bi-geo-alt me-1"></i>{{ prospect.city }}</span>{% endif %}
+        <span class="badge-status badge-{{ prospect.status }}">{{ prospect.get_status_display }}</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'crm:prospect_convert' prospect.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-person-check me-1"></i>Convertir en client</a>
+      <a href="{% url 'crm:opportunity_create' %}?prospect={{ prospect.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-trophy me-1"></i>Créer une opportunité</a>
+      <a href="{% url 'crm:prospect_edit' prospect.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'crm:prospect_delete' prospect.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'crm:prospect_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Nom</label><div class="value">{{ prospect.name }}</div></div>
+        <div class="info-item"><label>Contact</label><div class="value {% if not prospect.contact_name %}empty{% endif %}">{{ prospect.contact_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Email</label><div class="value">{% if prospect.email %}<a href="mailto:{{ prospect.email }}">{{ prospect.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Téléphone</label><div class="value">{{ prospect.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>Ville</label><div class="value">{{ prospect.city|default:"—" }}</div></div>
+        <div class="info-item"><label>Source</label><div class="value {% if not prospect.source %}empty{% endif %}">{{ prospect.source|default:"—" }}</div></div>
+        <div class="info-item"><label>Valeur estimée</label><div class="value">{% if prospect.estimated_value %}{{ prospect.estimated_value|floatformat:2 }} €{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Prochaine action</label><div class="value {% if not prospect.next_action_date %}empty{% endif %}">{{ prospect.next_action_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Commercial</label><div class="value {% if not prospect.salesperson %}empty{% endif %}">{{ prospect.salesperson.get_full_name|default:"Non assigné" }}</div></div>
+      </div>
+      {% if prospect.notes %}
+      <div class="p-3 border-top"><div class="small text-muted">{{ prospect.notes|linebreaks }}</div></div>
+      {% endif %}
+    </div>
+
+    <!-- Opportunités liées -->
+    {% if opportunities %}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-trophy me-1 text-primary"></i>Opportunités</h6></div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>Opportunité</th><th>Étape</th><th>Revenu prévu</th><th>Probabilité</th></tr></thead>
+          <tbody>
+            {% for opp in opportunities %}
+            <tr>
+              <td><a href="{% url 'crm:opportunity_detail' opp.pk %}" class="fw-semibold">{{ opp.name }}</a></td>
+              <td><span class="badge-status badge-{{ opp.stage }}">{{ opp.get_stage_display }}</span></td>
+              <td>{% if opp.expected_revenue %}{{ opp.expected_revenue|floatformat:2 }} €{% else %}—{% endif %}</td>
+              <td>{{ opp.probability }} %</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <!-- Statut -->
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-flag me-1 text-primary"></i>Statut</h6></div>
+      <div class="p-3">
+        <span class="badge-status badge-{{ prospect.status }} fs-6">{{ prospect.get_status_display }}</span>
+        <div class="small text-muted mt-2">Créé le {{ prospect.created_at|date:"d/m/Y" }}</div>
+        <div class="small text-muted">Mis à jour {{ prospect.updated_at|timesince }}</div>
+      </div>
+    </div>
+
+    <!-- Activités récentes -->
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-clock-history me-1 text-primary"></i>Activités récentes</h6></div>
+      <div class="p-3">
+        {% if activities %}
+        <div class="timeline">
+          {% for act in activities %}
+          <div class="timeline-item">
+            <div class="timeline-time">{{ act.date|date:"d/m/Y H:i" }}</div>
+            <div class="timeline-content">
+              <span class="badge-status badge-info">{{ act.get_activity_type_display }}</span>
+              <span class="small ms-1">{{ act.subject }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">Aucune activité</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

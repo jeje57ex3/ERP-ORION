@@ -1,0 +1,150 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Devis BTP — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Devis BTP</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Devis métrage avec lots et bibliothèque d'ouvrages BTP.</p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'btp:quote_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau devis BTP</a>
+  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-file-text"></i></div>
+      <div class="orion-kpi-value">{{ quotes.count|default:"0" }}</div>
+      <div class="orion-kpi-label">Total devis</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-send"></i></div>
+      <div class="orion-kpi-value">{{ count_sent|default:"0" }}</div>
+      <div class="orion-kpi-label">Envoyés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check2-circle"></i></div>
+      <div class="orion-kpi-value">{{ count_accepted|default:"0" }}</div>
+      <div class="orion-kpi-label">Acceptés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-currency-euro"></i></div>
+      <div class="orion-kpi-value">{{ total_ht|floatformat:0|default:"0" }} €</div>
+      <div class="orion-kpi-label">Total HT</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chips statut -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=draft" class="orion-filter-chip {% if status == 'draft' %}active{% endif %}">Brouillon</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=sent" class="orion-filter-chip {% if status == 'sent' %}active{% endif %}">Envoyé</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=accepted" class="orion-filter-chip {% if status == 'accepted' %}active{% endif %}">Accepté</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=refused" class="orion-filter-chip {% if status == 'refused' %}active{% endif %}">Refusé</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=converted" class="orion-filter-chip {% if status == 'converted' %}active{% endif %}">Converti en chantier</a>
+  <a href="{% url 'btp:quote_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+</div>
+
+<!-- Tableau -->
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="d-flex gap-2 flex-grow-1">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="Numéro, client, objet..." value="{{ q }}" style="flex:1">
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
+      {% if q %}<a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-circle"></i></a>{% endif %}
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr>
+            <th>Référence</th>
+            <th>Nom / Objet</th>
+            <th>Client</th>
+            <th class="text-end">Montant HT</th>
+            <th class="text-end">Montant TTC</th>
+            <th class="text-center">Lots</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for qt in quotes %}
+          <tr>
+            <td>
+              <a href="{% url 'btp:quote_detail' qt.pk %}" class="fw-semibold text-dark text-decoration-none">{{ qt.number|default:"—" }}</a>
+            </td>
+            <td class="small text-muted">{{ qt.subject|truncatechars:45|default:"—" }}</td>
+            <td>
+              <span class="small text-muted">{{ qt.customer.name|default:"—" }}</span>
+            </td>
+            <td class="text-end fw-semibold small">{{ qt.total_ht|floatformat:2 }} €</td>
+            <td class="text-end small text-muted">{{ qt.total_ttc|floatformat:2 }} €</td>
+            <td class="text-center small">
+              {% if qt.lots_count %}
+                <span class="orion-badge orion-badge-secondary">{{ qt.lots_count }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if qt.status == 'draft' %}
+                <span class="orion-badge orion-badge-secondary">Brouillon</span>
+              {% elif qt.status == 'sent' %}
+                <span class="orion-badge orion-badge-warning">Envoyé</span>
+              {% elif qt.status == 'accepted' %}
+                <span class="orion-badge orion-badge-success">Accepté</span>
+              {% elif qt.status == 'refused' %}
+                <span class="orion-badge orion-badge-danger">Refusé</span>
+              {% elif qt.status == 'converted' %}
+                <span class="orion-badge orion-badge-success">Converti</span>
+              {% else %}
+                <span class="orion-badge orion-badge-secondary">{{ qt.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-nowrap">{{ qt.issue_date|date:"d/m/Y" }}</td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'btp:quote_detail' qt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                {% if qt.status == 'draft' %}
+                <a href="{% url 'btp:quote_send' qt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Envoyer"><i class="bi bi-send"></i></a>
+                {% endif %}
+                {% if qt.status == 'accepted' and not qt.project %}
+                <a href="{% url 'btp:quote_convert' qt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Convertir en chantier"><i class="bi bi-building-gear text-success"></i></a>
+                {% endif %}
+                <a href="{% url 'btp:quote_edit' qt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'btp:quote_delete' qt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="orion-empty">
+                <div class="orion-empty-icon"><i class="bi bi-file-text"></i></div>
+                <div class="orion-empty-title">Aucun devis BTP trouvé</div>
+                <div class="orion-empty-text">{% if q or status %}Aucun devis ne correspond aux filtres.{% else %}Créez votre premier devis BTP avec bibliothèque d'ouvrages.{% endif %}</div>
+                {% if q or status %}
+                <a href="{% url 'btp:quote_list' %}" class="orion-btn orion-btn-outline mt-3"><i class="bi bi-x-circle me-1"></i>Réinitialiser</a>
+                {% endif %}
+                <a href="{% url 'btp:quote_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau devis BTP</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

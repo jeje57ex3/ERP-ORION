@@ -1,0 +1,140 @@
+{% extends "websites/public/btp/base.html" %}
+{% load static %}
+{% block title %}Dépannage urgent — {{ site.name }}{% endblock %}
+{% block meta_description %}Intervention d'urgence 24h/24 : panne électrique, fuite d'eau, chauffage. Contactez-nous maintenant.{% endblock %}
+
+{% block content %}
+<section class="btp-page-hero" style="background:linear-gradient(135deg,#7B1E1E 0%,#3A2A1A 100%)">
+  <div class="btp-container">
+    <span class="btp-h-label" style="color:#FCA5A5"><i class="bi bi-exclamation-triangle-fill"></i> Urgence</span>
+    <h1>Dépannage BTP en urgence</h1>
+    <p>Une panne, une fuite, un dégât ? Notre équipe intervient rapidement.</p>
+  </div>
+</section>
+
+<section class="btp-section btp-section-white">
+  <div class="btp-container">
+    <div class="btp-contact-grid">
+
+      <!-- Formulaire urgence -->
+      <div>
+        <h2 style="margin-bottom:1.5rem">Envoyer une demande d'urgence</h2>
+
+        {% if success %}
+        <div class="btp-alert btp-alert-success" style="margin-bottom:1.5rem">
+          <i class="bi bi-check-circle-fill"></i>
+          <div><strong>Demande envoyée !</strong><br>Notre équipe vous contacte dans les plus brefs délais.</div>
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="btp-form btp-ajax-form">
+          {% csrf_token %}
+          <!-- Honeypot anti-spam -->
+          <input type="text" name="website_url_field" style="display:none" tabindex="-1" autocomplete="off">
+
+          <div class="btp-form-row">
+            <div class="btp-form-group">
+              <label class="btp-label">Prénom <span class="req">*</span></label>
+              <input type="text" name="first_name" class="btp-input" required placeholder="Votre prénom" value="{{ form_data.first_name|default:'' }}">
+            </div>
+            <div class="btp-form-group">
+              <label class="btp-label">Nom <span class="req">*</span></label>
+              <input type="text" name="last_name" class="btp-input" required placeholder="Votre nom" value="{{ form_data.last_name|default:'' }}">
+            </div>
+          </div>
+
+          <div class="btp-form-row">
+            <div class="btp-form-group">
+              <label class="btp-label">Téléphone <span class="req">*</span></label>
+              <input type="tel" name="phone" class="btp-input" required placeholder="06 xx xx xx xx" value="{{ form_data.phone|default:'' }}">
+            </div>
+            <div class="btp-form-group">
+              <label class="btp-label">Email</label>
+              <input type="email" name="email" class="btp-input" placeholder="votre@email.com" value="{{ form_data.email|default:'' }}">
+            </div>
+          </div>
+
+          <div class="btp-form-group">
+            <label class="btp-label">Type d'urgence <span class="req">*</span></label>
+            <select name="emergency_type" class="btp-select" required>
+              <option value="">Sélectionnez le type d'urgence</option>
+              <option value="electricite">Panne électrique</option>
+              <option value="fuite_eau">Fuite d'eau</option>
+              <option value="chauffage">Chauffage en panne</option>
+              <option value="serrure">Porte / serrure</option>
+              <option value="degat_batiment">Dégât bâtiment</option>
+              <option value="autre">Autre urgence</option>
+            </select>
+          </div>
+
+          <div class="btp-form-group">
+            <label class="btp-label">Adresse d'intervention <span class="req">*</span></label>
+            <input type="text" name="address" class="btp-input" required placeholder="Adresse complète" value="{{ form_data.address|default:'' }}">
+          </div>
+
+          <div class="btp-form-group">
+            <label class="btp-label">Description de l'urgence <span class="req">*</span></label>
+            <textarea name="description" class="btp-textarea" required placeholder="Décrivez le problème en détail...">{{ form_data.description|default:'' }}</textarea>
+          </div>
+
+          <div class="btp-form-group">
+            <label class="btp-label">Photo (optionnel)</label>
+            <div class="btp-file-zone">
+              <input type="file" name="photo" accept="image/*">
+              <i class="bi bi-camera"></i>
+              <p>Cliquez ou glissez une photo ici<br><small>JPG, PNG — max 10 Mo</small></p>
+              <div class="btp-file-preview" style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap"></div>
+            </div>
+          </div>
+
+          <label style="display:flex;align-items:center;gap:.75rem;font-size:.9rem;cursor:pointer">
+            <input type="checkbox" name="wants_callback" checked style="width:16px;height:16px">
+            Je souhaite être rappelé(e) rapidement
+          </label>
+
+          <button type="submit" class="btp-btn btp-orion-btn danger btp-btn-lg" style="width:100%;justify-content:center">
+            <i class="bi bi-lightning-fill"></i>Envoyer ma demande d'urgence
+          </button>
+        </form>
+      </div>
+
+      <!-- Infos urgence -->
+      <div>
+        <!-- Carte numéro urgent -->
+        <div class="btp-emergency-card">
+          <p class="btp-emergency-title"><i class="bi bi-telephone-fill"></i> Appelez maintenant</p>
+          <p style="font-size:.9rem;color:#6B7280">Pour une urgence immédiate, appelez directement notre ligne :</p>
+          {% if site.contact_phone %}
+          <a href="tel:{{ site.contact_phone }}" class="btp-phone-big">
+            <i class="bi bi-telephone-fill"></i>
+            <div><div class="number">{{ site.contact_phone }}</div><div class="label">Ligne urgence BTP</div></div>
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Types urgences -->
+        <div style="margin-top:1.5rem">
+          <h3 style="font-size:1.05rem;margin-bottom:1rem">Interventions urgentes</h3>
+          {% for type_label in emergency_types %}
+          <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--btp-border);font-size:.9rem">
+            <i class="bi bi-check-circle-fill" style="color:var(--btp-secondary)"></i>
+            {{ type_label }}
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Zone d'intervention -->
+        <div style="margin-top:1.5rem">
+          <h3 style="font-size:1.05rem;margin-bottom:.75rem">Zone d'intervention</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+            {% if site.address %}<span class="btp-zone-badge"><i class="bi bi-geo-alt-fill"></i>{{ site.company.city|default:"Région" }}</span>{% endif %}
+            <span class="btp-zone-badge"><i class="bi bi-geo-alt-fill"></i>Dans un rayon de 50 km</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% include "websites/public/btp/components/cta_guided_quote.html" %}
+{% endblock %}

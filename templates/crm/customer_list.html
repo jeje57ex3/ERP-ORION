@@ -1,0 +1,256 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">CRM</a></li>
+<li class="breadcrumb-item active">Clients</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'crm:customer_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+  <i class="bi bi-download"></i> Exporter
+</a>
+<a href="{% url 'crm:customer_import' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+  <i class="bi bi-upload"></i> Importer
+</a>
+<a href="{% url 'crm:customer_create' %}" class="orion-btn orion-orion-btn primary">
+  <i class="bi bi-plus-lg"></i> Nouveau client
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for message in messages %}
+<div class="orion-alert orion-alert-{{ message.tags|default:'info' }} mb-3" role="alert">
+  <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+  <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Clients</h1>
+    <p class="orion-page-subtitle">Gestion et suivi de la base clients</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'crm:customer_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+      <i class="bi bi-download"></i> Exporter
+    </a>
+    <a href="{% url 'crm:customer_import' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+      <i class="bi bi-upload"></i> Importer
+    </a>
+    <a href="{% url 'crm:customer_create' %}" class="orion-btn orion-orion-btn primary">
+      <i class="bi bi-plus-lg"></i> Nouveau client
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-secondary)">
+      <div class="orion-kpi-icon" style="background: rgba(198,161,91,.12); color: var(--orion-secondary)">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ total_active|default:"0" }}</div>
+        <div class="orion-kpi-label">Clients actifs</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-success)">
+      <div class="orion-kpi-icon" style="background: rgba(22,163,74,.12); color: var(--orion-success)">
+        <i class="bi bi-currency-euro"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ ca_total|default:0|floatformat:0|intcomma }} €</div>
+        <div class="orion-kpi-label">CA total</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
+      <div class="orion-kpi-icon" style="background: rgba(8,145,178,.12); color: var(--orion-info)">
+        <i class="bi bi-person-plus-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ new_this_month|default:"0" }}</div>
+        <div class="orion-kpi-label">Nouveaux ce mois</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-warning)">
+      <div class="orion-kpi-icon" style="background: rgba(217,119,6,.12); color: var(--orion-warning)">
+        <i class="bi bi-file-earmark-text-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ customers_with_quotes|default:"0" }}</div>
+        <div class="orion-kpi-label">Avec devis ouverts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-filter-bar">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap w-100">
+    <div class="position-relative" style="flex:1; min-width:200px; max-width:320px">
+      <i class="bi bi-search" style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--orion-muted);font-size:.8rem;pointer-events:none;"></i>
+      <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Rechercher un client…" class="orion-search-input" style="padding-left:2rem;width:100%;">
+    </div>
+    <select name="type" class="orion-filter-select">
+      <option value="">Tous les types</option>
+      <option value="company" {% if filter_type == 'company' %}selected{% endif %}>Entreprises</option>
+      <option value="individual" {% if filter_type == 'individual' %}selected{% endif %}>Particuliers</option>
+    </select>
+    <select name="status" class="orion-filter-select">
+      <option value="">Tous les statuts</option>
+      <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Actifs</option>
+      <option value="archived" {% if request.GET.status == 'archived' %}selected{% endif %}>Archivés</option>
+    </select>
+    <select name="city" class="orion-filter-select">
+      <option value="">Toutes les villes</option>
+    </select>
+    <select name="commercial" class="orion-filter-select">
+      <option value="">Tous les commerciaux</option>
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
+      <i class="bi bi-funnel"></i> Filtrer
+    </button>
+    {% if q or filter_type or request.GET.status %}
+    <a href="{% url 'crm:customer_list' %}" class="orion-btn orion-orion-btn sm" style="color:var(--orion-danger);border-color:var(--orion-danger);background:transparent;">
+      <i class="bi bi-x"></i> Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{% url 'crm:customer_list' %}" class="orion-filter-chip {% if not filter_type and not request.GET.status %}active{% endif %}">Tous</a>
+  <a href="{% url 'crm:customer_list' %}?type=company" class="orion-filter-chip {% if filter_type == 'company' %}active{% endif %}">
+    <i class="bi bi-building"></i> Entreprises
+  </a>
+  <a href="{% url 'crm:customer_list' %}?type=individual" class="orion-filter-chip {% if filter_type == 'individual' %}active{% endif %}">
+    <i class="bi bi-person"></i> Particuliers
+  </a>
+  <a href="{% url 'crm:customer_list' %}?status=active" class="orion-filter-chip {% if request.GET.status == 'active' %}active{% endif %}">
+    <i class="bi bi-check-circle"></i> Actifs
+  </a>
+  <a href="{% url 'crm:customer_list' %}?status=archived" class="orion-filter-chip {% if request.GET.status == 'archived' %}active{% endif %}">
+    <i class="bi bi-archive"></i> Archivés
+  </a>
+</div>
+
+{% if customers %}
+<div class="orion-table-container">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Ville</th>
+          <th>CA total</th>
+          <th>Dernière activité</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:36px;height:36px;border-radius:.5rem;background:rgba(198,161,91,.15);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--orion-secondary);flex-shrink:0;">
+                {{ c.name|first|upper }}
+              </div>
+              <div>
+                <a href="{% url 'crm:customer_detail' c.pk %}" class="fw-semibold text-decoration-none" style="color:var(--orion-primary)">{{ c.name }}</a>
+                {% if c.code %}<div style="font-size:.72rem;color:var(--orion-muted);">{{ c.code }}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if c.customer_type == 'company' %}
+            <span class="orion-badge orion-badge-info"><i class="bi bi-building"></i> Entreprise</span>
+            {% else %}
+            <span class="orion-badge orion-badge-secondary"><i class="bi bi-person"></i> Particulier</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.email %}
+            <a href="mailto:{{ c.email }}" style="color:var(--orion-primary);font-size:.82rem;">{{ c.email }}</a>
+            {% else %}<span style="color:var(--orion-muted)">—</span>{% endif %}
+          </td>
+          <td style="color:var(--orion-muted);font-size:.82rem;">{{ c.phone|default:"—" }}</td>
+          <td style="color:var(--orion-muted);font-size:.82rem;">{{ c.city|default:"—" }}</td>
+          <td>
+            <span class="fw-semibold" style="font-size:.84rem;">{{ c.ca_total|default:0|floatformat:0 }} €</span>
+          </td>
+          <td>
+            {% if c.last_activity %}
+            <span style="color:var(--orion-muted);font-size:.8rem;">{{ c.last_activity|timesince }}</span>
+            {% else %}<span style="color:var(--orion-muted)">—</span>{% endif %}
+          </td>
+          <td class="actions">
+            <div class="d-flex align-items-center justify-content-end gap-1">
+              <a href="{% url 'crm:customer_detail' c.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'sales:quote_create' %}?customer={{ c.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Créer un devis">
+                <i class="bi bi-file-earmark-plus"></i>
+              </a>
+              <a href="{% url 'crm:customer_edit' c.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="orion-pagination mt-3">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="orion-page-link">
+    <i class="bi bi-chevron-left"></i>
+  </a>
+  {% endif %}
+  {% for num in page_obj.paginator.page_range %}
+  {% if page_obj.number == num %}
+  <span class="orion-page-link active">{{ num }}</span>
+  {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+  <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="orion-page-link">{{ num }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if filter_type %}&type={{ filter_type }}{% endif %}" class="orion-page-link">
+    <i class="bi bi-chevron-right"></i>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="orion-empty">
+  <i class="bi bi-people orion-empty-icon"></i>
+  <div class="orion-empty-title">Aucun client</div>
+  <p class="orion-empty-text">
+    {% if q or filter_type %}Aucun client ne correspond à vos critères de recherche.{% else %}Commencez par créer votre premier client.{% endif %}
+  </p>
+  {% if not q and not filter_type %}
+  <a href="{% url 'crm:customer_create' %}" class="orion-btn orion-orion-btn primary">
+    <i class="bi bi-plus-lg"></i> Nouveau client
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

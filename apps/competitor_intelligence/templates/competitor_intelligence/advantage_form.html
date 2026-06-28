@@ -1,0 +1,35 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item"><a href="{% url 'competitor:detail' competitor.pk %}">{{ competitor.name }}</a></li>
+<li class="breadcrumb-item active">Avantage</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-award me-2 text-success"></i>Avantage concurrent — {{ competitor.name }}</h5>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn orion-btn-primary">Ajouter</button>
+            <a href="{% url 'competitor:detail' competitor.pk %}" class="orion-btn orion-btn-ghost">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

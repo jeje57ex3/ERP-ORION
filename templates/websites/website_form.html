@@ -1,0 +1,97 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li><li class="breadcrumb-item active">Modifier</li>
+{% else %}<li class="breadcrumb-item active">Nouveau site</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ website.name }}{% else %}Nouveau site web{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-globe me-1 text-primary"></i>Informations générales</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Nom du site *</label>
+              {{ form.name }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Langue</label>
+              {{ form.language }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Domaine</label>
+              {{ form.domain }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Email contact</label>
+              {{ form.contact_email }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Téléphone</label>
+              {{ form.contact_phone }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Adresse</label>
+              {{ form.address }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-search me-1 text-primary"></i>SEO</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Meta title</label>
+            {{ form.meta_title }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Meta description</label>
+            {{ form.meta_description }}
+          </div>
+          <div>
+            <label class="form-label form-label-sm">Google Analytics ID</label>
+            {{ form.google_analytics_id }}
+          </div>
+        </div>
+      </div>
+      <div class="erp-card">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-share me-1 text-primary"></i>Réseaux sociaux</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label form-label-sm">Facebook</label>{{ form.facebook_url }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Instagram</label>{{ form.instagram_url }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Twitter / X</label>{{ form.twitter_url }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">LinkedIn</label>{{ form.linkedin_url }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Options</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="form-check">{{ form.is_active }}<label class="form-check-label small ms-1">Site actif</label></div>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer le site{% endif %}</button>
+        {% if action == 'edit' %}
+        <a href="{% url 'websites:website_detail' website.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        {% else %}
+        <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

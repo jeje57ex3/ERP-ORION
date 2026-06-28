@@ -1,0 +1,19 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"crm_top_customers" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for c in data.customers %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <span class="fw-bold text-muted flex-shrink-0" style="width:1.5rem;font-size:.8rem">#{{ forloop.counter }}</span>
+    <div class="flex-grow-1">
+      <a href="/crm/clients/{{ c.pk }}/" class="text-decoration-none fw-semibold" style="font-size:.84rem">{{ c }}</a>
+    </div>
+    {% if c.ca_ytd %}<span class="text-success fw-bold flex-shrink-0" style="font-size:.82rem">{{ c.ca_ytd|floatformat:0 }} €</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-award"></i><p class="mt-2 mb-0">Aucun client avec CA enregistré.</p></div>
+{% endif %}
+{% endwith %}

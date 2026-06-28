@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      {# En-tête #}
+      <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+          <h1 class="h3 mb-0 fw-bold">
+            <i class="bi bi-bell me-2 text-primary"></i>Notifications
+            {% if unread_count > 0 %}
+              <span class="orion-badge danger ms-2">{{ unread_count }}</span>
+            {% endif %}
+          </h1>
+          <p class="text-muted mb-0 small">Vos alertes et messages ERP</p>
+        </div>
+        {% if unread_count > 0 %}
+          <form method="post" action="{% url 'notifications:mark_all_read' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-outline-primary orion-btn sm">
+              <i class="bi bi-check2-all me-1"></i>Tout marquer comme lu
+            </button>
+          </form>
+        {% endif %}
+      </div>
+
+      {# Filtres #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="orion-orion-card-body p-3">
+          <form method="get" class="row g-2 align-items-end" id="filterForm">
+            <div class="col-12 col-sm-6 col-md-3">
+              <label class="form-label small fw-semibold mb-1">Type</label>
+              <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Tous les types</option>
+                {% for value, label in notification_types %}
+                  <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-2">
+              <label class="form-label small fw-semibold mb-1">Statut</label>
+              <select name="read" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Tous</option>
+                <option value="unread" {% if filter_read == 'unread' %}selected{% endif %}>Non lus</option>
+                <option value="read" {% if filter_read == 'read' %}selected{% endif %}>Lus</option>
+              </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-2">
+              <label class="form-label small fw-semibold mb-1">Priorité</label>
+              <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Toutes</option>
+                <option value="urgent" {% if filter_priority == 'urgent' %}selected{% endif %}>Urgente</option>
+                <option value="high" {% if filter_priority == 'high' %}selected{% endif %}>Haute</option>
+                <option value="normal" {% if filter_priority == 'normal' %}selected{% endif %}>Normale</option>
+                <option value="low" {% if filter_priority == 'low' %}selected{% endif %}>Basse</option>
+              </select>
+            </div>
+            {% if available_modules %}
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1">Module</label>
+                <select name="module" class="form-select form-select-sm" onchange="this.form.submit()">
+                  <option value="">Tous les modules</option>
+                  {% for mod in available_modules %}
+                    <option value="{{ mod }}" {% if filter_module == mod %}selected{% endif %}>{{ mod|capfirst }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endif %}
+            <div class="col-12 col-md-2 d-flex gap-2">
+              {% if filter_type or filter_read or filter_priority or filter_module %}
+                <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary orion-btn sm flex-fill">
+                  <i class="bi bi-x-circle me-1"></i>Effacer
+                </a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {# Messages Django #}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {# Liste des notifications #}
+      <div class="card border-0 shadow-sm">
+        {% if page_obj.object_list %}
+          <div class="list-group list-group-flush rounded">
+            {% for notification in page_obj.object_list %}
+              <div class="list-group-item list-group-item-action p-0 border-bottom">
+                {% include "notifications/_notification_item.html" with notification=notification %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="orion-orion-card-body text-center py-5">
+            <i class="bi bi-bell-slash display-4 text-muted d-block mb-3"></i>
+            <p class="text-muted mb-0">Aucune notification{% if filter_type or filter_read or filter_priority %} pour ces filtres{% endif %}.</p>
+            {% if filter_type or filter_read or filter_priority or filter_module %}
+              <a href="{% url 'notifications:list' %}" class="btn btn-outline-secondary orion-btn sm mt-3">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Voir toutes les notifications
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      {# Pagination #}
+      {% if page_obj.has_other_pages %}
+        <nav class="mt-4" aria-label="Pagination notifications">
+          <ul class="pagination pagination-sm justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_read %}&read={{ filter_read }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_module %}&module={{ filter_module }}{% endif %}">
+                  <i class="bi bi-chevron-double-left"></i>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_read %}&read={{ filter_read }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_module %}&module={{ filter_module }}{% endif %}">
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+              </li>
+            {% endif %}
+
+            <li class="page-item active">
+              <span class="page-link">
+                Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_read %}&read={{ filter_read }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_module %}&module={{ filter_module }}{% endif %}">
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filter_type %}&type={{ filter_type }}{% endif %}{% if filter_read %}&read={{ filter_read }}{% endif %}{% if filter_priority %}&priority={{ filter_priority }}{% endif %}{% if filter_module %}&module={{ filter_module }}{% endif %}">
+                  <i class="bi bi-chevron-double-right"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Polling léger pour le badge non-lu (toutes les 60s)
+(function () {
+  const countUrl = "{% url 'notifications:count_api' %}";
+  function refreshCount() {
+    fetch(countUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.getElementById('notif-badge-global');
+        if (badge) {
+          badge.textContent = data.count > 0 ? data.count : '';
+          badge.style.display = data.count > 0 ? '' : 'none';
+        }
+      })
+      .catch(() => {});
+  }
+  setInterval(refreshCount, 60000);
+})();
+</script>
+{% endblock %}
+{% endblock %}

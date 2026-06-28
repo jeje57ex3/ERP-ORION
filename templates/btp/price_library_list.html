@@ -1,0 +1,90 @@
+﻿{% extends "base.html" %}`n{% load static %}
+{% block title %}Bibliothèque de prix — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-lightning-fill text-warning me-2"></i>Bibliothèque de prix</h4>
+  <a href="{% url 'btp:price_library_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter un tarif</a>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <select name="category" class="form-select form-select-sm">
+          <option value="">Toutes les catégories</option>
+          <option value="depannage" {% if request.GET.category == 'depannage' %}selected{% endif %}>Dépannage</option>
+          <option value="installation" {% if request.GET.category == 'installation' %}selected{% endif %}>Installation</option>
+          <option value="renovation" {% if request.GET.category == 'renovation' %}selected{% endif %}>Rénovation</option>
+          <option value="tableau" {% if request.GET.category == 'tableau' %}selected{% endif %}>Tableau électrique</option>
+          <option value="eclairage" {% if request.GET.category == 'eclairage' %}selected{% endif %}>Éclairage</option>
+          <option value="prise" {% if request.GET.category == 'prise' %}selected{% endif %}>Prises/interrupteurs</option>
+          <option value="chauffage" {% if request.GET.category == 'chauffage' %}selected{% endif %}>Chauffage électrique</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Nom de la prestation..." value="{{ request.GET.q }}">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+        <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="orion-card">
+  {% if items %}
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Prestation</th>
+          <th>Catégorie</th>
+          <th>Prix min HT</th>
+          <th>Prix moyen HT</th>
+          <th>Prix max HT</th>
+          <th>Durée</th>
+          <th>Complexité</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in items %}
+      <tr>
+        <td>
+          <div class="fw-semibold small">{{ item.name }}</div>
+          {% if item.description %}<div class="text-muted" style="font-size:.7rem">{{ item.description|truncatechars:50 }}</div>{% endif %}
+        </td>
+        <td><span class="badge bg-light text-dark border small">{{ item.get_category_display }}</span></td>
+        <td class="small">{{ item.price_min|floatformat:2 }} €</td>
+        <td class="small fw-semibold">{{ item.price_avg|floatformat:2 }} €</td>
+        <td class="small">{{ item.price_max|floatformat:2 }} €</td>
+        <td class="small text-muted">{{ item.duration_hours|floatformat:1 }}h</td>
+        <td>
+          {% if item.complexity == 'simple' %}<span class="orion-badge orion-badge-success">Simple</span>
+          {% elif item.complexity == 'standard' %}<span class="orion-badge gold">Standard</span>
+          {% elif item.complexity == 'complex' %}<span class="orion-badge orion-badge-warning">Complexe</span>
+          {% else %}<span class="orion-badge orion-badge-danger">Expert</span>{% endif %}
+        </td>
+        <td class="text-end">
+          <div class="d-flex gap-1 justify-content-end">
+            <a href="{% url 'btp:price_library_edit' item.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'btp:price_library_delete' item.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-trash"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="orion-empty">
+    <div class="orion-empty-icon"><i class="bi bi-list-ul"></i></div>
+    <div class="orion-empty-title">Aucun tarif configuré</div>
+    <div class="orion-empty-text">Ajoutez des tarifs pour alimenter les pré-devis automatiques.</div>
+    <a href="{% url 'btp:price_library_create' %}" class="orion-btn orion-orion-btn primary">Ajouter le premier tarif</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Ordres de fabrication — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">Production</a></li>
+<li class="breadcrumb-item active">Ordres de fabrication</li>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Planifiez et suivez vos ordres de fabrication.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'production:bom_list' %}" class="orion-btn orion-btn-outline me-2"><i class="bi bi-list-ul me-1"></i>Nomenclatures</a>
+<a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel ordre</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-gear-wide-connected"></i></div>
+      <div class="orion-kpi-value">{{ total }}</div>
+      <div class="orion-kpi-label">Total ordres</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-play-circle"></i></div>
+      <div class="orion-kpi-value">{{ in_progress }}</div>
+      <div class="orion-kpi-label">En cours</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-calendar-check"></i></div>
+      <div class="orion-kpi-value">{{ planned }}</div>
+      <div class="orion-kpi-label">Planifiés</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'production:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr>
+            <th>N° Ordre</th>
+            <th>Produit</th>
+            <th class="text-end">Qté planifiée</th>
+            <th class="text-end">Qté produite</th>
+            <th>Début prévu</th>
+            <th>Fin prévue</th>
+            <th>Statut</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+          <tr>
+            <td><a href="{% url 'production:order_detail' o.pk %}" class="fw-semibold text-dark text-decoration-none">{{ o.order_number|default:"—" }}</a></td>
+            <td class="small">{{ o.product.name }}</td>
+            <td class="text-end small">{{ o.quantity_planned }} {{ o.product.unit|default:"u." }}</td>
+            <td class="text-end small {% if o.quantity_produced >= o.quantity_planned %}text-success fw-semibold{% endif %}">
+              {{ o.quantity_produced }} {{ o.product.unit|default:"u." }}
+            </td>
+            <td class="small text-muted">{{ o.planned_start|date:"d/m/Y"|default:"—" }}</td>
+            <td class="small text-muted">{{ o.planned_end|date:"d/m/Y"|default:"—" }}</td>
+            <td>
+              {% if o.status == 'done' or o.status == 'finished' %}<span class="orion-badge orion-badge-success">{{ o.get_status_display }}</span>
+              {% elif o.status == 'in_progress' %}<span class="orion-badge orion-badge-info">{{ o.get_status_display }}</span>
+              {% elif o.status == 'planned' or o.status == 'draft' %}<span class="orion-badge orion-badge-warning">{{ o.get_status_display }}</span>
+              {% elif o.status == 'cancelled' %}<span class="orion-badge orion-badge-danger">{{ o.get_status_display }}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ o.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'production:order_detail' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'production:order_edit' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-gear-wide-connected"></i></div>
+              <div class="orion-empty-title">Aucun ordre de fabrication</div>
+              <div class="orion-empty-text">Créez un ordre pour lancer la production d'un article.</div>
+              <a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouvel ordre</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

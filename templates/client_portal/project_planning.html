@@ -1,0 +1,58 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Planning — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_list' %}">Chantiers</a></li>
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">Planning</li>
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4">Planning — {{ project.name }}</h4>
+
+{% if steps %}
+<div class="bg-white border rounded-3 overflow-hidden">
+  {% for step in steps %}
+  <div class="p-4 {% if not forloop.last %}border-bottom{% endif %} d-flex gap-4 align-items-center">
+    <div class="text-center" style="width:60px;flex-shrink:0">
+      <div style="width:40px;height:40px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;background:{% if step.status == 'done' %}#D1FAE5{% elif step.status == 'in_progress' %}#FEF3C7{% else %}#F3F4F6{% endif %};color:{% if step.status == 'done' %}#065F46{% elif step.status == 'in_progress' %}#92400E{% else %}#6B7280{% endif %}">
+        {% if step.status == 'done' %}<i class="bi bi-check-lg"></i>{% elif step.status == 'in_progress' %}<i class="bi bi-play-fill"></i>{% else %}{{ forloop.counter }}{% endif %}
+      </div>
+    </div>
+    <div class="flex-grow-1">
+      <div class="fw-semibold">{{ step.name }}</div>
+      {% if step.client_comment %}<div class="text-muted small mt-1">{{ step.client_comment }}</div>{% endif %}
+      <div class="d-flex gap-3 mt-1 small text-muted">
+        {% if step.planned_date %}<span><i class="bi bi-calendar me-1"></i>Prévu : {{ step.planned_date|date:"d/m/Y" }}</span>{% endif %}
+        {% if step.actual_date %}<span><i class="bi bi-check-circle me-1"></i>Réalisé : {{ step.actual_date|date:"d/m/Y" }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="text-end" style="min-width:120px">
+      {% if step.status == 'done' %}<span class="badge badge-status-done">Terminée</span>
+      {% elif step.status == 'in_progress' %}
+        <span class="badge badge-status-progress">En cours ({{ step.progress_percent }}%)</span>
+      {% elif step.status == 'waiting_client' %}
+        <span class="badge badge-status-waiting">En attente de vous</span>
+      {% elif step.status == 'delayed' %}
+        <span class="orion-badge danger">Retardée</span>
+      {% else %}<span class="badge bg-light text-muted border">À venir</span>{% endif %}
+
+      {% if step.client_can_validate and not step.validated_by_client %}
+      <form method="post" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="validate_step" value="{{ step.pk }}">
+        <button type="submit" class="orion-btn sm orion-btn success">✓ Valider cette étape</button>
+      </form>
+      {% elif step.validated_by_client %}
+      <div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>Validé par vous</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border rounded-3 p-5 text-center text-muted">
+  <i class="bi bi-calendar-x fs-1 d-block mb-3"></i>
+  <h6>Aucune étape de planning disponible</h6>
+</div>
+{% endif %}
+{% endblock %}

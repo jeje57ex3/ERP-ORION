@@ -1,0 +1,110 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item active">Produits</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'competitor:csv_import' %}" class="orion-btn orion-btn-outline orion-btn-sm">
+  <i class="bi bi-upload"></i> Import CSV
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Produits concurrents</h1>
+    <p class="orion-page-subtitle">{{ page_obj.paginator.count }} produit{{ page_obj.paginator.count|pluralize }} suivis</p>
+  </div>
+</div>
+
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap w-100">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="Rechercher..." style="max-width:200px">
+    <select name="competitor" class="form-select form-select-sm" style="max-width:200px">
+      <option value="">Tous les concurrents</option>
+      {% for c in competitors %}
+      <option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == competitor_id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="category" class="form-select form-select-sm" style="max-width:180px">
+      <option value="">Toutes catégories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {% if cat == category %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn-sm"><i class="bi bi-search"></i></button>
+    {% if search or competitor_id or category %}
+    <a href="{% url 'competitor:product_list' %}" class="orion-btn orion-btn-ghost orion-btn-sm"><i class="bi bi-x"></i></a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card erp-card">
+  <div class="card-body p-0">
+    {% if page_obj %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Produit</th>
+            <th>Concurrent</th>
+            <th>Catégorie</th>
+            <th>Prix</th>
+            <th>Ancien prix</th>
+            <th>Remise</th>
+            <th>Disponibilité</th>
+            <th>Vérifié le</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in page_obj %}
+          <tr>
+            <td>
+              {{ p.name|truncatechars:50 }}
+              {% if p.product_url %}
+              <a href="{{ p.product_url }}" target="_blank" class="ms-1 text-muted">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </a>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ p.competitor.name }}</span></td>
+            <td class="text-muted">{{ p.category|default:"—" }}</td>
+            <td class="fw-semibold">{{ p.price_display }}</td>
+            <td class="text-muted">{% if p.old_price %}{{ p.old_price|floatformat:2 }} {{ p.currency }}{% else %}—{% endif %}</td>
+            <td>{% if p.discount_percent %}<span class="badge bg-danger">-{{ p.discount_percent }}%</span>{% else %}—{% endif %}</td>
+            <td>
+              <span class="badge {% if p.availability == 'in_stock' %}bg-success{% elif p.availability == 'out_of_stock' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ p.get_availability_display }}
+              </span>
+            </td>
+            <td class="text-muted">{{ p.last_checked_at|date:"d/m"|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>{% endif %}
+          <li class="page-item active"><a class="page-link" href="#">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>{% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-grid-3x3 fs-1 d-block mb-3 opacity-25"></i>
+      <p>Aucun produit concurrent. Ajoutez manuellement ou importez un CSV.</p>
+      <a href="{% url 'competitor:csv_import' %}" class="orion-btn orion-btn-primary">Importer CSV</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

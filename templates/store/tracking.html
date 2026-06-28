@@ -1,0 +1,115 @@
+{% extends "store/base_store.html" %}
+{% block title %}Suivi de commande — {{ website.name }}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8">
+      <h1 class="fw-bold mb-4"><i class="bi bi-geo-alt me-2"></i>Suivi de commande</h1>
+
+      <!-- Formulaire recherche -->
+      <div class="border rounded-3 p-4 mb-4">
+        <form method="get" class="d-flex gap-2">
+          <input type="text" name="order" class="form-control" placeholder="Numéro de commande (ex: WEB-00001)" value="{{ query }}" required>
+          <button type="submit" class="btn btn-store-primary px-4">Rechercher</button>
+        </form>
+        <p class="text-muted small mt-2 mb-0">Entrez votre numéro de commande reçu par email.</p>
+      </div>
+
+      {% if query and not order %}
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>Aucune commande trouvée pour « <strong>{{ query }}</strong> ».
+      </div>
+      {% endif %}
+
+      {% if order %}
+      <div class="border rounded-3 overflow-hidden">
+        <!-- Résumé commande -->
+        <div class="p-4 border-bottom bg-light">
+          <div class="row g-2 align-items-center">
+            <div class="col">
+              <div class="fw-bold font-monospace fs-5">{{ order.order_number }}</div>
+              <div class="small text-muted">Commandé le {{ order.created_at|date:"d/m/Y" }}</div>
+            </div>
+            <div class="col-auto">
+              {% if order.status == 'pending' %}<span class="badge bg-warning text-dark fs-6">En attente</span>
+              {% elif order.status == 'confirmed' %}<span class="badge bg-info fs-6">Confirmée</span>
+              {% elif order.status == 'shipped' %}<span class="badge bg-primary fs-6">Expédiée</span>
+              {% elif order.status == 'delivered' %}<span class="badge bg-success fs-6">Livrée</span>
+              {% elif order.status == 'cancelled' %}<span class="badge bg-danger fs-6">Annulée</span>
+              {% else %}<span class="badge bg-secondary fs-6">{{ order.status }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Progression -->
+        <div class="p-4 border-bottom">
+          <h6 class="fw-bold mb-4">Progression de la livraison</h6>
+          <div class="d-flex justify-content-between position-relative">
+            <div class="progress position-absolute" style="top:14px;left:10%;right:10%;height:4px;z-index:0">
+              <div class="progress-bar bg-success" style="width:{% if order.status == 'pending' %}0{% elif order.status == 'confirmed' %}25{% elif order.status == 'shipped' %}65{% elif order.status == 'delivered' %}100{% else %}0{% endif %}%"></div>
+            </div>
+            {% for icon, label, active in tracking_steps %}
+            <div class="text-center" style="z-index:1;flex:1">
+              <div class="mx-auto mb-2 rounded-circle d-flex align-items-center justify-content-center {% if active %}bg-success text-white{% else %}border bg-white text-muted{% endif %}" style="width:30px;height:30px;font-size:0.8rem">
+                <i class="bi bi-{{ icon }}"></i>
+              </div>
+              <div class="small {% if active %}fw-semibold{% else %}text-muted{% endif %}">{{ label }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Numéro de suivi transporteur -->
+        {% if order.tracking_number %}
+        <div class="p-4 border-bottom">
+          <h6 class="fw-bold mb-2"><i class="bi bi-truck me-2"></i>Numéro de suivi transporteur</h6>
+          <div class="d-flex align-items-center gap-3">
+            <span class="font-monospace fw-bold fs-5">{{ order.tracking_number }}</span>
+            <button onclick="navigator.clipboard.writeText('{{ order.tracking_number }}')" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-clipboard me-1"></i>Copier
+            </button>
+          </div>
+          {% if order.carrier_name %}
+          <div class="text-muted small mt-1">{{ order.carrier_name }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Événements de suivi -->
+        {% if tracking_events %}
+        <div class="p-4 border-bottom">
+          <h6 class="fw-bold mb-3">Historique de suivi</h6>
+          <div class="position-relative" style="padding-left:24px;border-left:2px solid #e5e7eb">
+            {% for event in tracking_events %}
+            <div class="mb-3 position-relative">
+              <div class="position-absolute bg-primary rounded-circle" style="width:10px;height:10px;left:-30px;top:5px"></div>
+              <div class="fw-semibold small">{{ event.description }}</div>
+              <div class="text-muted" style="font-size:0.75rem">{{ event.location }} — {{ event.timestamp|date:"d/m/Y à H:i" }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Adresse de livraison -->
+        <div class="p-4">
+          <h6 class="fw-bold mb-2"><i class="bi bi-geo-alt me-2"></i>Adresse de livraison</h6>
+          <p class="text-muted small mb-0">{{ order.shipping_address|linebreaks }}</p>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        {% if user.is_authenticated %}
+        <a href="{% url 'store:customer_order_detail' order.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-bag me-1"></i>Détails de la commande
+        </a>
+        {% endif %}
+        <a href="{% url 'store:store_home' %}" class="btn btn-outline-dark btn-sm">
+          <i class="bi bi-shop me-1"></i>Retour boutique
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

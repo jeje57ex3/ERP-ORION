@@ -1,0 +1,134 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:seo_dashboard' website.pk %}">SEO</a></li>
+      <li class="breadcrumb-item active">{{ page.title }}</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle d-flex align-items-center justify-content-center
+          {% if score.grade == 'A' %}bg-success{% elif score.grade == 'B' %}bg-primary{% elif score.grade == 'C' %}bg-warning{% else %}bg-danger{% endif %}"
+          style="width:52px;height:52px">
+          <span class="text-white fw-bold fs-4">{{ score.grade }}</span>
+        </div>
+        <div>
+          <h1 class="h4 fw-semibold mb-0">{{ page.title }}</h1>
+          <div class="text-muted small">Score SEO : {{ score.percentage }}% — /{{ page.slug }}/</div>
+        </div>
+      </div>
+
+      {# Formulaire SEO #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">Métadonnées SEO</h6>
+        </div>
+        <div class="orion-orion-card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-medium">Meta title</label>
+              <input type="text" name="meta_title" class="form-control"
+                value="{{ page.meta_title }}" placeholder="Titre pour les moteurs de recherche"
+                maxlength="70" id="metaTitle">
+              <div class="d-flex justify-content-between">
+                <div class="form-text">Idéalement entre 30 et 70 caractères.</div>
+                <div class="form-text" id="titleCount">{{ page.meta_title|length }}/70</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Meta description</label>
+              <textarea name="meta_description" class="form-control" rows="3"
+                placeholder="Description pour les moteurs de recherche" maxlength="160"
+                id="metaDesc">{{ page.meta_description }}</textarea>
+              <div class="d-flex justify-content-between">
+                <div class="form-text">Idéalement entre 100 et 160 caractères.</div>
+                <div class="form-text" id="descCount">{{ page.meta_description|length }}/160</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">URL canonique</label>
+              <input type="url" name="canonical_url" class="form-control"
+                value="{{ page.canonical_url }}" placeholder="https://monsite.fr/ma-page/">
+              <div class="form-text">Laissez vide pour utiliser l'URL par défaut.</div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="is_indexable"
+                id="indexable" {% if page.is_indexable %}checked{% endif %}>
+              <label class="form-check-label fw-medium" for="indexable">
+                Page indexable (visible par Google)
+              </label>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{% url 'websites:seo_dashboard' website.pk %}" class="orion-btn">Annuler</a>
+              <button type="submit" class="orion-btn primary">
+                <i class="bi bi-check-lg me-1"></i>Enregistrer
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {# Aperçu Google #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-google me-2"></i>Aperçu Google</h6>
+        </div>
+        <div class="orion-orion-card-body">
+          <div class="bg-white border rounded p-3">
+            <div class="text-primary fw-medium" style="font-size:1.1rem" id="previewTitle">
+              {{ preview.title|default:"Titre de la page" }}
+            </div>
+            <div class="text-success small">{{ preview.url }}</div>
+            <div class="text-muted small mt-1" id="previewDesc">
+              {{ preview.description|default:"Description de la page dans les résultats Google..." }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Checklist SEO #}
+      <div class="card border-0 shadow-sm">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">Détail du score</h6>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for check in score.checks %}
+          <div class="list-group-item d-flex align-items-center gap-3 py-2">
+            <i class="bi {% if check.ok %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+            <div class="flex-grow-1">
+              <span class="small">{{ check.name }}</span>
+              {% if not check.ok and check.advice %}
+              <div class="text-muted" style="font-size:0.75rem">{{ check.advice }}</div>
+              {% endif %}
+            </div>
+            <span class="badge bg-light text-dark">{{ check.points }} pts</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('metaTitle').addEventListener('input', function() {
+  document.getElementById('titleCount').textContent = this.value.length + '/70';
+  document.getElementById('previewTitle').textContent = this.value || 'Titre de la page';
+});
+document.getElementById('metaDesc').addEventListener('input', function() {
+  document.getElementById('descCount').textContent = this.value.length + '/160';
+  document.getElementById('previewDesc').textContent = this.value || 'Description de la page...';
+});
+</script>
+{% endblock %}

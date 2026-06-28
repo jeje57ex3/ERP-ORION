@@ -1,0 +1,103 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:bank_statement_list' %}">Relevés</a></li>
+<li class="breadcrumb-item active">Rapprochement</li>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{{ statement.bank_account.bank_name }} — {{ statement.statement_date|date:"d/m/Y" }}</p>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card" style="--kpi-color:#0D9488">
+      <div class="kpi-icon"><i class="bi bi-bank2"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ statement.end_balance|floatformat:2 }} €</div><div class="kpi-label">Solde final</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card" style="--kpi-color:#10B981">
+      <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ reconciled_count }} / {{ total_count }}</div><div class="kpi-label">Lignes rapprochées</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-list-check me-2"></i>Lignes du relevé</h6></div>
+      <div class="erp-orion-orion-card-body p-0">
+        {% if lines %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Date</th><th>Libellé</th><th class="text-end">Montant</th><th class="text-center">Statut</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for line in lines %}
+              <tr class="{% if line.is_reconciled %}table-success{% endif %}">
+                <td class="small">{{ line.operation_date|date:"d/m/Y" }}</td>
+                <td class="small">{{ line.label|truncatechars:40 }}</td>
+                <td class="text-end fw-semibold {% if line.amount >= 0 %}text-success{% else %}text-danger{% endif %}">{{ line.amount|floatformat:2 }} €</td>
+                <td class="text-center">
+                  {% if line.is_reconciled %}<span class="orion-badge success"><i class="bi bi-check"></i></span>
+                  {% else %}<span class="orion-badge warning text-dark">—</span>{% endif %}
+                </td>
+                <td>
+                  {% if not line.is_reconciled %}
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="ignore">
+                    <input type="hidden" name="line_pk" value="{{ line.pk }}">
+                    <button type="submit" class="btn btn-xs btn-outline-secondary" title="Ignorer"><i class="bi bi-dash-circle"></i></button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">Aucune ligne dans ce relevé.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-link me-2"></i>Rapprocher manuellement</h6></div>
+      <div class="erp-orion-orion-card-body">
+        {% if unreconciled_payments %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="reconcile">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ligne de relevé</label>
+            <select name="line_pk" class="form-select form-select-sm">
+              <option value="">-- Ligne non rapprochée --</option>
+              {% for line in lines %}{% if not line.is_reconciled %}
+              <option value="{{ line.pk }}">{{ line.operation_date|date:"d/m" }} {{ line.label|truncatechars:30 }} ({{ line.amount|floatformat:2 }} €)</option>
+              {% endif %}{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Paiement à associer</label>
+            <select name="payment_pk" class="form-select form-select-sm">
+              <option value="">-- Paiement --</option>
+              {% for p in unreconciled_payments %}
+              <option value="{{ p.pk }}">{{ p.payment_date|date:"d/m" }} {{ p.partner_name }} — {{ p.amount|floatformat:2 }} €</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="orion-btn primary orion-btn sm"><i class="bi bi-link me-1"></i>Rapprocher</button>
+        </form>
+        {% else %}
+        <p class="text-muted small">Aucun paiement validé non rapproché.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ site.name|default:"Site" }} — Maintenance</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 3rem 2.5rem;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: #fef3c7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 2.5rem;
+    }
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; }
+    p { color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; }
+    .badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .footer { margin-top: 2rem; font-size: 0.8rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🔧</div>
+    <span class="badge">En maintenance</span>
+    <h1 style="margin-top:1rem">{{ site.name|default:"Ce site" }}</h1>
+    <p>Ce site est temporairement en maintenance. Merci de revenir plus tard.</p>
+    <p style="font-size:0.875rem">Nous travaillons à améliorer votre expérience et reviendrons très prochainement.</p>
+    {% if site.contact_email %}
+    <p style="font-size:0.875rem">
+      Pour toute urgence, contactez-nous : <a href="mailto:{{ site.contact_email }}" style="color:inherit">{{ site.contact_email }}</a>
+    </p>
+    {% endif %}
+    <div class="footer">Propulsé par Orion ERP</div>
+  </div>
+</body>
+</html>

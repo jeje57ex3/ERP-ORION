@@ -1,0 +1,58 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="d-flex flex-column" style="height:calc(100vh - 56px)">
+  {# Barre de contrôle #}
+  <div class="bg-dark text-white px-3 py-2 d-flex align-items-center gap-3">
+    <a href="{% url 'websites:website_detail' website.pk %}" class="orion-btn sm btn-outline-light">
+      <i class="bi bi-arrow-left me-1"></i>Retour édition
+    </a>
+    <div class="d-flex gap-1">
+      <button class="orion-btn sm orion-btn active" id="btnDesktop" onclick="setDevice('desktop',this)">
+        <i class="bi bi-laptop me-1"></i>Desktop
+      </button>
+      <button class="orion-btn sm orion-btn" id="btnTablet" onclick="setDevice('tablet',this)">
+        <i class="bi bi-tablet me-1"></i>Tablette
+      </button>
+      <button class="orion-btn sm orion-btn" id="btnMobile" onclick="setDevice('mobile',this)">
+        <i class="bi bi-phone me-1"></i>Mobile
+      </button>
+    </div>
+    <div class="text-white-50 small ms-2" id="deviceSize">1280px</div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      {% if website.status == 'published' %}
+      <span class="orion-badge success"><i class="bi bi-globe me-1"></i>Publié</span>
+      {% else %}
+      <span class="orion-badge neutral">Brouillon</span>
+      {% endif %}
+      <span class="text-white-50 small">{{ website.name }}</span>
+    </div>
+  </div>
+
+  {# Zone de prévisualisation #}
+  <div class="flex-grow-1 bg-secondary d-flex align-items-start justify-content-center p-3 overflow-auto">
+    <div id="previewWrapper" style="width:100%;transition:width 0.3s;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3)">
+      <iframe id="previewFrame"
+        src="{% url 'websites:website_detail' website.pk %}"
+        style="width:100%;height:calc(100vh - 130px);border:none"
+        title="Prévisualisation {{ website.name }}">
+      </iframe>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setDevice(device, btn) {
+  const wrapper = document.getElementById('previewWrapper');
+  const sizeEl = document.getElementById('deviceSize');
+  document.querySelectorAll('#btnDesktop,#btnTablet,#btnMobile').forEach(b => b.classList.remove('active','orion-btn primary'));
+  btn.classList.add('active','orion-btn primary');
+  if (device === 'desktop') { wrapper.style.width = '100%'; sizeEl.textContent = '1280px'; }
+  else if (device === 'tablet') { wrapper.style.width = '768px'; sizeEl.textContent = '768px'; }
+  else { wrapper.style.width = '375px'; sizeEl.textContent = '375px'; }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}{{ profile.customer }} — Profil beauté LUNEA{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'lunea_beauty_profile:dashboard' %}" style="color:var(--orion-muted);text-decoration:none">LUNEA</a>
+      <i class="bi bi-chevron-right mx-1" style="font-size:11px;color:var(--orion-muted)"></i>
+      <a href="{% url 'lunea_beauty_profile:profile_list' %}" style="color:var(--orion-muted);text-decoration:none">Profils</a>
+      <i class="bi bi-chevron-right mx-1" style="font-size:11px;color:var(--orion-muted)"></i>
+      {{ profile.customer }}
+    </p>
+    <h1 class="orion-page-title" style="font-size:22px">{{ profile.customer }}</h1>
+    <p class="orion-page-subtitle">{{ profile.get_skin_type_display }} · {{ profile.get_hair_type_display }}</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'lunea_beauty_profile:profile_list' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Profils
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <!-- Profil peau -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header">
+        <h2 style="font-size:14px;font-weight:600;margin:0"><i class="bi bi-person-heart me-2" style="color:var(--orion-accent)"></i>Profil beauté</h2>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;font-size:13.5px">
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:8px">
+          <span style="color:var(--orion-muted)">Type de peau</span>
+          <strong>{{ profile.get_skin_type_display }}</strong>
+          <span style="color:var(--orion-muted)">Type de cheveux</span>
+          <strong>{{ profile.get_hair_type_display }}</strong>
+          {% if profile.preferred_brands %}
+          <span style="color:var(--orion-muted)">Marques préférées</span>
+          <span>{{ profile.preferred_brands|join:", " }}</span>
+          {% endif %}
+          {% if profile.last_appointment_at %}
+          <span style="color:var(--orion-muted)">Dernier rendez-vous</span>
+          <span>{{ profile.last_appointment_at|date:"d/m/Y" }}</span>
+          {% endif %}
+        </div>
+
+        {% if profile.skin_concerns %}
+        <div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--orion-muted);margin-bottom:6px">Préoccupations peau</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            {% for concern in profile.skin_concerns %}
+            <span class="orion-badge neutral">{{ concern }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if profile.hair_concerns %}
+        <div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--orion-muted);margin-bottom:6px">Préoccupations cheveux</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            {% for concern in profile.hair_concerns %}
+            <span class="orion-badge neutral">{{ concern }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if profile.allergies %}
+        <div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--orion-muted);margin-bottom:6px">Allergies</div>
+          <div style="color:var(--orion-danger);font-size:13px">{{ profile.allergies|join:", " }}</div>
+        </div>
+        {% endif %}
+
+        {% if profile.avoided_ingredients %}
+        <div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--orion-muted);margin-bottom:6px">Ingrédients à éviter</div>
+          <div style="font-size:13px">{{ profile.avoided_ingredients|join:", " }}</div>
+        </div>
+        {% endif %}
+
+        {% if profile.notes %}
+        <div style="background:var(--orion-surface-alt);border-radius:8px;padding:10px 12px;font-size:13px">
+          {{ profile.notes }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <!-- Recommandations -->
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <h2 style="font-size:14px;font-weight:600;margin:0"><i class="bi bi-stars me-2" style="color:var(--orion-accent)"></i>Recommandations</h2>
+        <span style="font-size:12px;color:var(--orion-muted)">{{ recommendations|length }} reco(s)</span>
+      </div>
+      {% if recommendations %}
+      <div style="padding:8px 16px">
+        {% for rec in recommendations %}
+        <div style="display:flex;align-items:start;justify-content:space-between;gap:12px;padding:12px 4px;border-bottom:1px solid var(--orion-border)">
+          <div style="flex:1">
+            <div style="font-weight:500;font-size:13.5px;margin-bottom:2px">
+              {{ rec.product_name }}
+              {% if rec.brand %}<span style="color:var(--orion-muted);font-size:12px;margin-left:6px">{{ rec.brand }}</span>{% endif %}
+            </div>
+            <div style="font-size:12px;color:var(--orion-muted);margin-bottom:4px">{{ rec.reason|truncatechars:120 }}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="orion-badge {% if rec.is_applied %}success{% else %}neutral{% endif %}">
+                {% if rec.is_applied %}Appliquée{% else %}En attente{% endif %}
+              </span>
+              <span class="orion-badge neutral" style="font-size:11px">{{ rec.get_recommendation_type_display }}</span>
+              <span style="font-size:11px;color:var(--orion-muted)">Score : {{ rec.score|floatformat:0 }}%</span>
+            </div>
+          </div>
+          {% if not rec.is_applied %}
+          <form method="post" action="{% url 'lunea_beauty_profile:mark_applied' rec.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm primary">Appliquer</button>
+          </form>
+          {% else %}
+          <span style="font-size:11px;color:var(--orion-muted)">{{ rec.applied_at|date:"d/m/Y" }}</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding:32px;text-align:center;color:var(--orion-muted);font-size:13px">
+        <i class="bi bi-stars d-block mb-2" style="font-size:28px;opacity:.3"></i>
+        Aucune recommandation pour ce profil.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,368 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Sidebar sombre desktop
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Structure sidebar ─────────────────────────────────────── */
+.orion-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--orion-sidebar-width, 245px);
+  height: 100vh;
+  background: linear-gradient(180deg, var(--orion-sidebar-bg-dark, #1C120A) 0%, var(--orion-sidebar-bg, #2B2118) 100%);
+  color: var(--orion-light-text, #F8F3EA);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid rgba(255,255,255,.04);
+  z-index: 1000;
+  transition: width .2s ease;
+  user-select: none;
+}
+
+/* ── Mode compact ──────────────────────────────────────────── */
+.orion-sidebar.compact {
+  width: 52px;
+}
+
+.orion-sidebar.compact .orion-sidebar-label,
+.orion-sidebar.compact .orion-sidebar-arrow,
+.orion-sidebar.compact .orion-sidebar-brand-text,
+.orion-sidebar.compact .orion-sidebar-company,
+.orion-sidebar.compact .orion-sidebar-group-title,
+.orion-sidebar.compact .orion-sidebar-submenu,
+.orion-sidebar.compact .orion-sidebar-footer-info {
+  display: none !important;
+}
+
+.orion-sidebar.compact .orion-sidebar-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.orion-sidebar.compact .orion-sidebar-logo {
+  max-width: 32px;
+}
+
+.orion-sidebar.compact .orion-sidebar-item {
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+
+.orion-sidebar.compact .orion-sidebar-item:hover .orion-sidebar-label {
+  display: flex !important;
+  position: absolute;
+  left: 56px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1C120A;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 12px;
+  z-index: 9999;
+  box-shadow: 0 3px 10px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+
+/* ── Brand / Logo ──────────────────────────────────────────── */
+.orion-sidebar-brand {
+  height: 64px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.orion-sidebar-logo-wrap {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.orion-sidebar-logo {
+  max-width: 34px;
+  max-height: 34px;
+  object-fit: contain;
+}
+
+.orion-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.orion-sidebar-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orion-secondary, #C6A15B);
+  line-height: 1.2;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.orion-sidebar-company {
+  font-size: 11px;
+  color: rgba(248,243,234,.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* ── Scroll menu ───────────────────────────────────────────── */
+.orion-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.1) transparent;
+}
+
+.orion-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.orion-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.12);
+  border-radius: 2px;
+}
+
+/* ── Titres de groupes ─────────────────────────────────────── */
+.orion-sidebar-group-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(198,161,91,.5);
+  padding: 10px 18px 4px;
+  margin-top: 4px;
+}
+
+/* ── Items menu ────────────────────────────────────────────── */
+.orion-sidebar-item {
+  height: 36px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(248,243,234,.72);
+  text-decoration: none;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  transition: background .12s, color .12s, border-color .12s;
+  position: relative;
+}
+
+.orion-sidebar-item i.orion-sidebar-icon {
+  font-size: 15px;
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.orion-sidebar-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orion-sidebar-arrow {
+  font-size: 10px;
+  color: rgba(248,243,234,.35);
+  flex-shrink: 0;
+  transition: transform .2s ease;
+}
+
+.orion-sidebar-item:hover {
+  background: var(--orion-sidebar-hover, rgba(198,161,91,.08));
+  color: rgba(248,243,234,.95);
+  border-left-color: rgba(198,161,91,.3);
+}
+
+.orion-sidebar-item.active {
+  background: var(--orion-sidebar-active-bg, rgba(198,161,91,.14));
+  border-left-color: var(--orion-secondary, #C6A15B);
+  color: var(--orion-secondary, #C6A15B);
+  font-weight: 500;
+}
+
+.orion-sidebar-item.open .orion-sidebar-arrow {
+  transform: rotate(180deg);
+}
+
+/* ── Sous-menus ────────────────────────────────────────────── */
+.orion-sidebar-submenu {
+  display: none;
+  padding: 2px 0 4px;
+  background: rgba(0,0,0,.18);
+}
+
+.orion-sidebar-submenu.show {
+  display: block;
+}
+
+.orion-sidebar-sublink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 18px 0 46px;
+  color: rgba(248,243,234,.58);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: color .12s, background .12s;
+  white-space: nowrap;
+}
+
+.orion-sidebar-sublink i {
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.orion-sidebar-sublink:hover {
+  color: rgba(248,243,234,.92);
+  background: rgba(198,161,91,.06);
+}
+
+.orion-sidebar-sublink.active {
+  color: var(--orion-secondary, #C6A15B);
+  font-weight: 500;
+}
+
+/* ── Séparateur ────────────────────────────────────────────── */
+.orion-sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,.06);
+  margin: 6px 0;
+}
+
+/* ── Footer sidebar ────────────────────────────────────────── */
+.orion-sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.orion-sidebar-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--orion-secondary);
+  color: var(--orion-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.orion-sidebar-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orion-sidebar-footer-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.orion-sidebar-footer-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(248,243,234,.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orion-sidebar-footer-role {
+  font-size: 10.5px;
+  color: rgba(248,243,234,.45);
+}
+
+.orion-sidebar-footer-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.orion-sidebar-footer-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(248,243,234,.45);
+  border-radius: 3px;
+  transition: background .12s, color .12s;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 13px;
+}
+
+.orion-sidebar-footer-btn:hover {
+  background: rgba(255,255,255,.08);
+  color: rgba(248,243,234,.9);
+}
+
+/* ── Overlay mobile ────────────────────────────────────────── */
+.orion-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 999;
+}
+
+.orion-sidebar-overlay.show {
+  display: block;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 992px) {
+  .orion-sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease, width .2s ease;
+    width: var(--orion-sidebar-width, 245px) !important;
+  }
+
+  .orion-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .orion-sidebar .orion-sidebar-label,
+  .orion-sidebar .orion-sidebar-arrow,
+  .orion-sidebar .orion-sidebar-brand-text,
+  .orion-sidebar .orion-sidebar-footer-info {
+    display: flex !important;
+  }
+}

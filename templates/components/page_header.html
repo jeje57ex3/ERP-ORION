@@ -1,0 +1,21 @@
+{# Composant : En-tête de page
+   Variables : page_title, page_subtitle, breadcrumbs (liste de dicts {label, url}), page_actions (HTML string ou block)
+#}
+<div class="orion-page-header">
+  <div>
+    {% if breadcrumbs %}
+    <nav class="orion-breadcrumb">
+      <a href="{% url 'core:dashboard' %}"><i class="bi bi-house"></i></a>
+      {% for crumb in breadcrumbs %}
+        <span class="orion-breadcrumb-sep">/</span>
+        {% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}<span>{{ crumb.label }}</span>{% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+    <h1 class="orion-page-title">{{ page_title }}</h1>
+    {% if page_subtitle %}<p class="orion-page-subtitle">{{ page_subtitle }}</p>{% endif %}
+  </div>
+  {% if page_actions %}
+  <div class="orion-page-actions">{{ page_actions }}</div>
+  {% endif %}
+</div>

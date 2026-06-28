@@ -1,0 +1,117 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 fw-bold mb-0"><i class="bi bi-arrow-repeat text-primary me-2"></i>Cycles PDCA</h1>
+    <a href="{% url 'continuous_improvement:cycle_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Nouveau cycle
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+      <select name="stage" class="form-select form-select-sm">
+        <option value="">Toutes les étapes</option>
+        {% for val, label in stage_choices %}
+        <option value="{{ val }}" {% if stage_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">Tous les statuts</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="category" class="form-select form-select-sm">
+        <option value="">Toutes catégories</option>
+        {% for val, label in category_choices %}
+        <option value="{{ val }}" {% if category_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Filtrer</button>
+      <a href="{% url 'continuous_improvement:cycle_list' %}" class="btn btn-sm btn-link text-muted">Réinitialiser</a>
+    </div>
+  </form>
+
+  {% if cycles %}
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Titre</th>
+            <th>Catégorie</th>
+            <th>Priorité</th>
+            <th>Étape</th>
+            <th>Statut</th>
+            <th>Propriétaire</th>
+            <th>Échéance</th>
+            <th>Progression</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cycle in cycles %}
+          <tr class="{% if cycle.is_late %}table-danger{% endif %}">
+            <td>
+              <a href="{% url 'continuous_improvement:cycle_detail' cycle.pk %}" class="fw-semibold text-decoration-none text-body">
+                {{ cycle.title }}
+              </a>
+              {% if cycle.is_late %}<span class="badge bg-danger ms-1 badge-sm">Retard</span>{% endif %}
+            </td>
+            <td><span class="badge bg-light text-secondary">{{ cycle.get_category_display }}</span></td>
+            <td>
+              <span class="badge {% if cycle.priority == 'critical' %}bg-danger{% elif cycle.priority == 'high' %}bg-warning text-dark{% elif cycle.priority == 'medium' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                {{ cycle.get_priority_display }}
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if cycle.stage == 'plan' %}bg-info{% elif cycle.stage == 'do' %}bg-primary{% elif cycle.stage == 'check' %}bg-warning text-dark{% elif cycle.stage == 'act' %}bg-success{% else %}bg-secondary{% endif %}">
+                {{ cycle.get_stage_display }}
+              </span>
+            </td>
+            <td><span class="badge bg-light text-muted">{{ cycle.get_status_display }}</span></td>
+            <td class="text-muted small">{{ cycle.owner|default:"—" }}</td>
+            <td class="text-muted small">{{ cycle.target_date|date:"d/m/Y"|default:"—" }}</td>
+            <td style="min-width:80px;">
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height:6px;">
+                  <div class="progress-bar {% if cycle.is_late %}bg-danger{% else %}bg-primary{% endif %}"
+                    style="width:{{ cycle.progress_percent }}%"></div>
+                </div>
+                <small class="text-muted">{{ cycle.progress_percent }}%</small>
+              </div>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'continuous_improvement:cycle_detail' cycle.pk %}" class="btn btn-xs btn-outline-secondary">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-arrow-repeat fs-1 text-muted d-block mb-3"></i>
+    <h5 class="text-muted">Aucun cycle PDCA</h5>
+    <p class="text-muted">Créez votre premier cycle d'amélioration continue.</p>
+    <a href="{% url 'continuous_improvement:cycle_create' %}" class="btn btn-primary mt-2">
+      <i class="bi bi-plus-circle me-1"></i>Créer un cycle
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

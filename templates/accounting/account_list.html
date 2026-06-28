@@ -1,0 +1,59 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Plan comptable — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item active">Plan comptable</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'accounting:account_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau compte</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-list-ol me-2"></i>Plan comptable</h6>
+    <form method="get" class="orion-filter-bar d-flex gap-2 flex-wrap">
+      <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="text" name="q" class="orion-search-input ps-4" style="width:220px" placeholder="N° ou libellé..." value="{{ q }}"></div>
+      <select name="type" class="form-select form-select-sm" style="width:200px">
+        <option value="">Tous les types</option>
+        {% for val, label in type_choices %}
+        <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="orion-btn orion-btn-outline"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if accounts %}
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr><th>Numéro</th><th>Libellé</th><th>Type</th><th class="text-center">Actif</th><th class="text-center">Saisie manuelle</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for acc in accounts %}
+          <tr {% if not acc.is_active %}class="opacity-50"{% endif %}>
+            <td><code class="fw-semibold">{{ acc.number }}</code></td>
+            <td>{{ acc.name }}</td>
+            <td><span class="orion-badge neutral">{{ acc.get_account_type_display }}</span></td>
+            <td class="text-center">{% if acc.is_active %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
+            <td class="text-center">{% if acc.allow_manual_entries %}<i class="bi bi-check-circle-fill text-info"></i>{% else %}<i class="bi bi-dash text-muted"></i>{% endif %}</td>
+            <td class="text-end">
+              <a href="{% url 'accounting:account_edit' acc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-list-ol"></i></div>
+      <div class="orion-empty-title">Aucun compte</div>
+      <div class="orion-empty-text"><a href="{% url 'accounting:account_create' %}">Créer le premier</a>.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

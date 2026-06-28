@@ -1,0 +1,155 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item active">Checklist publication</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      {# Statut actuel #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="orion-orion-card-body">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center
+                {% if website.status == 'published' %}bg-success{% elif website.status == 'unpublished' %}bg-secondary{% else %}bg-warning{% endif %}"
+                style="width:48px;height:48px">
+                <i class="bi {% if website.status == 'published' %}bi-globe{% else %}bi-eye-slash{% endif %} text-white fs-5"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">{{ website.name }}</div>
+                <div class="text-muted small">Statut : {{ website.get_status_display }}</div>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="display-6 fw-bold {% if check.ok_count == check.total_count %}text-success{% elif check.ok_count >= check.total_count|add:'-2' %}text-warning{% else %}text-danger{% endif %}">
+                {{ check.ok_count }}/{{ check.total_count }}
+              </div>
+              <div class="text-muted small">critères OK</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Barre de progression #}
+      {% widthratio check.ok_count check.total_count 100 as pct %}
+      <div class="mb-4">
+        <div class="d-flex justify-content-between mb-1">
+          <small class="fw-medium">Progression</small>
+          <small class="text-muted">{{ pct }}%</small>
+        </div>
+        <div class="progress" style="height:12px">
+          <div class="progress-bar {% if pct == 100 %}bg-success{% elif pct >= 70 %}bg-warning{% else %}bg-danger{% endif %}"
+            role="progressbar" style="width:{{ pct }}%"></div>
+        </div>
+      </div>
+
+      {# Checklist #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold">Checklist de publication</h6>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for item in check.checklist %}
+          <div class="list-group-item d-flex align-items-start gap-3 py-3">
+            <div class="mt-1">
+              {% if item.ok %}
+                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+              {% elif item.critical %}
+                <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+              {% else %}
+                <i class="bi bi-dash-circle text-warning fs-5"></i>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-medium">{{ item.label }}</span>
+                {% if item.critical and not item.ok %}
+                  <span class="orion-badge danger">Bloquant</span>
+                {% elif not item.critical and not item.ok %}
+                  <span class="orion-badge warning text-dark">Recommandé</span>
+                {% endif %}
+              </div>
+              {% if not item.ok and item.advice %}
+                <div class="text-muted small mt-1">{{ item.advice }}</div>
+              {% endif %}
+            </div>
+            {% if not item.ok %}
+            <div>
+              <a href="{% url 'websites:website_detail' website.pk %}" class="btn btn-outline-secondary orion-btn sm">
+                <i class="bi bi-pencil me-1"></i>Corriger
+              </a>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Boutons d'action #}
+      <div class="card border-0 shadow-sm">
+        <div class="orion-orion-card-body">
+          <div class="d-flex gap-3 flex-wrap align-items-center justify-content-between">
+            <div>
+              <a href="{% url 'websites:website_preview' website.pk %}" class="btn btn-outline-secondary" target="_blank">
+                <i class="bi bi-eye me-1"></i> Prévisualiser
+              </a>
+            </div>
+            <div class="d-flex gap-2">
+              {% if website.status == 'published' %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="unpublish">
+                <button type="submit" class="orion-btn warning">
+                  <i class="bi bi-eye-slash me-1"></i> Dépublier le site
+                </button>
+              </form>
+              {% else %}
+              <form method="post"
+                {% if not check.ready %}
+                  onsubmit="return confirm('Certains critères bloquants ne sont pas remplis. Publier quand même ?')"
+                {% endif %}>
+                {% csrf_token %}
+                <input type="hidden" name="action" value="publish">
+                <button type="submit"
+                  class="btn {% if check.ready %}orion-btn success{% else %}btn-outline-success{% endif %}">
+                  <i class="bi bi-globe me-1"></i>
+                  {% if check.ready %}Publier le site{% else %}Publier (incomplet){% endif %}
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if check.critical_blocking %}
+          <div class="orion-alert danger mt-3 mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Critères bloquants non remplis :</strong>
+            <ul class="mb-0 mt-1">
+              {% for b in check.critical_blocking %}
+              <li>{{ b.label }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% elif check.ready %}
+          <div class="orion-alert success mt-3 mb-0">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong>Site prêt à publier !</strong> Tous les critères essentiels sont remplis.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

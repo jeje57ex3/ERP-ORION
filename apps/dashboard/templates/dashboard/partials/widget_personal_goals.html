@@ -1,0 +1,28 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"personal_goals" %}
+<div class="widget-header d-flex align-items-center justify-content-between">
+  <span><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</span>
+  <a href="#" class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:.15rem .5rem">+ Objectif</a>
+</div>
+{% if data.has_data %}
+<div class="p-3 d-flex flex-column gap-3">
+  {% for goal in data.goals %}
+  <div>
+    <div class="d-flex justify-content-between mb-1">
+      <span class="fw-semibold" style="font-size:.82rem">{{ goal.title|truncatechars:34 }}</span>
+      <span class="text-muted" style="font-size:.78rem">{{ goal.current_value|floatformat:0 }} / {{ goal.target_value|floatformat:0 }} {{ goal.unit }}</span>
+    </div>
+    <div class="progress mb-1" style="height:8px;border-radius:4px">
+      {% with pct=goal.progress_pct %}
+      <div class="progress-bar {% if pct >= 100 %}bg-success{% elif pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+           role="progressbar" style="width:{{ pct }}%" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+      {% endwith %}
+    </div>
+    <div class="text-muted" style="font-size:.68rem">{{ goal.get_period_display }} · {{ goal.progress_pct }} %</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-trophy"></i><p class="mt-2 mb-0">Aucun objectif défini. Créez votre premier objectif !</p></div>
+{% endif %}
+{% endwith %}

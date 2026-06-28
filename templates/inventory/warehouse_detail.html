@@ -1,0 +1,61 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'inventory:warehouse_list' %}">Entrepôts</a></li>
+<li class="breadcrumb-item active">{{ warehouse.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ warehouse.name }}</h1>
+      <div class="detail-meta">
+        {% if warehouse.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}
+        {% if warehouse.code %}<span>{{ warehouse.code }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'inventory:warehouse_edit' warehouse.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'inventory:warehouse_delete' warehouse.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'inventory:warehouse_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Nom</label><div class="value">{{ warehouse.name }}</div></div>
+        <div class="info-item"><label>Code</label><div class="value {% if not warehouse.code %}empty{% endif %}">{{ warehouse.code|default:"—" }}</div></div>
+        <div class="info-item"><label>Responsable</label><div class="value {% if not warehouse.manager %}empty{% endif %}">{{ warehouse.manager.get_full_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Adresse</label><div class="value small {% if not warehouse.address %}empty{% endif %}">{{ warehouse.address|default:"—" }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-diagram-3 me-1 text-primary"></i>Emplacements ({{ locations.count }})</h6></div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>Nom</th><th>Code</th><th>Statut</th></tr></thead>
+          <tbody>
+            {% for loc in locations %}
+            <tr>
+              <td class="small">{{ loc.name }}</td>
+              <td class="small text-muted">{{ loc.code|default:"—" }}</td>
+              <td>{% if loc.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3 small">Aucun emplacement configuré.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

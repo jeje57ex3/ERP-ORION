@@ -1,0 +1,64 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Notes de frais — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item active">Notes de frais</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="orion-filter-bar d-flex gap-2">
+      <select name="status" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
+        <option value="">Tous statuts</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if reports %}
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr><th>Salarié</th><th>Titre</th><th>Période</th><th class="text-end">Montant TTC</th><th class="text-center">Statut</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for report in reports %}
+          <tr>
+            <td>
+              {% if report.employee %}
+              <div class="fw-semibold">{{ report.employee.first_name }} {{ report.employee.last_name }}</div>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>{{ report.title }}</td>
+            <td class="small text-muted">{{ report.period_start|date:"d/m/Y" }} → {{ report.period_end|date:"d/m/Y" }}</td>
+            <td class="text-end fw-semibold">{{ report.total_amount|floatformat:2 }} €</td>
+            <td class="text-center">
+              {% if report.status == 'draft' %}<span class="orion-badge neutral">Brouillon</span>
+              {% elif report.status == 'submitted' %}<span class="orion-badge warning text-dark">Soumise</span>
+              {% elif report.status == 'validated' %}<span class="orion-badge success">Validée</span>
+              {% elif report.status == 'refused' %}<span class="orion-badge danger">Refusée</span>
+              {% elif report.status == 'paid' %}<span class="orion-badge gold">Remboursée</span>
+              {% elif report.status == 'booked' %}<span class="badge bg-dark">Comptabilisée</span>
+              {% else %}<span class="orion-badge neutral">{{ report.status }}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'accounting:expense_report_detail' report.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-eye"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-receipt"></i></div>
+      <div class="orion-empty-title">Aucune note de frais</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

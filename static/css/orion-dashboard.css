@@ -1,0 +1,299 @@
+/*
+ * Orion ERP — Dashboard
+ * Grille 12 colonnes, cartes métriques, panels
+ */
+
+/* ── Grille dashboard ────────────────────────────────────────────────────── */
+.orion-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+}
+
+/* Colonnes prédéfinies */
+.col-1  { grid-column: span 1; }
+.col-2  { grid-column: span 2; }
+.col-3  { grid-column: span 3; }
+.col-4  { grid-column: span 4; }
+.col-5  { grid-column: span 5; }
+.col-6  { grid-column: span 6; }
+.col-7  { grid-column: span 7; }
+.col-8  { grid-column: span 8; }
+.col-9  { grid-column: span 9; }
+.col-10 { grid-column: span 10; }
+.col-11 { grid-column: span 11; }
+.col-12 { grid-column: span 12; }
+
+/* ── Carte métrique ──────────────────────────────────────────────────────── */
+.orion-metric {
+  grid-column: span 3;
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+  padding: 18px;
+  box-shadow: var(--orion-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: box-shadow 0.18s ease;
+}
+
+.orion-metric:hover {
+  box-shadow: var(--orion-shadow-soft);
+}
+
+.orion-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.orion-metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orion-text-soft);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.orion-metric-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.orion-metric-badge.up {
+  background: rgba(47, 125, 87, 0.12);
+  color: var(--orion-success);
+}
+
+.orion-metric-badge.down {
+  background: rgba(180, 59, 59, 0.12);
+  color: var(--orion-danger);
+}
+
+.orion-metric-badge.warning {
+  background: rgba(183, 121, 31, 0.12);
+  color: var(--orion-warning);
+}
+
+.orion-metric-badge.neutral {
+  background: rgba(139, 129, 119, 0.12);
+  color: var(--orion-muted);
+}
+
+.orion-metric-value {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--orion-text);
+  margin-bottom: 8px;
+}
+
+.orion-metric-helper {
+  font-size: 12px;
+  color: var(--orion-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.orion-metric-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: var(--orion-accent-soft);
+  color: var(--orion-accent-strong);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+
+.orion-metric-icon.success {
+  background: rgba(47, 125, 87, 0.1);
+  color: var(--orion-success);
+}
+
+.orion-metric-icon.warning {
+  background: rgba(183, 121, 31, 0.1);
+  color: var(--orion-warning);
+}
+
+.orion-metric-icon.danger {
+  background: rgba(180, 59, 59, 0.1);
+  color: var(--orion-danger);
+}
+
+.orion-metric-icon.info {
+  background: rgba(61, 100, 120, 0.1);
+  color: var(--orion-info);
+}
+
+/* ── Panel dashboard (tableau + graphique) ───────────────────────────────── */
+.orion-dash-panel {
+  grid-column: span 12;
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+  box-shadow: var(--orion-shadow-card);
+  overflow: hidden;
+}
+
+.orion-dash-panel.half {
+  grid-column: span 6;
+}
+
+.orion-dash-panel.third {
+  grid-column: span 4;
+}
+
+/* ── Welcome banner ──────────────────────────────────────────────────────── */
+.orion-welcome {
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: var(--orion-shadow-card);
+  margin-bottom: 20px;
+}
+
+.orion-welcome-greeting {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--orion-text);
+  margin: 0 0 4px;
+}
+
+.orion-welcome-sub {
+  font-size: 13px;
+  color: var(--orion-text-soft);
+  margin: 0;
+}
+
+.orion-welcome-date {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.orion-welcome-date .day {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--orion-accent-strong);
+  line-height: 1;
+}
+
+.orion-welcome-date .label {
+  font-size: 11px;
+  color: var(--orion-muted);
+  margin-top: 3px;
+}
+
+/* ── Onglets du dashboard ─────────────────────────────────────────────────── */
+.orion-dash-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--orion-border);
+  padding-bottom: 0;
+}
+
+.orion-dash-tab {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  color: var(--orion-text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--orion-font);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.orion-dash-tab:hover {
+  color: var(--orion-text);
+}
+
+.orion-dash-tab.active {
+  color: var(--orion-text);
+  border-bottom-color: var(--orion-accent);
+}
+
+/* ── Section titre ────────────────────────────────────────────────────────── */
+.orion-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  grid-column: span 12;
+}
+
+.orion-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orion-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .orion-metric {
+    grid-column: span 4;
+  }
+
+  .orion-dash-panel.half {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 900px) {
+  .orion-metric {
+    grid-column: span 6;
+  }
+
+  .orion-dash-panel.third {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 600px) {
+  .orion-dash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .orion-metric {
+    grid-column: span 1;
+  }
+
+  .orion-metric-value {
+    font-size: 24px;
+  }
+
+  .orion-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

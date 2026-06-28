@@ -1,0 +1,49 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:planning' %}">Centres de travail</a></li>
+<li class="breadcrumb-item active">Nouveau centre</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header"><h1 class="page-title">Nouveau centre de travail</h1></div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-tools me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Nom *</label>
+            {{ form.name }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Code</label>
+            {{ form.code }}
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label form-label-sm">Capacité</label>
+              {{ form.capacity }}
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-sm">Coût/heure (€)</label>
+              {{ form.cost_per_hour }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">{{ form.is_active }}<label class="form-check-label small ms-1">Centre actif</label></div>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Créer le centre</button>
+            <a href="{% url 'production:planning' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

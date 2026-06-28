@@ -1,0 +1,36 @@
+{#
+  Onglets bas d'une fiche (contacts, devis, factures, etc.)
+  Usage :
+    {% include "components/orion_bottom_tabs.html" with tabs=bottom_tabs_list %}
+  Ou définir bottom_tabs dans la vue/contexte.
+
+  Structure attendue de chaque onglet dans bottom_tabs :
+    { id: "tab-id", icon: "bi-person", label: "Contacts", count: 3 }
+
+  Le contenu de chaque panel doit être dans des blocs nommés du template parent
+  ou via du HTML inline (voir ci-dessous).
+#}
+{% if bottom_tabs %}
+<div class="orion-bottom-tabs">
+  <div class="orion-bottom-tabs-nav">
+    {% for tab in bottom_tabs %}
+    <button class="orion-bottom-tab {% if forloop.first %}active{% endif %}" data-tab="{{ tab.id }}">
+      <i class="bi {{ tab.icon }}"></i>
+      {{ tab.label }}
+      {% if tab.count %}<span class="tab-count">{{ tab.count }}</span>{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  {% for tab in bottom_tabs %}
+  <div class="orion-bottom-tab-content {% if forloop.first %}active{% endif %}" id="{{ tab.id }}">
+    {% if tab.content %}{{ tab.content }}
+    {% else %}
+    <div class="orion-tab-empty">
+      <i class="bi {{ tab.icon }}"></i>
+      {% if tab.empty_msg %}{{ tab.empty_msg }}{% else %}Aucune donnée{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

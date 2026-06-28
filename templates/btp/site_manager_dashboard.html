@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Responsable Chantier{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-warning"></i>Dashboard Responsable</h4>
+  <div class="text-muted small">{{ today|date:"l d F Y" }}</div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="bg-white border rounded-3 p-3">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="small text-muted">Demandes guidées</div>
+        <i class="bi bi-lightning-charge-fill text-warning"></i>
+      </div>
+      <div class="fs-3 fw-bold">{{ kpis.new_quotes }}</div>
+      <div class="small text-muted">nouvelles aujourd'hui</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="bg-white border rounded-3 p-3">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="small text-muted">Chantiers actifs</div>
+        <i class="bi bi-building text-primary"></i>
+      </div>
+      <div class="fs-3 fw-bold">{{ kpis.active_projects }}</div>
+      <div class="small text-muted">en cours</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="bg-white border rounded-3 p-3">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="small text-muted">Messages non lus</div>
+        <i class="bi bi-chat-dots text-danger"></i>
+      </div>
+      <div class="fs-3 fw-bold">{{ kpis.unread_messages }}</div>
+      <div class="small text-muted">à traiter</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="bg-white border rounded-3 p-3">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="small text-muted">Réserves ouvertes</div>
+        <i class="bi bi-exclamation-circle text-orange" style="color:#EA580C"></i>
+      </div>
+      <div class="fs-3 fw-bold">{{ kpis.open_reservations }}</div>
+      <div class="small text-muted">à résoudre</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Dernières demandes -->
+  <div class="col-12 col-lg-7">
+    <div class="bg-white border rounded-3 overflow-hidden">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0">Dernières demandes guidées</h6>
+        <a href="{% url 'btp:guided_quote_list' %}" class="orion-btn sm orion-btn warning">Tout voir</a>
+      </div>
+      {% if recent_quotes %}
+      <div class="table-responsive">
+        <table class="orion-table mb-0">
+          <tbody>
+          {% for q in recent_quotes %}
+          <tr>
+            <td>
+              <div class="fw-semibold small">{{ q.contact_first_name }} {{ q.contact_last_name }}</div>
+              <div class="text-muted" style="font-size:.7rem">{{ q.created_at|timesince }}</div>
+            </td>
+            <td>{% if q.request_type == 'depannage' %}<span class="orion-badge danger">Urgence</span>{% else %}<span class="orion-badge gold">Travaux</span>{% endif %}</td>
+            <td>{% if q.status == 'new' %}<span class="orion-badge warning text-dark">Nouveau</span>{% elif q.status == 'contacted' %}<span class="orion-badge info text-dark">Contacté</span>{% else %}<span class="orion-badge neutral">{{ q.status }}</span>{% endif %}</td>
+            <td><a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn sm btn-outline-secondary">Voir</a></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-4 text-center text-muted small">Aucune demande récente</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Raccourcis & alertes -->
+  <div class="col-12 col-lg-5">
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Accès rapides</h6>
+      <div class="d-grid gap-2">
+        <a href="{% url 'btp:guided_quote_list' %}" class="btn btn-outline-warning text-start"><i class="bi bi-lightning-charge me-2"></i>Demandes guidées</a>
+        <a href="{% url 'btp:price_library_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-list-ul me-2"></i>Bibliothèque de prix</a>
+        <a href="{% url 'btp:client_messages_list' %}" class="btn btn-outline-secondary text-start position-relative"><i class="bi bi-chat-dots me-2"></i>Messages clients {% if kpis.unread_messages > 0 %}<span class="orion-badge danger position-absolute" style="top:8px;right:8px">{{ kpis.unread_messages }}</span>{% endif %}</a>
+        <a href="{% url 'btp:reservations_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-exclamation-circle me-2"></i>Réserves clients</a>
+      </div>
+    </div>
+
+    {% if urgent_quotes %}
+    <div class="bg-white border border-danger rounded-3 p-4">
+      <h6 class="fw-bold mb-3 text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Dépannages urgents</h6>
+      {% for q in urgent_quotes %}
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <div class="small fw-semibold">{{ q.contact_first_name }} {{ q.contact_last_name }}</div>
+          <div class="text-muted" style="font-size:.7rem"><a href="tel:{{ q.contact_phone }}">{{ q.contact_phone }}</a> · {{ q.contact_city }}</div>
+        </div>
+        <a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn sm orion-btn danger">Traiter</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

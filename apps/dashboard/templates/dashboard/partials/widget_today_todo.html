@@ -1,0 +1,20 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"today_todo" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}{% if data.count %}<span class="badge bg-danger ms-2">{{ data.count }}</span>{% endif %}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for item in data.items %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-start gap-3">
+    <i class="{{ item.icon }} mt-1 flex-shrink-0 text-{{ item.color }}"></i>
+    <div class="flex-grow-1">
+      <div class="small fw-semibold">{{ item.type }}</div>
+      <a href="{{ item.url }}" class="text-decoration-none text-body" style="font-size:.82rem">{{ item.label }}</a>
+    </div>
+    <span class="badge {% if item.priority == 'urgent' %}bg-danger{% elif item.priority == 'high' %}bg-warning text-dark{% else %}bg-secondary{% endif %} flex-shrink-0" style="font-size:.65rem">{{ item.priority }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-check2-circle"></i><p class="mt-2 mb-0">Rien à faire aujourd'hui !</p></div>
+{% endif %}
+{% endwith %}

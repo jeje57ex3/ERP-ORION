@@ -1,0 +1,50 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
+<li class="breadcrumb-item active">Rôles</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'access_control:role_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau rôle</a>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-shield me-2"></i>Rôles</h6></div>
+  <div class="erp-orion-orion-card-body">
+    {% if roles %}
+    <div class="table-responsive">
+      <table class="orion-table align-middle">
+        <thead>
+          <tr><th>Nom</th><th>Code</th><th>Type</th><th class="text-center">Utilisateurs</th><th>Description</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for role in roles %}
+          <tr>
+            <td class="fw-semibold">{{ role.name }}</td>
+            <td><code>{{ role.code }}</code></td>
+            <td>
+              {% if role.is_system_role %}<span class="orion-badge gold">Système</span>
+              {% else %}<span class="orion-badge neutral">Société</span>{% endif %}
+            </td>
+            <td class="text-center">{{ role.users|default:0 }}</td>
+            <td class="text-muted small">{{ role.description|truncatechars:60 }}</td>
+            <td class="text-end">
+              <a href="{% url 'access_control:role_permissions' role.pk %}" class="orion-btn sm btn-outline-primary">
+                <i class="bi bi-shield-lock me-1"></i>Permissions
+              </a>
+              <form method="post" action="{% url 'access_control:role_duplicate' role.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn sm btn-outline-secondary" title="Dupliquer"><i class="bi bi-copy"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">Aucun rôle. <a href="{% url 'access_control:role_create' %}">Créer le premier</a> ou exécuter <code>seed_permissions</code>.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

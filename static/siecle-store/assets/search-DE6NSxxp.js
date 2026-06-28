@@ -1,0 +1,1 @@
+import{apiGet as s}from"./apiClient-Cg-UqwPq.js";const c=(e,t)=>{const a=new URLSearchParams({q:e});return t&&a.set("universe",t),s(`/api/v1/siecle/search/?${a}`)},i=e=>s(`/api/v1/siecle/search/suggestions/?q=${encodeURIComponent(e)}`),r=()=>s("/api/v1/siecle/categories/");export{r as getCategories,i as getSuggestions,c as search};

@@ -1,0 +1,34 @@
+{% extends "website_shop_settings/_settings_layout.html" %}
+
+{% block settings_content %}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="orion-card mb-3">
+    <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Sécurité boutique</h3></div>
+    <div class="orion-orion-orion-card-body">
+      {% for field in form %}
+      <div class="orion-form-group">
+        {% if field.field.widget.input_type == 'checkbox' %}
+        <div style="display:flex;align-items:center;gap:10px">
+          {{ field }}
+          <label class="orion-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        </div>
+        {% else %}
+        <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% endif %}
+        {% if field.help_text %}<p class="orion-help-text">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-check-lg me-1"></i>Enregistrer
+    </button>
+  </div>
+</form>
+{% endblock %}

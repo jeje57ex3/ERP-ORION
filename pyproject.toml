@@ -1,0 +1,35 @@
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+exclude = '''
+/(
+    \.venv
+  | venv
+  | migrations
+  | staticfiles
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_glob = ["*/migrations/*", "*/venv/*", "*/.venv/*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "erp_btp.settings.testing"
+python_files = ["tests/test_*.py", "tests/**/test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["apps"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 60

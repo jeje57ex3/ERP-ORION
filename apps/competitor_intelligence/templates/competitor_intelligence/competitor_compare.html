@@ -1,0 +1,103 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item active">Comparaison</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Comparaison multi-concurrents</h1>
+    <p class="orion-page-subtitle">Sélectionnez plusieurs concurrents à comparer</p>
+  </div>
+</div>
+
+<!-- Sélection -->
+<div class="card erp-card mb-4">
+  <div class="card-header"><h5 class="mb-0">Sélection</h5></div>
+  <div class="card-body">
+    <form method="get">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-9">
+          <label class="form-label fw-semibold">Concurrents à comparer</label>
+          <div class="d-flex flex-wrap gap-2">
+            {% for c in competitors %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="c" value="{{ c.pk }}"
+                     id="c_{{ c.pk }}" {% if c.pk|stringformat:"s" in selected_ids %}checked{% endif %}>
+              <label class="form-check-label" for="c_{{ c.pk }}">{{ c.name }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="orion-btn orion-btn-primary w-100">
+            <i class="bi bi-layout-split me-2"></i>Comparer
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Résultats -->
+{% if comparison_data %}
+<div class="card erp-card">
+  <div class="card-header"><h5 class="mb-0">Résultats de la comparaison</h5></div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Concurrent</th>
+            <th class="text-center">Score</th>
+            <th class="text-center">Produits</th>
+            <th class="text-center">Prix moyen</th>
+            <th class="text-center">Promos</th>
+            <th class="text-center">Avantages</th>
+            <th class="text-center">Visiteurs/mois <small class="text-muted">(estimés)</small></th>
+            <th class="text-center">Alertes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in comparison_data %}
+          <tr>
+            <td>
+              <strong>{{ row.competitor.name }}</strong>
+              {% if row.competitor.website_url %}<a href="{{ row.competitor.website_url }}" target="_blank" class="ms-1 text-muted"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+            </td>
+            <td class="text-center">
+              <span class="badge bg-primary">{{ row.score }}/100</span>
+            </td>
+            <td class="text-center">{{ row.products_count }}</td>
+            <td class="text-center">{% if row.avg_price %}{{ row.avg_price|floatformat:2 }} €{% else %}—{% endif %}</td>
+            <td class="text-center">{% if row.promotions_count %}<span class="badge bg-danger">{{ row.promotions_count }}</span>{% else %}—{% endif %}</td>
+            <td class="text-center">{{ row.advantages_count }}</td>
+            <td class="text-center">
+              {% if row.monthly_visitors %}
+              <span class="text-muted">~{{ row.monthly_visitors|intcomma }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.unread_alerts %}<span class="badge bg-danger">{{ row.unread_alerts }}</span>{% else %}—{% endif %}
+            </td>
+            <td><a href="{% url 'competitor:detail' row.competitor.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer d-flex gap-2">
+    <a href="{% url 'competitor:reports' %}" class="orion-btn orion-btn-outline orion-btn-sm">
+      <i class="bi bi-file-earmark-bar-graph me-2"></i>Générer rapport
+    </a>
+  </div>
+</div>
+{% elif selected_ids %}
+<div class="alert alert-info">Aucun concurrent sélectionné valide.</div>
+{% endif %}
+{% endblock %}

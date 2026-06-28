@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Profils Beauté Lunea{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h1 class="h3 mb-4">Profils Beauté</h1>
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr>
+          <th>Client</th><th>Peau</th><th>Cheveux</th><th>Allergies</th><th>Mis à jour</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for p in profiles %}
+          <tr>
+            <td>{{ p.customer }}</td>
+            <td>{{ p.get_skin_type_display }}</td>
+            <td>{{ p.get_hair_type_display }}</td>
+            <td>{% if p.allergies %}{{ p.allergies|truncatechars:40 }}{% else %}—{% endif %}</td>
+            <td>{{ p.updated_at|date:"d/m/Y" }}</td>
+            <td><a href="{% url 'lunea_beauty_profile:profile_detail' p.pk %}" class="btn btn-sm btn-outline-secondary">Voir</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">Aucun profil enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

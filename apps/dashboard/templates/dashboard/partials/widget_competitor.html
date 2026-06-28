@@ -1,0 +1,141 @@
+{% load dashboard_tags %}
+{% with price_alerts=widget_data|dict_get:"competitor_price_alerts" %}
+{% with new_products=widget_data|dict_get:"competitor_new_products" %}
+{% with mentions=widget_data|dict_get:"competitor_social_mentions" %}
+{% with rankings=widget_data|dict_get:"competitor_ranking_changes" %}
+{% with promos=widget_data|dict_get:"competitor_promo_alerts" %}
+{% with reviews=widget_data|dict_get:"competitor_reviews_summary" %}
+{% with trends=widget_data|dict_get:"competitor_traffic_trends" %}
+{% with ads=widget_data|dict_get:"competitor_ad_intelligence" %}
+{% with news=widget_data|dict_get:"competitor_news" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'competitor_price_alerts' %}
+  {% if price_alerts.alerts %}
+  <div class="mb-2"><span class="badge bg-danger">{{ price_alerts.count }} alerte(s) de prix</span></div>
+  {% for a in price_alerts.alerts %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-tag"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ a.competitor|default:"Concurrent" }}</div>
+      <div class="widget-item-sub">{{ a.product|default:"—" }} · {{ a.change|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-tag"></i><p>Aucun changement de prix détecté.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_new_products' %}
+  {% if new_products.products %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ new_products.count }} nouveau(x) produit(s)</span></div>
+  {% for p in new_products.products %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-box-arrow-in-right"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ p.name|default:"Produit concurrent" }}</div>
+      <div class="widget-item-sub">{{ p.competitor|default:"—" }} · {{ p.detected_at|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-box-arrow-in-right"></i><p>Aucun nouveau produit concurrent détecté.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_social_mentions' %}
+  {% if mentions.mentions %}
+  <div class="mb-2"><span class="badge bg-info">{{ mentions.count }} mention(s)</span></div>
+  {% for m in mentions.mentions %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-megaphone"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ m.competitor|default:"Concurrent" }}</div>
+      <div class="widget-item-sub">{{ m.platform|default:"—" }} · {{ m.date|date:"d/m"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-megaphone"></i><p>Aucune mention sociale récente.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_ranking_changes' %}
+  {% if rankings.changes %}
+  <div class="mb-2"><span class="badge bg-success">{{ rankings.count }} changement(s) de position</span></div>
+  {% for r in rankings.changes %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#dcfce7;color:#16A34A"><i class="bi bi-bar-chart-line"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.keyword|default:"Mot-clé" }}</div>
+      <div class="widget-item-sub">{{ r.competitor|default:"—" }} · Position {{ r.position|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-bar-chart-line"></i><p>Aucun changement de position SEO détecté.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_promo_alerts' %}
+  {% if promos.promos %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ promos.count }} promotion(s) détectée(s)</span></div>
+  {% for p in promos.promos %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-percent"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ p.competitor|default:"Concurrent" }}</div>
+      <div class="widget-item-sub">{{ p.description|default:"Promotion détectée" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-percent"></i><p>Aucune promotion concurrente détectée.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_reviews_summary' %}
+  {% if reviews.has_data %}
+  <div class="text-muted" style="font-size:.85rem">Synthèse des avis concurrents disponible.</div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-star-half"></i><p>Aucune donnée d'avis concurrents disponible.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_traffic_trends' %}
+  {% if trends.has_data %}
+  <div class="text-muted" style="font-size:.85rem">Données de trafic concurrent disponibles.</div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-graph-up"></i><p>Aucune donnée de trafic concurrent disponible.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_ad_intelligence' %}
+  {% if ads.ads %}
+  <div class="mb-2"><span class="badge bg-primary">{{ ads.count }} publicité(s) détectée(s)</span></div>
+  {% for a in ads.ads %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#dbeafe;color:#2563EB"><i class="bi bi-display"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ a.competitor|default:"Concurrent" }}</div>
+      <div class="widget-item-sub">{{ a.platform|default:"—" }} · {{ a.format|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-display"></i><p>Aucune publicité concurrente détectée.</p></div>
+  {% endif %}
+
+{% elif code == 'competitor_news' %}
+  {% if news.news %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ news.count }} article(s)</span></div>
+  {% for n in news.news %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f3f4f6;color:#6B7280"><i class="bi bi-newspaper"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ n.title|default:"Actualité" |truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ n.source|default:"—" }} · {{ n.date|date:"d/m"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-newspaper"></i><p>Aucune actualité concurrente récente.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

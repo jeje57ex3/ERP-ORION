@@ -1,0 +1,226 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Entreprises — Orion ERP{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Entreprises</li>
+{% endblock %}
+
+{% block page_title %}Entreprises{% endblock %}
+{% block page_subtitle %}Gérez vos espaces de travail et bases de données par entreprise.{% endblock %}
+
+{% block page_actions %}
+{% if request.user.is_superuser %}
+<a href="{% url 'core:company_create' %}" class="orion-btn orion-orion-btn primary">
+  <i class="bi bi-plus-lg"></i>Nouvelle entreprise
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">
+  {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#3B82F6">
+        <i class="bi bi-building"></i>
+      </div>
+      <div class="orion-kpi-value">{{ total_companies|default:companies|length }}</div>
+      <div class="orion-kpi-label">Total entreprises</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div class="orion-kpi-value">{{ active_count|default:'—' }}</div>
+      <div class="orion-kpi-label">Actives</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706">
+        <i class="bi bi-database-check"></i>
+      </div>
+      <div class="orion-kpi-value">{{ db_count|default:'—' }}</div>
+      <div class="orion-kpi-label">Bases dédiées</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3E8FF;color:#9333EA">
+        <i class="bi bi-people"></i>
+      </div>
+      <div class="orion-kpi-value">{{ total_users|default:'—' }}</div>
+      <div class="orion-kpi-label">Utilisateurs</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="orion-card mb-4">
+  <div class="orion-orion-orion-card-body py-3">
+    <form method="get" class="orion-filter-bar">
+      <div class="position-relative flex-grow-1">
+        <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none"></i>
+        <input type="search" name="q" value="{{ q|default:'' }}"
+               placeholder="Rechercher une entreprise…"
+               class="orion-search-input ps-4">
+      </div>
+      <select name="status" class="orion-form-select" style="width:auto;min-width:160px">
+        <option value="">Tous les statuts</option>
+        <option value="active" {% if status == 'active' %}selected{% endif %}>Actives</option>
+        <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspendues</option>
+        <option value="archived" {% if status == 'archived' %}selected{% endif %}>Archivées</option>
+      </select>
+      <select name="sector" class="orion-form-select" style="width:auto;min-width:160px">
+        <option value="">Tous les secteurs</option>
+        <option value="btp" {% if sector == 'btp' %}selected{% endif %}>BTP</option>
+        <option value="commerce" {% if sector == 'commerce' %}selected{% endif %}>Commerce</option>
+        <option value="services" {% if sector == 'services' %}selected{% endif %}>Services</option>
+        <option value="industrie" {% if sector == 'industrie' %}selected{% endif %}>Industrie</option>
+      </select>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
+        <i class="bi bi-funnel"></i>Filtrer
+      </button>
+      {% if q or status or sector %}
+      <a href="{% url 'core:company_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger">
+        <i class="bi bi-x-lg"></i>Réinitialiser
+      </a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Companies table -->
+{% if companies %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h5 class="orion-card-title"><i class="bi bi-building me-2"></i>Liste des entreprises</h5>
+    <span class="orion-badge orion-badge-secondary">{{ companies|length }} entreprise{{ companies|length|pluralize }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Entreprise</th>
+          <th>Secteur</th>
+          <th>Contact</th>
+          <th>Statut</th>
+          <th>Base de données</th>
+          <th>Utilisateurs</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for company in companies %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              {% if company.logo %}
+              <img src="{{ company.logo.url }}" alt="" class="rounded" style="width:36px;height:36px;object-fit:cover;flex-shrink:0">
+              {% else %}
+              <div class="rounded d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                   style="width:36px;height:36px;background:{{ company.sector_color }}20;color:{{ company.sector_color }};font-size:.95rem">
+                {{ company.name|first|upper }}
+              </div>
+              {% endif %}
+              <div>
+                <div class="fw-semibold">{{ company.name }}</div>
+                {% if company.legal_name and company.legal_name != company.name %}
+                <div class="small text-muted">{{ company.legal_name }}</div>
+                {% endif %}
+                {% if company.city %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ company.city }}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="background:{{ company.sector_color }}15;color:{{ company.sector_color }};padding:.2rem .55rem;border-radius:20px;font-size:.78rem;font-weight:600">
+              {{ company.get_sector_display }}
+            </span>
+          </td>
+          <td>
+            {% if company.email %}<div class="small"><a href="mailto:{{ company.email }}" class="text-decoration-none text-muted">{{ company.email }}</a></div>{% endif %}
+            {% if company.phone %}<div class="small text-muted">{{ company.phone }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="orion-badge orion-badge-{{ company.status_color }}">{{ company.get_status_display }}</span>
+          </td>
+          <td>
+            {% if company.database_created %}
+            <div class="d-flex flex-column gap-1">
+              <span class="orion-badge orion-badge-success"><i class="bi bi-database-check me-1"></i>Base dédiée</span>
+              <span class="small font-monospace text-muted" style="font-size:.72rem">{{ company.database_name }}</span>
+            </div>
+            {% else %}
+            <span class="orion-badge orion-badge-secondary"><i class="bi bi-database me-1"></i>Base centrale</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="text-muted small">—</span>
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              <a href="{% url 'core:switch_company' company.pk %}" class="orion-btn orion-orion-btn primary orion-orion-btn sm">
+                <i class="bi bi-box-arrow-in-right"></i>Accéder
+              </a>
+              <a href="{% url 'core:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Détail">
+                <i class="bi bi-info-circle"></i>
+              </a>
+              {% if request.user.is_superuser %}
+              <a href="{% url 'core:company_database' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Base de données">
+                <i class="bi bi-database"></i>
+              </a>
+              <a href="{% url 'core:company_edit' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body">
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
+      <div class="orion-empty-title">Aucune entreprise{% if q %} pour "{{ q }}"{% endif %}</div>
+      <div class="orion-empty-text">
+        {% if q or status or sector %}
+        Aucune entreprise ne correspond à ces filtres.
+        <a href="{% url 'core:company_list' %}" class="d-block mt-2">Voir toutes les entreprises</a>
+        {% else %}
+        Créez votre première entreprise pour commencer.
+        {% endif %}
+      </div>
+      {% if request.user.is_superuser and not q and not status and not sector %}
+      <a href="{% url 'core:company_create' %}" class="orion-btn orion-orion-btn primary mt-3">
+        <i class="bi bi-plus-lg"></i>Créer la première entreprise
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

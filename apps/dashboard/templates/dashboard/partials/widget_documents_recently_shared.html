@@ -1,0 +1,20 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"documents_recently_shared" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for doc in data.documents %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <i class="bi bi-folder-symlink text-info flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <a href="/documents/{{ doc.pk }}/" class="text-decoration-none fw-semibold" style="font-size:.84rem">{{ doc }}</a>
+      <div class="text-muted" style="font-size:.72rem">{{ doc.created_at|date:"d/m/Y H:i" }}</div>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+<div class="p-2 text-end"><a href="/documents/" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem">Tous les documents</a></div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-folder2-open"></i><p class="mt-2 mb-0">Aucun document récent.</p></div>
+{% endif %}
+{% endwith %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Profil — {{ profile.customer }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'lunea_beauty_profile:profile_list' %}" class="btn btn-sm btn-outline-secondary">&larr; Retour</a>
+    <h1 class="h3 mb-0">{{ profile.customer }}</h1>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-5">
+      <div class="card shadow-sm">
+        <div class="card-header">Profil beauté</div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-5">Type de peau</dt><dd class="col-sm-7">{{ profile.get_skin_type_display }}</dd>
+            <dt class="col-sm-5">Type de cheveux</dt><dd class="col-sm-7">{{ profile.get_hair_type_display }}</dd>
+            <dt class="col-sm-5">Allergies</dt><dd class="col-sm-7">{{ profile.allergies|default:"—" }}</dd>
+            <dt class="col-sm-5">Intolérances</dt><dd class="col-sm-7">{{ profile.intolerances|default:"—" }}</dd>
+            <dt class="col-sm-5">Marques préférées</dt><dd class="col-sm-7">{{ profile.preferred_brands|default:"—" }}</dd>
+            <dt class="col-sm-5">Notes</dt><dd class="col-sm-7">{{ profile.notes|default:"—" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="card-header">Recommandations</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr>
+              <th>Produit</th><th>Type</th><th>Score</th><th>Statut</th><th></th>
+            </tr></thead>
+            <tbody>
+              {% for r in recommendations %}
+              <tr>
+                <td>{{ r.product_name }}<br><small class="text-muted">{{ r.brand }}</small></td>
+                <td>{{ r.get_recommendation_type_display }}</td>
+                <td>{{ r.score|floatformat:1 }}</td>
+                <td>{% if r.is_applied %}<span class="badge bg-success">Appliquée</span>{% else %}<span class="badge bg-warning text-dark">En attente</span>{% endif %}</td>
+                <td>
+                  {% if not r.is_applied %}
+                  <form method="post" action="{% url 'lunea_beauty_profile:mark_applied' r.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-xs btn-outline-success btn-sm">✓</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Aucune recommandation</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

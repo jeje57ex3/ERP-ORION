@@ -1,0 +1,189 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Chantiers — {{ request.current_company.name|default:'Orion ERP' }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:index' %}">BTP</a></li>
+<li class="breadcrumb-item active">Chantiers</li>
+{% endblock %}
+
+{% block page_title %}Chantiers{% endblock %}
+{% block page_subtitle %}Pilotez vos chantiers, budgets, équipes, documents, avancements et marges.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'btp:project_create' %}" class="orion-btn orion-orion-btn primary">
+  <i class="bi bi-plus-lg"></i>Nouveau chantier
+</a>
+<a href="{% url 'btp:quote_create' %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-file-text"></i>Créer devis BTP
+</a>
+<a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-download"></i>Exporter
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">
+  {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FFF7ED;color:#EA580C"><i class="bi bi-building-gear"></i></div>
+      <div class="orion-kpi-value">{{ active_count|default:'0' }}</div>
+      <div class="orion-kpi-label">Chantiers actifs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-alarm"></i></div>
+      <div class="orion-kpi-value">{{ overdue_count|default:'0' }}</div>
+      <div class="orion-kpi-label">En retard</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-currency-euro"></i></div>
+      <div class="orion-kpi-value">{{ total_budget|floatformat:0|default:'0' }} €</div>
+      <div class="orion-kpi-label">Budget total HT</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#0D9488"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="orion-kpi-value">{{ avg_margin|floatformat:1|default:'0' }} %</div>
+      <div class="orion-kpi-label">Marge prévue moy.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chips statut -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=in_progress" class="orion-filter-chip {% if status == 'in_progress' %}active{% endif %}">En cours</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=planned" class="orion-filter-chip {% if status == 'planned' %}active{% endif %}">Planifié</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=completed" class="orion-filter-chip {% if status == 'completed' %}active{% endif %}">Terminé</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=archived" class="orion-filter-chip {% if status == 'archived' %}active{% endif %}">Archivé</a>
+  <a href="{% url 'btp:project_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+</div>
+
+<!-- Tableau -->
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h5 class="orion-card-title"><i class="bi bi-building-gear me-2"></i>Liste des chantiers</h5>
+    <form method="get" class="orion-filter-bar" style="margin:0;padding:0;background:none;border:none;box-shadow:none">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <div class="position-relative">
+        <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i>
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Nom, référence, client…" class="orion-search-input ps-4" style="width:220px">
+      </div>
+      <select name="responsable" class="orion-form-select" style="width:auto" onchange="this.form.submit()">
+        <option value="">Tous responsables</option>
+        {% for emp in responsables %}
+        <option value="{{ emp.pk }}" {% if responsable == emp.pk|stringformat:'s' %}selected{% endif %}>{{ emp.get_full_name }}</option>
+        {% endfor %}
+      </select>
+      <select name="client" class="orion-form-select" style="width:auto" onchange="this.form.submit()">
+        <option value="">Tous clients</option>
+        {% for c in clients %}
+        <option value="{{ c.pk }}" {% if client == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel"></i>Filtrer</button>
+      {% if q or client or responsable %}
+      <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Nom chantier</th>
+          <th>Client</th>
+          <th>Responsable</th>
+          <th class="text-end">Budget HT</th>
+          <th style="min-width:120px">Avancement</th>
+          <th>Date début</th>
+          <th>Date fin</th>
+          <th>Statut</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in projects %}
+        <tr>
+          <td class="small text-muted fw-semibold font-monospace">{{ p.code|default:'—' }}</td>
+          <td>
+            <a href="{% url 'btp:project_detail' p.pk %}" class="fw-semibold text-decoration-none" style="color:var(--orion-text)">
+              {{ p.name }}
+            </a>
+          </td>
+          <td class="small text-muted">{{ p.customer.name|default:'—' }}</td>
+          <td class="small text-muted">{{ p.site_foreman|default:'—' }}</td>
+          <td class="text-end fw-semibold small">{{ p.estimated_budget|floatformat:0 }} €</td>
+          <td>
+            {% if p.start_date and p.end_date %}
+            <div class="mb-1" style="background:#E5E7EB;border-radius:4px;height:6px;overflow:hidden">
+              <div style="width:{{ p.completion_rate|default:0 }}%;height:100%;border-radius:4px;background:{% if p.completion_rate >= 100 %}#16A34A{% elif p.is_overdue %}#DC2626{% else %}var(--orion-secondary){% endif %}"></div>
+            </div>
+            <small class="text-muted">{{ p.completion_rate|default:0 }}%</small>
+            {% else %}
+            <span class="small text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted text-nowrap">{{ p.start_date|date:"d/m/Y"|default:'—' }}</td>
+          <td class="small text-nowrap {% if p.is_overdue %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+            {{ p.end_date|date:"d/m/Y"|default:'—' }}
+            {% if p.is_overdue %}<i class="bi bi-alarm ms-1" title="En retard"></i>{% endif %}
+          </td>
+          <td>
+            {% if p.status == 'in_progress' %}<span class="orion-badge orion-badge-info">En cours</span>
+            {% elif p.status == 'planned' %}<span class="orion-badge orion-badge-warning">Planifié</span>
+            {% elif p.status == 'completed' %}<span class="orion-badge orion-badge-success">Terminé</span>
+            {% elif p.status == 'archived' %}<span class="orion-badge orion-badge-secondary">Archivé</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">{{ p.get_status_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'btp:project_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'btp:timesheet_list' %}?project={{ p.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Pointages"><i class="bi bi-clock"></i></a>
+              <a href="{% url 'btp:project_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-building-gear"></i></div>
+              <div class="orion-empty-title">Aucun chantier{% if q or status %} trouvé{% endif %}</div>
+              <div class="orion-empty-text">
+                {% if q or status %}Aucun chantier ne correspond aux filtres. <a href="{% url 'btp:project_list' %}">Voir tous les chantiers</a>.
+                {% else %}Créez votre premier chantier pour gérer vos projets BTP.{% endif %}
+              </div>
+              <a href="{% url 'btp:project_create' %}" class="orion-btn orion-orion-btn primary mt-3">
+                <i class="bi bi-plus-lg"></i>Nouveau chantier
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

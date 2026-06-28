@@ -1,0 +1,93 @@
+﻿{% extends "websites/public/base.html" %}
+
+{% block meta_title %}Blog — {{ site.name }}{% endblock %}
+
+{% block content %}
+<section class="py-5" style="background: linear-gradient(135deg, var(--site-secondary), var(--site-primary));">
+  <div class="container text-center text-white py-3">
+    <h1 class="display-5 fw-bold mb-2">Blog</h1>
+    <p class="lead opacity-75">Actualités et conseils</p>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row g-5">
+
+      <!-- Articles -->
+      <div class="col-12 col-lg-8">
+        <div class="row g-4">
+          {% for post in posts %}
+          <div class="col-12">
+            <article class="site-card d-flex flex-column flex-md-row overflow-hidden">
+              {% if post.cover_image %}
+              <div style="flex:0 0 280px; max-width:280px;">
+                <img src="{{ post.cover_image.url }}" alt="{{ post.title }}"
+                     style="width:100%; height:100%; min-height:180px; object-fit:cover;">
+              </div>
+              {% endif %}
+              <div class="p-4 d-flex flex-column">
+                {% if post.category %}
+                <span class="badge mb-2" style="background:var(--site-primary); width:fit-content;">{{ post.category.name }}</span>
+                {% endif %}
+                <h2 class="h5 fw-bold mb-2">
+                  <a href="{% url 'public_websites:blog_detail' site.public_slug post.slug %}" class="text-decoration-none" style="color:var(--site-secondary);">
+                    {{ post.title }}
+                  </a>
+                </h2>
+                {% if post.excerpt %}
+                <p class="text-muted small mb-3">{{ post.excerpt|truncatechars:150 }}</p>
+                {% endif %}
+                <div class="mt-auto d-flex align-items-center justify-content-between">
+                  <div class="small text-muted">
+                    {% if post.author %}<span>{{ post.author.get_full_name|default:post.author.username }}</span> · {% endif %}
+                    {% if post.published_at %}<span>{{ post.published_at|date:"d/m/Y" }}</span>{% endif %}
+                    {% if post.reading_time %} · <span>{{ post.reading_time }} min</span>{% endif %}
+                  </div>
+                  <a href="{% url 'public_websites:blog_detail' site.public_slug post.slug %}" class="btn-site" style="padding:0.4rem 1rem; font-size:0.82rem;">
+                    Lire <i class="bi bi-arrow-right ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </article>
+          </div>
+          {% empty %}
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-pencil-square d-block fs-1 mb-3 text-muted opacity-25"></i>
+            <p class="text-muted">Aucun article publié pour le moment.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-12 col-lg-4">
+        <!-- Catégories -->
+        {% if categories %}
+        <div class="bg-white p-4 rounded-3 border mb-4">
+          <h3 class="h6 fw-bold mb-3">Catégories</h3>
+          <div class="d-flex flex-wrap gap-2">
+            {% for cat in categories %}
+            <a href="?category={{ cat.slug }}"
+               class="badge text-decoration-none py-2 px-3 {% if current_category == cat.slug %}bg-primary text-white{% else %}bg-light text-dark{% endif %}">
+              {{ cat.name }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- CTA -->
+        <div class="p-4 rounded-3" style="background: color-mix(in srgb, var(--site-primary) 8%, white); border: 1.5px solid color-mix(in srgb, var(--site-primary) 20%, transparent);">
+          <h3 class="h6 fw-bold mb-2" style="color:var(--site-primary);">Besoin d'informations ?</h3>
+          <p class="small text-muted mb-3">Notre équipe répond à toutes vos questions.</p>
+          <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site w-100 text-center py-2" style="font-size:0.85rem;">
+            <i class="bi bi-envelope me-1"></i>Nous contacter
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}

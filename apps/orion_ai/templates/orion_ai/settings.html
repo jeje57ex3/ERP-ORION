@@ -1,0 +1,61 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Paramètres IA — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Assistant IA</p>
+    <h1 class="orion-page-title">Paramètres IA</h1>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Configuration active</h2>
+  </div>
+  <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="orion-metric">
+      <span class="orion-metric-label">Fournisseur</span>
+      <strong class="orion-metric-value">{{ ai_settings.get_default_provider_display }}</strong>
+    </div>
+    <div class="orion-metric">
+      <span class="orion-metric-label">Modèle</span>
+      <strong class="orion-metric-value" style="font-family:monospace;font-size:14px">{{ ai_settings.default_model }}</strong>
+    </div>
+    <div class="orion-metric">
+      <span class="orion-metric-label">Statut IA</span>
+      <strong class="orion-metric-value">
+        {% if ai_settings.ai_enabled %}
+        <span style="color:var(--orion-success)">Activée</span>
+        {% else %}
+        <span style="color:var(--orion-danger)">Désactivée</span>
+        {% endif %}
+      </strong>
+    </div>
+    <div class="orion-metric">
+      <span class="orion-metric-label">Outils IA</span>
+      <strong class="orion-metric-value">{% if ai_settings.allow_tools %}Autorisés{% else %}Désactivés{% endif %}</strong>
+    </div>
+    <div class="orion-metric">
+      <span class="orion-metric-label">Actions dangereuses</span>
+      <strong class="orion-metric-value">
+        {% if ai_settings.allow_dangerous_actions %}
+        <span style="color:var(--orion-danger)">Autorisées</span>
+        {% else %}
+        <span style="color:var(--orion-success)">Bloquées</span>
+        {% endif %}
+      </strong>
+    </div>
+    <div class="orion-metric">
+      <span class="orion-metric-label">Journalisation</span>
+      <strong class="orion-metric-value">{% if ai_settings.log_conversations %}Activée{% else %}Désactivée{% endif %}</strong>
+    </div>
+  </div>
+  <div style="padding:0 20px 20px">
+    <p style="font-size:13px;color:var(--orion-muted)">
+      Pour modifier ces paramètres, contactez votre Super Admin Orion.
+    </p>
+  </div>
+</div>
+{% endblock %}

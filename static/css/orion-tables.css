@@ -1,0 +1,313 @@
+/*
+ * Orion ERP — Tables
+ * Tableaux professionnels sobres
+ */
+
+/* ── Conteneur carte ──────────────────────────────────────────────────────── */
+.orion-table-card {
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--orion-shadow-card);
+}
+
+/* ── Barre d'outils ──────────────────────────────────────────────────────── */
+.orion-table-toolbar {
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--orion-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--orion-surface);
+}
+
+.orion-table-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.orion-table-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.orion-table-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orion-text);
+  white-space: nowrap;
+}
+
+.orion-table-count {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(139, 129, 119, 0.12);
+  color: var(--orion-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.orion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.orion-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.orion-table th {
+  height: 40px;
+  background: var(--orion-surface-alt);
+  color: var(--orion-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  text-align: left;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--orion-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.orion-table th.sortable {
+  cursor: pointer;
+}
+
+.orion-table th.sortable:hover {
+  color: var(--orion-text-soft);
+}
+
+.orion-table th.sorted {
+  color: var(--orion-accent-strong);
+}
+
+.orion-table td {
+  height: 50px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--orion-border-light);
+  color: var(--orion-text);
+  vertical-align: middle;
+}
+
+.orion-table tr:last-child td {
+  border-bottom: none;
+}
+
+.orion-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.orion-table tbody tr:hover td {
+  background: rgba(184, 155, 107, 0.04);
+}
+
+.orion-table tbody tr.selected td {
+  background: var(--orion-accent-soft);
+}
+
+/* Cellules spéciales */
+.orion-table td.primary {
+  font-weight: 600;
+  color: var(--orion-text);
+}
+
+.orion-table td.muted {
+  color: var(--orion-muted);
+  font-size: 12.5px;
+}
+
+.orion-table td.mono {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.orion-table td.amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.orion-table th.amount {
+  text-align: right;
+}
+
+/* Checkbox colonne */
+.orion-table th.check-col,
+.orion-table td.check-col {
+  width: 42px;
+  padding: 0 12px;
+}
+
+/* Colonne actions */
+.orion-table td.actions-col {
+  width: 1px;
+  white-space: nowrap;
+}
+
+.orion-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.orion-table tbody tr:hover .orion-table-actions {
+  opacity: 1;
+}
+
+.orion-table-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--orion-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.orion-table-action-btn:hover {
+  background: var(--orion-surface-alt);
+  border-color: var(--orion-border);
+  color: var(--orion-text);
+}
+
+.orion-table-action-btn.danger:hover {
+  background: rgba(180, 59, 59, 0.08);
+  border-color: rgba(180, 59, 59, 0.2);
+  color: var(--orion-danger);
+}
+
+/* ── Barre de filtre ─────────────────────────────────────────────────────── */
+.orion-filter-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--orion-border);
+  background: var(--orion-surface-alt);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.orion-filter-chip {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--orion-border);
+  background: var(--orion-surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--orion-text-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.orion-filter-chip:hover,
+.orion-filter-chip.active {
+  border-color: var(--orion-accent);
+  background: var(--orion-accent-soft);
+  color: var(--orion-accent-strong);
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+.orion-pagination {
+  padding: 12px 16px;
+  border-top: 1px solid var(--orion-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--orion-surface);
+  border-radius: 0 0 var(--orion-radius-lg) var(--orion-radius-lg);
+}
+
+.orion-pagination-info {
+  font-size: 12.5px;
+  color: var(--orion-muted);
+}
+
+.orion-pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.orion-page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--orion-border);
+  background: var(--orion-surface);
+  color: var(--orion-text-soft);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-family: var(--orion-font);
+  font-weight: 500;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.orion-page-btn:hover {
+  background: var(--orion-surface-alt);
+  border-color: rgba(42, 34, 28, 0.2);
+}
+
+.orion-page-btn.active {
+  background: var(--orion-text);
+  color: #fff;
+  border-color: var(--orion-text);
+}
+
+.orion-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Mode compact ─────────────────────────────────────────────────────────── */
+body.orion-compact .orion-table td {
+  height: 40px;
+}
+
+body.orion-compact .orion-table-toolbar {
+  min-height: 46px;
+}
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+[data-theme="dark"] .orion-table-card {
+  background: var(--orion-surface);
+}
+
+[data-theme="dark"] .orion-table th {
+  background: var(--orion-sand-200, #2E2016);
+}
+
+[data-theme="dark"] .orion-table tbody tr:hover td {
+  background: rgba(184, 155, 107, 0.06);
+}

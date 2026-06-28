@@ -1,0 +1,13 @@
+{# Composant Empty State
+   Variables : icon, title, text, action_label, action_url
+#}
+<div class="orion-empty">
+  <i class="{{ icon|default:'bi-inbox' }} orion-empty-icon"></i>
+  <div class="orion-empty-title">{{ title|default:'Aucune donnée' }}</div>
+  <p class="orion-empty-text">{{ text|default:'Aucun élément à afficher pour le moment.' }}</p>
+  {% if action_url %}
+  <a href="{{ action_url }}" class="orion-btn orion-btn-gold">
+    <i class="bi bi-plus-lg"></i>{{ action_label|default:'Créer le premier' }}
+  </a>
+  {% endif %}
+</div>

@@ -1,0 +1,111 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Produits boutique — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:store_dashboard' website.pk %}">{{ website.name }}</a></li>
+<li class="breadcrumb-item active">Produits boutique</li>
+{% endblock %}
+{% block page_actions %}
+<form method="post" action="{% url 'websites:store_product_import_erp' website.pk %}" style="display:inline">
+  {% csrf_token %}
+  <button type="submit" class="orion-btn orion-btn-outline" onclick="return confirm('Importer tous les produits ERP actifs ?')"><i class="bi bi-download me-1"></i>Importer ERP</button>
+</form>
+<a href="{% url 'websites:store_product_create' website.pk %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau produit</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#10B981"><i class="bi bi-broadcast"></i></div>
+      <div class="orion-kpi-value">{{ published }}</div>
+      <div class="orion-kpi-label">Publiés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#EF4444"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="orion-kpi-value">{{ out_of_stock }}</div>
+      <div class="orion-kpi-label">Ruptures</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-box-seam"></i></div>
+      <div class="orion-kpi-value">{{ total }}</div>
+      <div class="orion-kpi-label">Total produits</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+  <div class="d-flex flex-wrap gap-2">
+    <a href="?" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+    {% for val, label in status_choices %}
+    <a href="?status={{ val }}" class="orion-filter-chip {% if status == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <form class="d-flex gap-2 ms-auto" method="get">
+    <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:200px" placeholder="Rechercher..."></div>
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <button type="submit" class="orion-btn orion-btn-outline">Chercher</button>
+  </form>
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>ERP</th><th>Statut</th><th class="text-end">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ p.name }}</div>
+            {% if p.sku %}<div class="text-muted small font-monospace">{{ p.sku }}</div>{% endif %}
+          </td>
+          <td class="text-muted small">{{ p.category.name|default:"—" }}</td>
+          <td>
+            <div class="fw-semibold">{{ p.price|floatformat:2 }}€</div>
+            {% if p.is_on_sale %}<div class="text-muted small text-decoration-line-through">{{ p.compare_at_price|floatformat:2 }}€</div>{% endif %}
+          </td>
+          <td>
+            {% if p.stock_quantity > 0 %}<span class="text-success fw-semibold">{{ p.stock_quantity }}</span>
+            {% else %}<span class="text-danger fw-semibold">Rupture</span>{% endif %}
+            {% if p.stock_from_erp %}<span class="orion-badge badge-info ms-1">ERP</span>{% endif %}
+          </td>
+          <td>{% if p.erp_product %}<span class="orion-badge orion-badge-success">Lié</span>{% else %}—{% endif %}</td>
+          <td><span class="orion-badge orion-badge-{{ p.status }}">{{ p.get_status_display }}</span></td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'websites:store_product_edit' website.pk p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="{% url 'websites:store_product_toggle' website.pk p.pk %}" class="d-inline">{% csrf_token %}
+                <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% if p.status == 'published' %}Dépublier{% else %}Publier{% endif %}">
+                  <i class="bi bi-{% if p.status == 'published' %}eye-slash{% else %}broadcast{% endif %}"></i>
+                </button>
+              </form>
+              <a href="{% url 'websites:store_product_delete' website.pk p.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="orion-empty-title">Aucun produit publié dans cette boutique.</div>
+            <div class="orion-empty-text">Importez des produits depuis l'ERP ou créez un nouveau produit boutique.</div>
+            <div class="d-flex gap-2 justify-content-center mt-2">
+              <form method="post" action="{% url 'websites:store_product_import_erp' website.pk %}">{% csrf_token %}
+                <button type="submit" class="orion-btn orion-btn-outline">Importer produits ERP</button>
+              </form>
+              <a href="{% url 'websites:store_product_create' website.pk %}" class="orion-btn orion-orion-btn primary">Créer produit boutique</a>
+            </div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

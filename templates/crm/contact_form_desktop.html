@@ -1,0 +1,65 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+
+{% block title %}{{ contact.full_name|default:"Nouveau contact" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'crm:customer_list' %}">CRM</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ contact.full_name|default:"Nouveau contact" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">{{ contact.full_name|default:"Nouveau contact" }}</h1>
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="contact-form" type="submit" title="Enregistrer"><i class="bi bi-save"></i></button>
+      {% if contact.pk %}
+      <a href="{% url 'crm:contact_confirm_delete' contact.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer ce contact ?"><i class="bi bi-trash"></i></a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form id="contact-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+    <div class="orion-record-grid">
+      <div class="orion-record-panel">
+        <div class="orion-record-panel-header">
+          <i class="bi bi-person-lines-fill text-info" style="font-size:13px"></i>
+          <h2 class="orion-record-panel-title">Informations</h2>
+        </div>
+        <div class="orion-record-panel-body">
+          <div class="orion-form-row"><label class="required">Prénom</label>{{ form.first_name }}</div>
+          <div class="orion-form-row"><label class="required">Nom</label>{{ form.last_name }}</div>
+          <div class="orion-form-row"><label>Client lié</label>{{ form.customer }}</div>
+          <div class="orion-form-row"><label>Poste</label>{{ form.position }}</div>
+          <div class="orion-form-row"><label>Service</label>{{ form.department }}</div>
+        </div>
+      </div>
+      <div class="orion-record-panel">
+        <div class="orion-record-panel-header">
+          <i class="bi bi-telephone text-primary" style="font-size:13px"></i>
+          <h2 class="orion-record-panel-title">Coordonnées</h2>
+        </div>
+        <div class="orion-record-panel-body">
+          <div class="orion-form-row"><label>Email</label>{{ form.email }}</div>
+          <div class="orion-form-row"><label>Téléphone</label>{{ form.phone }}</div>
+          <div class="orion-form-row"><label>Mobile</label>{{ form.mobile }}</div>
+          <div class="orion-form-row"><label>LinkedIn</label>{{ form.linkedin }}</div>
+          <div class="orion-form-row"><label>Notes</label>{{ form.notes }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="orion-form-actions">
+      <a href="{% url 'crm:customer_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

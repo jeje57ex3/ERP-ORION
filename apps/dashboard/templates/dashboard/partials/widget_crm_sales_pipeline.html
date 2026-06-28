@@ -1,0 +1,19 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"crm_sales_pipeline" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="d-flex gap-1 p-3 overflow-auto">
+  {% for stage in data.pipeline %}
+  {% if stage.count %}
+  <div class="flex-grow-1 p-2 rounded-3 text-center" style="background:#f8f9fa;min-width:90px;max-width:150px">
+    <div class="fw-bold fs-5 text-primary">{{ stage.count }}</div>
+    <div class="text-muted" style="font-size:.7rem">{{ stage.stage|title }}</div>
+    <div class="small fw-semibold">{{ stage.total|floatformat:0 }} €</div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-funnel"></i><p class="mt-2 mb-0">Pipeline vide.</p></div>
+{% endif %}
+{% endwith %}

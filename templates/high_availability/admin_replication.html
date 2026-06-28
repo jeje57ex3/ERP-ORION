@@ -1,0 +1,72 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
+    <h1>Réplication</h1>
+    <p class="orion-page-subtitle">État de la réplication MySQL pour chaque serveur secondaire.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">← Paramètres HA</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">Rafraîchir</a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+{% if statuses %}
+  {% for rep in statuses %}
+  <div class="orion-card" style="margin-bottom:16px;">
+    <div class="orion-orion-orion-card-header">
+      <h2>{{ rep.node.name }} <small class="orion-text-muted">{{ rep.node.node_id }}</small></h2>
+      <span class="orion-badge orion-badge--{% if rep.database_status == 'ok' %}success{% else %}danger{% endif %}">
+        {{ rep.database_status }}
+      </span>
+    </div>
+    <div class="orion-orion-orion-card-body">
+      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:16px;">
+        <div>
+          <p class="orion-metric-label">IO Thread</p>
+          <strong class="{% if rep.io_thread_running %}orion-text-success{% else %}orion-text-danger{% endif %}">
+            {% if rep.io_thread_running %}Running{% else %}Stopped{% endif %}
+          </strong>
+        </div>
+        <div>
+          <p class="orion-metric-label">SQL Thread</p>
+          <strong class="{% if rep.sql_thread_running %}orion-text-success{% else %}orion-text-danger{% endif %}">
+            {% if rep.sql_thread_running %}Running{% else %}Stopped{% endif %}
+          </strong>
+        </div>
+        <div>
+          <p class="orion-metric-label">Retard (Seconds Behind)</p>
+          <strong>{{ rep.seconds_behind_primary|default:"—" }}{% if rep.seconds_behind_primary %} s{% endif %}</strong>
+        </div>
+        <div>
+          <p class="orion-metric-label">Primary Log File</p>
+          <code style="font-size:12px;">{{ rep.primary_log_file|default:"—" }}</code>
+        </div>
+        <div>
+          <p class="orion-metric-label">Primary Log Position</p>
+          <code style="font-size:12px;">{{ rep.primary_log_position|default:"—" }}</code>
+        </div>
+        <div>
+          <p class="orion-metric-label">Vérifié le</p>
+          <span>{{ rep.checked_at }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="orion-card">
+    <div class="orion-orion-orion-card-body">
+      <p class="orion-text-muted">Aucune donnée de réplication. Lancez une vérification des nœuds.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,118 @@
+{% load dashboard_tags %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'accounting_cash_balance' %}
+  {% with data=widget_data|dict_get:"accounting_cash_balance" %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">
+      <i class="bi bi-bank"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ data.total_balance|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">Solde total — {{ data.accounts|length }} compte(s)</div>
+    </div>
+  </div>
+  {% if data.accounts %}
+  <div class="mt-3">
+    {% for acc in data.accounts %}
+    <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:.8rem">
+      <span>{{ acc.name }}</span>
+      <span class="fw-semibold {% if acc.current_balance < 0 %}text-danger{% else %}text-success{% endif %}">{{ acc.current_balance|floatformat:2 }} €</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'accounting_draft_entries' %}
+  {% with data=widget_data|dict_get:"accounting_draft_entries" %}
+  {% if data.entries %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ data.count }} écriture(s) en brouillon</span></div>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead class="table-light"><tr><th>Journal</th><th>Date</th><th>Description</th><th></th></tr></thead>
+      <tbody>
+      {% for e in data.entries %}
+      <tr>
+        <td><span class="badge bg-secondary">{{ e.journal.code }}</span></td>
+        <td class="small">{{ e.entry_date|date:"d/m/Y" }}</td>
+        <td class="small">{{ e.description|truncatechars:30 }}</td>
+        <td><a href="/accounting/entries/{{ e.pk }}/" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem">Voir</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="dashboard-widget-footer"><a href="/accounting/entries/" class="small text-muted">Voir toutes les écritures →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-pencil-square"></i><p>Aucune écriture en brouillon.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'accounting_supplier_invoices_due' %}
+  {% with data=widget_data|dict_get:"accounting_supplier_invoices_due" %}
+  {% if data.invoices %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ data.count }} · {{ data.total_amount|floatformat:2 }} € TTC</span></div>
+  {% for inv in data.invoices %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-shop"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ inv.supplier.name|truncatechars:30 }}</div>
+      <div class="widget-item-sub">Échéance : {{ inv.due_date|date:"d/m/Y" }}</div>
+    </div>
+    <div class="widget-item-meta fw-semibold" style="color:#7C3AED">{{ inv.total_ttc|floatformat:0 }} €</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-shop"></i><p>Aucune facture fournisseur à payer.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'accounting_vat_summary' %}
+  {% with data=widget_data|dict_get:"accounting_vat_summary" %}
+  <div class="row g-2 text-center">
+    <div class="col-4">
+      <div class="p-2 rounded" style="background:#dcfce7">
+        <div class="fw-bold text-success">{{ data.vat_collected|floatformat:2 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">Collectée</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-2 rounded" style="background:#fef3c7">
+        <div class="fw-bold text-warning">{{ data.vat_deductible|floatformat:2 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">Déductible</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-2 rounded" style="background:#fee2e2">
+        <div class="fw-bold text-danger">{{ data.vat_due|floatformat:2 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">À décaisser</div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+
+{% elif code == 'accounting_overdue_customer_invoices' %}
+  {% with data=widget_data|dict_get:"accounting_overdue_customer_invoices" %}
+  {% if data.invoices %}
+  <div class="mb-2"><span class="badge bg-danger">{{ data.count }} · {{ data.total_amount|floatformat:2 }} €</span></div>
+  {% for inv in data.invoices %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-exclamation-octagon"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ inv.customer.name|truncatechars:30 }}</div>
+      <div class="widget-item-sub text-danger fw-semibold">Échu le {{ inv.due_date|date:"d/m/Y" }}</div>
+    </div>
+    <div class="widget-item-meta fw-semibold text-danger">{{ inv.total_ttc|floatformat:0 }} €</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-check-circle"></i><p>Aucune facture en retard.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% else %}
+  <div class="widget-empty-state"><i class="bi bi-calculator"></i><p>Widget comptabilité.</p></div>
+{% endif %}
+
+{% endwith %}

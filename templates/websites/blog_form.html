@@ -1,0 +1,81 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:blog_list' %}">Articles blog</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item active">Modifier « {{ post.title }} »</li>
+{% else %}<li class="breadcrumb-item active">Nouvel article</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier « {{ post.title }} »{% else %}Nouvel article de blog{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-journal-text me-1 text-primary"></i>Article</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Site *</label>
+              {{ form.website }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Catégorie</label>
+              {{ form.category }}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Titre *</label>
+              {{ form.title }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Slug</label>
+              {{ form.slug }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Extrait</label>
+              {{ form.excerpt }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Contenu *</label>
+              {{ form.content }}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Tags</label>
+              {{ form.tags }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Tps de lecture (min)</label>
+              {{ form.reading_time }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-search me-1 text-primary"></i>SEO</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="mb-3"><label class="form-label form-label-sm">Meta title</label>{{ form.meta_title }}</div>
+          <div><label class="form-label form-label-sm">Meta description</label>{{ form.meta_description }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Publication</h6></div>
+        <div class="orion-orion-card-body">
+          <label class="form-label form-label-sm">Statut</label>
+          {{ form.status }}
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer l'article{% endif %}</button>
+        <a href="{% url 'websites:blog_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

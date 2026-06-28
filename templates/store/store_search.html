@@ -1,0 +1,64 @@
+{% extends "store/base_store.html" %}
+{% block title %}Recherche{% if q %} : {{ q }}{% endif %} — {{ website.name }}{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row mb-4">
+    <div class="col-12 col-md-6">
+      <form method="get">
+        <div class="input-group input-group-lg">
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Rechercher un produit...">
+          <button type="submit" class="btn btn-store-primary"><i class="bi bi-search"></i></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if q %}
+  <h2 class="h4 fw-bold mb-4">{{ products|length }} résultat{{ products|length|pluralize }} pour « {{ q }} »</h2>
+  {% endif %}
+
+  {% if products %}
+  <div class="row g-3">
+    {% for product in products %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="product-card h-100">
+        <a href="{% url 'store:store_product_detail' product.slug %}" class="text-decoration-none">
+          <div class="product-img">
+            {% if product.images.first %}<img src="{{ product.images.first.image.url }}" class="w-100 h-100" style="object-fit:cover" alt="{{ product.name }}">
+            {% else %}<i class="bi bi-image text-muted" style="font-size:3rem"></i>{% endif %}
+          </div>
+        </a>
+        <div class="p-3">
+          <h6 class="fw-semibold mb-1"><a href="{% url 'store:store_product_detail' product.slug %}" class="text-dark text-decoration-none">{{ product.name }}</a></h6>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="product-price">{{ product.price|floatformat:2 }}€</span>
+            {% if product.is_on_sale %}<span class="product-price-old">{{ product.compare_at_price|floatformat:2 }}€</span>{% endif %}
+          </div>
+          <form method="post" action="{% url 'store:cart_add' %}">
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ product.pk }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn-store-primary btn-sm w-100" {% if not product.in_stock %}disabled{% endif %}>
+              {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>Ajouter{% else %}Rupture{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% elif q %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-search fs-1 mb-3 d-block"></i>
+    <h5>Aucun résultat pour « {{ q }} »</h5>
+    <p>Essayez d'autres mots-clés ou <a href="{% url 'store:store_home' %}">retournez à l'accueil</a>.</p>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-search fs-1 mb-3 d-block"></i>
+    <h5>Que recherchez-vous ?</h5>
+    <p>Tapez un mot-clé dans la barre de recherche ci-dessus.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

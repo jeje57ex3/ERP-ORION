@@ -1,0 +1,52 @@
+{% load dashboard_tags %}
+{% with issued=widget_data|dict_get:"gift_cards_issued" %}
+{% with active=widget_data|dict_get:"gift_cards_active" %}
+{% with redeemed=widget_data|dict_get:"gift_cards_redeemed" %}
+{% with expiring=widget_data|dict_get:"gift_cards_expiring" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'gift_cards_issued' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-gift-fill"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ issued.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">carte(s)-cadeau émise(s) ce mois</div>
+    </div>
+  </div>
+
+{% elif code == 'gift_cards_active' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-wallet2"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.4rem;color:var(--dashboard-primary)">{{ active.total_balance|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">solde total · {{ active.count|default:"0" }} carte(s) active(s)</div>
+    </div>
+  </div>
+
+{% elif code == 'gift_cards_redeemed' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dbeafe;color:#2563EB;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-credit-card-2-back"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.4rem;color:var(--dashboard-primary)">{{ redeemed.total_amount|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">{{ redeemed.count|default:"0" }} utilisation(s) ce mois</div>
+    </div>
+  </div>
+
+{% elif code == 'gift_cards_expiring' %}
+  {% if expiring.has_data %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ expiring.count }} carte(s)-cadeau expirant bientôt</span></div>
+  {% for c in expiring.cards %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-alarm"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ c.code|default:"Carte-cadeau" }}</div>
+      <div class="widget-item-sub">Solde : {{ c.balance|floatformat:2 }} € · Expire : {{ c.expires_at|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-alarm"></i><p>Aucune carte-cadeau expirant dans les 30 jours.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

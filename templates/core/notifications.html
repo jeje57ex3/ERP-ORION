@@ -1,0 +1,92 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="page-title">Notifications</h1>
+    <p class="text-muted mb-0 small">{{ page_obj.paginator.count }} notification{{ page_obj.paginator.count|pluralize }}</p>
+  </div>
+  <div class="page-header-actions gap-2">
+    {% if page_obj.paginator.count > 0 %}
+    <a href="{% url 'core:notifications_read_all' %}"
+       class="orion-btn orion-btn-outline"
+       onclick="fetch(this.href,{method:'GET'}).then(()=>location.reload());return false;">
+      <i class="bi bi-check2-all me-1"></i>Tout marquer lu
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Onglets de filtre -->
+<div class="orion-filter-bar mt-3">
+  <a href="?filter=all" class="orion-filter-chip {% if filter_type == 'all' %}active{% endif %}">
+    Toutes
+  </a>
+  <a href="?filter=unread" class="orion-filter-chip {% if filter_type == 'unread' %}active{% endif %}">
+    Non lues
+  </a>
+  <a href="?filter=read" class="orion-filter-chip {% if filter_type == 'read' %}active{% endif %}">
+    Lues
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card" style="max-width:800px">
+  {% if page_obj %}
+  <div class="list-group list-group-flush">
+    {% for notif in page_obj %}
+    <div class="list-group-item notification-item {% if not notif.is_read %}unread{% endif %} px-4 py-3">
+      <div class="d-flex align-items-start gap-3">
+        <div class="notif-icon level-{{ notif.level }} flex-shrink-0">
+          <i class="bi bi-{% if notif.level == 'success' %}check-circle{% elif notif.level == 'danger' %}exclamation-triangle{% elif notif.level == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+        </div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <strong class="{% if not notif.is_read %}fw-semibold{% else %}fw-normal text-muted{% endif %}">
+              {{ notif.title }}
+            </strong>
+            <small class="text-muted text-nowrap">{{ notif.created_at|timesince }}</small>
+          </div>
+          <p class="mb-0 small text-muted mt-1">{{ notif.message }}</p>
+          {% if notif.link %}
+          <a href="{{ notif.link }}" class="small text-primary mt-1 d-inline-block">
+            <i class="bi bi-arrow-right me-1"></i>Voir le détail
+          </a>
+          {% endif %}
+        </div>
+        {% if not notif.is_read %}
+        <span class="orion-badge gold rounded-circle p-1 flex-shrink-0" style="width:10px;height:10px;padding:0!important"></span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="d-flex justify-content-center py-3">
+    <nav>
+      <ul class="pagination orion-page-btn mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?filter={{ filter_type }}&page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?filter={{ filter_type }}&page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="orion-empty-premium py-5">
+    <div class="orion-empty-icon"><i class="bi bi-bell-slash"></i></div>
+    <h5>Aucune notification</h5>
+    <p class="text-muted">Vous êtes à jour !</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

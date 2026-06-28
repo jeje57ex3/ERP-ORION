@@ -1,0 +1,58 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'integration_center:list' %}">Intégrations</a></div>
+    <h1 class="orion-page-title">{{ integration.name }}</h1>
+  </div>
+  <div class="orion-page-actions">
+    <form method="post" action="{% url 'integration_center:toggle' integration.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn {% if integration.is_active %}ghost{% endif %}">
+        {% if integration.is_active %}Désactiver{% else %}Activer{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Configuration</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Type</dt><dd>{{ integration.get_integration_type_display }}</dd>
+          <dt>Statut</dt><dd><span class="orion-badge {% if integration.is_active %}success{% else %}neutral{% endif %}">{% if integration.is_active %}Active{% else %}Inactive{% endif %}</span></dd>
+          <dt>Intervalle sync</dt><dd>{{ integration.sync_interval_minutes }} min</dd>
+          <dt>Dernière sync</dt><dd>{% if integration.last_sync_at %}{{ integration.last_sync_at|date:"d/m/Y H:i" }}{% else %}Jamais{% endif %}</dd>
+          <dt>Créée le</dt><dd>{{ integration.created_at|date:"d/m/Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Historique synchronisations</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if logs %}
+        <div class="list-group list-group-flush">
+          {% for log in logs %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <span class="orion-badge {% if log.status == 'success' %}success{% elif log.status == 'failed' %}danger{% elif log.status == 'partial' %}warning{% else %}neutral{% endif %}">{{ log.get_status_display }}</span>
+              <span style="font-size:13px">{{ log.records_synced }} enreg. · {{ log.records_failed }} erreur(s)</span>
+              <span style="font-size:11px;color:var(--orion-muted);margin-left:auto">
+                {{ log.started_at|date:"d/m/Y H:i" }}
+                {% if log.duration_seconds %} · {{ log.duration_seconds|floatformat:1 }}s{% endif %}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-4 py-3 text-muted mb-0" style="font-size:13px">Aucune synchronisation enregistrée.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

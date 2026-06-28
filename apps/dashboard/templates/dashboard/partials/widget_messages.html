@@ -1,0 +1,22 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"my_messages" %}
+{% if data.messages %}
+<div>
+  {% for msg in data.messages %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-chat-dots"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ msg.subject|default:"Message"|truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ msg.sender }} · {{ msg.created_at|date:"d/m H:i" }}</div>
+    </div>
+    {% if not msg.is_read %}<div class="widget-item-meta"><span class="badge bg-info rounded-circle p-1" style="font-size:.5rem">&nbsp;</span></div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-chat-dots"></i>
+  <p>Aucun message récent.</p>
+</div>
+{% endif %}
+{% endwith %}

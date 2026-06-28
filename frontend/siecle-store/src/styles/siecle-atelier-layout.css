@@ -1,0 +1,45 @@
+/* ── Atelier SIÈCLE — layout shell ─────────────────────────────────────────── */
+
+.siecle-atelier-layout {
+  min-height: 100vh;
+  background: #050505;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Exit button — sits below the sticky header */
+.siecle-atelier-exit {
+  position: fixed;
+  top: calc(var(--header-h) + 10px);
+  right: 20px;
+  z-index: 990;
+}
+
+.siecle-atelier-exit__btn {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #666;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(5,5,5,0.8);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.siecle-atelier-exit__btn:hover {
+  color: #D8C7A3;
+  border-color: rgba(216,199,163,0.35);
+}
+
+/* Main content — sits under sticky header */
+.siecle-atelier-main {
+  margin-top: var(--header-h);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,65 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Notifications{% endblock %}
+{% block nav_notifications %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Notifications</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-bold mb-0">Notifications</h5>
+  {% if notifications %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="mark_all_read" value="1">
+    <button type="submit" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-check2-all me-1"></i>Tout marquer comme lu</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if notifications %}
+<div class="d-flex flex-column gap-2">
+  {% for notif in notifications %}
+  <div class="bg-white border rounded-3 p-4 d-flex gap-3 align-items-start {% if not notif.is_read %}border-warning{% endif %}">
+    <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:{% if not notif.is_read %}#FEF3C7{% else %}#F3F4F6{% endif %}">
+      {% if notif.notif_type == 'new_message' %}<i class="bi bi-chat-dots {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% elif notif.notif_type == 'planning_update' %}<i class="bi bi-calendar-check {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% elif notif.notif_type == 'new_document' %}<i class="bi bi-file-earmark {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% elif notif.notif_type == 'change_request_update' %}<i class="bi bi-pencil-square {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% elif notif.notif_type == 'reservation_update' %}<i class="bi bi-exclamation-circle {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% elif notif.notif_type == 'estimate_ready' %}<i class="bi bi-calculator {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>
+      {% else %}<i class="bi bi-bell {% if not notif.is_read %}text-warning{% else %}text-muted{% endif %}"></i>{% endif %}
+    </div>
+    <div class="flex-grow-1">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fw-semibold small {% if not notif.is_read %}text-dark{% else %}text-muted{% endif %}">{{ notif.title }}</div>
+          {% if notif.message %}<div class="small text-muted mt-1">{{ notif.message }}</div>{% endif %}
+          {% if notif.project %}<div class="small text-muted mt-1"><i class="bi bi-building me-1"></i>{{ notif.project.name }}</div>{% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if not notif.is_read %}<span class="orion-badge warning text-dark" style="font-size:.65rem">Nouveau</span>{% endif %}
+          <span class="text-muted" style="font-size:.7rem;white-space:nowrap">{{ notif.created_at|timesince }}</span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-2">
+        {% if notif.link_url %}<a href="{{ notif.link_url }}" class="orion-btn sm btn-outline-warning">Voir</a>{% endif %}
+        {% if not notif.is_read %}
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="mark_read" value="{{ notif.pk }}">
+          <button type="submit" class="orion-btn sm btn-link text-muted p-0">Marquer comme lu</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border rounded-3 p-5 text-center text-muted">
+  <i class="bi bi-bell-slash fs-1 d-block mb-3"></i>
+  <h6>Aucune notification</h6>
+  <p class="small">Vous serez notifié ici lors de toute mise à jour sur vos chantiers.</p>
+</div>
+{% endif %}
+{% endblock %}

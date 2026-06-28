@@ -1,0 +1,73 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'commerce:store_list' %}">Magasins</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'commerce:store_detail' store.pk %}">{{ store.name }}</a></li><li class="breadcrumb-item active">Modifier</li>
+{% else %}<li class="breadcrumb-item active">Nouveau magasin</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ store.name }}{% else %}Nouveau magasin{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>Informations</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Nom *</label>
+              {{ form.name }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Code</label>
+              {{ form.code }}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Adresse</label>
+              {{ form.address }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Ville</label>
+              {{ form.city }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Téléphone</label>
+              {{ form.phone }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Email</label>
+              {{ form.email }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Horaires d'ouverture</label>
+              {{ form.opening_hours }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Options</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="form-check">{{ form.is_active }}<label class="form-check-label small">Magasin actif</label></div>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer le magasin{% endif %}</button>
+        {% if action == 'edit' %}
+        <a href="{% url 'commerce:store_detail' store.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        {% else %}
+        <a href="{% url 'commerce:store_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

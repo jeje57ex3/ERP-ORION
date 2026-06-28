@@ -1,0 +1,23 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"orion_suggestions" %}
+<div class="widget-header" style="background:linear-gradient(135deg,#3A2A1A,#5a3e2b);color:#C6A15B">
+  <i class="bi bi-stars me-2"></i>{{ user_widget.get_display_title }}
+  {% if data.count %}<span class="badge ms-2" style="background:#C6A15B;color:#fff">{{ data.count }}</span>{% endif %}
+</div>
+{% if data.has_data %}
+<div class="d-flex flex-wrap gap-2 p-3">
+  {% for sug in data.suggestions %}
+  <div class="d-flex align-items-center gap-2 p-2 rounded-3 flex-grow-1" style="background:#FDF8F0;border:1px solid #e8d9c0;min-width:220px">
+    <i class="{{ sug.icon }} flex-shrink-0" style="color:#C6A15B;font-size:1.1rem"></i>
+    <span class="flex-grow-1" style="font-size:.82rem">{{ sug.label }}</span>
+    <a href="{{ sug.url }}" class="btn btn-xs flex-shrink-0" style="background:#C6A15B;color:#fff;font-size:.7rem;padding:.2rem .6rem;border-radius:.4rem">{{ sug.action }}</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4" style="background:#FDF8F0">
+  <i class="bi bi-stars" style="color:#C6A15B"></i>
+  <p class="mt-2 mb-0" style="color:#3A2A1A;font-weight:600">Tout est à jour — bravo !</p>
+</div>
+{% endif %}
+{% endwith %}

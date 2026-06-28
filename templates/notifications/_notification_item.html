@@ -1,0 +1,68 @@
+{% load i18n %}
+{# Fragment réutilisable — un item de notification (dropdown + liste) #}
+<div class="notification-item d-flex align-items-start gap-3 p-3 {% if not notification.is_read %}bg-primary bg-opacity-10 border-start border-primary border-3{% endif %} position-relative"
+     id="notif-{{ notification.pk }}" data-pk="{{ notification.pk }}">
+
+  {# Icône #}
+  <div class="flex-shrink-0">
+    <span class="badge rounded-circle p-2 bg-{{ notification.icon_color }} bg-opacity-15 text-{{ notification.icon_color }}" style="font-size:1.1rem;">
+      <i class="{{ notification.type_icon }}"></i>
+    </span>
+  </div>
+
+  {# Corps #}
+  <div class="flex-grow-1 overflow-hidden">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="fw-semibold text-truncate{% if not notification.is_read %} text-primary{% endif %}">
+        {{ notification.title }}
+      </span>
+      {% if notification.priority != 'normal' %}
+        <span class="badge badge-sm bg-{{ notification.priority_badge_class }} ms-auto flex-shrink-0">
+          {{ notification.get_priority_display }}
+        </span>
+      {% endif %}
+      {% if not notification.is_read %}
+        <span class="badge badge-sm bg-primary ms-auto flex-shrink-0">Nouveau</span>
+      {% endif %}
+    </div>
+
+    {% if notification.message %}
+      <p class="text-muted small mb-1 text-truncate">{{ notification.message }}</p>
+    {% endif %}
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <small class="text-muted">
+        <i class="bi bi-clock me-1"></i>{{ notification.created_at|timesince }}
+      </small>
+      {% if notification.source_module %}
+        <span class="orion-badge neutral bg-opacity-20 text-secondary small">{{ notification.source_module }}</span>
+      {% endif %}
+      {% if notification.link_url %}
+        <a href="{{ notification.link_url }}" class="btn btn-link orion-btn sm p-0 small text-decoration-none">
+          {{ notification.link_label|default:"Voir" }} <i class="bi bi-arrow-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Actions #}
+  <div class="flex-shrink-0 d-flex flex-column gap-1">
+    {% if not notification.is_read %}
+      <form method="post" action="{% url 'notifications:mark_read' notification.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-link orion-btn sm p-1 text-primary" title="Marquer comme lu">
+          <i class="bi bi-check2"></i>
+        </button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'notifications:delete' notification.pk %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="btn btn-link orion-btn sm p-1 text-danger" title="Supprimer"
+              onclick="return confirm('Supprimer cette notification ?')">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>
+  </div>
+</div>

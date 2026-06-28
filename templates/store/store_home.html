@@ -1,0 +1,117 @@
+{% extends "store/base_store.html" %}
+{% block title %}{{ website.name }} — Boutique{% endblock %}
+{% block content %}
+
+<!-- HERO -->
+<section style="background: linear-gradient(135deg, var(--store-secondary) 0%, var(--store-primary) 100%); color:#fff; padding: 5rem 0;">
+  <div class="container text-center">
+    <h1 class="fw-bold display-5 mb-3">{{ website.name }}</h1>
+    <p class="lead mb-4 opacity-75">Découvrez notre sélection de produits, livrés chez vous rapidement.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+      <a href="{% url 'store:store_search' %}" class="btn btn-light btn-lg px-4"><i class="bi bi-grid me-2"></i>Voir le catalogue</a>
+      {% for promo in active_promos|slice:":1" %}
+      <a href="{% url 'store:store_search' %}" class="btn btn-outline-light btn-lg px-4"><i class="bi bi-tag me-2"></i>Profiter des offres</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- PROMOTIONS ACTIVES -->
+{% if active_promos %}
+<section class="py-4" style="background:#fef3c7; border-bottom:2px solid #f59e0b">
+  <div class="container">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <i class="bi bi-tag-fill text-warning fs-4"></i>
+      {% for promo in active_promos|slice:":3" %}
+      <span class="badge bg-warning text-dark fs-6 px-3 py-2">{{ promo.name }} {% if promo.discount_type == 'percentage' %}-{{ promo.discount_value }}%{% elif promo.discount_type == 'fixed_amount' %}-{{ promo.discount_value }}€{% else %}Livraison offerte{% endif %}</span>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CATÉGORIES -->
+{% if categories %}
+<section class="py-5">
+  <div class="container">
+    <h2 class="section-title">Nos catégories</h2>
+    <div class="row g-3">
+      {% for cat in categories %}
+      <div class="col-6 col-md-4 col-lg-2">
+        <a href="{% url 'store:store_category' cat.slug %}" class="text-decoration-none">
+          <div class="text-center p-3 border rounded-3 h-100" style="transition:all .2s" onmouseover="this.style.borderColor='var(--store-primary)';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'">
+            {% if cat.image %}<img src="{{ cat.image.url }}" class="mb-2 rounded" style="width:56px;height:56px;object-fit:cover" alt="{{ cat.name }}">{% else %}
+            <div class="mb-2" style="width:56px;height:56px;border-radius:12px;background:var(--store-primary);display:inline-flex;align-items:center;justify-content:center"><i class="bi bi-grid text-white fs-4"></i></div>{% endif %}
+            <div class="small fw-semibold text-dark">{{ cat.name }}</div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- PRODUITS EN VEDETTE -->
+{% if featured_products %}
+<section class="py-5" style="background:#f9fafb">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="section-title mb-0">Nouveautés & coups de cœur</h2>
+      <a href="{% url 'store:store_search' %}" class="btn btn-store-outline btn-sm">Voir tout <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+    <div class="row g-3">
+      {% for product in featured_products %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="product-card h-100">
+          <a href="{% url 'store:store_product_detail' product.slug %}" class="text-decoration-none">
+            <div class="product-img">
+              {% if product.images.first %}
+              <img src="{{ product.images.first.image.url }}" class="w-100 h-100" style="object-fit:cover" alt="{{ product.name }}">
+              {% else %}
+              <i class="bi bi-image text-muted" style="font-size:3rem"></i>
+              {% endif %}
+            </div>
+          </a>
+          <div class="p-3">
+            {% if product.is_featured %}<span class="badge-new me-1">Coup de cœur</span>{% endif %}
+            {% if product.is_on_sale %}<span class="badge-promo">Promo</span>{% endif %}
+            <h6 class="fw-semibold mt-2 mb-1">
+              <a href="{% url 'store:store_product_detail' product.slug %}" class="text-dark text-decoration-none">{{ product.name }}</a>
+            </h6>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="product-price">{{ product.price|floatformat:2 }}€</span>
+              {% if product.is_on_sale %}<span class="product-price-old">{{ product.compare_at_price|floatformat:2 }}€</span>{% endif %}
+            </div>
+            <form method="post" action="{% url 'store:cart_add' %}">
+              {% csrf_token %}
+              <input type="hidden" name="product_id" value="{{ product.pk }}">
+              <input type="hidden" name="quantity" value="1">
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-store-primary btn-sm w-100" {% if not product.in_stock %}disabled{% endif %}>
+                {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>Ajouter au panier{% else %}Rupture de stock{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA NEWSLETTER -->
+<section class="py-5" style="background: var(--store-primary); color:#fff">
+  <div class="container text-center">
+    <h3 class="fw-bold mb-2">Restez informé de nos offres</h3>
+    <p class="mb-4 opacity-75">Inscrivez-vous à notre newsletter et recevez nos meilleures offres.</p>
+    <form class="d-flex gap-2 justify-content-center flex-wrap" method="post" action="#">
+      {% csrf_token %}
+      <input type="email" name="email" class="form-control" placeholder="votre@email.com" style="max-width:300px">
+      <button type="submit" class="btn bg-white" style="color:var(--store-primary);font-weight:600">S'inscrire</button>
+    </form>
+  </div>
+</section>
+
+{% endblock %}

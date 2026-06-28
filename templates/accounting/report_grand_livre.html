@@ -1,0 +1,63 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item active">Grand livre</li>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Détail des mouvements par compte comptable.</p>{% endblock %}
+
+{% block content %}
+<div class="erp-card mb-4">
+  <div class="erp-orion-orion-card-body">
+    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label class="form-label fw-semibold">Compte</label>
+        <select name="account" class="form-select" style="min-width:280px">
+          <option value="">Tous les comptes</option>
+          {% for acc in accounts %}
+          <option value="{{ acc.pk }}" {% if account_filter == acc.pk|stringformat:"s" %}selected{% endif %}>{{ acc.number }} — {{ acc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label fw-semibold">Du</label>
+        <input type="date" name="start" class="form-control" value="{{ period_start }}">
+      </div>
+      <div>
+        <label class="form-label fw-semibold">Au</label>
+        <input type="date" name="end" class="form-control" value="{{ period_end }}">
+      </div>
+      <button type="submit" class="orion-btn primary"><i class="bi bi-search me-1"></i>Filtrer</button>
+    </form>
+  </div>
+</div>
+
+{% if lines %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>Mouvements ({{ lines|length }})</h6></div>
+  <div class="erp-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr><th>Compte</th><th>Date</th><th>Journal</th><th>N° Écriture</th><th>Libellé</th><th class="text-end">Débit</th><th class="text-end">Crédit</th></tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td><code>{{ line.account.number }}</code></td>
+            <td class="small text-muted">{{ line.entry.entry_date|date:"d/m/Y" }}</td>
+            <td><span class="orion-badge neutral">{{ line.entry.journal.code }}</span></td>
+            <td><a href="{% url 'accounting:entry_detail' line.entry.pk %}" class="text-decoration-none small">{{ line.entry.entry_number }}</a></td>
+            <td class="small">{{ line.label|default:line.entry.description }}</td>
+            <td class="text-end {% if line.debit %}text-success fw-semibold{% else %}text-muted{% endif %}">{{ line.debit|floatformat:2 }}</td>
+            <td class="text-end {% if line.credit %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ line.credit|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% elif period_start or account_filter %}
+<div class="erp-card"><div class="erp-orion-orion-card-body text-center py-5 text-muted">Aucun mouvement pour les critères sélectionnés.</div></div>
+{% endif %}
+{% endblock %}

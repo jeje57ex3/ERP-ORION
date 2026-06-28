@@ -1,0 +1,49 @@
+{% extends "websites/public/btp/base.html" %}
+{% load static %}
+{% block title %}Avis clients — {{ site.name }}{% endblock %}
+{% block meta_description %}Les avis et témoignages de nos clients sur nos travaux.{% endblock %}
+
+{% block content %}
+<section class="btp-page-hero">
+  <div class="btp-container">
+    <span class="btp-h-label" style="color:var(--btp-secondary)">Témoignages</span>
+    <h1>L'avis de nos clients</h1>
+    <p>La satisfaction de nos clients est notre priorité. Découvrez leurs témoignages.</p>
+  </div>
+</section>
+
+{% if avg_rating %}
+<section class="btp-section-sm btp-section-white">
+  <div class="btp-container" style="text-align:center">
+    <div style="font-size:3.5rem;font-weight:700;color:var(--btp-secondary);font-family:var(--btp-font-h)">{{ avg_rating|floatformat:1 }}/5</div>
+    <div class="btp-stars" data-rating="{{ avg_rating|floatformat:'0' }}" style="font-size:1.75rem;margin:.5rem 0"></div>
+    <p class="btp-muted">Basé sur {{ reviews|length }} avis clients</p>
+  </div>
+</section>
+{% endif %}
+
+<section class="btp-section btp-section-bg">
+  <div class="btp-container">
+    {% if reviews %}
+    <div class="btp-reviews-grid">
+      {% for review in reviews %}
+      <div class="btp-review-card btp-reveal">
+        <div class="btp-stars" data-rating="{{ review.rating }}"></div>
+        <p class="btp-review-text">{{ review.comment }}</p>
+        <div class="btp-reviewer">{{ review.customer_name }}</div>
+        {% if review.customer_city %}<div class="btp-reviewer-city"><i class="bi bi-geo-alt"></i> {{ review.customer_city }}</div>{% endif %}
+        {% if review.work_type %}<div style="margin-top:.5rem"><span class="btp-tag">{{ review.get_work_type_display }}</span></div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:4rem 0;color:var(--btp-muted)">
+      <i class="bi bi-chat-quote" style="font-size:3rem;display:block;margin-bottom:1rem"></i>
+      <p>Les avis de nos clients arrivent bientôt.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% include "websites/public/btp/components/cta_guided_quote.html" %}
+{% endblock %}

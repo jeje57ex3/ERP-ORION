@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Siècle Créations — Tableau de bord{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h1 class="h3 mb-4">Siècle Créations</h1>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-primary">{{ stats.total }}</div>
+          <div class="text-muted small">Créations</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-success">{{ stats.published }}</div>
+          <div class="text-muted small">Publiées</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-warning">{{ stats.sold_out }}</div>
+          <div class="text-muted small">Épuisées</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <div class="fs-2 fw-bold text-info">{{ stats.revenue|floatformat:0 }} €</div>
+          <div class="text-muted small">CA total</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Activité récente</span>
+      <a href="{% url 'siecle_creations:catalog' %}" class="btn btn-sm btn-outline-primary">Voir le catalogue</a>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr>
+          <th>Réf.</th><th>Titre</th><th>Catégorie</th><th>Statut</th><th>Stock</th>
+        </tr></thead>
+        <tbody>
+          {% for c in recent %}
+          <tr>
+            <td><a href="{% url 'siecle_creations:detail' c.pk %}">{{ c.reference }}</a></td>
+            <td>{{ c.title }}</td>
+            <td>{{ c.get_category_display }}</td>
+            <td><span class="badge bg-secondary">{{ c.get_status_display }}</span></td>
+            <td>{{ c.stock_qty }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">Aucune création</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

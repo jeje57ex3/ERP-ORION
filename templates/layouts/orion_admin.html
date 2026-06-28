@@ -1,0 +1,18 @@
+{% extends "layouts/orion_internal.html" %}
+
+{% block title %}Super Admin — {{ brand_name|default:"Orion ERP" }}{% endblock %}
+{% block body_class %}orion-admin{% endblock %}
+
+{% block sidebar %}
+  {% with sidebar_brand_tag="Super Admin" %}
+    {% include "layouts/_orion_internal_sidebar.html" %}
+  {% endwith %}
+{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'core:home' %}" class="orion-btn sm ghost" title="Retour ERP">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+    <span class="d-none d-lg-inline">ERP</span>
+  </a>
+  {{ block.super }}
+{% endblock %}

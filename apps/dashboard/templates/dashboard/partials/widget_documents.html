@@ -1,0 +1,72 @@
+{% load dashboard_tags %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'recent_documents' %}
+  {% with data=widget_data|dict_get:"recent_documents" %}
+  {% if data.documents %}
+  <div>
+    {% for doc in data.documents %}
+    <div class="widget-item">
+      <div class="widget-item-icon" style="background:#f3f4f6;color:#6B7280"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ doc.name|default:doc.title|default:"Document"|truncatechars:40 }}</div>
+        <div class="widget-item-sub">{{ doc.created_at|date:"d/m/Y" }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="dashboard-widget-footer"><a href="/documents/" class="small text-muted">Voir tous les documents →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-folder2-open"></i><p>Aucun document récent.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'hr_my_private_documents' %}
+  {% with data=widget_data|dict_get:"hr_my_private_documents" %}
+  {% if data.documents %}
+  <div>
+    {% for doc in data.documents %}
+    <div class="widget-item">
+      <div class="widget-item-icon" style="background:#e0e7ff;color:#4F46E5"><i class="bi bi-person-vcard"></i></div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ doc.file.name|default:"Document"|truncatechars:35 }}</div>
+        <div class="widget-item-sub">
+          {% if doc.expires_at %}<span class="text-warning">Expire : {{ doc.expires_at|date:"d/m/Y" }}</span>{% else %}{{ doc.created_at|date:"d/m/Y" }}{% endif %}
+        </div>
+      </div>
+      {% if doc.document_type %}<div class="widget-item-meta"><span class="badge bg-light text-secondary border" style="font-size:.65rem">{{ doc.document_type }}</span></div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="dashboard-widget-footer"><a href="/hr/my-documents/" class="small text-muted">Voir mes documents →</a></div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-person-vcard"></i><p>Aucun document privé partagé.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% elif code == 'hr_expiring_documents' %}
+  {% with data=widget_data|dict_get:"hr_expiring_documents" %}
+  {% if data.documents %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ data.total }} document(s) expirant bientôt</span></div>
+  <div>
+    {% for doc in data.documents %}
+    <div class="widget-item">
+      <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-file-earmark-exclamation"></i></div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ doc.employee }} — {{ doc.document_type }}</div>
+        <div class="widget-item-sub text-warning">Expire le {{ doc.expires_at|date:"d/m/Y" }}</div>
+      </div>
+      <a href="/hr/private-folders/{{ doc.employee.pk }}/" class="btn btn-xs btn-sm btn-outline-warning py-0 px-2" style="font-size:.7rem">Voir</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-file-earmark-check"></i><p>Aucun document expirant dans les 30 jours.</p></div>
+  {% endif %}
+  {% endwith %}
+
+{% else %}
+  <div class="widget-empty-state"><i class="bi bi-folder2-open"></i><p>Aucun document.</p></div>
+{% endif %}
+
+{% endwith %}

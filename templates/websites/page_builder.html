@@ -1,0 +1,223 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-2">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:page_list' %}?site={{ website.pk }}">Pages</a></li>
+      <li class="breadcrumb-item active">Builder : {{ page.title }}</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="h5 fw-semibold mb-0">{{ page.title }}</h1>
+      <span class="badge {% if page.status == 'published' %}bg-success{% else %}bg-secondary{% endif %}">
+        {{ page.get_status_display }}
+      </span>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'websites:website_preview' website.pk %}" class="btn btn-outline-secondary orion-btn sm" target="_blank">
+        <i class="bi bi-eye me-1"></i>Prévisualiser
+      </a>
+      {% if page.status != 'published' %}
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="publish_page">
+        <button type="submit" class="orion-btn success orion-btn sm">
+          <i class="bi bi-globe me-1"></i>Publier la page
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    {# Panneau gauche — Types de sections #}
+    <div class="col-lg-3">
+      <div class="card border-0 shadow-sm sticky-top" style="top:70px">
+        <div class="orion-orion-card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-grid-3x3-gap me-2"></i>Ajouter une section</h6>
+        </div>
+        <div class="orion-orion-card-body p-2">
+          <form method="post" id="addSectionForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_section">
+            <div class="row g-1">
+              {% for val, label in section_types %}
+              <div class="col-6">
+                <button type="submit" name="section_type" value="{{ val }}"
+                  class="btn btn-outline-secondary orion-btn sm w-100 text-start py-2 px-2"
+                  style="font-size:0.78rem">
+                  <i class="bi bi-layout-text-window-reverse me-1 text-muted"></i>
+                  {{ label }}
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {# Centre — Sections de la page #}
+    <div class="col-lg-9">
+      {% if not sections %}
+      <div class="card border-0 border-dashed text-center py-5" style="border:2px dashed #dee2e6!important">
+        <div class="py-4">
+          <i class="bi bi-layout-text-sidebar display-4 text-muted mb-3"></i>
+          <h5 class="text-muted">Page vide</h5>
+          <p class="text-muted">Ajoutez des sections depuis le panneau de gauche pour construire votre page.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% for section in sections %}
+      <div class="card border-0 shadow-sm mb-3 {% if not section.is_visible %}opacity-50{% endif %}"
+        id="section-{{ section.pk }}">
+        <div class="orion-orion-card-header bg-white d-flex align-items-center justify-content-between py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="orion-badge gold">{{ section.get_section_type_display }}</span>
+            {% if section.title %}<span class="fw-medium text-truncate" style="max-width:200px">{{ section.title }}</span>{% endif %}
+            {% if not section.is_visible %}
+              <span class="orion-badge neutral"><i class="bi bi-eye-slash"></i> Masquée</span>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-1">
+            {# Monter #}
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="move_up">
+              <input type="hidden" name="section_id" value="{{ section.pk }}">
+              <button type="submit" class="btn btn-light orion-btn sm" title="Monter">
+                <i class="bi bi-arrow-up"></i>
+              </button>
+            </form>
+            {# Descendre #}
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="move_down">
+              <input type="hidden" name="section_id" value="{{ section.pk }}">
+              <button type="submit" class="btn btn-light orion-btn sm" title="Descendre">
+                <i class="bi bi-arrow-down"></i>
+              </button>
+            </form>
+            {# Masquer/Afficher #}
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="toggle_visibility">
+              <input type="hidden" name="section_id" value="{{ section.pk }}">
+              <button type="submit" class="btn btn-light orion-btn sm" title="{% if section.is_visible %}Masquer{% else %}Afficher{% endif %}">
+                <i class="bi {% if section.is_visible %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+              </button>
+            </form>
+            {# Modifier #}
+            <button class="btn btn-outline-primary orion-btn sm" type="button"
+              data-bs-toggle="collapse" data-bs-target="#editSection{{ section.pk }}">
+              <i class="bi bi-pencil me-1"></i>Modifier
+            </button>
+            {# Supprimer #}
+            <form method="post" class="d-inline"
+              onsubmit="return confirm('Supprimer cette section ?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_section">
+              <input type="hidden" name="section_id" value="{{ section.pk }}">
+              <button type="submit" class="btn btn-outline-danger orion-btn sm">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {# Aperçu section #}
+        <div class="orion-orion-card-body py-3 px-4"
+          {% if section.bg_color %}style="background:{{ section.bg_color }};color:{{ section.text_color|default:'inherit' }}"{% endif %}>
+          {% if section.section_type == 'hero' %}
+            <div class="text-center py-3">
+              <h2 class="fw-bold">{{ section.title|default:"Titre hero" }}</h2>
+              <p class="text-muted">{{ section.subtitle|default:"Sous-titre" }}</p>
+              {% if section.button_text %}
+                <span class="orion-btn primary orion-btn sm">{{ section.button_text }}</span>
+              {% endif %}
+            </div>
+          {% elif section.section_type == 'text' %}
+            <h5>{{ section.title|default:"Section texte" }}</h5>
+            <p class="text-muted mb-0">{{ section.content|truncatechars:150|default:"Contenu de la section..." }}</p>
+          {% elif section.section_type == 'cta' %}
+            <div class="text-center py-2 bg-primary bg-opacity-10 rounded">
+              <h5 class="text-primary">{{ section.title|default:"Appel à l'action" }}</h5>
+              {% if section.button_text %}
+                <span class="orion-btn primary orion-btn sm mt-1">{{ section.button_text }}</span>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-2">
+              <i class="bi bi-layout-text-window-reverse fs-4"></i>
+              <div class="small mt-1">{{ section.get_section_type_display }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        {# Formulaire de modification (collapsible) #}
+        <div class="collapse" id="editSection{{ section.pk }}">
+          <div class="card-footer bg-light">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="update_section">
+              <input type="hidden" name="section_id" value="{{ section.pk }}">
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium">Titre</label>
+                  <input type="text" name="title" class="form-control form-control-sm"
+                    value="{{ section.title }}" placeholder="Titre de la section">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium">Sous-titre</label>
+                  <input type="text" name="subtitle" class="form-control form-control-sm"
+                    value="{{ section.subtitle }}" placeholder="Sous-titre">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-medium">Contenu</label>
+                  <textarea name="content" class="form-control form-control-sm" rows="3"
+                    placeholder="Contenu HTML ou texte...">{{ section.content }}</textarea>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium">Texte bouton</label>
+                  <input type="text" name="button_text" class="form-control form-control-sm"
+                    value="{{ section.button_text }}" placeholder="ex: Demander un devis">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium">Lien bouton</label>
+                  <input type="text" name="button_link" class="form-control form-control-sm"
+                    value="{{ section.button_link }}" placeholder="/contact/">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small fw-medium">Fond</label>
+                  <input type="color" name="bg_color" class="form-control form-control-sm form-control-color"
+                    value="{{ section.bg_color|default:'#ffffff' }}">
+                </div>
+                <div class="col-12 d-flex gap-2 justify-content-end">
+                  <button type="button" class="orion-orion-btn sm"
+                    data-bs-toggle="collapse" data-bs-target="#editSection{{ section.pk }}">
+                    Annuler
+                  </button>
+                  <button type="submit" class="orion-btn primary orion-btn sm">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

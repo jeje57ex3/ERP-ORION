@@ -1,0 +1,25 @@
+.contact-page input:focus,
+.contact-page textarea:focus,
+.contact-page select:focus {
+  outline: none;
+}
+
+.contact-siecle input:focus,
+.contact-siecle textarea:focus,
+.contact-siecle select:focus {
+  border-color: rgba(201, 169, 110, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.08);
+}
+
+.contact-lunea input:focus,
+.contact-lunea textarea:focus,
+.contact-lunea select:focus {
+  border-color: rgba(201, 164, 92, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(201, 164, 92, 0.08);
+}
+
+@media (max-width: 500px) {
+  .contact-page form > div:first-of-type {
+    grid-template-columns: 1fr !important;
+  }
+}

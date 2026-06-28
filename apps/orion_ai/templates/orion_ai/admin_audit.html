@@ -1,0 +1,72 @@
+{% extends "layouts/erp_shell.html" %}
+{% load humanize %}
+
+{% block title %}Audit IA — Super Admin{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Intelligence Artificielle</p>
+    <h1 class="orion-page-title">Audit IA</h1>
+    <p class="orion-page-subtitle">Journal de toutes les interactions et actions de l'assistant IA.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'orion_ai:admin_ai_settings' %}" class="orion-btn">
+      <i class="bi bi-gear me-1"></i>Paramètres
+    </a>
+  </div>
+</div>
+
+<!-- Filtre -->
+<form method="get" style="margin-bottom:16px;display:flex;gap:10px;align-items:center">
+  <select name="event" class="orion-input" style="width:auto">
+    <option value="">Tous les événements</option>
+    {% for code, label in event_choices %}
+    <option value="{{ code }}" {% if event_filter == code %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="orion-btn">Filtrer</button>
+  {% if event_filter %}<a href="{% url 'orion_ai:admin_ai_audit' %}" class="orion-btn">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Événement</th>
+        <th>Titre</th>
+        <th>Utilisateur</th>
+        <th>Entreprise</th>
+        <th>IP</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>
+          {% if log.event_type == 'safety_block' or log.event_type == 'action_blocked' %}
+          <span class="orion-badge danger">{{ log.get_event_type_display }}</span>
+          {% elif log.event_type == 'action_executed' or log.event_type == 'action_confirmed' %}
+          <span class="orion-badge warning">{{ log.get_event_type_display }}</span>
+          {% elif log.event_type == 'chat_message' %}
+          <span class="orion-badge neutral">{{ log.get_event_type_display }}</span>
+          {% else %}
+          <span class="orion-badge success">{{ log.get_event_type_display }}</span>
+          {% endif %}
+        </td>
+        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">{{ log.title }}</td>
+        <td style="font-size:13px">{{ log.user|default:"—" }}</td>
+        <td style="font-size:13px">{{ log.company|default:"Global" }}</td>
+        <td style="font-size:12px;font-family:monospace">{{ log.ip_address|default:"—" }}</td>
+        <td style="font-size:12.5px">{{ log.created_at|naturaltime }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--orion-muted);padding:32px">Aucun log d'audit.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

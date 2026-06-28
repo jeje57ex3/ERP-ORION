@@ -1,0 +1,30 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"my_requests" %}
+{% if data.requests %}
+<div class="d-flex gap-2 mb-2 flex-wrap">
+  <span class="badge bg-primary">{{ data.total }} en cours</span>
+  {% if data.urgent %}<span class="badge bg-danger">{{ data.urgent }} urgentes</span>{% endif %}
+</div>
+<div>
+  {% for req in data.requests %}
+  <a href="{{ req.target_url|default:'#' }}" class="widget-item">
+    <div class="widget-item-icon" style="background:{% if req.priority == 'urgent' %}#fee2e2{% elif req.priority == 'high' %}#fef3c7{% else %}#f3f4f6{% endif %};color:{% if req.priority == 'urgent' %}#DC2626{% elif req.priority == 'high' %}#D97706{% else %}#6B7280{% endif %}">
+      <i class="bi bi-inbox"></i>
+    </div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ req.title|truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ req.get_request_type_display }}</div>
+    </div>
+    <div class="widget-item-meta">
+      <span class="badge {{ req.priority_badge_class }}" style="font-size:.65rem">{{ req.get_priority_display }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-inbox"></i>
+  <p>Aucune demande en cours pour le moment.</p>
+</div>
+{% endif %}
+{% endwith %}

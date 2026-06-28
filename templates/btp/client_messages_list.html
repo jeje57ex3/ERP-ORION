@@ -1,0 +1,70 @@
+﻿{% extends "base.html" %}`n{% load static %}
+{% block title %}Messages clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-chat-dots me-2 text-warning"></i>Messages clients</h4>
+  {% if unread_total > 0 %}<span class="orion-badge danger fs-6">{{ unread_total }} non lu{{ unread_total|pluralize }}</span>{% endif %}
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Tous les statuts</option>
+          <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Ouvert</option>
+          <option value="waiting_client" {% if request.GET.status == 'waiting_client' %}selected{% endif %}>En attente client</option>
+          <option value="waiting_manager" {% if request.GET.status == 'waiting_manager' %}selected{% endif %}>En attente responsable</option>
+          <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>Résolu</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Sujet ou chantier..." value="{{ request.GET.q }}">
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">Filtrer</button>
+        <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="orion-card">
+  {% if conversations %}
+  {% for conv in conversations %}
+  <a href="{% url 'btp:client_conversation_detail' conv.pk %}" class="text-decoration-none">
+    <div class="p-4 border-bottom d-flex gap-3 align-items-center {% if conv.unread_by_manager > 0 %}bg-warning-subtle{% endif %}">
+      <div style="width:44px;height:44px;border-radius:50%;background:{% if conv.unread_by_manager > 0 %}#F59E0B{% else %}#F3F4F6{% endif %};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="bi bi-chat-dots {% if conv.unread_by_manager > 0 %}text-dark{% else %}text-muted{% endif %}"></i>
+      </div>
+      <div class="flex-grow-1">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-semibold text-dark">{{ conv.subject }}</div>
+            <div class="small text-muted">{{ conv.project.name }} · {{ conv.project.client_company|default:conv.project.client_name|default:"—" }}</div>
+          </div>
+          <div class="text-end">
+            <div class="text-muted" style="font-size:.7rem">{{ conv.updated_at|timesince }}</div>
+            {% if conv.unread_by_manager > 0 %}<span class="orion-badge danger mt-1">{{ conv.unread_by_manager }} nouveau</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div>
+        {% if conv.status == 'waiting_manager' %}<span class="orion-badge orion-badge-danger">À traiter</span>
+        {% elif conv.status == 'waiting_client' %}<span class="orion-badge orion-badge-warning">Att. client</span>
+        {% elif conv.status == 'resolved' %}<span class="orion-badge orion-badge-success">Résolu</span>
+        {% elif conv.status == 'open' %}<span class="orion-badge gold">Ouvert</span>
+        {% else %}<span class="orion-badge orion-badge-secondary">{{ conv.status }}</span>{% endif %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+  {% else %}
+  <div class="orion-empty">
+    <div class="orion-empty-icon"><i class="bi bi-chat-slash"></i></div>
+    <div class="orion-empty-title">Aucune conversation</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

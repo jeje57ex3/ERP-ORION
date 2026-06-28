@@ -1,0 +1,91 @@
+{% load dashboard_tags %}
+{% with expiring=widget_data|dict_get:"domains_expiring" %}
+{% with dns=widget_data|dict_get:"domains_dns_health" %}
+{% with whois=widget_data|dict_get:"domains_whois_summary" %}
+{% with ssl=widget_data|dict_get:"domains_ssl_expiry" %}
+{% with redirects=widget_data|dict_get:"domains_redirect_status" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'domains_expiring' %}
+  {% if expiring.domains %}
+  <div class="mb-2"><span class="badge bg-danger">{{ expiring.count }} domaine(s) à renouveler</span></div>
+  {% for d in expiring.domains %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-globe"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ d.name|default:"Domaine" }}</div>
+      <div class="widget-item-sub">Expire le : {{ d.expires|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+    <span class="badge bg-danger" style="font-size:.65rem">{{ d.days_left|default:"?" }}j</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-globe"></i><p>Aucun domaine expirant prochainement.</p></div>
+  {% endif %}
+
+{% elif code == 'domains_dns_health' %}
+  {% if dns.issues_count > 0 %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ dns.issues_count }} problème(s) DNS détecté(s)</span></div>
+  {% for d in dns.domains %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-diagram-2"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ d.name|default:"Domaine" }}</div>
+      <div class="widget-item-sub">{{ d.issue|default:"Problème DNS" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-diagram-2"></i><p>Tous les DNS sont en bonne santé.</p></div>
+  {% endif %}
+
+{% elif code == 'domains_whois_summary' %}
+  {% if whois.domains %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ whois.count }} domaine(s)</span></div>
+  {% for d in whois.domains %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f3f4f6;color:#6B7280"><i class="bi bi-info-circle"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ d.name|default:"Domaine" }}</div>
+      <div class="widget-item-sub">Registrar : {{ d.registrar|default:"—" }} · Expire : {{ d.expires|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-info-circle"></i><p>Aucune information WHOIS disponible.</p></div>
+  {% endif %}
+
+{% elif code == 'domains_ssl_expiry' %}
+  {% if ssl.expiring_soon > 0 %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ ssl.expiring_soon }} certificat(s) SSL à renouveler</span></div>
+  {% for d in ssl.domains %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-shield-lock"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ d.domain|default:"Domaine" }}</div>
+      <div class="widget-item-sub">Expire : {{ d.expires|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-shield-lock"></i><p>Tous les certificats SSL sont valides.</p></div>
+  {% endif %}
+
+{% elif code == 'domains_redirect_status' %}
+  {% if redirects.broken_count > 0 %}
+  <div class="mb-2"><span class="badge bg-danger">{{ redirects.broken_count }} redirection(s) cassée(s)</span></div>
+  {% for r in redirects.redirects %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-arrow-left-right"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.from|default:"—" }}</div>
+      <div class="widget-item-sub">→ {{ r.to|default:"—" }} ({{ r.status|default:"—" }})</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-arrow-left-right"></i><p>Toutes les redirections fonctionnent.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

@@ -1,0 +1,56 @@
+{% extends "layouts/erp_shell.html" %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} — {{ shop_settings.site_name }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header" style="margin-bottom:20px">
+  <div>
+    <p class="orion-page-eyebrow">
+      Sites web · Paramètres boutique ·
+      {% if shop_settings.brand_key == "siecle" %}<strong>SIÈCLE</strong>{% else %}<strong>LUNEA</strong>{% endif %}
+    </p>
+    <h1 class="orion-page-title">{{ page_title }}</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'website_shop_settings:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Tous les sites
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}
+{% endif %}
+
+<div style="display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start">
+  {# ── Navigation latérale ── #}
+  <div>
+    <div class="orion-card" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--orion-border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:10px;height:10px;border-radius:50%;background:{% if shop_settings.brand_key == 'siecle' %}#1a1a1a{% else %}#c8956b{% endif %};flex-shrink:0"></span>
+          <strong style="font-size:13px">{{ shop_settings.site_name }}</strong>
+        </div>
+      </div>
+      <nav style="padding:4px">
+        {% for item in nav_items %}
+        <a href="{{ item.url }}"
+           style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:12.5px;margin-bottom:1px;
+                  {% if active_section == item.key %}background:var(--orion-accent-soft);color:var(--orion-accent-strong);font-weight:600{% else %}color:var(--orion-text){% endif %}">
+          <i class="bi {{ item.icon }}" style="font-size:13px;width:16px;text-align:center;opacity:.65"></i>
+          {{ item.label }}
+        </a>
+        {% endfor %}
+      </nav>
+    </div>
+  </div>
+
+  {# ── Contenu principal ── #}
+  <div>
+    {% block settings_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

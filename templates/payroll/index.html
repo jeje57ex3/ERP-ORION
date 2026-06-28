@@ -1,0 +1,51 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Ressources humaines</p>
+    <h1 class="orion-page-title">Paie</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-grid cols-3 mb-4">
+  <div class="orion-stat-card">
+    <div class="orion-stat-card__icon" style="background:rgba(22,163,74,.1);color:#16A34A">
+      <i class="bi bi-people"></i>
+    </div>
+    <div class="orion-stat-card__label">Salariés actifs</div>
+    <div class="orion-stat-card__value">—</div>
+  </div>
+  <div class="orion-stat-card">
+    <div class="orion-stat-card__icon" style="background:rgba(37,99,235,.1);color:#2563EB">
+      <i class="bi bi-file-earmark-text"></i>
+    </div>
+    <div class="orion-stat-card__label">Fiches de paie ce mois</div>
+    <div class="orion-stat-card__value">—</div>
+  </div>
+  <div class="orion-stat-card">
+    <div class="orion-stat-card__icon" style="background:rgba(124,58,237,.1);color:#7C3AED">
+      <i class="bi bi-cash-stack"></i>
+    </div>
+    <div class="orion-stat-card__label">Masse salariale</div>
+    <div class="orion-stat-card__value">—</div>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h2 class="orion-card-title">Module Paie</h2>
+  </div>
+  <div class="orion-orion-orion-card-body" style="padding:40px;text-align:center;color:var(--orion-muted)">
+    <i class="bi bi-wallet2" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem"></i>
+    <p style="font-size:15px;font-weight:600;margin-bottom:8px">Gestion de la paie</p>
+    <p style="font-size:13px">Ce module est en cours de déploiement pour l'entreprise
+      {% if company %}<strong>{{ company.name }}</strong>{% endif %}.
+    </p>
+    <a href="{% url 'hr:employee_list' %}" class="orion-btn mt-3">
+      <i class="bi bi-people me-1"></i>Voir les salariés
+    </a>
+  </div>
+</div>
+{% endblock %}

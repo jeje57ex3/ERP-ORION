@@ -1,0 +1,384 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title">
+      <i class="bi bi-speedometer2 me-2 text-primary"></i>Tableau de bord
+    </h1>
+    <p class="page-subtitle text-muted mb-0">
+      Bienvenue sur {{ brand_name|default:"Orion ERP" }}, {{ request.user.profile.display_name }}
+      {% if current_company %}· <strong>{{ current_company.name }}</strong>{% endif %}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    {% if request.user.is_superuser %}
+    <a href="{% url 'core:company_create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-lg me-1"></i>Nouvelle entreprise
+    </a>
+    {% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Imprimer
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if show_global_view %}
+<!-- ══════════════════════════════════════════════════════════
+     VUE GLOBALE (superadmin sans entreprise)
+══════════════════════════════════════════════════════════ -->
+<div class="orion-alert info mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  Vous êtes en vue globale. Sélectionnez une entreprise dans la sidebar pour accéder à ses données.
+</div>
+
+<!-- Stats globales -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card" style="--kpi-color: #2563EB">
+      <div class="kpi-icon"><i class="bi bi-building"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ total_companies|default:0 }}</div>
+        <div class="kpi-label">Entreprises actives</div>
+      </div>
+      <div class="kpi-trend up"><i class="bi bi-arrow-up-right"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Entreprises par secteur -->
+{% if companies_by_sector %}
+<div class="card erp-card mb-4">
+  <div class="orion-orion-card-header">
+    <h5 class="card-title mb-0"><i class="bi bi-pie-chart me-2"></i>Entreprises par secteur</h5>
+  </div>
+  <div class="orion-orion-card-body">
+    <div class="row g-3">
+      {% for item in companies_by_sector %}
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="sector-card">
+          <div class="sector-count">{{ item.count }}</div>
+          <div class="sector-label">{{ item.sector }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Liste des entreprises -->
+<div class="card erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between">
+    <h5 class="card-title mb-0"><i class="bi bi-building me-2"></i>Toutes les entreprises</h5>
+    <a href="{% url 'core:company_list' %}" class="orion-btn sm btn-outline-primary">Voir tout</a>
+  </div>
+  <div class="orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table erp-table mb-0">
+        <thead>
+          <tr>
+            <th>Entreprise</th>
+            <th>Secteur</th>
+            <th>Ville</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comp in companies %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="company-avatar" style="background-color: {{ comp.sector_color }}20; color: {{ comp.sector_color }}">
+                  <i class="bi bi-building"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ comp.name }}</div>
+                  <div class="small text-muted">{{ comp.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge-sector" style="background-color: {{ comp.sector_color }}20; color: {{ comp.sector_color }}">
+                {{ comp.get_sector_display }}
+              </span>
+            </td>
+            <td>{{ comp.city }}</td>
+            <td>
+              {% if comp.is_active %}
+                <span class="status-badge status-success">Actif</span>
+              {% else %}
+                <span class="status-badge status-danger">Inactif</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'core:switch_company' comp.pk %}" class="btn btn-xs orion-btn primary">
+                Accéder
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center py-4 text-muted">
+              <i class="bi bi-building d-block fs-1 mb-2"></i>
+              Aucune entreprise. <a href="{% url 'core:company_create' %}">Créer la première</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ══════════════════════════════════════════════════════════
+     VUE ENTREPRISE
+══════════════════════════════════════════════════════════ -->
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card" style="--kpi-color: #2563EB">
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ total_customers|default:0 }}</div>
+        <div class="kpi-label">Clients actifs</div>
+        <div class="kpi-sub">{{ total_prospects|default:0 }} prospects</div>
+      </div>
+      <a href="{% url 'crm:customer_list' %}" class="kpi-link"><i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card" style="--kpi-color: #16A34A">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ monthly_revenue|default:0|floatformat:0 }} €</div>
+        <div class="kpi-label">CA mensuel</div>
+        <div class="kpi-sub">Mois en cours</div>
+      </div>
+      <a href="{% url 'sales:invoice_list' %}" class="kpi-link"><i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card" style="--kpi-color: #F59E0B">
+      <div class="kpi-icon"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ unpaid_invoices|default:0 }}</div>
+        <div class="kpi-label">Factures impayées</div>
+        <div class="kpi-sub">{{ pending_quotes|default:0 }} devis en attente</div>
+      </div>
+      <a href="{% url 'sales:invoice_list' %}" class="kpi-link"><i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card" style="--kpi-color: #DC2626">
+      <div class="kpi-icon"><i class="bi bi-headset"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ open_tickets|default:0 }}</div>
+        <div class="kpi-label">Tickets ouverts</div>
+        <div class="kpi-sub">Support & SAV</div>
+      </div>
+      <a href="{% url 'support:ticket_list' %}" class="kpi-link"><i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modules selon secteur -->
+<div class="row g-4 mb-4">
+
+  <!-- Modules rapides -->
+  <div class="col-12 col-lg-8">
+    <div class="card erp-card h-100">
+      <div class="orion-orion-card-header">
+        <h5 class="card-title mb-0"><i class="bi bi-grid me-2"></i>Accès rapide</h5>
+      </div>
+      <div class="orion-orion-card-body">
+        <div class="quick-access-grid">
+
+          {% if current_company.sector == 'btp' %}
+          <a href="{% url 'btp:project_list' %}" class="quick-access-item" style="--qa-color: #F59E0B">
+            <i class="bi bi-cone-striped"></i>
+            <span>Chantiers</span>
+          </a>
+          <a href="{% url 'btp:quote_list' %}" class="quick-access-item" style="--qa-color: #F59E0B">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Devis BTP</span>
+          </a>
+          <a href="{% url 'btp:situation_list' %}" class="quick-access-item" style="--qa-color: #F59E0B">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Situations</span>
+          </a>
+          <a href="{% url 'btp:timesheet_list' %}" class="quick-access-item" style="--qa-color: #F59E0B">
+            <i class="bi bi-clock-history"></i>
+            <span>Pointage</span>
+          </a>
+          {% elif current_company.sector == 'ecommerce' %}
+          <a href="{% url 'ecommerce:order_list' %}" class="quick-access-item" style="--qa-color: #7C3AED">
+            <i class="bi bi-bag-check"></i>
+            <span>Commandes</span>
+          </a>
+          <a href="{% url 'ecommerce:product_list' %}" class="quick-access-item" style="--qa-color: #7C3AED">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Catalogue</span>
+          </a>
+          <a href="{% url 'ecommerce:shipment_list' %}" class="quick-access-item" style="--qa-color: #7C3AED">
+            <i class="bi bi-truck"></i>
+            <span>Expéditions</span>
+          </a>
+          <a href="{% url 'ecommerce:return_list' %}" class="quick-access-item" style="--qa-color: #7C3AED">
+            <i class="bi bi-arrow-return-left"></i>
+            <span>Retours</span>
+          </a>
+          {% elif current_company.sector == 'audio' %}
+          <a href="{% url 'audio:event_list' %}" class="quick-access-item" style="--qa-color: #DB2777">
+            <i class="bi bi-music-note-list"></i>
+            <span>Événements</span>
+          </a>
+          <a href="{% url 'audio:equipment_list' %}" class="quick-access-item" style="--qa-color: #DB2777">
+            <i class="bi bi-headphones"></i>
+            <span>Matériel</span>
+          </a>
+          <a href="{% url 'audio:reservation_list' %}" class="quick-access-item" style="--qa-color: #DB2777">
+            <i class="bi bi-calendar-check"></i>
+            <span>Réservations</span>
+          </a>
+          {% elif current_company.sector == 'production' %}
+          <a href="{% url 'production:order_list' %}" class="quick-access-item" style="--qa-color: #16A34A">
+            <i class="bi bi-list-task"></i>
+            <span>OF</span>
+          </a>
+          <a href="{% url 'production:bom_list' %}" class="quick-access-item" style="--qa-color: #16A34A">
+            <i class="bi bi-diagram-3"></i>
+            <span>Nomenclatures</span>
+          </a>
+          <a href="{% url 'production:planning' %}" class="quick-access-item" style="--qa-color: #16A34A">
+            <i class="bi bi-calendar3"></i>
+            <span>Planning</span>
+          </a>
+          {% else %}
+          <a href="{% url 'sales:quote_list' %}" class="quick-access-item" style="--qa-color: #2563EB">
+            <i class="bi bi-file-text"></i>
+            <span>Devis</span>
+          </a>
+          <a href="{% url 'sales:order_list' %}" class="quick-access-item" style="--qa-color: #2563EB">
+            <i class="bi bi-bag"></i>
+            <span>Commandes</span>
+          </a>
+          {% endif %}
+
+          <!-- Accès communs -->
+          <a href="{% url 'crm:customer_list' %}" class="quick-access-item" style="--qa-color: #0891B2">
+            <i class="bi bi-people"></i>
+            <span>Clients</span>
+          </a>
+          <a href="{% url 'sales:invoice_list' %}" class="quick-access-item" style="--qa-color: #16A34A">
+            <i class="bi bi-receipt"></i>
+            <span>Factures</span>
+          </a>
+          <a href="{% url 'inventory:product_list' %}" class="quick-access-item" style="--qa-color: #16A34A">
+            <i class="bi bi-boxes"></i>
+            <span>Stocks</span>
+          </a>
+          <a href="{% url 'support:ticket_list' %}" class="quick-access-item" style="--qa-color: #DC2626">
+            <i class="bi bi-headset"></i>
+            <span>Tickets</span>
+          </a>
+          <a href="{% url 'websites:website_list' %}" class="quick-access-item" style="--qa-color: #0891B2">
+            <i class="bi bi-globe"></i>
+            <span>Sites web</span>
+          </a>
+          <a href="{% url 'documents:index' %}" class="quick-access-item" style="--qa-color: #6B7280">
+            <i class="bi bi-folder"></i>
+            <span>Documents</span>
+          </a>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Infos entreprise -->
+  <div class="col-12 col-lg-4">
+    <div class="card erp-card h-100">
+      <div class="orion-orion-card-header d-flex justify-content-between">
+        <h5 class="card-title mb-0"><i class="bi bi-building me-2"></i>Entreprise</h5>
+        <a href="{% url 'core:company_edit' current_company.pk %}" class="btn btn-xs btn-outline-secondary">
+          <i class="bi bi-pencil"></i>
+        </a>
+      </div>
+      <div class="orion-orion-card-body">
+        <div class="company-info-card">
+          <div class="company-header-info mb-3">
+            <div class="company-avatar-lg" style="background-color: {{ current_company.sector_color }}20; color: {{ current_company.sector_color }}">
+              <i class="bi bi-building fs-2"></i>
+            </div>
+            <div>
+              <div class="fw-bold fs-5">{{ current_company.name }}</div>
+              <span class="badge-sector" style="background-color: {{ current_company.sector_color }}20; color: {{ current_company.sector_color }}">
+                {{ current_company.get_sector_display }}
+              </span>
+            </div>
+          </div>
+          {% if current_company.email %}
+          <div class="info-row"><i class="bi bi-envelope text-muted"></i> {{ current_company.email }}</div>
+          {% endif %}
+          {% if current_company.phone %}
+          <div class="info-row"><i class="bi bi-telephone text-muted"></i> {{ current_company.phone }}</div>
+          {% endif %}
+          {% if current_company.city %}
+          <div class="info-row"><i class="bi bi-geo-alt text-muted"></i> {{ current_company.city }}</div>
+          {% endif %}
+          {% if current_company.siret %}
+          <div class="info-row"><i class="bi bi-card-text text-muted"></i> SIRET: {{ current_company.siret }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Activité récente -->
+{% if recent_activity %}
+<div class="card erp-card">
+  <div class="orion-orion-card-header">
+    <h5 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Activité récente</h5>
+  </div>
+  <div class="orion-orion-card-body p-0">
+    <div class="activity-list">
+      {% for log in recent_activity %}
+      <div class="activity-item">
+        <div class="activity-icon action-{{ log.action }}">
+          <i class="bi bi-{% if log.action == 'create' %}plus-circle{% elif log.action == 'update' %}pencil{% elif log.action == 'delete' %}trash{% elif log.action == 'login' %}box-arrow-in-right{% elif log.action == 'validate' %}check-circle{% else %}circle{% endif %}"></i>
+        </div>
+        <div class="activity-content">
+          <div class="activity-text">
+            <strong>{{ log.user.get_full_name|default:log.user.username }}</strong>
+            — {{ log.get_action_display }} {{ log.object_repr|truncatechars:40 }}
+          </div>
+          <div class="activity-time text-muted small">{{ log.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

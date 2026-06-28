@@ -1,0 +1,63 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
+    <h1>Journal HA</h1>
+    <p class="orion-page-subtitle">Historique des bascules et événements haute disponibilité (100 derniers).</p>
+  </div>
+  <div class="orion-page-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_failover' %}">← Bascule</a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body" style="padding:0;">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Statut</th>
+          <th>Depuis</th>
+          <th>Vers</th>
+          <th>Déclenché par</th>
+          <th>Durée</th>
+          <th>Raison</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td>{{ event.id }}</td>
+          <td style="font-size:12px; white-space:nowrap;">{{ event.started_at|date:"d/m/Y H:i:s" }}</td>
+          <td>{{ event.get_event_type_display }}</td>
+          <td>
+            <span class="orion-badge orion-badge--{% if event.status == 'success' %}success{% elif event.status == 'failed' %}danger{% elif event.status == 'running' %}warning{% else %}secondary{% endif %}">
+              {{ event.get_status_display }}
+            </span>
+          </td>
+          <td>{{ event.from_node.name|default:"—" }}</td>
+          <td>{{ event.to_node.name|default:"—" }}</td>
+          <td>{{ event.started_by.username|default:"Automatique" }}</td>
+          <td>
+            {% if event.finished_at %}
+              {{ event.finished_at|timeuntil:event.started_at }}
+            {% else %}—{% endif %}
+          </td>
+          <td style="max-width:200px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ event.reason }}">
+            {{ event.reason|default:"—" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="orion-table-empty">Aucun événement enregistré.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

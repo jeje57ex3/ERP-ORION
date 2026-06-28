@@ -1,0 +1,31 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"accounting_cashflow_forecast" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="p-3">
+  <div class="row g-3 text-center">
+    <div class="col-4">
+      <div class="p-3 rounded-3" style="background:#DCFCE7">
+        <div class="text-success fw-bold fs-6">{{ data.encaissements|floatformat:0 }} €</div>
+        <div class="text-muted small">À encaisser</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-3 rounded-3" style="background:#FEE2E2">
+        <div class="text-danger fw-bold fs-6">{{ data.decaissements|floatformat:0 }} €</div>
+        <div class="text-muted small">À décaisser</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-3 rounded-3 {% if data.solde_previsionnel >= 0 %}bg-success-subtle{% else %}bg-danger-subtle{% endif %}">
+        <div class="fw-bold fs-6 {% if data.solde_previsionnel >= 0 %}text-success{% else %}text-danger{% endif %}">{{ data.solde_previsionnel|floatformat:0 }} €</div>
+        <div class="text-muted small">Solde prévis.</div>
+      </div>
+    </div>
+  </div>
+  <p class="text-muted text-center mt-2 mb-0" style="font-size:.72rem">Horizon : {{ data.horizon_days }} jours</p>
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-graph-up"></i><p class="mt-2 mb-0">Aucune donnée de trésorerie.</p></div>
+{% endif %}
+{% endwith %}

@@ -1,0 +1,32 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'smart_automations:list' %}">Automatisations</a></li>
+<li class="breadcrumb-item active">{% if rule %}Modifier{% else %}Nouvelle règle{% endif %}</li>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-7">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title">{% if rule %}Modifier la règle{% else %}Nouvelle règle{% endif %}</h5>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" style="font-size:13px;font-weight:600">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger" style="font-size:12px">{{ field.errors }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="orion-card-footer d-flex gap-2">
+            <button type="submit" class="orion-btn primary">Enregistrer</button>
+            <a href="{% url 'smart_automations:list' %}" class="orion-btn ghost">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LUNEA Store — Base styles
+   Uses CSS custom properties from themes.css (loaded via ThemeProvider)
+   Default theme: lunea-blanc-nacre
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Fallback variables when no theme class is applied */
+:root {
+  --color-primary:       #C8A8A0;
+  --color-primary-light: #DEC4C0;
+  --color-primary-dark:  #A88880;
+  --color-accent:        #2d1b2e;
+  --color-bg:            #FDFAF8;
+  --color-surface:       #F5F0EB;
+  --color-surface-2:     #EDE6DF;
+  --color-border:        #DDD5CC;
+  --color-text:          #2d1b2e;
+  --color-text-muted:    #8A7878;
+  --color-error:         #C0392B;
+  --color-success:       #27AE60;
+  --color-cta-bg:        #C8A8A0;
+  --color-cta-text:      #2d1b2e;
+  --color-cta-hover-bg:  #DEC4C0;
+  --font-heading:        'Playfair Display', 'Georgia', serif;
+  --font-body:           'Lato', 'Helvetica Neue', sans-serif;
+  --radius:              8px;
+  --shadow:              0 4px 24px rgba(45,27,46,0.10);
+  --transition:          220ms cubic-bezier(.4,0,.2,1);
+  --header-h:            70px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ── LUNEA utility classes ──────────────────────────────────────────────── */
+.lunea-container {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.lunea-section {
+  padding: 80px 24px;
+}
+
+.lunea-heading {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 4vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--color-text);
+}
+
+.lunea-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.lunea-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.lunea-product-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.lunea-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.lunea-product-card__image {
+  aspect-ratio: 3/4;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.lunea-product-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.lunea-product-card:hover .lunea-product-card__image img {
+  transform: scale(1.04);
+}
+
+.lunea-product-card__body {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.lunea-product-card__name {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 0.25rem;
+}
+
+.lunea-product-card__price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.lunea-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+
+.lunea-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.lunea-header__logo {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  color: var(--color-text);
+}
+
+.lunea-header__nav {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.lunea-header__nav a {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
+}
+
+.lunea-header__nav a:hover,
+.lunea-header__nav a.active {
+  color: var(--color-primary);
+}
+
+.lunea-header__actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.lunea-cart-badge {
+  position: relative;
+  display: inline-flex;
+}
+
+.lunea-cart-badge__count {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-cta-text);
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

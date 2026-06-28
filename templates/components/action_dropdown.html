@@ -1,0 +1,51 @@
+{# Composant : menu déroulant d'actions
+   Usage : {% include "components/action_dropdown.html" with actions=actions_list %}
+   actions = liste de dicts :
+     - {'label': 'Modifier',   'url': edit_url,   'icon': 'bi-pencil'}
+     - {'label': 'Supprimer',  'url': del_url,    'icon': 'bi-trash', 'danger': True}
+     - {'divider': True}
+     - {'label': 'Exporter',   'url': export_url, 'icon': 'bi-download'}
+   Variables optionnelles :
+     - btn_label   : libellé du bouton (défaut "Actions")
+     - btn_size    : "sm" ou "lg" (défaut "sm")
+     - btn_class   : classes CSS supplémentaires sur le bouton
+     - align_end   : True pour aligner le menu à droite (défaut True)
+#}
+{% if actions %}
+<div class="dropdown">
+  <button
+    class="btn btn-{{ btn_size|default:'sm' }} btn-outline-secondary dropdown-toggle {{ btn_class }}"
+    type="button"
+    data-bs-toggle="dropdown"
+    aria-expanded="false"
+  >
+    <i class="bi bi-three-dots-vertical me-1"></i>
+    {{ btn_label|default:"Actions" }}
+  </button>
+  <ul class="dropdown-menu {% if align_end != False %}dropdown-menu-end{% endif %}">
+    {% for action in actions %}
+      {% if action.divider %}
+        <li><hr class="dropdown-divider"></li>
+      {% else %}
+        <li>
+          <a
+            class="dropdown-item d-flex align-items-center gap-2 {% if action.danger %}text-danger{% endif %}"
+            href="{{ action.url }}"
+            {% if action.confirm %}
+              data-confirm="{{ action.confirm }}"
+            {% endif %}
+            {% if action.target %}
+              target="{{ action.target }}"
+            {% endif %}
+          >
+            {% if action.icon %}
+              <i class="bi {{ action.icon }} {% if action.danger %}text-danger{% endif %}"></i>
+            {% endif %}
+            {{ action.label }}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

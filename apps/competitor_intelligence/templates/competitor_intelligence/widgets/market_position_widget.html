@@ -1,0 +1,25 @@
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-bullseye text-danger"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+  </div>
+  <div class="card-body">
+    {% if market_data.ranking %}
+    <div class="mb-2 text-muted small">
+      {{ market_data.competitors_count }} concurrents · {{ market_data.products_tracked }} produits suivis
+    </div>
+    {% for entry in market_data.ranking|slice:":5" %}
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="text-muted small" style="width:1rem">{{ forloop.counter }}</span>
+      <span class="small flex-grow-1">{{ entry.competitor.name }}</span>
+      <div class="progress flex-grow-1" style="height:6px;max-width:80px">
+        <div class="progress-bar bg-primary" style="width:{{ entry.score }}%"></div>
+      </div>
+      <span class="small text-muted" style="width:2.5rem">{{ entry.score }}/100</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="text-muted text-center mb-0">Aucune donnée</p>
+    {% endif %}
+  </div>
+</div>

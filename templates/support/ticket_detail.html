@@ -1,0 +1,115 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'support:ticket_list' %}">Tickets</a></li>
+<li class="breadcrumb-item active">{{ ticket.number|default:"Ticket" }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ ticket.subject }}</h1>
+      <div class="detail-meta">
+        <span>{{ ticket.number|default:"—" }}</span>
+        {% if ticket.status == 'open' %}<span class="badge-status badge-overdue">Ouvert</span>
+        {% elif ticket.status == 'in_progress' %}<span class="badge-status badge-partial">En cours</span>
+        {% elif ticket.status == 'waiting' %}<span class="badge-status badge-pending">En attente</span>
+        {% elif ticket.status == 'resolved' %}<span class="badge-status badge-paid">Résolu</span>
+        {% elif ticket.status == 'closed' %}<span class="badge-status badge-draft">Fermé</span>{% endif %}
+        <span>{{ ticket.get_ticket_type_display }}</span>
+        {% if ticket.priority == 'critical' %}<span class="badge-status badge-overdue">Critique</span>
+        {% elif ticket.priority == 'high' %}<span class="badge-status badge-urgent">Haute</span>{% endif %}
+        <span><i class="bi bi-calendar me-1"></i>{{ ticket.created_at|date:"d/m/Y" }}</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      {% if ticket.status == 'open' or ticket.status == 'in_progress' or ticket.status == 'waiting' %}
+      <form method="post" action="{% url 'support:ticket_resolve' ticket.pk %}" class="d-inline">{% csrf_token %}
+        <button class="orion-btn success orion-btn sm"><i class="bi bi-check-circle me-1"></i>Résoudre</button>
+      </form>
+      <form method="post" action="{% url 'support:ticket_close' ticket.pk %}" class="d-inline">{% csrf_token %}
+        <button class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Fermer</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'support:ticket_edit' ticket.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'support:ticket_delete' ticket.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'support:ticket_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Description</h6></div>
+      <div class="p-3">
+        <p class="mb-0 text-muted small" style="white-space:pre-wrap;">{{ ticket.description|default:"Aucune description." }}</p>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-left-dots me-1 text-primary"></i>Messages ({{ ticket.messages.count }})</h6></div>
+      <div class="p-3">
+        {% for msg in ticket.messages.all %}
+        <div class="d-flex gap-3 mb-3 {% if msg.is_internal %}bg-warning-subtle rounded p-2{% endif %}">
+          <div class="avatar avatar-sm flex-shrink-0">{{ msg.user.get_full_name|slice:":1"|default:"?" }}</div>
+          <div class="flex-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="fw-semibold small">{{ msg.user.get_full_name|default:msg.user.username }}</span>
+              {% if msg.is_internal %}<span class="orion-badge warning text-dark" style="font-size:10px;">Note interne</span>{% endif %}
+              <span class="text-muted small ms-auto">{{ msg.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <p class="mb-0 small" style="white-space:pre-wrap;">{{ msg.message }}</p>
+            {% if msg.attachment %}<div class="mt-1"><a href="{{ msg.attachment.url }}" class="small"><i class="bi bi-paperclip me-1"></i>Pièce jointe</a></div>{% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted small text-center py-3">Aucun message pour ce ticket.</p>
+        {% endfor %}
+
+        <!-- Add message form -->
+        <div class="border-top pt-3 mt-3">
+          <h6 class="small fw-semibold mb-2">Ajouter un message</h6>
+          <form method="post">
+            {% csrf_token %}
+            {{ msg_form.message }}
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <div class="form-check">
+                {{ msg_form.is_internal }}
+                <label class="form-check-label small">Note interne</label>
+              </div>
+              <button type="submit" class="orion-btn primary orion-btn sm"><i class="bi bi-send me-1"></i>Envoyer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% if ticket.resolution_notes %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-patch-check me-1 text-success"></i>Notes de résolution</h6></div>
+      <div class="p-3"><p class="mb-0 small text-muted" style="white-space:pre-wrap;">{{ ticket.resolution_notes }}</p></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Type</label><div class="value">{{ ticket.get_ticket_type_display }}</div></div>
+        <div class="info-item"><label>Priorité</label><div class="value">{{ ticket.get_priority_display }}</div></div>
+        <div class="info-item"><label>Statut</label><div class="value">{{ ticket.get_status_display }}</div></div>
+        <div class="info-item"><label>Assigné à</label><div class="value {% if not ticket.assigned_to %}empty{% endif %}">{{ ticket.assigned_to.get_full_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Client</label><div class="value {% if not ticket.customer %}empty{% endif %}">{{ ticket.customer.name|default:"—" }}</div></div>
+        <div class="info-item"><label>Créé par</label><div class="value {% if not ticket.created_by %}empty{% endif %}">{{ ticket.created_by.get_full_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Créé le</label><div class="value">{{ ticket.created_at|date:"d/m/Y H:i" }}</div></div>
+        {% if ticket.resolved_at %}<div class="info-item"><label>Résolu le</label><div class="value">{{ ticket.resolved_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

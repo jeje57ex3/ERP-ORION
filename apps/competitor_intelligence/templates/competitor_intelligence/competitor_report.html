@@ -1,0 +1,80 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item active">Rapports</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Rapports concurrentiels</h1>
+    <p class="orion-page-subtitle">Générer des rapports PDF ou Excel</p>
+  </div>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="orion-alert orion-alert-{{ m.tags|default:'info' }} mb-3">
+  <i class="bi bi-info-circle"></i> {{ m }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0"><i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Générer un rapport</h5></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Concurrents à inclure <span class="text-danger">*</span></label>
+            <div class="border rounded p-3" style="max-height:250px;overflow-y:auto">
+              {% for c in competitors %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="competitor_ids" value="{{ c.pk }}" id="rep_{{ c.pk }}">
+                <label class="form-check-label" for="rep_{{ c.pk }}">
+                  {{ c.name }} <span class="text-muted small">({{ c.products.count }} produits)</span>
+                </label>
+              </div>
+              {% empty %}
+              <p class="text-muted mb-0">Aucun concurrent disponible.</p>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Format</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="format" value="excel" id="fmt_excel" checked>
+                <label class="form-check-label" for="fmt_excel">
+                  <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i>Excel (.xlsx)
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="format" value="pdf" id="fmt_pdf">
+                <label class="form-check-label" for="fmt_pdf">
+                  <i class="bi bi-file-earmark-pdf text-danger me-1"></i>PDF
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Contenu du rapport :</strong> résumé concurrents, prix moyens, produits suivis,
+              trafic estimé (toujours présenté comme estimé), avantages identifiés, recommandations.
+            </div>
+          </div>
+
+          <button type="submit" class="orion-btn orion-btn-primary">
+            <i class="bi bi-download me-2"></i>Télécharger le rapport
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

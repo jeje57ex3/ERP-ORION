@@ -1,0 +1,107 @@
+.orion-form {
+  display: grid;
+  gap: 18px;
+}
+
+.orion-form p {
+  margin: 0;
+}
+
+.orion-form label,
+label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--orion-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.orion-form input,
+.orion-form select,
+.orion-form textarea,
+.orion-form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-md);
+  background: rgba(255,255,255,0.045);
+  color: var(--orion-text);
+  outline: none;
+  font-family: var(--orion-font);
+  transition: border-color var(--orion-transition), background var(--orion-transition), box-shadow var(--orion-transition);
+}
+
+.orion-form textarea,
+textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.orion-form input:focus,
+.orion-form select:focus,
+.orion-form textarea:focus,
+.orion-form-control:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--orion-gold);
+  background: rgba(255,255,255,0.065);
+  box-shadow: 0 0 0 4px rgba(214, 179, 106, 0.12);
+}
+
+.orion-form input::placeholder,
+.orion-form textarea::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--orion-text-muted);
+}
+
+.orion-form .helptext,
+.helptext {
+  display: block;
+  margin-top: 6px;
+  color: var(--orion-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.orion-form ul.errorlist,
+.errorlist {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--orion-radius-md);
+  background: var(--orion-danger-bg);
+  border: 1px solid rgba(224, 82, 82, 0.35);
+  color: #FFB8B8;
+  list-style: none;
+}
+
+.orion-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--orion-gold);
+}
+
+select option {
+  background: var(--orion-surface-elevated);
+  color: var(--orion-text);
+}

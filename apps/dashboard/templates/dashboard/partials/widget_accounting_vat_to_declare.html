@@ -1,0 +1,27 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"accounting_vat_to_declare" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+<div class="p-3">
+  <div class="row g-2 text-center">
+    <div class="col-4">
+      <div class="p-2 rounded-3" style="background:#DCFCE7">
+        <div class="fw-bold text-success">{{ data.vat_collected|floatformat:0 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">Collectée</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-2 rounded-3" style="background:#DBEAFE">
+        <div class="fw-bold text-primary">{{ data.vat_deductible|floatformat:0 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">Déductible</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="p-2 rounded-3" style="background:#FEF3C7">
+        <div class="fw-bold text-warning">{{ data.vat_due|floatformat:0 }} €</div>
+        <div class="text-muted" style="font-size:.7rem">À reverser</div>
+      </div>
+    </div>
+  </div>
+  {% if data.note %}<p class="text-muted text-center mt-2 mb-0" style="font-size:.72rem">{{ data.note }}</p>{% endif %}
+</div>
+{% endwith %}

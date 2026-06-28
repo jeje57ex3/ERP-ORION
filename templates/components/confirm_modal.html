@@ -1,0 +1,35 @@
+{# Modal de confirmation générique
+   Usage : {% include 'components/confirm_modal.html' with modal_id="deleteX" title="Supprimer ?" message="..." form_action=url %}
+#}
+<div class="modal fade orion-confirm-modal" id="{{ modal_id }}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="{{ modal_icon|default:'bi-exclamation-triangle text-danger' }} me-2"></i>
+          {{ title|default:'Confirmer l\'action' }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>{{ message|default:'Êtes-vous sûr de vouloir effectuer cette action ?' }}</p>
+        {% if danger_text %}
+        <div class="orion-alert orion-alert-danger">
+          <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+          <div>{{ danger_text }}</div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="orion-btn orion-btn-outline" data-bs-dismiss="modal">Annuler</button>
+        <form method="post" action="{{ form_action }}" style="display:inline">
+          {% csrf_token %}
+          {% if extra_input_name %}<input type="hidden" name="{{ extra_input_name }}" value="{{ extra_input_value }}">{% endif %}
+          <button type="submit" class="orion-btn orion-orion-btn danger">
+            <i class="{{ confirm_icon|default:'bi-trash' }}"></i>{{ confirm_label|default:'Confirmer' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

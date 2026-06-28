@@ -1,0 +1,36 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:timesheet_list' %}">Pointage</a></li>
+<li class="breadcrumb-item active">Nouveau pointage</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'btp:timesheet_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-clock me-1 text-primary"></i>Pointage chantier</h6></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-12"><label class="form-label">Chantier *</label>{{ form.project }}{% if form.project.errors %}<div class="invalid-feedback d-block">{{ form.project.errors }}</div>{% endif %}</div>
+            <div class="col-12"><label class="form-label">Employé *</label>{{ form.employee }}</div>
+            <div class="col-md-4"><label class="form-label">Date *</label>{{ form.work_date }}</div>
+            <div class="col-md-4"><label class="form-label">Heures</label>{{ form.hours }}</div>
+            <div class="col-md-4"><label class="form-label">Heures supplémentaires</label>{{ form.overtime_hours }}</div>
+            <div class="col-12"><label class="form-label">Tâche effectuée</label>{{ form.task_description }}</div>
+            <div class="col-12"><label class="form-label">Notes</label>{{ form.notes }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2 justify-content-end mt-3">
+    <a href="{% url 'btp:timesheet_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
+  </div>
+</form>
+{% endblock %}

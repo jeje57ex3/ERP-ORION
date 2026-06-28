@@ -1,0 +1,147 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="bi bi-lightning me-2 text-warning"></i>{{ page_title }}</h1>
+    <p class="page-subtitle text-muted mb-0">Ajoutez vos actions favorites à votre tableau de bord.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-8 col-lg-6">
+
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-lightning me-2"></i>{{ page_title }}</h6>
+  </div>
+  <div class="erp-card-body">
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Aperçu du raccourci -->
+      <div class="text-center mb-4">
+        <div id="shortcut-preview" class="shortcut-card d-inline-flex" style="width:120px;cursor:default">
+          <div class="shortcut-icon" id="preview-icon" style="background-color:#C6A15B">
+            <i id="preview-icon-i" class="bi-star"></i>
+          </div>
+          <span class="shortcut-label" id="preview-label">Mon raccourci</span>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.label.label }} <span class="text-danger">*</span></label>
+          {{ form.label }}
+          {% if form.label.errors %}<div class="text-danger small">{{ form.label.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">{{ form.icon.label }}</label>
+          {{ form.icon }}
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">{{ form.color.label }}</label>
+          {{ form.color }}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">{{ form.target_type.label }}</label>
+          {{ form.target_type }}
+        </div>
+        <div class="col-12" id="field-url">
+          <label class="form-label fw-semibold">{{ form.target_url.label }}</label>
+          {{ form.target_url }}
+          <div class="form-text">Ex : /sales/quotes/create/</div>
+        </div>
+        <div class="col-12" id="field-url-name">
+          <label class="form-label fw-semibold">{{ form.url_name.label }}</label>
+          {{ form.url_name }}
+          <div class="form-text">Ex : sales:quote_create</div>
+        </div>
+        <div class="col-6" id="field-module">
+          <label class="form-label fw-semibold">{{ form.module_code.label }}</label>
+          {{ form.module_code }}
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold">{{ form.action_code.label }}</label>
+          {{ form.action_code }}
+        </div>
+        <div class="col-6">
+          <div class="form-check mt-2">
+            {{ form.is_favorite }}
+            <label class="form-check-label">{{ form.is_favorite.label }}</label>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-check mt-2">
+            {{ form.is_active }}
+            <label class="form-check-label">{{ form.is_active.label }}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-warning">
+          <i class="bi bi-check2 me-1"></i>{% if action == 'create' %}Créer le raccourci{% else %}Enregistrer{% endif %}
+        </button>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% if action == 'update' and shortcut %}
+        <form method="post" action="{% url 'dashboard:shortcut_delete' shortcut.pk %}" class="ms-auto" onsubmit="return confirm('Supprimer ce raccourci ?')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger">
+            <i class="bi bi-trash3 me-1"></i>Supprimer
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const labelInput = document.querySelector('[name="label"]');
+  const iconSelect = document.querySelector('[name="icon"]');
+  const colorSelect = document.querySelector('[name="color"]');
+  const previewLabel = document.getElementById('preview-label');
+  const previewIcon = document.getElementById('preview-icon');
+  const previewIconI = document.getElementById('preview-icon-i');
+
+  function update() {
+    if (labelInput && previewLabel) previewLabel.textContent = labelInput.value || 'Mon raccourci';
+    if (iconSelect && previewIconI) {
+      previewIconI.className = '';
+      previewIconI.classList.add(iconSelect.value);
+    }
+    if (colorSelect && previewIcon) previewIcon.style.backgroundColor = colorSelect.value;
+  }
+
+  if (labelInput) labelInput.addEventListener('input', update);
+  if (iconSelect) iconSelect.addEventListener('change', update);
+  if (colorSelect) colorSelect.addEventListener('change', update);
+  update();
+})();
+</script>
+{% endblock %}

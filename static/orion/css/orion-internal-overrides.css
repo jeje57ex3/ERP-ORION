@@ -1,0 +1,220 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORION INTERNAL — Bootstrap 5 Overrides
+   Scoped to html.orion-internal / .orion-internal body to avoid leaking
+   into public store pages.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Body / root ─────────────────────────────────────────────────── */
+html.orion-internal,
+.orion-internal body {
+  --bs-body-bg:    var(--orion-bg);
+  --bs-body-color: var(--orion-text);
+  --bs-link-color: var(--orion-gold-light);
+  --bs-border-color: var(--orion-border);
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.orion-internal .card {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text) !important;
+  --bs-card-bg: var(--orion-surface);
+  --bs-card-border-color: var(--orion-border);
+  --bs-card-color: var(--orion-text);
+}
+
+.orion-internal .card-header,
+.orion-internal .orion-card-header {
+  background: rgba(255,255,255,0.025) !important;
+  border-bottom-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+
+.orion-internal .card-footer {
+  background: rgba(255,255,255,0.015) !important;
+  border-top-color: var(--orion-border) !important;
+  color: var(--orion-text-muted) !important;
+}
+
+.orion-internal .card-body { color: var(--orion-text) !important; }
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+.orion-internal .table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(214, 179, 106, 0.04);
+  --bs-table-hover-bg: rgba(214, 179, 106, 0.055);
+  --bs-table-border-color: var(--orion-border);
+  color: var(--orion-text);
+}
+
+.orion-internal .table > :not(caption) > * > * {
+  background-color: transparent !important;
+  border-bottom-color: var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+
+.orion-internal .table thead th,
+.orion-internal .table > thead > tr > th {
+  background: rgba(255,255,255,0.025) !important;
+  color: var(--orion-text-muted) !important;
+  border-color: var(--orion-border) !important;
+}
+
+/* ── Form controls ───────────────────────────────────────────────── */
+.orion-internal .form-control,
+.orion-internal .form-select {
+  background-color: rgba(255,255,255,0.045) !important;
+  color: var(--orion-text) !important;
+  border-color: var(--orion-border) !important;
+}
+
+.orion-internal .form-control:focus,
+.orion-internal .form-select:focus {
+  background-color: rgba(255,255,255,0.065) !important;
+  border-color: var(--orion-gold) !important;
+  box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.15) !important;
+  color: var(--orion-text) !important;
+}
+
+.orion-internal .form-control::placeholder { color: var(--orion-text-muted) !important; }
+.orion-internal .form-label,
+.orion-internal label { color: var(--orion-text-soft) !important; }
+.orion-internal .form-text { color: var(--orion-text-muted) !important; }
+
+.orion-internal .form-control option,
+.orion-internal .form-select option {
+  background: var(--orion-surface-elevated);
+  color: var(--orion-text);
+}
+
+.orion-internal .input-group-text {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+
+/* ── Dropdowns ───────────────────────────────────────────────────── */
+.orion-internal .dropdown-menu {
+  background: var(--orion-surface-elevated) !important;
+  border: 1px solid var(--orion-border) !important;
+  box-shadow: var(--orion-shadow-card) !important;
+}
+
+.orion-internal .dropdown-item { color: var(--orion-text-soft) !important; }
+
+.orion-internal .dropdown-item:hover,
+.orion-internal .dropdown-item:focus {
+  background: rgba(214, 179, 106, 0.1) !important;
+  color: var(--orion-gold-light) !important;
+}
+
+.orion-internal .dropdown-divider { border-color: var(--orion-border) !important; }
+
+/* ── Modals ─────────────────────────────────────────────────────── */
+.orion-internal .modal-content {
+  background: var(--orion-surface-elevated) !important;
+  border: 1px solid var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+
+.orion-internal .modal-header,
+.orion-internal .modal-footer {
+  border-color: var(--orion-border) !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+.orion-internal .modal-backdrop { --bs-backdrop-opacity: 0.7; }
+
+/* ── Nav tabs ─────────────────────────────────────────────────────── */
+.orion-internal .nav-tabs { border-bottom-color: var(--orion-border) !important; }
+.orion-internal .nav-tabs .nav-link { color: var(--orion-text-muted) !important; }
+.orion-internal .nav-tabs .nav-link.active {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) var(--orion-border) var(--orion-surface) !important;
+  color: var(--orion-gold) !important;
+}
+.orion-internal .nav-tabs .nav-link:hover {
+  color: var(--orion-text) !important;
+  border-color: var(--orion-border) !important;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────── */
+.orion-internal .pagination .page-link {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+.orion-internal .pagination .page-link:hover {
+  background: rgba(214, 179, 106, 0.1) !important;
+  color: var(--orion-gold) !important;
+}
+.orion-internal .pagination .page-item.active .page-link {
+  background: var(--orion-gold) !important;
+  border-color: var(--orion-gold) !important;
+  color: var(--orion-text-inverse) !important;
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────── */
+.orion-internal .alert {
+  border: 1px solid var(--orion-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--orion-text-soft);
+}
+.orion-internal .alert-success { background: var(--orion-success-bg) !important; border-color: rgba(71,194,122,.3) !important;  color: #9EF0BC !important; }
+.orion-internal .alert-warning { background: var(--orion-warning-bg) !important; border-color: rgba(230,169,62,.3) !important;  color: #FFD89B !important; }
+.orion-internal .alert-danger  { background: var(--orion-danger-bg)  !important; border-color: rgba(224,82,82,.3)  !important;  color: #FFB8B8 !important; }
+.orion-internal .alert-info    { background: var(--orion-info-bg)    !important; border-color: rgba(90,167,255,.3)  !important; color: #BFDFFF !important; }
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+.orion-internal .badge.bg-success, .orion-internal .badge.text-bg-success { background: var(--orion-success-bg) !important; color: #9EF0BC !important; }
+.orion-internal .badge.bg-warning, .orion-internal .badge.text-bg-warning { background: var(--orion-warning-bg) !important; color: #FFD89B !important; }
+.orion-internal .badge.bg-danger,  .orion-internal .badge.text-bg-danger  { background: var(--orion-danger-bg)  !important; color: #FFB8B8 !important; }
+.orion-internal .badge.bg-info,    .orion-internal .badge.text-bg-info    { background: var(--orion-info-bg)    !important; color: #BFDFFF !important; }
+
+/* ── List groups ─────────────────────────────────────────────────── */
+.orion-internal .list-group-item {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+.orion-internal .list-group-item:hover {
+  background: rgba(214, 179, 106, 0.05) !important;
+}
+.orion-internal .list-group-item.active {
+  background: var(--orion-gold-subtle) !important;
+  border-color: var(--orion-gold) !important;
+  color: var(--orion-gold-light) !important;
+}
+
+/* ── Progress bars ───────────────────────────────────────────────── */
+.orion-internal .progress {
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 100px;
+}
+.orion-internal .progress-bar {
+  background: var(--orion-gold) !important;
+  border-radius: 100px;
+}
+
+/* ── Tooltips ────────────────────────────────────────────────────── */
+.orion-internal .tooltip .tooltip-inner {
+  background: var(--orion-surface-elevated);
+  color: var(--orion-text);
+  border: 1px solid var(--orion-border);
+  font-size: 12px;
+}
+
+/* ── Bootstrap utility overrides ─────────────────────────────────── */
+.orion-internal .text-primary   { color: var(--orion-gold) !important; }
+.orion-internal .bg-primary     { background: rgba(214, 179, 106, 0.18) !important; color: var(--orion-gold-light) !important; }
+.orion-internal .text-muted     { color: var(--orion-text-muted) !important; }
+.orion-internal .text-secondary { color: var(--orion-text-soft) !important; }
+.orion-internal .bg-light       { background: var(--orion-surface-elevated) !important; }
+.orion-internal .bg-dark        { background: var(--orion-bg-soft) !important; }
+.orion-internal .bg-white       { background: var(--orion-surface) !important; }
+.orion-internal .text-dark      { color: var(--orion-text) !important; }
+.orion-internal .text-white     { color: var(--orion-text) !important; }
+.orion-internal .border         { border-color: var(--orion-border) !important; }
+.orion-internal .border-primary { border-color: var(--orion-gold) !important; }
+.orion-internal .link-primary   { color: var(--orion-gold-light) !important; }
+.orion-internal .link-primary:hover { color: var(--orion-gold) !important; }

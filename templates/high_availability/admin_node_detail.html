@@ -1,0 +1,93 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Serveurs Orion</p>
+    <h1>{{ node.name }}</h1>
+    <p class="orion-page-subtitle">{{ node.node_id }} · Priorité {{ node.priority }}</p>
+  </div>
+  <div class="orion-page-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">← Retour</a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+
+  <!-- Formulaire -->
+  <div class="orion-card">
+    <div class="orion-orion-orion-card-header"><h2>Configuration</h2></div>
+    <div class="orion-orion-orion-card-body">
+      <form method="post" class="orion-form">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="orion-form-field">
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="orion-form-help">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}
+              {% for error in field.errors %}<p class="orion-form-error">{{ error }}</p>{% endfor %}
+            {% endif %}
+          </div>
+        {% endfor %}
+        {% if form.non_field_errors %}
+          <div class="orion-alert orion-alert--error">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        <div class="orion-form-actions">
+          <button type="submit" class="orion-btn orion-btn--primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- État temps réel -->
+  <div>
+    <div class="orion-card" style="margin-bottom:16px;">
+      <div class="orion-orion-orion-card-header"><h2>État actuel</h2></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Statut</dt>
+          <dd>
+            <span class="orion-status-dot orion-status-dot--{{ node.status }}"></span>
+            {{ node.get_status_display }}
+          </dd>
+          <dt>Heartbeat</dt>
+          <dd>
+            {% if node.heartbeat_age_seconds is not None %}
+              {{ node.heartbeat_age_seconds }}s{% if node.is_stale %} — <span class="orion-text-warning">STALE</span>{% endif %}
+            {% else %}Jamais{% endif %}
+          </dd>
+          <dt>Retard réplication</dt>
+          <dd>{{ node.replication_lag_seconds|default:"—" }}{% if node.replication_lag_seconds %} s{% endif %}</dd>
+          <dt>Version app</dt>
+          <dd>{{ node.app_version|default:"—" }}</dd>
+          <dt>Commit</dt>
+          <dd><code>{{ node.git_commit|default:"—" }}</code></dd>
+          <dt>Base de données</dt>
+          <dd>{{ node.database_status }}</dd>
+          <dt>Média sync</dt>
+          <dd>{{ node.media_sync_status }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {% if node.last_health_payload %}
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h2>Dernier payload health</h2></div>
+      <div class="orion-orion-orion-card-body">
+        <pre style="font-size:11px; overflow:auto; max-height:200px;">{{ node.last_health_payload }}</pre>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

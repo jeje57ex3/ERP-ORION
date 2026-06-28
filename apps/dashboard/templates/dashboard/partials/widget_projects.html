@@ -1,0 +1,22 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"btp_active_projects" %}
+{% if data.projects %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover mb-0">
+    <thead class="table-light"><tr><th>Chantier</th><th>Client</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for p in data.projects %}
+    <tr>
+      <td class="small fw-semibold">{{ p.name|truncatechars:30 }}</td>
+      <td class="small text-muted">{{ p.customer.name|truncatechars:20 }}</td>
+      <td><span class="badge bg-success" style="font-size:.65rem">{{ p.get_status_display }}</span></td>
+      <td><a href="/btp/projects/{{ p.pk }}/" class="btn btn-xs btn-sm btn-outline-warning py-0 px-2" style="font-size:.7rem">Voir</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="widget-empty-state"><i class="bi bi-building-gear"></i><p>Aucun chantier en cours.</p></div>
+{% endif %}
+{% endwith %}

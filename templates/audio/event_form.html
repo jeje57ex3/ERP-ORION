@@ -1,0 +1,124 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'audio:event_list' %}">Événements</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'audio:event_detail' event.pk %}">{{ event.name }}</a></li><li class="breadcrumb-item active">Modifier</li>
+{% else %}<li class="breadcrumb-item active">Nouvel événement</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ event.name }}{% else %}Nouvel événement Audio{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-music-note-beamed me-1 text-primary"></i>Informations événement</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Nom de l'événement *</label>
+              {{ form.name }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Type</label>
+              {{ form.event_type }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Client</label>
+              {{ form.customer }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Statut</label>
+              {{ form.status }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Date événement *</label>
+              {{ form.event_date }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Date montage</label>
+              {{ form.setup_date }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Date démontage</label>
+              {{ form.teardown_date }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Heure début</label>
+              {{ form.start_time }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Heure fin</label>
+              {{ form.end_time }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Jauge prévue</label>
+              {{ form.expected_attendance }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-geo-alt me-1 text-primary"></i>Lieu</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Nom du lieu</label>
+              {{ form.venue }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Adresse</label>
+              {{ form.venue_address }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Descriptions et notes</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Description</label>
+            {{ form.description }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Notes techniques</label>
+            {{ form.technical_notes }}
+          </div>
+          <div>
+            <label class="form-label form-label-sm">Notes</label>
+            {{ form.notes }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>Finances</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="mb-2">
+            <label class="form-label form-label-sm">Montant prévu HT</label>
+            {{ form.estimated_amount }}
+          </div>
+          <div>
+            <label class="form-label form-label-sm">Acompte</label>
+            {{ form.deposit_amount }}
+          </div>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer l'événement{% endif %}</button>
+        {% if action == 'edit' %}
+        <a href="{% url 'audio:event_detail' event.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        {% else %}
+        <a href="{% url 'audio:event_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">Catalogue boutique</li>
+{% endblock %}
+
+{% block page_subtitle %}<p class="orion-page-subtitle">Gérez les produits publiés sur votre boutique en ligne.</p>{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ecommerce:product_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau produit boutique</a>
+<a href="{% url 'ecommerce:product_import' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-down-circle me-1"></i>Importer ERP</a>
+<button type="button" class="orion-btn orion-btn-gold" id="publishSelected"><i class="bi bi-broadcast me-1"></i>Publier sélection</button>
+<a href="{% url 'ecommerce:product_sync' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-repeat me-1"></i>Synchroniser</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Barre de filtre -->
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center w-100">
+    <i class="bi bi-search text-muted"></i>
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="Nom, référence…" style="max-width:260px;">
+    <select name="category" class="orion-filter-select">
+      <option value="">Toutes catégories</option>
+      {% for cat in categories %}
+      <option value="{{ cat.pk }}" {% if category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="is_published" class="orion-filter-select">
+      <option value="">Tous</option>
+      <option value="1" {% if is_published == '1' %}selected{% endif %}>Publiés</option>
+      <option value="0" {% if is_published == '0' %}selected{% endif %}>Non publiés</option>
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+    {% if q or category or is_published %}
+    <a href="{% url 'ecommerce:product_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Table -->
+<div class="orion-table-container">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="form-check-input" id="selectAll"></th>
+          <th>Image</th>
+          <th>Nom</th>
+          <th>Catégorie</th>
+          <th class="text-end">Prix TTC</th>
+          <th class="text-end">Stock</th>
+          <th>Publié</th>
+          <th class="text-center">SEO</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td><input type="checkbox" class="form-check-input row-check" value="{{ product.pk }}"></td>
+          <td>
+            {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width:40px;height:40px;object-fit:cover;border-radius:.4rem;border:1px solid var(--orion-border)">
+            {% else %}
+            <div style="width:40px;height:40px;background:var(--orion-bg);border:1px solid var(--orion-border);border-radius:.4rem;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-image text-muted"></i>
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'ecommerce:product_detail' product.pk %}" class="fw-semibold text-decoration-none" style="color:var(--orion-primary)">
+              {{ product.name }}
+            </a>
+            <div class="text-muted" style="font-size:.75rem">{{ product.reference|default:"" }}</div>
+          </td>
+          <td class="small text-muted">{{ product.category|default:"—" }}</td>
+          <td class="text-end fw-semibold small">{{ product.sale_price|floatformat:2 }} €</td>
+          <td class="text-end small">
+            {% if product.stock_quantity is not None %}
+              {% if product.stock_quantity == 0 %}
+              <span class="orion-badge orion-badge-danger">Rupture</span>
+              {% elif product.stock_quantity < 5 %}
+              <span class="orion-badge orion-badge-warning">{{ product.stock_quantity }}</span>
+              {% else %}
+              <span class="fw-semibold">{{ product.stock_quantity }}</span>
+              {% endif %}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if product.is_published %}
+            <span class="orion-badge orion-badge-success"><i class="bi bi-check-circle me-1"></i>Oui</span>
+            {% else %}
+            <span class="orion-badge orion-badge-secondary">Non</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if product.seo_score is not None %}
+              {% if product.seo_score >= 80 %}
+              <span class="orion-badge orion-badge-success">{{ product.seo_score }}%</span>
+              {% elif product.seo_score >= 50 %}
+              <span class="orion-badge orion-badge-warning">{{ product.seo_score }}%</span>
+              {% else %}
+              <span class="orion-badge orion-badge-danger">{{ product.seo_score }}%</span>
+              {% endif %}
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="actions">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ecommerce:product_detail' product.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'ecommerce:product_edit' product.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Modifier"><i class="bi bi-pencil"></i></a>
+              {% if not product.is_published %}
+              <form method="post" action="{% url 'ecommerce:product_publish' product.pk %}" class="d-inline">{% csrf_token %}
+                <button class="orion-btn orion-btn-gold orion-orion-btn sm orion-btn-icon" title="Publier"><i class="bi bi-broadcast"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9">
+            <div class="orion-empty">
+              <i class="bi bi-bag" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
+              <h5 style="color:var(--orion-primary)">Aucun produit dans le catalogue</h5>
+              <p class="text-muted mb-3">Créez des produits ou importez-les depuis l'ERP.</p>
+              <a href="{% url 'ecommerce:product_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau produit boutique</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('selectAll')?.addEventListener('change', function(){
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+});
+document.getElementById('publishSelected')?.addEventListener('click', function(){
+  const selected = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
+  if (!selected.length) { alert('Sélectionnez au moins un produit.'); return; }
+  if (confirm('Publier ' + selected.length + ' produit(s) ?')) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '{% url "ecommerce:product_publish_bulk" %}';
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden'; csrf.name = 'csrfmiddlewaretoken';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    selected.forEach(id => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = 'ids'; inp.value = id;
+      form.appendChild(inp);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  }
+});
+</script>
+{% endblock %}

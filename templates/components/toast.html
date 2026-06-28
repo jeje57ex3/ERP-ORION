@@ -1,0 +1,88 @@
+{# Composant : conteneur toast Bootstrap + fonction JS orionToast()
+   Usage : include "components/toast.html"
+   Ajouter une fois dans le layout (de préférence avant </body>).
+   Expose la fonction globale : orionToast(message, type='success')
+   Types disponibles : success, danger, warning, info
+   Auto-dismiss après 4 secondes.
+
+   Note : si OrionToast (orion-ui.js) est déjà chargé, orionToast() est un alias vers OrionToast.show().
+#}
+
+{# Conteneur de toasts Bootstrap en bas à droite #}
+<div
+  id="orionBootstrapToastContainer"
+  class="toast-container position-fixed bottom-0 end-0 p-3"
+  style="z-index: 1090;"
+  aria-live="polite"
+  aria-atomic="false"
+></div>
+
+<script>
+/**
+ * orionToast(message, type) — affiche un toast Bootstrap dynamique
+ * type : 'success' | 'danger' | 'warning' | 'info'
+ * Si OrionToast (orion-ui.js) est disponible, le délègue à celui-ci.
+ */
+function orionToast(message, type) {
+  type = type || 'success';
+
+  // Déléguer à OrionToast si disponible
+  if (window.OrionToast) {
+    var method = type === 'danger' ? 'error' : type;
+    if (typeof window.OrionToast[method] === 'function') {
+      window.OrionToast[method](message);
+      return;
+    }
+    window.OrionToast.show(message, type);
+    return;
+  }
+
+  // Fallback Bootstrap toast natif
+  var iconMap = {
+    success: 'bi-check-circle-fill text-success',
+    danger:  'bi-x-circle-fill text-danger',
+    warning: 'bi-exclamation-triangle-fill text-warning',
+    info:    'bi-info-circle-fill text-info'
+  };
+  var bgMap = {
+    success: 'text-bg-success',
+    danger:  'text-bg-danger',
+    warning: 'text-bg-warning',
+    info:    'text-bg-info'
+  };
+  var icon = iconMap[type] || iconMap.info;
+  var bg   = bgMap[type]   || bgMap.info;
+
+  var toastEl = document.createElement('div');
+  toastEl.className = 'toast align-items-center border-0 ' + bg;
+  toastEl.setAttribute('role', 'alert');
+  toastEl.setAttribute('aria-live', 'assertive');
+  toastEl.setAttribute('aria-atomic', 'true');
+  toastEl.innerHTML = [
+    '<div class="d-flex">',
+    '  <div class="toast-body d-flex align-items-center gap-2">',
+    '    <i class="bi ' + icon + '"></i>',
+    '    <span>' + message + '</span>',
+    '  </div>',
+    '  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>',
+    '</div>'
+  ].join('');
+
+  var container = document.getElementById('orionBootstrapToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'orionBootstrapToastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '1090';
+    document.body.appendChild(container);
+  }
+  container.appendChild(toastEl);
+
+  var bsToast = new bootstrap.Toast(toastEl, { delay: 4000, autohide: true });
+  bsToast.show();
+
+  toastEl.addEventListener('hidden.bs.toast', function () {
+    toastEl.remove();
+  });
+}
+</script>

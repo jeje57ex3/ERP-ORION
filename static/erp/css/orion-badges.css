@@ -1,0 +1,57 @@
+.orion-badge,
+.orion-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--orion-border);
+  background: rgba(255,255,255,0.045);
+  color: var(--orion-text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.orion-badge.neutral,
+.orion-status.neutral {
+  border-color: rgba(185, 178, 163, 0.3);
+  background: rgba(185, 178, 163, 0.1);
+  color: var(--orion-text-soft);
+}
+
+.orion-badge.success,
+.orion-status.success {
+  border-color: rgba(71, 194, 122, 0.45);
+  background: var(--orion-success-bg);
+  color: #9EF0BC;
+}
+
+.orion-badge.warning,
+.orion-status.warning {
+  border-color: rgba(230, 169, 62, 0.45);
+  background: var(--orion-warning-bg);
+  color: #FFD89B;
+}
+
+.orion-badge.danger,
+.orion-status.danger {
+  border-color: rgba(224, 82, 82, 0.45);
+  background: var(--orion-danger-bg);
+  color: #FFB8B8;
+}
+
+.orion-badge.info,
+.orion-status.info {
+  border-color: rgba(90, 167, 255, 0.45);
+  background: var(--orion-info-bg);
+  color: #BFDFFF;
+}
+
+.orion-badge.gold,
+.orion-status.gold {
+  border-color: rgba(214, 179, 106, 0.55);
+  background: rgba(214, 179, 106, 0.12);
+  color: var(--orion-gold-light);
+}

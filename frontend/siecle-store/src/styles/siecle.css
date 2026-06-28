@@ -1,0 +1,173 @@
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+.siecle-page {
+  min-height: 100vh;
+  background: var(--siecle-black);
+}
+
+.siecle-container {
+  width: min(1440px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.siecle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 28px;
+  border: 1px solid var(--siecle-white);
+  background: var(--siecle-white);
+  color: var(--siecle-black);
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.siecle-btn:hover {
+  background: transparent;
+  color: var(--siecle-white);
+}
+
+.siecle-btn-outline {
+  background: transparent;
+  color: var(--siecle-white);
+  border-color: var(--siecle-border);
+}
+
+.siecle-btn-outline:hover {
+  border-color: var(--siecle-beige);
+  color: var(--siecle-beige);
+}
+
+.siecle-btn-beige {
+  background: var(--siecle-beige);
+  border-color: var(--siecle-beige);
+  color: var(--siecle-black);
+}
+
+.siecle-btn-beige:hover {
+  background: transparent;
+  color: var(--siecle-beige);
+}
+
+.siecle-btn-lg {
+  min-height: 56px;
+  padding: 0 40px;
+  font-size: 13px;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+.siecle-section-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 5.5rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  margin: 0 0 32px;
+  line-height: 0.95;
+}
+
+.siecle-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--siecle-muted);
+}
+
+.siecle-muted { color: var(--siecle-muted); }
+.siecle-beige { color: var(--siecle-beige); }
+
+/* ── Grid ──────────────────────────────────────────────────────────────────── */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2px;
+}
+
+/* ── Section Divider ───────────────────────────────────────────────────────── */
+.siecle-section {
+  padding: 80px 0;
+}
+
+.siecle-section-dark {
+  background: var(--siecle-dark);
+}
+
+.siecle-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--siecle-beige);
+  margin: 16px 0 32px;
+}
+
+/* ── Badge ─────────────────────────────────────────────────────────────────── */
+.siecle-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--siecle-beige);
+  color: var(--siecle-black);
+}
+
+.siecle-badge-new {
+  background: var(--siecle-white);
+  color: var(--siecle-black);
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────────── */
+.siecle-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--siecle-dark);
+  border: 1px solid var(--siecle-border);
+  color: var(--siecle-white);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.siecle-input:focus {
+  border-color: var(--siecle-beige);
+}
+
+.siecle-input::placeholder {
+  color: var(--siecle-muted);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .siecle-container {
+    width: calc(100% - 28px);
+  }
+  .siecle-section-title {
+    font-size: 2.4rem;
+  }
+  .product-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+  }
+  .siecle-btn-lg {
+    width: 100%;
+    justify-content: center;
+  }
+  .siecle-section {
+    padding: 48px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,61 @@
+/* SIÈCLE — Watches universe */
+.watches-home {
+  min-height: 100vh;
+  background: #000;
+}
+.watches-hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, #0a0a05 0%, #000 100%);
+}
+.watches-configurator-section {
+  padding: 100px 0;
+  background: #000;
+}
+.configurator-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 48px;
+}
+.configurator-tab {
+  padding: 14px 24px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #555;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+.configurator-tab.active {
+  color: var(--siecle-beige);
+  border-bottom-color: var(--siecle-beige);
+}
+.config-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+.config-option {
+  padding: 16px 12px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.config-option:hover,
+.config-option.selected {
+  border-color: var(--siecle-beige);
+  background: rgba(216,199,163,0.05);
+}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Journal — {{ site_log.project_id }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'btp_smart_site_log:log_list' %}" class="orion-btn sm btn-outline-secondary">&larr; Retour</a>
+    <h1 class="h3 mb-0">{{ site_log.title }}</h1>
+    <span class="orion-badge neutral">{{ site_log.get_log_type_display }}</span>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-5">
+      <div class="card shadow-sm mb-3">
+        <div class="orion-orion-card-header">Informations</div>
+        <div class="orion-orion-card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-5">Chantier</dt><dd class="col-sm-7">{{ site_log.project_id }} — {{ site_log.project_name }}</dd>
+            <dt class="col-sm-5">Date</dt><dd class="col-sm-7">{{ site_log.logged_at|date:"d/m/Y H:i" }}</dd>
+            <dt class="col-sm-5">Ouvriers</dt><dd class="col-sm-7">{{ site_log.workers_count }}</dd>
+            <dt class="col-sm-5">Météo</dt><dd class="col-sm-7">{{ site_log.get_weather_display|default:"—" }}{% if site_log.temperature_celsius %} · {{ site_log.temperature_celsius }}°C{% endif %}</dd>
+            <dt class="col-sm-5">Avancement</dt><dd class="col-sm-7">{{ site_log.progress_percent }}%</dd>
+            <dt class="col-sm-5">Lieu</dt><dd class="col-sm-7">{{ site_log.location_label|default:"—" }}</dd>
+          </dl>
+          {% if site_log.description %}
+          <hr>
+          <p class="mb-0">{{ site_log.description }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card shadow-sm">
+        <div class="orion-orion-card-header">Statistiques chantier</div>
+        <div class="orion-orion-card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-6">Total journaux</dt><dd class="col-sm-6">{{ stats.total_logs }}</dd>
+            <dt class="col-sm-6">Incidents ouverts</dt><dd class="col-sm-6">{{ stats.open_incidents }}</dd>
+            <dt class="col-sm-6">Incidents résolus</dt><dd class="col-sm-6">{{ stats.resolved_incidents }}</dd>
+            <dt class="col-sm-6">Avancement moy.</dt><dd class="col-sm-6">{{ stats.avg_progress|floatformat:0 }}%</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="orion-orion-card-header">Incidents</div>
+        <div class="orion-orion-card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr>
+              <th>Type</th><th>Gravité</th><th>Description</th><th>Statut</th><th></th>
+            </tr></thead>
+            <tbody>
+              {% for i in incidents %}
+              <tr>
+                <td>{{ i.get_incident_type_display }}</td>
+                <td><span class="badge bg-{% if i.severity == 'critical' %}danger{% elif i.severity == 'high' %}warning{% else %}secondary{% endif %}">{{ i.get_severity_display }}</span></td>
+                <td>{{ i.description|truncatechars:40 }}</td>
+                <td>{% if i.is_resolved %}<span class="orion-badge success">Résolu</span>{% else %}<span class="orion-badge danger">Ouvert</span>{% endif %}</td>
+                <td>
+                  {% if not i.is_resolved %}
+                  <button type="button" class="orion-btn sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#resolve-{{ i.pk }}">Résoudre</button>
+                  <div class="modal fade" id="resolve-{{ i.pk }}" tabindex="-1">
+                    <div class="modal-dialog"><div class="modal-content">
+                      <form method="post" action="{% url 'btp_smart_site_log:resolve_incident' i.pk %}">
+                        {% csrf_token %}
+                        <div class="modal-header"><h5 class="modal-title">Résoudre l'incident</h5></div>
+                        <div class="modal-body">
+                          <textarea name="corrective_action" class="form-control" rows="3" placeholder="Action corrective..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="orion-btn" data-bs-dismiss="modal">Annuler</button>
+                          <button type="submit" class="orion-btn success">Confirmer</button>
+                        </div>
+                      </form>
+                    </div></div>
+                  </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Aucun incident</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

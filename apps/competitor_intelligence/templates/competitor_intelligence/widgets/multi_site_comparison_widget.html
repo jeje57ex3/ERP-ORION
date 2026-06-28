@@ -1,0 +1,39 @@
+{% load humanize %}
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-layout-split text-secondary"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+  </div>
+  <div class="card-body p-0">
+    {% if comparison %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light" style="font-size:.75rem">
+          <tr>
+            <th>Concurrent</th>
+            <th class="text-center">Score</th>
+            <th class="text-center">Produits</th>
+            <th class="text-center">Prix moy.</th>
+            <th class="text-center">Visiteurs (est.)</th>
+          </tr>
+        </thead>
+        <tbody style="font-size:.8rem">
+          {% for row in comparison %}
+          <tr>
+            <td class="fw-semibold">{{ row.competitor.name|truncatechars:20 }}</td>
+            <td class="text-center"><span class="badge bg-primary">{{ row.score }}</span></td>
+            <td class="text-center">{{ row.products_count }}</td>
+            <td class="text-center">{% if row.avg_price %}{{ row.avg_price|floatformat:0 }} €{% else %}—{% endif %}</td>
+            <td class="text-center text-muted">
+              {% if row.monthly_visitors %}~{{ row.monthly_visitors|intcomma }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-0">Aucun concurrent à comparer</p>
+    {% endif %}
+  </div>
+</div>

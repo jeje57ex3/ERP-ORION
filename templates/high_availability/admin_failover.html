@@ -1,0 +1,104 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
+    <h1>Bascule serveur</h1>
+    <p class="orion-page-subtitle">Bascule manuelle vers le serveur secondaire 1 ou secondaire 2.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_events' %}">Journal des bascules</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">Paramètres HA</a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<!-- État actuel -->
+<div class="orion-dashboard-grid" style="grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Nœud actif</span>
+    <strong class="orion-metric-value">{{ active_node.name|default:"Non défini" }}</strong>
+    {% if active_node %}
+      <small class="orion-text-muted">{{ active_node.node_id }} · Priorité {{ active_node.priority }}</small>
+    {% endif %}
+  </div>
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Cible recommandée</span>
+    <strong class="orion-metric-value">{{ best_target.name|default:"Aucune disponible" }}</strong>
+    {% if best_target %}
+      <small class="orion-text-muted">Lag : {{ best_target.replication_lag_seconds|default:"inconnu" }}s</small>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Avertissement -->
+<div class="orion-alert orion-alert--warning" style="margin-bottom:24px;">
+  <strong>⚠ Action critique</strong> — La bascule interrompt brièvement le service. Assurez-vous que le serveur cible est synchronisé avant de continuer.
+</div>
+
+<!-- Cibles disponibles -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px,1fr)); gap:20px;">
+  {% for node in candidates %}
+  <div class="orion-card {% if best_target and best_target.pk == node.pk %}orion-card--highlighted{% endif %}">
+    <div class="orion-orion-orion-card-header">
+      <div>
+        <h2>{{ node.name }}</h2>
+        <small class="orion-text-muted">{{ node.node_id }}</small>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        {% if best_target and best_target.pk == node.pk %}
+          <span class="orion-badge orion-badge--success">Recommandé</span>
+        {% endif %}
+        <span class="orion-status-dot orion-status-dot--{{ node.status }}"></span>
+        <span>{{ node.get_status_display }}</span>
+      </div>
+    </div>
+    <div class="orion-orion-orion-card-body">
+      <dl class="orion-dl orion-dl--compact">
+        <dt>Priorité</dt><dd>{{ node.priority }}</dd>
+        <dt>Retard réplication</dt><dd>{{ node.replication_lag_seconds|default:"—" }}{% if node.replication_lag_seconds %} s{% endif %}</dd>
+        <dt>Heartbeat</dt><dd>{{ node.heartbeat_age_seconds|default:"—" }}{% if node.heartbeat_age_seconds %}s{% endif %}</dd>
+        <dt>URL</dt><dd><small>{{ node.base_url|default:"—" }}</small></dd>
+        <dt>Région</dt><dd>{{ node.region|default:"—" }}</dd>
+      </dl>
+
+      {% if not node.can_be_failover_target %}
+        <div class="orion-alert orion-alert--error" style="margin-top:12px; font-size:13px;">
+          Ce serveur n'est pas disponible pour une bascule (statut : {{ node.get_status_display }}).
+        </div>
+      {% else %}
+        <form method="post" action="{% url 'high_availability:admin_run_failover' %}"
+              onsubmit="return confirm('Confirmer la bascule vers {{ node.name }} ?')"
+              style="margin-top:16px;">
+          {% csrf_token %}
+          <input type="hidden" name="to_node" value="{{ node.node_id }}">
+          <div class="orion-form-field" style="margin-bottom:12px;">
+            <label style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;">
+              Raison de la bascule
+            </label>
+            <textarea name="reason" rows="2"
+              placeholder="Ex. : maintenance planifiée, défaillance primaire…"
+              style="width:100%; resize:vertical; font-size:13px;"></textarea>
+          </div>
+          <button type="submit" class="orion-btn orion-btn--danger" style="width:100%;">
+            Basculer vers {{ node.name }}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="orion-card">
+    <div class="orion-orion-orion-card-body">
+      <p class="orion-text-muted">Aucun serveur secondaire actif disponible pour la bascule.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

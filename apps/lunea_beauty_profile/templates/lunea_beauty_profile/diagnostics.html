@@ -1,0 +1,89 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Diagnostics beauté — LUNEA{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">LUNEA · Profils beauté</p>
+    <h1 class="orion-page-title">Diagnostics peau</h1>
+    <p class="orion-page-subtitle">Analyse des profils peau et répartition par type.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'lunea_beauty_profile:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<!-- Répartition par type de peau -->
+{% if skin_breakdown %}
+<div class="row g-3 mb-4">
+  {% for skin_type, count in skin_breakdown.items %}
+  <div class="col-6 col-md-2">
+    <div class="orion-metric">
+      <div class="orion-metric-label" style="font-size:11px">{{ skin_type }}</div>
+      <div class="orion-metric-value">{{ count }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2 style="font-size:14px;font-weight:600;margin:0">Profils & diagnostics</h2>
+    <span style="font-size:12px;color:var(--orion-muted)">{{ total_profiles }} profil(s)</span>
+  </div>
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Type de peau</th>
+        <th>Type de cheveux</th>
+        <th>Préoccupations peau</th>
+        <th>Préoccupations cheveux</th>
+        <th>Allergies</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for profile in profiles %}
+      <tr>
+        <td style="font-weight:500">{{ profile.customer }}</td>
+        <td>
+          <span class="orion-badge neutral">{{ profile.get_skin_type_display }}</span>
+        </td>
+        <td>
+          <span class="orion-badge neutral">{{ profile.get_hair_type_display }}</span>
+        </td>
+        <td style="font-size:12px">
+          {% for concern in profile.skin_concerns|slice:":3" %}
+          <span class="orion-badge neutral me-1">{{ concern }}</span>
+          {% empty %}—{% endfor %}
+        </td>
+        <td style="font-size:12px">
+          {% for concern in profile.hair_concerns|slice:":3" %}
+          <span class="orion-badge neutral me-1">{{ concern }}</span>
+          {% empty %}—{% endfor %}
+        </td>
+        <td style="font-size:12px;color:var(--orion-danger)">
+          {% if profile.allergies %}
+          {{ profile.allergies|join:", "|truncatechars:50 }}
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <a href="{% url 'lunea_beauty_profile:profile_detail' profile.pk %}" class="orion-btn sm">Voir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:var(--orion-muted);padding:48px">
+          Aucun profil beauté.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

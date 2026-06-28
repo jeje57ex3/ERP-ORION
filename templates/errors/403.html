@@ -1,0 +1,8 @@
+{% extends "errors/base_error.html" %}
+{% block error_code %}403{% endblock %}
+{% block code_color %}#EF4444{% endblock %}
+{% block error_heading %}Accès refusé{% endblock %}
+{% block error_body %}
+  Vous n'avez pas les droits nécessaires pour accéder à cette page.
+  Si vous pensez qu'il s'agit d'une erreur, contactez votre administrateur.
+{% endblock %}

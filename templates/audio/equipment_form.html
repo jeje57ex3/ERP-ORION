@@ -1,0 +1,123 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'audio:equipment_list' %}">Parc matériel</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'audio:equipment_detail' equipment.pk %}">{{ equipment.name }}</a></li><li class="breadcrumb-item active">Modifier</li>
+{% else %}<li class="breadcrumb-item active">Nouveau matériel</li>{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ equipment.name }}{% else %}Nouveau matériel{% endif %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-speaker me-1 text-primary"></i>Identification</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label form-label-sm">Nom *</label>
+              {{ form.name }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Catégorie</label>
+              {{ form.category }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Marque</label>
+              {{ form.brand }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Modèle</label>
+              {{ form.model }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Référence interne</label>
+              {{ form.reference }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">N° de série</label>
+              {{ form.serial_number }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>Quantités & tarifs</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Qté totale</label>
+              {{ form.quantity }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Qté dispo</label>
+              {{ form.available_quantity }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Prix/jour HT</label>
+              {{ form.rental_price_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm">Valeur remplacement</label>
+              {{ form.replacement_value }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">État</label>
+              {{ form.status }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Date achat</label>
+              {{ form.purchase_date }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm">Prix achat</label>
+              {{ form.purchase_price }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-wrench me-1 text-primary"></i>Maintenance</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Dernière maintenance</label>
+              {{ form.last_maintenance_date }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">Prochaine maintenance</label>
+              {{ form.next_maintenance_date }}
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Notes</label>
+              {{ form.notes }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Options</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="form-check">{{ form.is_active }}<label class="form-check-label small ms-1">Matériel actif</label></div>
+        </div>
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer{% endif %}</button>
+        {% if action == 'edit' %}
+        <a href="{% url 'audio:equipment_detail' equipment.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        {% else %}
+        <a href="{% url 'audio:equipment_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

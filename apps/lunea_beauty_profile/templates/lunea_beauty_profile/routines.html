@@ -1,0 +1,66 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Routines beauté — LUNEA{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">LUNEA · Profils beauté</p>
+    <h1 class="orion-page-title">Routines beauté</h1>
+    <p class="orion-page-subtitle">Profils avec préoccupations peau identifiées.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'lunea_beauty_profile:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Peau</th>
+        <th>Préoccupations</th>
+        <th>Marques préférées</th>
+        <th>Ingrédients à éviter</th>
+        <th>Notes</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for profile in profiles %}
+      <tr>
+        <td style="font-weight:500">{{ profile.customer }}</td>
+        <td><span class="orion-badge neutral">{{ profile.get_skin_type_display }}</span></td>
+        <td style="font-size:12px">
+          {% for concern in profile.skin_concerns|slice:":4" %}
+          <span class="orion-badge neutral me-1">{{ concern }}</span>
+          {% empty %}—{% endfor %}
+        </td>
+        <td style="font-size:12px;color:var(--orion-muted)">
+          {{ profile.preferred_brands|join:", "|default:"—" }}
+        </td>
+        <td style="font-size:12px;color:var(--orion-danger)">
+          {% if profile.avoided_ingredients %}
+          {{ profile.avoided_ingredients|join:", "|truncatechars:60 }}
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--orion-muted)">{{ profile.notes|truncatechars:60|default:"—" }}</td>
+        <td>
+          <a href="{% url 'lunea_beauty_profile:profile_detail' profile.pk %}" class="orion-btn sm">Voir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:var(--orion-muted);padding:48px">
+          <i class="bi bi-stars d-block mb-2" style="font-size:32px;opacity:.3"></i>
+          Aucun profil avec préoccupations peau renseignées.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

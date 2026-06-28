@@ -1,0 +1,43 @@
+<nav class="orion-tabs-v2" role="tablist" aria-label="{{ tabs_label|default:'Navigation du module' }}"
+     style="display:flex;gap:2px;border-bottom:1px solid var(--orion-border);margin-bottom:20px">
+  {% for tab in tabs %}
+  <a href="{{ tab.url }}"
+     class="orion-tab-v2 {% if tab.active %}active{% endif %}"
+     role="tab"
+     {% if tab.active %}aria-current="page"{% endif %}
+     style="
+       min-height: 38px;
+       display: inline-flex;
+       align-items: center;
+       gap: 7px;
+       padding: 0 14px;
+       color: {% if tab.active %}var(--orion-text){% else %}var(--orion-text-soft){% endif %};
+       text-decoration: none;
+       border-bottom: 2px solid {% if tab.active %}var(--orion-accent){% else %}transparent{% endif %};
+       font-size: 13px;
+       font-weight: 600;
+       margin-bottom: -1px;
+       transition: color .15s ease, border-color .15s ease;
+       white-space: nowrap;
+     "
+     onmouseover="if(!this.classList.contains('active')){this.style.color='var(--orion-text)';}"
+     onmouseout="if(!this.classList.contains('active')){this.style.color='var(--orion-text-soft)';}">
+    {% if tab.icon %}<i class="bi {{ tab.icon }}" aria-hidden="true"></i>{% endif %}
+    {{ tab.label }}
+    {% if tab.count is not None %}
+    <span style="
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(139,129,119,.12);
+      color: var(--orion-muted);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 0 7px;
+      line-height: 1;
+    ">{{ tab.count }}</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</nav>

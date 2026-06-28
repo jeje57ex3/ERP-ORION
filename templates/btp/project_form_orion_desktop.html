@@ -1,0 +1,265 @@
+{% extends "layouts/orion_desktop.html" %}
+{% load static %}
+
+{% block title %}{{ project.name|default:"Nouveau chantier" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'btp:project_list' %}">Chantiers</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ project.name|default:"Nouveau" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <!-- En-tête -->
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">
+        {% if project.pk %}{{ project.name }}{% else %}Nouveau chantier{% endif %}
+      </h1>
+      {% if project.pk %}
+      <span class="orion-status
+        {% if project.status == 'draft' %}draft
+        {% elif project.status == 'in_progress' %}info
+        {% elif project.status == 'completed' %}active
+        {% elif project.status == 'cancelled' %}closed
+        {% else %}pending{% endif %}">
+        {{ project.get_status_display }}
+      </span>
+      {% if project.market_type %}<span class="orion-status premium">{{ project.get_market_type_display }}</span>{% endif %}
+      {% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="project-form" type="submit" title="Enregistrer (Ctrl+S)"><i class="bi bi-save"></i></button>
+      <button class="orion-icon-btn" onclick="window.print()" title="Imprimer"><i class="bi bi-printer"></i></button>
+      {% if project.pk %}
+      <a href="{% url 'btp:project_confirm_delete' project.pk %}" class="orion-icon-btn danger"
+         data-confirm="Supprimer ce chantier ?"><i class="bi bi-trash"></i></a>
+      <span class="orion-toolbar-sep"></span>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning me-1"></i>Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="{% url 'btp:quote_create' %}?project={{ project.pk }}">
+            <i class="bi bi-file-earmark-plus me-2 text-warning"></i>Créer devis BTP</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'btp:situation_create' %}?project={{ project.pk }}">
+            <i class="bi bi-clipboard-check me-2 text-success"></i>Situation de travaux</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'btp:timesheet_create' %}?project={{ project.pk }}">
+            <i class="bi bi-clock me-2 text-info"></i>Pointage main-d'œuvre</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1" href="#">
+            <i class="bi bi-file-pdf me-2 text-danger"></i>Fiche chantier PDF</a></li>
+          <li><a class="dropdown-item py-1" href="#">
+            <i class="bi bi-graph-up me-2 text-primary"></i>Rapport d'avancement</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Formulaire -->
+  <form id="project-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+
+    <!-- Grille 2-1 -->
+    <div class="orion-record-grid cols-2-1">
+
+      <!-- Colonne gauche -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Identification -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-building-gear text-info" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Identification chantier</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Code chantier</label>{{ form.code }}</div>
+            <div class="orion-form-row"><label class="required">Nom du chantier</label>{{ form.name }}</div>
+            <div class="orion-form-row"><label class="required">Client</label>{{ form.customer }}</div>
+            <div class="orion-form-row"><label>Description</label>{{ form.description }}</div>
+            <div class="orion-form-row"><label>Statut</label>{{ form.status }}</div>
+          </div>
+        </div>
+
+        <!-- Adresse -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-geo-alt text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Adresse du chantier</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Adresse</label>{{ form.address }}</div>
+            <div class="orion-form-row"><label>Code postal</label>{{ form.zip_code }}</div>
+            <div class="orion-form-row"><label>Ville</label>{{ form.city }}</div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-chat-text text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Notes internes</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row" style="grid-template-columns:1fr"><label>Notes</label>{{ form.notes }}</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Colonne droite -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Planning -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-calendar-range text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Planning</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Début prévu</label>{{ form.start_date }}</div>
+            <div class="orion-form-row"><label>Fin prévue</label>{{ form.end_date }}</div>
+            <div class="orion-form-row"><label>Début réel</label>{{ form.actual_start_date }}</div>
+            <div class="orion-form-row"><label>Fin réelle</label>{{ form.actual_end_date }}</div>
+          </div>
+        </div>
+
+        <!-- Budget & Marché -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-currency-euro text-success" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Budget &amp; Marché</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Budget prévu HT</label>{{ form.estimated_budget }}</div>
+            <div class="orion-form-row"><label>Retenue garantie (%)</label>{{ form.retention_rate }}</div>
+            <div class="orion-form-row"><label>Type de marché</label>{{ form.market_type }}</div>
+            <div class="orion-form-row"><label>N° marché</label>{{ form.market_number }}</div>
+          </div>
+        </div>
+
+        <!-- Équipe (si champ dispo) -->
+        {% if form.site_manager or form.assigned_to %}
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-people text-warning" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Équipe</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            {% if form.site_manager %}
+            <div class="orion-form-row"><label>Chef de chantier</label>{{ form.site_manager }}</div>
+            {% endif %}
+            {% if form.assigned_to %}
+            <div class="orion-form-row"><label>Responsable</label>{{ form.assigned_to }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Indicateurs live (si projet existant) -->
+        {% if project.pk %}
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-bar-chart text-danger" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Indicateurs</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+              <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--od-border-light)">
+                <span style="color:var(--od-muted)">Devis BTP</span>
+                <strong>{{ project.btp_quotes.count|default:0 }}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--od-border-light)">
+                <span style="color:var(--od-muted)">Situations</span>
+                <strong>{{ project.situations.count|default:0 }}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--od-border-light)">
+                <span style="color:var(--od-muted)">Heures pointées</span>
+                <strong>{{ project.total_hours|default:"0" }} h</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:5px 0 0">
+                <span style="color:var(--od-muted)">Budget engagé</span>
+                <strong style="color:var(--od-gold)">{{ project.actual_cost|default:"0.00" }} €</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="orion-form-actions">
+      <a href="{% url 'btp:project_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+
+  <!-- Onglets bas -->
+  {% if project.pk %}
+  <div class="orion-bottom-tabs">
+    <div class="orion-bottom-tabs-nav">
+      <button class="orion-bottom-tab active" data-tab="btp-quotes"><i class="bi bi-file-earmark-text"></i> Devis BTP</button>
+      <button class="orion-bottom-tab" data-tab="btp-situations"><i class="bi bi-clipboard-check"></i> Situations</button>
+      <button class="orion-bottom-tab" data-tab="btp-timesheets"><i class="bi bi-clock"></i> Pointages</button>
+      <button class="orion-bottom-tab" data-tab="btp-documents"><i class="bi bi-folder"></i> Documents</button>
+      <button class="orion-bottom-tab" data-tab="btp-history"><i class="bi bi-clock-history"></i> Historique</button>
+    </div>
+    <div class="orion-bottom-tab-content active" id="btp-quotes">
+      {% if project.btp_quotes.exists %}
+      <table class="orion-dense-table" style="width:100%">
+        <thead><tr><th>Numéro</th><th>Date</th><th>Objet</th><th>Total HT</th><th>Statut</th></tr></thead>
+        <tbody>
+        {% for q in project.btp_quotes.all %}
+        <tr onclick="window.location='{% url 'btp:quote_detail' q.pk %}'">
+          <td><a href="{% url 'btp:quote_detail' q.pk %}">{{ q.number }}</a></td>
+          <td>{{ q.quote_date|date:"d/m/Y" }}</td>
+          <td>{{ q.object|default:"—"|truncatechars:50 }}</td>
+          <td class="col-num">{{ q.total_ht|default:0|floatformat:2 }} €</td>
+          <td><span class="orion-status {{ q.status }}">{{ q.get_status_display }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="orion-tab-empty"><i class="bi bi-file-earmark-text"></i>Aucun devis</div>
+      {% endif %}
+    </div>
+    <div class="orion-bottom-tab-content" id="btp-situations">
+      {% if project.situations.exists %}
+      <table class="orion-dense-table" style="width:100%">
+        <thead><tr><th>Numéro</th><th>Date</th><th>Montant HT</th><th>Statut</th></tr></thead>
+        <tbody>
+        {% for s in project.situations.all %}
+        <tr onclick="window.location='{% url 'btp:situation_detail' s.pk %}'">
+          <td><a href="{% url 'btp:situation_detail' s.pk %}">{{ s.number }}</a></td>
+          <td>{{ s.date|date:"d/m/Y" }}</td>
+          <td class="col-num">{{ s.total_ht|default:0|floatformat:2 }} €</td>
+          <td><span class="orion-status {{ s.status }}">{{ s.get_status_display }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="orion-tab-empty"><i class="bi bi-clipboard-check"></i>Aucune situation</div>
+      {% endif %}
+    </div>
+    <div class="orion-bottom-tab-content" id="btp-timesheets">
+      <div class="orion-tab-empty"><i class="bi bi-clock"></i>Aucun pointage</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="btp-documents">
+      <div class="orion-tab-empty"><i class="bi bi-folder"></i>Aucun document</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="btp-history">
+      <div class="orion-tab-empty"><i class="bi bi-clock-history"></i>Historique vide</div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

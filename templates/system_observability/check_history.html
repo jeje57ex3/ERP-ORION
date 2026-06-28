@@ -1,0 +1,39 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'system_observability:dashboard' %}">Observabilité</a></div>
+    <h1 class="orion-page-title">{{ page_title }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    {% if history %}
+    <div class="list-group list-group-flush">
+      {% for check in history %}
+      <div class="list-group-item px-4 py-2">
+        <div class="d-flex align-items-center gap-3">
+          <span class="orion-badge {% if check.status == 'ok' %}success{% elif check.status == 'warning' %}warning{% elif check.status == 'critical' %}danger{% else %}neutral{% endif %}">
+            {{ check.get_status_display }}
+          </span>
+          <div class="flex-grow-1">
+            {% if check.message %}<div style="font-size:13px">{{ check.message }}</div>{% endif %}
+          </div>
+          <div style="text-align:right;font-size:11px;color:var(--orion-muted)">
+            {% if check.response_time_ms %}{{ check.response_time_ms }}ms · {% endif %}
+            {{ check.checked_at|date:"d/m/Y H:i:s" }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="orion-empty-state">
+      <p class="text-muted">Aucun historique disponible pour ce composant.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

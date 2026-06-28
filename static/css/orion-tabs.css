@@ -1,0 +1,365 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Tabs desktop (open-tabs + bottom-tabs)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Barre d'onglets ouverts (type navigateur desktop) ─────── */
+.orion-open-tabs {
+  height: 32px;
+  min-height: 32px;
+  background: #EDE7DA;
+  border-bottom: 1px solid var(--orion-border);
+  display: flex;
+  align-items: flex-end;
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 3px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,.1) transparent;
+}
+
+.orion-open-tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.orion-open-tabs::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.12);
+  border-radius: 2px;
+}
+
+/* ── Onglet individuel ─────────────────────────────────────── */
+.orion-open-tab {
+  height: 28px;
+  min-width: 110px;
+  max-width: 180px;
+  padding: 0 8px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: #E4DECE;
+  border: 1px solid var(--orion-border);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  color: var(--orion-muted);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .1s, color .1s;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.orion-open-tab-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  opacity: .7;
+}
+
+.orion-open-tab-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.orion-open-tab-close {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--orion-muted);
+  transition: opacity .15s, background .12s;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.orion-open-tab:hover .orion-open-tab-close,
+.orion-open-tab.active .orion-open-tab-close {
+  opacity: 1;
+}
+
+.orion-open-tab-close:hover {
+  background: rgba(185,28,28,.1);
+  color: var(--orion-danger);
+  opacity: 1;
+}
+
+.orion-open-tab:hover {
+  background: #EEE8DA;
+  color: var(--orion-text);
+}
+
+.orion-open-tab.active {
+  background: #FFFFFF;
+  color: var(--orion-primary);
+  font-weight: 600;
+  border-top-color: var(--orion-secondary);
+  border-top-width: 2px;
+}
+
+/* Bouton + nouvel onglet */
+.orion-open-tab-add {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--orion-muted);
+  border-radius: 3px 3px 0 0;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background .12s;
+  background: none;
+  border: none;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.orion-open-tab-add:hover {
+  background: rgba(0,0,0,.06);
+  color: var(--orion-text);
+}
+
+/* ── Onglets bas de fiche (bottom tabs) ────────────────────── */
+.orion-bottom-tabs {
+  background: #FFFFFF;
+  border: 1px solid var(--orion-border-light);
+  border-radius: var(--orion-radius);
+  overflow: hidden;
+  box-shadow: var(--orion-shadow);
+}
+
+.orion-bottom-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--orion-border-light);
+  overflow-x: auto;
+  background: var(--orion-sand-100);
+  scrollbar-width: none;
+}
+
+.orion-bottom-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.orion-bottom-tab {
+  padding: 0 14px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--orion-muted);
+  text-decoration: none;
+  border-right: 1px solid var(--orion-border-light);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .12s, border-bottom-color .12s, background .12s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  font-family: var(--orion-font, inherit);
+  margin-bottom: -1px;
+}
+
+.orion-bottom-tab i {
+  font-size: 12px;
+  opacity: .7;
+}
+
+.orion-bottom-tab:hover {
+  color: var(--orion-primary);
+  background: rgba(255,255,255,.6);
+}
+
+.orion-bottom-tab.active {
+  color: var(--orion-secondary);
+  background: #FFFFFF;
+  font-weight: 600;
+  border-bottom-color: var(--orion-secondary);
+}
+
+.orion-bottom-tab .count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--orion-secondary);
+  color: var(--orion-primary);
+  line-height: 1;
+}
+
+/* ── Contenu onglet bas ────────────────────────────────────── */
+.orion-bottom-tab-content {
+  padding: 16px;
+  display: none;
+}
+
+.orion-bottom-tab-content.active {
+  display: block;
+}
+
+/* Contenu vide */
+.orion-tab-empty {
+  text-align: center;
+  padding: 30px;
+  color: var(--orion-muted);
+  font-size: 12.5px;
+}
+
+.orion-tab-empty i {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 8px;
+  opacity: .3;
+}
+
+/* ── Note interne ──────────────────────────────────────────── */
+.orion-note-box {
+  background: var(--orion-warning-bg);
+  border: 1px solid rgba(180,83,9,.2);
+  border-left: 3px solid var(--orion-warning);
+  padding: 10px 14px;
+  border-radius: var(--orion-radius);
+  font-size: 12.5px;
+  color: var(--orion-text);
+}
+
+/* ── Chatter / discussion interne ──────────────────────────── */
+.orion-chatter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orion-chatter-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.orion-chatter-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--orion-sand-200);
+  color: var(--orion-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.orion-chatter-avatar img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.orion-chatter-bubble {
+  background: var(--orion-sand-100);
+  border: 1px solid var(--orion-border-light);
+  border-radius: 0 var(--orion-radius) var(--orion-radius);
+  padding: 8px 12px;
+  flex: 1;
+}
+
+.orion-chatter-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.orion-chatter-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orion-primary);
+}
+
+.orion-chatter-time {
+  font-size: 11px;
+  color: var(--orion-muted);
+}
+
+.orion-chatter-text {
+  font-size: 12.5px;
+  color: var(--orion-text);
+  line-height: 1.5;
+}
+
+.orion-chatter-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.orion-chatter-input textarea {
+  flex: 1;
+  height: 60px;
+  resize: none;
+  font-size: 12.5px;
+  border: 1px solid var(--orion-border-light);
+  border-radius: var(--orion-radius);
+  padding: 6px 10px;
+  font-family: var(--orion-font, inherit);
+  outline: none;
+}
+
+.orion-chatter-input textarea:focus {
+  border-color: var(--orion-secondary);
+  box-shadow: 0 0 0 2px rgba(198,161,91,.15);
+}
+
+/* ── Onglets secondaires internes (mini) ───────────────────── */
+.orion-mini-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--orion-border-light);
+  margin-bottom: 12px;
+  gap: 0;
+}
+
+.orion-mini-tab {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--orion-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .12s, border-bottom-color .12s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  font-family: var(--orion-font, inherit);
+  white-space: nowrap;
+}
+
+.orion-mini-tab:hover {
+  color: var(--orion-primary);
+}
+
+.orion-mini-tab.active {
+  color: var(--orion-secondary);
+  border-bottom-color: var(--orion-secondary);
+  font-weight: 600;
+}

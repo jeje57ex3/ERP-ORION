@@ -1,0 +1,21 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"support_urgent_tickets" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}{% if data.count %}<span class="badge bg-danger ms-2">{{ data.count }}</span>{% endif %}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for ticket in data.tickets %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <i class="bi bi-headset text-danger flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <a href="/support/tickets/{{ ticket.pk }}/" class="text-decoration-none fw-semibold" style="font-size:.84rem">{{ ticket.subject }}</a>
+      <div class="text-muted" style="font-size:.72rem">{{ ticket.created_at|date:"d/m/Y H:i" }}</div>
+    </div>
+    <span class="badge bg-danger flex-shrink-0" style="font-size:.65rem">{{ ticket.get_priority_display }}</span>
+  </li>
+  {% endfor %}
+</ul>
+<div class="p-2 text-end"><a href="/support/tickets/?priority=urgent" class="btn btn-sm btn-outline-danger" style="font-size:.75rem">Voir tous les urgents</a></div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-headset text-success"></i><p class="mt-2 mb-0">Aucun ticket urgent.</p></div>
+{% endif %}
+{% endwith %}

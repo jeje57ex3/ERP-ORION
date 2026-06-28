@@ -1,0 +1,183 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ quote.number|default:"Nouveau devis" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'sales:quote_list' %}">Devis</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ quote.number|default:"Nouveau" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">
+        {% if quote.pk %}{{ quote.number }}{% else %}Nouveau devis{% endif %}
+      </h1>
+      {% if quote.pk %}
+      <span class="orion-status
+        {% if quote.status == 'draft' %}draft
+        {% elif quote.status == 'sent' %}info
+        {% elif quote.status == 'accepted' %}active
+        {% elif quote.status == 'refused' %}danger
+        {% else %}closed{% endif %}">
+        {{ quote.get_status_display }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="quote-form" type="submit" title="Enregistrer (Ctrl+S)"><i class="bi bi-save"></i></button>
+      <button class="orion-icon-btn" onclick="window.print()" title="Imprimer"><i class="bi bi-printer"></i></button>
+      {% if quote.pk %}
+      <a href="{% url 'sales:quote_confirm_delete' quote.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer ce devis ?"><i class="bi bi-trash"></i></a>
+      <div class="orion-toolbar-sep"></div>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning me-1"></i>Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-send me-2 text-primary"></i>Envoyer au client</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>Télécharger PDF</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-files me-2"></i>Dupliquer</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1 text-success" href="#"><i class="bi bi-check-circle me-2"></i>Marquer accepté</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-arrow-right-circle me-2 text-info"></i>Créer commande</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-receipt me-2 text-success"></i>Créer facture</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1 text-danger" href="#"><i class="bi bi-x-circle me-2"></i>Marquer refusé</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form id="quote-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+
+    <div class="orion-record-grid cols-2-1">
+
+      <!-- Panneau principal -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-file-earmark-text text-warning" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Informations devis</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label class="required">Client</label>{{ form.customer }}</div>
+            <div class="orion-form-row"><label>Référence client</label>{{ form.customer_ref }}</div>
+            <div class="orion-form-row"><label class="required">Date</label>{{ form.issue_date }}</div>
+            <div class="orion-form-row"><label>Validité jusqu'au</label>{{ form.valid_until }}</div>
+            <div class="orion-form-row"><label>Commercial</label>{{ form.salesperson }}</div>
+            <div class="orion-form-row"><label>Objet</label>{{ form.subject }}</div>
+          </div>
+        </div>
+
+        <!-- Lignes -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-list-ul text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Lignes du devis</h2>
+          </div>
+          <div class="orion-record-panel-body" style="padding:0">
+            {{ form.lines.management_form }}
+            <table class="orion-lines-table">
+              <thead>
+                <tr>
+                  <th style="width:35%">Description</th>
+                  <th style="width:10%">Qté</th>
+                  <th style="width:10%">Unité</th>
+                  <th style="width:12%">PU HT</th>
+                  <th style="width:8%">Remise%</th>
+                  <th style="width:8%">TVA%</th>
+                  <th style="width:12%">Total HT</th>
+                  <th class="td-action"></th>
+                </tr>
+              </thead>
+              <tbody id="quote-lines">
+                {% for line_form in form.lines %}
+                <tr>
+                  <td>{{ line_form.description }}</td>
+                  <td>{{ line_form.quantity }}</td>
+                  <td>{{ line_form.unit }}</td>
+                  <td>{{ line_form.unit_price }}</td>
+                  <td>{{ line_form.discount }}</td>
+                  <td>{{ line_form.vat_rate }}</td>
+                  <td style="text-align:right;font-weight:500">—</td>
+                  <td class="td-action"><button type="button" class="orion-icon-btn danger" onclick="this.closest('tr').remove()" title="Supprimer ligne"><i class="bi bi-x"></i></button></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div style="padding:8px 12px;border-top:1px solid var(--orion-border-light)">
+              <button type="button" class="orion-btn orion-btn-outline orion-orion-btn sm" onclick="addQuoteLine()">
+                <i class="bi bi-plus me-1"></i>Ajouter une ligne
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-chat-left-text text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Notes & Conditions</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row" style="grid-template-columns:1fr"><label>Notes client</label>{{ form.notes }}</div>
+            <div class="orion-form-row" style="grid-template-columns:1fr;margin-top:8px"><label>Conditions générales</label>{{ form.terms }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col droite : totaux + conditions -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-calculator text-success" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Totaux</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-totals-grid">
+              <span class="label">Total HT</span>
+              <span class="value">{{ quote.total_ht|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label">Remise</span>
+              <span class="value">{{ quote.total_discount|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label">Base TVA</span>
+              <span class="value">{{ quote.total_taxable|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label">TVA</span>
+              <span class="value">{{ quote.total_tax|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label total-line">Total TTC</span>
+              <span class="value total-line">{{ quote.total_ttc|default:"0.00"|floatformat:2 }} €</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-credit-card text-info" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Paiement</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Mode paiement</label>{{ form.payment_method }}</div>
+            <div class="orion-form-row"><label>Conditions</label>{{ form.payment_terms }}</div>
+            <div class="orion-form-row"><label>Devise</label>{{ form.currency }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="orion-form-actions">
+      <a href="{% url 'sales:quote_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

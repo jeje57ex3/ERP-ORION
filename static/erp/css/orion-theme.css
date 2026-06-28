@@ -1,0 +1,348 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORION ERP — Dark Gold Theme
+   Loaded last via erp_shell.html {% block extra_css %}, overrides all prior CSS
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── New design tokens ────────────────────────────────────────────────── */
+:root {
+  --orion-bg:               #0B0B0D;
+  --orion-bg-soft:          #111114;
+  --orion-surface:          #17171B;
+  --orion-surface-elevated: #1F1F25;
+  --orion-surface-muted:    #141418;
+
+  --orion-border:           rgba(214, 179, 106, 0.18);
+  --orion-border-strong:    rgba(214, 179, 106, 0.34);
+
+  --orion-gold:             #D6B36A;
+  --orion-gold-light:       #F1DFA8;
+  --orion-gold-dark:        #9A7434;
+
+  --orion-text:             #F7F2E7;
+  --orion-text-soft:        #B9B2A3;
+  --orion-text-muted:       #7E786E;
+  --orion-text-inverse:     #09090B;
+
+  --orion-success:          #47C27A;
+  --orion-warning:          #E6A93E;
+  --orion-danger:           #E05252;
+  --orion-info:             #5AA7FF;
+
+  --orion-success-bg:       rgba(71, 194, 122, 0.12);
+  --orion-warning-bg:       rgba(230, 169, 62, 0.12);
+  --orion-danger-bg:        rgba(224, 82, 82, 0.12);
+  --orion-info-bg:          rgba(90, 167, 255, 0.12);
+
+  --orion-radius-sm:        10px;
+  --orion-radius-md:        16px;
+  --orion-radius-lg:        24px;
+  --orion-radius-xl:        32px;
+
+  --orion-shadow-card:      0 18px 50px rgba(0, 0, 0, 0.32);
+  --orion-shadow-soft:      0 10px 30px rgba(0, 0, 0, 0.22);
+
+  --orion-font:             Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --orion-transition:       180ms ease;
+}
+
+/* ── Override orion-design-system.css tokens (same :root, loaded later = wins) ── */
+:root {
+  --orion-accent:       var(--orion-gold);
+  --orion-primary:      var(--orion-gold);
+  --orion-muted:        var(--orion-text-muted);
+
+  /* Sidebar tokens used by orion-layout.css .orion-sidebar-v2 */
+  --orion-sidebar:      #0C0C0E;
+  --orion-sidebar-soft: #111114;
+
+  /* Surface variants from old design system */
+  --orion-surface-alt:  var(--orion-surface-muted);
+  --orion-surface-soft: var(--orion-surface-muted);
+  --orion-bg-page:      var(--orion-bg);
+
+  /* Sand tokens used in orion-design-system.css palette */
+  --orion-sand-100:     var(--orion-surface-muted);
+  --orion-sand-200:     var(--orion-surface);
+  --orion-sand-300:     var(--orion-surface-elevated);
+}
+
+/* ── Override od-* tokens (used by orion-desktop-layout.css) ───────────── */
+/* CSS variables resolve at render time — changing these values here makes
+   every rule using var(--od-cream) etc. automatically adopt the dark theme. */
+:root {
+  --od-cream:        var(--orion-bg);
+  --od-panel-bg:     var(--orion-surface);
+  --od-text:         var(--orion-text);
+  --od-muted:        var(--orion-text-muted);
+  --od-border:       var(--orion-border);
+  --od-border-light: var(--orion-border);
+  --od-sand-50:      var(--orion-surface-muted);
+  --od-sand-100:     var(--orion-surface-muted);
+  --od-sand-200:     var(--orion-surface);
+  --od-sand-300:     var(--orion-surface-elevated);
+  --od-primary:      var(--orion-text);
+  --od-primary-light: var(--orion-text-soft);
+
+  /* Sidebar tokens used in orion-desktop-layout.css / orion-desktop-sidebar.css */
+  --od-sidebar-bg:   var(--orion-bg-soft);
+  --od-sidebar-bg2:  var(--orion-bg-soft);
+
+  /* Sidebar tokens used in orion-sidebar.css */
+  --orion-sidebar-bg:      var(--orion-bg-soft);
+  --orion-sidebar-bg-dark: var(--orion-bg);
+
+  /* Status tokens (od prefix) */
+  --od-success:      var(--orion-success);
+  --od-success-bg:   var(--orion-success-bg);
+  --od-warning:      var(--orion-warning);
+  --od-warning-bg:   var(--orion-warning-bg);
+  --od-danger:       var(--orion-danger);
+  --od-danger-bg:    var(--orion-danger-bg);
+  --od-info:         var(--orion-info);
+  --od-info-bg:      var(--orion-info-bg);
+  --od-draft-bg:     var(--orion-surface-elevated);
+  --od-draft-c:      var(--orion-text-soft);
+}
+
+/* ── Global elements ─────────────────────────────────────────────────── */
+body,
+body.orion-desktop {
+  background:
+    radial-gradient(circle at top left, rgba(214, 179, 106, 0.07), transparent 34%),
+    var(--orion-bg);
+  color: var(--orion-text);
+  font-family: var(--orion-font);
+}
+
+* { box-sizing: border-box; }
+
+a {
+  color: var(--orion-gold-light);
+  text-decoration: none;
+}
+a:hover { color: var(--orion-gold); }
+
+::selection {
+  background: rgba(214, 179, 106, 0.35);
+  color: var(--orion-text);
+}
+
+/* ── Layout containers ───────────────────────────────────────────────── */
+.orion-shell,
+.orion-main-v2 {
+  background: transparent;
+  color: var(--orion-text);
+}
+
+.orion-content-v2 {
+  background: transparent;
+  color: var(--orion-text);
+}
+
+.orion-footer-v2 {
+  background: var(--orion-bg-soft) !important;
+  border-top: 1px solid var(--orion-border) !important;
+  color: var(--orion-text-muted) !important;
+}
+
+/* Sidebar — unify to cold dark (no more warm brown strip) */
+.orion-sidebar-v2 {
+  background: linear-gradient(180deg, var(--orion-bg) 0%, var(--orion-bg-soft) 100%) !important;
+  border-right: 1px solid var(--orion-border) !important;
+}
+
+/* Topbar */
+.orion-topbar-v2 {
+  background: var(--orion-bg-soft) !important;
+  border-bottom: 1px solid var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+
+/* ── Bootstrap component dark overrides ─────────────────────────────── */
+/* Card */
+.card {
+  background: var(--orion-surface) !important;
+  border: 1px solid var(--orion-border) !important;
+  color: var(--orion-text) !important;
+  --bs-card-bg: var(--orion-surface);
+  --bs-card-border-color: var(--orion-border);
+  --bs-card-color: var(--orion-text);
+}
+
+.card-header,
+.orion-card-header {
+  background: rgba(255,255,255,0.03) !important;
+  border-bottom-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+
+.card-footer {
+  background: rgba(255,255,255,0.02) !important;
+  border-top-color: var(--orion-border) !important;
+  color: var(--orion-text-muted) !important;
+}
+
+.card-body,
+.orion-card-body {
+  color: var(--orion-text) !important;
+}
+
+/* Table */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(214, 179, 106, 0.04);
+  --bs-table-hover-bg: rgba(214, 179, 106, 0.055);
+  --bs-table-border-color: var(--orion-border);
+  color: var(--orion-text);
+}
+
+.table > :not(caption) > * > * {
+  background-color: var(--bs-table-bg, transparent) !important;
+  border-bottom-color: var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+
+.table thead th,
+.table > thead > tr > th {
+  background: rgba(255,255,255,0.025) !important;
+  color: var(--orion-text-muted) !important;
+  border-color: var(--orion-border) !important;
+}
+
+/* Form controls */
+.form-control,
+.form-select {
+  background-color: rgba(255,255,255,0.045) !important;
+  color: var(--orion-text) !important;
+  border-color: var(--orion-border) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: rgba(255,255,255,0.065) !important;
+  border-color: var(--orion-gold) !important;
+  box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.15) !important;
+  color: var(--orion-text) !important;
+}
+
+.form-control::placeholder { color: var(--orion-text-muted) !important; }
+.form-label, label { color: var(--orion-text-soft) !important; }
+.form-text { color: var(--orion-text-muted) !important; }
+
+.form-control option,
+.form-select option {
+  background: var(--orion-surface-elevated);
+  color: var(--orion-text);
+}
+
+/* Input group */
+.input-group-text {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+
+/* Dropdown */
+.dropdown-menu {
+  background: var(--orion-surface-elevated) !important;
+  border: 1px solid var(--orion-border) !important;
+  box-shadow: var(--orion-shadow-card) !important;
+}
+
+.dropdown-item {
+  color: var(--orion-text-soft) !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(214, 179, 106, 0.1) !important;
+  color: var(--orion-gold-light) !important;
+}
+
+.dropdown-divider {
+  border-color: var(--orion-border) !important;
+}
+
+/* Modal */
+.modal-content {
+  background: var(--orion-surface-elevated) !important;
+  border: 1px solid var(--orion-border) !important;
+  color: var(--orion-text) !important;
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--orion-border) !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* Nav tabs */
+.nav-tabs {
+  border-bottom-color: var(--orion-border) !important;
+}
+
+.nav-tabs .nav-link {
+  color: var(--orion-text-muted) !important;
+}
+
+.nav-tabs .nav-link.active {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) var(--orion-border) var(--orion-surface) !important;
+  color: var(--orion-gold) !important;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--orion-text) !important;
+  border-color: var(--orion-border) !important;
+}
+
+/* Pagination */
+.pagination .page-link {
+  background: var(--orion-surface) !important;
+  border-color: var(--orion-border) !important;
+  color: var(--orion-text-soft) !important;
+}
+
+.pagination .page-link:hover {
+  background: rgba(214, 179, 106, 0.1) !important;
+  color: var(--orion-gold) !important;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--orion-gold) !important;
+  border-color: var(--orion-gold) !important;
+  color: var(--orion-text-inverse) !important;
+}
+
+/* Alerts */
+.alert {
+  border: 1px solid var(--orion-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--orion-text-soft);
+}
+
+.alert-success { background: var(--orion-success-bg) !important; border-color: rgba(71,194,122,.3) !important; color: #9EF0BC !important; }
+.alert-warning { background: var(--orion-warning-bg) !important; border-color: rgba(230,169,62,.3) !important; color: #FFD89B !important; }
+.alert-danger  { background: var(--orion-danger-bg)  !important; border-color: rgba(224,82,82,.3)  !important; color: #FFB8B8 !important; }
+.alert-info    { background: var(--orion-info-bg)    !important; border-color: rgba(90,167,255,.3)  !important; color: #BFDFFF !important; }
+
+/* Badges */
+.badge.bg-success, .badge.text-bg-success { background: var(--orion-success-bg) !important; color: #9EF0BC !important; border: 1px solid rgba(71,194,122,.3); }
+.badge.bg-warning, .badge.text-bg-warning { background: var(--orion-warning-bg) !important; color: #FFD89B !important; border: 1px solid rgba(230,169,62,.3); }
+.badge.bg-danger,  .badge.text-bg-danger  { background: var(--orion-danger-bg)  !important; color: #FFB8B8 !important; border: 1px solid rgba(224,82,82,.3); }
+.badge.bg-info,    .badge.text-bg-info    { background: var(--orion-info-bg)    !important; color: #BFDFFF !important; border: 1px solid rgba(90,167,255,.3); }
+
+/* ── Bootstrap utility overrides ─────────────────────────────────────── */
+.text-primary   { color: var(--orion-gold) !important; }
+.bg-primary     { background-color: rgba(214, 179, 106, 0.18) !important; color: var(--orion-gold-light) !important; }
+.text-muted     { color: var(--orion-text-muted) !important; }
+.text-secondary { color: var(--orion-text-soft) !important; }
+.bg-light       { background-color: var(--orion-surface-elevated) !important; }
+.bg-dark        { background-color: var(--orion-bg-soft) !important; }
+.bg-white       { background-color: var(--orion-surface) !important; }
+.text-dark      { color: var(--orion-text) !important; }
+.text-white     { color: var(--orion-text) !important; }
+.border         { border-color: var(--orion-border) !important; }
+.border-primary { border-color: var(--orion-gold) !important; }
+.link-primary   { color: var(--orion-gold-light) !important; }
+.link-primary:hover { color: var(--orion-gold) !important; }

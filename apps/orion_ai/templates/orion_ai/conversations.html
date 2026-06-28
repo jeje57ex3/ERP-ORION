@@ -1,0 +1,64 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Conversations IA — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Assistant IA</p>
+    <h1 class="orion-page-title">Conversations</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'orion_ai:assistant_dashboard' %}" class="orion-btn primary">
+      <i class="bi bi-plus-lg me-1"></i>Nouvelle conversation
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Titre</th>
+        <th>Statut</th>
+        <th>Contexte</th>
+        <th>Marque</th>
+        <th>Mise à jour</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for conv in conversations %}
+      <tr>
+        <td>
+          <a href="{% url 'orion_ai:conversation_detail' conv.id %}" style="font-weight:500;text-decoration:none;color:var(--orion-text)">
+            <i class="bi bi-chat-text me-2" style="color:var(--orion-muted)"></i>{{ conv.title|truncatechars:60 }}
+          </a>
+        </td>
+        <td>
+          {% if conv.status == 'active' %}
+          <span class="orion-badge success">Active</span>
+          {% elif conv.status == 'archived' %}
+          <span class="orion-badge neutral">Archivée</span>
+          {% else %}
+          <span class="orion-badge danger">Supprimée</span>
+          {% endif %}
+        </td>
+        <td>{{ conv.context_module|default:"—" }}</td>
+        <td>{{ conv.brand_key|upper|default:"—" }}</td>
+        <td>{{ conv.updated_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          <a href="{% url 'orion_ai:conversation_detail' conv.id %}" class="orion-btn sm">Ouvrir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--orion-muted);padding:40px">
+          Aucune conversation. <a href="{% url 'orion_ai:assistant_dashboard' %}">Démarrer un chat →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

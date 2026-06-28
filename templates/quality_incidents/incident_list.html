@@ -1,0 +1,94 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Opérations</div>
+    <h1 class="orion-page-title">Qualité & Incidents</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Incidents ouverts</div>
+    <div class="orion-metric-value">{{ stats.open }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Critiques</div>
+    <div class="orion-metric-value" style="color:var(--orion-danger)">{{ stats.critical }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">En cours</div>
+    <div class="orion-metric-value" style="color:var(--orion-warning)">{{ stats.in_progress }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Résolus ce mois</div>
+    <div class="orion-metric-value" style="color:var(--orion-success)">{{ stats.resolved_this_month }}</div>
+  </div>
+</div>
+<form method="get" class="orion-filter-bar mb-3">
+  <select name="severity" class="form-select form-select-sm" style="width:auto">
+    <option value="">Toute sévérité</option>
+    <option value="critical" {% if filter_severity == 'critical' %}selected{% endif %}>Critique</option>
+    <option value="high" {% if filter_severity == 'high' %}selected{% endif %}>Élevée</option>
+    <option value="medium" {% if filter_severity == 'medium' %}selected{% endif %}>Moyenne</option>
+    <option value="low" {% if filter_severity == 'low' %}selected{% endif %}>Faible</option>
+  </select>
+  <select name="type" class="form-select form-select-sm" style="width:auto">
+    <option value="">Tous les types</option>
+    <option value="quality" {% if filter_type == 'quality' %}selected{% endif %}>Qualité</option>
+    <option value="safety" {% if filter_type == 'safety' %}selected{% endif %}>Sécurité</option>
+    <option value="delivery" {% if filter_type == 'delivery' %}selected{% endif %}>Livraison</option>
+    <option value="customer" {% if filter_type == 'customer' %}selected{% endif %}>Client</option>
+    <option value="other" {% if filter_type == 'other' %}selected{% endif %}>Autre</option>
+  </select>
+  <button type="submit" class="orion-btn sm">Filtrer</button>
+  {% if filter_severity or filter_type %}
+  <a href="{% url 'quality_incidents:list' %}" class="orion-btn sm ghost">Réinitialiser</a>
+  {% endif %}
+</form>
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    {% if incidents %}
+    <div class="list-group list-group-flush">
+      {% for inc in incidents %}
+      <div class="list-group-item px-4 py-3" style="border-left:4px solid {% if inc.severity == 'critical' %}var(--orion-danger){% elif inc.severity == 'high' %}var(--orion-warning){% else %}var(--orion-border){% endif %}">
+        <div class="d-flex align-items-start gap-3">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="orion-badge {% if inc.severity == 'critical' %}danger{% elif inc.severity == 'high' %}warning{% else %}neutral{% endif %}">
+                {{ inc.get_severity_display }}
+              </span>
+              <span class="orion-badge neutral" style="font-size:11px">{{ inc.get_incident_type_display }}</span>
+              {% if inc.brand_key %}<span class="orion-badge accent" style="font-size:11px">{{ inc.brand_key }}</span>{% endif %}
+            </div>
+            <div style="font-weight:600;font-size:14px">
+              <a href="{% url 'quality_incidents:detail' inc.pk %}" style="color:inherit;text-decoration:none">{{ inc.title }}</a>
+            </div>
+            <div style="font-size:12px;color:var(--orion-muted);margin-top:2px">
+              {{ inc.created_at|date:"d/m/Y" }}
+              {% if inc.customer %} · {{ inc.customer.name }}{% endif %}
+              {% if inc.due_at %} · Échéance {{ inc.due_at|date:"d/m/Y" }}{% endif %}
+            </div>
+          </div>
+          <span class="orion-badge neutral">{{ inc.get_status_display }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if incidents.has_other_pages %}
+    <nav class="orion-pagination p-3">
+      {% if incidents.has_previous %}<a href="?page={{ incidents.previous_page_number }}" class="orion-page-btn">‹</a>{% endif %}
+      <span class="orion-page-btn" style="background:var(--orion-accent-soft)">{{ incidents.number }}/{{ incidents.paginator.num_pages }}</span>
+      {% if incidents.has_next %}<a href="?page={{ incidents.next_page_number }}" class="orion-page-btn">›</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-shield-check" style="font-size:32px;color:var(--orion-success)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucun incident ouvert.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "errors/base_error.html" %}
+{% block error_code %}400{% endblock %}
+{% block code_color %}#F59E0B{% endblock %}
+{% block error_heading %}Requête incorrecte{% endblock %}
+{% block error_body %}
+  La requête envoyée au serveur est malformée ou invalide.
+  Veuillez vérifier les données saisies et réessayer.
+{% endblock %}

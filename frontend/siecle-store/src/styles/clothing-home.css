@@ -1,0 +1,59 @@
+/* SIÈCLE — Clothing universe */
+.clothing-home {
+  min-height: 100vh;
+  background: #000;
+}
+.clothing-hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0a0a0a 0%, #111108 100%);
+}
+.size-inclusivity-banner {
+  background: rgba(216,199,163,0.06);
+  border: 1px solid rgba(216,199,163,0.15);
+  border-radius: 16px;
+  padding: 24px 32px;
+  text-align: center;
+}
+.size-range-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 16px;
+}
+.size-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.size-pill.highlight {
+  border-color: var(--siecle-beige);
+  color: var(--siecle-beige);
+}
+.fit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.fit-card {
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.fit-card:hover,
+.fit-card.active {
+  border-color: rgba(216,199,163,0.3);
+  background: rgba(216,199,163,0.03);
+}

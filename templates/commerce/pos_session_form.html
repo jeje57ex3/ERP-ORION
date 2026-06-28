@@ -1,0 +1,38 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'commerce:pos_list' %}">Sessions caisse</a></li>
+<li class="breadcrumb-item active">Ouvrir une session</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">Ouvrir une session caisse</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cash-coin me-1 text-primary"></i>Nouvelle session</h6></div>
+      <div class="orion-orion-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Magasin *</label>
+            {{ form.store }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-sm">Fond de caisse (€)</label>
+            {{ form.opening_cash }}
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="orion-btn primary"><i class="bi bi-unlock me-1"></i>Ouvrir la session</button>
+            <a href="{% url 'commerce:pos_list' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

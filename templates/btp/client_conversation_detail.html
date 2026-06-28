@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ conv.subject }}{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'btp:client_messages_list' %}" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Messages clients</a>
+  <div class="d-flex justify-content-between align-items-center mt-1">
+    <div>
+      <h5 class="fw-bold mb-0">{{ conv.subject }}</h5>
+      <div class="small text-muted">{{ conv.project.name }}</div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <select name="status" class="form-select form-select-sm d-inline-block me-2" style="width:auto">
+        <option value="open" {% if conv.status == 'open' %}selected{% endif %}>Ouvert</option>
+        <option value="waiting_client" {% if conv.status == 'waiting_client' %}selected{% endif %}>En attente client</option>
+        <option value="waiting_manager" {% if conv.status == 'waiting_manager' %}selected{% endif %}>En attente responsable</option>
+        <option value="resolved" {% if conv.status == 'resolved' %}selected{% endif %}>Résolu</option>
+        <option value="closed" {% if conv.status == 'closed' %}selected{% endif %}>Clôturé</option>
+      </select>
+      <button type="submit" name="action" value="update_status" class="orion-btn sm btn-outline-secondary">OK</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-8">
+    <!-- Messages -->
+    <div class="bg-white border rounded-3 p-4 mb-3" style="max-height:500px;overflow-y:auto" id="msg-box">
+      {% for msg in msgs %}
+      <div class="mb-4">
+        {% if msg.is_internal %}
+        <div class="bg-light-subtle border border-dashed rounded p-3 position-relative" style="border-style:dashed!important">
+          <span class="orion-badge neutral position-absolute" style="top:-10px;left:12px;font-size:.65rem">Note interne</span>
+          <div class="small fw-semibold mb-1">{{ msg.sender_name|default:"Équipe" }}</div>
+          <div class="small">{{ msg.content }}</div>
+          <div class="text-muted mt-1" style="font-size:.65rem">{{ msg.created_at|timesince }}</div>
+        </div>
+        {% elif msg.is_from_client %}
+        <div class="d-flex gap-2">
+          <div style="width:32px;height:32px;border-radius:50%;background:#0F172A;display:flex;align-items:center;justify-content:center;color:#F59E0B;font-weight:700;font-size:.8rem;flex-shrink:0">C</div>
+          <div style="max-width:80%">
+            <div class="bg-light rounded-3 p-3">
+              <div class="small fw-semibold mb-1 text-muted">{{ msg.sender_name|default:"Client" }}</div>
+              <div class="small">{{ msg.content }}</div>
+              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{{ a.file.url }}" class="badge bg-white border text-dark me-1" download><i class="bi bi-paperclip"></i> Fichier</a>{% endfor %}</div>{% endif %}
+            </div>
+            <div class="text-muted mt-1" style="font-size:.65rem">{{ msg.created_at|timesince }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="d-flex gap-2 flex-row-reverse">
+          <div style="width:32px;height:32px;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;color:#0F172A;font-weight:700;font-size:.8rem;flex-shrink:0">R</div>
+          <div style="max-width:80%">
+            <div class="bg-warning rounded-3 p-3">
+              <div class="small fw-semibold mb-1">{{ msg.sender_name|default:"Responsable" }}</div>
+              <div class="small">{{ msg.content }}</div>
+              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{{ a.file.url }}" class="badge bg-white border text-dark me-1" download><i class="bi bi-paperclip"></i> Fichier</a>{% endfor %}</div>{% endif %}
+            </div>
+            <div class="text-muted mt-1 text-end" style="font-size:.65rem">{{ msg.created_at|timesince }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="text-center text-muted py-5"><i class="bi bi-chat-dots fs-2 d-block mb-2"></i>Aucun message</div>
+      {% endfor %}
+    </div>
+
+    <!-- Répondre -->
+    <div class="bg-white border rounded-3 p-4">
+      <h6 class="fw-bold mb-3">Répondre</h6>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3"><textarea name="content" class="form-control" rows="3" placeholder="Votre réponse au client..." required></textarea></div>
+        <div class="mb-3"><label class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-paperclip me-1"></i>Pièces jointes<input type="file" name="attachments" class="d-none" multiple></label></div>
+        <div class="d-flex gap-2">
+          <button type="submit" name="action" value="reply_client" class="orion-btn warning fw-bold"><i class="bi bi-send me-1"></i>Répondre au client</button>
+          <button type="submit" name="action" value="add_internal_note" class="btn btn-outline-secondary"><i class="bi bi-lock me-1"></i>Note interne</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sidebar infos -->
+  <div class="col-12 col-lg-4">
+    <div class="bg-white border rounded-3 p-4 mb-3">
+      <h6 class="fw-bold mb-3">Chantier</h6>
+      <div class="small text-muted mb-2"><strong>{{ conv.project.name }}</strong></div>
+      <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>{{ conv.project.client_company|default:conv.project.client_name|default:"—" }}</div>
+      <a href="{% url 'btp:project_detail' conv.project.pk %}" class="btn btn-outline-primary orion-btn sm w-100 mt-2"><i class="bi bi-building me-1"></i>Voir le chantier</a>
+    </div>
+    <div class="bg-white border rounded-3 p-4">
+      <h6 class="fw-bold mb-3">Infos conversation</h6>
+      <div class="small text-muted mb-1">Créée le {{ conv.created_at|date:"d/m/Y" }}</div>
+      <div class="small text-muted mb-1">{{ msgs|length }} message{{ msgs|length|pluralize }}</div>
+      <div class="small text-muted">{{ conv.unread_by_manager }} non lu{{ conv.unread_by_manager|pluralize }} par le responsable</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>const box=document.getElementById('msg-box');if(box)box.scrollTop=box.scrollHeight;</script>
+{% endblock %}

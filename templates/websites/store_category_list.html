@@ -1,0 +1,42 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Catégories boutique — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:store_dashboard' website.pk %}">{{ website.name }}</a></li>
+<li class="breadcrumb-item active">Catégories boutique</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'websites:store_category_create' website.pk %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle catégorie</a>
+{% endblock %}
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title">Catégories — {{ website.name }}</h6></div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead><tr><th>Catégorie</th><th>Parent</th><th>Produits</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td class="fw-semibold">{{ cat.name }}</td>
+          <td class="text-muted small">{{ cat.parent.name|default:"—" }}</td>
+          <td>{{ cat.products.count }}</td>
+          <td>{% if cat.is_active %}<span class="orion-badge orion-badge-success">Active</span>{% else %}<span class="orion-badge orion-badge-secondary">Inactive</span>{% endif %}</td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'websites:store_category_edit' website.pk cat.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-folder"></i></div>
+            <div class="orion-empty-title">Aucune catégorie créée.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

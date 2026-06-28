@@ -1,0 +1,100 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:order_list' %}">Commandes web</a></li>
+<li class="breadcrumb-item active">{{ order.order_number }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ order.order_number }}</h1>
+      <div class="detail-meta">
+        {% if order.status == 'pending' %}<span class="badge-status badge-pending">En attente</span>
+        {% elif order.status == 'processing' %}<span class="badge-status badge-partial">En préparation</span>
+        {% elif order.status == 'shipped' %}<span class="badge-status badge-sent">Expédiée</span>
+        {% elif order.status == 'delivered' %}<span class="badge-status badge-paid">Livrée</span>
+        {% elif order.status == 'cancelled' %}<span class="badge-status badge-cancelled">Annulée</span>
+        {% else %}<span class="badge-status badge-draft">{{ order.get_status_display }}</span>{% endif %}
+        {% if order.payment_status == 'paid' %}<span class="badge-status badge-paid">Payé</span>
+        {% elif order.payment_status == 'pending' %}<span class="badge-status badge-pending">Paiement en attente</span>{% endif %}
+        <span><i class="bi bi-calendar me-1"></i>{{ order.order_date|date:"d/m/Y H:i" }}</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      {% if order.status not in 'shipped,delivered,cancelled' %}
+      <form method="post" action="{% url 'ecommerce:order_ship' order.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="text" name="tracking_number" class="form-control form-control-sm d-inline" style="width:160px;" placeholder="N° suivi...">
+        <button class="orion-btn primary orion-btn sm"><i class="bi bi-truck me-1"></i>Expédier</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'ecommerce:order_edit' order.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'ecommerce:order_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>Lignes de commande</h6></div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>Produit</th><th>Réf.</th><th class="text-end">Qté</th><th class="text-end">PU HT</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for line in order.lines.all %}
+            <tr>
+              <td class="small fw-semibold">{{ line.product_name }}</td>
+              <td class="small text-muted">{{ line.product_reference|default:"—" }}</td>
+              <td class="text-end small">{{ line.quantity }}</td>
+              <td class="text-end small">{{ line.unit_price }} €</td>
+              <td class="text-end small fw-semibold">{{ line.total }} €</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune ligne.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 border-top">
+        <div class="row justify-content-end">
+          <div class="col-md-4">
+            <div class="d-flex justify-content-between small mb-1"><span>Sous-total HT</span><strong>{{ order.subtotal }} €</strong></div>
+            <div class="d-flex justify-content-between small mb-1"><span>Frais de port</span><strong>{{ order.shipping_cost }} €</strong></div>
+            <div class="d-flex justify-content-between fw-bold border-top pt-1"><span>Total TTC</span><strong>{{ order.total_ttc }} €</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Client</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Nom</label><div class="value">{{ order.customer_name }}</div></div>
+        <div class="info-item"><label>Email</label><div class="value small"><a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a></div></div>
+        <div class="info-item"><label>Téléphone</label><div class="value {% if not order.customer_phone %}empty{% endif %}">{{ order.customer_phone|default:"—" }}</div></div>
+        <div class="info-item"><label>Adresse livraison</label><div class="value small {% if not order.shipping_address %}empty{% endif %}">{{ order.shipping_address|default:"—" }}</div></div>
+      </div>
+    </div>
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-credit-card me-1 text-primary"></i>Paiement & livraison</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Canal</label><div class="value">{{ order.channel }}</div></div>
+        <div class="info-item"><label>Mode de paiement</label><div class="value {% if not order.payment_method %}empty{% endif %}">{{ order.payment_method|default:"—" }}</div></div>
+        <div class="info-item"><label>N° suivi</label><div class="value {% if not order.tracking_number %}empty{% endif %}">{{ order.tracking_number|default:"—" }}</div></div>
+        {% if order.shipped_at %}<div class="info-item"><label>Expédiée le</label><div class="value">{{ order.shipped_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
+      </div>
+    </div>
+    {% if order.notes %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="p-3"><p class="mb-0 small text-muted">{{ order.notes }}</p></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

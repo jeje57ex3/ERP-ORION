@@ -1,0 +1,42 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 fw-bold mb-0"><i class="bi bi-shield-check text-success me-2"></i>Standards & bonnes pratiques</h1>
+    <a href="{% url 'continuous_improvement:dashboard' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>PDCA
+    </a>
+  </div>
+
+  {% if standards %}
+  <div class="row g-3">
+    {% for std in standards %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="fw-bold">{{ std.title }}</h6>
+          {% if std.module %}<span class="badge bg-light text-muted mb-2">{{ std.module }}</span>{% endif %}
+          <p class="small text-muted mb-2">{{ std.description|truncatewords:30 }}</p>
+          {% if std.cycle %}
+          <a href="{% url 'continuous_improvement:cycle_detail' std.cycle_id %}" class="small text-primary">
+            <i class="bi bi-arrow-repeat me-1"></i>{{ std.cycle.title }}
+          </a>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0">
+          <div class="x-small text-muted">Créé le {{ std.created_at|date:"d/m/Y" }} par {{ std.created_by|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-shield fs-1 text-muted d-block mb-3"></i>
+    <h5 class="text-muted">Aucun standard enregistré</h5>
+    <p class="text-muted">Les standards sont créés automatiquement lors de la décision « Standardiser » dans la phase AGIR d'un cycle PDCA.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

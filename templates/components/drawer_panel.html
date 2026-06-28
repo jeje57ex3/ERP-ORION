@@ -1,0 +1,45 @@
+{# Composant : Drawer Panel (panneau latéral glissant)
+   Usage :
+     {% include "components/drawer_panel.html" with drawer_id="customerDrawer" drawer_title="Détail client" %}
+     Ouverture JS : OrionDrawer.open('customerDrawer')
+     Fermeture JS : OrionDrawer.close('customerDrawer')
+     Ou bouton :   data-drawer-open="customerDrawer"
+   Variables : drawer_id (requis), drawer_title, drawer_footer_html
+#}
+{% with id=drawer_id|default:"orionDrawer" %}
+
+<!-- Overlay -->
+<div class="orion-drawer-overlay" id="{{ id }}Overlay" onclick="OrionDrawer.close('{{ id }}')"></div>
+
+<!-- Drawer -->
+<div class="orion-drawer" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}Title">
+  <div class="orion-drawer-header">
+    <h5 class="orion-drawer-title" id="{{ id }}Title">
+      {% if drawer_icon %}<i class="bi {{ drawer_icon }} me-2"></i>{% endif %}
+      {{ drawer_title|default:"Détail" }}
+    </h5>
+    <button class="orion-drawer-close" onclick="OrionDrawer.close('{{ id }}')" aria-label="Fermer">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="orion-drawer-body" id="{{ id }}Body">
+    <!-- Contenu injecté dynamiquement ou via block -->
+    {% block drawer_content %}
+    <div class="d-flex align-items-center justify-content-center py-5 text-muted">
+      <div class="text-center">
+        <div class="orion-skeleton" style="width:64px;height:64px;border-radius:50%;margin:0 auto 1rem"></div>
+        <div class="orion-skeleton orion-skeleton-text" style="width:160px;height:14px;margin:0 auto .5rem"></div>
+        <div class="orion-skeleton orion-skeleton-text" style="width:100px;height:12px;margin:0 auto"></div>
+      </div>
+    </div>
+    {% endblock %}
+  </div>
+  {% if drawer_footer_html or show_footer %}
+  <div class="orion-drawer-footer">
+    {{ drawer_footer_html }}
+    <button class="orion-btn orion-btn-outline" onclick="OrionDrawer.close('{{ id }}')">Fermer</button>
+  </div>
+  {% endif %}
+</div>
+
+{% endwith %}

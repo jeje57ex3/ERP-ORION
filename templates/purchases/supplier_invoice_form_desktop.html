@@ -1,0 +1,85 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+
+{% block title %}{{ invoice.number|default:"Nouvelle facture fournisseur" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'purchases:supplier_invoice_list' %}">Factures fournisseurs</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ invoice.number|default:"Nouvelle" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">{% if invoice.pk %}{{ invoice.number }}{% else %}Nouvelle facture fournisseur{% endif %}</h1>
+      {% if invoice.pk %}<span class="orion-status {{ invoice.status|default:'draft' }}">{{ invoice.get_status_display }}</span>{% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="sinv-form" type="submit" title="Enregistrer"><i class="bi bi-save"></i></button>
+      {% if invoice.pk %}
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>Actions</button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-cash me-2 text-success"></i>Enregistrer paiement</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-journal-text me-2"></i>Comptabiliser</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <form id="sinv-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+    <div class="orion-record-grid cols-2-1">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header"><i class="bi bi-receipt text-purple" style="font-size:13px;color:#7C3AED"></i><h2 class="orion-record-panel-title">Facture fournisseur</h2></div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label class="required">Fournisseur</label>{{ form.supplier }}</div>
+            <div class="orion-form-row"><label>Commande liée</label>{{ form.purchase_order }}</div>
+            <div class="orion-form-row"><label class="required">N° facture fourn.</label>{{ form.supplier_invoice_number }}</div>
+            <div class="orion-form-row"><label class="required">Date</label>{{ form.invoice_date }}</div>
+            <div class="orion-form-row"><label>Échéance</label>{{ form.due_date }}</div>
+          </div>
+        </div>
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header"><i class="bi bi-list-ul text-primary" style="font-size:13px"></i><h2 class="orion-record-panel-title">Lignes</h2></div>
+          <div class="orion-record-panel-body" style="padding:0">
+            {{ form.lines.management_form }}
+            <table class="orion-lines-table">
+              <thead><tr><th style="width:40%">Description</th><th>Qté</th><th>PU HT</th><th>TVA%</th><th>Total HT</th><th class="td-action"></th></tr></thead>
+              <tbody>{% for lf in form.lines %}<tr><td>{{ lf.description }}</td><td>{{ lf.quantity }}</td><td>{{ lf.unit_price }}</td><td>{{ lf.vat_rate }}</td><td style="text-align:right">—</td><td class="td-action"><button type="button" class="orion-icon-btn danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td></tr>{% endfor %}</tbody>
+            </table>
+            <div style="padding:8px 12px;border-top:1px solid var(--orion-border-light)"><button type="button" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-plus me-1"></i>Ajouter</button></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header"><i class="bi bi-calculator text-success" style="font-size:13px"></i><h2 class="orion-record-panel-title">Totaux</h2></div>
+          <div class="orion-record-panel-body">
+            <div class="orion-totals-grid">
+              <span class="label">Total HT</span><span class="value">{{ invoice.total_ht|default:"0.00" }} €</span>
+              <span class="label">TVA</span><span class="value">{{ invoice.total_tax|default:"0.00" }} €</span>
+              <span class="label total-line">Total TTC</span><span class="value total-line">{{ invoice.total_ttc|default:"0.00" }} €</span>
+            </div>
+          </div>
+        </div>
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header"><i class="bi bi-credit-card text-info" style="font-size:13px"></i><h2 class="orion-record-panel-title">Paiement</h2></div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Mode</label>{{ form.payment_method }}</div>
+            <div class="orion-form-row"><label>Statut</label>{{ form.status }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="orion-form-actions">
+      <a href="{% url 'purchases:supplier_invoice_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

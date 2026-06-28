@@ -1,0 +1,77 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Promotions — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">Promotions</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'ecommerce:promotion_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle promotion</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EDE9FE;color:#8B5CF6"><i class="bi bi-tag"></i></div>
+      <div class="orion-kpi-value">{{ active_count }}</div>
+      <div class="orion-kpi-label">Promos actives</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="?" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="orion-filter-chip {% if status == val %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Nom</th><th>Type</th><th>Valeur</th><th>Utilisations</th><th>Statut</th><th>Période</th><th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for promo in promotions %}
+        <tr>
+          <td class="fw-semibold">{{ promo.name }}</td>
+          <td>{{ promo.get_discount_type_display }}</td>
+          <td>
+            {% if promo.discount_type == 'percentage' %}{{ promo.discount_value }}%
+            {% elif promo.discount_type == 'fixed_amount' %}{{ promo.discount_value }}€
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ promo.uses_count }}{% if promo.max_uses %}/{{ promo.max_uses }}{% endif %}</td>
+          <td><span class="orion-badge orion-badge-{{ promo.status }}">{{ promo.get_status_display }}</span></td>
+          <td class="small text-muted">
+            {% if promo.starts_at %}{{ promo.starts_at|date:"d/m/Y" }}{% endif %}
+            {% if promo.ends_at %} → {{ promo.ends_at|date:"d/m/Y" }}{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ecommerce:promotion_edit' promo.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="{% url 'ecommerce:promotion_toggle' promo.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% if promo.status == 'active' %}Désactiver{% else %}Activer{% endif %}">
+                  <i class="bi bi-{% if promo.status == 'active' %}pause{% else %}play{% endif %}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-tag"></i></div>
+            <div class="orion-empty-title">Aucune promotion créée.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Analyse concurrentielle</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'competitor:create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-plus-lg"></i> Ajouter un concurrent
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Analyse Concurrentielle</h1>
+    <p class="orion-page-subtitle">{{ competitors_count }} concurrent{{ competitors_count|pluralize }} suivi{{ competitors_count|pluralize }}</p>
+  </div>
+</div>
+
+{% if messages %}
+{% for m in messages %}
+<div class="orion-alert orion-alert-{{ m.tags|default:'info' }} mb-3">
+  <i class="bi bi-info-circle"></i> {{ m }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color:#6366F1">
+      <div class="orion-kpi-icon" style="background:rgba(99,102,241,.12);color:#6366F1">
+        <i class="bi bi-building-check"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ competitors_count }}</div>
+        <div class="orion-kpi-label">Concurrents suivis</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
+      <div class="orion-kpi-icon" style="background:rgba(8,145,178,.12);color:var(--orion-info)">
+        <i class="bi bi-tag"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">
+          {% if price_index.competitor_avg %}{{ price_index.competitor_avg|floatformat:2 }} €{% else %}—{% endif %}
+        </div>
+        <div class="orion-kpi-label">Prix moyen marché</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: {% if price_index.gap_percent and price_index.gap_percent < 0 %}var(--orion-success){% else %}var(--orion-warning){% endif %}">
+      <div class="orion-kpi-icon" style="background:rgba(22,163,74,.12);color:var(--orion-success)">
+        <i class="bi bi-graph-down-arrow"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">
+          {% if price_index.gap_percent is not None %}
+            {% if price_index.gap_percent > 0 %}+{% endif %}{{ price_index.gap_percent }}%
+          {% else %}—{% endif %}
+        </div>
+        <div class="orion-kpi-label">Écart nos prix / marché</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-danger)">
+      <div class="orion-kpi-icon" style="background:rgba(220,38,38,.12);color:var(--orion-danger)">
+        <i class="bi bi-bell-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ unread_alerts }}</div>
+        <div class="orion-kpi-label">Alertes non lues</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Concurrents -->
+  <div class="col-lg-7">
+    <div class="card erp-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-building-check me-2 text-primary"></i>Concurrents suivis</h5>
+        <a href="{% url 'competitor:list' %}" class="btn btn-sm btn-outline-secondary">Voir tous</a>
+      </div>
+      <div class="card-body p-0">
+        {% if competitors %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Concurrent</th><th>Secteur</th><th>Produits</th><th>Score</th><th>Alertes</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for c in competitors %}
+              <tr>
+                <td>
+                  {% if c.logo %}<img src="{{ c.logo.url }}" height="24" class="me-2 rounded">{% endif %}
+                  <strong>{{ c.name }}</strong>
+                  {% if c.website_url %}<a href="{{ c.website_url }}" target="_blank" class="ms-1 text-muted"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+                </td>
+                <td class="text-muted">{{ c.industry|default:"—" }}</td>
+                <td>{{ c.products_count }}</td>
+                <td>
+                  {% with c.pk as cid %}
+                  <div class="progress" style="height:6px;width:60px">
+                    <div class="progress-bar bg-primary" style="width:50%"></div>
+                  </div>
+                  {% endwith %}
+                </td>
+                <td>
+                  {% if c.alerts_count %}<span class="badge bg-danger">{{ c.alerts_count }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td><a href="{% url 'competitor:detail' c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-binoculars fs-1 d-block mb-3 opacity-25"></i>
+          <p>Aucun concurrent. <a href="{% url 'competitor:create' %}">Ajouter le premier</a></p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertes récentes -->
+  <div class="col-lg-5">
+    <div class="card erp-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-bell me-2 text-danger"></i>Alertes récentes</h5>
+        <a href="{% url 'competitor:alerts' %}" class="btn btn-sm btn-outline-secondary">Voir toutes</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_alerts %}
+        <ul class="list-group list-group-flush">
+          {% for alert in recent_alerts %}
+          <li class="list-group-item">
+            <div class="d-flex gap-2 align-items-start">
+              <i class="{{ alert.severity_icon }} text-{{ alert.severity_color }} mt-1 flex-shrink-0"></i>
+              <div class="flex-grow-1">
+                <div class="fw-semibold small">{{ alert.title|truncatechars:60 }}</div>
+                <div class="text-muted" style="font-size:.75rem">
+                  {{ alert.competitor.name }} — {{ alert.created_at|date:"d/m H:i" }}
+                </div>
+              </div>
+              <span class="badge bg-{{ alert.severity_color }}">{{ alert.get_severity_display }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-bell-slash fs-1 d-block mb-3 opacity-25"></i>
+          <p>Aucune alerte non lue.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Liens rapides -->
+  <div class="col-12">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Accès rapide</h5></div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for item in ""|make_list %}{% endfor %}
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:list' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-building-check fs-2 text-primary mb-2"></i>
+              <div class="fw-semibold small">Concurrents</div>
+            </a>
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:product_list' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-grid-3x3 fs-2 text-success mb-2"></i>
+              <div class="fw-semibold small">Produits</div>
+            </a>
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:price_history' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-graph-down-arrow fs-2 text-info mb-2"></i>
+              <div class="fw-semibold small">Prix</div>
+            </a>
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:traffic' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-bar-chart-line fs-2 text-warning mb-2"></i>
+              <div class="fw-semibold small">Trafic estimé</div>
+            </a>
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:compare' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-layout-split fs-2 text-secondary mb-2"></i>
+              <div class="fw-semibold small">Comparaison</div>
+            </a>
+          </div>
+          <div class="col-sm-6 col-md-4 col-lg-2">
+            <a href="{% url 'competitor:reports' %}" class="card text-center p-3 h-100 text-decoration-none border">
+              <i class="bi bi-file-earmark-bar-graph fs-2 text-danger mb-2"></i>
+              <div class="fw-semibold small">Rapports</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

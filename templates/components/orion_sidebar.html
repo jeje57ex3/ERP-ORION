@@ -1,0 +1,115 @@
+{% load static %}
+<aside class="erp-sidebar orion-sidebar" id="erpSidebar">
+
+  <!-- Marque / Logo -->
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">
+      {% if current_company and current_company.logo %}
+        <img src="{{ current_company.logo.url }}" alt="{{ current_company.name }}" class="company-logo-img"
+             style="max-width:28px;max-height:28px;object-fit:contain"
+             onerror="this.src='{% static BRAND_ICON_LIGHT_PATH|default:'img/brand/orion-icon-white.svg' %}'">
+      {% else %}
+        <img src="{% static 'img/brand/orion-icon-white.svg' %}" alt="{{ brand_name|default:'Orion ERP' }}"
+             style="width:28px;height:28px;object-fit:contain">
+      {% endif %}
+    </div>
+    <div class="sidebar-brand-text">
+      <span class="brand-name">{{ brand_name|default:"Orion ERP" }}</span>
+      <span class="brand-sub">{% if current_company %}{{ current_company.name|truncatechars:22 }}{% else %}{{ brand_tagline|default:"ERP Multi-sociétés" }}{% endif %}</span>
+    </div>
+    <button class="sidebar-toggle-btn d-lg-none" id="sidebarClose" aria-label="Fermer">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- Sélecteur d'entreprise -->
+  {% if companies %}
+  <div class="sidebar-company-selector">
+    <div class="dropdown">
+      <button class="company-selector-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="company-icon" {% if current_company %}style="background-color:{{ current_company.sector_color }}22;color:{{ current_company.sector_color }}"{% endif %}>
+          <i class="bi bi-building"></i>
+        </div>
+        <div class="company-info">
+          <span class="company-name-text">{{ current_company.name|truncatechars:18 }}</span>
+          <span class="company-sector">{{ current_company.get_sector_display }}</span>
+        </div>
+        <i class="bi bi-chevron-expand ms-auto" style="font-size:10px;opacity:.5"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark company-dropdown">
+        {% for comp in companies %}
+        <li>
+          <a class="dropdown-item company-item {% if current_company.pk == comp.pk %}active{% endif %}"
+             href="{% url 'core:switch_company' comp.pk %}?next={{ request.path }}">
+            <span class="company-sector-dot" style="background:{{ comp.sector_color }}"></span>
+            <span>{{ comp.name }}</span>
+            {% if current_company.pk == comp.pk %}<i class="bi bi-check2 ms-auto"></i>{% endif %}
+          </a>
+        </li>
+        {% endfor %}
+        {% if request.user.is_superuser %}
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{% url 'core:company_create' %}"><i class="bi bi-plus-circle me-2"></i>Nouvelle entreprise</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Navigation principale -->
+  <nav class="sidebar-nav" aria-label="Navigation principale">
+    {% for module in nav_modules %}
+    <div class="nav-item {% if active_module == module.id %}active{% endif %}">
+      {% if module.children %}
+      <a class="nav-link {% if active_module == module.id %}active{% endif %}"
+         data-bs-toggle="collapse"
+         href="#navCollapse-{{ module.id }}"
+         role="button"
+         aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}"
+         aria-controls="navCollapse-{{ module.id }}">
+        <span class="nav-icon" style="color:{{ module.color }}"><i class="bi {{ module.icon }}"></i></span>
+        <span class="nav-label">{{ module.label }}</span>
+        <i class="bi bi-chevron-down nav-arrow"></i>
+      </a>
+      <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navCollapse-{{ module.id }}">
+        <div class="nav-submenu">
+          {% for child in module.children %}
+          <a class="nav-sublink {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+             href="{% url child.url_name %}">
+            <i class="bi {{ child.icon }} me-1" style="font-size:12px;opacity:.7"></i>{{ child.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <a class="nav-link {% if active_module == module.id %}active{% endif %}"
+         href="{% url module.url_name %}">
+        <span class="nav-icon" style="color:{{ module.color }}"><i class="bi {{ module.icon }}"></i></span>
+        <span class="nav-label">{{ module.label }}</span>
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </nav>
+
+  <!-- Pied de sidebar -->
+  <div class="sidebar-footer">
+    <a href="{% url 'accounts:profile' %}" class="sidebar-user" title="Mon profil">
+      <div class="user-avatar">
+        {% if request.user.profile.avatar %}
+          <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+        {% else %}
+          <span class="avatar-initials">{{ request.user.profile.initials }}</span>
+        {% endif %}
+      </div>
+      <div class="user-info">
+        <span class="user-name">{{ request.user.profile.display_name|truncatechars:18 }}</span>
+        <span class="user-role">{{ request.user.profile.get_role_display }}</span>
+      </div>
+    </a>
+    <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Déconnexion">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+
+</aside>

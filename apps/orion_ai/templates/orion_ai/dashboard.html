@@ -1,0 +1,234 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Assistant Orion IA — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Intelligence Artificielle</p>
+    <h1 class="orion-page-title">Assistant Orion IA</h1>
+    <p class="orion-page-subtitle">Posez vos questions, analysez vos données, configurez votre ERP.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'orion_ai:conversations' %}" class="orion-btn">
+      <i class="bi bi-chat-left-text me-1"></i>Conversations
+    </a>
+  </div>
+</div>
+
+{% if not ai_settings.ai_enabled %}
+<div class="orion-alert warning mb-4">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  L'assistant IA est désactivé. Contactez le Super Admin pour l'activer.
+</div>
+{% else %}
+
+<!-- Chat principal -->
+<div class="orion-card mb-4" id="chat-container">
+  <div class="orion-card-header" style="padding:16px 20px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center">
+        <i class="bi bi-stars" style="color:#fff;font-size:16px"></i>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:14px">{{ ai_settings.ai_name }}</div>
+        <div style="font-size:12px;color:var(--orion-muted)">{{ ai_settings.default_provider }} · {{ ai_settings.default_model }}</div>
+      </div>
+      <span class="orion-badge success" style="margin-left:auto">En ligne</span>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="chat-messages" style="min-height:300px;max-height:520px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px">
+    <div class="ai-message assistant" style="background:var(--orion-surface);border:1px solid var(--orion-border);border-radius:12px;padding:14px 16px;max-width:80%">
+      <div style="font-size:12px;font-weight:600;color:var(--orion-accent);margin-bottom:6px">
+        <i class="bi bi-stars me-1"></i>{{ ai_settings.ai_name }}
+      </div>
+      <div>Bonjour ! Je suis votre assistant IA Orion. Comment puis-je vous aider aujourd'hui ?</div>
+      <div style="font-size:11px;color:var(--orion-muted);margin-top:6px">Maintenant</div>
+    </div>
+  </div>
+
+  <!-- Saisie -->
+  <div style="padding:16px 20px;border-top:1px solid var(--orion-border)">
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <textarea
+        id="chat-input"
+        rows="2"
+        placeholder="Posez une question à l'assistant Orion IA..."
+        style="flex:1;resize:none;padding:10px 14px;border:1px solid var(--orion-border);border-radius:10px;font-size:14px;background:var(--orion-surface);color:var(--orion-text);font-family:inherit"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
+      ></textarea>
+      <button onclick="sendMessage()" id="send-btn" class="orion-btn primary" style="height:44px;padding:0 20px">
+        <i class="bi bi-send-fill me-1"></i>Envoyer
+      </button>
+    </div>
+    <div style="font-size:11.5px;color:var(--orion-muted);margin-top:8px">
+      <i class="bi bi-shield-check me-1"></i>Les données sensibles sont filtrées. Les actions nécessitent une confirmation.
+    </div>
+  </div>
+</div>
+
+<!-- Actions en attente -->
+{% if pending_actions %}
+<div class="orion-card mb-4">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">
+      <i class="bi bi-hourglass-split me-2" style="color:var(--orion-warning)"></i>
+      Actions en attente de confirmation ({{ pending_actions|length }})
+    </h2>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+    {% for action in pending_actions %}
+    <div style="border:1px solid {% if action.is_dangerous_action %}var(--orion-danger){% else %}var(--orion-warning){% endif %};border-radius:10px;padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            {% if action.is_dangerous_action %}
+            <span class="orion-badge danger">DANGEREUSE</span>
+            {% elif action.is_write_action %}
+            <span class="orion-badge warning">ÉCRITURE</span>
+            {% else %}
+            <span class="orion-badge neutral">LECTURE</span>
+            {% endif %}
+            <strong style="font-size:14px">{{ action.title }}</strong>
+          </div>
+          {% if action.description %}
+          <div style="font-size:13px;color:var(--orion-muted)">{{ action.description }}</div>
+          {% endif %}
+          <div style="font-size:12px;color:var(--orion-muted);margin-top:4px">Code : <code>{{ action.action_code }}</code></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <form method="post" action="{% url 'orion_ai:api_confirm_action' action.id %}">
+            {% csrf_token %}
+            <button type="button" onclick="confirmAction({{ action.id }})" class="orion-btn primary sm">
+              <i class="bi bi-check-lg me-1"></i>Confirmer
+            </button>
+          </form>
+          <button type="button" onclick="cancelAction({{ action.id }})" class="orion-btn sm">
+            <i class="bi bi-x-lg me-1"></i>Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Conversations récentes -->
+{% if recent_conversations %}
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Conversations récentes</h2>
+    <a href="{% url 'orion_ai:conversations' %}" style="font-size:13px">Voir tout →</a>
+  </div>
+  <div style="padding:8px 16px">
+    {% for conv in recent_conversations %}
+    <a href="{% url 'orion_ai:conversation_detail' conv.id %}" style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--orion-border);text-decoration:none;color:inherit">
+      <i class="bi bi-chat-text" style="color:var(--orion-muted);font-size:16px"></i>
+      <div style="flex:1;overflow:hidden">
+        <div style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ conv.title }}</div>
+        <div style="font-size:11.5px;color:var(--orion-muted)">{{ conv.updated_at|date:"d/m/Y H:i" }}</div>
+      </div>
+      <i class="bi bi-chevron-right" style="color:var(--orion-muted);font-size:12px"></i>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<script>
+let currentConversationId = null;
+const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+function appendMessage(role, content, extra) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  const isUser = role === 'user';
+  div.className = 'ai-message ' + role;
+  div.style.cssText = `background:${isUser ? '#3A2A1A' : 'var(--orion-surface)'};
+    border:${isUser ? 'none' : '1px solid var(--orion-border)'};
+    color:${isUser ? '#fff' : 'var(--orion-text)'};
+    border-radius:12px;padding:14px 16px;max-width:80%;
+    ${isUser ? 'align-self:flex-end' : ''}`;
+  div.innerHTML = isUser ? '' : `<div style="font-size:12px;font-weight:600;color:var(--orion-accent);margin-bottom:6px"><i class="bi bi-stars me-1"></i>{% if ai_settings %}{{ ai_settings.ai_name }}{% else %}Assistant{% endif %}</div>`;
+  const p = document.createElement('div');
+  p.style.cssText = 'white-space:pre-wrap;word-break:break-word;line-height:1.55';
+  p.textContent = content;
+  div.appendChild(p);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById('send-btn');
+  const input = document.getElementById('chat-input');
+  btn.disabled = loading;
+  input.disabled = loading;
+  btn.innerHTML = loading
+    ? '<i class="bi bi-hourglass-split me-1"></i>En attente...'
+    : '<i class="bi bi-send-fill me-1"></i>Envoyer';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const prompt = input.value.trim();
+  if (!prompt) return;
+
+  appendMessage('user', prompt);
+  input.value = '';
+  setLoading(true);
+
+  try {
+    const resp = await fetch('{% url "orion_ai:api_chat" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        prompt,
+        conversation_id: currentConversationId,
+      }),
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      currentConversationId = data.conversation_id;
+      appendMessage('assistant', data.answer);
+    } else {
+      appendMessage('assistant', '⚠️ Erreur : ' + (data.error || 'Impossible de contacter l\'IA.'));
+    }
+  } catch (e) {
+    appendMessage('assistant', '⚠️ Erreur réseau. Vérifiez votre connexion.');
+  } finally {
+    setLoading(false);
+    document.getElementById('chat-messages').scrollTop = 999999;
+  }
+}
+
+async function confirmAction(actionId) {
+  if (!confirm('Confirmer l\'exécution de cette action ?')) return;
+  const resp = await fetch(`/api/v1/orion-ai/actions/${actionId}/confirm/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    alert('✅ Action exécutée avec succès.');
+    location.reload();
+  } else {
+    alert('❌ Erreur : ' + (data.error || 'Impossible d\'exécuter l\'action.'));
+  }
+}
+
+async function cancelAction(actionId) {
+  const resp = await fetch(`/api/v1/orion-ai/actions/${actionId}/cancel/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+  });
+  if (resp.ok) {
+    location.reload();
+  }
+}
+</script>
+{% endblock %}

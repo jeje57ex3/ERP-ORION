@@ -1,0 +1,129 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item active">Prix & Historique</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Prix & Historique</h1>
+    <p class="orion-page-subtitle">Suivi de l'évolution des prix concurrents</p>
+  </div>
+</div>
+
+<!-- Indice prix -->
+{% if price_index.competitor_avg %}
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:var(--orion-info)">
+      <div class="orion-kpi-icon" style="background:rgba(8,145,178,.12);color:var(--orion-info)">
+        <i class="bi bi-tag"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ price_index.competitor_avg|floatformat:2 }} €</div>
+        <div class="orion-kpi-label">Prix moyen concurrents</div>
+      </div>
+    </div>
+  </div>
+  {% if price_index.our_avg %}
+  <div class="col-sm-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:var(--orion-secondary)">
+      <div class="orion-kpi-icon" style="background:rgba(198,161,91,.12);color:var(--orion-secondary)">
+        <i class="bi bi-tag-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ price_index.our_avg|floatformat:2 }} €</div>
+        <div class="orion-kpi-label">Nos prix moyens</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if price_index.gap_percent is not None %}
+  <div class="col-sm-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:{% if price_index.gap_percent < 0 %}var(--orion-success){% else %}var(--orion-warning){% endif %}">
+      <div class="orion-kpi-icon" style="background:rgba(22,163,74,.12);color:var(--orion-success)">
+        <i class="bi bi-percent"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{% if price_index.gap_percent > 0 %}+{% endif %}{{ price_index.gap_percent }}%</div>
+        <div class="orion-kpi-label">Écart de prix</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-sm-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:var(--orion-primary)">
+      <div class="orion-kpi-icon" style="background:rgba(37,99,235,.12);color:var(--orion-primary)">
+        <i class="bi bi-grid-3x3"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ price_index.products_tracked }}</div>
+        <div class="orion-kpi-label">Produits suivis</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex align-items-center gap-2">
+    <select name="competitor" class="form-select form-select-sm" style="max-width:220px">
+      <option value="">Tous les concurrents</option>
+      {% for c in competitors %}
+      <option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == competitor_id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn-sm"><i class="bi bi-filter"></i></button>
+  </form>
+</div>
+
+<div class="card erp-card">
+  <div class="card-body p-0">
+    {% if page_obj %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Produit</th><th>Concurrent</th><th>Prix</th><th>Ancien prix</th><th>Remise</th><th>Dispo</th><th>Vérifié le</th></tr>
+        </thead>
+        <tbody>
+          {% for h in page_obj %}
+          <tr>
+            <td>{{ h.competitor_product.name|truncatechars:45 }}</td>
+            <td class="text-muted">{{ h.competitor_product.competitor.name }}</td>
+            <td class="fw-semibold">{{ h.price|floatformat:2 }} {{ h.currency }}</td>
+            <td class="text-muted">{% if h.old_price %}{{ h.old_price|floatformat:2 }}{% else %}—{% endif %}</td>
+            <td>{% if h.discount_percent %}<span class="badge bg-danger">-{{ h.discount_percent }}%</span>{% else %}—{% endif %}</td>
+            <td>
+              <span class="badge {% if h.availability == 'in_stock' %}bg-success{% elif h.availability == 'out_of_stock' %}bg-danger{% else %}bg-secondary{% endif %}">
+                {{ h.availability }}
+              </span>
+            </td>
+            <td class="text-muted">{{ h.checked_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>{% endif %}
+          <li class="page-item active"><a class="page-link" href="#">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>{% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-graph-up-arrow fs-1 d-block mb-3 opacity-25"></i>
+      <p>Aucun historique de prix. Ajoutez des produits concurrents et leurs prix.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

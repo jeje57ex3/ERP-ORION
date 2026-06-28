@@ -1,0 +1,47 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:user_access_list' %}">Accès utilisateurs</a></li>
+<li class="breadcrumb-item active">Ajouter</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-person-plus me-2"></i>Ajouter un accès utilisateur</h6></div>
+      <div class="erp-orion-orion-card-body">
+        <form method="post" action="{% url 'access_control:user_access_create' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Utilisateur <span class="text-danger">*</span></label>
+            <select name="user_id" class="form-select" required>
+              <option value="">-- Sélectionner --</option>
+              {% for u in all_users %}
+              <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }} ({{ u.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Rôle</label>
+            <select name="role_id" class="form-select">
+              <option value="">-- Sans rôle --</option>
+              {% for role in roles %}
+              <option value="{{ role.pk }}">{{ role.name }} {% if role.is_system_role %}(système){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3 form-check form-switch">
+            <input type="checkbox" name="can_switch" class="form-check-input" id="switchCheck">
+            <label class="form-check-label" for="switchCheck">Peut changer de société</label>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+            <a href="{% url 'access_control:user_access_list' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

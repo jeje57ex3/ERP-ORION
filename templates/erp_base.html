@@ -1,0 +1,475 @@
+﻿{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if page_title %}{{ page_title }}{% else %}ERP{% endif %}{% endblock %}
+
+{% block body %}
+<div class="erp-wrapper">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════════════ -->
+  <aside class="erp-sidebar" id="erpSidebar">
+
+    <!-- Logo / Marque -->
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        {% if current_company and current_company.logo %}
+          <img src="{{ current_company.logo.url }}" alt="{{ current_company.name }}" class="company-logo-img"
+               style="max-width:28px;max-height:28px;object-fit:contain"
+               onerror="this.src='{% static 'img/brand/orion-icon-white.svg' %}'">
+        {% else %}
+          <img src="{% static 'img/brand/orion-icon-white.svg' %}" alt="{{ brand_name|default:'Orion ERP' }}"
+               style="width:28px;height:28px;object-fit:contain">
+        {% endif %}
+      </div>
+      <div class="sidebar-brand-text">
+        <span class="brand-name">{{ brand_name|default:"Orion ERP" }}</span>
+        <span class="brand-sub">{% if current_company %}{{ current_company.name|truncatechars:20 }}{% else %}{{ brand_tagline|default:"Multi-sociétés" }}{% endif %}</span>
+      </div>
+      <button class="sidebar-toggle-btn d-lg-none" id="sidebarClose">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Sélecteur d'entreprise -->
+    {% if companies %}
+    <div class="sidebar-company-selector">
+      <div class="dropdown">
+        <button class="company-selector-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <div class="company-icon" {% if current_company %}style="background-color: {{ current_company.sector_color }}20; color: {{ current_company.sector_color }}"{% endif %}>
+            <i class="bi bi-building"></i>
+          </div>
+          <div class="company-info">
+            <span class="company-name-text">{{ current_company.name|truncatechars:18 }}</span>
+            <span class="company-sector">{{ current_company.get_sector_display }}</span>
+          </div>
+          <i class="bi bi-chevron-expand ms-auto"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark company-dropdown">
+          {% for comp in companies %}
+          <li>
+            <a class="dropdown-item company-item {% if current_company.pk == comp.pk %}active{% endif %}"
+               href="{% url 'core:switch_company' comp.pk %}?next={{ request.path }}">
+              <span class="company-sector-dot" style="background-color: {{ comp.sector_color }}"></span>
+              <span>{{ comp.name }}</span>
+              {% if current_company.pk == comp.pk %}
+                <i class="bi bi-check2 ms-auto"></i>
+              {% endif %}
+            </a>
+          </li>
+          {% endfor %}
+          {% if request.user.is_superuser %}
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item" href="{% url 'core:company_create' %}">
+              <i class="bi bi-plus-circle me-2"></i>Nouvelle entreprise
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation principale -->
+    <nav class="sidebar-nav">
+      {% for module in nav_modules %}
+      <div class="nav-item {% if active_module == module.id %}active{% endif %}">
+        {% if module.children %}
+        <a class="nav-link {% if active_module == module.id %}active{% endif %}"
+           data-bs-toggle="collapse"
+           href="#navCollapse-{{ module.id }}"
+           role="button"
+           aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}">
+          <span class="nav-icon" style="color: {{ module.color }}">
+            <i class="bi {{ module.icon }}"></i>
+          </span>
+          <span class="nav-label">{{ module.label }}</span>
+          <i class="bi bi-chevron-down nav-arrow"></i>
+        </a>
+        <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navCollapse-{{ module.id }}">
+          <div class="nav-submenu">
+            {% for child in module.children %}
+            <a class="nav-sublink {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+               href="{% url child.url_name %}">
+              <i class="bi {{ child.icon }} me-2"></i>{{ child.label }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <a class="nav-link {% if active_module == module.id %}active{% endif %}"
+           href="{% url module.url_name %}">
+          <span class="nav-icon" style="color: {{ module.color }}">
+            <i class="bi {{ module.icon }}"></i>
+          </span>
+          <span class="nav-label">{{ module.label }}</span>
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </nav>
+
+    <!-- Pied de sidebar -->
+    <div class="sidebar-footer">
+      <a href="{% url 'accounts:profile' %}" class="sidebar-user">
+        <div class="user-avatar">
+          {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+          {% else %}
+            <span class="avatar-initials">{{ request.user.profile.initials }}</span>
+          {% endif %}
+        </div>
+        <div class="user-info">
+          <span class="user-name">{{ request.user.profile.display_name|truncatechars:20 }}</span>
+          <span class="user-role">{{ request.user.profile.get_role_display }}</span>
+        </div>
+      </a>
+      <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Déconnexion">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+
+  </aside>
+  <!-- /SIDEBAR -->
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CONTENU PRINCIPAL
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="erp-main" id="erpMain">
+
+    <!-- NAVBAR SUPÉRIEURE -->
+    <header class="erp-navbar">
+      <div class="navbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="d-none d-md-flex">
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+              <a href="{% url 'core:dashboard' %}"><i class="bi bi-house"></i></a>
+            </li>
+            {% block breadcrumb %}
+            {% if page_title %}
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+            {% endif %}
+            {% endblock %}
+          </ol>
+        </nav>
+      </div>
+
+      <div class="navbar-right">
+        <!-- Recherche globale -->
+        <div class="navbar-search d-none d-lg-flex"
+             role="button"
+             data-bs-toggle="modal"
+             data-bs-target="#globalSearchModal"
+             title="Recherche globale (Ctrl+K)"
+             style="cursor:pointer;">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" class="search-input" placeholder="Recherche globale..." id="globalSearch" readonly tabindex="-1" style="pointer-events:none;">
+          <kbd class="search-shortcut">Ctrl+K</kbd>
+        </div>
+
+        <!-- Bouton Créer rapide -->
+        <div class="dropdown d-none d-lg-block">
+          <button class="orion-btn orion-btn-gold dropdown-toggle" type="button" data-bs-toggle="dropdown" id="orionCreateBtn" aria-label="Créer">
+            <i class="bi bi-plus-lg me-1"></i>Créer
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" style="min-width:220px">
+            <li class="dropdown-header small text-uppercase text-muted fw-semibold mb-1">Nouveau</li>
+            <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'crm:customer_create' %}">
+              <span class="badge rounded-circle bg-primary p-1"><i class="bi bi-person"></i></span>Client</a></li>
+            <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'sales:quote_create' %}">
+              <span class="badge rounded-circle bg-warning p-1"><i class="bi bi-file-earmark-plus"></i></span>Devis</a></li>
+            <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'sales:invoice_create' %}">
+              <span class="badge rounded-circle bg-success p-1"><i class="bi bi-receipt"></i></span>Facture</a></li>
+            <li><a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'btp:project_create' %}">
+              <span class="badge rounded-circle bg-info p-1"><i class="bi bi-building-gear"></i></span>Chantier</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-muted small" href="#" onclick="OrionCommandPalette.open();return false;">
+              <i class="bi bi-command me-2"></i>Toutes les commandes <kbd class="ms-1">Ctrl+K</kbd></a></li>
+          </ul>
+        </div>
+
+        <!-- Dark mode toggle -->
+        <button class="navbar-icon-btn" id="themeToggle" title="Changer de thème">
+          <i class="bi bi-moon-stars" id="themeIcon"></i>
+        </button>
+
+        <!-- Notifications -->
+        <div class="dropdown">
+          <button class="navbar-icon-btn position-relative" type="button" data-bs-toggle="dropdown" aria-label="Notifications" id="notifDropdownBtn">
+            <i class="bi bi-bell"></i>
+            {% if unread_count > 0 %}
+            <span class="notification-badge" id="notifBadge">{{ unread_count }}</span>
+            {% else %}
+            <span class="notification-badge d-none" id="notifBadge">0</span>
+            {% endif %}
+          </button>
+          <div class="dropdown-menu dropdown-menu-end orion-notification-dropdown">
+            <div class="notif-header">
+              <span class="fw-semibold">Notifications</span>
+              {% if unread_count > 0 %}
+              <a href="{% url 'notifications:mark_all_read' %}" class="notif-mark-all">Tout marquer lu</a>
+              {% endif %}
+            </div>
+            <div class="notif-list">
+            {% if unread_notifications %}
+              {% for notif in unread_notifications %}
+              <a class="dropdown-item notification-item unread"
+                 href="{% url 'notifications:mark_read' notif.pk %}{% if notif.link_url %}?next={{ notif.link_url }}{% endif %}">
+                <div class="notif-icon text-{{ notif.icon_color|default:'primary' }}">
+                  <i class="bi {{ notif.icon|default:'bi-bell' }}"></i>
+                </div>
+                <div class="notif-content">
+                  <div class="notif-title">{{ notif.title }}</div>
+                  {% if notif.message %}<div class="notif-subtitle text-muted small">{{ notif.message|truncatechars:60 }}</div>{% endif %}
+                  <div class="notif-time"><i class="bi bi-clock me-1"></i>{{ notif.created_at|timesince }}</div>
+                </div>
+              </a>
+              {% endfor %}
+            {% else %}
+              <div class="text-muted text-center py-4">
+                <i class="bi bi-bell-slash d-block fs-2 mb-2 opacity-25"></i>
+                <small>Aucune notification</small>
+              </div>
+            {% endif %}
+            </div>
+            <div class="notif-footer">
+              <a href="{% url 'notifications:list' %}">Voir toutes les notifications</a>
+            </div>
+          </div>
+        </div>
+        <script>
+        // Polling badge notifications toutes les 60s
+        (function() {
+          function refreshBadge() {
+            fetch('{% url "notifications:count_api" %}', {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+              .then(r => r.ok ? r.json() : null)
+              .then(function(d) {
+                if (!d) return;
+                var badge = document.getElementById('notifBadge');
+                if (!badge) return;
+                if (d.count > 0) { badge.textContent = d.count; badge.classList.remove('d-none'); }
+                else { badge.classList.add('d-none'); }
+              }).catch(function(){});
+          }
+          setInterval(refreshBadge, 60000);
+        })();
+        </script>
+
+        <!-- Menu utilisateur -->
+        <div class="dropdown">
+          <button class="navbar-user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <div class="user-avatar-sm">
+              {% if request.user.profile.avatar %}
+                <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+              {% else %}
+                <span>{{ request.user.profile.initials }}</span>
+              {% endif %}
+            </div>
+            <span class="d-none d-md-inline">{{ request.user.profile.display_name|truncatechars:15 }}</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" style="min-width:220px">
+            <li class="dropdown-header">
+              <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+              <div class="small text-muted">{{ request.user.email }}</div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Mon profil</a></li>
+            <li><a class="dropdown-item" href="{% url 'switch_company' %}"><i class="bi bi-arrow-left-right me-2"></i>Changer d'entreprise</a></li>
+            {% if request.user.is_superuser %}
+            <li><a class="dropdown-item text-danger" href="{% url 'private_saas:dashboard' %}"><i class="bi bi-shield-lock me-2"></i>Super Admin</a></li>
+            {% endif %}
+            <li>
+              <button class="dropdown-item d-flex align-items-center justify-content-between" onclick="OrionCompact.toggle();return false;">
+                <span><i class="bi bi-layout-sidebar-reverse me-2"></i>Mode compact</span>
+                <span class="orion-badge neutral" id="compactBadge" style="display:none">ON</span>
+              </button>
+            </li>
+            {% if request.user.is_superuser %}
+            <li><a class="dropdown-item" href="{% url 'core:company_list' %}"><i class="bi bi-building me-2"></i>Entreprises</a></li>
+            <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-shield-check me-2"></i>Administration</a></li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <button class="dropdown-item d-flex align-items-center justify-content-between" onclick="OrionCommandPalette.open();return false;">
+                <span><i class="bi bi-command me-2"></i>Palette de commandes</span>
+                <kbd>Ctrl+K</kbd>
+              </button>
+            </li>
+            <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+    <!-- /NAVBAR -->
+
+    <!-- Messages Django -->
+    {% if messages %}
+    <div class="messages-container">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show erp-alert" role="alert">
+        <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- CONTENU DE LA PAGE -->
+    <main class="erp-content">
+      <!-- En-tête de page (rendu si page_title passé par la vue) -->
+      {% block page_header %}
+      {% if page_title %}
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">{{ page_title }}</h1>
+          <p class="page-subtitle text-muted mb-0 small">{% block page_subtitle %}{% endblock %}</p>
+        </div>
+        <div class="page-header-actions">
+          {% block page_actions %}{% endblock %}
+        </div>
+      </div>
+      {% endif %}
+      {% endblock %}
+
+      <!-- Corps de la page -->
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer ERP -->
+    <footer class="erp-footer">
+      <span>{{ brand_name|default:"Orion ERP" }} &copy; {% now "Y" %}</span>
+      {% if current_company %}
+      <span class="mx-2">·</span>
+      <span>{{ current_company.name }}</span>
+      {% endif %}
+      <span class="mx-2">·</span>
+      <span class="text-muted">v1.0.0</span>
+    </footer>
+
+  </div>
+  <!-- /CONTENU PRINCIPAL -->
+
+</div>
+<!-- /WRAPPER -->
+
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Toast container (géré par orion-ui.js) -->
+<div id="orionToastContainer" class="orion-toast-container" aria-live="polite" aria-atomic="false"></div>
+
+{% include "components/toast.html" %}
+
+<!-- Modal recherche globale -->
+<div class="modal fade" id="globalSearchModal" tabindex="-1" aria-label="Recherche globale">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <div class="input-group">
+          <span class="input-group-text bg-transparent border-0"><i class="bi bi-search fs-5"></i></span>
+          <input type="text" id="globalSearchModalInput" class="form-control border-0 fs-5 shadow-none" placeholder="Rechercher dans Orion ERP..." autocomplete="off">
+          <button class="btn btn-outline-secondary orion-btn sm" data-bs-dismiss="modal" aria-label="Fermer"><kbd>Esc</kbd></button>
+        </div>
+      </div>
+      <div class="modal-body pt-0" id="globalSearchModalResults">
+        <div class="text-center text-muted py-4 small" id="globalSearchModalEmpty">
+          <i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>
+          Tapez pour rechercher dans les clients, devis, factures, chantiers...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Recherche AJAX avec debounce dans le modal
+(function() {
+  var modal   = document.getElementById('globalSearchModal');
+  var input   = document.getElementById('globalSearchModalInput');
+  var results = document.getElementById('globalSearchModalResults');
+  var empty   = document.getElementById('globalSearchModalEmpty');
+  if (!input || !modal) return;
+
+  var timer;
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (q.length < 2) {
+      results.innerHTML = '';
+      results.appendChild(empty);
+      return;
+    }
+    timer = setTimeout(function() {
+      fetch('/search/?q=' + encodeURIComponent(q) + '&format=json', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data || !data.results || data.results.length === 0) {
+          results.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>Aucun résultat pour "<strong>' + q + '</strong>"</div>';
+          return;
+        }
+        var html = '';
+        var byType = {};
+        data.results.forEach(function(r) {
+          if (!byType[r.label]) byType[r.label] = [];
+          byType[r.label].push(r);
+        });
+        Object.entries(byType).forEach(function(entry) {
+          var label = entry[0], items = entry[1];
+          html += '<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">' + label + '</small></div>';
+          items.forEach(function(item) {
+            html += '<a href="' + item.url + '" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item" style="transition:background .15s" onmouseover="this.style.background=\'rgba(var(--bs-primary-rgb),.07)\'" onmouseout="this.style.background=\'\'">'
+              + '<span class="me-3 fs-5 text-' + (item.color || 'secondary') + '"><i class="bi ' + (item.icon || 'bi-dot') + '"></i></span>'
+              + '<span>'
+              + '<span class="d-block fw-medium text-dark">' + item.title + '</span>'
+              + (item.subtitle ? '<span class="d-block small text-muted">' + item.subtitle + '</span>' : '')
+              + '</span></a>';
+          });
+        });
+        results.innerHTML = html;
+      })
+      .catch(function() {
+        results.innerHTML = '<div class="text-center text-muted py-3 small"><i class="bi bi-wifi-off me-1"></i>Erreur de recherche</div>';
+      });
+    }, 300);
+  });
+
+  // Focus et reset à l'ouverture
+  modal.addEventListener('shown.bs.modal', function() {
+    input.focus();
+    input.value = '';
+    results.innerHTML = '';
+    results.appendChild(empty);
+  });
+})();
+</script>
+
+<!-- Barre d'action mobile -->
+<div class="mobile-action-bar d-lg-none">
+  <a href="{% url 'core:dashboard' %}" class="mobile-action-item">
+    <i class="bi bi-speedometer2"></i><span>Accueil</span>
+  </a>
+  <a href="{% url 'crm:customer_list' %}" class="mobile-action-item">
+    <i class="bi bi-people"></i><span>Clients</span>
+  </a>
+  <button class="mobile-action-item mobile-action-create" onclick="OrionCommandPalette.open()">
+    <i class="bi bi-plus-circle-fill"></i><span>Créer</span>
+  </button>
+  <a href="{% url 'sales:invoice_list' %}" class="mobile-action-item">
+    <i class="bi bi-receipt"></i><span>Factures</span>
+  </a>
+  <button class="mobile-action-item" id="mobileSidebarToggle" onclick="document.getElementById('erpSidebar').classList.toggle('sidebar-open');document.getElementById('sidebarOverlay').classList.toggle('show')">
+    <i class="bi bi-list"></i><span>Menu</span>
+  </button>
+</div>
+{% endblock %}

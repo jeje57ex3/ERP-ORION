@@ -1,0 +1,54 @@
+{#
+  Barre d'action standard avec boutons icônes et dropdown Actions.
+  Variables :
+    toolbar_form_id    — id du formulaire (défaut "main-form")
+    toolbar_show_print — si "true" affiche bouton imprimer
+    toolbar_delete_url — URL supprimer (optionnel)
+    toolbar_delete_msg — message confirm suppression
+    toolbar_actions    — liste [{url, icon, label, color}] pour le dropdown
+#}
+<div class="orion-record-toolbar">
+
+  <!-- Sauvegarder -->
+  <button class="orion-icon-btn" form="{{ toolbar_form_id|default:'main-form' }}" type="submit" title="Enregistrer (Ctrl+S)">
+    <i class="bi bi-save"></i>
+  </button>
+
+  <!-- Imprimer -->
+  {% if toolbar_show_print %}
+  <button class="orion-icon-btn" type="button" onclick="window.print()" title="Imprimer">
+    <i class="bi bi-printer"></i>
+  </button>
+  {% endif %}
+
+  <!-- Supprimer -->
+  {% if toolbar_delete_url %}
+  <a href="{{ toolbar_delete_url }}"
+     class="orion-icon-btn danger"
+     data-confirm="{{ toolbar_delete_msg|default:'Confirmer la suppression ?' }}"
+     title="Supprimer">
+    <i class="bi bi-trash"></i>
+  </a>
+  <span class="orion-toolbar-sep"></span>
+  {% endif %}
+
+  <!-- Actions dropdown -->
+  {% if toolbar_actions %}
+  <div class="dropdown">
+    <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+      <i class="bi bi-lightning me-1"></i>Actions
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+      {% for action in toolbar_actions %}
+      {% if action.divider %}<li><hr class="dropdown-divider"></li>
+      {% else %}
+      <li><a class="dropdown-item py-1" href="{{ action.url }}">
+        <i class="bi {{ action.icon }} me-2 text-{{ action.color|default:'secondary' }}"></i>{{ action.label }}
+      </a></li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+</div>

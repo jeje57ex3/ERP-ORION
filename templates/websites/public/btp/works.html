@@ -1,0 +1,33 @@
+{% extends "websites/public/btp/base.html" %}
+{% load static %}
+{% block title %}Types de travaux — {{ site.name }}{% endblock %}
+{% block meta_description %}Travaux neufs, rénovation, mise aux normes, extension, aménagement. Devis gratuit.{% endblock %}
+
+{% block content %}
+<section class="btp-page-hero">
+  <div class="btp-container">
+    <span class="btp-h-label" style="color:var(--btp-secondary)">Travaux</span>
+    <h1>Tous types de travaux</h1>
+    <p>De la construction neuve à la rénovation complète, nous prenons en charge tous vos projets.</p>
+  </div>
+</section>
+
+<section class="btp-section btp-section-white">
+  <div class="btp-container">
+    <div class="btp-cards-grid">
+      {% for wt in work_categories %}
+      <div class="btp-service-card btp-reveal">
+        <div class="btp-service-icon"><i class="bi {{ wt.icon }}"></i></div>
+        <h3>{{ wt.name }}</h3>
+        <p>{{ wt.desc }}</p>
+        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-btn-outline btp-orion-btn sm" style="margin-top:1rem">
+          <i class="bi bi-pencil-square"></i>Devis gratuit
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% include "websites/public/btp/components/cta_guided_quote.html" %}
+{% endblock %}

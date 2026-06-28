@@ -1,0 +1,10 @@
+{% extends "layouts/orion_internal.html" %}
+
+{% block title %}Enterprise — {{ brand_name|default:"Orion ERP" }}{% endblock %}
+{% block body_class %}orion-enterprise{% endblock %}
+
+{% block sidebar %}
+  {% with sidebar_brand_tag="Enterprise" %}
+    {% include "layouts/_orion_internal_sidebar.html" %}
+  {% endwith %}
+{% endblock %}

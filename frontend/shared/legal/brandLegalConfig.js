@@ -1,0 +1,28 @@
+export const LEGAL_CONFIG = {
+  siecle: {
+    brandName: 'SIÈCLE',
+    siteUrl: 'https://siecle.example.com',
+    supportEmail: 'contact@siecle.example.com',
+    companyName: 'À COMPLÉTER',
+    companyAddress: 'À COMPLÉTER',
+    siret: 'À COMPLÉTER',
+    vatNumber: 'À COMPLÉTER',
+    publicationDirector: 'À COMPLÉTER',
+    hostingProvider: 'À COMPLÉTER',
+    hostingAddress: 'À COMPLÉTER',
+    returnEmail: 'retours@siecle.example.com',
+  },
+  lunea: {
+    brandName: 'LUNEA',
+    siteUrl: 'https://lunea.example.com',
+    supportEmail: 'contact@lunea.example.com',
+    companyName: 'À COMPLÉTER',
+    companyAddress: 'À COMPLÉTER',
+    siret: 'À COMPLÉTER',
+    vatNumber: 'À COMPLÉTER',
+    publicationDirector: 'À COMPLÉTER',
+    hostingProvider: 'À COMPLÉTER',
+    hostingAddress: 'À COMPLÉTER',
+    returnEmail: 'retours@lunea.example.com',
+  },
+}

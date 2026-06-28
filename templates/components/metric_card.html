@@ -1,0 +1,30 @@
+{# Carte métrique Orion — variables : label, value, helper, badge, badge_type, icon, icon_type, trend, href #}
+<div class="orion-metric{% if href %} orion-metric-link{% endif %}"
+     {% if href %}onclick="window.location='{{ href }}'" style="cursor:pointer"{% endif %}
+     role="article" aria-label="{{ label }}">
+
+  <div class="orion-metric-header">
+    <span class="orion-metric-label">{{ label }}</span>
+    {% if icon %}
+    <div class="orion-metric-icon {{ icon_type|default:'' }}" aria-hidden="true">
+      <i class="bi {{ icon }}"></i>
+    </div>
+    {% elif badge %}
+    <span class="orion-metric-badge {{ badge_type|default:'neutral' }}">{{ badge }}</span>
+    {% endif %}
+  </div>
+
+  <div class="orion-metric-value" aria-label="{{ value }}">{{ value|default:"—" }}</div>
+
+  {% if helper or trend %}
+  <p class="orion-metric-helper">
+    {% if trend %}
+    <span style="color:{% if trend > 0 %}var(--orion-success){% elif trend < 0 %}var(--orion-danger){% else %}var(--orion-muted){% endif %};font-weight:600;margin-right:4px">
+      {% if trend > 0 %}↑ {{ trend }}%{% elif trend < 0 %}↓ {{ trend|floatformat:0 }}%{% else %}—{% endif %}
+    </span>
+    {% endif %}
+    {% if helper %}{{ helper }}{% endif %}
+  </p>
+  {% endif %}
+
+</div>

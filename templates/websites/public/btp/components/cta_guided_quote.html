@@ -1,0 +1,18 @@
+﻿{% load static %}
+<section class="btp-section-sm btp-section-white">
+  <div class="btp-container">
+    <div class="btp-cta-banner btp-reveal">
+      <span class="btp-h-label" style="color:var(--btp-primary)"><i class="bi bi-tools me-1"></i>Votre projet</span>
+      <h2>Vous avez un projet de travaux ?</h2>
+      <p>Répondez à quelques questions et recevez une première estimation personnalisée. C'est gratuit et sans engagement.</p>
+      <div class="btp-btn-group" style="justify-content:center">
+        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-btn-dark btp-btn-lg">
+          <i class="bi bi-pencil-square"></i>Démarrer mon devis guidé
+        </a>
+        <a href="{% url 'public_websites:btp_contact' site.public_slug %}" class="btp-btn btp-btn-outline">
+          <i class="bi bi-chat-text"></i>Nous contacter
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

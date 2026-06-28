@@ -1,0 +1,36 @@
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-tag text-info"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+  </div>
+  <div class="card-body">
+    {% if price_data.competitor_avg %}
+    <div class="row g-2 text-center">
+      <div class="col-6">
+        <div class="fw-bold fs-5">{{ price_data.competitor_avg|floatformat:2 }} €</div>
+        <div class="text-muted small">Concurrents (moy.)</div>
+      </div>
+      {% if price_data.our_avg %}
+      <div class="col-6">
+        <div class="fw-bold fs-5">{{ price_data.our_avg|floatformat:2 }} €</div>
+        <div class="text-muted small">Nos prix (moy.)</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if price_data.gap_percent is not None %}
+    <div class="text-center mt-3">
+      <span class="badge fs-6 {% if price_data.gap_percent < 0 %}bg-success{% else %}bg-warning{% endif %}">
+        {% if price_data.gap_percent > 0 %}+{% endif %}{{ price_data.gap_percent }}%
+      </span>
+      <div class="text-muted small mt-1">
+        {% if price_data.position == 'plus_competitif' %}Plus compétitif que le marché
+        {% elif price_data.position == 'plus_cher' %}Plus cher que le marché
+        {% else %}Equivalent au marché{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="text-muted text-center mb-0">Données insuffisantes</p>
+    {% endif %}
+  </div>
+</div>

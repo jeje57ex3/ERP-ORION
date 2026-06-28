@@ -1,0 +1,66 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Documents — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">Documents</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-bold mb-0">Documents — {{ project.name }}</h5>
+  {% if account.can_upload %}
+  <button class="orion-btn warning orion-btn sm" data-bs-toggle="collapse" data-bs-target="#upload-form">
+    <i class="bi bi-cloud-upload me-1"></i>Ajouter
+  </button>
+  {% endif %}
+</div>
+
+{% if account.can_upload %}
+<div class="collapse mb-4" id="upload-form">
+  <div class="bg-white border rounded-3 p-4">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label class="form-label small fw-semibold">Fichiers à envoyer</label>
+      <input type="file" name="files" class="form-control mb-3" multiple>
+      <button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-cloud-upload me-1"></i>Envoyer</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if documents %}
+<div class="bg-white border rounded-3 overflow-hidden">
+  <div class="table-responsive">
+    <table class="orion-table mb-0">
+      <thead class="table-light"><tr>
+        <th>Document</th><th>Type</th><th>Date</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-{% if 'pdf' in doc.file.name %}pdf text-danger{% elif 'jpg' in doc.file.name or 'png' in doc.file.name %}image text-info{% else %}text-muted{% endif %} fs-5"></i>
+            <span class="fw-semibold small">{{ doc.name }}</span>
+          </div>
+        </td>
+        <td><span class="badge bg-light text-muted border small">{{ doc.get_doc_type_display }}</span></td>
+        <td class="text-muted small">{{ doc.added_at|date:"d/m/Y" }}</td>
+        <td class="text-end">
+          {% if doc.client_can_download %}
+          <a href="{{ doc.file.url }}" class="orion-btn sm btn-outline-secondary" download><i class="bi bi-download me-1"></i>Télécharger</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white border rounded-3 p-5 text-center text-muted">
+  <i class="bi bi-folder-x fs-1 d-block mb-3"></i>
+  <h6>Aucun document disponible pour l'instant</h6>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "electricity/base_electricity.html" %}
+{% block title %}Vos coordonnées — Étape 3{% endblock %}
+{% block content %}
+<div class="bg-white border-bottom py-3">
+  <div class="container">
+    <div class="d-flex align-items-center gap-3">
+      <div class="wizard-progress-step done"><i class="bi bi-check"></i></div>
+      <div style="flex:1;height:3px;background:#059669"></div>
+      <div class="wizard-progress-step done"><i class="bi bi-check"></i></div>
+      <div style="flex:1;height:3px;background:#059669"></div>
+      <div class="wizard-progress-step active">3</div>
+      <div style="flex:1;height:3px;background:#E5E7EB"></div>
+      <div class="wizard-progress-step pending">4</div>
+    </div>
+    <div class="d-flex justify-content-between small text-muted mt-2">
+      <span>Type</span><span>Questions</span><span><strong>Coordonnées</strong></span><span>Validation</span>
+    </div>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1">Vos coordonnées</h2>
+        <p class="text-muted">Ces informations nous permettent de vous contacter et de calculer les frais de déplacement.</p>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Identité -->
+        <div class="border rounded-3 p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-person me-2"></i>Vos informations</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Prénom *</label>
+              <input type="text" name="first_name" class="form-control" required placeholder="Jean">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nom *</label>
+              <input type="text" name="last_name" class="form-control" required placeholder="Dupont">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email *</label>
+              <input type="email" name="email" class="form-control" required placeholder="jean@email.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Téléphone *</label>
+              <input type="tel" name="phone" class="form-control" required placeholder="06 00 00 00 00">
+            </div>
+          </div>
+        </div>
+
+        <!-- Adresse -->
+        <div class="border rounded-3 p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2"></i>Adresse d'intervention</h6>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Adresse *</label>
+              <input type="text" name="address" class="form-control" required placeholder="12 rue de la Paix">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Code postal *</label>
+              <input type="text" name="zip_code" class="form-control" required placeholder="75001">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold">Ville *</label>
+              <input type="text" name="city" class="form-control" required placeholder="Paris">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Étage</label>
+              <input type="text" name="floor" class="form-control" placeholder="2ème">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Digicode</label>
+              <input type="text" name="digicode" class="form-control" placeholder="A123">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check mb-2">
+                <input type="checkbox" name="parking" id="parking" class="form-check-input">
+                <label class="form-check-label" for="parking">Parking disponible</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Créneaux -->
+        <div class="border rounded-3 p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-calendar-event me-2"></i>Créneaux souhaités <span class="text-muted small fw-normal">(optionnel)</span></h6>
+          <textarea name="preferred_slots" class="form-control" rows="2" placeholder="Ex : lundi matin, mercredi après-midi, pas le week-end..."></textarea>
+        </div>
+
+        <!-- Message complémentaire -->
+        <div class="border rounded-3 p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-chat-text me-2"></i>Message complémentaire <span class="text-muted small fw-normal">(optionnel)</span></h6>
+          <textarea name="client_notes" class="form-control" rows="3" placeholder="Informations supplémentaires, accès particulier, spécificités..."></textarea>
+        </div>
+
+        <!-- Espace client -->
+        <div class="border rounded-3 p-4 mb-4" style="background:#EFF6FF;border-color:#93C5FD !important">
+          <div class="form-check">
+            <input type="checkbox" name="create_portal" id="create_portal" class="form-check-input">
+            <label class="form-check-label" for="create_portal">
+              <div class="fw-semibold">Créer mon espace client</div>
+              <div class="small text-muted">Suivez l'avancement de votre chantier en ligne — gratuit et sans engagement.</div>
+            </label>
+          </div>
+        </div>
+
+        <div class="d-flex gap-3">
+          <a href="{% url 'guided_quote:wizard_step2' %}" class="btn btn-outline-secondary px-4"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+          <button type="submit" class="btn btn-electric flex-fill py-3 fw-bold">Récapitulatif et envoi <i class="bi bi-arrow-right ms-1"></i></button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% load static %}
+{#
+  Contenu droit de la topbar (search, créer, thème, notifs, user).
+  S'utilise dans <div class="navbar-right"> de orion_desktop.html.
+  Pour une topbar complète autonome, voir layouts/orion_desktop.html.
+#}
+
+<!-- Recherche globale -->
+<div class="navbar-search d-none d-lg-flex"
+     role="button"
+     data-bs-toggle="modal"
+     data-bs-target="#globalSearchModal"
+     title="Recherche globale (Ctrl+K)">
+  <i class="bi bi-search search-icon"></i>
+  <input type="text" class="search-input" placeholder="Rechercher…" readonly tabindex="-1">
+  <kbd class="search-shortcut">Ctrl+K</kbd>
+</div>
+
+<!-- Créer rapide -->
+<div class="dropdown d-none d-lg-block">
+  <button class="orion-btn orion-btn-gold dropdown-toggle" type="button" data-bs-toggle="dropdown"
+          style="height:28px;padding:0 10px;font-size:12px">
+    <i class="bi bi-plus-lg" style="font-size:11px"></i><span class="d-none d-xl-inline ms-1">Créer</span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end" style="min-width:210px;font-size:12.5px">
+    <li class="dropdown-header" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.06em">Nouveau</li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="{% url 'crm:customer_create' %}">
+      <span class="badge rounded-circle bg-primary p-1" style="width:18px;height:18px;font-size:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-person"></i></span>Client</a></li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="{% url 'sales:quote_create' %}">
+      <span class="badge rounded-circle bg-warning p-1" style="width:18px;height:18px;font-size:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-file-earmark-plus"></i></span>Devis</a></li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="{% url 'sales:invoice_create' %}">
+      <span class="badge rounded-circle bg-success p-1" style="width:18px;height:18px;font-size:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-receipt"></i></span>Facture</a></li>
+    <li><a class="dropdown-item d-flex align-items-center gap-2 py-1" href="{% url 'btp:project_create' %}">
+      <span class="badge rounded-circle bg-info p-1" style="width:18px;height:18px;font-size:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-building-gear"></i></span>Chantier</a></li>
+  </ul>
+</div>
+
+<!-- Dark mode -->
+<button class="navbar-icon-btn orion-icon-btn" id="themeToggle" title="Changer de thème">
+  <i class="bi bi-moon-stars" id="themeIcon"></i>
+</button>
+
+<!-- Notifications -->
+<div class="dropdown">
+  <button class="navbar-icon-btn orion-icon-btn position-relative" type="button"
+          data-bs-toggle="dropdown" id="notifDropdownBtn" aria-label="Notifications">
+    <i class="bi bi-bell"></i>
+    {% if unread_count > 0 %}
+    <span class="notification-badge" id="notifBadge">{{ unread_count }}</span>
+    {% else %}
+    <span class="notification-badge d-none" id="notifBadge">0</span>
+    {% endif %}
+  </button>
+  <div class="dropdown-menu dropdown-menu-end orion-notification-dropdown">
+    <div class="notif-header">
+      <span class="fw-semibold">Notifications</span>
+      {% if unread_count > 0 %}
+      <a href="{% url 'notifications:mark_all_read' %}" class="notif-mark-all">Tout lire</a>
+      {% endif %}
+    </div>
+    <div class="notif-list">
+      {% if unread_notifications %}
+        {% for notif in unread_notifications %}
+        <a class="dropdown-item notification-item unread"
+           href="{% url 'notifications:mark_read' notif.pk %}{% if notif.link_url %}?next={{ notif.link_url }}{% endif %}">
+          <div class="notif-icon text-{{ notif.icon_color|default:'primary' }}">
+            <i class="bi {{ notif.icon|default:'bi-bell' }}"></i>
+          </div>
+          <div class="notif-content">
+            <div class="notif-title">{{ notif.title }}</div>
+            {% if notif.message %}<div class="notif-subtitle">{{ notif.message|truncatechars:55 }}</div>{% endif %}
+            <div class="notif-time"><i class="bi bi-clock me-1"></i>{{ notif.created_at|timesince }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+      <div class="text-muted text-center py-4">
+        <i class="bi bi-bell-slash d-block fs-2 mb-2 opacity-25"></i>
+        <small>Aucune notification</small>
+      </div>
+      {% endif %}
+    </div>
+    <div class="notif-footer"><a href="{% url 'notifications:list' %}">Toutes les notifications</a></div>
+  </div>
+</div>
+<script>
+(function(){
+  function refreshBadge(){
+    fetch('{% url "notifications:count_api" %}',{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(d){if(!d)return;var b=document.getElementById('notifBadge');if(!b)return;if(d.count>0){b.textContent=d.count;b.classList.remove('d-none');}else{b.classList.add('d-none');}}).catch(function(){});
+  }
+  setInterval(refreshBadge,60000);
+})();
+</script>
+
+<!-- Menu utilisateur -->
+<div class="dropdown">
+  <button class="navbar-user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    <div class="user-avatar-sm">
+      {% if request.user.profile.avatar %}
+        <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+      {% else %}
+        <span>{{ request.user.profile.initials }}</span>
+      {% endif %}
+    </div>
+    <span class="d-none d-md-inline">{{ request.user.profile.display_name|truncatechars:14 }}</span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end" style="min-width:220px;font-size:12.5px">
+    <li class="dropdown-header">
+      <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+      <div class="text-muted" style="font-size:11.5px">{{ request.user.email }}</div>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item py-1" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Mon profil</a></li>
+    {% if request.user.is_superuser %}
+    <li><a class="dropdown-item py-1" href="{% url 'core:company_list' %}"><i class="bi bi-building me-2"></i>Entreprises</a></li>
+    <li><a class="dropdown-item py-1" href="{% url 'admin:index' %}"><i class="bi bi-shield-check me-2"></i>Administration</a></li>
+    {% endif %}
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item py-1 text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+  </ul>
+</div>

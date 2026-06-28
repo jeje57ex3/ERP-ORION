@@ -1,0 +1,75 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'workflow_center:list' %}">Workflows</a></div>
+    <h1 class="orion-page-title">{{ page_title }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Étapes</h3></div>
+      <div class="orion-orion-orion-card-body">
+        {% for step in instance.template.steps %}
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <span class="orion-badge {% if forloop.counter0 < instance.current_step_index %}success{% elif forloop.counter0 == instance.current_step_index %}warning{% else %}neutral{% endif %}">
+            {{ forloop.counter }}
+          </span>
+          <span>{{ step.name|default:step }}</span>
+          {% if forloop.counter0 == instance.current_step_index %}<span class="orion-badge warning">En cours</span>{% endif %}
+        </div>
+        {% empty %}
+        <p class="text-muted">Aucune étape définie.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Historique des actions</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if actions %}
+        <div class="list-group list-group-flush">
+          {% for act in actions %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="orion-badge {% if act.action == 'approve' %}success{% elif act.action == 'reject' %}danger{% else %}neutral{% endif %}">
+                {{ act.get_action_display }}
+              </span>
+              <span style="font-size:13px">{{ act.user.get_full_name|default:act.user.username }}</span>
+              <span style="font-size:11px;color:var(--orion-muted)">· {{ act.created_at|date:"d/m H:i" }}</span>
+              {% if act.comment %}<span style="font-size:12px;color:var(--orion-text-soft)">— {{ act.comment }}</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-4 py-3 text-muted mb-0">Aucune action enregistrée.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    {% if instance.status == 'pending' or instance.status == 'in_progress' %}
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Action</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <form method="post" action="{% url 'workflow_center:approve' instance.pk %}">
+          {% csrf_token %}
+          <textarea name="comment" class="form-control form-control-sm mb-2" rows="2" placeholder="Commentaire (optionnel)"></textarea>
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn success flex-grow-1">Approuver</button>
+          </div>
+        </form>
+        <form method="post" action="{% url 'workflow_center:reject' instance.pk %}" class="mt-2">
+          {% csrf_token %}
+          <textarea name="comment" class="form-control form-control-sm mb-2" rows="2" placeholder="Motif du rejet"></textarea>
+          <button type="submit" class="orion-btn danger w-100">Rejeter</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+/* =============================================
+   POWERED BY ORION — global & variantes
+   ============================================= */
+.powered-by-orion {
+  width: 100%;
+  min-height: 34px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #050505;
+  color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-family: inherit;
+}
+
+.powered-by-orion strong {
+  color: #d8c7a3;
+  font-weight: 700;
+}
+
+/* Variante makeup (univers LUNEA, fond sombre déjà présent) */
+.makeup-site .powered-by-orion {
+  background: #050505;
+  border-top: 1px solid rgba(201, 149, 122, 0.1);
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.makeup-site .powered-by-orion strong {
+  color: #c9957a;
+}
+
+/* =============================================
+   SEARCH EXPAND INPUT
+   ============================================= */
+.search-expand {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.search-expand-box {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.search-expand-input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 40px 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.search-expand-btn {
+  position: absolute;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+/* Dark theme (SIÈCLE header & LUNEA header) */
+.search-expand-dark .search-expand-box {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.search-expand-dark .search-expand-box:focus-within {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-expand-dark .search-expand-input {
+  color: #fff;
+}
+
+.search-expand-dark .search-expand-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.search-expand-dark .search-expand-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.search-expand-dark .search-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Light theme */
+.search-expand-light .search-expand-box {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.search-expand-light .search-expand-box:focus-within {
+  border-color: rgba(201, 149, 122, 0.4);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.search-expand-light .search-expand-input {
+  color: #fff;
+}
+
+.search-expand-light .search-expand-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.search-expand-light .search-expand-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.search-expand-light .search-expand-btn:hover {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .search-expand-box {
+    max-width: calc(100vw - 96px);
+  }
+}
+
+/* =============================================
+   CART TOAST
+   ============================================= */
+.cart-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 2000;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid #d8c7a3;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 300px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cart-toast-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(216, 199, 163, 0.12);
+  color: #d8c7a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cart-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cart-toast-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.cart-toast-name {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.cart-toast-points {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c9957a;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+/* Makeup variant (toast sur pages LUNEA) */
+.makeup-site .cart-toast {
+  border-left-color: #c9957a;
+}
+
+.makeup-site .cart-toast-check {
+  background: rgba(201, 149, 122, 0.12);
+  color: #c9957a;
+}

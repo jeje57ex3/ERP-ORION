@@ -1,0 +1,151 @@
+﻿{% extends "websites/public/base.html" %}
+{% load static %}
+
+{% block meta_title %}Nous contacter — {{ site.name }}{% endblock %}
+
+{% block content %}
+
+<!-- Hero contact -->
+<section class="py-5" style="background: linear-gradient(135deg, var(--site-secondary), var(--site-primary));">
+  <div class="container text-center text-white py-3">
+    <h1 class="display-5 fw-bold mb-2">Contactez-nous</h1>
+    <p class="lead opacity-75">Nous vous répondons rapidement</p>
+  </div>
+</section>
+
+<section class="py-5 py-md-6">
+  <div class="container">
+    <div class="row g-5 justify-content-center">
+
+      <!-- Formulaire -->
+      <div class="col-12 col-lg-7">
+        <div class="bg-white p-4 p-md-5 rounded-3 shadow-sm border">
+          <h2 class="h4 fw-bold mb-4">Envoyez-nous un message</h2>
+
+          {% if messages %}
+          {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} rounded-2">{{ message }}</div>
+          {% endfor %}
+          {% endif %}
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <!-- Honeypot anti-spam (caché) -->
+            <div style="display:none;" aria-hidden="true">
+              <input type="text" name="website_url_field" tabindex="-1" autocomplete="off">
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Nom complet *</label>
+                <input type="text" name="name" class="site-form-control{% if form.name.errors %} is-invalid{% endif %}"
+                       placeholder="Jean Dupont" value="{{ form.name.value|default:'' }}" required>
+                {% if form.name.errors %}<div class="invalid-feedback">{{ form.name.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Email *</label>
+                <input type="email" name="email" class="site-form-control{% if form.email.errors %} is-invalid{% endif %}"
+                       placeholder="jean@email.com" value="{{ form.email.value|default:'' }}" required>
+                {% if form.email.errors %}<div class="invalid-feedback">{{ form.email.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Téléphone</label>
+                <input type="tel" name="phone" class="site-form-control"
+                       placeholder="+33 6 00 00 00 00" value="{{ form.phone.value|default:'' }}">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-semibold small">Sujet</label>
+                <input type="text" name="subject" class="site-form-control"
+                       placeholder="Objet de votre message" value="{{ form.subject.value|default:'' }}">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold small">Message *</label>
+                <textarea name="message" class="site-form-control{% if form.message.errors %} is-invalid{% endif %}"
+                          rows="5" placeholder="Décrivez votre demande..." required>{{ form.message.value|default:'' }}</textarea>
+                {% if form.message.errors %}<div class="invalid-feedback">{{ form.message.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn-site w-100 py-3">
+                  <i class="bi bi-send me-2"></i>Envoyer le message
+                </button>
+              </div>
+              <div class="col-12">
+                <p class="small text-muted text-center mb-0">
+                  <i class="bi bi-lock me-1"></i>Vos données sont protégées et ne seront jamais partagées.
+                </p>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Infos contact -->
+      <div class="col-12 col-lg-4">
+        <div class="sticky-top" style="top: 90px;">
+
+          {% if site.contact_phone %}
+          <div class="contact-info-card mb-4 p-4 rounded-3 border bg-white">
+            <div class="contact-icon" style="background: color-mix(in srgb, var(--site-primary) 12%, white); color: var(--site-primary);">
+              <i class="bi bi-telephone-fill"></i>
+            </div>
+            <div>
+              <div class="fw-semibold small text-muted mb-1">Téléphone</div>
+              <a href="tel:{{ site.contact_phone }}" class="fw-bold fs-5 text-dark text-decoration-none">{{ site.contact_phone }}</a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if site.contact_email %}
+          <div class="contact-info-card mb-4 p-4 rounded-3 border bg-white">
+            <div class="contact-icon" style="background: color-mix(in srgb, var(--site-primary) 12%, white); color: var(--site-primary);">
+              <i class="bi bi-envelope-fill"></i>
+            </div>
+            <div>
+              <div class="fw-semibold small text-muted mb-1">Email</div>
+              <a href="mailto:{{ site.contact_email }}" class="fw-bold text-dark text-decoration-none">{{ site.contact_email }}</a>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if site.address %}
+          <div class="contact-info-card mb-4 p-4 rounded-3 border bg-white">
+            <div class="contact-icon" style="background: color-mix(in srgb, var(--site-primary) 12%, white); color: var(--site-primary);">
+              <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div>
+              <div class="fw-semibold small text-muted mb-1">Adresse</div>
+              <address class="mb-0 fw-semibold" style="font-style:normal;">{{ site.address }}</address>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="p-4 rounded-3 border" style="background: color-mix(in srgb, var(--site-primary) 6%, white);">
+            <h3 class="h6 fw-bold mb-2" style="color: var(--site-primary);">
+              <i class="bi bi-file-earmark-text me-2"></i>Besoin d'un devis ?
+            </h3>
+            <p class="small text-muted mb-3">Décrivez votre projet et obtenez une estimation personnalisée.</p>
+            <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site w-100 text-center py-2" style="font-size:0.875rem;">
+              Demander un devis gratuit
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+.contact-info-card { display: flex; align-items: flex-start; gap: 1rem; }
+.contact-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+</style>
+{% endblock %}

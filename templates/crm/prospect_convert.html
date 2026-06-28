@@ -1,0 +1,18 @@
+{% extends "erp_base.html" %}
+{% block content %}
+<div class="delete-confirm-card erp-card p-4 text-center">
+  <div class="delete-confirm-icon" style="background:var(--color-success-light);color:var(--color-success)"><i class="bi bi-person-check"></i></div>
+  <h4 class="mb-2">Convertir en client ?</h4>
+  <p class="text-muted">Voulez-vous convertir le prospect suivant en client ?</p>
+  <p class="fw-semibold fs-5 mb-3">{{ prospect.name }}</p>
+  <div class="orion-alert info text-start mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    Un nouveau client sera créé avec les informations du prospect. Le prospect sera marqué comme "Gagné".
+  </div>
+  <form method="post" class="d-flex gap-2 justify-content-center">
+    {% csrf_token %}
+    <a href="{% url 'crm:prospect_detail' prospect.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+    <button type="submit" class="orion-btn success"><i class="bi bi-person-check me-1"></i>Convertir en client</button>
+  </form>
+</div>
+{% endblock %}

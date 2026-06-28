@@ -1,0 +1,31 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'audit_compliance:list' %}">Audit</a></li>
+<li class="breadcrumb-item active">Actions sensibles</li>
+{% endblock %}
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h5 class="orion-card-title"><i class="bi bi-shield-exclamation me-2 text-warning"></i>Actions sensibles récentes</h5>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <table class="orion-table">
+      <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Module</th><th>Objet</th><th>IP</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="font-size:12px;white-space:nowrap">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+          <td style="font-size:13px">{{ log.user.username|default:"—" }}</td>
+          <td><span class="orion-badge danger" style="font-size:11px">{{ log.get_action_display }}</span></td>
+          <td style="font-size:12px;color:var(--orion-muted)">{{ log.module|default:"—" }}</td>
+          <td style="font-size:12px">{{ log.object_repr|truncatechars:50|default:"—" }}</td>
+          <td style="font-size:11px;color:var(--orion-muted)">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-4 text-muted">Aucune action sensible.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

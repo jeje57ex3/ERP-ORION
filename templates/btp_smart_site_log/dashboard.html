@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}BTP — Journal Chantier{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h1 class="h3 mb-4">Journal Chantier Intelligent</h1>
+  {% if open_count %}
+  <div class="orion-alert warning">
+    <strong>{{ open_count }} incident(s) ouvert(s)</strong> nécessitent une attention.
+  </div>
+  {% endif %}
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+          <span>Incidents ouverts</span>
+          <span class="orion-badge danger">{{ open_count }}</span>
+        </div>
+        <div class="orion-orion-card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Type</th><th>Gravité</th><th>Chantier</th></tr></thead>
+            <tbody>
+              {% for i in open_incidents|slice:":8" %}
+              <tr>
+                <td>{{ i.get_incident_type_display }}</td>
+                <td><span class="badge bg-{% if i.severity == 'critical' %}danger{% elif i.severity == 'high' %}warning{% else %}secondary{% endif %}">{{ i.get_severity_display }}</span></td>
+                <td><a href="{% url 'btp_smart_site_log:log_detail' i.site_log_id %}">{{ i.site_log.project_id }}</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted py-3">Aucun incident ouvert</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+          <span>Journaux récents</span>
+          <a href="{% url 'btp_smart_site_log:log_list' %}" class="orion-btn sm btn-outline-primary">Tous</a>
+        </div>
+        <div class="orion-orion-card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light"><tr><th>Chantier</th><th>Type</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for l in recent_logs %}
+              <tr>
+                <td><a href="{% url 'btp_smart_site_log:log_detail' l.pk %}">{{ l.project_id }}</a><br><small class="text-muted">{{ l.title|truncatechars:30 }}</small></td>
+                <td>{{ l.get_log_type_display }}</td>
+                <td>{{ l.logged_at|date:"d/m/Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted py-3">Aucun journal</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

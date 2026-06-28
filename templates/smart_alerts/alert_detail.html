@@ -1,0 +1,62 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'smart_alerts:list' %}">Alertes</a></li>
+<li class="breadcrumb-item active">{{ alert.title|truncatechars:40 }}</li>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-lg-8">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title">
+          <span class="orion-badge {% if alert.priority == 'critical' %}danger{% elif alert.priority == 'high' %}warning{% elif alert.priority == 'info' %}info{% else %}neutral{% endif %} me-2">
+            {{ alert.get_priority_display }}
+          </span>
+          {{ alert.title }}
+        </h5>
+        <span class="orion-badge {% if alert.status == 'open' %}warning{% elif alert.status == 'resolved' %}success{% else %}neutral{% endif %}">
+          {{ alert.get_status_display }}
+        </span>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        {% if alert.message %}
+        <p style="font-size:14px;line-height:1.6;color:var(--orion-text-soft)">{{ alert.message }}</p>
+        <hr style="border-color:var(--orion-border)">
+        {% endif %}
+        <dl style="display:grid;grid-template-columns:160px 1fr;gap:8px 16px;font-size:13px">
+          <dt style="color:var(--orion-muted)">Module source</dt>
+          <dd style="margin:0">{{ alert.source_module }}</dd>
+          {% if alert.brand_key %}
+          <dt style="color:var(--orion-muted)">Marque</dt>
+          <dd style="margin:0"><span class="orion-badge accent">{{ alert.brand_key }}</span></dd>
+          {% endif %}
+          {% if alert.related_object_type %}
+          <dt style="color:var(--orion-muted)">Objet lié</dt>
+          <dd style="margin:0">{{ alert.related_object_type }} #{{ alert.related_object_id }}</dd>
+          {% endif %}
+          <dt style="color:var(--orion-muted)">Créée le</dt>
+          <dd style="margin:0">{{ alert.created_at|date:"d/m/Y à H:i" }}</dd>
+          {% if alert.assigned_to %}
+          <dt style="color:var(--orion-muted)">Assignée à</dt>
+          <dd style="margin:0">{{ alert.assigned_to.get_full_name|default:alert.assigned_to.username }}</dd>
+          {% endif %}
+          {% if alert.resolved_at %}
+          <dt style="color:var(--orion-muted)">Résolue le</dt>
+          <dd style="margin:0">{{ alert.resolved_at|date:"d/m/Y à H:i" }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+      {% if alert.status in 'open,acknowledged' %}
+      <div class="orion-card-footer d-flex gap-2">
+        <form method="post" action="{% url 'smart_alerts:resolve' alert.pk %}">{% csrf_token %}
+          <button class="orion-btn sm success" type="submit"><i class="bi bi-check-circle me-1"></i>Résoudre</button>
+        </form>
+        <form method="post" action="{% url 'smart_alerts:ignore' alert.pk %}">{% csrf_token %}
+          <button class="orion-btn sm ghost" type="submit">Ignorer</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Contrôle d'accès</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Gérez les rôles, permissions et accès des utilisateurs.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-shield-check"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ roles_count }}</div><div class="kpi-label">Rôles</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#0D9488">
+      <div class="kpi-icon"><i class="bi bi-people"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ users_count }}</div><div class="kpi-label">Utilisateurs actifs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#F59E0B">
+      <div class="kpi-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ modules_count }}</div><div class="kpi-label">Modules actifs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:{% if denied_count > 0 %}#EF4444{% else %}#10B981{% endif %}">
+      <div class="kpi-icon"><i class="bi bi-journal-text"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ denied_count }}</div><div class="kpi-label">Accès refusés (total)</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="erp-card h-100">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-lightning me-2"></i>Actions rapides</h6></div>
+      <div class="erp-orion-orion-card-body d-flex flex-column gap-2">
+        <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-primary text-start"><i class="bi bi-shield me-2"></i>Gérer les rôles</a>
+        <a href="{% url 'access_control:user_access_list' %}" class="btn btn-outline-success text-start"><i class="bi bi-person-check me-2"></i>Accès utilisateurs</a>
+        <a href="{% url 'access_control:override_list' %}" class="btn btn-outline-warning text-start"><i class="bi bi-sliders me-2"></i>Overrides individuels</a>
+        <a href="{% url 'access_control:module_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-grid me-2"></i>Modules ERP</a>
+        <a href="{% url 'access_control:access_log' %}" class="btn btn-outline-dark text-start"><i class="bi bi-journal me-2"></i>Journal des accès</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-clock-history me-2"></i>Derniers accès enregistrés</h6></div>
+      <div class="erp-orion-orion-card-body p-0">
+        {% if recent_logs %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr><th>Utilisateur</th><th>Module</th><th>Action</th><th class="text-center">Résultat</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+              {% for log in recent_logs %}
+              <tr>
+                <td class="fw-semibold">{{ log.user.get_full_name|default:log.user.username }}</td>
+                <td>{{ log.module }}</td>
+                <td><span class="orion-badge neutral">{{ log.action }}</span></td>
+                <td class="text-center">
+                  {% if log.allowed %}<span class="orion-badge success">Autorisé</span>{% else %}<span class="orion-badge danger">Refusé</span>{% endif %}
+                </td>
+                <td class="text-muted small">{{ log.created_at|date:"d/m H:i" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">Aucun accès enregistré</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

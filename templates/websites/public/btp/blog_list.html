@@ -1,0 +1,55 @@
+﻿{% extends "websites/public/btp/base.html" %}
+{% load static %}
+{% block title %}Blog — {{ site.name }}{% endblock %}
+{% block meta_description %}Conseils BTP, guides travaux et actualités de notre entreprise.{% endblock %}
+
+{% block content %}
+<section class="btp-page-hero">
+  <div class="btp-container">
+    <span class="btp-h-label" style="color:var(--btp-secondary)">Conseils</span>
+    <h1>Blog & Conseils BTP</h1>
+    <p>Guides pratiques, actualités et conseils de nos experts.</p>
+  </div>
+</section>
+
+<section class="btp-section btp-section-white">
+  <div class="btp-container">
+
+    {% if categories %}
+    <div class="btp-filters" style="margin-bottom:2rem">
+      <a href="{% url 'public_websites:btp_blog' site.public_slug %}" class="btp-filter-pill {% if not current_category %}active{% endif %}">Tous les articles</a>
+      {% for cat in categories %}
+      <a href="{% url 'public_websites:btp_blog' site.public_slug %}?category={{ cat.slug }}" class="btp-filter-pill {% if current_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if posts %}
+    <div class="btp-blog-grid">
+      {% for post in posts %}
+      <article class="btp-blog-card btp-reveal">
+        {% if post.cover_image %}
+        <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" class="btp-blog-img">
+        {% else %}
+        <div class="btp-blog-img" style="display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:var(--btp-muted)"><i class="bi bi-newspaper"></i></div>
+        {% endif %}
+        <div class="btp-blog-body">
+          {% if post.category %}<div class="btp-blog-cat">{{ post.category.name }}</div>{% endif %}
+          <h3><a href="{% url 'public_websites:btp_blog_detail' site.public_slug post.slug %}" style="color:inherit;text-decoration:none">{{ post.title }}</a></h3>
+          <p>{{ post.excerpt|truncatewords:25 }}</p>
+          <div class="btp-blog-date"><i class="bi bi-calendar3"></i> {{ post.published_at|date:"d/m/Y" }}</div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:4rem 0;color:var(--btp-muted)">
+      <i class="bi bi-newspaper" style="font-size:3rem;display:block;margin-bottom:1rem"></i>
+      <p>Nos articles arrivent bientôt.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% include "websites/public/btp/components/cta_guided_quote.html" %}
+{% endblock %}

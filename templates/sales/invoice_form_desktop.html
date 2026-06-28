@@ -1,0 +1,216 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ invoice.number|default:"Nouvelle facture" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'sales:invoice_list' %}">Factures</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ invoice.number|default:"Nouvelle" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">{% if invoice.pk %}{{ invoice.number }}{% else %}Nouvelle facture{% endif %}</h1>
+      {% if invoice.pk %}
+      <span class="orion-status
+        {% if invoice.status == 'draft' %}draft
+        {% elif invoice.status == 'sent' %}info
+        {% elif invoice.status == 'paid' %}active
+        {% elif invoice.status == 'overdue' %}danger
+        {% elif invoice.status == 'partial' %}pending
+        {% else %}closed{% endif %}">
+        {{ invoice.get_status_display }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="invoice-form" type="submit" title="Enregistrer (Ctrl+S)"><i class="bi bi-save"></i></button>
+      <button class="orion-icon-btn" onclick="window.print()" title="Imprimer"><i class="bi bi-printer"></i></button>
+      {% if invoice.pk %}
+      <a href="{% url 'sales:invoice_confirm_delete' invoice.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer cette facture ?"><i class="bi bi-trash"></i></a>
+      <div class="orion-toolbar-sep"></div>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning me-1"></i>Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-send me-2 text-primary"></i>Envoyer au client</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>Télécharger PDF</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-cash me-2 text-success"></i>Enregistrer paiement</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-envelope me-2 text-warning"></i>Relancer client</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-files me-2"></i>Créer avoir</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-journal-text me-2"></i>Comptabiliser</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form id="invoice-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+
+    <div class="orion-record-grid cols-2-1">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-receipt text-success" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Informations facture</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label class="required">Client</label>{{ form.customer }}</div>
+            <div class="orion-form-row"><label>Commande liée</label>{{ form.order }}</div>
+            <div class="orion-form-row"><label>Devis lié</label>{{ form.quote }}</div>
+            <div class="orion-form-row"><label class="required">Date émission</label>{{ form.issue_date }}</div>
+            <div class="orion-form-row"><label>Date échéance</label>{{ form.due_date }}</date></div>
+            <div class="orion-form-row"><label>Réf. client</label>{{ form.customer_ref }}</div>
+          </div>
+        </div>
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-list-ul text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Lignes</h2>
+          </div>
+          <div class="orion-record-panel-body" style="padding:0">
+            {{ form.lines.management_form }}
+            <table class="orion-lines-table">
+              <thead>
+                <tr>
+                  <th style="width:38%">Description</th>
+                  <th style="width:9%">Qté</th>
+                  <th style="width:12%">PU HT</th>
+                  <th style="width:8%">TVA%</th>
+                  <th style="width:12%">Total HT</th>
+                  <th class="td-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for lf in form.lines %}
+                <tr>
+                  <td>{{ lf.description }}</td>
+                  <td>{{ lf.quantity }}</td>
+                  <td>{{ lf.unit_price }}</td>
+                  <td>{{ lf.vat_rate }}</td>
+                  <td style="text-align:right;font-weight:500">—</td>
+                  <td class="td-action"><button type="button" class="orion-icon-btn danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div style="padding:8px 12px;border-top:1px solid var(--orion-border-light)">
+              <button type="button" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-plus me-1"></i>Ajouter ligne</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-chat-left-text text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Notes</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row" style="grid-template-columns:1fr">{{ form.notes }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Droite -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-calculator text-success" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Totaux</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-totals-grid">
+              <span class="label">Total HT</span>
+              <span class="value">{{ invoice.total_ht|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label">TVA</span>
+              <span class="value">{{ invoice.total_tax|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label total-line">Total TTC</span>
+              <span class="value total-line">{{ invoice.total_ttc|default:"0.00"|floatformat:2 }} €</span>
+              {% if invoice.pk %}
+              <span class="label" style="color:var(--orion-success)">Payé</span>
+              <span class="value" style="color:var(--orion-success)">{{ invoice.amount_paid|default:"0.00"|floatformat:2 }} €</span>
+              <span class="label" style="color:var(--orion-danger)">Reste dû</span>
+              <span class="value" style="color:var(--orion-danger)">{{ invoice.amount_due|default:"0.00"|floatformat:2 }} €</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-credit-card text-info" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Paiement</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Mode</label>{{ form.payment_method }}</div>
+            <div class="orion-form-row"><label>Conditions</label>{{ form.payment_terms }}</div>
+            <div class="orion-form-row"><label>Statut</label>{{ form.status }}</div>
+          </div>
+        </div>
+
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-journal-text text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Comptabilité</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row"><label>Compte client</label>{{ form.account_number }}</div>
+            <div class="orion-form-row"><label>Journal</label>{{ form.journal }}</div>
+            <div class="orion-form-check mb-2">
+              {{ form.is_posted }}
+              <label for="{{ form.is_posted.id_for_label }}">Comptabilisée</label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="orion-form-actions">
+      <a href="{% url 'sales:invoice_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+
+  {% if invoice.pk %}
+  <div class="orion-bottom-tabs">
+    <div class="orion-bottom-tabs-nav">
+      <button class="orion-bottom-tab active" data-tab="inv-payments"><i class="bi bi-cash"></i> Paiements</button>
+      <button class="orion-bottom-tab" data-tab="inv-reminders"><i class="bi bi-envelope"></i> Relances</button>
+      <button class="orion-bottom-tab" data-tab="inv-accounting"><i class="bi bi-journal-text"></i> Écritures</button>
+      <button class="orion-bottom-tab" data-tab="inv-docs"><i class="bi bi-folder"></i> Documents</button>
+      <button class="orion-bottom-tab" data-tab="inv-history"><i class="bi bi-clock-history"></i> Historique</button>
+    </div>
+    <div class="orion-bottom-tab-content active" id="inv-payments">
+      <div class="orion-tab-empty"><i class="bi bi-cash"></i>Aucun paiement enregistré</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="inv-reminders">
+      <div class="orion-tab-empty"><i class="bi bi-envelope"></i>Aucune relance envoyée</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="inv-accounting">
+      <div class="orion-tab-empty"><i class="bi bi-journal-text"></i>Aucune écriture comptable</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="inv-docs">
+      <div class="orion-tab-empty"><i class="bi bi-folder"></i>Aucun document joint</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="inv-history">
+      <div class="orion-tab-empty"><i class="bi bi-clock-history"></i>Historique vide</div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Devis — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Devis</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Créez, envoyez et suivez vos propositions commerciales.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau devis</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-file-text"></i></div>
+      <div class="orion-kpi-value">{{ quotes.count }}</div>
+      <div class="orion-kpi-label">Total devis</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3F4F6;color:#6B7280"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="orion-kpi-value">{{ count_draft }}</div>
+      <div class="orion-kpi-label">Brouillons</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-send"></i></div>
+      <div class="orion-kpi-value">{{ count_sent }}</div>
+      <div class="orion-kpi-label">Envoyés</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-currency-euro"></i></div>
+      <div class="orion-kpi-value">{{ total_ht|floatformat:0 }} €</div>
+      <div class="orion-kpi-label">Total HT</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'sales:quote_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="d-flex gap-2 flex-grow-1">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="Numéro, client, objet..." value="{{ q }}" style="flex:1">
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
+      {% if q %}<a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-circle"></i></a>{% endif %}
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr>
+            <th>N° Devis</th>
+            <th>Client</th>
+            <th>Objet</th>
+            <th>Date</th>
+            <th>Validité</th>
+            <th>Total HT</th>
+            <th>Total TTC</th>
+            <th>Statut</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in quotes %}
+          <tr>
+            <td><a href="{% url 'sales:quote_detail' q.pk %}" class="fw-semibold text-dark text-decoration-none">{{ q.number|default:"—" }}</a></td>
+            <td><a href="{% url 'crm:customer_detail' q.customer.pk %}" class="text-muted small">{{ q.customer.name }}</a></td>
+            <td class="small text-muted">{{ q.subject|truncatechars:40|default:"—" }}</td>
+            <td class="small text-muted">{{ q.issue_date|date:"d/m/Y" }}</td>
+            <td class="small {% if q.validity_date and q.validity_date < today %}text-danger{% else %}text-muted{% endif %}">{{ q.validity_date|date:"d/m/Y"|default:"—" }}</td>
+            <td class="fw-semibold small">{{ q.total_ht|floatformat:2 }} €</td>
+            <td class="fw-semibold small">{{ q.total_ttc|floatformat:2 }} €</td>
+            <td>
+              {% if q.status == 'draft' %}<span class="orion-badge orion-badge-secondary">{{ q.get_status_display }}</span>
+              {% elif q.status == 'sent' %}<span class="orion-badge orion-badge-warning">{{ q.get_status_display }}</span>
+              {% elif q.status == 'won' or q.status == 'accepted' %}<span class="orion-badge orion-badge-success">{{ q.get_status_display }}</span>
+              {% elif q.status == 'lost' or q.status == 'refused' %}<span class="orion-badge orion-badge-danger">{{ q.get_status_display }}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ q.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'sales:quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                {% if q.status == 'draft' %}<a href="{% url 'sales:quote_send' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Envoyer"><i class="bi bi-send"></i></a>{% endif %}
+                <a href="{% url 'sales:quote_edit' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'sales:quote_delete' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-file-text"></i></div>
+              <div class="orion-empty-title">Aucun devis pour le moment</div>
+              <div class="orion-empty-text">Créez votre premier devis pour commencer à gérer vos propositions commerciales.</div>
+              <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Créer un devis</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

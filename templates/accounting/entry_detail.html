@@ -1,0 +1,114 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:entry_list' %}">Écritures</a></li>
+<li class="breadcrumb-item active">{{ entry.entry_number }}</li>
+{% endblock %}
+{% block page_actions %}
+{% if entry.status == 'draft' %}
+<form method="post" action="{% url 'accounting:entry_validate' entry.pk %}" class="d-inline">
+  {% csrf_token %}
+  <button type="submit" class="orion-btn success" onclick="return confirm('Valider cette écriture ?')">
+    <i class="bi bi-check-circle me-1"></i>Valider
+  </button>
+</form>
+<form method="post" action="{% url 'accounting:entry_cancel' entry.pk %}" class="d-inline ms-1">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Annuler cette écriture ?')">
+    <i class="bi bi-x-circle me-1"></i>Annuler
+  </button>
+</form>
+{% elif entry.status == 'validated' %}
+<form method="post" action="{% url 'accounting:entry_reverse' entry.pk %}" class="d-inline">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Créer une extourne ?')">
+    <i class="bi bi-arrow-repeat me-1"></i>Extourner
+  </button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-info-circle me-2"></i>Détail de l'écriture</h6></div>
+      <div class="erp-orion-orion-card-body">
+        <dl class="row small mb-0">
+          <dt class="col-5">N° écriture</dt><dd class="col-7 fw-bold">{{ entry.entry_number }}</dd>
+          <dt class="col-5">Journal</dt><dd class="col-7"><span class="orion-badge neutral">{{ entry.journal.code }}</span> {{ entry.journal.name }}</dd>
+          <dt class="col-5">Date</dt><dd class="col-7">{{ entry.entry_date|date:"d/m/Y" }}</dd>
+          <dt class="col-5">Description</dt><dd class="col-7">{{ entry.description }}</dd>
+          {% if entry.reference %}<dt class="col-5">Référence</dt><dd class="col-7">{{ entry.reference }}</dd>{% endif %}
+          <dt class="col-5">Source</dt><dd class="col-7">{{ entry.source_type }}</dd>
+          <dt class="col-5">Statut</dt>
+          <dd class="col-7">
+            {% if entry.status == 'validated' %}<span class="orion-badge success">Validée</span>
+            {% elif entry.status == 'draft' %}<span class="orion-badge warning text-dark">Brouillon</span>
+            {% elif entry.status == 'cancelled' %}<span class="orion-badge neutral">Annulée</span>
+            {% elif entry.status == 'reversed' %}<span class="orion-badge info">Extournée</span>{% endif %}
+          </dd>
+          {% if entry.validated_by %}<dt class="col-5">Validé par</dt><dd class="col-7">{{ entry.validated_by.get_full_name|default:entry.validated_by.username }}</dd>{% endif %}
+          {% if entry.reversed_entry %}<dt class="col-5">Extourne de</dt><dd class="col-7"><a href="{% url 'accounting:entry_detail' entry.reversed_entry.pk %}">{{ entry.reversed_entry.entry_number }}</a></dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+    <div class="erp-card mt-3">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title">Équilibre</h6></div>
+      <div class="erp-orion-orion-card-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span>Total Débit</span>
+          <strong class="text-success">{{ total_debit|floatformat:2 }} €</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Total Crédit</span>
+          <strong class="text-danger">{{ total_credit|floatformat:2 }} €</strong>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between">
+          <span>Équilibrée</span>
+          {% if is_balanced %}<span class="orion-badge success"><i class="bi bi-check-lg me-1"></i>Oui</span>
+          {% else %}<span class="orion-badge danger"><i class="bi bi-x-lg me-1"></i>Non</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-list me-2"></i>Lignes</h6></div>
+      <div class="erp-orion-orion-card-body p-0">
+        <div class="table-responsive">
+          <table class="orion-table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Compte</th>
+                <th>Libellé</th>
+                <th class="text-end">Débit</th>
+                <th class="text-end">Crédit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line in lines %}
+              <tr>
+                <td><code>{{ line.account.number }}</code> {{ line.account.name }}</td>
+                <td class="small text-muted">{{ line.label }}</td>
+                <td class="text-end">{% if line.debit %}<span class="text-success fw-semibold">{{ line.debit|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+                <td class="text-end">{% if line.credit %}<span class="text-danger fw-semibold">{{ line.credit|floatformat:2 }}</span>{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+              <tr>
+                <td colspan="2" class="text-end">Totaux</td>
+                <td class="text-end text-success">{{ total_debit|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ total_credit|floatformat:2 }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

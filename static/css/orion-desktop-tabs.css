@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Desktop Tabs
+   Onglets ouverts (topbar), onglets bas (record), mini-onglets
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Open tabs bar (browser-like) ──────────────────────────────── */
+.orion-open-tabs {
+  height: var(--od-tabs-h, 32px);
+  background: var(--od-sand-200, #EFE7D5);
+  border-bottom: 1px solid var(--od-border, #D8C9B0);
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.orion-open-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual open tab */
+.orion-open-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--od-sand-300, #E3D5BE);
+  border: 1px solid var(--od-border, #D8C9B0);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  font-size: 12px;
+  color: var(--od-muted, #7A6A58);
+  text-decoration: none;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.orion-open-tab:hover {
+  background: var(--od-sand-100, #F6F1E6);
+  color: var(--od-text, #2B2118);
+  text-decoration: none;
+}
+
+.orion-open-tab.active {
+  background: #FFFFFF;
+  color: var(--od-primary, #2B2118);
+  font-weight: 500;
+  border-top: 2px solid var(--od-gold, #C6A15B);
+  padding-top: 0;
+  z-index: 1;
+}
+
+.orion-open-tab-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.orion-open-tab-close {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity .15s, background .15s;
+  line-height: 1;
+}
+
+.orion-open-tab:hover .orion-open-tab-close,
+.orion-open-tab.active .orion-open-tab-close {
+  opacity: .6;
+}
+
+.orion-open-tab-close:hover {
+  background: rgba(43,33,24,.15);
+  opacity: 1 !important;
+}
+
+/* ── Bottom tabs (record details) ──────────────────────────────── */
+.orion-bottom-tabs {
+  background: var(--od-panel-bg, #FFFFFF);
+  border: 1px solid var(--od-border-light, #EBE0CC);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(43,33,24,.05);
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+/* Tab nav strip */
+.orion-bottom-tabs-nav {
+  display: flex;
+  align-items: center;
+  background: var(--od-sand-100, #F6F1E6);
+  border-bottom: 1px solid var(--od-border, #D8C9B0);
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 0;
+}
+
+.orion-bottom-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual bottom tab button */
+.orion-bottom-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--od-muted, #7A6A58);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.orion-bottom-tab i {
+  font-size: 13px;
+}
+
+.orion-bottom-tab:hover {
+  color: var(--od-primary, #2B2118);
+  background: rgba(198,161,91,.07);
+}
+
+.orion-bottom-tab.active {
+  color: var(--od-primary, #2B2118);
+  border-bottom-color: var(--od-gold, #C6A15B);
+  font-weight: 600;
+  background: rgba(198,161,91,.06);
+}
+
+/* Tab count badge */
+.orion-bottom-tab .tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--od-sand-300, #E3D5BE);
+  color: var(--od-muted, #7A6A58);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.orion-bottom-tab.active .tab-count {
+  background: rgba(198,161,91,.25);
+  color: var(--od-primary, #2B2118);
+}
+
+/* Tab content panels */
+.orion-bottom-tab-content {
+  display: none;
+  padding: 12px 14px;
+  min-height: 80px;
+}
+
+.orion-bottom-tab-content.active {
+  display: block;
+}
+
+/* ── Mini tabs (secondary, inside panels) ──────────────────────── */
+.orion-mini-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--od-border-light, #EBE0CC);
+  margin-bottom: 12px;
+}
+
+.orion-mini-tab {
+  height: 28px;
+  padding: 0 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--od-muted, #7A6A58);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+
+.orion-mini-tab:hover {
+  color: var(--od-primary, #2B2118);
+}
+
+.orion-mini-tab.active {
+  color: var(--od-primary, #2B2118);
+  border-bottom-color: var(--od-gold, #C6A15B);
+}
+
+.orion-mini-tab-content {
+  display: none;
+}
+
+.orion-mini-tab-content.active {
+  display: block;
+}
+
+/* ── Breadcrumb in topbar ──────────────────────────────────────── */
+.orion-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.orion-breadcrumb a {
+  color: var(--od-muted, #7A6A58);
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.orion-breadcrumb a:hover {
+  color: var(--od-primary, #2B2118);
+}
+
+.orion-breadcrumb-sep {
+  color: var(--od-border, #D8C9B0);
+  padding: 0 2px;
+}
+
+/* ── Print styles ──────────────────────────────────────────────── */
+@media print {
+  .orion-sidebar,
+  .erp-sidebar,
+  .orion-topbar,
+  .erp-navbar,
+  .orion-open-tabs,
+  .orion-bottom-tabs-nav,
+  .orion-record-toolbar,
+  .orion-form-actions,
+  .erp-footer {
+    display: none !important;
+  }
+
+  .orion-main,
+  .erp-main {
+    margin-left: 0 !important;
+  }
+
+  .orion-record-page {
+    padding: 0 !important;
+  }
+}

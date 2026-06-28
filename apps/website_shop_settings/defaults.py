@@ -1,0 +1,26 @@
+DEFAULT_SHOP_SETTINGS = {
+    'siecle': {
+        'site_name': 'SIÈCLE',
+        'site_title': 'SIÈCLE — Maison contemporaine',
+        'site_description': 'Une maison premium contemporaine.',
+        'order_prefix': 'SIE',
+        'default_currency': 'EUR',
+        'default_language': 'fr',
+        'support_email': 'support@siecle.fr',
+        'contact_email': 'contact@siecle.fr',
+        'orders_email': 'commandes@siecle.fr',
+        'returns_email': 'retours@siecle.fr',
+    },
+    'lunea': {
+        'site_name': 'LUNEA',
+        'site_title': 'LUNEA — Beauté lumineuse',
+        'site_description': 'Beauté premium, douce et lumineuse.',
+        'order_prefix': 'LUN',
+        'default_currency': 'EUR',
+        'default_language': 'fr',
+        'support_email': 'support@lunea.fr',
+        'contact_email': 'contact@lunea.fr',
+        'orders_email': 'commandes@lunea.fr',
+        'returns_email': 'retours@lunea.fr',
+    },
+}

@@ -1,0 +1,108 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Factures fournisseurs — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Factures fournisseurs</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Suivez et approuvez les factures de vos fournisseurs.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'purchases:supplier_invoice_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Saisir une facture</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="orion-kpi-value">{{ invoices.count }}</div>
+      <div class="orion-kpi-label">Total factures</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-clock-history"></i></div>
+      <div class="orion-kpi-value">{{ count_pending }}</div>
+      <div class="orion-kpi-label">En attente</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-exclamation-circle"></i></div>
+      <div class="orion-kpi-value">{{ count_overdue }}</div>
+      <div class="orion-kpi-label">En retard</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-currency-euro"></i></div>
+      <div class="orion-kpi-value">{{ total_ttc|floatformat:0 }} €</div>
+      <div class="orion-kpi-label">Total TTC</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'purchases:supplier_invoice_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="d-flex gap-2 flex-grow-1">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="N°, fournisseur, ref..." value="{{ q }}" style="flex:1">
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr><th>Réf fournisseur</th><th>Fournisseur</th><th>Date</th><th>Échéance</th><th class="text-end">Total TTC</th><th>Statut</th><th class="text-end">Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td><a href="{% url 'purchases:supplier_invoice_detail' inv.pk %}" class="fw-semibold text-dark text-decoration-none">{{ inv.supplier_ref|default:inv.pk }}</a></td>
+            <td><a href="{% url 'purchases:supplier_detail' inv.supplier.pk %}" class="text-muted small">{{ inv.supplier.name }}</a></td>
+            <td class="small text-muted">{{ inv.issue_date|date:"d/m/Y" }}</td>
+            <td class="small {% if inv.due_date and inv.due_date < today and inv.status != 'paid' %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+              {{ inv.due_date|date:"d/m/Y"|default:"—" }}
+            </td>
+            <td class="text-end fw-semibold small">{{ inv.total_ttc|floatformat:2 }} €</td>
+            <td>
+              {% if inv.status == 'paid' %}<span class="orion-badge orion-badge-success">{{ inv.get_status_display }}</span>
+              {% elif inv.status == 'pending' %}<span class="orion-badge orion-badge-warning">{{ inv.get_status_display }}</span>
+              {% elif inv.status == 'overdue' %}<span class="orion-badge orion-badge-danger">{{ inv.get_status_display }}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ inv.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'purchases:supplier_invoice_detail' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                {% if inv.status == 'pending' %}
+                <a href="{% url 'purchases:supplier_invoice_approve' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Approuver"><i class="bi bi-check-circle text-success"></i></a>
+                {% endif %}
+                {% if inv.status != 'paid' %}
+                <a href="{% url 'purchases:supplier_invoice_mark_paid' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Marquer payée"><i class="bi bi-currency-euro"></i></a>
+                {% endif %}
+                <a href="{% url 'purchases:supplier_invoice_delete' inv.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
+              <div class="orion-empty-title">Aucune facture fournisseur</div>
+              <div class="orion-empty-text">Saisissez les factures reçues de vos fournisseurs pour les suivre et les payer.</div>
+              <a href="{% url 'purchases:supplier_invoice_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Saisir une facture</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

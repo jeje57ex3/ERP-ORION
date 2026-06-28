@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if page_title %}{{ page_title }}{% else %}Orion ERP{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'erp/css/orion-erp.css' %}">
+{% endblock %}
+
+{% block body %}
+<script>document.body.classList.add('orion-erp','erp-shell');</script>
+<div class="orion-shell" id="orionShell">
+
+  {# ── Sidebar ─────────────────────────────────────────────────────────── #}
+  {% include "layouts/sidebar.html" %}
+
+  {# ── Zone principale ─────────────────────────────────────────────────── #}
+  <div class="orion-main-v2" id="orionMain">
+
+    {# ── Topbar ──────────────────────────────────────────────────────────── #}
+    {% include "layouts/topbar.html" %}
+
+    {# ── Contenu ──────────────────────────────────────────────────────────── #}
+    <main class="orion-content-v2" id="orionContent">
+
+      {# Breadcrumb #}
+      {% block breadcrumb %}
+        {% include "layouts/breadcrumb.html" %}
+      {% endblock %}
+
+      {# En-tête de page #}
+      {% block page_header %}
+        {% if page_title %}
+          {% include "layouts/page_header.html" with title=page_title subtitle=page_subtitle %}
+        {% endif %}
+      {% endblock %}
+
+      {# Messages Django #}
+      {% if messages %}
+      <div class="orion-messages" style="margin-bottom:16px;display:flex;flex-direction:column;gap:8px">
+        {% for message in messages %}
+        <div class="orion-alert orion-alert-{{ message.tags|default:'info' }}" role="alert"
+             style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;border:1px solid;font-size:13px;">
+          <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+          <span style="flex:1">{{ message }}</span>
+          <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;opacity:.6;font-size:15px;padding:0" aria-label="Fermer">×</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Contenu principal #}
+      {% block content %}{% endblock %}
+
+    </main>
+
+    {# ── Footer ──────────────────────────────────────────────────────────── #}
+    <footer class="orion-footer-v2">
+      <span>{{ brand_name|default:"Orion ERP" }}</span>
+      <span class="sep">·</span>
+      <span>© {% now "Y" %}</span>
+      {% if current_company %}
+      <span class="sep">·</span>
+      <span>{{ current_company.name }}</span>
+      {% endif %}
+      <span class="sep">·</span>
+      <span style="opacity:.6">v1.0</span>
+    </footer>
+
+  </div>
+  {# /ZONE PRINCIPALE #}
+
+</div>
+{# /SHELL #}
+
+{# Overlay sidebar mobile #}
+<div class="orion-sidebar-overlay" id="orionSidebarOverlay" onclick="document.body.classList.remove('orion-sidebar-open')"></div>
+
+{# Toast container #}
+<div id="orionToastContainerV2" class="orion-toast-container-v2" aria-live="polite" aria-atomic="true"></div>
+
+{# Command palette #}
+{% include "components/command_palette.html" %}
+
+{# Modals supplémentaires #}
+{% block extra_modals %}{% endblock %}
+
+<style>
+/* Alert couleurs inline */
+.orion-alert-success { background: rgba(47,125,87,.08); border-color: rgba(47,125,87,.22); color: var(--orion-success); }
+.orion-alert-warning { background: rgba(183,121,31,.08); border-color: rgba(183,121,31,.22); color: var(--orion-warning); }
+.orion-alert-danger,
+.orion-alert-error   { background: rgba(180,59,59,.08); border-color: rgba(180,59,59,.22); color: var(--orion-danger); }
+.orion-alert-info    { background: rgba(61,100,120,.08); border-color: rgba(61,100,120,.22); color: var(--orion-info); }
+</style>
+
+{% block extra_js %}{% endblock %}
+{% endblock %}

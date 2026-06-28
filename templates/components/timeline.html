@@ -1,0 +1,35 @@
+{# Composant timeline générique
+   Variables : events (liste de dicts {date, title, description, icon, color, user, link})
+   Couleurs disponibles : success, danger, info, warning, secondary, primary
+#}
+{% if events %}
+<ul class="orion-timeline">
+  {% for ev in events %}
+  <li class="orion-timeline-item">
+    <div class="orion-timeline-dot"
+         style="{% if ev.color == 'success' %}background:#DCFCE7;color:#15803D{% elif ev.color == 'danger' %}background:#FEE2E2;color:#B91C1C{% elif ev.color == 'warning' %}background:#FEF3C7;color:#D97706{% elif ev.color == 'info' %}background:#DBEAFE;color:#1D4ED8{% elif ev.color == 'primary' %}background:#EFF6FF;color:#1E3A5F{% else %}background:#F3F4F6;color:#6B7280{% endif %}">
+      <i class="bi bi-{{ ev.icon|default:'clock' }}"></i>
+    </div>
+    <div class="orion-timeline-content">
+      <div class="orion-timeline-title">
+        {% if ev.link %}<a href="{{ ev.link }}" class="text-decoration-none" style="color:var(--orion-text)">{% endif %}
+        <strong>{{ ev.title }}</strong>
+        {% if ev.link %}</a>{% endif %}
+        {% if ev.description %}
+        <span class="text-muted fw-normal"> — {{ ev.description|truncatechars:80 }}</span>
+        {% endif %}
+      </div>
+      <div class="orion-timeline-date">
+        {% if ev.user %}<span class="me-2">{{ ev.user }}</span> · {% endif %}
+        {{ ev.date|date:"d/m/Y H:i"|default:ev.date }}
+      </div>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="text-center py-4 text-muted">
+  <i class="bi bi-clock-history fs-2 d-block mb-2 opacity-40"></i>
+  Aucun événement.
+</div>
+{% endif %}

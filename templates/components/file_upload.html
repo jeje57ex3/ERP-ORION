@@ -1,0 +1,149 @@
+{# Composant : zone de téléversement avec drag-and-drop
+   Usage : {% include "components/file_upload.html" with field_name="document" accept=".pdf,.doc,.docx" max_size_mb=10 %}
+   Variables :
+     - field_name    : nom du champ (attribut name de l'input, requis)
+     - accept        : types de fichiers acceptés (ex: ".pdf,.doc,.docx")
+     - max_size_mb   : taille maximale en Mo (défaut : 10)
+     - label         : libellé affiché (défaut : "Déposer un fichier ici")
+     - required      : True pour rendre le champ obligatoire
+     - multiple      : True pour autoriser plusieurs fichiers
+     - help_text     : texte d'aide supplémentaire
+#}
+{% with drop_id="fileUpload_"|add:field_name|default:"file" %}
+<div class="file-upload-wrapper" id="{{ drop_id }}_wrapper">
+  {# Input file caché (compatible formulaires Django) #}
+  <input
+    type="file"
+    name="{{ field_name|default:'file' }}"
+    id="{{ drop_id }}_input"
+    class="d-none"
+    {% if accept %}accept="{{ accept }}"{% endif %}
+    {% if multiple %}multiple{% endif %}
+    {% if required %}required{% endif %}
+    data-max-size="{{ max_size_mb|default:10 }}"
+    aria-describedby="{{ drop_id }}_feedback"
+  >
+
+  {# Zone de drop #}
+  <label
+    for="{{ drop_id }}_input"
+    class="file-upload-zone d-flex flex-column align-items-center justify-content-center text-center p-4 rounded-3 border border-2 border-dashed"
+    id="{{ drop_id }}_zone"
+    style="cursor:pointer; border-color: var(--bs-border-color); min-height: 140px; transition: border-color .2s, background .2s;"
+    onmouseenter="this.style.borderColor='var(--bs-primary)';this.style.background='var(--bs-primary-bg-subtle,#e8f0fe)'"
+    onmouseleave="this.style.borderColor='var(--bs-border-color)';this.style.background=''"
+  >
+    <span id="{{ drop_id }}_icon" class="fs-2 text-muted mb-2">
+      <i class="bi bi-cloud-upload"></i>
+    </span>
+    <span id="{{ drop_id }}_label" class="fw-medium text-secondary">
+      {{ label|default:"Déposer un fichier ici" }}
+    </span>
+    <span class="small text-muted mt-1" id="{{ drop_id }}_sublabel">
+      ou <span class="text-primary">parcourir</span>
+      {% if accept %}&nbsp;·&nbsp;{{ accept }}{% endif %}
+      &nbsp;·&nbsp;max {{ max_size_mb|default:10 }} Mo
+    </span>
+    {% if help_text %}
+    <span class="small text-muted mt-1">{{ help_text }}</span>
+    {% endif %}
+  </label>
+
+  {# Feedback : nom de fichier sélectionné / erreur #}
+  <div id="{{ drop_id }}_feedback" class="mt-2 small" style="min-height:1.4em;"></div>
+</div>
+
+<script>
+(function() {
+  var inputId   = '{{ drop_id }}_input';
+  var zoneId    = '{{ drop_id }}_zone';
+  var iconId    = '{{ drop_id }}_icon';
+  var labelId   = '{{ drop_id }}_label';
+  var feedbackId= '{{ drop_id }}_feedback';
+  var maxMb     = parseInt('{{ max_size_mb|default:10 }}', 10) || 10;
+
+  var input    = document.getElementById(inputId);
+  var zone     = document.getElementById(zoneId);
+  var feedback = document.getElementById(feedbackId);
+  var iconEl   = document.getElementById(iconId);
+  var labelEl  = document.getElementById(labelId);
+
+  if (!input || !zone) return;
+
+  function showFile(file) {
+    var sizeMb = file.size / (1024 * 1024);
+    if (sizeMb > maxMb) {
+      feedback.innerHTML =
+        '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>'
+        + 'Fichier trop volumineux&nbsp;: ' + sizeMb.toFixed(1) + ' Mo (max ' + maxMb + ' Mo)</span>';
+      input.value = '';
+      zone.style.borderColor = 'var(--bs-danger)';
+      iconEl.innerHTML = '<i class="bi bi-x-circle text-danger"></i>';
+      return;
+    }
+    zone.style.borderColor = 'var(--bs-success)';
+    zone.style.background  = 'var(--bs-success-bg-subtle, #d1e7dd)';
+    iconEl.innerHTML = '<i class="bi bi-file-earmark-check text-success"></i>';
+    labelEl.textContent = file.name;
+    feedback.innerHTML =
+      '<span class="text-success"><i class="bi bi-check-circle me-1"></i>'
+      + sizeMb.toFixed(2) + ' Mo · '
+      + '<a href="#" onclick="resetFileUpload(\'' + inputId + '\');return false;" class="text-muted">Changer</a>'
+      + '</span>';
+  }
+
+  input.addEventListener('change', function() {
+    if (this.files && this.files[0]) showFile(this.files[0]);
+  });
+
+  // Drag & Drop
+  ['dragenter', 'dragover'].forEach(function(evt) {
+    zone.addEventListener(evt, function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.style.borderColor = 'var(--bs-primary)';
+      zone.style.background  = 'var(--bs-primary-bg-subtle, #e8f0fe)';
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(function(evt) {
+    zone.addEventListener(evt, function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.style.borderColor = 'var(--bs-border-color)';
+      zone.style.background  = '';
+    });
+  });
+
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.style.borderColor = 'var(--bs-border-color)';
+    zone.style.background  = '';
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) {
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(files[0]);
+        input.files = dt.files;
+      } catch(ex) {}
+      showFile(files[0]);
+    }
+  });
+})();
+
+function resetFileUpload(inputId) {
+  var input    = document.getElementById(inputId);
+  var prefix   = inputId.replace('_input', '');
+  var zone     = document.getElementById(prefix + '_zone');
+  var icon     = document.getElementById(prefix + '_icon');
+  var label    = document.getElementById(prefix + '_label');
+  var feedback = document.getElementById(prefix + '_feedback');
+  if (input)    { input.value = ''; }
+  if (zone)     { zone.style.borderColor = ''; zone.style.background = ''; }
+  if (icon)     { icon.innerHTML = '<i class="bi bi-cloud-upload"></i>'; }
+  if (label)    { label.textContent = '{{ label|default:"Déposer un fichier ici" }}'; }
+  if (feedback) { feedback.innerHTML = ''; }
+}
+</script>
+{% endwith %}

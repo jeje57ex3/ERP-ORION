@@ -1,0 +1,154 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}{{ company.name }} — Super Admin{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
+<li class="breadcrumb-item"><a href="{% url 'private_saas:company_list' %}">Entreprises</a></li>
+<li class="breadcrumb-item active">{{ company.name }}</li>
+{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'private_saas:company_modules' company.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-puzzle me-1"></i>Modules
+  </a>
+  <a href="{% url 'private_saas:company_users' company.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-people me-1"></i>Utilisateurs
+  </a>
+  {% if company.status != 'active' %}
+  <form method="post" action="{% url 'private_saas:company_toggle_status' company.pk %}" class="d-inline">
+    {% csrf_token %}<input type="hidden" name="action" value="activate">
+    <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-check-circle me-1"></i>Activer</button>
+  </form>
+  {% else %}
+  <form method="post" action="{% url 'private_saas:company_toggle_status' company.pk %}" class="d-inline"
+        onsubmit="return confirm('Archiver {{ company.name }} ?')">
+    {% csrf_token %}<input type="hidden" name="action" value="archive">
+    <button type="submit" class="orion-btn orion-btn-outline"><i class="bi bi-archive me-1"></i>Archiver</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-puzzle"></i></div>
+      <div class="orion-kpi-value">{{ modules|length }}</div>
+      <div class="orion-kpi-label">Modules conf.</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-toggle-on"></i></div>
+      <div class="orion-kpi-value">{% with modules|length as total %}{{ modules|dictsort:"is_enabled"|last|default:0 }}{% endwith %}</div>
+      <div class="orion-kpi-label">Actifs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FCE7F3;color:#DB2777"><i class="bi bi-people"></i></div>
+      <div class="orion-kpi-value">{{ users|length }}</div>
+      <div class="orion-kpi-label">Utilisateurs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-globe2"></i></div>
+      <div class="orion-kpi-value">{{ sites|length }}</div>
+      <div class="orion-kpi-label">Sites web</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header py-3"><h6 class="mb-0 fw-semibold">Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Nom</label><div class="value">{{ company.name }}</div></div>
+        <div class="info-item"><label>Raison sociale</label><div class="value">{{ company.legal_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Secteur</label><div class="value">{{ company.sector|default:"—" }}</div></div>
+        <div class="info-item"><label>Statut</label><div class="value">{{ company.get_status_display }}</div></div>
+        <div class="info-item"><label>Devise</label><div class="value">{{ company.currency }}</div></div>
+        <div class="info-item"><label>Fuseau horaire</label><div class="value">{{ company.timezone }}</div></div>
+        {% if company.database_name %}
+        <div class="info-item"><label>Base de données</label><div class="value small">{{ company.database_name }}</div></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-orion-card-header d-flex align-items-center justify-content-between py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-puzzle me-2 text-primary"></i>Modules activés</h6>
+        <a href="{% url 'private_saas:company_modules' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Modifier</a>
+      </div>
+      <div class="orion-orion-card-body">
+        <div class="d-flex flex-wrap gap-2">
+          {% for mod in modules %}
+          {% if mod.is_enabled %}
+          <span class="orion-badge orion-badge-success">{{ mod.module_name }}</span>
+          {% else %}
+          <span class="orion-badge orion-badge-secondary text-decoration-line-through">{{ mod.module_name }}</span>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header d-flex align-items-center justify-content-between py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2 text-primary"></i>Utilisateurs</h6>
+        <a href="{% url 'private_saas:company_users' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Gérer</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for access in users|slice:":5" %}
+        <div class="list-group-item px-3 py-2 d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-medium small">{{ access.user.get_full_name|default:access.user.username }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ access.user.email }}</div>
+          </div>
+          <span class="orion-badge orion-badge-info">{{ access.role }}</span>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted small py-3 text-center">Aucun utilisateur</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header py-3"><h6 class="mb-0 fw-semibold"><i class="bi bi-globe2 me-2 text-primary"></i>Sites web</h6></div>
+      <div class="list-group list-group-flush">
+        {% for site in sites|slice:":5" %}
+        <div class="list-group-item px-3 py-2 d-flex justify-content-between">
+          <div class="fw-medium small">{{ site.name }}</div>
+          <span class="orion-badge {% if site.status == 'published' %}orion-badge-success{% else %}orion-badge-warning{% endif %}">{{ site.get_status_display }}</span>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted small py-3 text-center">Aucun site</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-orion-card-header py-3"><h6 class="mb-0 fw-semibold"><i class="bi bi-archive me-2 text-primary"></i>Sauvegardes récentes</h6></div>
+      <div class="list-group list-group-flush">
+        {% for backup in backups %}
+        <div class="list-group-item px-3 py-2 d-flex justify-content-between">
+          <div class="small">{{ backup.created_at|date:"d/m/Y H:i" }}</div>
+          <div class="d-flex gap-2">
+            <span class="text-muted small">{{ backup.size_display }}</span>
+            <span class="orion-badge {% if backup.status == 'success' %}orion-badge-success{% else %}orion-badge-danger{% endif %}">{{ backup.get_status_display }}</span>
+          </div>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted small py-3 text-center">Aucune sauvegarde</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

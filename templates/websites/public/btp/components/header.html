@@ -1,0 +1,61 @@
+﻿{% load static %}
+<header class="btp-header">
+  <div class="btp-header-inner">
+
+    <!-- Logo -->
+    <a href="{% url 'public_websites:btp_home' site.public_slug %}" class="btp-logo">
+      {% if site.logo %}
+        <img src="{{ site.logo.url }}" alt="{{ site.name }}">
+      {% elif site.company.logo %}
+        <img src="{{ site.company.logo.url }}" alt="{{ site.company.name }}">
+      {% else %}
+        <img src="{% static 'img/brand/orion-logo.svg' %}" alt="{{ site.name }}" style="height:36px">
+      {% endif %}
+      {% if not site.logo %}<span class="btp-logo-name">{{ site.company.name|truncatechars:22 }}</span>{% endif %}
+    </a>
+
+    <!-- Navigation -->
+    <nav class="btp-nav" id="btpNav" aria-label="Navigation principale">
+      <a href="{% url 'public_websites:btp_home' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_home' %}active{% endif %}">Accueil</a>
+      <a href="{% url 'public_websites:btp_services' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_services' %}active{% endif %}">Services</a>
+      <a href="{% url 'public_websites:btp_works' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_works' %}active{% endif %}">Travaux</a>
+      <a href="{% url 'public_websites:btp_emergency' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_emergency' %}active{% endif %}">Depannage</a>
+      <a href="{% url 'public_websites:btp_portfolio' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_portfolio' %}active{% endif %}">Realisations</a>
+      <a href="{% url 'public_websites:btp_reviews' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_reviews' %}active{% endif %}">Avis</a>
+      <a href="{% url 'public_websites:btp_blog' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_blog' %}active{% endif %}">Blog</a>
+      <a href="{% url 'public_websites:btp_contact' site.public_slug %}"
+         class="btp-nav-link {% if request.resolver_match.url_name == 'btp_contact' %}active{% endif %}">Contact</a>
+    </nav>
+
+    <!-- Phone -->
+    {% if site.contact_phone %}
+    <a href="tel:{{ site.contact_phone }}" class="btp-header-phone">
+      <i class="bi bi-telephone-fill"></i>
+      {{ site.contact_phone }}
+    </a>
+    {% endif %}
+
+    <!-- CTA devis -->
+    <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-orion-btn primary btp-orion-btn sm">
+      <i class="bi bi-pencil-square"></i>Devis gratuit
+    </a>
+
+    <!-- Espace client -->
+    <a href="{% url 'client_portal:login' %}" class="btn-client-login">
+      <i class="bi bi-person-lock"></i>Espace client
+    </a>
+
+    <!-- Hamburger -->
+    <button class="btp-menu-toggle" id="btpMenuToggle" aria-label="Menu" aria-expanded="false">
+      <i class="bi bi-list"></i>
+    </button>
+
+  </div>
+</header>

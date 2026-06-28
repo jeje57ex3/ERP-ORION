@@ -1,0 +1,58 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="bi bi-gear me-2 text-warning"></i>{{ page_title }}</h1>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-6">
+<div class="erp-card">
+  <div class="erp-card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.title.label }}</label>
+        {{ form.title }}
+        <div class="form-text">Laissez vide pour utiliser le nom par défaut : <strong>{{ user_widget.widget.name }}</strong></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.width.label }}</label>
+        {{ form.width }}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.height.label }}</label>
+        {{ form.height }}
+      </div>
+      <div class="mb-3">
+        <div class="form-check">
+          {{ form.is_visible }}
+          <label class="form-check-label">{{ form.is_visible.label }}</label>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-warning"><i class="bi bi-check2 me-1"></i>Enregistrer</button>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

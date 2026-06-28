@@ -1,0 +1,10 @@
+{% extends "layouts/orion_internal.html" %}
+
+{% block title %}Private Suite — {{ brand_name|default:"Orion ERP" }}{% endblock %}
+{% block body_class %}orion-private-suite{% endblock %}
+
+{% block sidebar %}
+  {% with sidebar_brand_tag="Private Suite" %}
+    {% include "layouts/_orion_internal_sidebar.html" %}
+  {% endwith %}
+{% endblock %}

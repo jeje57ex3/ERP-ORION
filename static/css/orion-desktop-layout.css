@@ -1,0 +1,262 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Desktop Layout
+   Variables, structure globale, page, panneaux, KPI, responsive
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ─────────────────────────────────────────────── */
+:root {
+  /* Palette Orion */
+  --od-primary:        #2B2118;
+  --od-primary-light:  #3A2A1A;
+  --od-gold:           #C6A15B;
+  --od-gold-light:     #DEC07D;
+  --od-gold-pale:      #E8D8B0;
+  --od-cream:          #F2EDE4;
+  --od-sand-50:        #FBF8F2;
+  --od-sand-100:       #F6F1E6;
+  --od-sand-200:       #EFE7D5;
+  --od-sand-300:       #E3D5BE;
+  --od-border:         #D8C9B0;
+  --od-border-light:   #EBE0CC;
+  --od-muted:          #7A6A58;
+  --od-text:           #2B2118;
+
+  /* Sidebar */
+  --od-sidebar-w:      245px;
+  --od-sidebar-w-sm:   52px;
+  --od-sidebar-bg:     #1C120A;
+  --od-sidebar-bg2:    #2B2118;
+  --od-sidebar-hover:  rgba(198,161,91,.09);
+  --od-sidebar-active: rgba(198,161,91,.16);
+
+  /* Chrome UI */
+  --od-topbar-h:       44px;
+  --od-tabs-h:         32px;
+  --od-panel-bg:       #FFFFFF;
+
+  /* Status */
+  --od-success:        #166534;
+  --od-success-bg:     #D1FAE5;
+  --od-warning:        #92400E;
+  --od-warning-bg:     #FEF3C7;
+  --od-danger:         #991B1B;
+  --od-danger-bg:      #FEE2E2;
+  --od-info:           #075985;
+  --od-info-bg:        #E0F2FE;
+  --od-draft-bg:       #F3F4F6;
+  --od-draft-c:        #374151;
+
+  /* Typography */
+  --od-font:      'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --od-fs:        13px;
+  --od-fs-sm:     11.5px;
+  --od-fs-xs:     11px;
+  --od-lh:        1.5;
+
+  /* Radius & shadow */
+  --od-radius:    3px;
+  --od-radius-md: 6px;
+  --od-shadow:    0 1px 4px rgba(43,33,24,.07), 0 4px 12px rgba(43,33,24,.05);
+  --od-shadow-md: 0 4px 20px rgba(43,33,24,.10);
+}
+
+/* ── Base reset ────────────────────────────────────────────────── */
+body.orion-desktop {
+  font-family: var(--od-font);
+  font-size: var(--od-fs);
+  line-height: var(--od-lh);
+  background: var(--od-cream);
+  color: var(--od-text);
+  margin: 0;
+  padding: 0;
+}
+
+body.orion-desktop *, body.orion-desktop *::before, body.orion-desktop *::after {
+  box-sizing: border-box;
+}
+
+/* ── Wrapper & main ────────────────────────────────────────────── */
+.orion-wrapper,
+.erp-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.orion-main,
+.erp-main {
+  margin-left: var(--od-sidebar-w);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left .2s ease;
+  background: var(--od-cream);
+  min-width: 0;
+}
+
+.orion-main.sidebar-collapsed,
+.erp-main.sidebar-collapsed {
+  margin-left: var(--od-sidebar-w-sm);
+}
+
+/* ── Content area ──────────────────────────────────────────────── */
+.orion-content,
+.erp-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow: auto;
+}
+
+/* ── Page header (list pages) ──────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--od-primary);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: var(--od-fs-sm);
+  color: var(--od-muted);
+  margin: 2px 0 0;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Messages Django ───────────────────────────────────────────── */
+.messages-container {
+  padding: 10px 16px 0;
+}
+
+.erp-alert {
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: var(--od-radius-md);
+  margin-bottom: 6px;
+  border-left: 3px solid currentColor;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+.orion-footer,
+.erp-footer {
+  font-size: var(--od-fs-xs);
+  color: var(--od-muted);
+  padding: 8px 24px;
+  border-top: 1px solid var(--od-border-light);
+  background: var(--od-sand-50);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── KPI Cards (dashboard) ─────────────────────────────────────── */
+.orion-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.orion-kpi-card {
+  background: var(--od-panel-bg);
+  border: 1px solid var(--od-border-light);
+  border-radius: var(--od-radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--od-shadow);
+  transition: box-shadow .15s;
+}
+
+.orion-kpi-card:hover {
+  box-shadow: var(--od-shadow-md);
+}
+
+.orion-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--od-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.orion-kpi-body .kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--od-primary);
+  line-height: 1.2;
+}
+
+.orion-kpi-body .kpi-label {
+  font-size: var(--od-fs-sm);
+  color: var(--od-muted);
+  margin-top: 2px;
+}
+
+.orion-kpi-body .kpi-sub {
+  font-size: var(--od-fs-xs);
+  color: var(--od-muted);
+  margin-top: 4px;
+}
+
+/* ── Generic panel ─────────────────────────────────────────────── */
+.orion-panel {
+  background: var(--od-panel-bg);
+  border: 1px solid var(--od-border-light);
+  border-radius: var(--od-radius-md);
+  box-shadow: var(--od-shadow);
+  margin-bottom: 16px;
+}
+
+.orion-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--od-border-light);
+  font-size: var(--od-fs-sm);
+  font-weight: 600;
+  color: var(--od-muted);
+  background: var(--od-sand-100);
+  border-radius: var(--od-radius-md) var(--od-radius-md) 0 0;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.orion-panel-body {
+  padding: 14px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1199px) {
+  .orion-main, .erp-main {
+    margin-left: var(--od-sidebar-w-sm);
+  }
+}
+
+@media (max-width: 767px) {
+  .orion-main, .erp-main {
+    margin-left: 0;
+  }
+
+  .orion-content, .erp-content {
+    padding: 12px 14px;
+  }
+}

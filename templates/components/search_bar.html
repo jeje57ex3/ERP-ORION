@@ -1,0 +1,48 @@
+{# Composant : barre de recherche avec formulaire GET
+   Usage : {% include "components/search_bar.html" with placeholder="Rechercher un client..." value=request.GET.q %}
+   Variables :
+     - placeholder  : texte placeholder (défaut "Rechercher...")
+     - value        : valeur courante (ex: request.GET.q)
+     - param        : nom du paramètre GET (défaut "q")
+     - action       : URL du formulaire (défaut URL courante)
+     - size         : "sm" (défaut) ou vide pour taille normale
+     - width_class  : classe CSS de largeur (défaut "")
+#}
+<form
+  method="get"
+  action="{{ action|default:'' }}"
+  class="d-flex align-items-center {{ width_class }}"
+  role="search"
+>
+  <div class="input-group {% if size == 'sm' or not size %}input-group-sm{% endif %}">
+    <span class="input-group-text bg-transparent border-end-0 text-muted">
+      <i class="bi bi-search"></i>
+    </span>
+    <input
+      type="search"
+      name="{{ param|default:'q' }}"
+      value="{{ value|default:'' }}"
+      class="form-control border-start-0 shadow-none"
+      placeholder="{{ placeholder|default:'Rechercher...' }}"
+      autocomplete="off"
+      id="searchBarInput-{{ param|default:'q' }}"
+      aria-label="{{ placeholder|default:'Rechercher...' }}"
+    >
+    {% if value %}
+    <a
+      href="{{ action|default:'?' }}{% if action %}?{% else %}?{% endif %}"
+      class="input-group-text bg-transparent border-start-0 text-muted text-decoration-none"
+      title="Effacer la recherche"
+      aria-label="Effacer"
+    >
+      <i class="bi bi-x-lg"></i>
+    </a>
+    {% endif %}
+    {# Préserve les autres paramètres GET existants #}
+    {% for key, val in request.GET.items %}
+      {% if key != param|default:'q' %}
+        <input type="hidden" name="{{ key }}" value="{{ val }}">
+      {% endif %}
+    {% endfor %}
+  </div>
+</form>

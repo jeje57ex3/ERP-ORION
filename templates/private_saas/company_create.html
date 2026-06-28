@@ -1,0 +1,78 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Nouvelle entreprise — Super Admin{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
+<li class="breadcrumb-item"><a href="{% url 'private_saas:company_list' %}">Entreprises</a></li>
+<li class="breadcrumb-item active">Nouvelle entreprise</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="orion-card">
+      <div class="orion-orion-card-header py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-building-add me-2 text-primary"></i>Créer une nouvelle entreprise privée</h6>
+      </div>
+      <div class="orion-orion-card-body">
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+
+          <div class="col-md-8">
+            <label class="form-label fw-medium">{{ form.name.label }}</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-medium">{{ form.company_type.label }}</label>
+            {{ form.company_type }}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-medium">{{ form.legal_name.label }}</label>
+            {{ form.legal_name }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-medium">{{ form.currency.label }}</label>
+            {{ form.currency }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-medium">{{ form.timezone.label }}</label>
+            {{ form.timezone }}
+          </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+          <div class="col-12"><h6 class="text-muted small text-uppercase fw-semibold mb-0">Administrateur</h6></div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-medium">{{ form.admin_email.label }}</label>
+            {{ form.admin_email }}
+            {% if form.admin_email.errors %}<div class="text-danger small mt-1">{{ form.admin_email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-medium">{{ form.admin_password.label }}</label>
+            {{ form.admin_password }}
+            <div class="text-muted small mt-1">Laissez vide pour générer automatiquement un mot de passe sécurisé.</div>
+          </div>
+
+          <div class="col-12 mt-2">
+            <div class="orion-alert info small mb-0">
+              <i class="bi bi-info-circle me-2"></i>
+              L'entreprise sera créée avec les modules adaptés à son secteur d'activité.
+              Vous pourrez les ajuster depuis la page <strong>Modules</strong>.
+            </div>
+          </div>
+
+          <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+            <a href="{% url 'private_saas:company_list' %}" class="orion-btn orion-btn-outline">Annuler</a>
+            <button type="submit" class="orion-btn orion-orion-btn primary">
+              <i class="bi bi-check-lg me-1"></i>Créer l'entreprise
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

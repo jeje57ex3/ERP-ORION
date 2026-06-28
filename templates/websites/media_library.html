@@ -1,0 +1,128 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item active">Médiathèque</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4 fw-semibold mb-0">Médiathèque</h1>
+    <button class="orion-btn primary orion-btn sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+      <i class="bi bi-upload me-1"></i> Ajouter média
+    </button>
+  </div>
+
+  {# Filtres #}
+  <div class="d-flex gap-2 mb-4 flex-wrap">
+    <a href="{% url 'websites:media_library' website.pk %}"
+      class="orion-btn sm {% if not media_type %}orion-btn primary{% else %}btn-outline-secondary{% endif %}">
+      Tous
+    </a>
+    {% for val, label in media_type_choices %}
+    <a href="?type={{ val }}"
+      class="orion-btn sm {% if media_type == val %}orion-btn primary{% else %}btn-outline-secondary{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {# Grille médias #}
+  {% if media_files %}
+  <div class="row g-3">
+    {% for media in media_files %}
+    <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
+          style="height:120px;overflow:hidden">
+          {% if media.media_type == 'image' %}
+            <img src="{{ media.url }}" alt="{{ media.alt_text|default:media.title }}"
+              class="img-fluid" style="object-fit:cover;width:100%;height:120px">
+          {% elif media.media_type == 'pdf' %}
+            <i class="bi bi-file-pdf text-danger fs-1"></i>
+          {% elif media.media_type == 'video' %}
+            <i class="bi bi-film text-primary fs-1"></i>
+          {% else %}
+            <i class="bi bi-file-earmark text-muted fs-1"></i>
+          {% endif %}
+        </div>
+        <div class="orion-orion-card-body p-2">
+          <div class="text-truncate small fw-medium" title="{{ media.title }}">{{ media.title }}</div>
+          <div class="text-muted" style="font-size:0.72rem">{{ media.file_size_display }}</div>
+        </div>
+        <div class="card-footer bg-white p-1 d-flex gap-1">
+          <button class="btn btn-link orion-btn sm p-1 text-muted flex-grow-1 text-center"
+            onclick="navigator.clipboard.writeText('{{ media.url }}')"
+            title="Copier l'URL">
+            <i class="bi bi-clipboard"></i>
+          </button>
+          <form method="post" class="d-inline" onsubmit="return confirm('Supprimer ce média ?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="media_id" value="{{ media.pk }}">
+            <button type="submit" class="btn btn-link orion-btn sm p-1 text-danger" title="Supprimer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <i class="bi bi-images display-4 text-muted mb-3"></i>
+    <h5 class="text-muted">Médiathèque vide</h5>
+    <p class="text-muted">Ajoutez vos images, logos et documents.</p>
+    <button class="orion-btn primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+      <i class="bi bi-upload me-1"></i> Ajouter un fichier
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+{# Modal upload #}
+<div class="modal fade" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Ajouter un fichier</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Fichier <span class="text-danger">*</span></label>
+            <input type="file" name="file" class="form-control" required
+              accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.mp4,.webm">
+            <div class="form-text">Images, PDF, vidéos. Max 10 Mo.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Titre</label>
+            <input type="text" name="title" class="form-control" placeholder="Titre du fichier">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Texte alternatif (images)</label>
+            <input type="text" name="alt_text" class="form-control"
+              placeholder="Description pour l'accessibilité">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="orion-btn primary">
+            <i class="bi bi-upload me-1"></i> Uploader
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

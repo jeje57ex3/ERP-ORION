@@ -1,0 +1,426 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {% include "messages.html" ignore missing %}
+
+  <!-- Header -->
+  <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{% url 'continuous_improvement:cycle_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="h3 fw-bold mb-0">{{ cycle.title }}</h1>
+        <div class="d-flex gap-2 mt-1">
+          <span class="badge {% if cycle.stage == 'plan' %}bg-info{% elif cycle.stage == 'do' %}bg-primary{% elif cycle.stage == 'check' %}bg-warning text-dark{% elif cycle.stage == 'act' %}bg-success{% else %}bg-secondary{% endif %}">
+            {{ cycle.get_stage_display }}
+          </span>
+          <span class="badge bg-light text-muted">{{ cycle.get_status_display }}</span>
+          <span class="badge bg-light text-muted">{{ cycle.get_category_display }}</span>
+          <span class="badge {% if cycle.priority == 'critical' %}bg-danger{% elif cycle.priority == 'high' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+            {{ cycle.get_priority_display }}
+          </span>
+          {% if cycle.is_late %}<span class="badge bg-danger">En retard</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if can_edit %}
+      <a href="{% url 'continuous_improvement:cycle_edit' cycle.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-pencil me-1"></i>Modifier
+      </a>
+      {% endif %}
+      {% if cycle.status == 'draft' and can_edit %}
+      <form method="post" action="{% url 'continuous_improvement:activate_cycle' cycle.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success">
+          <i class="bi bi-play-circle me-1"></i>Activer
+        </button>
+      </form>
+      {% endif %}
+      {% if can_advance and cycle.status == 'active' and cycle.stage != 'closed' %}
+      <form method="post" action="{% url 'continuous_improvement:advance_stage' cycle.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-arrow-right-circle me-1"></i>Étape suivante
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="mb-4">
+    <div class="d-flex justify-content-between small text-muted mb-1">
+      <span>PLAN</span><span>FAIRE</span><span>VÉRIFIER</span><span>AGIR</span><span>CLÔTURÉ</span>
+    </div>
+    <div class="progress" style="height:10px;">
+      <div class="progress-bar {% if cycle.is_late %}bg-danger{% else %}bg-primary{% endif %}" style="width:{{ cycle.progress_percent }}%"></div>
+    </div>
+  </div>
+
+  <!-- Rates -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+          <div class="small text-muted">Actions complétées</div>
+          <div class="fw-bold">{{ action_completion_rate }}%</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+          <div class="small text-muted">KPI atteints</div>
+          <div class="fw-bold">{{ kpi_success_rate }}%</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+          <div class="small text-muted">Échéance</div>
+          <div class="fw-bold {% if cycle.is_late %}text-danger{% endif %}">
+            {{ cycle.target_date|date:"d/m/Y"|default:"Non définie" }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <!-- PLAN phase -->
+      <div class="card border-0 shadow-sm mb-4 {% if cycle.stage == 'plan' %}border-start border-info border-3{% endif %}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-1-circle-fill text-info me-2"></i>PLANIFIER</h6>
+          <span class="badge bg-info">PLAN</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-2"><strong>Problème :</strong> {{ cycle.problem_statement }}</div>
+          <div class="mb-2"><strong>Objectif :</strong> {{ cycle.objective }}</div>
+          {% if cycle.root_cause %}<div class="mb-2"><strong>Cause racine :</strong> {{ cycle.root_cause }}</div>{% endif %}
+          {% if cycle.success_criteria %}<div class="mb-2"><strong>Critères de succès :</strong> {{ cycle.success_criteria }}</div>{% endif %}
+
+          {% if cycle.plan %}
+            {% with p=cycle.plan %}
+            {% if p.current_situation or p.analysis or p.root_causes or p.risks %}
+            <hr class="my-3">
+            {% if p.current_situation %}<div class="mb-1"><strong>Situation actuelle :</strong> {{ p.current_situation }}</div>{% endif %}
+            {% if p.analysis %}<div class="mb-1"><strong>Analyse :</strong> {{ p.analysis }}</div>{% endif %}
+            {% if p.root_causes %}<div class="mb-1"><strong>Causes racines :</strong> {{ p.root_causes }}</div>{% endif %}
+            {% if p.risks %}<div class="mb-1"><strong>Risques :</strong> {{ p.risks }}</div>{% endif %}
+            {% endif %}
+            {% if p.baseline_metric_name %}
+            <div class="mt-2 p-2 bg-light rounded small">
+              <strong>Baseline :</strong> {{ p.baseline_metric_name }} = {{ p.baseline_metric_value }}
+              &nbsp;→&nbsp; <strong>Cible :</strong> {{ p.target_metric_name }} = {{ p.target_metric_value }}
+            </div>
+            {% endif %}
+            {% if p.validated_at %}
+            <div class="mt-2 text-success small"><i class="bi bi-check-circle me-1"></i>Validé par {{ p.validated_by }} le {{ p.validated_at|date:"d/m/Y H:i" }}</div>
+            {% endif %}
+            {% endwith %}
+          {% endif %}
+
+          {% if can_edit %}
+          <button class="btn btn-sm btn-outline-info mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#plan-form">
+            <i class="bi bi-pencil me-1"></i>Modifier le plan
+          </button>
+          <div class="collapse mt-3" id="plan-form">
+            <form method="post" action="{% url 'continuous_improvement:save_plan' cycle.pk %}">
+              {% csrf_token %}
+              <div class="row g-2">
+                {% for field in plan_form %}
+                <div class="col-12 {% if 'metric' in field.name %}col-md-6{% endif %}">
+                  <label class="form-label small fw-semibold">{{ field.label }}</label>
+                  {{ field }}
+                </div>
+                {% endfor %}
+              </div>
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-sm btn-info">Enregistrer</button>
+                <button type="submit" name="validate" value="1" class="btn btn-sm btn-outline-success">Valider le plan</button>
+              </div>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- DO phase -->
+      {% if cycle.stage != 'plan' or cycle.do %}
+      <div class="card border-0 shadow-sm mb-4 {% if cycle.stage == 'do' %}border-start border-primary border-3{% endif %}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-2-circle-fill text-primary me-2"></i>FAIRE</h6>
+          <span class="badge bg-primary">DO</span>
+        </div>
+        <div class="card-body">
+          {% if cycle.do %}
+          {% with d=cycle.do %}
+          {% if d.execution_summary %}<div class="mb-1"><strong>Réalisé :</strong> {{ d.execution_summary }}</div>{% endif %}
+          {% if d.difficulties %}<div class="mb-1"><strong>Difficultés :</strong> {{ d.difficulties }}</div>{% endif %}
+          {% if d.deviations_from_plan %}<div class="mb-1"><strong>Écarts :</strong> {{ d.deviations_from_plan }}</div>{% endif %}
+          {% if d.started_at %}<div class="small text-muted">Début : {{ d.started_at|date:"d/m/Y H:i" }}</div>{% endif %}
+          {% endwith %}
+          {% else %}
+          <p class="text-muted small mb-2">Phase non commencée.</p>
+          {% endif %}
+
+          {% if can_edit and cycle.stage == 'do' %}
+          <button class="btn btn-sm btn-outline-primary mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#do-form">
+            <i class="bi bi-pencil me-1"></i>Renseigner la phase
+          </button>
+          <div class="collapse mt-3" id="do-form">
+            <form method="post" action="{% url 'continuous_improvement:save_do' cycle.pk %}">
+              {% csrf_token %}
+              {% for field in do_form %}
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">{{ field.label }}</label>
+                {{ field }}
+              </div>
+              {% endfor %}
+              <button type="submit" class="btn btn-sm btn-primary">Enregistrer</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- CHECK phase -->
+      {% if cycle.stage == 'check' or cycle.stage == 'act' or cycle.stage == 'closed' or cycle.pdca_check %}
+      <div class="card border-0 shadow-sm mb-4 {% if cycle.stage == 'check' %}border-start border-warning border-3{% endif %}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-3-circle-fill text-warning me-2"></i>VÉRIFIER</h6>
+          <span class="badge bg-warning text-dark">CHECK</span>
+        </div>
+        <div class="card-body">
+          {% if cycle.pdca_check %}
+          {% with c=cycle.pdca_check %}
+          <div class="mb-1"><strong>Résultat :</strong>
+            <span class="badge {% if c.result_status == 'success' %}bg-success{% elif c.result_status == 'partial' %}bg-warning text-dark{% elif c.result_status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+              {{ c.get_result_status_display }}
+            </span>
+          </div>
+          {% if c.measured_result %}<div class="mb-1"><strong>Mesuré :</strong> {{ c.measured_result }}</div>{% endif %}
+          {% if c.gap_analysis %}<div class="mb-1"><strong>Analyse des écarts :</strong> {{ c.gap_analysis }}</div>{% endif %}
+          {% if c.lessons_learned %}<div class="mb-1"><strong>Leçons tirées :</strong> {{ c.lessons_learned }}</div>{% endif %}
+          {% if c.checked_at %}<div class="small text-success"><i class="bi bi-check-circle me-1"></i>Finalisé par {{ c.checked_by }} le {{ c.checked_at|date:"d/m/Y" }}</div>{% endif %}
+          {% endwith %}
+          {% else %}
+          <p class="text-muted small mb-2">Phase non commencée.</p>
+          {% endif %}
+
+          {% if can_edit and cycle.stage == 'check' %}  {# pdca_check related_name #}
+          <button class="btn btn-sm btn-outline-warning mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#check-form">
+            <i class="bi bi-pencil me-1"></i>Renseigner la vérification
+          </button>
+          <div class="collapse mt-3" id="check-form">
+            <form method="post" action="{% url 'continuous_improvement:save_check' cycle.pk %}">
+              {% csrf_token %}
+              {% for field in check_form %}
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">{{ field.label }}</label>
+                {{ field }}
+              </div>
+              {% endfor %}
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-warning">Enregistrer</button>
+                <button type="submit" name="finalize" value="1" class="btn btn-sm btn-outline-success">Finaliser</button>
+              </div>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ACT phase -->
+      {% if cycle.stage == 'act' or cycle.stage == 'closed' or cycle.act %}
+      <div class="card border-0 shadow-sm mb-4 {% if cycle.stage == 'act' %}border-start border-success border-3{% endif %}">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-4-circle-fill text-success me-2"></i>AGIR</h6>
+          <span class="badge bg-success">ACT</span>
+        </div>
+        <div class="card-body">
+          {% if cycle.act %}
+          {% with a=cycle.act %}
+          {% if a.decision %}<div class="mb-1"><strong>Décision :</strong> <span class="badge bg-success">{{ a.get_decision_display }}</span></div>{% endif %}
+          {% if a.decision_reason %}<div class="mb-1"><strong>Raison :</strong> {{ a.decision_reason }}</div>{% endif %}
+          {% if a.standardization_notes %}<div class="mb-1"><strong>Notes de standardisation :</strong> {{ a.standardization_notes }}</div>{% endif %}
+          {% if a.next_steps %}<div class="mb-1"><strong>Prochaines étapes :</strong> {{ a.next_steps }}</div>{% endif %}
+          {% if a.decided_at %}<div class="small text-success"><i class="bi bi-check-circle me-1"></i>Décidé par {{ a.decided_by }} le {{ a.decided_at|date:"d/m/Y" }}</div>{% endif %}
+          {% endwith %}
+          {% else %}
+          <p class="text-muted small mb-2">Phase non commencée.</p>
+          {% endif %}
+
+          {% if can_edit and cycle.stage == 'act' %}
+          <button class="btn btn-sm btn-outline-success mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#act-form">
+            <i class="bi bi-pencil me-1"></i>Enregistrer la décision
+          </button>
+          <div class="collapse mt-3" id="act-form">
+            <form method="post" action="{% url 'continuous_improvement:save_act' cycle.pk %}">
+              {% csrf_token %}
+              {% for field in act_form %}
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">{{ field.label }}</label>
+                {{ field }}
+              </div>
+              {% endfor %}
+              <button type="submit" class="btn btn-sm btn-success">Enregistrer la décision</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /col-lg-8 -->
+
+    <div class="col-lg-4">
+
+      <!-- Actions -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h6 class="fw-semibold mb-0"><i class="bi bi-list-task text-primary me-1"></i>Actions</h6>
+          {% if can_edit %}
+          <button class="btn btn-xs btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#action-form">
+            <i class="bi bi-plus"></i>
+          </button>
+          {% endif %}
+        </div>
+
+        {% if can_edit %}
+        <div class="collapse px-3 pb-2" id="action-form">
+          <form method="post" action="{% url 'continuous_improvement:add_action' cycle.pk %}">
+            {% csrf_token %}
+            {% for field in action_form %}
+            <div class="mb-1">
+              <label class="form-label x-small fw-semibold">{{ field.label }}</label>
+              {{ field }}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-primary w-100 mt-1">Ajouter</button>
+          </form>
+          <hr>
+        </div>
+        {% endif %}
+
+        <div class="card-body p-0">
+          {% if cycle.actions.all %}
+          <div class="list-group list-group-flush">
+            {% for action in cycle.actions.all %}
+            <div class="list-group-item px-3 py-2">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="small {% if action.status == 'done' %}text-muted text-decoration-line-through{% endif %}fw-semibold">
+                    {{ action.title }}
+                  </div>
+                  {% if action.assigned_to %}<div class="x-small text-muted">{{ action.assigned_to }}</div>{% endif %}
+                </div>
+                <span class="badge {% if action.status == 'done' %}bg-success{% elif action.status == 'in_progress' %}bg-primary{% elif action.status == 'blocked' %}bg-danger{% else %}bg-light text-muted{% endif %} badge-sm">
+                  {{ action.get_status_display }}
+                </span>
+              </div>
+              {% if action.status != 'done' and can_edit %}
+              <form method="post" action="{% url 'continuous_improvement:complete_action' action.pk %}" class="mt-1">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-outline-success py-0 px-1">
+                  <i class="bi bi-check2"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small text-center py-3">Aucune action</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h6 class="fw-semibold mb-0"><i class="bi bi-graph-up text-success me-1"></i>KPI</h6>
+          {% if can_edit %}
+          <button class="btn btn-xs btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#kpi-form">
+            <i class="bi bi-plus"></i>
+          </button>
+          {% endif %}
+        </div>
+
+        {% if can_edit %}
+        <div class="collapse px-3 pb-2" id="kpi-form">
+          <form method="post" action="{% url 'continuous_improvement:add_kpi' cycle.pk %}">
+            {% csrf_token %}
+            {% for field in kpi_form %}
+            <div class="mb-1">
+              <label class="form-label x-small fw-semibold">{{ field.label }}</label>
+              {{ field }}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-sm btn-success w-100 mt-1">Ajouter</button>
+          </form>
+          <hr>
+        </div>
+        {% endif %}
+
+        <div class="card-body p-0">
+          {% if cycle.kpis.all %}
+          <div class="list-group list-group-flush">
+            {% for kpi in cycle.kpis.all %}
+            <div class="list-group-item px-3 py-2">
+              <div class="small fw-semibold">{{ kpi.name }} {% if kpi.unit %}<span class="text-muted">({{ kpi.unit }})</span>{% endif %}</div>
+              <div class="d-flex gap-2 mt-1 small">
+                <span class="text-muted">Avant: {{ kpi.before_value|default:"—" }}</span>
+                <span class="text-primary">Cible: {{ kpi.target_value|default:"—" }}</span>
+                <span class="{% if kpi.target_reached %}text-success fw-bold{% else %}text-muted{% endif %}">
+                  Après: {{ kpi.after_value|default:"—" }}
+                  {% if kpi.target_reached %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
+                </span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small text-center py-3">Aucun KPI</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history text-muted me-1"></i>Historique</h6>
+        </div>
+        <div class="card-body p-0" style="max-height:280px;overflow-y:auto;">
+          {% if cycle.event_logs.all %}
+          <div class="list-group list-group-flush">
+            {% for log in cycle.event_logs.all %}
+            <div class="list-group-item px-3 py-1 border-0">
+              <div class="d-flex justify-content-between">
+                <span class="small text-muted">{{ log.title }}</span>
+                <span class="x-small text-muted">{{ log.created_at|date:"d/m H:i" }}</span>
+              </div>
+              {% if log.description %}<div class="x-small text-muted">{{ log.description }}</div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small text-center py-3">Aucun événement</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+
+</div>
+{% endblock %}

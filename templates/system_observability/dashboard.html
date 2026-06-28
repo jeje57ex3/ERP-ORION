@@ -1,0 +1,103 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Système</div>
+    <h1 class="orion-page-title">Observabilité système</h1>
+  </div>
+  <div class="orion-page-actions">
+    <span class="orion-badge {% if stats.overall_status == 'ok' %}success{% elif stats.overall_status == 'warning' %}warning{% elif stats.overall_status == 'critical' %}danger{% else %}neutral{% endif %}" style="font-size:13px;padding:6px 14px">
+      {% if stats.overall_status == 'ok' %}Tout est OK{% elif stats.overall_status == 'warning' %}Avertissements{% elif stats.overall_status == 'critical' %}État critique{% else %}Inconnu{% endif %}
+    </span>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Checks OK</div>
+    <div class="orion-metric-value" style="color:var(--orion-success)">{{ stats.checks_ok }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Avertissements</div>
+    <div class="orion-metric-value" style="color:var(--orion-warning)">{{ stats.checks_warning }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Critiques</div>
+    <div class="orion-metric-value" style="color:var(--orion-danger)">{{ stats.checks_critical }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Alertes actives</div>
+    <div class="orion-metric-value" style="color:{% if stats.unacknowledged_alerts > 0 %}var(--orion-danger){% else %}var(--orion-success){% endif %}">{{ stats.unacknowledged_alerts }}</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-7">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">État des composants</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if checks %}
+        <div class="list-group list-group-flush">
+          {% for check in checks %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <span class="orion-badge {% if check.status == 'ok' %}success{% elif check.status == 'warning' %}warning{% elif check.status == 'critical' %}danger{% else %}neutral{% endif %}">
+                {{ check.get_status_display }}
+              </span>
+              <div class="flex-grow-1">
+                <div style="font-size:13px;font-weight:600">
+                  <a href="{% url 'system_observability:check_history' check.check_type %}" style="color:inherit;text-decoration:none">
+                    {{ check.get_check_type_display }}
+                  </a>
+                </div>
+                {% if check.message %}<div style="font-size:11px;color:var(--orion-muted)">{{ check.message|truncatechars:80 }}</div>{% endif %}
+              </div>
+              <div style="text-align:right;font-size:11px;color:var(--orion-muted)">
+                {% if check.response_time_ms %}{{ check.response_time_ms }}ms<br>{% endif %}
+                {{ check.checked_at|date:"H:i" }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="orion-empty-state">
+          <i class="bi bi-heart-pulse" style="font-size:32px;color:var(--orion-muted)"></i>
+          <p style="color:var(--orion-muted);margin-top:12px">Aucune vérification enregistrée.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-5">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Alertes système</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        {% if alerts %}
+        <div class="list-group list-group-flush">
+          {% for alert in alerts %}
+          <div class="list-group-item px-4 py-2" style="border-left:3px solid {% if alert.severity == 'critical' or alert.severity == 'emergency' %}var(--orion-danger){% elif alert.severity == 'warning' %}var(--orion-warning){% else %}var(--orion-accent){% endif %}">
+            <div style="font-size:12.5px;font-weight:600">{{ alert.title }}</div>
+            <div style="font-size:11px;color:var(--orion-muted)">
+              <span class="orion-badge {% if alert.severity == 'critical' or alert.severity == 'emergency' %}danger{% elif alert.severity == 'warning' %}warning{% else %}info{% endif %}" style="font-size:10px">{{ alert.get_severity_display }}</span>
+              · {{ alert.created_at|date:"d/m H:i" }}
+            </div>
+            <form method="post" action="{% url 'system_observability:acknowledge' alert.pk %}" class="mt-1">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn sm ghost" style="font-size:11px;padding:2px 8px">Acquitter</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="orion-empty-state" style="padding:24px">
+          <i class="bi bi-shield-check" style="font-size:28px;color:var(--orion-success)"></i>
+          <p style="color:var(--orion-muted);margin-top:8px;font-size:13px">Aucune alerte active.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

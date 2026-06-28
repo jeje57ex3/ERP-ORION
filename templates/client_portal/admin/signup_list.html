@@ -1,0 +1,126 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Inscriptions client — Orion ERP{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'portals:index' %}">Portails</a></li>
+  <li class="breadcrumb-item active">Inscriptions client</li>
+{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="orion-filter-chip {% if status_filter == val %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+  <a href="?" class="orion-filter-chip {% if not status_filter %}active{% endif %}">Tous</a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if pending_count %}
+<div class="orion-alert warning d-flex align-items-center gap-2 mb-4" style="border-radius:12px">
+  <i class="bi bi-hourglass-split fs-5"></i>
+  <div>
+    <strong>{{ pending_count }} demande{% if pending_count > 1 %}s{% endif %} en attente de validation.</strong>
+    <a href="?status=pending_approval" class="ms-2">Voir les demandes en attente</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    {% if page_obj.object_list %}
+    <div class="table-responsive">
+      <table class="orion-table mb-0 align-middle">
+        <thead style="background:#f9fafb;font-size:.78rem;color:#6b7280;text-transform:uppercase;letter-spacing:.08em">
+          <tr>
+            <th class="ps-4 py-3">Client</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th>Entreprise</th>
+            <th>Statut</th>
+            <th>Email vérifié</th>
+            <th>Date</th>
+            <th class="pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for signup in page_obj %}
+          <tr>
+            <td class="ps-4">
+              <div class="fw-semibold" style="font-size:.9rem">{{ signup.full_name }}</div>
+            </td>
+            <td>
+              <a href="mailto:{{ signup.email }}" class="text-muted" style="font-size:.85rem">{{ signup.email }}</a>
+            </td>
+            <td class="text-muted" style="font-size:.85rem">{{ signup.phone|default:"—" }}</td>
+            <td class="text-muted" style="font-size:.85rem">{{ signup.company_name|default:"—" }}</td>
+            <td>
+              <span class="badge bg-{{ signup.status_badge_class }}-subtle text-{{ signup.status_badge_class }}-emphasis border border-{{ signup.status_badge_class }}-subtle"
+                    style="font-size:.73rem">
+                {{ signup.get_status_display }}
+              </span>
+            </td>
+            <td class="text-center">
+              {% if signup.email_verified %}
+              <i class="bi bi-check-circle-fill text-success"></i>
+              {% else %}
+              <i class="bi bi-clock text-warning"></i>
+              {% endif %}
+            </td>
+            <td class="text-muted" style="font-size:.82rem">{{ signup.created_at|date:"d/m/Y H:i" }}</td>
+            <td class="pe-4">
+              <div class="d-flex gap-1">
+                <a href="{% url 'portals:signup_detail' signup.pk %}"
+                   class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if signup.status == 'pending_approval' or signup.status == 'pending_email_verification' %}
+                <form method="post" action="{% url 'portals:signup_approve' signup.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="orion-btn orion-orion-btn sm"
+                          style="background:#22c55e;color:#fff;border:none"
+                          title="Valider"
+                          onclick="return confirm('Valider la demande de {{ signup.full_name }} ?')">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center gap-2 py-3">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      {% endif %}
+      <span class="orion-btn orion-orion-btn sm" style="cursor:default">
+        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+      </span>
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="orion-empty py-5">
+      <div class="orion-empty-icon"><i class="bi bi-person-plus"></i></div>
+      <div class="orion-empty-title">Aucune demande d'inscription</div>
+      <div class="orion-empty-text">
+        {% if status_filter %}Les demandes de ce statut apparaîtront ici.{% else %}Aucune demande reçue pour l'instant.{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

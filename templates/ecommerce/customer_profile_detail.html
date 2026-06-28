@@ -1,0 +1,86 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_profile_list' %}">Clients boutique</a></li>
+<li class="breadcrumb-item active">{{ account.full_name }}</li>
+{% endblock %}
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ account.full_name }}</h1>
+      <div class="detail-meta">
+        <span>{{ account.email }}</span>
+        {% if account.phone %}<span>{{ account.phone }}</span>{% endif %}
+        {% if account.is_active %}<span class="badge-status badge-paid">Actif</span>{% else %}<span class="badge-status badge-cancelled">Inactif</span>{% endif %}
+        {% if account.newsletter_opt_in %}<span class="badge-status badge-info">Newsletter</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'ecommerce:customer_profile_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-cart-check"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.total_orders }}</div><div class="kpi-label">Commandes</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#10B981">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.total_spent|floatformat:2 }}€</div><div class="kpi-label">Total dépensé</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#F59E0B">
+      <div class="kpi-icon"><i class="bi bi-star"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.loyalty_points }}</div><div class="kpi-label">Points fidélité</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Profil</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Email</label><div class="value">{{ account.email }}</div></div>
+        <div class="info-item"><label>Téléphone</label><div class="value {% if not account.phone %}empty{% endif %}">{{ account.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>Segment</label><div class="value">{% if account.profile.segment %}{{ account.profile.segment.name }}{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Inscrit le</label><div class="value">{{ account.created_at|date:"d/m/Y" }}</div></div>
+        <div class="info-item"><label>Dernière connexion</label><div class="value {% if not account.last_login %}empty{% endif %}">{% if account.last_login %}{{ account.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div></div>
+        {% if account.profile %}
+        <div class="info-item"><label>Panier moyen</label><div class="value">{{ account.profile.avg_order_value|floatformat:2 }}€</div></div>
+        <div class="info-item"><label>Source acquisition</label><div class="value {% if not account.profile.acquisition_source %}empty{% endif %}">{{ account.profile.acquisition_source|default:"—" }}</div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-7">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cart me-1 text-primary"></i>Dernières commandes</h6></div>
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead><tr><th>N°</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td><a href="{% url 'ecommerce:order_detail' o.pk %}" class="fw-semibold">{{ o.order_number }}</a></td>
+              <td>{{ o.total_ttc|floatformat:2 }}€</td>
+              <td><span class="badge-status badge-{{ o.status }}">{{ o.get_status_display }}</span></td>
+              <td class="text-muted small">{{ o.created_at|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center py-3">Aucune commande</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

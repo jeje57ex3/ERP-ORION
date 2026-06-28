@@ -1,0 +1,116 @@
+{% load dashboard_tags %}
+{% with services=widget_data|dict_get:"private_saas_services_status" %}
+{% with users=widget_data|dict_get:"private_saas_users_count" %}
+{% with storage=widget_data|dict_get:"private_saas_storage_usage" %}
+{% with updates=widget_data|dict_get:"private_saas_pending_updates" %}
+{% with incidents=widget_data|dict_get:"private_saas_incidents" %}
+{% with backups=widget_data|dict_get:"private_saas_backups" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'private_saas_services_status' %}
+  {% if services.services %}
+  {% if services.down_count > 0 %}
+  <div class="mb-2"><span class="badge bg-danger">{{ services.down_count }} service(s) hors-ligne</span></div>
+  {% else %}
+  <div class="mb-2"><span class="badge bg-success">Tous les services sont opérationnels</span></div>
+  {% endif %}
+  {% for s in services.services %}
+  <div class="widget-item">
+    {% if s.status == 'up' %}
+    <div class="widget-item-icon" style="background:#dcfce7;color:#16A34A"><i class="bi bi-server"></i></div>
+    {% else %}
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-server"></i></div>
+    {% endif %}
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ s.name|default:"Service" }}</div>
+      <div class="widget-item-sub">{{ s.url|default:"—" }}</div>
+    </div>
+    {% if s.status == 'up' %}
+    <span class="badge bg-success" style="font-size:.65rem">En ligne</span>
+    {% else %}
+    <span class="badge bg-danger" style="font-size:.65rem">Hors ligne</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-server"></i><p>Aucun service SaaS configuré.</p></div>
+  {% endif %}
+
+{% elif code == 'private_saas_users_count' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dbeafe;color:#2563EB;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-people"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ users.active|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">utilisateurs actifs sur {{ users.count|default:"0" }} comptes</div>
+    </div>
+  </div>
+
+{% elif code == 'private_saas_storage_usage' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#f3f4f6;color:#6B7280;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem"><i class="bi bi-hdd-stack"></i></div>
+    <div>
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ storage.used_gb|default:"0" }} Go</div>
+      <div class="text-muted" style="font-size:.78rem">utilisés sur {{ storage.limit_gb|default:"—" }} Go alloués</div>
+    </div>
+  </div>
+
+{% elif code == 'private_saas_pending_updates' %}
+  {% if updates.updates %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ updates.count }} mise(s) à jour disponible(s)</span></div>
+  {% for u in updates.updates %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-arrow-up-circle"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ u.service|default:"Service" }}</div>
+      <div class="widget-item-sub">v{{ u.current|default:"—" }} → v{{ u.available|default:"—" }}</div>
+    </div>
+    <a href="#" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size:.7rem">Mettre à jour</a>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-check-circle"></i><p>Tous les services SaaS sont à jour.</p></div>
+  {% endif %}
+
+{% elif code == 'private_saas_incidents' %}
+  {% if incidents.incidents %}
+  <div class="mb-2"><span class="badge bg-danger">{{ incidents.count }} incident(s) ouvert(s)</span></div>
+  {% for i in incidents.incidents %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-bug"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ i.title|default:"Incident" |truncatechars:35 }}</div>
+      <div class="widget-item-sub">{{ i.service|default:"—" }} · {{ i.opened_at|date:"d/m/Y H:i"|default:"—" }}</div>
+    </div>
+    <span class="badge" style="background:#DC2626;font-size:.65rem">{{ i.severity|default:"—" }}</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-check-circle"></i><p>Aucun incident SaaS en cours.</p></div>
+  {% endif %}
+
+{% elif code == 'private_saas_backups' %}
+  {% if backups.services %}
+  {% if backups.failed_count > 0 %}
+  <div class="mb-2"><span class="badge bg-danger">{{ backups.failed_count }} sauvegarde(s) en échec</span></div>
+  {% else %}
+  <div class="mb-2"><span class="badge bg-success">Toutes les sauvegardes SaaS sont OK</span></div>
+  {% endif %}
+  {% for s in backups.services %}
+  <div class="widget-item">
+    {% if s.status == 'ok' %}
+    <div class="widget-item-icon" style="background:#dcfce7;color:#16A34A"><i class="bi bi-cloud-arrow-up"></i></div>
+    {% else %}
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-cloud-slash"></i></div>
+    {% endif %}
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ s.service|default:"Service" }}</div>
+      <div class="widget-item-sub">Dernière : {{ s.last_backup|date:"d/m/Y H:i"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-cloud-arrow-up"></i><p>Aucune donnée de sauvegarde SaaS.</p></div>
+  {% endif %}
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

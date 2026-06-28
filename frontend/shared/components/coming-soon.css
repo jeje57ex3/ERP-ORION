@@ -1,0 +1,138 @@
+.coming-soon {
+  min-height: calc(100vh - 88px);
+  display: grid;
+  place-items: center;
+  padding: 80px 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(201, 164, 92, 0.12), transparent 30%),
+    linear-gradient(135deg, #050505, #16110d);
+  color: #fff;
+}
+
+.coming-soon-lunea {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(232, 200, 191, 0.35), transparent 32%),
+    linear-gradient(135deg, #fffaf3, #ead9c5);
+  color: #3a2a1f;
+}
+
+.coming-soon-panel {
+  width: min(720px, 100%);
+  border: 1px solid rgba(215, 185, 140, 0.24);
+  border-radius: 32px;
+  padding: clamp(32px, 6vw, 70px);
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(18px);
+  text-align: center;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.25);
+}
+
+.coming-soon-lunea .coming-soon-panel {
+  background: rgba(255, 250, 243, 0.72);
+  border-color: rgba(201, 164, 92, 0.26);
+}
+
+.coming-soon-eyebrow {
+  margin: 0 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.coming-soon h1 {
+  margin: 0;
+  font-size: clamp(42px, 8vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+}
+
+.coming-soon-subtitle {
+  margin: 24px auto 0;
+  max-width: 580px;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.5;
+}
+
+.coming-soon-description {
+  margin: 14px auto 0;
+  max-width: 520px;
+  opacity: 0.72;
+  line-height: 1.7;
+}
+
+.coming-soon-form {
+  margin: 34px auto 0;
+  display: flex;
+  gap: 12px;
+  max-width: 520px;
+}
+
+.coming-soon-form input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid rgba(215, 185, 140, 0.32);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  padding: 0 20px;
+  outline: none;
+}
+
+.coming-soon-lunea .coming-soon-form input {
+  background: rgba(255, 255, 255, 0.6);
+  color: #3a2a1f;
+}
+
+.coming-soon-form button {
+  height: 52px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 24px;
+  background: #d7b98c;
+  color: #050505;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.coming-soon-lunea .coming-soon-form button {
+  background: #c9a45c;
+  color: #fffaf3;
+}
+
+.coming-soon-back {
+  display: inline-flex;
+  margin-top: 26px;
+  color: inherit;
+  opacity: 0.75;
+  text-decoration: none;
+}
+
+.coming-soon-back:hover {
+  opacity: 1;
+}
+
+.coming-soon-success {
+  color: #4caf50;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.coming-soon-error {
+  color: #d9534f;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .coming-soon-form {
+    flex-direction: column;
+  }
+
+  .coming-soon-form button {
+    width: 100%;
+  }
+}

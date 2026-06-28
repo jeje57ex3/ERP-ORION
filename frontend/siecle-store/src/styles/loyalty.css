@@ -1,0 +1,84 @@
+/* SIÈCLE — Loyalty / Récompenses */
+.loyalty-page {
+  min-height: 100vh;
+  background: #000;
+  padding-top: 100px;
+}
+.loyalty-hero {
+  text-align: center;
+  padding: 60px 24px 80px;
+}
+.points-display {
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--siecle-beige);
+  line-height: 1;
+}
+.points-label {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: #666;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+.tier-bar {
+  max-width: 480px;
+  margin: 32px auto;
+}
+.tier-track {
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.tier-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--siecle-beige), #fff);
+  border-radius: 999px;
+  transition: width 1s ease;
+}
+.tier-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #555;
+  letter-spacing: 0.1em;
+}
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.tier-badge.bronze { background: rgba(205,127,50,0.15); color: #CD7F32; border: 1px solid rgba(205,127,50,0.3); }
+.tier-badge.silver { background: rgba(192,192,192,0.1); color: #C0C0C0; border: 1px solid rgba(192,192,192,0.25); }
+.tier-badge.gold   { background: rgba(216,199,163,0.12); color: var(--siecle-beige); border: 1px solid rgba(216,199,163,0.25); }
+.tier-badge.platinum { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.mission-card {
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: border-color 0.3s;
+}
+.mission-card:hover { border-color: rgba(216,199,163,0.2); }
+.mission-card.done { opacity: 0.5; }
+.mission-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(216,199,163,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}

@@ -1,0 +1,78 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Congés — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Congés</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Gérez les demandes de congés et absences.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'hr:leave_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle demande</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-clock-history"></i></div>
+      <div class="orion-kpi-value">{{ count_pending }}</div>
+      <div class="orion-kpi-label">En attente</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'hr:leave_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr><th>Salarié</th><th>Type</th><th>Du</th><th>Au</th><th>Jours</th><th>Statut</th><th class="text-end">Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for leave in leaves %}
+          <tr>
+            <td><a href="{% url 'hr:employee_detail' leave.employee.pk %}" class="fw-semibold text-dark text-decoration-none small">{{ leave.employee }}</a></td>
+            <td class="small text-muted">{{ leave.get_leave_type_display }}</td>
+            <td class="small text-muted">{{ leave.start_date|date:"d/m/Y" }}</td>
+            <td class="small text-muted">{{ leave.end_date|date:"d/m/Y" }}</td>
+            <td class="small fw-semibold">{{ leave.days_count }}j</td>
+            <td>
+              {% if leave.status == 'pending' %}<span class="orion-badge orion-badge-warning">{{ leave.get_status_display }}</span>
+              {% elif leave.status == 'approved' %}<span class="orion-badge orion-badge-success">{{ leave.get_status_display }}</span>
+              {% elif leave.status == 'refused' %}<span class="orion-badge orion-badge-danger">{{ leave.get_status_display }}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ leave.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                {% if leave.status == 'pending' %}
+                <form method="post" action="{% url 'hr:leave_approve' leave.pk %}" class="d-inline">{% csrf_token %}
+                  <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="Approuver"><i class="bi bi-check-circle text-success"></i></button>
+                </form>
+                <form method="post" action="{% url 'hr:leave_refuse' leave.pk %}" class="d-inline">{% csrf_token %}
+                  <button class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Refuser"><i class="bi bi-x-circle"></i></button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-calendar-x"></i></div>
+              <div class="orion-empty-title">Aucune demande de congé</div>
+              <div class="orion-empty-text">Les demandes de congé des salariés apparaîtront ici.</div>
+              <a href="{% url 'hr:leave_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouvelle demande</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

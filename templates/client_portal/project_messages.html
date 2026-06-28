@@ -1,0 +1,58 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Messages — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_list' %}">Chantiers</a></li>
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">Messages</li>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-lg-5">
+    <h5 class="fw-bold mb-3">Envoyer un message</h5>
+    <div class="bg-white border rounded-3 p-4">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Sujet</label>
+          <input type="text" name="subject" class="form-control" placeholder="Question sur le chantier" value="Message chantier">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Message *</label>
+          <textarea name="content" class="form-control" rows="4" required placeholder="Votre message au responsable..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Pièces jointes</label>
+          <input type="file" name="attachments" class="form-control" multiple>
+        </div>
+        <button type="submit" class="orion-btn warning w-100 fw-bold"><i class="bi bi-send me-1"></i>Envoyer</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <h5 class="fw-bold mb-3">Conversations</h5>
+    {% if conversations %}
+    <div class="d-flex flex-column gap-2">
+      {% for conv in conversations %}
+      <a href="{% url 'client_portal:conversation_detail' project.pk conv.pk %}" class="text-decoration-none">
+        <div class="bg-white border rounded-3 p-3 d-flex align-items-center gap-3 {% if conv.unread_by_client > 0 %}border-warning{% endif %}">
+          <i class="bi bi-chat-dots {% if conv.unread_by_client > 0 %}text-warning{% else %}text-muted{% endif %} fs-4"></i>
+          <div class="flex-grow-1">
+            <div class="fw-semibold text-dark small">{{ conv.subject }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ conv.updated_at|timesince }} — {{ conv.messages.count }} message{{ conv.messages.count|pluralize }}</div>
+          </div>
+          {% if conv.unread_by_client > 0 %}<span class="orion-badge warning text-dark">{{ conv.unread_by_client }} nouveau{{ conv.unread_by_client|pluralize }}</span>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white border rounded-3 p-4 text-center text-muted">
+      <i class="bi bi-chat-slash fs-1 d-block mb-2"></i>
+      Aucune conversation pour l'instant
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

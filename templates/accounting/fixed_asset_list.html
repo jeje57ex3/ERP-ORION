@@ -1,0 +1,50 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Immobilisations — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item active">Immobilisations</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-building me-2"></i>Immobilisations</h6></div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if assets %}
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr><th>N°</th><th>Désignation</th><th>Acquisition</th><th class="text-end">Valeur achat</th><th class="text-end">Amort. cumulé</th><th class="text-end">VNC</th><th class="text-center">Statut</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for asset in assets %}
+          <tr>
+            <td><code>{{ asset.asset_number }}</code></td>
+            <td class="fw-semibold">{{ asset.name }}</td>
+            <td class="small text-muted">{{ asset.purchase_date|date:"d/m/Y" }}</td>
+            <td class="text-end">{{ asset.purchase_value|floatformat:2 }} €</td>
+            <td class="text-end text-warning">{{ asset.accumulated_depreciation|floatformat:2 }} €</td>
+            <td class="text-end fw-semibold text-primary">{{ asset.net_book_value|floatformat:2 }} €</td>
+            <td class="text-center">
+              {% if asset.status == 'active' %}<span class="orion-badge orion-badge-success">Actif</span>
+              {% elif asset.status == 'disposed' %}<span class="orion-badge orion-badge-secondary">Cédé</span>
+              {% elif asset.status == 'fully_depreciated' %}<span class="badge bg-dark">Amorti</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ asset.status }}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'accounting:fixed_asset_detail' asset.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-eye"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
+      <div class="orion-empty-title">Aucune immobilisation.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

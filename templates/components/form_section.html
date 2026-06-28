@@ -1,0 +1,23 @@
+{# Composant : section de formulaire avec titre, icône et description optionnelle
+   Usage : {% include "components/form_section.html" with title="Informations principales" description="Remplissez les informations de base" icon="bi-person" %}
+   Variables :
+     - title        (requis)  : titre de la section
+     - description  (optionnel) : texte descriptif sous le titre
+     - icon         (optionnel) : classe icône Bootstrap Icons (ex: "bi-person")
+     - class        (optionnel) : classes CSS supplémentaires sur le conteneur
+#}
+<div class="form-section mb-4 {{ class }}">
+  <div class="d-flex align-items-center gap-2 pb-2 border-bottom">
+    {% if icon %}
+      <span class="fs-5 text-primary opacity-75">
+        <i class="bi {{ icon }}"></i>
+      </span>
+    {% endif %}
+    <div>
+      <h6 class="mb-0 fw-semibold text-dark">{{ title }}</h6>
+      {% if description %}
+        <small class="text-muted">{{ description }}</small>
+      {% endif %}
+    </div>
+  </div>
+</div>

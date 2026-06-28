@@ -1,0 +1,80 @@
+{% extends "websites/public/base.html" %}
+
+{% block seo_title %}{% if page.meta_title %}{{ page.meta_title }}{% else %}{{ page.title }} — {{ site.name }}{% endif %}{% endblock %}
+{% block seo_description %}{% if page.meta_description %}{{ page.meta_description }}{% endif %}{% endblock %}
+
+{% block content %}
+{# En-tête de page #}
+<div class="ws-page-hero" style="background:var(--ws-primary);padding:3rem 0;text-align:center">
+  <div style="max-width:800px;margin:0 auto;padding:0 1.5rem">
+    <h1 style="color:#fff;font-size:2.5rem;font-weight:700;margin:0">{{ page.title }}</h1>
+  </div>
+</div>
+
+{# Sections de la page #}
+{% if sections %}
+  {% for section in sections %}
+    {% if section.is_visible %}
+    <div class="ws-section ws-section--{{ section.section_type }}"
+      style="{% if section.bg_color %}background:{{ section.bg_color }};{% endif %}{% if section.text_color %}color:{{ section.text_color }};{% endif %}">
+
+      {% if section.section_type == 'text' %}
+      <div class="ws-container">
+        {% if section.title %}<h2>{{ section.title }}</h2>{% endif %}
+        {% if section.subtitle %}<p class="ws-lead">{{ section.subtitle }}</p>{% endif %}
+        {% if section.content %}
+          <div class="ws-content">{{ section.content|safe }}</div>
+        {% endif %}
+      </div>
+
+      {% elif section.section_type == 'cta' %}
+      <div class="ws-container ws-cta">
+        {% if section.title %}<h2>{{ section.title }}</h2>{% endif %}
+        {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+        <div class="ws-cta__buttons">
+          {% if section.button_text %}
+          <a href="{{ section.button_link|default:'#' }}" class="ws-btn ws-btn--primary">
+            {{ section.button_text }}
+          </a>
+          {% endif %}
+          {% if section.button_secondary_text %}
+          <a href="{{ section.button_secondary_link|default:'#' }}" class="ws-btn ws-btn--outline">
+            {{ section.button_secondary_text }}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% elif section.section_type == 'contact_form' %}
+      <div class="ws-container">
+        {% if section.title %}<h2 class="ws-section-title">{{ section.title }}</h2>{% endif %}
+        {% include "websites/public/partials/contact_form.html" %}
+      </div>
+
+      {% else %}
+      <div class="ws-container">
+        {% if section.title %}<h2 class="ws-section-title">{{ section.title }}</h2>{% endif %}
+        {% if section.subtitle %}<p class="ws-lead">{{ section.subtitle }}</p>{% endif %}
+        {% if section.content %}<div class="ws-content">{{ section.content|safe }}</div>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+
+{% elif page.content %}
+{# Contenu classique si pas de sections #}
+<div class="ws-section" style="background:#fff">
+  <div class="ws-container ws-prose">
+    {{ page.content|safe }}
+  </div>
+</div>
+
+{% else %}
+<div class="ws-section" style="background:#fff;text-align:center;padding:4rem 0">
+  <div class="ws-container">
+    <p style="color:#6b7280">Cette page est en cours de rédaction.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

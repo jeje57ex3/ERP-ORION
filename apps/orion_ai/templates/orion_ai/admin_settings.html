@@ -1,0 +1,128 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Paramètres IA — Super Admin{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Intelligence Artificielle</p>
+    <h1 class="orion-page-title">Paramètres IA Globaux</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'orion_ai:admin_ai_audit' %}" class="orion-btn">
+      <i class="bi bi-journal-text me-1"></i>Audit IA
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="orion-card mb-4">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Configuration globale</h2>
+  </div>
+  <form method="post" style="padding:20px">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div style="grid-column:span 2">
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Nom de l'assistant</label>
+        <input type="text" name="ai_name" value="{{ ai_settings.ai_name }}" class="orion-input" style="width:100%;max-width:400px">
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Fournisseur IA par défaut</label>
+        <select name="default_provider" class="orion-input" style="width:100%">
+          <option value="openai" {% if ai_settings.default_provider == 'openai' %}selected{% endif %}>OpenAI</option>
+          <option value="anthropic" {% if ai_settings.default_provider == 'anthropic' %}selected{% endif %}>Anthropic</option>
+          <option value="local" {% if ai_settings.default_provider == 'local' %}selected{% endif %}>Local (Ollama)</option>
+          <option value="disabled" {% if ai_settings.default_provider == 'disabled' %}selected{% endif %}>Désactivé</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Modèle par défaut</label>
+        <input type="text" name="default_model" value="{{ ai_settings.default_model }}" class="orion-input" style="width:100%" placeholder="gpt-4.1-mini">
+      </div>
+
+      <div style="grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="ai_enabled" {% if ai_settings.ai_enabled %}checked{% endif %} style="width:16px;height:16px">
+          IA activée
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="allow_tools" {% if ai_settings.allow_tools %}checked{% endif %} style="width:16px;height:16px">
+          Outils autorisés
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="allow_erp_read_tools" {% if ai_settings.allow_erp_read_tools %}checked{% endif %} style="width:16px;height:16px">
+          Outils lecture ERP
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="allow_erp_write_tools" {% if ai_settings.allow_erp_write_tools %}checked{% endif %} style="width:16px;height:16px">
+          Outils écriture ERP
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="log_conversations" {% if ai_settings.log_conversations %}checked{% endif %} style="width:16px;height:16px">
+          Journaliser conversations
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="redact_sensitive_data" {% if ai_settings.redact_sensitive_data %}checked{% endif %} style="width:16px;height:16px">
+          Filtrer données sensibles
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px;color:var(--orion-danger)">
+          <input type="checkbox" name="allow_dangerous_actions" {% if ai_settings.allow_dangerous_actions %}checked{% endif %} style="width:16px;height:16px">
+          Actions dangereuses autorisées
+        </label>
+      </div>
+
+      <div style="grid-column:span 2">
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Instructions supplémentaires (prompt système)</label>
+        <textarea name="system_prompt_extra" rows="4" class="orion-input" style="width:100%;font-family:monospace;font-size:12.5px" placeholder="Ajoutez ici des instructions supplémentaires pour l'assistant...">{{ ai_settings.system_prompt_extra }}</textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-check-lg me-1"></i>Enregistrer les paramètres
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Outils disponibles -->
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Outils IA disponibles ({{ available_tools|length }})</h2>
+  </div>
+  <table class="orion-table">
+    <thead>
+      <tr><th>Nom</th><th>Description</th><th>Type</th><th>Dangereux</th></tr>
+    </thead>
+    <tbody>
+      {% for name, tool in available_tools.items %}
+      <tr>
+        <td><code style="font-size:12px">{{ tool.name }}</code></td>
+        <td style="font-size:13px">{{ tool.description }}</td>
+        <td>
+          {% if tool.is_dangerous_action %}
+          <span class="orion-badge danger">Dangereux</span>
+          {% elif tool.is_write_action %}
+          <span class="orion-badge warning">Écriture</span>
+          {% else %}
+          <span class="orion-badge success">Lecture</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if tool.is_dangerous_action %}<i class="bi bi-exclamation-triangle-fill" style="color:var(--orion-danger)"></i>{% else %}<i class="bi bi-check-circle" style="color:var(--orion-success)"></i>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

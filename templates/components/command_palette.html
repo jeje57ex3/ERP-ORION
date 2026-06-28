@@ -1,0 +1,157 @@
+{# Command Palette — Ctrl+K — géré par orion-command-palette.js #}
+<div id="orionCommandPalette" role="dialog" aria-modal="true" aria-label="Palette de commandes"
+     style="
+       display: none;
+       position: fixed;
+       inset: 0;
+       z-index: 200;
+       padding: 80px 20px 20px;
+       background: rgba(20,17,15,.5);
+       backdrop-filter: blur(4px);
+     ">
+  <div style="
+       max-width: 560px;
+       margin: 0 auto;
+       background: var(--orion-surface);
+       border: 1px solid var(--orion-border);
+       border-radius: 18px;
+       box-shadow: 0 32px 80px rgba(20,17,15,.22);
+       overflow: hidden;
+       animation: orionScaleIn .18s ease;
+     ">
+
+    {# Barre de recherche #}
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--orion-border)">
+      <i class="bi bi-search" style="color:var(--orion-muted);font-size:15px;flex-shrink:0" aria-hidden="true"></i>
+      <input id="orionCmdInput" type="text" autocomplete="off"
+             placeholder="Que voulez-vous faire ? Rechercher, naviguer, créer…"
+             style="
+               flex:1;border:none;outline:none;background:transparent;
+               font-size:15px;font-family:var(--orion-font);color:var(--orion-text);
+             "
+             aria-label="Commande ou recherche">
+      <kbd style="background:var(--orion-surface-alt);border:1px solid var(--orion-border);border-radius:6px;padding:3px 7px;font-size:10px;color:var(--orion-muted);flex-shrink:0">Esc</kbd>
+    </div>
+
+    {# Résultats #}
+    <div id="orionCmdResults" style="max-height:400px;overflow-y:auto;padding:6px">
+      {# Navigation rapide par défaut #}
+      <div class="orion-cmd-section" data-default>
+        <div style="padding:8px 10px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--orion-muted)">Navigation rapide</div>
+        <a class="orion-cmd-item" href="{% url 'core:dashboard' %}">
+          <span class="orion-cmd-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+          <span>Tableau de bord</span>
+          <span class="orion-cmd-hint">Accueil</span>
+        </a>
+        {% if perms.crm.view_customer %}
+        <a class="orion-cmd-item" href="{% url 'crm:customer_list' %}">
+          <span class="orion-cmd-icon"><i class="bi bi-people"></i></span>
+          <span>CRM — Clients</span>
+        </a>
+        {% endif %}
+        {% if perms.sales.view_quote %}
+        <a class="orion-cmd-item" href="{% url 'sales:quote_list' %}">
+          <span class="orion-cmd-icon"><i class="bi bi-file-earmark-text"></i></span>
+          <span>Devis</span>
+        </a>
+        {% endif %}
+        {% if perms.sales.view_invoice %}
+        <a class="orion-cmd-item" href="{% url 'sales:invoice_list' %}">
+          <span class="orion-cmd-icon"><i class="bi bi-receipt"></i></span>
+          <span>Factures</span>
+        </a>
+        {% endif %}
+        {% if perms.inventory.view_product %}
+        <a class="orion-cmd-item" href="{% url 'inventory:product_list' %}">
+          <span class="orion-cmd-icon"><i class="bi bi-box-seam"></i></span>
+          <span>Stocks & Produits</span>
+        </a>
+        {% endif %}
+      </div>
+
+      {# Section créer #}
+      <div class="orion-cmd-section" data-default>
+        <div style="padding:8px 10px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--orion-muted)">Créer</div>
+        {% if perms.crm.add_customer %}
+        <a class="orion-cmd-item" href="{% url 'crm:customer_create' %}">
+          <span class="orion-cmd-icon" style="background:rgba(47,125,87,.1);color:var(--orion-success)"><i class="bi bi-person-plus"></i></span>
+          <span>Nouveau client</span>
+          <kbd class="orion-cmd-hint">Créer</kbd>
+        </a>
+        {% endif %}
+        {% if perms.sales.add_quote %}
+        <a class="orion-cmd-item" href="{% url 'sales:quote_create' %}">
+          <span class="orion-cmd-icon" style="background:rgba(47,125,87,.1);color:var(--orion-success)"><i class="bi bi-file-earmark-plus"></i></span>
+          <span>Nouveau devis</span>
+          <kbd class="orion-cmd-hint">Créer</kbd>
+        </a>
+        {% endif %}
+        {% if perms.sales.add_invoice %}
+        <a class="orion-cmd-item" href="{% url 'sales:invoice_create' %}">
+          <span class="orion-cmd-icon" style="background:rgba(47,125,87,.1);color:var(--orion-success)"><i class="bi bi-receipt"></i></span>
+          <span>Nouvelle facture</span>
+          <kbd class="orion-cmd-hint">Créer</kbd>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Pied #}
+    <div style="padding:10px 16px;border-top:1px solid var(--orion-border);display:flex;align-items:center;gap:16px;background:var(--orion-surface-alt)">
+      <span style="font-size:11px;color:var(--orion-muted);display:flex;align-items:center;gap:5px">
+        <kbd style="background:var(--orion-surface);border:1px solid var(--orion-border);border-radius:4px;padding:2px 5px;font-size:10px">↑↓</kbd>
+        naviguer
+      </span>
+      <span style="font-size:11px;color:var(--orion-muted);display:flex;align-items:center;gap:5px">
+        <kbd style="background:var(--orion-surface);border:1px solid var(--orion-border);border-radius:4px;padding:2px 5px;font-size:10px">↵</kbd>
+        sélectionner
+      </span>
+      <span style="font-size:11px;color:var(--orion-muted);display:flex;align-items:center;gap:5px">
+        <kbd style="background:var(--orion-surface);border:1px solid var(--orion-border);border-radius:4px;padding:2px 5px;font-size:10px">Esc</kbd>
+        fermer
+      </span>
+    </div>
+  </div>
+</div>
+
+<style>
+.orion-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--orion-text);
+  font-size: 13.5px;
+  transition: background .12s ease;
+  cursor: pointer;
+}
+.orion-cmd-item:hover,
+.orion-cmd-item.focused {
+  background: rgba(184,155,107,.1);
+  color: var(--orion-text);
+}
+.orion-cmd-icon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 8px;
+  background: rgba(139,129,119,.1);
+  color: var(--orion-muted);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+.orion-cmd-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--orion-muted);
+  background: var(--orion-surface-alt);
+  border: 1px solid var(--orion-border);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-family: var(--orion-font);
+  white-space: nowrap;
+}
+</style>

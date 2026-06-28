@@ -1,0 +1,265 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  {# Breadcrumb #}
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+      <li class="breadcrumb-item active">Domaines</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h1 class="h4 fw-semibold mb-1">Domaines du site</h1>
+      <p class="text-muted mb-0">Connectez un domaine ou sous-domaine personnalisé à votre site web.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="orion-btn primary orion-btn sm" data-bs-toggle="modal" data-bs-target="#addDomainModal">
+        <i class="bi bi-plus-circle me-1"></i> Ajouter domaine
+      </button>
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle_maintenance">
+        <button type="submit" class="orion-btn sm {% if website.maintenance_mode %}orion-btn warning{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-tools me-1"></i>
+          {% if website.maintenance_mode %}Désactiver maintenance{% else %}Mode maintenance{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# Mode maintenance banner #}
+  {% if website.maintenance_mode %}
+  <div class="orion-alert warning d-flex align-items-center mb-4">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <strong>Mode maintenance activé</strong> — Le site affiche une page de maintenance aux visiteurs.
+  </div>
+  {% endif %}
+
+  {# Tableau des domaines #}
+  {% if domains_with_dns %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="orion-orion-card-body p-0">
+      <div class="table-responsive">
+        <table class="orion-table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Domaine</th>
+              <th>Type</th>
+              <th>Statut DNS</th>
+              <th>SSL</th>
+              <th>Principal</th>
+              <th>Dernier check</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in domains_with_dns %}
+            {% with d=item.domain %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-globe text-muted"></i>
+                  <div>
+                    <div class="fw-medium">{{ d.domain }}</div>
+                    {% if d.last_error %}
+                    <small class="text-danger">{{ d.last_error|truncatechars:60 }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td><span class="orion-badge neutral">{{ d.get_domain_type_display }}</span></td>
+              <td>
+                {% if d.dns_verified %}
+                  <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>DNS vérifié</span>
+                {% elif d.status == 'pending' %}
+                  <span class="orion-badge neutral">À configurer</span>
+                {% elif d.status == 'dns_pending' %}
+                  <span class="orion-badge warning text-dark"><i class="bi bi-hourglass me-1"></i>En attente propagation</span>
+                {% elif d.status == 'error' %}
+                  <span class="orion-badge danger">Erreur</span>
+                {% elif d.status == 'active' %}
+                  <span class="orion-badge success">Actif</span>
+                {% else %}
+                  <span class="badge bg-light text-dark">{{ d.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.ssl_enabled %}
+                  <span class="orion-badge success"><i class="bi bi-lock-fill me-1"></i>SSL actif</span>
+                {% else %}
+                  <span class="text-muted small">Non configuré</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.is_primary %}
+                  <span class="orion-badge gold"><i class="bi bi-star-fill me-1"></i>Principal</span>
+                {% else %}
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_primary">
+                    <input type="hidden" name="domain_id" value="{{ d.pk }}">
+                    <button type="submit" class="btn btn-link orion-btn sm p-0 text-muted">Définir principal</button>
+                  </form>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.last_checked_at %}
+                  <small class="text-muted">{{ d.last_checked_at|date:"d/m/Y H:i" }}</small>
+                {% else %}
+                  <small class="text-muted">Jamais</small>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button class="btn btn-outline-secondary orion-btn sm" data-bs-toggle="collapse"
+                    data-bs-target="#dnsInstructions{{ d.pk }}">
+                    <i class="bi bi-info-circle"></i> DNS
+                  </button>
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="verify_dns">
+                    <input type="hidden" name="domain_id" value="{{ d.pk }}">
+                    <button type="submit" class="btn btn-outline-primary orion-btn sm" title="Vérifier DNS">
+                      <i class="bi bi-arrow-clockwise"></i> Vérifier
+                    </button>
+                  </form>
+                  <form method="post" class="d-inline"
+                    onsubmit="return confirm('Supprimer le domaine {{ d.domain }} ?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_domain">
+                    <input type="hidden" name="domain_id" value="{{ d.pk }}">
+                    <button type="submit" class="btn btn-outline-danger orion-btn sm">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {# Instructions DNS #}
+            <tr class="collapse" id="dnsInstructions{{ d.pk }}">
+              <td colspan="7" class="bg-light">
+                <div class="p-3">
+                  <h6 class="fw-semibold mb-3"><i class="bi bi-terminal me-2"></i>Instructions DNS pour {{ d.domain }}</h6>
+                  {% with recs=item.dns_records %}
+                  <div class="row g-3">
+                    {% for rec_key, rec in recs.items %}
+                    <div class="col-md-6">
+                      <div class="card border-0 bg-white shadow-sm">
+                        <div class="orion-orion-card-body">
+                          <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-dark">{{ rec.type }}</span>
+                            <span class="text-muted small">{{ rec.description|default:"" }}</span>
+                          </div>
+                          <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                              <td class="text-muted fw-medium" style="width:80px">Type</td>
+                              <td><code>{{ rec.type }}</code></td>
+                            </tr>
+                            <tr>
+                              <td class="text-muted fw-medium">Nom</td>
+                              <td><code>{{ rec.name }}</code></td>
+                            </tr>
+                            <tr>
+                              <td class="text-muted fw-medium">Valeur</td>
+                              <td><code class="text-break">{{ rec.value }}</code>
+                                <button class="btn btn-link orion-btn sm p-0 ms-2 text-muted"
+                                  onclick="navigator.clipboard.writeText('{{ rec.value }}');this.innerHTML='<i class=\'bi bi-check-lg text-success\'></i>'"
+                                  title="Copier">
+                                  <i class="bi bi-clipboard"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <div class="orion-alert info mt-3 mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Important :</strong> Modifiez ces enregistrements chez votre registrar (OVH, Ionos, Gandi, Cloudflare, etc.).
+                    La propagation DNS peut prendre jusqu'à 48h. Cliquez sur <em>Vérifier</em> après configuration.
+                  </div>
+                  {% endwith %}
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="orion-empty text-center py-5">
+    <i class="bi bi-globe display-4 text-muted mb-3"></i>
+    <h5 class="text-muted">Aucun domaine configuré</h5>
+    <p class="text-muted">Ajoutez un domaine ou sous-domaine pour connecter votre site web.</p>
+    <button class="orion-btn primary" data-bs-toggle="modal" data-bs-target="#addDomainModal">
+      <i class="bi bi-plus-circle me-1"></i> Ajouter un domaine
+    </button>
+  </div>
+  {% endif %}
+
+  {# Info SSL #}
+  <div class="card border-0 bg-light mb-4">
+    <div class="orion-orion-card-body">
+      <h6 class="fw-semibold mb-2"><i class="bi bi-shield-lock me-2 text-success"></i>SSL / HTTPS</h6>
+      <p class="text-muted mb-0 small">
+        La configuration SSL (HTTPS) est provisionnée automatiquement après vérification du DNS.
+        Contactez votre administrateur Orion ERP pour activer SSL sur vos domaines vérifiés.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+{# Modal ajout domaine #}
+<div class="modal fade" id="addDomainModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_domain">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Ajouter un domaine</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Nom de domaine <span class="text-danger">*</span></label>
+            <input type="text" name="domain" class="form-control"
+              placeholder="ex: www.monentreprise.fr ou devis.monentreprise.fr" required>
+            <div class="form-text">Sans http:// ni https://. Exemple : www.monsite.fr</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Type</label>
+            <select name="domain_type" class="form-select">
+              {% for val, label in domain_type_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="orion-alert warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Orion ERP ne modifie pas automatiquement votre DNS. Vous devrez configurer manuellement les enregistrements DNS chez votre registrar après avoir ajouté le domaine.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="orion-btn primary">
+            <i class="bi bi-plus-circle me-1"></i> Ajouter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

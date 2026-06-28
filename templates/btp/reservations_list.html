@@ -1,0 +1,97 @@
+﻿{% extends "base.html" %}`n{% load static %}
+{% block title %}Réserves clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-exclamation-circle me-2 text-warning"></i>Réserves clients</h4>
+  {% if open_count > 0 %}<span class="orion-badge danger fs-6">{{ open_count }} ouverte{{ open_count|pluralize }}</span>{% endif %}
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <select name="project" class="form-select form-select-sm">
+          <option value="">Tous les chantiers</option>
+          {% for p in projects %}<option value="{{ p.pk }}" {% if request.GET.project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Tous les statuts</option>
+          <option value="new" {% if request.GET.status == 'new' %}selected{% endif %}>Nouvelle</option>
+          <option value="analyzing" {% if request.GET.status == 'analyzing' %}selected{% endif %}>En analyse</option>
+          <option value="accepted" {% if request.GET.status == 'accepted' %}selected{% endif %}>Acceptée</option>
+          <option value="refused" {% if request.GET.status == 'refused' %}selected{% endif %}>Refusée</option>
+          <option value="planned" {% if request.GET.status == 'planned' %}selected{% endif %}>Planifiée</option>
+          <option value="corrected" {% if request.GET.status == 'corrected' %}selected{% endif %}>Corrigée</option>
+          <option value="lifted" {% if request.GET.status == 'lifted' %}selected{% endif %}>Levée</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="importance" class="form-select form-select-sm">
+          <option value="">Toutes les importances</option>
+          <option value="blocking" {% if request.GET.importance == 'blocking' %}selected{% endif %}>Bloquante</option>
+          <option value="high" {% if request.GET.importance == 'high' %}selected{% endif %}>Importante</option>
+          <option value="medium" {% if request.GET.importance == 'medium' %}selected{% endif %}>Moyenne</option>
+          <option value="low" {% if request.GET.importance == 'low' %}selected{% endif %}>Faible</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">Filtrer</button>
+        <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex flex-column gap-3">
+  {% for res in reservations %}
+  <div class="orion-card {% if res.importance == 'blocking' %}border-danger{% endif %}">
+    <div class="orion-orion-orion-card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-12 col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            {% if res.importance == 'blocking' %}<span class="orion-badge orion-badge-danger">Bloquante</span>
+            {% elif res.importance == 'high' %}<span class="badge" style="background:#EA580C">Importante</span>
+            {% elif res.importance == 'medium' %}<span class="orion-badge orion-badge-warning">Moyenne</span>
+            {% else %}<span class="badge bg-light text-muted border">Faible</span>{% endif %}
+            <span class="fw-bold">{{ res.title }}</span>
+          </div>
+          <div class="small text-muted mb-1">{{ res.project.name }}</div>
+          {% if res.room %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ res.room }}</div>{% endif %}
+          <p class="small text-muted mt-2 mb-0">{{ res.description|truncatechars:150 }}</p>
+          {% if res.photos.exists %}<div class="d-flex gap-2 mt-2">{% for ph in res.photos.all|slice:":3" %}<img src="{{ ph.photo.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px">{% endfor %}</div>{% endif %}
+        </div>
+        <div class="col-12 col-md-3">
+          <div class="small text-muted mb-2">Signalée le {{ res.created_at|date:"d/m/Y" }}</div>
+          <form method="post" action="{% url 'btp:reservation_update_status' res.pk %}">
+            {% csrf_token %}
+            <select name="status" class="form-select form-select-sm mb-2" onchange="this.form.submit()">
+              <option value="new" {% if res.status == 'new' %}selected{% endif %}>Nouvelle</option>
+              <option value="analyzing" {% if res.status == 'analyzing' %}selected{% endif %}>En analyse</option>
+              <option value="accepted" {% if res.status == 'accepted' %}selected{% endif %}>Acceptée</option>
+              <option value="refused" {% if res.status == 'refused' %}selected{% endif %}>Refusée</option>
+              <option value="planned" {% if res.status == 'planned' %}selected{% endif %}>Planifiée</option>
+              <option value="corrected" {% if res.status == 'corrected' %}selected{% endif %}>Corrigée</option>
+              <option value="lifted" {% if res.status == 'lifted' %}selected{% endif %}>Levée</option>
+              <option value="closed" {% if res.status == 'closed' %}selected{% endif %}>Clôturée</option>
+            </select>
+          </form>
+        </div>
+        <div class="col-12 col-md-3 text-end">
+          <a href="{% url 'btp:project_detail' res.project.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-building me-1"></i>Voir chantier</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="orion-card">
+    <div class="orion-empty">
+      <div class="orion-empty-icon"><i class="bi bi-check-circle text-success"></i></div>
+      <div class="orion-empty-title">Aucune réserve en cours</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

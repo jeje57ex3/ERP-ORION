@@ -1,0 +1,95 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Système</div>
+    <h1 class="orion-page-title">Centre de sauvegardes</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% if failures %}
+<div class="orion-alert danger mb-3">
+  <i class="bi bi-exclamation-octagon me-2"></i>
+  <strong>{{ failures|length }} sauvegarde(s) en échec</strong> récemment.
+</div>
+{% endif %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Tâches actives</div>
+    <div class="orion-metric-value">{{ stats.active_jobs }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Succès (24h)</div>
+    <div class="orion-metric-value" style="color:var(--orion-success)">{{ stats.success_24h }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Échecs (24h)</div>
+    <div class="orion-metric-value" style="color:var(--orion-danger)">{{ stats.failed_24h }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Exécutions totales</div>
+    <div class="orion-metric-value">{{ stats.total_runs }}</div>
+  </div>
+</div>
+
+{% if stats.last_success %}
+<div class="orion-alert success mb-4" style="font-size:13px">
+  <i class="bi bi-check-circle me-2"></i>
+  Dernière sauvegarde réussie : <strong>{{ stats.last_success.job }}</strong>
+  le {{ stats.last_success.started_at|date:"d/m/Y à H:i" }}
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Tâches de sauvegarde</h3></div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if jobs %}
+    <div class="list-group list-group-flush">
+      {% for job in jobs %}
+      <div class="list-group-item px-4 py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="flex-grow-1">
+            <div style="font-weight:600;font-size:14px">
+              <a href="{% url 'backup_center:job_detail' job.pk %}" style="color:inherit;text-decoration:none">{{ job.name }}</a>
+            </div>
+            <div style="font-size:12px;color:var(--orion-muted)">
+              {{ job.get_job_type_display }} · {{ job.get_schedule_display }} · {{ job.get_storage_target_display }}
+              {% if job.last_run_at %} · Dernière exéc. {{ job.last_run_at|date:"d/m H:i" }}{% endif %}
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if job.last_status %}
+            <span class="orion-badge {% if job.last_status == 'success' %}success{% elif job.last_status == 'failed' %}danger{% elif job.last_status == 'running' %}warning{% else %}neutral{% endif %}">
+              {{ job.last_status }}
+            </span>
+            {% endif %}
+            <span class="orion-badge {% if job.is_active %}success{% else %}neutral{% endif %}">
+              {% if job.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+            <form method="post" action="{% url 'backup_center:run' job.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn sm" {% if not job.is_active %}disabled{% endif %}>
+                <i class="bi bi-play-fill me-1"></i>Exécuter
+              </button>
+            </form>
+            <form method="post" action="{% url 'backup_center:toggle' job.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn sm ghost">
+                {% if job.is_active %}Désactiver{% else %}Activer{% endif %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-archive" style="font-size:32px;color:var(--orion-muted)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucune tâche de sauvegarde configurée.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

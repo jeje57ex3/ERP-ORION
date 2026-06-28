@@ -1,0 +1,18 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:store_product_list' website.pk %}">Produits boutique</a></li>
+<li class="breadcrumb-item active">Supprimer</li>
+{% endblock %}
+{% block page_header %}<div class="page-header"><h1 class="page-title">Supprimer le produit</h1></div>{% endblock %}
+{% block content %}
+<div class="delete-confirm-card">
+  <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle-fill text-danger"></i></div>
+  <h5>Supprimer « {{ product.name }} » ?</h5>
+  <p class="text-muted">Ce produit sera supprimé de la boutique. Les commandes existantes ne seront pas affectées.</p>
+  <form method="post" class="d-flex gap-2 justify-content-center mt-3">
+    {% csrf_token %}
+    <button type="submit" class="orion-btn danger">Supprimer</button>
+    <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-secondary">Annuler</a>
+  </form>
+</div>
+{% endblock %}

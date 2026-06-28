@@ -1,0 +1,102 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Catalogue SIÈCLE — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">SIÈCLE · Créations</p>
+    <h1 class="orion-page-title">Catalogue</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'siecle_creations:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Tableau de bord
+    </a>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="orion-card mb-4">
+  <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;padding:4px 0">
+    <select name="category" class="orion-form-control" style="min-width:160px" onchange="this.form.submit()">
+      <option value="">Toutes catégories</option>
+      <option value="montre" {% if category == 'montre' %}selected{% endif %}>Montres</option>
+      <option value="bijou" {% if category == 'bijou' %}selected{% endif %}>Bijoux</option>
+      <option value="accessoire" {% if category == 'accessoire' %}selected{% endif %}>Accessoires</option>
+      <option value="coffret" {% if category == 'coffret' %}selected{% endif %}>Coffrets</option>
+      <option value="piece_unique" {% if category == 'piece_unique' %}selected{% endif %}>Pièces uniques</option>
+      <option value="edition_limitee" {% if category == 'edition_limitee' %}selected{% endif %}>Éditions limitées</option>
+    </select>
+    <select name="status" class="orion-form-control" style="min-width:140px" onchange="this.form.submit()">
+      <option value="">Tous statuts</option>
+      <option value="draft" {% if status == 'draft' %}selected{% endif %}>Brouillon</option>
+      <option value="published" {% if status == 'published' %}selected{% endif %}>Publié</option>
+      <option value="sold_out" {% if status == 'sold_out' %}selected{% endif %}>Épuisé</option>
+      <option value="archived" {% if status == 'archived' %}selected{% endif %}>Archivé</option>
+    </select>
+  </form>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Référence</th>
+        <th>Titre</th>
+        <th>Catégorie</th>
+        <th>Prix HT</th>
+        <th>Prix TTC</th>
+        <th>Stock</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for creation in creations %}
+      <tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--orion-muted)">{{ creation.reference }}</td>
+        <td>
+          <a href="{% url 'siecle_creations:detail' creation.pk %}" style="font-weight:500;text-decoration:none;color:var(--orion-text)">
+            {{ creation.title }}
+            {% if creation.is_limited_edition %}<span class="orion-badge warning ms-1">Limitée</span>{% endif %}
+          </a>
+        </td>
+        <td>{{ creation.get_category_display }}</td>
+        <td>{{ creation.price_ht }} €</td>
+        <td><strong>{{ creation.price_ttc }} €</strong></td>
+        <td>
+          {% if creation.stock_qty == 0 %}
+          <span class="orion-badge danger">Épuisé</span>
+          {% elif creation.stock_qty <= 3 %}
+          <span class="orion-badge warning">{{ creation.stock_qty }}</span>
+          {% else %}
+          {{ creation.stock_qty }}
+          {% endif %}
+        </td>
+        <td>
+          {% if creation.status == 'published' %}
+          <span class="orion-badge success">Publié</span>
+          {% elif creation.status == 'sold_out' %}
+          <span class="orion-badge danger">Épuisé</span>
+          {% elif creation.status == 'draft' %}
+          <span class="orion-badge neutral">Brouillon</span>
+          {% else %}
+          <span class="orion-badge neutral">{{ creation.get_status_display }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'siecle_creations:detail' creation.pk %}" class="orion-btn sm">Voir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;color:var(--orion-muted);padding:48px">
+          <i class="bi bi-gem d-block mb-2" style="font-size:32px;opacity:.3"></i>
+          Aucune création correspondante.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

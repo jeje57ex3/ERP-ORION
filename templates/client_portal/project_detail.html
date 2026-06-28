@@ -1,0 +1,141 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}{{ project.name }} — Espace client{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_list' %}">Chantiers</a></li>
+<li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-1">{{ project.name }}</h4>
+    <div class="text-muted small">
+      {% if project.address %}<i class="bi bi-geo-alt me-1"></i>{{ project.address }}, {{ project.city }}{% endif %}
+      {% if project.project_manager %} · <i class="bi bi-person me-1"></i>{{ project.project_manager.get_full_name }}{% endif %}
+    </div>
+  </div>
+  {% if project.status == 'in_progress' %}<span class="badge badge-status-progress fs-6">En cours</span>
+  {% elif project.status == 'won' %}<span class="badge badge-status-pending fs-6">Planifié</span>
+  {% elif project.status == 'completed' %}<span class="badge badge-status-done fs-6">Terminé</span>
+  {% else %}<span class="orion-badge neutral fs-6">{{ project.get_status_display }}</span>{% endif %}
+</div>
+
+<!-- Avancement global -->
+<div class="bg-white border rounded-3 p-4 mb-4">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="small text-muted mb-1">Avancement global</div>
+      <div class="progress mb-1" style="height:10px"><div class="progress-bar progress-bar-electric" style="width:{{ project.completion_rate }}%"></div></div>
+      <div class="small fw-bold">{{ project.completion_rate }}%</div>
+    </div>
+    <div class="col-6 col-md-3 text-center">
+      <div class="small text-muted">Début prévu</div>
+      <div class="fw-semibold">{{ project.start_date|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+    <div class="col-6 col-md-3 text-center">
+      <div class="small text-muted">Fin prévue</div>
+      <div class="fw-semibold">{{ project.end_date|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation rapide -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_messages' project.pk %}" class="bg-white border rounded-3 p-3 d-flex align-items-center gap-2 text-dark text-decoration-none" style="transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
+      <i class="bi bi-chat-dots text-primary fs-4"></i>
+      <div><div class="fw-semibold small">Messages</div><div class="text-muted" style="font-size:.75rem">{{ conversations|length }} conversation{{ conversations|length|pluralize }}</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_documents' project.pk %}" class="bg-white border rounded-3 p-3 d-flex align-items-center gap-2 text-dark text-decoration-none">
+      <i class="bi bi-folder text-warning fs-4"></i>
+      <div><div class="fw-semibold small">Documents</div><div class="text-muted" style="font-size:.75rem">{{ documents|length }} fichier{{ documents|length|pluralize }}</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_planning' project.pk %}" class="bg-white border rounded-3 p-3 d-flex align-items-center gap-2 text-dark text-decoration-none">
+      <i class="bi bi-calendar-check text-success fs-4"></i>
+      <div><div class="fw-semibold small">Planning</div><div class="text-muted" style="font-size:.75rem">{{ plan_steps|length }} étape{{ plan_steps|length|pluralize }}</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_team' project.pk %}" class="bg-white border rounded-3 p-3 d-flex align-items-center gap-2 text-dark text-decoration-none">
+      <i class="bi bi-people text-info fs-4"></i>
+      <div><div class="fw-semibold small">Équipe</div><div class="text-muted" style="font-size:.75rem">{{ assignments|length }} intervenant{{ assignments|length|pluralize }}</div></div>
+    </a>
+  </div>
+</div>
+
+<!-- Planning aperçu -->
+{% if plan_steps %}
+<div class="bg-white border rounded-3 p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="fw-bold mb-0">Planning</h6>
+    <a href="{% url 'client_portal:project_planning' project.pk %}" class="orion-btn sm btn-outline-secondary">Voir tout</a>
+  </div>
+  {% for step in plan_steps|slice:":5" %}
+  <div class="d-flex align-items-center gap-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+    <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:{% if step.status == 'done' %}#059669{% elif step.status == 'in_progress' %}#F59E0B{% else %}#D1D5DB{% endif %}"></div>
+    <div class="flex-grow-1 small">
+      <span class="{% if step.status == 'done' %}text-muted text-decoration-line-through{% elif step.status == 'in_progress' %}fw-semibold{% endif %}">{{ step.name }}</span>
+    </div>
+    <div class="text-muted small">{{ step.planned_date|date:"d/m"|default:"—" }}</div>
+    <div class="small">
+      {% if step.status == 'done' %}<span class="badge badge-status-done">✓ Fait</span>
+      {% elif step.status == 'in_progress' %}<span class="badge badge-status-progress">En cours</span>
+      {% else %}<span class="badge bg-light text-muted border">À venir</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Équipe aperçu -->
+{% if assignments %}
+<div class="bg-white border rounded-3 p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="fw-bold mb-0">Intervenants</h6>
+    <a href="{% url 'client_portal:project_team' project.pk %}" class="orion-btn sm btn-outline-secondary">Voir les cartes</a>
+  </div>
+  <div class="row g-2">
+    {% for assignment in assignments|slice:":4" %}
+    <div class="col-6 col-md-3">
+      <div class="border rounded-3 p-3 text-center">
+        <div style="width:48px;height:48px;background:#0F172A;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#F59E0B;font-weight:700;font-size:1.1rem;margin-bottom:.5rem">
+          {{ assignment.employee.first_name|first }}{{ assignment.employee.last_name|first }}
+        </div>
+        <div class="fw-semibold small">{{ assignment.employee.first_name }}</div>
+        <div class="text-muted" style="font-size:.75rem">{{ assignment.get_role_display }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Actions rapides -->
+<div class="row g-3">
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_reservations' project.pk %}" class="btn btn-outline-danger w-100">
+      <i class="bi bi-exclamation-circle me-1"></i>Signaler réserve<br><small class="text-muted">{{ reservations|length }} en cours</small>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_changes' project.pk %}" class="btn btn-outline-warning w-100">
+      <i class="bi bi-pencil me-1"></i>Demander modif.<br><small class="text-muted">{{ change_requests|length }} demande{{ change_requests|length|pluralize }}</small>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_hours' project.pk %}" class="btn btn-outline-secondary w-100">
+      <i class="bi bi-clock me-1"></i>Heures chantier<br><small class="text-muted">{{ time_entries|length }} entrée{{ time_entries|length|pluralize }}</small>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'client_portal:project_messages' project.pk %}" class="btn btn-outline-primary w-100">
+      <i class="bi bi-chat me-1"></i>Envoyer message<br><small class="text-muted">Contacter responsable</small>
+    </a>
+  </div>
+</div>
+{% endblock %}

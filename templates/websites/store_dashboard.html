@@ -1,0 +1,96 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+<li class="breadcrumb-item active">Dashboard boutique</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ website.name }} — Boutique</h1>
+    <p class="page-subtitle">Gérez votre boutique en ligne connectée à l'ERP.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'websites:store_product_import_erp' website.pk %}" class="btn btn-outline-primary orion-btn sm" onclick="return confirm('Importer tous les produits ERP actifs ?')"><i class="bi bi-download me-1"></i>Importer produits ERP</a>
+    <a href="{% url 'websites:store_product_create' website.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Ajouter produit</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#10B981">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ revenue|floatformat:0 }}€</div><div class="kpi-label">CA total</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-cart-check"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ orders_today }}</div><div class="kpi-label">Commandes aujourd'hui</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#F59E0B">
+      <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ pending_orders }}</div><div class="kpi-label">Commandes à préparer</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#EF4444">
+      <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ out_of_stock }}</div><div class="kpi-label">Ruptures de stock</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-cart me-1 text-primary"></i>Dernières commandes</h6>
+        <a href="{% url 'websites:store_order_list' website.pk %}" class="btn btn-outline-primary orion-btn sm">Voir tout</a>
+      </div>
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead><tr><th>N°</th><th>Client</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for order in recent_orders %}
+            <tr>
+              <td><a href="{% url 'websites:store_order_detail' website.pk order.pk %}" class="fw-semibold">{{ order.order_number }}</a></td>
+              <td>{{ order.customer_name }}</td>
+              <td class="fw-semibold">{{ order.grand_total|floatformat:2 }}€</td>
+              <td><span class="badge-status badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+              <td class="text-muted small">{{ order.created_at|date:"d/m H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5"><div class="empty-state small">Aucune commande boutique pour le moment.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-package me-1 text-primary"></i>Produits</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Publiés</label><div class="value text-success fw-semibold">{{ published_products }}</div></div>
+        <div class="info-item"><label>Brouillons</label><div class="value">{{ draft_products }}</div></div>
+        <div class="info-item"><label>Rupture</label><div class="value {% if out_of_stock %}text-danger fw-semibold{% endif %}">{{ out_of_stock }}</div></div>
+        <div class="info-item"><label>Paniers actifs</label><div class="value">{{ abandoned_carts }}</div></div>
+      </div>
+    </div>
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-lightning me-1 text-warning"></i>Accès rapides</h6></div>
+      <div class="orion-orion-card-body d-grid gap-2">
+        <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-box-seam me-2"></i>Gérer les produits</a>
+        <a href="{% url 'websites:store_category_list' website.pk %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-tags me-2"></i>Catégories</a>
+        <a href="{% url 'websites:store_order_list' website.pk %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-cart me-2"></i>Toutes les commandes</a>
+        <a href="{% url 'websites:page_list' %}?site={{ website.pk }}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-file-earmark me-2"></i>Pages du site</a>
+        <a href="{% url 'websites:website_edit' website.pk %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-gear me-2"></i>Configurer la boutique</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

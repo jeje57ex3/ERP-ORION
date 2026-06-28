@@ -1,0 +1,69 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Commandes clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Commandes clients</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Suivez les commandes depuis la validation jusqu'à la livraison.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'sales:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle commande</a>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'sales:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <form method="get" class="d-flex gap-2 flex-grow-1">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="Numéro ou client..." value="{{ q }}" style="flex:1">
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="orion-orion-orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr><th>N° Commande</th><th>Client</th><th>Date</th><th>Livraison</th><th>Total TTC</th><th>Statut</th><th class="text-end">Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+          <tr>
+            <td><a href="{% url 'sales:order_detail' o.pk %}" class="fw-semibold text-dark text-decoration-none">{{ o.number|default:"—" }}</a></td>
+            <td class="small text-muted"><a href="{% url 'crm:customer_detail' o.customer.pk %}" class="text-muted">{{ o.customer.name }}</a></td>
+            <td class="small text-muted">{{ o.order_date|date:"d/m/Y" }}</td>
+            <td class="small text-muted">{{ o.delivery_date|date:"d/m/Y"|default:"—" }}</td>
+            <td class="fw-semibold small">{{ o.total_ttc|floatformat:2 }} €</td>
+            <td>
+              {% if o.status == 'confirmed' or o.status == 'delivered' %}<span class="orion-badge orion-badge-success">{{ o.get_status_display }}</span>
+              {% elif o.status == 'pending' or o.status == 'processing' %}<span class="orion-badge orion-badge-warning">{{ o.get_status_display }}</span>
+              {% elif o.status == 'cancelled' %}<span class="orion-badge orion-badge-danger">{{ o.get_status_display }}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{{ o.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'sales:order_detail' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'sales:invoice_create' %}?order={{ o.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Facturer"><i class="bi bi-receipt"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7">
+            <div class="orion-empty">
+              <div class="orion-empty-icon"><i class="bi bi-bag"></i></div>
+              <div class="orion-empty-title">Aucune commande</div>
+              <div class="orion-empty-text">Les commandes sont créées depuis les devis acceptés ou manuellement.</div>
+              <a href="{% url 'sales:order_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouvelle commande</a>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

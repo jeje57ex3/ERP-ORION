@@ -1,0 +1,591 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Desktop Core Styles
+   Variables, layout, topbar, tables, badges, composants globaux
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Variables ─────────────────────────────────────────────── */
+:root {
+  --orion-sidebar-width: 245px;
+  --orion-sidebar-bg: #2B2118;
+  --orion-sidebar-bg-dark: #1C120A;
+  --orion-sidebar-hover: rgba(198,161,91,.08);
+  --orion-sidebar-active-bg: rgba(198,161,91,.14);
+  --orion-sidebar-active: #C6A15B;
+
+  --orion-primary: #3A2A1A;
+  --orion-secondary: #C6A15B;
+  --orion-accent: #E8D8B0;
+  --orion-bg: #F8F3EA;
+  --orion-page-bg: #F2EDE4;
+  --orion-panel-bg: #FFFFFF;
+  --orion-border: #D8C9B0;
+  --orion-border-light: #EBE0CC;
+
+  --orion-text: #2B2118;
+  --orion-muted: #7A6A58;
+  --orion-light-text: #F8F3EA;
+  --orion-sand-100: #F6F1E6;
+  --orion-sand-200: #EFE7D5;
+
+  --orion-success: #166534;
+  --orion-success-bg: #DCFCE7;
+  --orion-warning: #B45309;
+  --orion-warning-bg: #FEF3C7;
+  --orion-danger: #B91C1C;
+  --orion-danger-bg: #FEE2E2;
+  --orion-info: #0369A1;
+  --orion-info-bg: #E0F2FE;
+
+  --orion-radius: 3px;
+  --orion-radius-md: 6px;
+  --orion-shadow: 0 2px 8px rgba(43,33,24,.07);
+  --orion-shadow-md: 0 4px 16px rgba(43,33,24,.10);
+
+  --orion-topbar-h: 44px;
+  --orion-open-tabs-h: 32px;
+  --orion-font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --orion-font-size: 13px;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+body.orion-desktop {
+  font-family: var(--orion-font);
+  font-size: var(--orion-font-size);
+  background: var(--orion-page-bg);
+  color: var(--orion-text);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.orion-desktop * {
+  box-sizing: border-box;
+}
+
+/* ── Layout principal ──────────────────────────────────────── */
+.orion-main {
+  margin-left: var(--orion-sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--orion-page-bg);
+  transition: margin-left .2s ease;
+}
+
+.orion-main.sidebar-collapsed {
+  margin-left: 52px;
+}
+
+.orion-content {
+  flex: 1;
+  padding: 18px 22px 32px;
+  overflow-x: hidden;
+}
+
+/* ── Topbar ────────────────────────────────────────────────── */
+.orion-topbar {
+  height: var(--orion-topbar-h);
+  min-height: var(--orion-topbar-h);
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--orion-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 12px;
+}
+
+.orion-topbar-left,
+.orion-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.orion-topbar-center {
+  flex: 1;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--orion-muted);
+  letter-spacing: .03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Boutons icônes topbar ─────────────────────────────────── */
+.orion-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--orion-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--orion-radius);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.orion-icon-btn:hover {
+  background: var(--orion-sand-100);
+  color: var(--orion-primary);
+}
+
+.orion-icon-btn:active {
+  background: var(--orion-sand-200);
+}
+
+.orion-icon-btn.danger:hover {
+  background: var(--orion-danger-bg);
+  color: var(--orion-danger);
+}
+
+/* ── Recherche mini ────────────────────────────────────────── */
+.orion-search-mini {
+  height: 28px;
+  width: 200px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--orion-border-light);
+  background: var(--orion-sand-100);
+  padding: 0 8px;
+  gap: 6px;
+  border-radius: var(--orion-radius);
+  cursor: text;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.orion-search-mini:focus-within {
+  border-color: var(--orion-secondary);
+  box-shadow: 0 0 0 2px rgba(198,161,91,.15);
+  background: #fff;
+}
+
+.orion-search-mini i {
+  color: var(--orion-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.orion-search-mini input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  width: 100%;
+  color: var(--orion-text);
+  font-family: var(--orion-font);
+}
+
+.orion-search-mini input::placeholder {
+  color: #9E8E7C;
+}
+
+.orion-search-mini kbd {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: #E8E0D4;
+  border: 1px solid var(--orion-border);
+  border-radius: 2px;
+  color: var(--orion-muted);
+  flex-shrink: 0;
+}
+
+/* ── User info topbar ──────────────────────────────────────── */
+.orion-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px;
+  border-radius: var(--orion-radius);
+  cursor: pointer;
+  transition: background .12s;
+  text-decoration: none;
+  color: var(--orion-text);
+}
+
+.orion-topbar-user:hover {
+  background: var(--orion-sand-100);
+}
+
+.orion-topbar-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--orion-secondary);
+  color: var(--orion-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.orion-topbar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orion-user-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--orion-text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Notification badge ────────────────────────────────────── */
+.orion-notif-btn {
+  position: relative;
+}
+
+.orion-notif-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 14px;
+  height: 14px;
+  background: var(--orion-danger);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ── Panneaux génériques ───────────────────────────────────── */
+.orion-panel {
+  background: var(--orion-panel-bg);
+  border: 1px solid var(--orion-border-light);
+  box-shadow: var(--orion-shadow);
+  border-radius: var(--orion-radius);
+}
+
+.orion-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--orion-border-light);
+  background: var(--orion-sand-100);
+}
+
+.orion-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orion-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orion-panel-body {
+  padding: 14px;
+}
+
+/* ── Tableaux denses ───────────────────────────────────────── */
+.orion-dense-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  background: #fff;
+}
+
+.orion-dense-table thead th {
+  height: 30px;
+  background: var(--orion-sand-100);
+  border: 1px solid var(--orion-border-light);
+  color: var(--orion-primary);
+  font-weight: 600;
+  padding: 0 10px;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 11.5px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.orion-dense-table thead th.sortable {
+  cursor: pointer;
+}
+
+.orion-dense-table thead th.sortable:hover {
+  background: var(--orion-sand-200);
+}
+
+.orion-dense-table tbody td {
+  height: 28px;
+  border: 1px solid var(--orion-border-light);
+  padding: 0 10px;
+  color: var(--orion-text);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.orion-dense-table tbody tr:hover td {
+  background: #FFFDF8;
+}
+
+.orion-dense-table tbody tr.selected td {
+  background: rgba(198,161,91,.09);
+}
+
+.orion-dense-table tfoot td {
+  height: 28px;
+  border: 1px solid var(--orion-border-light);
+  padding: 0 10px;
+  font-weight: 600;
+  background: var(--orion-sand-100);
+  font-size: 12px;
+}
+
+/* ── Statuts / badges ──────────────────────────────────────── */
+.orion-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.orion-status.draft    { background: #F1F5F9; color: #475569; }
+.orion-status.active   { background: var(--orion-success-bg); color: var(--orion-success); }
+.orion-status.pending  { background: var(--orion-warning-bg); color: var(--orion-warning); }
+.orion-status.danger   { background: var(--orion-danger-bg); color: var(--orion-danger); }
+.orion-status.info     { background: var(--orion-info-bg); color: var(--orion-info); }
+.orion-status.premium  { background: var(--orion-accent); color: var(--orion-primary); }
+.orion-status.closed   { background: #F3F4F6; color: #6B7280; }
+
+/* ── Action dropdown ───────────────────────────────────────── */
+.orion-action-dropdown {
+  height: 28px;
+  border: 1px solid var(--orion-border);
+  background: #FFFFFF;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--orion-text);
+  border-radius: var(--orion-radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+
+.orion-action-dropdown:hover {
+  background: var(--orion-sand-100);
+  border-color: var(--orion-border);
+}
+
+.orion-action-dropdown.dropdown-toggle::after {
+  display: none;
+}
+
+/* ── KPI widgets ───────────────────────────────────────────── */
+.orion-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.orion-kpi-card {
+  background: #fff;
+  border: 1px solid var(--orion-border-light);
+  padding: 14px 16px;
+  border-radius: var(--orion-radius);
+  border-left: 3px solid var(--kpi-color, var(--orion-secondary));
+  box-shadow: var(--orion-shadow);
+}
+
+.orion-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--orion-primary);
+  line-height: 1.1;
+}
+
+.orion-kpi-label {
+  font-size: 11px;
+  color: var(--orion-muted);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.orion-kpi-sub {
+  font-size: 11px;
+  color: var(--orion-muted);
+  margin-top: 2px;
+}
+
+/* ── Breadcrumb ────────────────────────────────────────────── */
+.orion-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--orion-muted);
+}
+
+.orion-breadcrumb a {
+  color: var(--orion-muted);
+  text-decoration: none;
+}
+
+.orion-breadcrumb a:hover {
+  color: var(--orion-secondary);
+}
+
+.orion-breadcrumb-sep {
+  color: var(--orion-border);
+  font-size: 10px;
+}
+
+/* ── Séparateur section ────────────────────────────────────── */
+.orion-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--orion-muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--orion-border-light);
+}
+
+/* ── Loader ────────────────────────────────────────────────── */
+.orion-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--orion-muted);
+  gap: 10px;
+  font-size: 13px;
+}
+
+/* ── Alert / notification inline ──────────────────────────── */
+.orion-alert {
+  padding: 8px 12px;
+  border-radius: var(--orion-radius);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.orion-alert.success { background: var(--orion-success-bg); color: var(--orion-success); border-left: 3px solid currentColor; }
+.orion-alert.warning { background: var(--orion-warning-bg); color: var(--orion-warning); border-left: 3px solid currentColor; }
+.orion-alert.danger  { background: var(--orion-danger-bg);  color: var(--orion-danger);  border-left: 3px solid currentColor; }
+.orion-alert.info    { background: var(--orion-info-bg);    color: var(--orion-info);    border-left: 3px solid currentColor; }
+
+/* ── Mode densité ──────────────────────────────────────────── */
+body.orion-density-compact {
+  --orion-font-size: 12px;
+}
+
+body.orion-density-compact .orion-dense-table tbody td,
+body.orion-density-compact .orion-dense-table thead th {
+  height: 24px;
+  padding: 0 7px;
+}
+
+body.orion-density-compact .orion-form-control {
+  height: 24px;
+  padding: 2px 6px;
+}
+
+body.orion-density-compact .orion-record-panel {
+  padding: 10px;
+}
+
+body.orion-density-dense {
+  --orion-font-size: 11.5px;
+}
+
+body.orion-density-dense .orion-dense-table tbody td,
+body.orion-density-dense .orion-dense-table thead th {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .orion-search-mini {
+    width: 160px;
+  }
+}
+
+@media (max-width: 992px) {
+  .orion-main {
+    margin-left: 0;
+  }
+
+  .orion-content {
+    padding: 14px 16px 24px;
+  }
+
+  .orion-kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .orion-topbar-center {
+    display: none;
+  }
+
+  .orion-search-mini {
+    width: 140px;
+  }
+}
+
+@media (max-width: 576px) {
+  .orion-kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .orion-search-mini {
+    display: none;
+  }
+
+  .orion-content {
+    padding: 12px;
+  }
+}
+
+/* ── Utilitaires ───────────────────────────────────────────── */
+.orion-text-muted    { color: var(--orion-muted) !important; }
+.orion-text-primary  { color: var(--orion-primary) !important; }
+.orion-text-secondary{ color: var(--orion-secondary) !important; }
+.orion-bg-sand       { background: var(--orion-sand-100) !important; }
+.orion-fw-600        { font-weight: 600 !important; }
+.orion-fs-11         { font-size: 11px !important; }
+.orion-fs-12         { font-size: 12px !important; }
+.orion-fs-13         { font-size: 13px !important; }
+.orion-nowrap        { white-space: nowrap !important; }
+.orion-ellipsis      { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

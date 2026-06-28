@@ -1,0 +1,66 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Équipe — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">Équipe</li>
+{% endblock %}
+{% block content %}
+<h5 class="fw-bold mb-4">Équipe — {{ project.name }}</h5>
+
+{% if assignments %}
+<div class="row g-4">
+  {% for assign in assignments %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="bg-white border rounded-3 p-4 h-100">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#0F172A;flex-shrink:0">
+          {{ assign.employee.first_name|first }}{{ assign.employee.last_name|first }}
+        </div>
+        <div>
+          <div class="fw-bold">{{ assign.employee.get_full_name }}</div>
+          <div class="small text-muted">{{ assign.employee.job_title|default:"Intervenant" }}</div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <span class="badge bg-light text-dark border">
+          {% if assign.role == 'project_manager' %}Responsable de chantier
+          {% elif assign.role == 'team_leader' %}Chef d'équipe
+          {% elif assign.role == 'electrician' %}Électricien
+          {% elif assign.role == 'apprentice' %}Apprenti
+          {% else %}{{ assign.get_role_display }}{% endif %}
+        </span>
+      </div>
+      {% if assign.show_phone_to_client and assign.employee.phone %}
+      <div class="d-flex align-items-center gap-2 mb-2 small">
+        <i class="bi bi-telephone text-warning"></i>
+        <a href="tel:{{ assign.employee.phone }}" class="text-decoration-none text-dark">{{ assign.employee.phone }}</a>
+      </div>
+      {% endif %}
+      {% if assign.show_email_to_client and assign.employee.email %}
+      <div class="d-flex align-items-center gap-2 small">
+        <i class="bi bi-envelope text-warning"></i>
+        <a href="mailto:{{ assign.employee.email }}" class="text-decoration-none text-dark">{{ assign.employee.email }}</a>
+      </div>
+      {% endif %}
+      {% if assign.client_can_contact and not assign.show_phone_to_client and not assign.show_email_to_client %}
+      <div class="small text-muted mt-2"><i class="bi bi-chat-dots me-1"></i>Contactable via la messagerie du chantier</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4 bg-white border rounded-3 p-4">
+  <h6 class="fw-bold mb-1">Besoin de contacter l'équipe ?</h6>
+  <p class="small text-muted mb-2">Utilisez la messagerie du chantier pour toute question. Votre responsable vous répondra dans les meilleurs délais.</p>
+  <a href="{% url 'client_portal:project_messages' project.pk %}" class="orion-btn warning orion-btn sm"><i class="bi bi-chat-dots me-1"></i>Envoyer un message</a>
+</div>
+{% else %}
+<div class="bg-white border rounded-3 p-5 text-center text-muted">
+  <i class="bi bi-people fs-1 d-block mb-3"></i>
+  <h6>Aucun intervenant affiché pour l'instant</h6>
+  <p class="small">L'équipe sera présentée par le responsable de chantier.</p>
+</div>
+{% endif %}
+{% endblock %}

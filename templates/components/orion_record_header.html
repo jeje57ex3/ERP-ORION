@@ -1,0 +1,62 @@
+{#
+  En-tête d'une fiche.
+  Variables attendues dans le contexte (ou passées via {% include ... with %}):
+    record_title        — titre principal (string)
+    record_status       — code de statut ex. "draft", "active" (string, optionnel)
+    record_status_label — libellé du badge statut (string, optionnel)
+    record_form_id      — id du formulaire pour le bouton save (défaut "main-form")
+    record_delete_url   — URL de suppression (optionnel)
+    record_delete_msg   — message de confirmation suppression
+    record_actions      — liste de dicts {url, icon, label, color} (optionnel)
+    record_extra_btn    — HTML brut de boutons supplémentaires (optionnel)
+#}
+<div class="orion-record-header">
+  <div class="orion-record-header-left">
+    <h1 class="orion-record-title">{{ record_title }}</h1>
+    {% if record_status %}
+    <span class="orion-status {{ record_status }}">{{ record_status_label|default:record_status }}</span>
+    {% endif %}
+    {% block record_badges %}{% endblock %}
+  </div>
+
+  <div class="orion-record-toolbar">
+    <!-- Enregistrer -->
+    <button class="orion-icon-btn" form="{{ record_form_id|default:'main-form' }}" type="submit" title="Enregistrer (Ctrl+S)">
+      <i class="bi bi-save"></i>
+    </button>
+
+    <!-- Supprimer -->
+    {% if record_delete_url %}
+    <a href="{{ record_delete_url }}"
+       class="orion-icon-btn danger"
+       data-confirm="{{ record_delete_msg|default:'Supprimer cet enregistrement ?' }}"
+       title="Supprimer">
+      <i class="bi bi-trash"></i>
+    </a>
+    <span class="orion-toolbar-sep"></span>
+    {% endif %}
+
+    <!-- Actions supplémentaires -->
+    {% if record_extra_btn %}{{ record_extra_btn }}{% endif %}
+
+    <!-- Dropdown Actions -->
+    {% if record_actions %}
+    <div class="dropdown">
+      <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+        <i class="bi bi-lightning me-1"></i>Actions
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+        {% for action in record_actions %}
+        <li>
+          <a class="dropdown-item py-1" href="{{ action.url }}">
+            <i class="bi {{ action.icon }} me-2 text-{{ action.color|default:'secondary' }}"></i>{{ action.label }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% block record_toolbar_extra %}{% endblock %}
+  </div>
+</div>

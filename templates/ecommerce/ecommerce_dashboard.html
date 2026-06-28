@@ -1,0 +1,98 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">E-commerce</li>{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">Tableau de bord E-commerce</h1>
+  <div class="page-actions">
+    <a href="{% url 'ecommerce:order_list' %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-cart me-1"></i>Commandes</a>
+    <a href="{% url 'store:store_home' %}" class="orion-btn primary orion-btn sm" target="_blank"><i class="bi bi-shop me-1"></i>Voir la boutique</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-cart-check"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ orders_today }}</div><div class="kpi-label">Commandes aujourd'hui</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#10B981">
+      <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ revenue_today|floatformat:0 }}€</div><div class="kpi-label">CA aujourd'hui</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#F59E0B">
+      <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ pending_orders }}</div><div class="kpi-label">Commandes en attente</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#EF4444">
+      <div class="kpi-icon"><i class="bi bi-cart-x"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ abandoned }}</div><div class="kpi-label">Paniers abandonnés</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#3B82F6">
+      <div class="kpi-icon"><i class="bi bi-diagram-3"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ channels }}</div><div class="kpi-label">Canaux actifs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#8B5CF6">
+      <div class="kpi-icon"><i class="bi bi-tag"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ active_promos }}</div><div class="kpi-label">Promos actives</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card">
+      <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-cart me-1 text-primary"></i>Dernières commandes</h6>
+        <a href="{% url 'ecommerce:order_list' %}" class="btn btn-outline-primary orion-btn sm">Voir tout</a>
+      </div>
+      <div class="table-responsive">
+        <table class="erp-table">
+          <thead><tr><th>N°</th><th>Client</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for order in recent_orders %}
+            <tr>
+              <td><a href="{% url 'ecommerce:order_detail' order.pk %}" class="fw-semibold">{{ order.order_number }}</a></td>
+              <td>{{ order.customer_name }}</td>
+              <td class="fw-semibold">{{ order.total_ttc|floatformat:2 }}€</td>
+              <td><span class="badge-status badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+              <td class="text-muted small">{{ order.created_at|date:"d/m H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-state">Aucune commande pour l'instant</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-lightning me-1 text-warning"></i>Accès rapides</h6></div>
+      <div class="orion-orion-card-body d-grid gap-2">
+        <a href="{% url 'ecommerce:sales_channel_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-diagram-3 me-2"></i>Canaux de vente</a>
+        <a href="{% url 'ecommerce:promotion_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-tag me-2"></i>Promotions</a>
+        <a href="{% url 'ecommerce:carrier_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-truck me-2"></i>Transporteurs</a>
+        <a href="{% url 'ecommerce:payment_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-credit-card me-2"></i>Paiements</a>
+        <a href="{% url 'ecommerce:customer_profile_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-people me-2"></i>Clients boutique</a>
+        <a href="{% url 'ecommerce:marketplace_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-shop me-2"></i>Marketplaces</a>
+        <a href="{% url 'ecommerce:sync_dashboard' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-arrow-repeat me-2"></i>Synchronisation</a>
+        <a href="{% url 'ecommerce:abandoned_cart_list' %}" class="btn btn-outline-secondary orion-btn sm text-start"><i class="bi bi-cart-x me-2"></i>Paniers abandonnés</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

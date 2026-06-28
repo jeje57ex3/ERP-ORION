@@ -1,0 +1,448 @@
+/* ═══════════════════════════════════════════════════════════════
+   ORION ERP — Sidebar Desktop
+   Navigation latérale sombre, marque, sous-menus, footer utilisateur
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar container ─────────────────────────────────────────── */
+.orion-sidebar,
+.erp-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--od-sidebar-w, 245px);
+  height: 100vh;
+  background: linear-gradient(180deg, var(--od-sidebar-bg, #1C120A) 0%, var(--od-sidebar-bg2, #2B2118) 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 1050;
+  overflow: hidden;
+  transition: width .2s ease, transform .2s ease;
+  border-right: 1px solid rgba(198,161,91,.12);
+  flex-shrink: 0;
+}
+
+/* ── Compact mode ──────────────────────────────────────────────── */
+.orion-sidebar.compact,
+.erp-sidebar.compact {
+  width: var(--od-sidebar-w-sm, 52px);
+}
+
+.erp-sidebar.compact .sidebar-brand-text,
+.erp-sidebar.compact .nav-label,
+.erp-sidebar.compact .nav-arrow,
+.erp-sidebar.compact .brand-sub,
+.erp-sidebar.compact .sidebar-company-selector,
+.erp-sidebar.compact .user-info,
+.erp-sidebar.compact .logout-btn span,
+.erp-sidebar.compact .nav-submenu {
+  display: none !important;
+}
+
+.erp-sidebar.compact .sidebar-brand {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.erp-sidebar.compact .sidebar-logo {
+  margin: 0 auto;
+}
+
+.erp-sidebar.compact .nav-link {
+  justify-content: center;
+  padding: 0 0 0 0;
+}
+
+.erp-sidebar.compact .nav-icon {
+  margin: 0 auto;
+}
+
+.erp-sidebar.compact .sidebar-footer {
+  padding: 8px 0;
+  justify-content: center;
+}
+
+.erp-sidebar.compact .sidebar-user {
+  justify-content: center;
+}
+
+/* ── Brand / Logo ──────────────────────────────────────────────── */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  min-height: 60px;
+  border-bottom: 1px solid rgba(198,161,91,.12);
+  flex-shrink: 0;
+}
+
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-logo img,
+.orion-sidebar-logo,
+.company-logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.sidebar-brand-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brand-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #F8F3EA;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-sub {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(198,161,91,.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.sidebar-toggle-btn {
+  background: none;
+  border: none;
+  color: rgba(248,243,234,.5);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  margin-left: auto;
+}
+
+/* ── Company selector ──────────────────────────────────────────── */
+.sidebar-company-selector {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(198,161,91,.08);
+  flex-shrink: 0;
+}
+
+.company-selector-btn {
+  width: 100%;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(198,161,91,.12);
+  border-radius: 4px;
+  color: rgba(248,243,234,.85);
+  font-size: 12px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.company-selector-btn:hover {
+  background: rgba(198,161,91,.1);
+}
+
+.company-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  background: rgba(198,161,91,.15);
+  color: #C6A15B;
+  flex-shrink: 0;
+}
+
+.company-info {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.company-name-text {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.company-sector {
+  display: block;
+  font-size: 10px;
+  color: rgba(198,161,91,.6);
+}
+
+.company-dropdown {
+  background: #1C120A;
+  border: 1px solid rgba(198,161,91,.2);
+  min-width: 100%;
+}
+
+.company-item {
+  font-size: 12.5px;
+  padding: 6px 12px !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.company-sector-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Navigation ────────────────────────────────────────────────── */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(198,161,91,.2) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(198,161,91,.25);
+  border-radius: 2px;
+}
+
+/* Nav item wrapper */
+.nav-item {
+  margin: 1px 0;
+}
+
+/* Main nav link */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 36px;
+  color: rgba(248,243,234,.72);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+  border-left: 2.5px solid transparent;
+  white-space: nowrap;
+  border-radius: 0;
+  position: relative;
+}
+
+.nav-link:hover {
+  background: var(--od-sidebar-hover, rgba(198,161,91,.09));
+  color: rgba(248,243,234,.95);
+  border-left-color: rgba(198,161,91,.3);
+  text-decoration: none;
+}
+
+.nav-link.active,
+.nav-item.active > .nav-link {
+  background: var(--od-sidebar-active, rgba(198,161,91,.16));
+  color: #C6A15B;
+  border-left-color: #C6A15B;
+  font-weight: 600;
+}
+
+.nav-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+  color: #C6A15B;
+  opacity: .75;
+}
+
+.nav-link.active .nav-icon,
+.nav-item.active > .nav-link .nav-icon {
+  opacity: 1;
+}
+
+.nav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-arrow {
+  font-size: 10px;
+  opacity: .5;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+
+.nav-link[aria-expanded="true"] .nav-arrow {
+  transform: rotate(180deg);
+}
+
+/* Submenu */
+.nav-submenu {
+  padding: 2px 0;
+  background: rgba(0,0,0,.15);
+  border-left: 1px solid rgba(198,161,91,.08);
+  margin-left: 18px;
+}
+
+.nav-sublink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 14px;
+  height: 30px;
+  color: rgba(248,243,234,.58);
+  font-size: 12px;
+  text-decoration: none;
+  transition: color .15s, background .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-sublink:hover {
+  color: rgba(248,243,234,.9);
+  background: rgba(198,161,91,.06);
+  text-decoration: none;
+}
+
+.nav-sublink.active {
+  color: #C6A15B;
+  font-weight: 500;
+}
+
+/* ── Sidebar footer (user) ─────────────────────────────────────── */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(198,161,91,.12);
+  flex-shrink: 0;
+}
+
+.sidebar-user {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(198,161,91,.2);
+  border: 1.5px solid rgba(198,161,91,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  font-size: 11px;
+  font-weight: 700;
+  color: #C6A15B;
+  text-transform: uppercase;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(248,243,234,.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(198,161,91,.65);
+}
+
+.logout-btn {
+  color: rgba(248,243,234,.4);
+  font-size: 15px;
+  text-decoration: none;
+  padding: 4px;
+  transition: color .15s;
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  color: rgba(248,243,234,.85);
+}
+
+/* ── Mobile sidebar ────────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 1040;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 767px) {
+  .orion-sidebar,
+  .erp-sidebar {
+    transform: translateX(-100%);
+    width: var(--od-sidebar-w, 245px) !important;
+  }
+
+  .orion-sidebar.mobile-open,
+  .erp-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .orion-sidebar.mobile-open ~ .sidebar-overlay,
+  .erp-sidebar.mobile-open ~ .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+  }
+}

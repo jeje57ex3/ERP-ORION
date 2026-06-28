@@ -1,0 +1,99 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+
+{% block title %}{{ opportunity.title|default:"Nouvelle opportunité" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'crm:opportunity_list' %}">Opportunités</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ opportunity.title|default:"Nouvelle" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">{{ opportunity.title|default:"Nouvelle opportunité" }}</h1>
+      {% if opportunity.pk %}
+      <span class="orion-status info">{{ opportunity.get_stage_display }}</span>
+      {% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="opp-form" type="submit" title="Enregistrer"><i class="bi bi-save"></i></button>
+      {% if opportunity.pk %}
+      <a href="{% url 'crm:opportunity_confirm_delete' opportunity.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer cette opportunité ?"><i class="bi bi-trash"></i></a>
+      <div class="orion-toolbar-sep"></div>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning me-1"></i>Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="{% url 'sales:quote_create' %}?opportunity={{ opportunity.pk }}"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>Créer un devis</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-check-circle me-2 text-success"></i>Marquer gagnée</a></li>
+          <li><a class="dropdown-item py-1 text-danger" href="#"><i class="bi bi-x-circle me-2"></i>Marquer perdue</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form id="opp-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+    <div class="orion-record-grid cols-2-1">
+
+      <div class="orion-record-panel">
+        <div class="orion-record-panel-header">
+          <i class="bi bi-trophy text-warning" style="font-size:13px"></i>
+          <h2 class="orion-record-panel-title">Détails opportunité</h2>
+        </div>
+        <div class="orion-record-panel-body">
+          <div class="orion-form-row"><label class="required">Titre</label>{{ form.title }}</div>
+          <div class="orion-form-row"><label>Client / Prospect</label>{{ form.customer }}</div>
+          <div class="orion-form-row"><label>Étape</label>{{ form.stage }}</div>
+          <div class="orion-form-row"><label>Probabilité (%)</label>{{ form.probability }}</div>
+          <div class="orion-form-row"><label>Valeur estimée</label>{{ form.expected_revenue }}</div>
+          <div class="orion-form-row"><label>Date clôture prévue</label>{{ form.expected_close_date }}</div>
+          <div class="orion-form-row"><label>Commercial</label>{{ form.assigned_to }}</div>
+          <div class="orion-form-row"><label>Description</label>{{ form.description }}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-bar-chart text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Pipeline</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            {% if opportunity.pk %}
+            <div style="font-size:12px;margin-bottom:10px">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Probabilité</span>
+                <span class="fw-600">{{ opportunity.probability|default:0 }}%</span>
+              </div>
+              <div style="height:6px;background:var(--orion-border-light);border-radius:3px">
+                <div style="height:100%;width:{{ opportunity.probability|default:0 }}%;background:var(--orion-secondary);border-radius:3px"></div>
+              </div>
+            </div>
+            <div class="orion-form-row" style="font-size:12px">
+              <span class="text-muted">Valeur</span>
+              <span class="fw-600">{{ opportunity.expected_revenue|default:0 }} €</span>
+            </div>
+            {% else %}
+            <p class="text-muted" style="font-size:12px">Sauvegardez pour voir le pipeline.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="orion-form-actions">
+      <a href="{% url 'crm:opportunity_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

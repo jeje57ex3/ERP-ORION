@@ -1,0 +1,83 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'crm:opportunity_list' %}">Opportunités</a></li>
+<li class="breadcrumb-item active">{{ opp.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ opp.name }}</h1>
+      <div class="detail-meta">
+        <span class="badge-status badge-{{ opp.stage }}">{{ opp.get_stage_display }}</span>
+        {% if opp.expected_revenue %}<span><i class="bi bi-currency-euro me-1"></i>{{ opp.expected_revenue|floatformat:2 }} € prévus</span>{% endif %}
+        <span><i class="bi bi-percent me-1"></i>{{ opp.probability }}% de probabilité</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      {% if opp.stage != 'closed_won' %}
+      <a href="{% url 'crm:opportunity_mark_won' opp.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-trophy me-1"></i>Marquer gagnée</a>
+      {% endif %}
+      {% if opp.stage != 'closed_lost' %}
+      <a href="{% url 'crm:opportunity_mark_lost' opp.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-x-circle me-1"></i>Marquer perdue</a>
+      {% endif %}
+      <a href="{% url 'crm:opportunity_edit' opp.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'crm:opportunity_delete' opp.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'crm:opportunity_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-info-circle me-1 text-primary"></i>Détails</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Client</label><div class="value">{% if opp.customer %}<a href="{% url 'crm:customer_detail' opp.customer.pk %}">{{ opp.customer.name }}</a>{% elif opp.prospect %}{{ opp.prospect.name }}{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Étape</label><div class="value"><span class="badge-status badge-{{ opp.stage }}">{{ opp.get_stage_display }}</span></div></div>
+        <div class="info-item"><label>Revenu prévu</label><div class="value">{% if opp.expected_revenue %}{{ opp.expected_revenue|floatformat:2 }} €{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>CA pondéré</label><div class="value">{{ opp.weighted_revenue|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>Probabilité</label>
+          <div class="value">
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress-erp" style="width:80px"><div class="progress-fill" style="width:{{ opp.probability }}%"></div></div>
+              {{ opp.probability }}%
+            </div>
+          </div>
+        </div>
+        <div class="info-item"><label>Clôture prévue</label><div class="value {% if not opp.close_date %}empty{% endif %}">{{ opp.close_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Commercial</label><div class="value {% if not opp.salesperson %}empty{% endif %}">{{ opp.salesperson.get_full_name|default:"Non assigné" }}</div></div>
+        <div class="info-item"><label>Créée le</label><div class="value">{{ opp.created_at|date:"d/m/Y" }}</div></div>
+      </div>
+      {% if opp.notes %}
+      <div class="p-3 border-top"><p class="small text-muted mb-0">{{ opp.notes|linebreaks }}</p></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-clock-history me-1 text-primary"></i>Activités</h6></div>
+      <div class="p-3">
+        {% if activities %}
+        <div class="timeline">
+          {% for act in activities %}
+          <div class="timeline-item">
+            <div class="timeline-time">{{ act.date|date:"d/m/Y" }}</div>
+            <div class="timeline-content">
+              <span class="badge-status badge-info">{{ act.get_activity_type_display }}</span>
+              <span class="small ms-1">{{ act.subject }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">Aucune activité</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

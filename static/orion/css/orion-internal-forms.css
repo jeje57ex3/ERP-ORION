@@ -1,0 +1,260 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORION INTERNAL — Forms
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Form group ─────────────────────────────────────────────────── */
+.orion-form-group { margin-bottom: 18px; }
+
+.orion-form-label,
+.orion-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orion-text-soft);
+  margin-bottom: 6px;
+}
+
+.orion-required { color: var(--orion-danger); margin-left: 2px; }
+
+/* ── Text input ─────────────────────────────────────────────────── */
+.orion-form-control,
+.orion-input {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-sm);
+  color: var(--orion-text);
+  font-size: 14px;
+  font-family: var(--orion-font);
+  line-height: 1.5;
+  transition: border-color var(--orion-transition), box-shadow var(--orion-transition), background var(--orion-transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.orion-form-control:focus,
+.orion-input:focus {
+  outline: none;
+  border-color: var(--orion-gold);
+  box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.15);
+  background: rgba(255,255,255,0.065);
+  color: var(--orion-text);
+}
+
+.orion-form-control::placeholder,
+.orion-input::placeholder { color: var(--orion-text-muted); }
+
+.orion-form-control:disabled,
+.orion-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.02);
+}
+
+.orion-form-control.error,
+.orion-input.error {
+  border-color: rgba(224, 82, 82, 0.5);
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.12);
+}
+
+/* ── Select ─────────────────────────────────────────────────────── */
+.orion-select {
+  display: block;
+  width: 100%;
+  padding: 9px 36px 9px 14px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-sm);
+  color: var(--orion-text);
+  font-size: 14px;
+  font-family: var(--orion-font);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%237E786E'%3E%3Cpath d='M0 0l6 7 6-7z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--orion-transition), box-shadow var(--orion-transition);
+}
+
+.orion-select:focus {
+  outline: none;
+  border-color: var(--orion-gold);
+  box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.15);
+}
+
+.orion-select option {
+  background: var(--orion-surface-elevated);
+  color: var(--orion-text);
+}
+
+/* ── Textarea ────────────────────────────────────────────────────── */
+.orion-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+/* ── Input group ─────────────────────────────────────────────────── */
+.orion-input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.orion-input-group .orion-form-control,
+.orion-input-group .orion-input,
+.orion-input-group .orion-select { border-radius: 0; flex: 1; }
+
+.orion-input-group > *:first-child { border-radius: var(--orion-radius-sm) 0 0 var(--orion-radius-sm); }
+.orion-input-group > *:last-child  { border-radius: 0 var(--orion-radius-sm) var(--orion-radius-sm) 0; }
+
+.orion-input-addon {
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--orion-border);
+  color: var(--orion-text-soft);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Checkbox / Radio ─────────────────────────────────────────────── */
+.orion-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--orion-text-soft);
+  user-select: none;
+}
+
+.orion-check input[type="checkbox"],
+.orion-check input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--orion-gold);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* ── Form helper / error ─────────────────────────────────────────── */
+.orion-form-text,
+.orion-help-text {
+  font-size: 12px;
+  color: var(--orion-text-muted);
+  margin-top: 5px;
+  display: block;
+}
+
+.orion-form-error {
+  font-size: 12px;
+  color: #FFB8B8;
+  margin-top: 5px;
+  display: block;
+}
+
+/* ── Search input ─────────────────────────────────────────────────── */
+.orion-search-wrap {
+  position: relative;
+}
+
+.orion-search-wrap .orion-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--orion-text-muted);
+  pointer-events: none;
+  font-size: 14px;
+}
+
+.orion-search-wrap .orion-form-control,
+.orion-search-wrap .orion-input {
+  padding-left: 36px;
+}
+
+/* ── Toggle / switch ─────────────────────────────────────────────── */
+.orion-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--orion-text-soft);
+  user-select: none;
+}
+
+.orion-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.orion-toggle-track {
+  width: 38px;
+  height: 22px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--orion-border);
+  border-radius: 100px;
+  position: relative;
+  transition: background var(--orion-transition), border-color var(--orion-transition);
+  flex-shrink: 0;
+}
+
+.orion-toggle-track::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--orion-text-muted);
+  top: 3px;
+  left: 3px;
+  transition: left var(--orion-transition), background var(--orion-transition);
+}
+
+.orion-toggle input:checked ~ .orion-toggle-track {
+  background: rgba(214, 179, 106, 0.25);
+  border-color: var(--orion-gold);
+}
+
+.orion-toggle input:checked ~ .orion-toggle-track::after {
+  left: 19px;
+  background: var(--orion-gold);
+}
+
+/* ── Form row ─────────────────────────────────────────────────────── */
+.orion-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+}
+
+/* ── Form section ─────────────────────────────────────────────────── */
+.orion-form-section {
+  border-bottom: 1px solid var(--orion-border-soft);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+
+.orion-form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.orion-form-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orion-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 18px;
+}

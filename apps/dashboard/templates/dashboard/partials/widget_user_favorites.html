@@ -1,0 +1,17 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"user_favorites" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.favorites %}
+<div class="d-flex flex-wrap gap-2 p-3">
+  {% for sc in data.favorites %}
+  <a href="{{ sc.target_url|default:'#' }}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3">
+    <i class="{{ sc.icon }}" style="color:{{ sc.color }}"></i>{{ sc.label }}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4">
+  <i class="bi bi-star"></i><p class="mt-2 mb-0">Aucun favori. Marquez des raccourcis comme favoris.</p>
+</div>
+{% endif %}
+{% endwith %}

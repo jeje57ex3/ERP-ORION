@@ -1,0 +1,77 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Système</div>
+    <h1 class="orion-page-title">Journal d'audit</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'audit_compliance:sensitive' %}" class="orion-btn ghost"><i class="bi bi-shield-exclamation me-1"></i>Actions sensibles</a>
+    <a href="?{{ request.GET.urlencode }}&export_csv=1" class="orion-btn outline-accent"><i class="bi bi-download me-1"></i>Export CSV</a>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-4"><div class="orion-metric-header">Entrées totales</div><div class="orion-metric-value">{{ stats.total }}</div></div>
+  <div class="orion-metric col-4"><div class="orion-metric-header">Aujourd'hui</div><div class="orion-metric-value">{{ stats.today }}</div></div>
+  <div class="orion-metric col-4"><div class="orion-metric-header">Sensibles aujourd'hui</div><div class="orion-metric-value" style="color:var(--orion-warning)">{{ stats.sensitive_today }}</div></div>
+</div>
+
+<form method="get" class="orion-filter-bar mb-3">
+  <select name="action" class="form-select form-select-sm" style="width:auto">
+    <option value="">Toutes les actions</option>
+    {% for a in actions %}
+    <option value="{{ a }}" {% if filter_action == a %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="module" class="form-select form-select-sm" style="width:auto">
+    <option value="">Tous les modules</option>
+    {% for m in modules %}
+    <option value="{{ m }}" {% if filter_module == m %}selected{% endif %}>{{ m }}</option>
+    {% endfor %}
+  </select>
+  <input type="date" name="date_from" value="{{ filter_date_from }}" class="form-control form-control-sm" style="width:auto">
+  <input type="date" name="date_to" value="{{ filter_date_to }}" class="form-control form-control-sm" style="width:auto">
+  <button type="submit" class="orion-btn sm">Filtrer</button>
+  <a href="{% url 'audit_compliance:list' %}" class="orion-btn sm ghost">Réinitialiser</a>
+</form>
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Date</th><th>Utilisateur</th><th>Action</th><th>Module</th><th>Objet</th><th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="font-size:12px;white-space:nowrap">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+          <td style="font-size:13px">{{ log.user.username|default:"—" }}</td>
+          <td>
+            <span class="orion-badge {% if log.action in 'delete,permission_change' %}danger{% elif log.action in 'create,validate' %}success{% else %}neutral{% endif %}" style="font-size:11px">
+              {{ log.get_action_display }}
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--orion-muted)">{{ log.module|default:"—" }}</td>
+          <td style="font-size:12px">{{ log.object_repr|truncatechars:40|default:"—" }}</td>
+          <td style="font-size:11px;color:var(--orion-muted)">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-4 text-muted">Aucune entrée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if logs.has_other_pages %}
+<nav class="orion-pagination mt-3">
+  {% if logs.has_previous %}<a href="?page={{ logs.previous_page_number }}" class="orion-page-btn">‹</a>{% endif %}
+  <span class="orion-page-btn" style="background:var(--orion-accent-soft)">{{ logs.number }}/{{ logs.paginator.num_pages }}</span>
+  {% if logs.has_next %}<a href="?page={{ logs.next_page_number }}" class="orion-page-btn">›</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

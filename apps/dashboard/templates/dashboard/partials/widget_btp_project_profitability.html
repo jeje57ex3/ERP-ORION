@@ -1,0 +1,23 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"btp_project_profitability" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover mb-0" style="font-size:.82rem">
+    <thead class="table-light"><tr><th>Chantier</th><th class="text-end">Budget</th><th class="text-end">Dépensé</th><th class="text-end">Marge</th></tr></thead>
+    <tbody>
+      {% for row in data.projects %}
+      <tr>
+        <td><a href="/btp/projects/{{ row.project.pk }}/" class="text-decoration-none">{{ row.project.name|truncatechars:28 }}</a></td>
+        <td class="text-end">{{ row.budget|floatformat:0 }} €</td>
+        <td class="text-end {% if row.over_budget %}text-danger fw-semibold{% endif %}">{{ row.spent|floatformat:0 }} €</td>
+        <td class="text-end {% if row.over_budget %}text-danger{% else %}text-success{% endif %} fw-semibold">{{ row.margin_pct }} %</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-graph-up-arrow"></i><p class="mt-2 mb-0">Aucune donnée de rentabilité.</p></div>
+{% endif %}
+{% endwith %}

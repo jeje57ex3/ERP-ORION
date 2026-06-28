@@ -1,0 +1,21 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"personal_notes" %}
+<div class="widget-header d-flex align-items-center justify-content-between">
+  <span><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</span>
+  <a href="#" class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:.15rem .5rem">+ Note</a>
+</div>
+{% if data.has_data %}
+<div class="d-flex flex-wrap gap-2 p-3">
+  {% for note in data.notes %}
+  <div class="p-3 rounded-3 position-relative" style="background:{{ note.color }};min-width:140px;max-width:180px;flex:1">
+    {% if note.is_pinned %}<i class="bi bi-pin-fill position-absolute" style="top:.4rem;right:.6rem;font-size:.7rem;color:#666"></i>{% endif %}
+    {% if note.title %}<div class="fw-semibold mb-1" style="font-size:.8rem">{{ note.title }}</div>{% endif %}
+    <p class="mb-0" style="font-size:.78rem;white-space:pre-line">{{ note.content|truncatechars:120 }}</p>
+    <div class="text-muted mt-2" style="font-size:.65rem">{{ note.updated_at|date:"d/m/Y" }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-sticky"></i><p class="mt-2 mb-0">Aucune note. Créez votre première note !</p></div>
+{% endif %}
+{% endwith %}

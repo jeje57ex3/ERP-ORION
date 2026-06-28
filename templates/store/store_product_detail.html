@@ -1,0 +1,144 @@
+{% extends "store/base_store.html" %}
+{% block title %}{{ product.name }} — {{ website.name }}{% endblock %}
+{% block content %}
+
+<div class="breadcrumb-store">
+  <div class="container">
+    <nav><ol class="breadcrumb mb-0 small">
+      <li class="breadcrumb-item"><a href="{% url 'store:store_home' %}">Accueil</a></li>
+      {% if product.category %}<li class="breadcrumb-item"><a href="{% url 'store:store_category' product.category.slug %}">{{ product.category.name }}</a></li>{% endif %}
+      <li class="breadcrumb-item active">{{ product.name }}</li>
+    </ol></nav>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="row g-5">
+    <!-- Images -->
+    <div class="col-12 col-md-6">
+      {% if product.images.all %}
+      <div id="productCarousel" class="carousel slide rounded-3 overflow-hidden border" data-bs-ride="carousel">
+        <div class="carousel-inner">
+          {% for img in product.images.all %}
+          <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            <img src="{{ img.image.url }}" class="d-block w-100" style="aspect-ratio:1;object-fit:cover" alt="{{ img.alt_text|default:product.name }}">
+          </div>
+          {% endfor %}
+        </div>
+        {% if product.images.count > 1 %}
+        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon"></span>
+        </button>
+        {% endif %}
+      </div>
+      <!-- Thumbnails -->
+      {% if product.images.count > 1 %}
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        {% for img in product.images.all %}
+        <img src="{{ img.image.url }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent" class="thumb" data-bs-target="#productCarousel" data-bs-slide-to="{{ forloop.counter0 }}" alt="">
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="rounded-3 border d-flex align-items-center justify-content-center" style="aspect-ratio:1;background:#f3f4f6">
+        <i class="bi bi-image text-muted" style="font-size:5rem"></i>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Infos produit -->
+    <div class="col-12 col-md-6">
+      {% if product.category %}<p class="text-muted small mb-1">{{ product.category.name }}</p>{% endif %}
+      <h1 class="fw-bold mb-2">{{ product.name }}</h1>
+      {% if product.sku %}<p class="text-muted small mb-2">Réf : <span class="font-monospace">{{ product.sku }}</span></p>{% endif %}
+
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="product-price fs-3">{{ product.price|floatformat:2 }}€</span>
+        {% if product.is_on_sale %}
+        <span class="product-price-old fs-5">{{ product.compare_at_price|floatformat:2 }}€</span>
+        <span class="badge-promo">-{{ product.price|floatformat:0 }}€ d'économie</span>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        {% if product.in_stock %}
+        <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>En stock ({{ product.stock_quantity }} disponible{{ product.stock_quantity|pluralize }})</span>
+        {% else %}
+        <span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>Rupture de stock</span>
+        {% endif %}
+      </div>
+
+      {% if product.short_description %}
+      <p class="mb-4">{{ product.short_description }}</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'store:cart_add' %}">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" value="{{ product.pk }}">
+        <div class="d-flex gap-2 mb-3">
+          <div class="d-flex align-items-center border rounded" style="width:130px">
+            <button type="button" class="btn border-0 px-3 py-2" onclick="let i=document.getElementById('qty');if(i.value>1)i.value--">−</button>
+            <input type="number" name="quantity" id="qty" value="1" min="1" max="{{ product.stock_quantity }}" class="form-control border-0 text-center px-0" style="width:50px">
+            <button type="button" class="btn border-0 px-3 py-2" onclick="document.getElementById('qty').value++">+</button>
+          </div>
+          <button type="submit" class="btn btn-store-primary flex-fill" {% if not product.in_stock %}disabled{% endif %}>
+            <i class="bi bi-cart-plus me-2"></i>Ajouter au panier
+          </button>
+        </div>
+      </form>
+
+      <a href="{% url 'store:checkout' %}" class="btn btn-outline-dark w-100 mb-4" {% if not product.in_stock %}disabled{% endif %}>
+        <i class="bi bi-lightning me-1"></i>Acheter maintenant
+      </a>
+
+      <div class="d-flex gap-3 text-muted small mb-4">
+        <span><i class="bi bi-truck me-1"></i>Livraison rapide</span>
+        <span><i class="bi bi-arrow-return-left me-1"></i>Retours 30 jours</span>
+        <span><i class="bi bi-shield-check me-1"></i>Paiement sécurisé</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Description complète -->
+  {% if product.description %}
+  <div class="mt-5">
+    <ul class="nav nav-tabs mb-4" id="productTabs">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#desc">Description</a></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="desc">
+        <div class="prose">{{ product.description|linebreaks }}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Produits similaires -->
+  {% if related_products %}
+  <div class="mt-5">
+    <h3 class="fw-bold mb-4">Produits similaires</h3>
+    <div class="row g-3">
+      {% for p in related_products %}
+      <div class="col-6 col-md-3">
+        <div class="product-card h-100">
+          <a href="{% url 'store:store_product_detail' p.slug %}" class="text-decoration-none">
+            <div class="product-img">
+              {% if p.images.first %}<img src="{{ p.images.first.image.url }}" class="w-100 h-100" style="object-fit:cover" alt="{{ p.name }}">
+              {% else %}<i class="bi bi-image text-muted" style="font-size:2.5rem"></i>{% endif %}
+            </div>
+          </a>
+          <div class="p-3">
+            <h6 class="fw-semibold mb-1 small"><a href="{% url 'store:store_product_detail' p.slug %}" class="text-dark text-decoration-none">{{ p.name }}</a></h6>
+            <span class="product-price">{{ p.price|floatformat:2 }}€</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

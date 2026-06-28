@@ -1,0 +1,44 @@
+{# Composant : modal de confirmation Orion
+   Variables : modal_id, modal_title, modal_message, modal_action_url, modal_action_label,
+               modal_type (danger|warning), modal_icon, csrf_token
+#}
+<div id="{{ modal_id|default:'orionConfirmModal' }}" class="orion-confirm-backdrop"
+     style="display:none" role="dialog" aria-modal="true"
+     aria-labelledby="{{ modal_id|default:'orionConfirmModal' }}-title">
+
+  <div class="orion-confirm-modal" role="document">
+    <div class="orion-confirm-modal-header">
+      <div class="orion-confirm-modal-icon {{ modal_type|default:'danger' }}" aria-hidden="true">
+        <i class="bi {{ modal_icon|default:'bi-exclamation-triangle' }}"></i>
+      </div>
+      <h2 class="orion-confirm-modal-title" id="{{ modal_id|default:'orionConfirmModal' }}-title">
+        {{ modal_title|default:"Confirmer" }}
+      </h2>
+    </div>
+
+    <div class="orion-confirm-modal-body">
+      {{ modal_message|default:"Êtes-vous sûr de vouloir effectuer cette action ?" }}
+    </div>
+
+    <div class="orion-confirm-modal-footer">
+      <button type="button" class="orion-btn ghost"
+              onclick="document.getElementById('{{ modal_id|default:'orionConfirmModal' }}').style.display='none'">
+        Annuler
+      </button>
+      {% if modal_action_url %}
+      <form method="post" action="{{ modal_action_url }}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn {{ modal_type|default:'danger' }}">
+          {{ modal_action_label|default:"Confirmer" }}
+        </button>
+      </form>
+      {% else %}
+      <button type="button" class="orion-btn {{ modal_type|default:'danger' }}"
+              id="{{ modal_id|default:'orionConfirmModal' }}-confirm">
+        {{ modal_action_label|default:"Confirmer" }}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+</div>

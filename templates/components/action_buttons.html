@@ -1,0 +1,28 @@
+{# Composant boutons d'actions rapides pour les lignes de tableau
+   Variables : actions (liste de dicts {label, url, icon, color, confirm, confirm_message, method})
+   color : primary, gold, outline, danger
+   method : get (défaut) ou post
+#}
+<div class="d-flex gap-1 justify-content-end flex-wrap">
+  {% for action in actions %}
+    {% if action.method == 'post' %}
+    <form method="post" action="{{ action.url }}" style="display:inline"
+          {% if action.confirm %}onsubmit="return confirm('{{ action.confirm_message|default:"Confirmer ?" }}')"{% endif %}>
+      {% csrf_token %}
+      <button type="submit" class="orion-btn orion-btn-{{ action.color|default:'outline' }} orion-orion-btn sm" title="{{ action.label }}">
+        {% if action.icon %}<i class="{{ action.icon }}"></i>{% endif %}
+        {% if action.show_label %}{{ action.label }}{% endif %}
+      </button>
+    </form>
+    {% else %}
+    <a href="{{ action.url }}"
+       class="orion-btn orion-btn-{{ action.color|default:'outline' }} orion-orion-btn sm"
+       title="{{ action.label }}"
+       {% if action.confirm %}onclick="return confirm('{{ action.confirm_message|default:"Confirmer ?" }}')"{% endif %}
+       {% if action.target %} target="{{ action.target }}"{% endif %}>
+      {% if action.icon %}<i class="{{ action.icon }}"></i>{% endif %}
+      {% if action.show_label %}{{ action.label }}{% endif %}
+    </a>
+    {% endif %}
+  {% endfor %}
+</div>

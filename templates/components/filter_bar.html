@@ -1,0 +1,39 @@
+{# Composant barre de filtre/recherche
+   Usage : inclure et surcharger les blocs
+   Variables : search_value, search_placeholder, filter_chips (liste de dicts {label, value, url, active})
+#}
+<form method="get" class="orion-filter-bar">
+  {% block filter_search %}
+  <div class="position-relative flex-grow-1">
+    <i class="bi bi-search orion-navbar-search-icon"></i>
+    <input type="search" name="q" value="{{ search_value|default:'' }}"
+           placeholder="{{ search_placeholder|default:'Rechercher…' }}"
+           class="orion-search-input ps-4">
+  </div>
+  {% endblock %}
+
+  {% block filter_selects %}{% endblock %}
+
+  {% block filter_buttons %}
+  <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
+    <i class="bi bi-funnel"></i>Filtrer
+  </button>
+  {% if search_value or has_active_filters %}
+  <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger">
+    <i class="bi bi-x-lg"></i>Réinitialiser
+  </a>
+  {% endif %}
+  {% endblock %}
+</form>
+
+{% if filter_chips %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% for chip in filter_chips %}
+  <a href="{{ chip.url }}" class="orion-filter-chip {% if chip.active %}active{% endif %}">
+    {% if chip.icon %}<i class="{{ chip.icon }}"></i>{% endif %}
+    {{ chip.label }}
+    {% if chip.count is not None %}<span class="ms-1 opacity-75">({{ chip.count }})</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

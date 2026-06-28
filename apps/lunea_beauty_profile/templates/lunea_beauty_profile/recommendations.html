@@ -1,0 +1,82 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Recommandations beauté — LUNEA{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">LUNEA · Profils beauté</p>
+    <h1 class="orion-page-title">Recommandations</h1>
+  </div>
+  <div class="orion-page-actions">
+    {% if only_pending %}
+    <a href="{% url 'lunea_beauty_profile:recommendations_list' %}" class="orion-btn">Toutes</a>
+    {% else %}
+    <a href="{% url 'lunea_beauty_profile:recommendations_list' %}?pending=1" class="orion-btn">En attente uniquement</a>
+    {% endif %}
+    <a href="{% url 'lunea_beauty_profile:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Marque</th>
+        <th>Profil</th>
+        <th>Type</th>
+        <th>Raison</th>
+        <th>Score</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rec in recommendations %}
+      <tr>
+        <td style="font-weight:500">{{ rec.product_name }}</td>
+        <td style="color:var(--orion-muted)">{{ rec.brand|default:"—" }}</td>
+        <td>
+          <a href="{% url 'lunea_beauty_profile:profile_detail' rec.profile.pk %}" style="text-decoration:none;color:var(--orion-text)">
+            {{ rec.profile.customer }}
+          </a>
+        </td>
+        <td><span class="orion-badge neutral">{{ rec.get_recommendation_type_display }}</span></td>
+        <td style="font-size:12px;color:var(--orion-muted);max-width:220px">{{ rec.reason|truncatechars:80 }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:40px;height:4px;border-radius:2px;background:var(--orion-border)">
+              <div style="width:{% widthratio rec.score 1 100 %}%;height:100%;background:var(--orion-success);border-radius:2px"></div>
+            </div>
+            <span style="font-size:12px">{{ rec.score|floatformat:0 }}%</span>
+          </div>
+        </td>
+        <td>
+          <span class="orion-badge {% if rec.is_applied %}success{% else %}warning{% endif %}">
+            {% if rec.is_applied %}Appliquée{% else %}En attente{% endif %}
+          </span>
+        </td>
+        <td>
+          {% if not rec.is_applied %}
+          <form method="post" action="{% url 'lunea_beauty_profile:mark_applied' rec.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm primary">Appliquer</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;color:var(--orion-muted);padding:48px">
+          <i class="bi bi-stars d-block mb-2" style="font-size:32px;opacity:.3"></i>
+          Aucune recommandation.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

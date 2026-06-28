@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Catalogue Siècle{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h1 class="h3 mb-4">Catalogue des créations</h1>
+  <form class="row g-2 mb-4" method="get">
+    <div class="col-auto">
+      <select name="category" class="form-select form-select-sm">
+        <option value="">Toutes catégories</option>
+        <option value="bijou" {% if category == 'bijou' %}selected{% endif %}>Bijou</option>
+        <option value="accessoire" {% if category == 'accessoire' %}selected{% endif %}>Accessoire</option>
+        <option value="art" {% if category == 'art' %}selected{% endif %}>Art</option>
+        <option value="textile" {% if category == 'textile' %}selected{% endif %}>Textile</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="status" class="form-select form-select-sm">
+        <option value="" {% if not status %}selected{% endif %}>Tous statuts</option>
+        <option value="draft" {% if status == 'draft' %}selected{% endif %}>Brouillon</option>
+        <option value="published" {% if status == 'published' %}selected{% endif %}>Publié</option>
+        <option value="archived" {% if status == 'archived' %}selected{% endif %}>Archivé</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-primary">Filtrer</button>
+    </div>
+  </form>
+  <div class="row g-3">
+    {% for c in creations %}
+    <div class="col-md-4 col-lg-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h6 class="card-title mb-1">{{ c.title }}</h6>
+          <p class="text-muted small mb-2">{{ c.reference }} · {{ c.get_category_display }}</p>
+          <p class="fw-bold mb-1">{{ c.price_ttc }} € TTC</p>
+          <p class="small mb-0">Stock : {{ c.stock_qty }}
+            {% if c.is_limited_edition %}<span class="badge bg-warning text-dark ms-1">Limité</span>{% endif %}
+          </p>
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="{% url 'siecle_creations:detail' c.pk %}" class="btn btn-sm btn-outline-secondary w-100">Voir</a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted py-5">Aucune création trouvée.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

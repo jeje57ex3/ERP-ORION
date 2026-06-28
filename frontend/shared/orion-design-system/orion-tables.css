@@ -1,0 +1,47 @@
+.orion-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--orion-text);
+}
+
+.orion-table thead th {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--orion-border);
+  color: var(--orion-text-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  background: rgba(255,255,255,0.025);
+}
+
+.orion-table tbody td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(214, 179, 106, 0.10);
+  color: var(--orion-text-soft);
+  vertical-align: middle;
+}
+
+.orion-table tbody tr {
+  transition: background var(--orion-transition);
+}
+
+.orion-table tbody tr:hover {
+  background: rgba(214, 179, 106, 0.055);
+}
+
+.orion-table tbody tr.is-late {
+  background: rgba(224, 82, 82, 0.08);
+}
+
+.orion-table strong {
+  color: var(--orion-text);
+}
+
+.orion-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+}

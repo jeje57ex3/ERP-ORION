@@ -1,0 +1,282 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIÈCLE / LUNEA — Theme CSS Custom Properties
+   All themes apply via body class: .theme-<brand>-<name>
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base resets ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIÈCLE — Noir Champagne (défaut)
+   ══════════════════════════════════════════════════════════════════════════ */
+.theme-siecle-noir-champagne {
+  --color-primary:        #C9A96E;
+  --color-primary-light:  #DFC28F;
+  --color-primary-dark:   #A8893A;
+  --color-accent:         #1a1a1a;
+  --color-bg:             #0d0d0d;
+  --color-surface:        #1a1a1a;
+  --color-surface-2:      #242424;
+  --color-border:         #333;
+  --color-text:           #F5F0E8;
+  --color-text-muted:     #9E9E8A;
+  --color-error:          #CF6679;
+  --color-success:        #6BA68B;
+  --color-cta-bg:         #C9A96E;
+  --color-cta-text:       #0d0d0d;
+  --color-cta-hover-bg:   #DFC28F;
+  --font-heading:         'Cormorant Garamond', 'Georgia', serif;
+  --font-body:            'Inter', 'Helvetica Neue', sans-serif;
+  --radius:               2px;
+  --shadow:               0 4px 24px rgba(0,0,0,0.6);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── SIÈCLE — Ivoire & Or ──────────────────────────────────────────────── */
+.theme-siecle-ivoire-or {
+  --color-primary:        #D4AF37;
+  --color-primary-light:  #E8CC6A;
+  --color-primary-dark:   #B8941A;
+  --color-accent:         #2C2100;
+  --color-bg:             #FAF7F0;
+  --color-surface:        #F0EBE0;
+  --color-surface-2:      #E5DDD0;
+  --color-border:         #D4C9B0;
+  --color-text:           #1A1400;
+  --color-text-muted:     #7A7060;
+  --color-error:          #B33A3A;
+  --color-success:        #3A7A5A;
+  --color-cta-bg:         #D4AF37;
+  --color-cta-text:       #1A1400;
+  --color-cta-hover-bg:   #E8CC6A;
+  --font-heading:         'Cormorant Garamond', 'Georgia', serif;
+  --font-body:            'Inter', 'Helvetica Neue', sans-serif;
+  --radius:               2px;
+  --shadow:               0 4px 24px rgba(0,0,0,0.12);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── SIÈCLE — Gris Ardoise ─────────────────────────────────────────────── */
+.theme-siecle-gris-ardoise {
+  --color-primary:        #9AA8B5;
+  --color-primary-light:  #B5C1CC;
+  --color-primary-dark:   #7A8E9E;
+  --color-accent:         #2A3038;
+  --color-bg:             #1E2328;
+  --color-surface:        #252B32;
+  --color-surface-2:      #2D343C;
+  --color-border:         #3A4048;
+  --color-text:           #E8ECF0;
+  --color-text-muted:     #8A9098;
+  --color-error:          #CF6679;
+  --color-success:        #6BA68B;
+  --color-cta-bg:         #9AA8B5;
+  --color-cta-text:       #1E2328;
+  --color-cta-hover-bg:   #B5C1CC;
+  --font-heading:         'Cormorant Garamond', 'Georgia', serif;
+  --font-body:            'Inter', 'Helvetica Neue', sans-serif;
+  --radius:               2px;
+  --shadow:               0 4px 24px rgba(0,0,0,0.5);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── SIÈCLE — Rouge Signature ──────────────────────────────────────────── */
+.theme-siecle-rouge-signature {
+  --color-primary:        #C0392B;
+  --color-primary-light:  #E74C3C;
+  --color-primary-dark:   #922B21;
+  --color-accent:         #FAF0E6;
+  --color-bg:             #0A0000;
+  --color-surface:        #1A0505;
+  --color-surface-2:      #250808;
+  --color-border:         #3D0A0A;
+  --color-text:           #FAF0E6;
+  --color-text-muted:     #B0908A;
+  --color-error:          #FF6B6B;
+  --color-success:        #6BA68B;
+  --color-cta-bg:         #C0392B;
+  --color-cta-text:       #FAF0E6;
+  --color-cta-hover-bg:   #E74C3C;
+  --font-heading:         'Cormorant Garamond', 'Georgia', serif;
+  --font-body:            'Inter', 'Helvetica Neue', sans-serif;
+  --radius:               2px;
+  --shadow:               0 4px 24px rgba(100,0,0,0.5);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LUNEA — Blanc Nacré (défaut)
+   ══════════════════════════════════════════════════════════════════════════ */
+.theme-lunea-blanc-nacre {
+  --color-primary:        #C8A8A0;
+  --color-primary-light:  #DEC4C0;
+  --color-primary-dark:   #A88880;
+  --color-accent:         #2d1b2e;
+  --color-bg:             #FDFAF8;
+  --color-surface:        #F5F0EB;
+  --color-surface-2:      #EDE6DF;
+  --color-border:         #DDD5CC;
+  --color-text:           #2d1b2e;
+  --color-text-muted:     #8A7878;
+  --color-error:          #C0392B;
+  --color-success:        #27AE60;
+  --color-cta-bg:         #C8A8A0;
+  --color-cta-text:       #2d1b2e;
+  --color-cta-hover-bg:   #DEC4C0;
+  --font-heading:         'Playfair Display', 'Georgia', serif;
+  --font-body:            'Lato', 'Helvetica Neue', sans-serif;
+  --radius:               8px;
+  --shadow:               0 4px 24px rgba(45,27,46,0.10);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── LUNEA — Rose Poudré ───────────────────────────────────────────────── */
+.theme-lunea-rose-poudre {
+  --color-primary:        #E8B4B8;
+  --color-primary-light:  #F5CDD0;
+  --color-primary-dark:   #CC8A8E;
+  --color-accent:         #3D1C24;
+  --color-bg:             #FEF9FA;
+  --color-surface:        #FBF1F3;
+  --color-surface-2:      #F5E6E8;
+  --color-border:         #EDD0D4;
+  --color-text:           #3D1C24;
+  --color-text-muted:     #9A7070;
+  --color-error:          #C0392B;
+  --color-success:        #27AE60;
+  --color-cta-bg:         #E8B4B8;
+  --color-cta-text:       #3D1C24;
+  --color-cta-hover-bg:   #F5CDD0;
+  --font-heading:         'Playfair Display', 'Georgia', serif;
+  --font-body:            'Lato', 'Helvetica Neue', sans-serif;
+  --radius:               8px;
+  --shadow:               0 4px 24px rgba(61,28,36,0.10);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── LUNEA — Violet Éclat ──────────────────────────────────────────────── */
+.theme-lunea-violet-eclat {
+  --color-primary:        #9B59B6;
+  --color-primary-light:  #BB8FCE;
+  --color-primary-dark:   #7B3A96;
+  --color-accent:         #F0E6FF;
+  --color-bg:             #0E0618;
+  --color-surface:        #160B22;
+  --color-surface-2:      #1E1030;
+  --color-border:         #36205A;
+  --color-text:           #EDE0FF;
+  --color-text-muted:     #9A80B8;
+  --color-error:          #FF6B6B;
+  --color-success:        #68D391;
+  --color-cta-bg:         #9B59B6;
+  --color-cta-text:       #EDE0FF;
+  --color-cta-hover-bg:   #BB8FCE;
+  --font-heading:         'Playfair Display', 'Georgia', serif;
+  --font-body:            'Lato', 'Helvetica Neue', sans-serif;
+  --radius:               8px;
+  --shadow:               0 4px 24px rgba(100,0,180,0.3);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── LUNEA — Noir Élégance ─────────────────────────────────────────────── */
+.theme-lunea-noir-elegance {
+  --color-primary:        #BFA8C8;
+  --color-primary-light:  #D4C0DC;
+  --color-primary-dark:   #9A88A8;
+  --color-accent:         #E8DDF0;
+  --color-bg:             #0A0A12;
+  --color-surface:        #12101A;
+  --color-surface-2:      #1A1825;
+  --color-border:         #2E2840;
+  --color-text:           #E8E0F0;
+  --color-text-muted:     #8878A0;
+  --color-error:          #FF6B6B;
+  --color-success:        #68D391;
+  --color-cta-bg:         #BFA8C8;
+  --color-cta-text:       #0A0A12;
+  --color-cta-hover-bg:   #D4C0DC;
+  --font-heading:         'Playfair Display', 'Georgia', serif;
+  --font-body:            'Lato', 'Helvetica Neue', sans-serif;
+  --radius:               8px;
+  --shadow:               0 4px 24px rgba(0,0,0,0.7);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── LUNEA — Red Velvet ────────────────────────────────────────────────── */
+.theme-lunea-red-velvet {
+  --color-primary:        #C0392B;
+  --color-primary-light:  #D9534F;
+  --color-primary-dark:   #96251A;
+  --color-accent:         #FFE8E5;
+  --color-bg:             #0D0305;
+  --color-surface:        #1A0608;
+  --color-surface-2:      #240A0E;
+  --color-border:         #3D1018;
+  --color-text:           #FFE8E5;
+  --color-text-muted:     #C09090;
+  --color-error:          #FF9999;
+  --color-success:        #68D391;
+  --color-cta-bg:         #C0392B;
+  --color-cta-text:       #FFE8E5;
+  --color-cta-hover-bg:   #D9534F;
+  --font-heading:         'Playfair Display', 'Georgia', serif;
+  --font-body:            'Lato', 'Helvetica Neue', sans-serif;
+  --radius:               8px;
+  --shadow:               0 4px 24px rgba(120,0,20,0.5);
+  --transition:           220ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Utility classes shared across both brands
+   ══════════════════════════════════════════════════════════════════════════ */
+.btn-primary {
+  background: var(--color-cta-bg);
+  color: var(--color-cta-text);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.btn-primary:hover {
+  background: var(--color-cta-hover-bg);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.text-primary { color: var(--color-primary); }
+.text-muted   { color: var(--color-text-muted); }
+.bg-surface   { background: var(--color-surface); }

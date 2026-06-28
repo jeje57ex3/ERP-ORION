@@ -1,0 +1,331 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Reporting — {{ request.current_company.name|default:'Orion ERP' }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Reporting</li>
+{% endblock %}
+
+{% block page_title %}Reporting{% endblock %}
+{% block page_subtitle %}Analysez votre activité avec des indicateurs par module, période et entreprise.{% endblock %}
+
+{% block page_actions %}
+<a href="#" class="orion-btn orion-btn-outline">
+  <i class="bi bi-calendar3"></i>Comparer périodes
+</a>
+<a href="#" class="orion-btn orion-btn-gold">
+  <i class="bi bi-file-earmark-arrow-down"></i>Exporter
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">
+  {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPI globaux -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="orion-kpi-value">{{ ca_mois|default:'—' }}</div>
+      <div class="orion-kpi-label">CA mois en cours</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#3B82F6"><i class="bi bi-calendar-year"></i></div>
+      <div class="orion-kpi-value">{{ ca_ytd|default:'—' }}</div>
+      <div class="orion-kpi-label">CA année en cours</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-cash-stack"></i></div>
+      <div class="orion-kpi-value">{{ resultat_estime|default:'—' }}</div>
+      <div class="orion-kpi-label">Résultat estimé</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3E8FF;color:#9333EA"><i class="bi bi-people"></i></div>
+      <div class="orion-kpi-value">{{ clients_actifs|default:'—' }}</div>
+      <div class="orion-kpi-label">Clients actifs</div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboards disponibles -->
+<div class="row g-3">
+
+  <!-- Commercial -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#DCFCE7;color:#16A34A;flex-shrink:0">
+            <i class="bi bi-graph-up-arrow fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Commercial</div>
+            <div class="small text-muted">Devis, commandes, CA par client, taux de conversion</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:commercial' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'commercial' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'commercial' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finance -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#FEF3C7;color:#D97706;flex-shrink:0">
+            <i class="bi bi-currency-euro fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Finance</div>
+            <div class="small text-muted">Trésorerie, factures, délais de paiement</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:finance' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'finance' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'finance' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comptabilité -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#EFF6FF;color:#3B82F6;flex-shrink:0">
+            <i class="bi bi-journal-text fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Comptabilité</div>
+            <div class="small text-muted">TVA, journaux, balance, bilan</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:accounting' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'accounting' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'accounting' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BTP -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#FFF7ED;color:#EA580C;flex-shrink:0">
+            <i class="bi bi-building-gear fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">BTP / Chantiers</div>
+            <div class="small text-muted">Chantiers, marges, pointages, réserves</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:btp' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'btp' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'btp' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stocks -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#F0FDF4;color:#15803D;flex-shrink:0">
+            <i class="bi bi-boxes fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Stocks</div>
+            <div class="small text-muted">Valorisation, ruptures, mouvements, inventaire</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:stocks' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'stocks' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'stocks' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-commerce -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#F5F3FF;color:#7C3AED;flex-shrink:0">
+            <i class="bi bi-shop fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">E-commerce</div>
+            <div class="small text-muted">CA web, conversion, panier moyen, retours</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:ecommerce' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'ecommerce' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'ecommerce' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Commerce -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#FFF1F2;color:#BE185D;flex-shrink:0">
+            <i class="bi bi-bag fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Commerce / Caisse</div>
+            <div class="small text-muted">CA magasin, tickets caisse, fidélité</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:commerce' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'commerce' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'commerce' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Production -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#ECFDF5;color:#059669;flex-shrink:0">
+            <i class="bi bi-gear-wide-connected fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Production</div>
+            <div class="small text-muted">Ordres, temps de fabrication, rendements</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:production' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'production' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'production' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RH -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#EFF6FF;color:#2563EB;flex-shrink:0">
+            <i class="bi bi-people fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Ressources humaines</div>
+            <div class="small text-muted">Effectifs, congés, coûts salariaux, heures</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:hr' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'hr' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'hr' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sites web -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#F0F9FF;color:#0284C7;flex-shrink:0">
+            <i class="bi bi-globe fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Sites web</div>
+            <div class="small text-muted">Leads, pages vues, conversions, formulaires</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:websites' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'websites' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'websites' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Support -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded d-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#FFF1F2;color:#E11D48;flex-shrink:0">
+            <i class="bi bi-headset fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Support</div>
+            <div class="small text-muted">Tickets, satisfaction, délais de résolution</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="{% url 'bi:support' %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-grow-1"><i class="bi bi-eye"></i>Voir</a>
+          <a href="{% url 'bi:export' 'support' 'pdf' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+          <a href="{% url 'bi:export' 'support' 'excel' %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rapport personnalisé -->
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="orion-card h-100" style="border:2px dashed var(--orion-border)">
+      <div class="orion-orion-orion-card-body d-flex flex-column align-items-center justify-content-center text-center py-4">
+        <div class="rounded-circle d-flex align-items-center justify-content-center mb-3"
+             style="width:48px;height:48px;background:var(--orion-bg);border:1px solid var(--orion-border)">
+          <i class="bi bi-plus-lg" style="color:var(--orion-secondary)"></i>
+        </div>
+        <div class="fw-semibold mb-1">Rapport personnalisé</div>
+        <div class="small text-muted mb-3">Créez vos propres indicateurs et visualisations</div>
+        <a href="#" class="orion-btn orion-btn-gold orion-orion-btn sm">
+          <i class="bi bi-plus-lg"></i>Créer rapport
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

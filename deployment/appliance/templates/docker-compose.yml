@@ -1,0 +1,170 @@
+services:
+  orion-db:
+    image: mysql:8.0
+    container_name: orion-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./backups:/backups
+    networks:
+      - orion-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  orion-redis:
+    image: redis:7-alpine
+    container_name: orion-redis
+    restart: unless-stopped
+    volumes:
+      - ./redis:/data
+    networks:
+      - orion-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  orion-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orion-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: erp_btp.settings.production
+    depends_on:
+      orion-db:
+        condition: service_healthy
+      orion-redis:
+        condition: service_healthy
+    volumes:
+      - ./media:/app/media
+      - ./static:/app/staticfiles
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    networks:
+      - orion-net
+    command: >
+      sh -c "
+      python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput &&
+      gunicorn erp_btp.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+      "
+
+  orion-celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orion-celery
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: erp_btp.settings.production
+    depends_on:
+      - orion-backend
+      - orion-redis
+      - orion-db
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    networks:
+      - orion-net
+    command: celery -A erp_btp worker -l info
+
+  orion-celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orion-celery-beat
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: erp_btp.settings.production
+    depends_on:
+      - orion-backend
+      - orion-redis
+      - orion-db
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    networks:
+      - orion-net
+    command: celery -A erp_btp beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  orion-siecle-builder:
+    image: node:20-alpine
+    container_name: orion-siecle-builder
+    working_dir: /app
+    volumes:
+      - ./frontend/siecle-store:/app
+      - ./static/siecle:/output
+    command: >
+      sh -c "
+      npm install &&
+      npm run build &&
+      mkdir -p /output &&
+      rm -rf /output/* &&
+      cp -r dist/* /output/
+      "
+    profiles:
+      - build
+
+  orion-lunea-builder:
+    image: node:20-alpine
+    container_name: orion-lunea-builder
+    working_dir: /app
+    volumes:
+      - ./frontend/lunea-store:/app
+      - ./static/lunea:/output
+    command: >
+      sh -c "
+      npm install &&
+      npm run build &&
+      mkdir -p /output &&
+      rm -rf /output/* &&
+      cp -r dist/* /output/
+      "
+    profiles:
+      - build
+
+  orion-nginx:
+    image: nginx:1.27-alpine
+    container_name: orion-nginx
+    restart: unless-stopped
+    depends_on:
+      - orion-backend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/orion.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/var/www/static:ro
+      - ./media:/var/www/media:ro
+      - ./logs/nginx:/var/log/nginx
+      - ./runtime/certs:/etc/nginx/certs:ro
+    networks:
+      - orion-net
+
+networks:
+  orion-net:
+    driver: bridge

@@ -1,0 +1,60 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Demandes de devis — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Demandes de devis</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Demandes reçues via vos formulaires en ligne.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="orion-kpi-value">{{ new_count }}</div>
+      <div class="orion-kpi-label">Nouvelles demandes</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{% url 'websites:quote_request_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead><tr><th>Nom</th><th>Société</th><th>Type projet</th><th>Budget</th><th>Site</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for qr in quote_requests %}
+        <tr>
+          <td class="small fw-semibold">{{ qr.name }}</td>
+          <td class="small text-muted">{{ qr.company_name|default:"—" }}</td>
+          <td class="small text-muted">{{ qr.project_type|default:"—"|truncatechars:30 }}</td>
+          <td class="small">{{ qr.budget|default:"—" }}</td>
+          <td class="small text-muted">{{ qr.website.name }}</td>
+          <td>
+            {% if qr.status == 'new' %}<span class="orion-badge orion-badge-warning">Nouveau</span>
+            {% elif qr.status == 'processing' %}<span class="orion-badge info text-dark">En traitement</span>
+            {% elif qr.status == 'quoted' %}<span class="orion-badge gold">Devis envoyé</span>
+            {% elif qr.status == 'won' %}<span class="orion-badge orion-badge-success">Gagné</span>
+            {% elif qr.status == 'lost' %}<span class="orion-badge orion-badge-danger">Perdu</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">Spam</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ qr.created_at|date:"d/m/Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="orion-empty-title">Aucune demande de devis</div>
+            <div class="orion-empty-text">Les demandes arriveront ici depuis vos formulaires en ligne.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

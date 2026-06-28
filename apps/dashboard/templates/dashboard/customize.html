@@ -1,0 +1,270 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load dashboard_tags %}
+
+{% block title %}Personnaliser mon dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="bi bi-sliders me-2 text-warning"></i>Personnaliser mon dashboard</h1>
+    <p class="page-subtitle text-muted mb-0">Choisissez les widgets, raccourcis et informations à afficher sur votre tableau de bord.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour au dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show mb-3">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<ul class="nav nav-tabs mb-4" id="customizeTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-widgets"><i class="bi bi-grid me-1"></i>Mes widgets</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-catalog"><i class="bi bi-shop me-1"></i>Catalogue</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-shortcuts"><i class="bi bi-lightning me-1"></i>Raccourcis</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-layout"><i class="bi bi-columns-gap me-1"></i>Disposition</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-prefs"><i class="bi bi-gear me-1"></i>Préférences</a></li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ─── Mes widgets ────────────────────────────────────────── -->
+  <div class="tab-pane fade show active" id="tab-widgets">
+    {% if user_widgets %}
+    <div class="row g-3">
+      {% for uw in user_widgets %}
+      <div class="col-12 col-md-6">
+        <div class="dashboard-customize-panel p-3 d-flex align-items-center gap-3">
+          <div class="widget-icon me-2" style="background:{{ uw.widget.color }}20;color:{{ uw.widget.color }};width:40px;height:40px;border-radius:.5rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">
+            <i class="{{ uw.widget.icon }}"></i>
+          </div>
+          <div class="flex-1">
+            <div class="fw-semibold" style="font-size:.88rem">{{ uw.get_display_title }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ uw.widget.description|truncatechars:60 }}</div>
+          </div>
+          <div class="d-flex gap-1 flex-shrink-0">
+            {% if uw.is_visible %}
+              <span class="badge bg-success-subtle text-success">Visible</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">Masqué</span>
+            {% endif %}
+            <a href="{% url 'dashboard:configure_widget' uw.pk %}" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem">Configurer</a>
+            <form method="post" action="{% url 'dashboard:toggle_widget' uw.pk %}" class="d-inline">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+              <button class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem" title="{% if uw.is_visible %}Masquer{% else %}Afficher{% endif %}">
+                <i class="bi bi-eye{% if uw.is_visible %}-slash{% endif %}"></i>
+              </button>
+            </form>
+            <form method="post" action="{% url 'dashboard:remove_widget' uw.pk %}" class="d-inline" onsubmit="return confirm('Supprimer ce widget ?')">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+              <button class="btn btn-xs btn-sm btn-outline-danger py-0 px-2" style="font-size:.72rem"><i class="bi bi-trash3"></i></button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="widget-empty-state py-5">
+      <i class="bi bi-grid-3x3-gap-fill"></i>
+      <p>Votre dashboard est vide. Ajoutez des widgets depuis le catalogue.</p>
+      <button class="btn btn-warning btn-sm" onclick="document.querySelector('[href=\'#tab-catalog\']').click()">
+        <i class="bi bi-plus-lg me-1"></i>Aller au catalogue
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ─── Catalogue widgets ──────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-catalog">
+    <div class="row g-3">
+      {% for w in available_widgets %}
+      <div class="col-12 col-sm-6 col-lg-4">
+        <div class="catalog-widget-card {% if w.code in user_widget_codes %}already-added{% endif %}">
+          <div class="widget-icon-preview" style="background:{{ w.color }}20;color:{{ w.color }}">
+            <i class="{{ w.icon }}"></i>
+          </div>
+          <div class="fw-semibold mb-1" style="font-size:.88rem">{{ w.name }}</div>
+          <div class="text-muted mb-3" style="font-size:.75rem">{{ w.description|truncatechars:80 }}</div>
+          {% if w.code in user_widget_codes %}
+            <span class="badge bg-success-subtle text-success"><i class="bi bi-check2 me-1"></i>Déjà ajouté</span>
+          {% else %}
+            <form method="post" action="{% url 'dashboard:add_widget' w.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}">
+              <button type="submit" class="btn btn-sm btn-warning">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter
+              </button>
+            </form>
+          {% endif %}
+          {% if w.module_code %}
+          <span class="badge bg-light text-secondary border ms-1" style="font-size:.65rem">{{ w.module_code }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ─── Raccourcis ─────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-shortcuts">
+    <div class="d-flex justify-content-end mb-3">
+      <a href="{% url 'dashboard:shortcut_create' %}" class="btn btn-warning btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nouveau raccourci
+      </a>
+    </div>
+    {% if user_shortcuts %}
+    <div class="row g-2">
+      {% for sc in user_shortcuts %}
+      <div class="col-12 col-md-6">
+        <div class="d-flex align-items-center gap-3 p-3 rounded border" style="background:var(--dashboard-surface)">
+          <div class="shortcut-icon flex-shrink-0" style="background:{{ sc.color }};width:36px;height:36px;border-radius:.5rem;display:flex;align-items:center;justify-content:center;color:white">
+            <i class="{{ sc.icon }}"></i>
+          </div>
+          <div class="flex-1">
+            <div class="fw-semibold" style="font-size:.85rem">{{ sc.label }}</div>
+            <div class="text-muted" style="font-size:.72rem">{{ sc.get_resolved_url|truncatechars:40 }}</div>
+          </div>
+          <div class="d-flex gap-1">
+            {% if sc.is_favorite %}<i class="bi bi-star-fill text-warning" title="Favori"></i>{% endif %}
+            <a href="{% url 'dashboard:shortcut_update' sc.pk %}" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'dashboard:shortcut_delete' sc.pk %}" class="d-inline" onsubmit="return confirm('Supprimer ce raccourci ?')">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+              <button class="btn btn-xs btn-sm btn-outline-danger py-0 px-2" style="font-size:.72rem"><i class="bi bi-trash3"></i></button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="widget-empty-state">
+      <i class="bi bi-lightning-charge"></i>
+      <p>Aucun raccourci personnalisé. Ajoutez vos actions favorites pour gagner du temps.</p>
+      <a href="{% url 'dashboard:shortcut_create' %}" class="btn btn-warning btn-sm">Créer un raccourci</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ─── Disposition ────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-layout">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_layout">
+      <div class="row g-3 mb-4">
+        {% for choice in layout_form.fields.layout_type.choices %}
+        <div class="col-6 col-md-4 col-lg-2">
+          <label class="layout-option {% if dashboard_profile.layout_type == choice.0 %}selected{% endif %}">
+            <input type="radio" name="layout_type" value="{{ choice.0 }}" class="d-none" {% if dashboard_profile.layout_type == choice.0 %}checked{% endif %}>
+            <div class="layout-option-preview">
+              {% if choice.0 == 'two_columns' %}
+                <span></span><span></span>
+              {% elif choice.0 == 'three_columns' %}
+                <span></span><span></span><span></span>
+              {% elif choice.0 == 'compact' %}
+                <span style="flex:1"></span>
+              {% else %}
+                <span></span>
+              {% endif %}
+            </div>
+            <div style="font-size:.78rem;font-weight:500">{{ choice.1 }}</div>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="mb-3" style="max-width:300px">
+        <label class="form-label fw-semibold">Nom du dashboard</label>
+        {{ layout_form.name }}
+      </div>
+      <button type="submit" class="btn btn-warning">
+        <i class="bi bi-check2 me-1"></i>Appliquer la disposition
+      </button>
+    </form>
+  </div>
+
+  <!-- ─── Préférences ────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-prefs">
+    <form method="post" style="max-width:560px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_preferences">
+      <div class="erp-card">
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check">
+                {{ pref_form.show_welcome_message }}
+                <label class="form-check-label">Afficher le message de bienvenue</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ pref_form.show_kpi_cards }}
+                <label class="form-check-label">Afficher les KPI</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ pref_form.show_notifications }}
+                <label class="form-check-label">Afficher les notifications</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ pref_form.compact_mode }}
+                <label class="form-check-label">Mode compact</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ pref_form.auto_refresh }}
+                <label class="form-check-label">Actualisation automatique</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Période par défaut</label>
+              {{ pref_form.default_period }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Intervalle d'actualisation</label>
+              {{ pref_form.refresh_interval }}
+            </div>
+          </div>
+        </div>
+        <div class="erp-card-footer">
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-check2 me-1"></i>Enregistrer mes préférences
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div><!-- /tab-content -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Highlight selected layout on click
+document.querySelectorAll('.layout-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.layout-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+  });
+});
+</script>
+{% endblock %}

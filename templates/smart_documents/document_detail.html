@@ -1,0 +1,60 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'smart_documents:list' %}">Documents</a></div>
+    <h1 class="orion-page-title">{{ document.title }}</h1>
+  </div>
+  <div class="orion-page-actions">
+    {% if document.file %}
+    <a href="{{ document.file.url }}" class="orion-btn" download>
+      <i class="bi bi-download me-1"></i>Télécharger
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Informations</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Type</dt><dd>{{ document.get_document_type_display }}</dd>
+          <dt>Version</dt><dd>v{{ document.version }}</dd>
+          {% if document.brand_key %}<dt>Marque</dt><dd><span class="orion-badge accent">{{ document.brand_key }}</span></dd>{% endif %}
+          {% if document.expires_at %}<dt>Expire le</dt><dd>{{ document.expires_at|date:"d/m/Y" }}</dd>{% endif %}
+          <dt>Signé</dt><dd>{% if document.is_signed %}<span class="orion-badge success">Oui</span>{% else %}<span class="orion-badge neutral">Non</span>{% endif %}</dd>
+          {% if document.tags %}<dt>Tags</dt><dd>{% for tag in document.tags %}<span class="orion-badge neutral me-1">{{ tag }}</span>{% endfor %}</dd>{% endif %}
+          <dt>Créé le</dt><dd>{{ document.created_at|date:"d/m/Y H:i" }}</dd>
+          {% if document.created_by %}<dt>Par</dt><dd>{{ document.created_by.get_full_name|default:document.created_by.username }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+    {% if signature_requests %}
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Demandes de signature</h3></div>
+      <div class="orion-orion-orion-card-body p-0">
+        <div class="list-group list-group-flush">
+          {% for sig in signature_requests %}
+          <div class="list-group-item px-4 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <div class="flex-grow-1">
+                <div style="font-size:13px;font-weight:600">{{ sig.signer_name }}</div>
+                <div style="font-size:12px;color:var(--orion-muted)">{{ sig.signer_email }}</div>
+              </div>
+              <span class="orion-badge {% if sig.status == 'signed' %}success{% elif sig.status == 'refused' %}danger{% else %}neutral{% endif %}">
+                {{ sig.get_status_display }}
+              </span>
+              {% if sig.signed_at %}<span style="font-size:11px;color:var(--orion-muted)">{{ sig.signed_at|date:"d/m/Y" }}</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

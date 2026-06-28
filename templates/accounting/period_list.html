@@ -1,0 +1,56 @@
+﻿{% extends "erp_base.html" %}`n{% load static %}
+{% block title %}Périodes — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:fiscal_year_list' %}">Exercices</a></li>
+<li class="breadcrumb-item active">{{ fiscal_year.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-calendar-week me-2"></i>Périodes — {{ fiscal_year.name }}</h6></div>
+  <div class="orion-orion-orion-card-body">
+    {% if periods %}
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr><th>Nom</th><th>Début</th><th>Fin</th><th>Statut</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for period in periods %}
+          <tr>
+            <td class="fw-semibold">{{ period.name }}</td>
+            <td>{{ period.start_date|date:"d/m/Y" }}</td>
+            <td>{{ period.end_date|date:"d/m/Y" }}</td>
+            <td>
+              {% if period.status == 'open' %}<span class="orion-badge orion-badge-success">Ouverte</span>
+              {% elif period.status == 'closed' %}<span class="orion-badge orion-badge-secondary">Fermée</span>
+              {% else %}<span class="orion-badge orion-badge-warning">{{ period.status }}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="period_pk" value="{{ period.pk }}">
+                {% if period.status == 'open' %}
+                <input type="hidden" name="status" value="closed">
+                <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">Fermer</button>
+                {% else %}
+                <input type="hidden" name="status" value="open">
+                <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">Rouvrir</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="orion-empty">
+      <div class="orion-empty-title">Aucune période pour cet exercice.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

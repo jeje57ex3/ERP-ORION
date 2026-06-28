@@ -1,0 +1,86 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Mon profil{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Carte profil -->
+  <div class="col-12 col-lg-4">
+    <div class="card erp-card">
+      <div class="orion-orion-card-body text-center py-4">
+        <div class="user-avatar mx-auto mb-3" style="width:80px; height:80px; font-size:1.5rem;">
+          {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+          {% else %}
+            <span>{{ request.user.profile.initials }}</span>
+          {% endif %}
+        </div>
+        <h4 class="fw-bold mb-1">{{ request.user.profile.display_name }}</h4>
+        <p class="text-muted mb-2">{{ request.user.profile.get_role_display }}</p>
+        {% if request.user.profile.job_title %}
+        <p class="small text-muted">{{ request.user.profile.job_title }}</p>
+        {% endif %}
+        <div class="d-flex justify-content-center gap-2 mt-3">
+          {% for comp in request.user.profile.companies.all %}
+          <span class="orion-badge gold-light text-primary" style="font-size:0.75rem;">{{ comp.name }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire profil -->
+  <div class="col-12 col-lg-8">
+    <div class="card erp-card">
+      <div class="orion-orion-card-header"><h5 class="card-title mb-0">Informations personnelles</h5></div>
+      <div class="orion-orion-card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Prénom</label>
+              <input type="text" name="first_name" class="form-control" value="{{ request.user.first_name }}">
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Nom</label>
+              <input type="text" name="last_name" class="form-control" value="{{ request.user.last_name }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control" value="{{ request.user.email }}">
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Téléphone</label>
+              <input type="text" name="phone" class="form-control" value="{{ request.user.profile.phone }}">
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Mobile</label>
+              <input type="text" name="mobile" class="form-control" value="{{ request.user.profile.mobile }}">
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Poste</label>
+              <input type="text" name="job_title" class="form-control" value="{{ request.user.profile.job_title }}">
+            </div>
+            <div class="col-12 col-sm-6">
+              <label class="form-label">Département</label>
+              <input type="text" name="department" class="form-control" value="{{ request.user.profile.department }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Avatar</label>
+              <input type="file" name="avatar" class="form-control" accept="image/*">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="orion-btn primary">
+                <i class="bi bi-check-lg me-1"></i>Enregistrer
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

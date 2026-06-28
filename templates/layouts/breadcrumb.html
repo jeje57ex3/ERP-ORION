@@ -1,0 +1,39 @@
+{% if breadcrumbs %}
+<nav class="orion-breadcrumb-v2" aria-label="Fil d'Ariane" style="margin-bottom:16px">
+  <ol style="display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-size:12.5px">
+    <li>
+      <a href="{% url 'core:dashboard' %}" style="color:var(--orion-muted);text-decoration:none;display:flex;align-items:center"
+         aria-label="Tableau de bord">
+        <i class="bi bi-house" style="font-size:13px"></i>
+      </a>
+    </li>
+    {% for crumb in breadcrumbs %}
+    <li style="display:flex;align-items:center;gap:6px">
+      <i class="bi bi-chevron-right" style="font-size:9px;color:var(--orion-muted);opacity:.6" aria-hidden="true"></i>
+      {% if crumb.url and not forloop.last %}
+        <a href="{{ crumb.url }}" style="color:var(--orion-text-soft);text-decoration:none;transition:color .15s"
+           onmouseover="this.style.color='var(--orion-text)'" onmouseout="this.style.color='var(--orion-text-soft)'">
+          {{ crumb.label }}
+        </a>
+      {% else %}
+        <span style="color:var(--orion-text);font-weight:600" aria-current="page">{{ crumb.label }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% elif page_title %}
+<nav class="orion-breadcrumb-v2" aria-label="Fil d'Ariane" style="margin-bottom:16px">
+  <ol style="display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-size:12.5px">
+    <li>
+      <a href="{% url 'core:dashboard' %}" style="color:var(--orion-muted);text-decoration:none">
+        <i class="bi bi-house" style="font-size:13px"></i>
+      </a>
+    </li>
+    <li style="display:flex;align-items:center;gap:6px">
+      <i class="bi bi-chevron-right" style="font-size:9px;color:var(--orion-muted);opacity:.6" aria-hidden="true"></i>
+      <span style="color:var(--orion-text);font-weight:600" aria-current="page">{{ page_title }}</span>
+    </li>
+  </ol>
+</nav>
+{% endif %}

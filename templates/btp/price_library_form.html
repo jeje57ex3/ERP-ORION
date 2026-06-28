@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}Modifier{% else %}Ajouter{% endif %} un tarif{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'btp:price_library_list' %}" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Bibliothèque de prix</a>
+  <h4 class="fw-bold mt-1">{% if item %}Modifier : {{ item.name }}{% else %}Ajouter un tarif{% endif %}</h4>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="bg-white border rounded-3 p-4">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Nom de la prestation *</label>
+            <input type="text" name="name" class="form-control" required value="{{ item.name|default:'' }}" placeholder="Ex: Remplacement d'une prise électrique">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Catégorie *</label>
+            <select name="category" class="form-select" required>
+              <option value="">Choisir...</option>
+              <option value="depannage" {% if item.category == 'depannage' %}selected{% endif %}>Dépannage</option>
+              <option value="installation" {% if item.category == 'installation' %}selected{% endif %}>Installation</option>
+              <option value="renovation" {% if item.category == 'renovation' %}selected{% endif %}>Rénovation</option>
+              <option value="tableau" {% if item.category == 'tableau' %}selected{% endif %}>Tableau électrique</option>
+              <option value="eclairage" {% if item.category == 'eclairage' %}selected{% endif %}>Éclairage</option>
+              <option value="prise" {% if item.category == 'prise' %}selected{% endif %}>Prises/interrupteurs</option>
+              <option value="chauffage" {% if item.category == 'chauffage' %}selected{% endif %}>Chauffage électrique</option>
+              <option value="autre" {% if item.category == 'autre' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Complexité</label>
+            <select name="complexity" class="form-select">
+              <option value="simple" {% if item.complexity == 'simple' %}selected{% endif %}>Simple</option>
+              <option value="standard" {% if item.complexity == 'standard' %}selected{% endif %}>Standard</option>
+              <option value="complex" {% if item.complexity == 'complex' %}selected{% endif %}>Complexe</option>
+              <option value="expert" {% if item.complexity == 'expert' %}selected{% endif %}>Expert</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Prix minimum HT (€) *</label>
+            <input type="number" name="price_min" class="form-control" step="0.01" min="0" required value="{{ item.price_min|default:'' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Prix moyen HT (€) *</label>
+            <input type="number" name="price_avg" class="form-control" step="0.01" min="0" required value="{{ item.price_avg|default:'' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Prix maximum HT (€) *</label>
+            <input type="number" name="price_max" class="form-control" step="0.01" min="0" required value="{{ item.price_max|default:'' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Durée estimée (heures)</label>
+            <input type="number" name="duration_hours" class="form-control" step="0.25" min="0" value="{{ item.duration_hours|default:'1.0' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Unité</label>
+            <input type="text" name="unit" class="form-control" value="{{ item.unit|default:'unité' }}" placeholder="unité, ml, m², forfait...">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Description (optionnel)</label>
+            <textarea name="description" class="form-control" rows="2">{{ item.description|default:'' }}</textarea>
+          </div>
+          <div class="col-12 d-flex gap-2 pt-2">
+            <button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-check-lg me-1"></i>{% if item %}Enregistrer{% else %}Ajouter{% endif %}</button>
+            <a href="{% url 'btp:price_library_list' %}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

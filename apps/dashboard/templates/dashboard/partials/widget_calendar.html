@@ -1,0 +1,23 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"calendar_events" %}
+{% if data.events %}
+<div class="mb-2 small text-muted">Prochains événements jusqu'au {{ data.end }}</div>
+<div>
+  {% for evt in data.events %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-calendar-event"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ evt.label|truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ evt.date|date:"d/m/Y" }}</div>
+    </div>
+    <div class="widget-item-meta"><span class="badge {{ evt.badge }}" style="font-size:.65rem">{{ evt.type }}</span></div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state">
+  <i class="bi bi-calendar3"></i>
+  <p>Aucun événement à venir dans les 14 prochains jours.</p>
+</div>
+{% endif %}
+{% endwith %}

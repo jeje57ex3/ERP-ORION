@@ -1,0 +1,102 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item active">Liste</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'competitor:create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-plus-lg"></i> Ajouter
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Concurrents</h1>
+    <p class="orion-page-subtitle">{{ competitors.count }} concurrent{{ competitors.count|pluralize }}</p>
+  </div>
+</div>
+
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap w-100">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="Rechercher..." style="max-width:250px">
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn-sm">
+      <i class="bi bi-search"></i>
+    </button>
+    {% if search %}
+    <a href="{% url 'competitor:list' %}" class="orion-btn orion-btn-ghost orion-btn-sm">
+      <i class="bi bi-x"></i>
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="row g-3">
+  {% for c in competitors %}
+  <div class="col-sm-6 col-xl-4">
+    <div class="card erp-card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {% if c.logo %}
+          <img src="{{ c.logo.url }}" height="48" class="rounded">
+          {% else %}
+          <div class="rounded d-flex align-items-center justify-content-center bg-light" style="width:48px;height:48px">
+            <i class="bi bi-building text-secondary fs-4"></i>
+          </div>
+          {% endif %}
+          <div>
+            <h6 class="mb-0 fw-bold">{{ c.name }}</h6>
+            <small class="text-muted">{{ c.industry|default:"—" }} · {{ c.country }}</small>
+          </div>
+          <div class="ms-auto">
+            <span class="badge {% if c.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if c.is_active %}Actif{% else %}Inactif{% endif %}
+            </span>
+          </div>
+        </div>
+        <div class="row g-2 text-center mb-3">
+          <div class="col-4">
+            <div class="fw-bold">{{ c.products_count }}</div>
+            <div class="text-muted" style="font-size:.7rem">Produits</div>
+          </div>
+          <div class="col-4">
+            <div class="fw-bold">{{ c.advantages.count }}</div>
+            <div class="text-muted" style="font-size:.7rem">Avantages</div>
+          </div>
+          <div class="col-4">
+            {% if c.alerts_count %}<div class="fw-bold text-danger">{{ c.alerts_count }}</div>
+            {% else %}<div class="fw-bold text-muted">0</div>{% endif %}
+            <div class="text-muted" style="font-size:.7rem">Alertes</div>
+          </div>
+        </div>
+        {% if c.website_url %}
+        <a href="{{ c.website_url }}" target="_blank" class="text-muted small d-block mb-2 text-truncate">
+          <i class="bi bi-globe2 me-1"></i>{{ c.website_url }}
+        </a>
+        {% endif %}
+        <div class="d-flex gap-2 mt-3">
+          <a href="{% url 'competitor:detail' c.pk %}" class="orion-btn orion-btn-primary orion-btn-sm flex-grow-1">
+            <i class="bi bi-eye"></i> Voir
+          </a>
+          <a href="{% url 'competitor:edit' c.pk %}" class="orion-btn orion-btn-outline orion-btn-sm">
+            <i class="bi bi-pencil"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="card erp-card">
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-binoculars fs-1 d-block mb-3 opacity-25"></i>
+        <p>Aucun concurrent. <a href="{% url 'competitor:create' %}">Ajouter le premier concurrent</a></p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

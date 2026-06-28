@@ -1,0 +1,219 @@
+/*
+ * Orion ERP — Responsive
+ * Breakpoints : 1100 · 860 · 640 · 480
+ */
+
+/* ── 1100px : sidebar glisse en mobile ─────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .orion-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .orion-sidebar-v2 {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 60;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 8px 0 40px rgba(20, 17, 15, 0.3);
+  }
+
+  body.orion-sidebar-open .orion-sidebar-v2 {
+    transform: translateX(0);
+  }
+
+  .orion-topbar-v2 {
+    padding: 0 14px;
+  }
+
+  .orion-topbar-user-info,
+  .orion-topbar-company {
+    display: none;
+  }
+
+  .orion-content-v2 {
+    padding: 18px;
+  }
+
+  /* Masque le texte "Réduire" du footer sidebar */
+  .orion-sidebar-toggle-label {
+    display: none;
+  }
+}
+
+/* ── 860px : layout vertical, search compact ─────────────────────────────── */
+@media (max-width: 860px) {
+  .orion-topbar-v2 {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--orion-topbar-height);
+    padding: 10px 14px;
+  }
+
+  .orion-topbar-center {
+    order: 3;
+    max-width: 100%;
+    width: 100%;
+    flex: none;
+  }
+
+  .orion-content-v2 {
+    padding: 14px;
+  }
+
+  .orion-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .orion-page-actions {
+    flex-wrap: wrap;
+  }
+
+  /* Cards métriques → 2 col */
+  .orion-metric {
+    grid-column: span 6;
+  }
+
+  /* Tableaux → scroll horizontal */
+  .orion-table-card {
+    overflow-x: auto;
+  }
+
+  .orion-table {
+    min-width: 640px;
+  }
+
+  /* Cache certains th */
+  .orion-table th.hide-mobile,
+  .orion-table td.hide-mobile {
+    display: none;
+  }
+
+  /* Drawer full width */
+  .orion-drawer {
+    width: 100%;
+  }
+}
+
+/* ── 640px : mobile ──────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .orion-content-v2 {
+    padding: 12px;
+  }
+
+  .orion-dash-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .orion-metric {
+    grid-column: span 1;
+  }
+
+  .orion-metric-value {
+    font-size: 26px;
+  }
+
+  .orion-dash-panel,
+  .orion-dash-panel.half,
+  .orion-dash-panel.third {
+    grid-column: span 1;
+  }
+
+  /* Tabs → scroll */
+  .orion-tabs-v2 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .orion-tabs-v2::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Table actions toujours visibles */
+  .orion-table-actions {
+    opacity: 1;
+  }
+
+  /* Pagination simplifiée */
+  .orion-pagination-info {
+    display: none;
+  }
+
+  /* Boutons full width */
+  .orion-page-actions .orion-btn {
+    flex: 1;
+  }
+
+  /* Confirm modal */
+  .orion-confirm-modal {
+    max-width: 100%;
+  }
+}
+
+/* ── 480px : très petits écrans ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .orion-topbar-v2 {
+    padding: 8px 12px;
+  }
+
+  .orion-card-body {
+    padding: 14px;
+  }
+
+  .orion-table-toolbar {
+    flex-wrap: wrap;
+    min-height: auto;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .orion-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .orion-welcome-date {
+    text-align: left;
+  }
+
+  .orion-metric-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* ── Print ───────────────────────────────────────────────────────────────── */
+@media print {
+  .orion-sidebar-v2,
+  .orion-topbar-v2,
+  .orion-sidebar-overlay,
+  .orion-toast-container-v2,
+  .orion-page-actions {
+    display: none !important;
+  }
+
+  .orion-shell {
+    display: block;
+  }
+
+  .orion-content-v2 {
+    padding: 0;
+  }
+
+  .orion-table-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .orion-table tbody tr:hover td {
+    background: transparent;
+  }
+}

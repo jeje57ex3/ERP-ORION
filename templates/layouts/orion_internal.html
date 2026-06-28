@@ -1,0 +1,124 @@
+{% load static %}
+<!doctype html>
+<html lang="fr" class="orion-internal" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Orion ERP{% endblock %} — {{ brand_name|default:"Orion ERP" }}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/brand/orion-icon.svg' %}">
+
+  {# Bootstrap 5 #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  {# Bootstrap Icons #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  {# Google Fonts #}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {# Orion Internal Design System #}
+  <link rel="stylesheet" href="{% static 'orion/css/orion-internal.css' %}">
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="orion-internal {% block body_class %}{% endblock %}">
+
+  <div class="{% block shell_class %}orion-app-shell{% endblock %}" id="orionShell">
+
+    {# ── Sidebar ──────────────────────────────────────────────────────── #}
+    {% block sidebar %}
+      {% include "layouts/_orion_internal_sidebar.html" %}
+    {% endblock %}
+
+    {# ── Zone principale ──────────────────────────────────────────────── #}
+    <div class="orion-main" id="orionMain">
+
+      {# ── Topbar ───────────────────────────────────────────────────── #}
+      {% block topbar %}
+      <div class="orion-topbar" id="orionTopbar">
+        {# Bouton mobile toggle sidebar #}
+        <button class="orion-sidebar-toggle d-md-none" type="button"
+                onclick="document.body.classList.toggle('orion-sidebar-open')"
+                aria-label="Ouvrir le menu" aria-controls="orionSidebar">
+          <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+
+        {# Titre de page #}
+        <span class="orion-topbar-title">{% block topbar_title %}{{ page_title|default:"" }}{% endblock %}</span>
+
+        {# Actions topbar #}
+        <div class="orion-topbar-actions">
+          {% block topbar_actions %}{% endblock %}
+          {% if request.user.is_superuser %}
+          <a href="{% url 'orion_admin:dashboard' %}" class="orion-btn sm ghost" title="Super Admin">
+            <i class="bi bi-shield-check" aria-hidden="true"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endblock %}
+
+      {# ── Contenu ──────────────────────────────────────────────────── #}
+      <main class="{% block main_class %}orion-page{% endblock %}" id="orionContent" role="main">
+
+        {# Breadcrumb #}
+        {% block breadcrumb %}{% endblock %}
+
+        {# En-tête de page #}
+        {% block page_header %}
+          {% if page_title %}
+          <div class="orion-page-header">
+            <div>
+              <h1 class="orion-page-title">{{ page_title }}</h1>
+              {% if page_subtitle %}
+              <p class="orion-page-subtitle">{{ page_subtitle }}</p>
+              {% endif %}
+            </div>
+            <div class="orion-page-actions">{% block page_actions %}{% endblock %}</div>
+          </div>
+          {% endif %}
+        {% endblock %}
+
+        {# Messages Django #}
+        {% include "layouts/_messages.html" %}
+
+        {# Contenu principal #}
+        {% block content %}{% endblock %}
+
+      </main>
+
+      {# ── Footer ───────────────────────────────────────────────────── #}
+      {% block footer %}
+      <footer class="orion-footer">
+        <span>{{ brand_name|default:"Orion ERP" }}</span>
+        <span class="sep">·</span>
+        <span>© {% now "Y" %}</span>
+        {% if current_company %}
+        <span class="sep">·</span>
+        <span>{{ current_company.name }}</span>
+        {% endif %}
+        <span class="sep">·</span>
+        <span style="opacity:.5">v1.0</span>
+      </footer>
+      {% endblock %}
+
+    </div>
+    {# /ZONE PRINCIPALE #}
+
+  </div>
+  {# /SHELL #}
+
+  {# Overlay sidebar mobile #}
+  <div class="orion-sidebar-overlay" id="orionSidebarOverlay"
+       onclick="document.body.classList.remove('orion-sidebar-open')"></div>
+
+  {# Toast container #}
+  <div class="orion-toast-container" id="orionToastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  {# Modals supplémentaires #}
+  {% block extra_modals %}{% endblock %}
+
+  {# Bootstrap 5 JS #}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

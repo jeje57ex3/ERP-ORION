@@ -1,0 +1,222 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'competitor:dashboard' %}">Concurrents</a></li>
+<li class="breadcrumb-item"><a href="{% url 'competitor:list' %}">Liste</a></li>
+<li class="breadcrumb-item active">{{ competitor.name }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'competitor:add_product' competitor.pk %}" class="orion-btn orion-btn-outline orion-btn-sm">
+  <i class="bi bi-plus"></i> Produit
+</a>
+<a href="{% url 'competitor:add_advantage' competitor.pk %}" class="orion-btn orion-btn-outline orion-btn-sm">
+  <i class="bi bi-award"></i> Avantage
+</a>
+<a href="{% url 'competitor:edit' competitor.pk %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-pencil"></i> Modifier
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div class="d-flex align-items-center gap-3">
+    {% if competitor.logo %}
+    <img src="{{ competitor.logo.url }}" height="56" class="rounded">
+    {% endif %}
+    <div>
+      <h1 class="orion-page-title mb-0">{{ competitor.name }}</h1>
+      <p class="orion-page-subtitle mb-0">{{ competitor.industry|default:"" }} · {{ competitor.country }}</p>
+      {% if competitor.website_url %}
+      <a href="{{ competitor.website_url }}" target="_blank" class="text-muted small">
+        <i class="bi bi-box-arrow-up-right me-1"></i>{{ competitor.website_url }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Score + KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color:#6366F1">
+      <div class="orion-kpi-icon" style="background:rgba(99,102,241,.12);color:#6366F1">
+        <i class="bi bi-star-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ score }}<span class="fs-6 fw-normal">/100</span></div>
+        <div class="orion-kpi-label">Score global</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
+      <div class="orion-kpi-icon" style="background:rgba(8,145,178,.12);color:var(--orion-info)">
+        <i class="bi bi-grid-3x3"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ products.count }}</div>
+        <div class="orion-kpi-label">Produits suivis</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-success)">
+      <div class="orion-kpi-icon" style="background:rgba(22,163,74,.12);color:var(--orion-success)">
+        <i class="bi bi-award"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ advantages.count }}</div>
+        <div class="orion-kpi-label">Avantages</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-secondary)">
+      <div class="orion-kpi-icon" style="background:rgba(198,161,91,.12);color:var(--orion-secondary)">
+        <i class="bi bi-bar-chart-line"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">
+          {% if traffic %}~{{ traffic.estimated_monthly_visitors|intcomma }}{% else %}—{% endif %}
+        </div>
+        <div class="orion-kpi-label">Visiteurs/mois <em class="text-muted">(estimés)</em></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Produits -->
+  <div class="col-lg-8">
+    <div class="card erp-card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-grid-3x3 me-2 text-info"></i>Produits suivis</h5>
+        <a href="{% url 'competitor:add_product' competitor.pk %}" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-plus"></i> Ajouter
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if products %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Remise</th><th>Dispo</th></tr>
+            </thead>
+            <tbody>
+              {% for p in products|slice:":15" %}
+              <tr>
+                <td>
+                  {{ p.name|truncatechars:45 }}
+                  {% if p.product_url %}<a href="{{ p.product_url }}" target="_blank" class="ms-1 text-muted"><i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+                </td>
+                <td class="text-muted">{{ p.category|default:"—" }}</td>
+                <td>{{ p.price_display }}</td>
+                <td>{% if p.discount_percent %}<span class="badge bg-danger">-{{ p.discount_percent }}%</span>{% else %}—{% endif %}</td>
+                <td>
+                  <span class="badge {% if p.availability == 'in_stock' %}bg-success{% elif p.availability == 'out_of_stock' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    {{ p.get_availability_display }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <small>Aucun produit. <a href="{% url 'competitor:add_product' competitor.pk %}">Ajouter</a></small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- SWOT / Recommandations -->
+    {% if recommendations %}
+    <div class="card erp-card mb-4">
+      <div class="card-header"><h5 class="mb-0"><i class="bi bi-lightbulb me-2 text-warning"></i>Recommandations</h5></div>
+      <div class="card-body">
+        <ul class="mb-0">
+          {% for r in recommendations %}
+          <li class="mb-1">{{ r }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Avantages -->
+    <div class="card erp-card mb-4">
+      <div class="card-header d-flex justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-award me-2 text-success"></i>Top avantages</h5>
+        <a href="{% url 'competitor:add_advantage' competitor.pk %}" class="btn btn-sm btn-outline-success">+</a>
+      </div>
+      <div class="card-body p-0">
+        {% if advantages %}
+        <ul class="list-group list-group-flush">
+          {% for adv in advantages %}
+          <li class="list-group-item d-flex gap-2 align-items-start">
+            <span class="badge bg-primary mt-1">{{ adv.score }}/10</span>
+            <div>
+              <div class="fw-semibold small">{{ adv.title }}</div>
+              <small class="text-muted">{{ adv.get_advantage_type_display }}</small>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">
+          <a href="{% url 'competitor:add_advantage' competitor.pk %}">Ajouter un avantage</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Alertes -->
+    <div class="card erp-card mb-4">
+      <div class="card-header d-flex justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-bell me-2 text-danger"></i>Alertes</h5>
+        <a href="{% url 'competitor:alerts' %}" class="btn btn-sm btn-outline-secondary">Voir</a>
+      </div>
+      <div class="card-body p-0">
+        {% if alerts %}
+        <ul class="list-group list-group-flush">
+          {% for alert in alerts|slice:":5" %}
+          <li class="list-group-item">
+            <div class="d-flex gap-2">
+              <i class="{{ alert.severity_icon }} text-{{ alert.severity_color }} mt-1"></i>
+              <div>
+                <div class="small fw-semibold">{{ alert.title|truncatechars:50 }}</div>
+                <div class="text-muted" style="font-size:.7rem">{{ alert.created_at|date:"d/m H:i" }}</div>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">Aucune alerte</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Actions</h5></div>
+      <div class="card-body d-grid gap-2">
+        <a href="{% url 'competitor:compare' %}?c={{ competitor.pk }}" class="orion-btn orion-btn-outline">
+          <i class="bi bi-layout-split me-2"></i>Comparer
+        </a>
+        <a href="{% url 'competitor:reports' %}" class="orion-btn orion-btn-outline">
+          <i class="bi bi-file-earmark-bar-graph me-2"></i>Générer rapport
+        </a>
+        <a href="{% url 'competitor:edit' competitor.pk %}" class="orion-btn orion-btn-ghost">
+          <i class="bi bi-pencil me-2"></i>Modifier
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+﻿{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Réservations matériel</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Réservations et locations de matériel audio/AV.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle réservation</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-chips mb-3">
+  <a href="{% url 'audio:reservation_list' %}" class="filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="erp-card">
+  <div class="table-responsive">
+    <table class="table erp-orion-table mb-0">
+      <thead><tr><th>Matériel</th><th>Événement</th><th>Client</th><th>Début</th><th>Fin</th><th class="text-end">Qté</th><th class="text-end">Total HT</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for res in reservations %}
+        <tr>
+          <td class="small fw-semibold">{{ res.equipment.name }}</td>
+          <td class="small text-muted">{{ res.event.name|default:"—" }}</td>
+          <td class="small">{{ res.customer.name|default:"—" }}</td>
+          <td class="small text-muted">{{ res.start_date|date:"d/m/Y" }}</td>
+          <td class="small text-muted">{{ res.end_date|date:"d/m/Y" }}</td>
+          <td class="text-end small">{{ res.quantity }}</td>
+          <td class="text-end small fw-semibold">{{ res.total_amount }} €</td>
+          <td>
+            {% if res.status == 'pending' %}<span class="badge-status badge-pending">En attente</span>
+            {% elif res.status == 'confirmed' %}<span class="badge-status badge-paid">Confirmée</span>
+            {% elif res.status == 'checked_out' %}<span class="badge-status badge-partial">Sorti</span>
+            {% elif res.status == 'returned' %}<span class="badge-status badge-sent">Rendu</span>
+            {% elif res.status == 'cancelled' %}<span class="badge-status badge-cancelled">Annulée</span>{% endif %}
+          </td>
+          <td><div class="row-actions"></div></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">
+          <div class="empty-state">
+            <i class="bi bi-calendar-check empty-icon"></i>
+            <h4>Aucune réservation</h4>
+            <p>Réservez du matériel pour un événement ou un client.</p>
+            <a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle réservation</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

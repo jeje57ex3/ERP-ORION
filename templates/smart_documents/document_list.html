@@ -1,0 +1,74 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Documents</div>
+    <h1 class="orion-page-title">Documents intelligents</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% if expiring %}
+<div class="orion-alert warning mb-3">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  <strong>{{ expiring|length }} document(s)</strong> expirent dans les 30 jours.
+  {% for doc in expiring %}
+  <a href="{% url 'smart_documents:detail' doc.pk %}" style="font-size:12px;margin-left:8px">{{ doc.title }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+<form method="get" class="orion-filter-bar mb-3">
+  <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" style="max-width:260px" placeholder="Rechercher…">
+  <select name="type" class="form-select form-select-sm" style="width:auto">
+    <option value="">Tous les types</option>
+    <option value="contract" {% if filter_type == 'contract' %}selected{% endif %}>Contrat</option>
+    <option value="invoice" {% if filter_type == 'invoice' %}selected{% endif %}>Facture</option>
+    <option value="report" {% if filter_type == 'report' %}selected{% endif %}>Rapport</option>
+    <option value="certificate" {% if filter_type == 'certificate' %}selected{% endif %}>Certificat</option>
+    <option value="other" {% if filter_type == 'other' %}selected{% endif %}>Autre</option>
+  </select>
+  <button type="submit" class="orion-btn sm">Filtrer</button>
+  {% if q or filter_type %}
+  <a href="{% url 'smart_documents:list' %}" class="orion-btn sm ghost">Réinitialiser</a>
+  {% endif %}
+</form>
+<div class="orion-card">
+  <div class="orion-orion-orion-card-body p-0">
+    {% if documents %}
+    <div class="list-group list-group-flush">
+      {% for doc in documents %}
+      <div class="list-group-item px-4 py-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-file-earmark-text" style="font-size:22px;color:var(--orion-accent)"></i>
+          <div class="flex-grow-1">
+            <div style="font-weight:600;font-size:14px">
+              <a href="{% url 'smart_documents:detail' doc.pk %}" style="color:inherit;text-decoration:none">{{ doc.title }}</a>
+            </div>
+            <div style="font-size:12px;color:var(--orion-muted)">
+              {{ doc.get_document_type_display }} · v{{ doc.version }}
+              {% if doc.brand_key %} · <span class="orion-badge accent">{{ doc.brand_key }}</span>{% endif %}
+              {% if doc.expires_at %} · Expire le {{ doc.expires_at|date:"d/m/Y" }}{% endif %}
+              {% if doc.is_signed %} · <span class="orion-badge success">Signé</span>{% endif %}
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--orion-muted)">{{ doc.created_at|date:"d/m/Y" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if documents.has_other_pages %}
+    <nav class="orion-pagination p-3">
+      {% if documents.has_previous %}<a href="?page={{ documents.previous_page_number }}&q={{ q }}&type={{ filter_type }}" class="orion-page-btn">‹</a>{% endif %}
+      <span class="orion-page-btn" style="background:var(--orion-accent-soft)">{{ documents.number }}/{{ documents.paginator.num_pages }}</span>
+      {% if documents.has_next %}<a href="?page={{ documents.next_page_number }}&q={{ q }}&type={{ filter_type }}" class="orion-page-btn">›</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-folder2-open" style="font-size:32px;color:var(--orion-muted)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucun document trouvé.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

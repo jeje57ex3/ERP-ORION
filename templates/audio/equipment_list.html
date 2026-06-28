@@ -1,0 +1,79 @@
+﻿{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Parc matériel</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Inventaire du matériel audio, vidéo et éclairage.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'audio:equipment_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau matériel</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-speaker"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ total }}</div><div class="kpi-label">Total matériels</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#16A34A">
+      <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ available }}</div><div class="kpi-label">Disponibles</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-chips mb-3">
+  <a href="{% url 'audio:equipment_list' %}" class="filter-chip {% if not status %}active{% endif %}">Tous</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex align-items-center gap-2">
+    <form method="get" class="ms-auto d-flex gap-2">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Nom, marque, réf..." style="width:220px;">
+      <button class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-orion-table mb-0">
+      <thead><tr><th>Matériel</th><th>Marque / Modèle</th><th>Réf.</th><th class="text-end">Qté dispo</th><th class="text-end">Prix/jour</th><th>État</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for eq in equipment_list %}
+        <tr>
+          <td><a href="{% url 'audio:equipment_detail' eq.pk %}" class="fw-semibold text-dark text-decoration-none small">{{ eq.name }}</a></td>
+          <td><div class="small">{{ eq.brand }}</div><div class="text-muted" style="font-size:11px;">{{ eq.model }}</div></td>
+          <td class="small text-muted">{{ eq.reference|default:"—" }}</td>
+          <td class="text-end small">{{ eq.available_quantity }} / {{ eq.quantity }}</td>
+          <td class="text-end small">{{ eq.rental_price_day }} €</td>
+          <td>
+            {% if eq.status == 'available' %}<span class="badge-status badge-paid">Disponible</span>
+            {% elif eq.status == 'rented' %}<span class="badge-status badge-partial">En location</span>
+            {% elif eq.status == 'maintenance' %}<span class="badge-status badge-pending">Maintenance</span>
+            {% elif eq.status == 'damaged' %}<span class="badge-status badge-overdue">Endommagé</span>
+            {% elif eq.status == 'retired' %}<span class="badge-status badge-cancelled">Retiré</span>
+            {% else %}<span class="badge-status badge-draft">{{ eq.get_status_display }}</span>{% endif %}
+          </td>
+          <td>
+            <div class="row-actions">
+              <a href="{% url 'audio:equipment_detail' eq.pk %}" class="btn btn-icon btn-outline-primary btn-xs" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'audio:equipment_edit' eq.pk %}" class="btn btn-icon btn-outline-secondary btn-xs" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <i class="bi bi-speaker empty-icon"></i>
+            <h4>Aucun matériel</h4>
+            <p>Ajoutez votre premier équipement audio/AV.</p>
+            <a href="{% url 'audio:equipment_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau matériel</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

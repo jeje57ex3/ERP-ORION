@@ -1,0 +1,479 @@
+/* ═══════════════════════════════════════════════════════════
+   Orion ERP — Dashboard personnalisable
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --dashboard-primary:   #3A2A1A;
+  --dashboard-secondary: #C6A15B;
+  --dashboard-accent:    #E8D8B0;
+  --dashboard-bg:        #F8F3EA;
+  --dashboard-surface:   #FFFFFF;
+  --dashboard-border:    #E3D5BD;
+  --dashboard-text:      #2B2118;
+  --dashboard-muted:     #7A6A58;
+  --dashboard-radius:    0.875rem;
+  --dashboard-shadow:    0 2px 12px rgba(58, 42, 26, 0.08);
+  --dashboard-shadow-lg: 0 8px 30px rgba(58, 42, 26, 0.14);
+}
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* ─── Widgets ────────────────────────────────────────────── */
+.dashboard-widget {
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  box-shadow: var(--dashboard-shadow);
+  transition: box-shadow 0.2s, transform 0.15s;
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-widget:hover {
+  box-shadow: var(--dashboard-shadow-lg);
+}
+
+.dashboard-widget.widget-dragging {
+  opacity: 0.55;
+  transform: scale(0.98);
+  box-shadow: var(--dashboard-shadow-lg);
+}
+
+.dashboard-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid rgba(227, 213, 189, 0.5);
+  gap: 0.75rem;
+}
+
+.dashboard-widget-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-widget-title .widget-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.dashboard-widget-title h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dashboard-text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-widget-title p {
+  font-size: 0.72rem;
+  color: var(--dashboard-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-widget-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.dashboard-widget-actions .btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  border-radius: 0.375rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dashboard-widget:hover .dashboard-widget-actions .btn {
+  opacity: 1;
+}
+
+.dashboard-widget-drag-handle {
+  cursor: grab;
+  color: var(--dashboard-muted);
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.dashboard-widget:hover .dashboard-widget-drag-handle {
+  opacity: 0.6;
+}
+
+.dashboard-widget-body {
+  padding: 1rem 1.25rem;
+}
+
+.dashboard-widget-body.p-0 {
+  padding: 0;
+}
+
+.dashboard-widget-footer {
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid rgba(227, 213, 189, 0.5);
+  background: rgba(248, 243, 234, 0.4);
+}
+
+/* ─── Raccourcis ─────────────────────────────────────────── */
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.75rem;
+}
+
+.shortcut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 0.5rem;
+  background: var(--dashboard-surface);
+  border: 1.5px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  text-decoration: none;
+  color: var(--dashboard-text);
+  transition: all 0.2s;
+  position: relative;
+  text-align: center;
+}
+
+.shortcut-card:hover {
+  border-color: var(--dashboard-secondary);
+  background: var(--dashboard-bg);
+  color: var(--dashboard-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(198, 161, 91, 0.2);
+}
+
+.shortcut-card .shortcut-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.shortcut-card .shortcut-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--dashboard-text);
+}
+
+.shortcut-add-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 0.5rem;
+  background: transparent;
+  border: 1.5px dashed var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  text-decoration: none;
+  color: var(--dashboard-muted);
+  transition: all 0.2s;
+  text-align: center;
+  cursor: pointer;
+}
+
+.shortcut-add-card:hover {
+  border-color: var(--dashboard-secondary);
+  color: var(--dashboard-secondary);
+  background: rgba(198, 161, 91, 0.05);
+}
+
+/* ─── KPI Cards ─────────────────────────────────────────── */
+.dashboard-kpi {
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--dashboard-shadow);
+}
+
+.dashboard-kpi-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.dashboard-kpi-body .kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dashboard-primary);
+  line-height: 1;
+}
+
+.dashboard-kpi-body .kpi-label {
+  font-size: 0.78rem;
+  color: var(--dashboard-muted);
+  margin-top: 0.2rem;
+}
+
+/* ─── Widget items ───────────────────────────────────────── */
+.widget-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(227, 213, 189, 0.4);
+  text-decoration: none;
+  color: var(--dashboard-text);
+  transition: background 0.15s;
+}
+
+.widget-item:last-child {
+  border-bottom: none;
+}
+
+.widget-item:hover {
+  color: var(--dashboard-primary);
+}
+
+.widget-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.widget-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.widget-item-title {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--dashboard-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-item-sub {
+  font-size: 0.72rem;
+  color: var(--dashboard-muted);
+}
+
+.widget-item-meta {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--dashboard-muted);
+  text-align: right;
+}
+
+/* ─── Empty state ────────────────────────────────────────── */
+.widget-empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--dashboard-muted);
+}
+
+.widget-empty-state i {
+  font-size: 2.5rem;
+  opacity: 0.35;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.widget-empty-state p {
+  font-size: 0.83rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ─── Dashboard welcome ──────────────────────────────────── */
+.dashboard-welcome {
+  background: linear-gradient(135deg, var(--dashboard-primary), #1A110A);
+  color: white;
+  border-radius: var(--dashboard-radius);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--dashboard-shadow-lg);
+}
+
+.dashboard-welcome-text h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.dashboard-welcome-text p {
+  margin: 0.25rem 0 0;
+  color: rgba(232, 216, 176, 0.7);
+  font-size: 0.85rem;
+}
+
+.dashboard-welcome-date {
+  color: var(--dashboard-secondary);
+  font-size: 0.85rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.dashboard-actions-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+/* ─── Customize panel ────────────────────────────────────── */
+.dashboard-customize-panel {
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius);
+  box-shadow: var(--dashboard-shadow);
+}
+
+.catalog-widget-card {
+  background: var(--dashboard-surface);
+  border: 1.5px solid var(--dashboard-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.catalog-widget-card:hover {
+  border-color: var(--dashboard-secondary);
+  box-shadow: 0 4px 12px rgba(198, 161, 91, 0.15);
+}
+
+.catalog-widget-card.already-added {
+  opacity: 0.6;
+  background: var(--dashboard-bg);
+}
+
+.catalog-widget-card .widget-icon-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+  margin-bottom: 0.75rem;
+}
+
+/* ─── Priority badges ────────────────────────────────────── */
+.priority-urgent { color: #DC2626; font-weight: 600; }
+.priority-high   { color: #F59E0B; font-weight: 500; }
+.priority-normal { color: var(--dashboard-muted); }
+.priority-low    { color: #9CA3AF; }
+
+/* ─── Drag & drop sortable ───────────────────────────────── */
+.sortable-ghost {
+  opacity: 0.35;
+  background: var(--dashboard-bg) !important;
+  border: 2px dashed var(--dashboard-secondary) !important;
+}
+
+.sortable-chosen {
+  box-shadow: 0 8px 25px rgba(198, 161, 91, 0.3) !important;
+}
+
+/* ─── Layout chooser ─────────────────────────────────────── */
+.layout-option {
+  border: 2px solid var(--dashboard-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.layout-option:hover, .layout-option.selected {
+  border-color: var(--dashboard-secondary);
+  background: rgba(198, 161, 91, 0.07);
+}
+
+.layout-option-preview {
+  height: 48px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  gap: 3px;
+  align-items: stretch;
+}
+
+.layout-option-preview span {
+  background: var(--dashboard-border);
+  border-radius: 3px;
+  flex: 1;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dashboard-welcome {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+  }
+
+  .dashboard-welcome-date {
+    text-align: center;
+  }
+
+  .dashboard-widget-actions .btn {
+    opacity: 1;
+  }
+
+  .dashboard-widget-drag-handle {
+    opacity: 0.6;
+  }
+
+  .shortcut-grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+
+  .dashboard-actions-bar {
+    gap: 0.35rem;
+  }
+
+  .dashboard-actions-bar .btn {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.75rem;
+  }
+}

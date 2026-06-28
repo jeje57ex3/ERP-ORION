@@ -1,0 +1,21 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"inventory_products_to_reorder" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}{% if data.count %}<span class="badge bg-warning text-dark ms-2">{{ data.count }}</span>{% endif %}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for product in data.products %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <i class="bi bi-boxes text-warning flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <a href="/inventory/products/{{ product.pk }}/" class="text-decoration-none fw-semibold" style="font-size:.84rem">{{ product.name }}</a>
+      {% if product.reference %}<div class="text-muted" style="font-size:.72rem">Réf. {{ product.reference }}</div>{% endif %}
+    </div>
+    <span class="badge {% if product.stock_quantity <= 0 %}bg-danger{% else %}bg-warning text-dark{% endif %} flex-shrink-0" style="font-size:.72rem">{{ product.stock_quantity }} en stock</span>
+  </li>
+  {% endfor %}
+</ul>
+<div class="p-2 text-end"><a href="/inventory/products/?low_stock=1" class="btn btn-sm btn-outline-warning" style="font-size:.75rem">Voir tous</a></div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-boxes text-success"></i><p class="mt-2 mb-0">Tous les stocks sont suffisants.</p></div>
+{% endif %}
+{% endwith %}

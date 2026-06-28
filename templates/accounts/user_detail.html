@@ -1,0 +1,122 @@
+{% extends "erp_base.html" %}
+{% block content %}
+<div class="row g-4">
+
+  {# ── Infos principales ─────────────────────────────────────────────────── #}
+  <div class="col-12 col-md-6">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title">
+          <i class="bi bi-person me-2"></i>{{ user_obj.get_full_name|default:user_obj.username }}
+        </h5>
+        {% if user_obj.is_active %}
+          <span class="orion-badge success">Actif</span>
+        {% else %}
+          <span class="orion-badge neutral">Inactif</span>
+        {% endif %}
+      </div>
+      <div class="orion-orion-orion-card-body">
+        <dl style="display:grid;grid-template-columns:140px 1fr;gap:8px 16px;font-size:13px">
+          <dt style="color:var(--orion-muted)">Identifiant</dt>
+          <dd style="margin:0;font-weight:600">{{ user_obj.username }}</dd>
+          <dt style="color:var(--orion-muted)">Email</dt>
+          <dd style="margin:0">{{ user_obj.email|default:"—" }}</dd>
+          <dt style="color:var(--orion-muted)">Rôle</dt>
+          <dd style="margin:0">
+            {% if user_obj.profile %}
+              <span class="orion-badge {% if user_obj.profile.role in 'superadmin,admin' %}accent{% else %}neutral{% endif %}">
+                {{ user_obj.profile.get_role_display }}
+              </span>
+            {% else %}—{% endif %}
+          </dd>
+          <dt style="color:var(--orion-muted)">Poste</dt>
+          <dd style="margin:0">{{ user_obj.profile.job_title|default:"—" }}</dd>
+          <dt style="color:var(--orion-muted)">Département</dt>
+          <dd style="margin:0">{{ user_obj.profile.department|default:"—" }}</dd>
+          <dt style="color:var(--orion-muted)">Super admin</dt>
+          <dd style="margin:0">
+            {% if user_obj.is_superuser %}
+              <span class="orion-badge warning">Oui</span>
+            {% else %}Non{% endif %}
+          </dd>
+          <dt style="color:var(--orion-muted)">Inscrit le</dt>
+          <dd style="margin:0">{{ user_obj.date_joined|date:"d/m/Y" }}</dd>
+          <dt style="color:var(--orion-muted)">Dernière connexion</dt>
+          <dd style="margin:0">{{ user_obj.last_login|date:"d/m/Y H:i"|default:"—" }}</dd>
+        </dl>
+
+        {% if request.user.is_superuser or request.user.profile.role in 'admin,superadmin' %}
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+          <a href="/admin/auth/user/{{ user_obj.pk }}/change/" class="orion-btn sm">
+            <i class="bi bi-pencil"></i> Modifier
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Salarié lié ───────────────────────────────────────────────────────── #}
+  <div class="col-12 col-md-6">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title"><i class="bi bi-person-badge me-2"></i>Salarié lié</h5>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        {% with employee=user_obj.employee_profile %}{% if employee %}
+          {# Salarié trouvé #}
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div style="width:46px;height:46px;border-radius:12px;background:var(--orion-accent-soft);color:var(--orion-accent-strong);display:grid;place-items:center;font-weight:800;font-size:16px;flex-shrink:0">
+              {{ employee.first_name|slice:":1" }}{{ employee.last_name|slice:":1" }}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:15px">{{ employee.full_name }}</div>
+              {% if employee.job_title %}
+              <div style="font-size:12.5px;color:var(--orion-muted)">{{ employee.job_title }}{% if employee.department %} · {{ employee.department }}{% endif %}</div>
+              {% endif %}
+            </div>
+          </div>
+          <dl style="display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px;margin-bottom:14px">
+            <dt style="color:var(--orion-muted)">N° salarié</dt>
+            <dd style="margin:0">{{ employee.employee_number|default:"—" }}</dd>
+            <dt style="color:var(--orion-muted)">Email professionnel</dt>
+            <dd style="margin:0">{{ employee.email|default:"—" }}</dd>
+            <dt style="color:var(--orion-muted)">Téléphone</dt>
+            <dd style="margin:0">{{ employee.phone|default:"—" }}</dd>
+            <dt style="color:var(--orion-muted)">Entreprise</dt>
+            <dd style="margin:0">{{ employee.company.name|default:"—" }}</dd>
+          </dl>
+          <a href="{% url 'hr:employee_detail' employee.pk %}" class="orion-btn sm">
+            <i class="bi bi-arrow-right-circle"></i> Voir la fiche salarié
+          </a>
+        {% else %}
+          {# Pas de salarié #}
+          {% if user_obj.is_superuser or user_obj.is_staff %}
+            <div style="display:flex;align-items:center;gap:10px;color:var(--orion-muted);font-size:13.5px">
+              <i class="bi bi-shield-check" style="font-size:20px;color:var(--orion-success)"></i>
+              <span>Cet administrateur n'est pas obligé d'être lié à un salarié.</span>
+            </div>
+          {% elif user_obj.profile.role in 'superadmin,admin' %}
+            <div style="display:flex;align-items:center;gap:10px;color:var(--orion-muted);font-size:13.5px">
+              <i class="bi bi-shield-check" style="font-size:20px;color:var(--orion-success)"></i>
+              <span>Cet administrateur ({{ user_obj.profile.get_role_display }}) n'est pas obligé d'avoir une fiche salarié.</span>
+            </div>
+          {% else %}
+            <div style="padding:20px;border:1.5px dashed rgba(180,59,59,.3);background:rgba(180,59,59,.04);border-radius:12px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <i class="bi bi-exclamation-triangle" style="font-size:20px;color:var(--orion-danger)"></i>
+                <span style="color:var(--orion-danger);font-size:13px;font-weight:600">Cet utilisateur doit être lié à une fiche salarié.</span>
+              </div>
+              <a href="{% url 'hr:employee_create' %}?user={{ user_obj.pk }}" class="orion-btn sm primary">
+                <i class="bi bi-plus-circle"></i> Créer une fiche salarié
+              </a>
+            </div>
+          {% endif %}
+        {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

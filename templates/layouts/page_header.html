@@ -1,0 +1,73 @@
+<div class="orion-page-header">
+  <div class="orion-page-header-text">
+    {% if eyebrow %}
+    <p class="orion-page-eyebrow">{{ eyebrow }}</p>
+    {% endif %}
+
+    <h1 class="orion-page-title">
+      {% if icon %}<i class="bi {{ icon }}" aria-hidden="true"></i> {% endif %}
+      {{ title }}
+    </h1>
+
+    {% if subtitle %}
+    <p class="orion-page-subtitle">{{ subtitle }}</p>
+    {% endif %}
+  </div>
+
+  {% if actions %}
+  <div class="orion-page-actions">
+    {{ actions }}
+  </div>
+  {% else %}
+  {% block page_actions %}{% endblock %}
+  {% endif %}
+</div>
+
+<style>
+.orion-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.orion-page-eyebrow {
+  margin: 0 0 6px;
+  color: var(--orion-accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.orion-page-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--orion-text);
+}
+
+.orion-page-title i {
+  opacity: 0.55;
+  font-size: 0.85em;
+  margin-right: 4px;
+}
+
+.orion-page-subtitle {
+  margin: 7px 0 0;
+  color: var(--orion-text-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.orion-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+</style>

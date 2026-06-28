@@ -1,0 +1,79 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+
+{% block title %}{{ supplier.name|default:"Nouveau fournisseur" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'purchases:supplier_list' %}">Fournisseurs</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ supplier.name|default:"Nouveau" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">{{ supplier.name|default:"Nouveau fournisseur" }}</h1>
+      {% if supplier.pk %}<span class="orion-status {% if supplier.is_active %}active{% else %}closed{% endif %}">{{ supplier.is_active|yesno:"Actif,Inactif" }}</span>{% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="supplier-form" type="submit" title="Enregistrer"><i class="bi bi-save"></i></button>
+      {% if supplier.pk %}
+      <a href="{% url 'purchases:supplier_confirm_delete' supplier.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer ce fournisseur ?"><i class="bi bi-trash"></i></a>
+      <div class="orion-toolbar-sep"></div>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>Actions</button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="{% url 'purchases:order_create' %}?supplier={{ supplier.pk }}"><i class="bi bi-cart-plus me-2 text-primary"></i>Créer commande achat</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>Exporter fiche</a></li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <form id="supplier-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+    <div class="orion-record-grid">
+      <div class="orion-record-panel">
+        <div class="orion-record-panel-header"><i class="bi bi-building text-primary" style="font-size:13px"></i><h2 class="orion-record-panel-title">Informations fournisseur</h2></div>
+        <div class="orion-record-panel-body">
+          <div class="orion-form-row"><label class="required">Raison sociale</label>{{ form.name }}</div>
+          <div class="orion-form-row"><label>SIRET</label>{{ form.siret }}</div>
+          <div class="orion-form-row"><label>N° TVA</label>{{ form.vat_number }}</div>
+          <div class="orion-form-row"><label>Catégorie</label>{{ form.category }}</div>
+          <div class="orion-form-row"><label>Référence interne</label>{{ form.internal_ref }}</div>
+        </div>
+      </div>
+      <div class="orion-record-panel">
+        <div class="orion-record-panel-header"><i class="bi bi-geo-alt text-muted" style="font-size:13px"></i><h2 class="orion-record-panel-title">Coordonnées & Conditions</h2></div>
+        <div class="orion-record-panel-body">
+          <div class="orion-form-row"><label>Email</label>{{ form.email }}</div>
+          <div class="orion-form-row"><label>Téléphone</label>{{ form.phone }}</div>
+          <div class="orion-form-row"><label>Adresse</label>{{ form.address }}</div>
+          <div class="orion-form-row"><label>Ville</label>{{ form.city }}</div>
+          <div class="orion-form-row"><label>Délai livraison (j.)</label>{{ form.lead_time }}</div>
+          <div class="orion-form-row"><label>Conditions paiement</label>{{ form.payment_terms }}</div>
+          <div class="orion-form-row"><label>Notes</label>{{ form.notes }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="orion-form-actions">
+      <a href="{% url 'purchases:supplier_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+    </div>
+  </form>
+  {% if supplier.pk %}
+  <div class="orion-bottom-tabs">
+    <div class="orion-bottom-tabs-nav">
+      <button class="orion-bottom-tab active" data-tab="s-orders"><i class="bi bi-basket"></i> Commandes</button>
+      <button class="orion-bottom-tab" data-tab="s-invoices"><i class="bi bi-receipt"></i> Factures</button>
+      <button class="orion-bottom-tab" data-tab="s-products"><i class="bi bi-box"></i> Produits</button>
+    </div>
+    <div class="orion-bottom-tab-content active" id="s-orders"><div class="orion-tab-empty"><i class="bi bi-basket"></i>Aucune commande</div></div>
+    <div class="orion-bottom-tab-content" id="s-invoices"><div class="orion-tab-empty"><i class="bi bi-receipt"></i>Aucune facture</div></div>
+    <div class="orion-bottom-tab-content" id="s-products"><div class="orion-tab-empty"><i class="bi bi-box"></i>Aucun produit</div></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

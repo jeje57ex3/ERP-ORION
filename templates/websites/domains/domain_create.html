@@ -1,0 +1,113 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Ajouter un domaine{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">Domaines</a></li>
+<li class="breadcrumb-item active">Ajouter</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="card border-0 shadow-sm">
+      <div class="orion-orion-card-body p-4">
+        <h5 class="fw-semibold mb-1"><i class="bi bi-plus-circle me-2 text-primary"></i>Ajouter un domaine</h5>
+        <p class="text-muted small mb-4">Connectez un nom de domaine ou sous-domaine à un site, une boutique, ou votre ERP.</p>
+
+        {% if form.non_field_errors %}
+        <div class="orion-alert danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {# Domaine #}
+          <div class="mb-4">
+            <label class="form-label fw-medium">{{ form.domain.label }} <span class="text-danger">*</span></label>
+            {{ form.domain }}
+            {% if form.domain.errors %}<div class="invalid-feedback d-block">{{ form.domain.errors.as_text }}</div>{% endif %}
+            <div class="form-text">{{ form.domain.help_text }}</div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-medium">{{ form.domain_type.label }}</label>
+              {{ form.domain_type }}
+              {% if form.domain_type.errors %}<div class="invalid-feedback d-block">{{ form.domain_type.errors.as_text }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-medium">{{ form.target_type.label }}</label>
+              {{ form.target_type }}
+              {% if form.target_type.errors %}<div class="invalid-feedback d-block">{{ form.target_type.errors.as_text }}</div>{% endif %}
+              <div class="form-text">{{ form.target_type.help_text }}</div>
+            </div>
+          </div>
+
+          {# Site relié #}
+          <div class="mb-4" id="websiteField">
+            <label class="form-label fw-medium">{{ form.website.label }}</label>
+            {{ form.website }}
+            <div class="form-text">{{ form.website.help_text }}</div>
+          </div>
+
+          {# Options #}
+          <div class="mb-4">
+            <label class="form-label fw-medium d-block mb-2">Options</label>
+            <div class="form-check mb-2">
+              {{ form.force_https }}
+              <label class="form-check-label" for="{{ form.force_https.id_for_label }}">
+                {{ form.force_https.label }}
+              </label>
+            </div>
+            <div class="form-check">
+              {{ form.redirect_www }}
+              <label class="form-check-label" for="{{ form.redirect_www.id_for_label }}">
+                {{ form.redirect_www.label }}
+              </label>
+            </div>
+          </div>
+
+          {# Info DNS #}
+          <div class="orion-alert info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Orion ERP ne modifie pas automatiquement votre DNS.</strong>
+            Après avoir ajouté le domaine, vous recevrez les enregistrements DNS à ajouter chez votre registrar (OVH, Cloudflare, Gandi, Ionos…).
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-orion-btn primary">
+              <i class="bi bi-plus-circle me-1"></i> Ajouter le domaine
+            </button>
+            <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline">
+              Annuler
+            </a>
+            <a href="{% url 'websites:domain_wizard' %}" class="orion-btn orion-btn-outline ms-auto">
+              <i class="bi bi-magic me-1"></i> Utiliser l'assistant
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Masquer le champ site si la cible est ERP ou portail
+const targetSelect = document.getElementById('{{ form.target_type.id_for_label }}');
+const websiteField = document.getElementById('websiteField');
+function toggleWebsiteField() {
+  const target = targetSelect.value;
+  websiteField.style.display = ['erp'].includes(target) ? 'none' : '';
+}
+if (targetSelect) {
+  targetSelect.addEventListener('change', toggleWebsiteField);
+  toggleWebsiteField();
+}
+</script>
+{% endblock %}

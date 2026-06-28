@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 20px">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,.08)">
+
+  <tr>
+    <td style="background:#1C120A;padding:32px 40px;text-align:center">
+      <h1 style="margin:0;color:#D4A843;font-size:1.5rem;font-weight:700">{{ company.name }}</h1>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:40px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="width:64px;height:64px;background:#dcfce7;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem">✅</div>
+      </div>
+      <h2 style="margin:0 0 12px;color:#1a0e05;font-size:1.2rem;font-weight:700;text-align:center">
+        Votre espace client est activé !
+      </h2>
+      <p style="margin:0 0 16px;color:#374151;font-size:.92rem;line-height:1.6">
+        Bonjour <strong>{{ first_name }}</strong>,
+      </p>
+      <p style="margin:0 0 24px;color:#374151;font-size:.92rem;line-height:1.6">
+        Bonne nouvelle ! Votre espace client chez <strong>{{ company.name }}</strong>
+        est maintenant actif. Vous pouvez dès à présent vous connecter pour accéder
+        à vos projets, documents, devis et factures.
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center" style="padding:8px 0 32px">
+            <a href="{{ login_url }}"
+               style="display:inline-block;background:#D4A843;color:#1a0e05;font-weight:700;text-decoration:none;border-radius:9px;padding:14px 36px;font-size:1rem">
+              Accéder à mon espace client
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#9ca3af;font-size:.8rem;line-height:1.5">
+        Utilisez l'adresse email de votre inscription et le mot de passe choisi lors de la création de votre compte.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #f3f4f6">
+      <p style="margin:0;color:#9ca3af;font-size:.75rem">{{ company.name }} — Portail client</p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

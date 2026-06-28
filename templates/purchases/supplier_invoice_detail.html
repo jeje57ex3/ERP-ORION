@@ -1,0 +1,82 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'purchases:supplier_invoice_list' %}">Factures fournisseurs</a></li>
+<li class="breadcrumb-item active">{{ invoice.supplier_ref|default:invoice.pk }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">Facture {{ invoice.supplier_ref|default:"—" }}</h1>
+      <div class="detail-meta">
+        <span class="badge-status badge-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
+        <span><i class="bi bi-building me-1"></i>{{ invoice.supplier.name }}</span>
+        <span><i class="bi bi-calendar me-1"></i>{{ invoice.issue_date|date:"d/m/Y" }}</span>
+        {% if invoice.due_date %}
+        <span class="{% if invoice.due_date < today and invoice.status != 'paid' %}text-danger fw-semibold{% endif %}">
+          <i class="bi bi-alarm me-1"></i>Échéance {{ invoice.due_date|date:"d/m/Y" }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      {% if invoice.status == 'pending' %}
+      <form method="post" action="{% url 'purchases:supplier_invoice_approve' invoice.pk %}" class="d-inline">
+        {% csrf_token %}<button class="orion-btn primary orion-btn sm"><i class="bi bi-check-circle me-1"></i>Approuver</button>
+      </form>
+      {% endif %}
+      {% if invoice.status != 'paid' %}
+      <form method="post" action="{% url 'purchases:supplier_invoice_mark_paid' invoice.pk %}" class="d-inline">
+        {% csrf_token %}<button class="orion-btn success orion-btn sm"><i class="bi bi-currency-euro me-1"></i>Marquer payée</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'purchases:supplier_invoice_edit' invoice.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'purchases:supplier_invoice_delete' invoice.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'purchases:supplier_invoice_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-calculator me-1 text-primary"></i>Montants</h6></div>
+      <div class="d-flex justify-content-end p-3">
+        <table class="totals-table" style="min-width:280px">
+          <tr><td class="text-muted">Total HT</td><td class="text-end fw-semibold">{{ invoice.total_ht|floatformat:2 }} €</td></tr>
+          <tr><td class="text-muted">TVA</td><td class="text-end">{{ invoice.total_tva|floatformat:2 }} €</td></tr>
+          <tr class="total-row"><td>Total TTC</td><td class="text-end">{{ invoice.total_ttc|floatformat:2 }} €</td></tr>
+        </table>
+      </div>
+    </div>
+    {% if invoice.notes %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="p-3 small text-muted">{{ invoice.notes|linebreaks }}</div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Fournisseur</label><div class="value"><a href="{% url 'purchases:supplier_detail' invoice.supplier.pk %}">{{ invoice.supplier.name }}</a></div></div>
+        <div class="info-item"><label>Réf. fournisseur</label><div class="value {% if not invoice.supplier_ref %}empty{% endif %}">{{ invoice.supplier_ref|default:"—" }}</div></div>
+        <div class="info-item"><label>Date émission</label><div class="value">{{ invoice.issue_date|date:"d/m/Y" }}</div></div>
+        <div class="info-item"><label>Date échéance</label><div class="value {% if not invoice.due_date %}empty{% endif %}">{{ invoice.due_date|date:"d/m/Y"|default:"—" }}</div></div>
+        {% if invoice.purchase_order %}
+        <div class="info-item"><label>Commande liée</label><div class="value"><a href="{% url 'purchases:order_detail' invoice.purchase_order.pk %}">{{ invoice.purchase_order.number }}</a></div></div>
+        {% endif %}
+      </div>
+    </div>
+    {% if invoice.status == 'paid' %}
+    <div class="orion-alert success d-flex align-items-center gap-2 small"><i class="bi bi-check-circle-fill fs-5"></i><div>Facture payée</div></div>
+    {% elif invoice.due_date and invoice.due_date < today and invoice.status != 'paid' %}
+    <div class="orion-alert danger d-flex align-items-center gap-2 small"><i class="bi bi-exclamation-circle-fill fs-5"></i><div>Paiement en retard</div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

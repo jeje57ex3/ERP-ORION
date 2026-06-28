@@ -1,0 +1,228 @@
+{% load dashboard_tags %}
+{% with new_orders=widget_data|dict_get:"lunea_new_orders" %}
+{% with to_prepare=widget_data|dict_get:"lunea_orders_to_prepare" %}
+{% with shade_stock=widget_data|dict_get:"lunea_low_shade_stock" %}
+{% with best_sellers=widget_data|dict_get:"lunea_best_sellers" %}
+{% with reviews=widget_data|dict_get:"lunea_pending_reviews" %}
+{% with revenue=widget_data|dict_get:"lunea_revenue_today" %}
+{% with shade_alerts=widget_data|dict_get:"lunea_shade_alerts" %}
+{% with gift_cards=widget_data|dict_get:"lunea_gift_cards_active" %}
+{% with loyalty=widget_data|dict_get:"lunea_loyalty_points_issued" %}
+{% with newsletter=widget_data|dict_get:"lunea_newsletter_subscribers" %}
+{% with renewals=widget_data|dict_get:"lunea_subscription_renewals" %}
+{% with abandoned=widget_data|dict_get:"lunea_abandoned_carts" %}
+{% with conversion=widget_data|dict_get:"lunea_conversion_rate" %}
+{% with quiz=widget_data|dict_get:"lunea_beauty_quiz_completions" %}
+{% with samples=widget_data|dict_get:"lunea_samples_sent" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'lunea_new_orders' %}
+  {% if new_orders.has_data %}
+  <div class="mb-2"><span class="badge" style="background:#C4936A">{{ new_orders.count }} commande(s) aujourd'hui</span></div>
+  {% for o in new_orders.orders %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fdf4ec;color:#C4936A"><i class="bi bi-bag-heart"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">Commande #{{ o.pk }}</div>
+      <div class="widget-item-sub">{{ o.created_at|date:"d/m H:i" }} — {{ o.get_status_display|default:o.status }}</div>
+    </div>
+    <span class="badge bg-light text-dark" style="font-size:.7rem">{{ o.total_amount|floatformat:2 }} €</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-bag-heart"></i><p>Aucune commande LUNEA aujourd'hui.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_orders_to_prepare' %}
+  {% if to_prepare.has_data %}
+  <div class="mb-2"><span class="badge bg-danger">{{ to_prepare.count }} commande(s) à préparer</span></div>
+  {% for o in to_prepare.orders %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-box-seam"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">Commande #{{ o.pk }}</div>
+      <div class="widget-item-sub">Reçue le {{ o.created_at|date:"d/m/Y" }}</div>
+    </div>
+    <a href="/lunea/orders/{{ o.pk }}/" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.7rem">Préparer</a>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-box-seam"></i><p>Aucune commande à préparer.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_low_shade_stock' %}
+  {% if shade_stock.has_data %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ shade_stock.count }} teinte(s) en stock faible</span></div>
+  {% for s in shade_stock.shades %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-palette"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ s.name }} — {{ s.product.name|truncatechars:25 }}</div>
+      <div class="widget-item-sub">Stock : {{ s.stock }} unité(s)</div>
+    </div>
+    <span class="badge bg-warning text-dark" style="font-size:.7rem">{{ s.stock }}</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-palette"></i><p>Toutes les teintes sont bien approvisionnées.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_best_sellers' %}
+  {% if best_sellers.has_data %}
+  <div class="mb-2"><span class="badge" style="background:#C4936A">{{ best_sellers.count }} produit(s) best-seller</span></div>
+  {% for p in best_sellers.products %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fdf4ec;color:#C4936A"><i class="bi bi-star-fill"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ p.name|truncatechars:35 }}</div>
+      <div class="widget-item-sub">{{ p.category.name|default:"—" }} · {{ p.price|floatformat:2 }} €</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-star-fill"></i><p>Aucun best-seller configuré.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_pending_reviews' %}
+  {% if reviews.has_data %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ reviews.count }} avis à modérer</span></div>
+  {% for r in reviews.reviews %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-chat-square-text"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.product.name|truncatechars:30 }}</div>
+      <div class="widget-item-sub">Note : {{ r.rating }}/5 — {{ r.created_at|date:"d/m/Y" }}</div>
+    </div>
+    <a href="/lunea/reviews/{{ r.pk }}/approve/" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.7rem">Modérer</a>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-chat-square-text"></i><p>Aucun avis en attente de modération.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_revenue_today' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-cash-stack"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ revenue.revenue|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">{{ revenue.transactions }} transaction(s) LUNEA aujourd'hui</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_shade_alerts' %}
+  {% if shade_alerts.has_data %}
+  <div class="mb-2"><span class="badge bg-danger">{{ shade_alerts.count }} alerte(s) de stock</span></div>
+  {% for a in shade_alerts.alerts %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-exclamation-diamond"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ a.shade.name }} — {{ a.shade.product.name|truncatechars:25 }}</div>
+      <div class="widget-item-sub">{{ a.created_at|date:"d/m/Y H:i" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-exclamation-diamond"></i><p>Aucune alerte de stock teinte.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_gift_cards_active' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-gift"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.4rem;color:var(--dashboard-primary)">{{ gift_cards.total_balance|floatformat:2 }} €</div>
+      <div class="text-muted" style="font-size:.78rem">{{ gift_cards.count }} carte(s)-cadeau active(s)</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_loyalty_points_issued' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#f5f3ff;color:#7C3AED;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-gem"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ loyalty.points_today|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">points fidélité LUNEA émis aujourd'hui</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_newsletter_subscribers' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-envelope-heart"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ newsletter.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">abonnées à la newsletter LUNEA</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_subscription_renewals' %}
+  {% if renewals.has_data %}
+  <div class="mb-2"><span class="badge bg-info">{{ renewals.count }} renouvellement(s) à venir</span></div>
+  {% for s in renewals.subscriptions %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#e0f2fe;color:#0891B2"><i class="bi bi-arrow-repeat"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ s.customer_email|default:"—" }}</div>
+      <div class="widget-item-sub">Prochain prélèvement : {{ s.next_billing_date|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-arrow-repeat"></i><p>Aucun renouvellement dans les 7 jours.</p></div>
+  {% endif %}
+
+{% elif code == 'lunea_abandoned_carts' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fef3c7;color:#D97706;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-cart-x"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ abandoned.count|default:"—" }}</div>
+      <div class="text-muted" style="font-size:.78rem">paniers abandonnés LUNEA</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_conversion_rate' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#dcfce7;color:#16A34A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-graph-up-arrow"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ conversion.rate|floatformat:1 }} %</div>
+      <div class="text-muted" style="font-size:.78rem">taux de conversion LUNEA</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_beauty_quiz_completions' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-question-circle"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ quiz.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">quiz beauté complétés cette semaine</div>
+    </div>
+  </div>
+
+{% elif code == 'lunea_samples_sent' %}
+  <div class="d-flex align-items-center gap-3">
+    <div style="background:#fdf4ec;color:#C4936A;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+      <i class="bi bi-droplet"></i>
+    </div>
+    <div>
+      <div class="fw-bold" style="font-size:1.5rem;color:var(--dashboard-primary)">{{ samples.count|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.78rem">échantillons LUNEA envoyés cette semaine</div>
+    </div>
+  </div>
+
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}
+{% endwith %}

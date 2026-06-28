@@ -1,0 +1,217 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'crm:customer_list' %}">Clients</a></li>
+<li class="breadcrumb-item active">{{ customer.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <div class="company-avatar-lg" style="background:color-mix(in srgb,#2563EB 12%,white);color:#2563EB;font-size:1.4rem">
+          <i class="bi bi-{% if customer.customer_type == 'company' %}building{% else %}person{% endif %}"></i>
+        </div>
+        <div>
+          <h1 class="detail-title mb-0">{{ customer.name }}</h1>
+          <div class="detail-meta">
+            {% if customer.code %}<span><i class="bi bi-tag me-1"></i>{{ customer.code }}</span>{% endif %}
+            {% if customer.city %}<span><i class="bi bi-geo-alt me-1"></i>{{ customer.city }}</span>{% endif %}
+            {% if customer.is_active %}
+              <span class="badge-status badge-won"><i class="bi bi-check-circle me-1"></i>Actif</span>
+            {% else %}
+              <span class="badge-status badge-inactive">Inactif</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'customer_360:view' customer.pk %}" class="btn btn-outline-primary orion-btn sm">
+        <i class="bi bi-person-vcard me-1"></i>Vue 360°
+      </a>
+      <a href="{% url 'crm:customer_edit' customer.pk %}" class="btn btn-outline-secondary orion-btn sm">
+        <i class="bi bi-pencil me-1"></i>Modifier
+      </a>
+      <a href="{% url 'crm:customer_delete' customer.pk %}" class="btn btn-outline-danger orion-btn sm">
+        <i class="bi bi-trash me-1"></i>Supprimer
+      </a>
+      <a href="{% url 'crm:customer_list' %}" class="btn btn-outline-secondary orion-btn sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Tabs -->
+<div class="erp-card mb-3">
+  <div class="erp-tabs px-3 pt-2">
+    <a href="?tab=info" class="erp-tab {% if active_tab == 'info' %}active{% endif %}">
+      <i class="bi bi-person-lines-fill me-1"></i>Informations
+    </a>
+    <a href="?tab=contacts" class="erp-tab {% if active_tab == 'contacts' %}active{% endif %}">
+      <i class="bi bi-people me-1"></i>Contacts
+      {% if contacts.count %}<span class="tab-count">{{ contacts.count }}</span>{% endif %}
+    </a>
+    <a href="?tab=quotes" class="erp-tab {% if active_tab == 'quotes' %}active{% endif %}">
+      <i class="bi bi-file-text me-1"></i>Devis
+    </a>
+    <a href="?tab=invoices" class="erp-tab {% if active_tab == 'invoices' %}active{% endif %}">
+      <i class="bi bi-receipt me-1"></i>Factures
+    </a>
+    <a href="?tab=history" class="erp-tab {% if active_tab == 'history' %}active{% endif %}">
+      <i class="bi bi-clock-history me-1"></i>Historique
+    </a>
+  </div>
+</div>
+
+<!-- Tab content -->
+{% if active_tab == 'info' or not active_tab %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-person me-1 text-primary"></i>Coordonnées</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Raison sociale</label><div class="value">{{ customer.name }}</div></div>
+        <div class="info-item"><label>Type</label><div class="value">{{ customer.get_customer_type_display }}</div></div>
+        <div class="info-item"><label>Contact principal</label><div class="value {% if not customer.contact_name %}empty{% endif %}">{{ customer.contact_name|default:"—" }}</div></div>
+        <div class="info-item"><label>Email</label><div class="value">{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>Téléphone</label><div class="value">{{ customer.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>Mobile</label><div class="value">{{ customer.mobile|default:"—" }}</div></div>
+        <div class="info-item"><label>Adresse</label><div class="value">{{ customer.address|default:"—" }}</div></div>
+        <div class="info-item"><label>Ville / CP</label><div class="value">{{ customer.city|default:"—" }}{% if customer.zip_code %} {{ customer.zip_code }}{% endif %}</div></div>
+        <div class="info-item"><label>Pays</label><div class="value">{{ customer.country }}</div></div>
+        <div class="info-item"><label>Site web</label><div class="value">{% if customer.website %}<a href="{{ customer.website }}" target="_blank">{{ customer.website }}</a>{% else %}—{% endif %}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-briefcase me-1 text-primary"></i>Informations commerciales</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>SIRET</label><div class="value">{{ customer.siret|default:"—" }}</div></div>
+        <div class="info-item"><label>N° TVA</label><div class="value">{{ customer.vat_number|default:"—" }}</div></div>
+        <div class="info-item"><label>Délai paiement</label><div class="value">{{ customer.payment_terms }} jours</div></div>
+        <div class="info-item"><label>Remise</label><div class="value">{{ customer.discount_rate }} %</div></div>
+        {% if customer.credit_limit %}<div class="info-item"><label>Limite crédit</label><div class="value">{{ customer.credit_limit|floatformat:2 }} €</div></div>{% endif %}
+        <div class="info-item"><label>Commercial</label><div class="value {% if not customer.salesperson %}empty{% endif %}">{{ customer.salesperson.get_full_name|default:"Non assigné" }}</div></div>
+      </div>
+    </div>
+    {% if customer.notes %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-journal-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="p-3 small text-muted">{{ customer.notes|linebreaks }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% elif active_tab == 'contacts' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-people me-1"></i>Contacts</h6>
+    <a href="{% url 'crm:contact_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Ajouter</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>Nom</th><th>Poste</th><th>Email</th><th>Téléphone</th><th>Principal</th></tr></thead>
+      <tbody>
+        {% for contact in contacts %}
+        <tr>
+          <td class="fw-semibold">{{ contact.first_name }} {{ contact.last_name }}</td>
+          <td class="text-muted small">{{ contact.job_title|default:"—" }}</td>
+          <td>{% if contact.email %}<a href="mailto:{{ contact.email }}" class="small">{{ contact.email }}</a>{% else %}—{% endif %}</td>
+          <td class="small text-muted">{{ contact.phone|default:"—" }}</td>
+          <td>{% if contact.is_primary %}<span class="badge-status badge-won">Principal</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucun contact</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif active_tab == 'quotes' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-file-text me-1"></i>Devis</h6>
+    <a href="{% url 'sales:quote_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Nouveau devis</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>Numéro</th><th>Date</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for q in quotes %}
+        <tr>
+          <td><a href="{% url 'sales:quote_detail' q.pk %}" class="fw-semibold">{{ q.number|default:"—" }}</a></td>
+          <td class="small">{{ q.issue_date|date:"d/m/Y" }}</td>
+          <td class="small text-muted">{{ q.subject|truncatechars:40|default:"—" }}</td>
+          <td class="fw-semibold">{{ q.total_ttc|floatformat:2 }} €</td>
+          <td><span class="badge-status badge-{{ q.status }}">{{ q.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucun devis</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif active_tab == 'invoices' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0"><i class="bi bi-receipt me-1"></i>Factures</h6>
+    <a href="{% url 'sales:invoice_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Nouvelle facture</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead><tr><th>Numéro</th><th>Date</th><th>Échéance</th><th>Total TTC</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{% url 'sales:invoice_detail' inv.pk %}" class="fw-semibold">{{ inv.number|default:"—" }}</a></td>
+          <td class="small">{{ inv.issue_date|date:"d/m/Y" }}</td>
+          <td class="small {% if inv.is_overdue %}text-danger{% else %}text-muted{% endif %}">{{ inv.due_date|date:"d/m/Y"|default:"—" }}</td>
+          <td class="fw-semibold">{{ inv.total_ttc|floatformat:2 }} €</td>
+          <td><span class="badge-status badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucune facture</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif active_tab == 'history' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-clock-history me-1"></i>Historique des activités</h6></div>
+  <div class="p-3">
+    {% if activities %}
+    <div class="timeline">
+      {% for act in activities %}
+      <div class="timeline-item">
+        <div class="timeline-time">{{ act.date|date:"d/m/Y H:i" }} — {{ act.user.get_full_name|default:act.user.username }}</div>
+        <div class="timeline-content">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge-status badge-info">{{ act.get_activity_type_display }}</span>
+            <strong class="small">{{ act.subject }}</strong>
+          </div>
+          {% if act.description %}<p class="small text-muted mb-0">{{ act.description }}</p>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-clock-history fs-3 d-block mb-2 opacity-25"></i>
+      Aucune activité enregistrée
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

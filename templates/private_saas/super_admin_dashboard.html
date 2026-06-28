@@ -1,0 +1,140 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Super Admin — Orion ERP{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Super Admin</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Tableau de bord central du SaaS privé Orion ERP.</p>{% endblock %}
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'private_saas:company_create' %}" class="orion-btn orion-orion-btn primary">
+    <i class="bi bi-plus-lg me-1"></i>Nouvelle entreprise
+  </a>
+  <a href="{% url 'private_saas:health' %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-heart-pulse me-1"></i>Santé système
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if saas_settings.maintenance_mode %}
+<div class="orion-alert warning mb-4">
+  <i class="bi bi-cone-striped me-2"></i><strong>Mode maintenance activé</strong> — L'accès aux entreprises est restreint.
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3E8FF;color:#9333EA"><i class="bi bi-building"></i></div>
+      <div class="orion-kpi-value">{{ companies_count }}</div>
+      <div class="orion-kpi-label">Entreprises</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
+      <div class="orion-kpi-value">{{ active_count }}</div>
+      <div class="orion-kpi-label">Actives</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-globe2"></i></div>
+      <div class="orion-kpi-value">{{ sites_count }}</div>
+      <div class="orion-kpi-label">Sites web</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-diagram-3"></i></div>
+      <div class="orion-kpi-value">{{ domains_count }}</div>
+      <div class="orion-kpi-label">Domaines</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FCE7F3;color:#DB2777"><i class="bi bi-people"></i></div>
+      <div class="orion-kpi-value">{{ users_count }}</div>
+      <div class="orion-kpi-label">Utilisateurs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#{{ saas_settings.maintenance_mode|yesno:'FEF3C7,F0FDF4' }};color:#{{ saas_settings.maintenance_mode|yesno:'D97706,16A34A' }}">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div class="orion-kpi-value">{{ saas_settings.maintenance_mode|yesno:"⚠,✓" }}</div>
+      <div class="orion-kpi-label">Mode privé</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="orion-card">
+      <div class="orion-orion-card-header d-flex align-items-center justify-content-between py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-building me-2 text-primary"></i>Entreprises</h6>
+        <a href="{% url 'private_saas:company_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Voir toutes</a>
+      </div>
+      <div class="orion-orion-card-body p-0">
+        <table class="orion-table mb-0">
+          <thead>
+            <tr><th>Entreprise</th><th>Secteur</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for company in companies %}
+            <tr>
+              <td class="fw-medium">{{ company.name }}</td>
+              <td><span class="orion-badge orion-badge-info">{{ company.sector }}</span></td>
+              <td>
+                {% if company.status == 'active' %}
+                  <span class="orion-badge orion-badge-success">Actif</span>
+                {% elif company.status == 'archived' %}
+                  <span class="orion-badge orion-badge-secondary">Archivé</span>
+                {% else %}
+                  <span class="orion-badge orion-badge-warning">{{ company.status }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'private_saas:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Gérer</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Aucune entreprise — <a href="{% url 'private_saas:company_create' %}">Créer la première</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header py-3"><h6 class="mb-0 fw-semibold"><i class="bi bi-archive me-2 text-primary"></i>Sauvegardes récentes</h6></div>
+      <div class="list-group list-group-flush">
+        {% for backup in recent_backups %}
+        <div class="list-group-item px-3 py-2">
+          <div class="d-flex justify-content-between">
+            <span class="fw-medium small">{{ backup.company.name }}</span>
+            <span class="orion-badge {% if backup.status == 'success' %}orion-badge-success{% else %}orion-badge-danger{% endif %}">{{ backup.get_status_display }}</span>
+          </div>
+          <div class="text-muted small">{{ backup.created_at|date:"d/m/Y H:i" }} — {{ backup.size_display }}</div>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted small py-3 text-center">Aucune sauvegarde</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-orion-card-header py-3"><h6 class="mb-0 fw-semibold"><i class="bi bi-gear me-2 text-primary"></i>Raccourcis</h6></div>
+      <div class="orion-orion-card-body d-grid gap-2">
+        <a href="{% url 'private_saas:company_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-lg me-1"></i>Nouvelle entreprise</a>
+        <a href="{% url 'private_saas:health' %}" class="orion-btn orion-btn-outline"><i class="bi bi-heart-pulse me-1"></i>Santé système</a>
+        <a href="{% url 'private_saas:saas_settings' %}" class="orion-btn orion-btn-outline"><i class="bi bi-sliders me-1"></i>Paramètres SaaS</a>
+        <a href="{% url 'admin:index' %}" class="orion-btn orion-btn-outline"><i class="bi bi-shield-check me-1"></i>Administration Django</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

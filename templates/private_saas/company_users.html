@@ -1,0 +1,76 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Utilisateurs — {{ company.name }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
+<li class="breadcrumb-item"><a href="{% url 'private_saas:company_detail' company.pk %}">{{ company.name }}</a></li>
+<li class="breadcrumb-item active">Utilisateurs</li>
+{% endblock %}
+{% block page_actions %}
+<button class="orion-btn orion-orion-btn primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+  <i class="bi bi-person-plus me-1"></i>Ajouter un utilisateur
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0">
+    <table class="orion-table">
+      <thead>
+        <tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Statut</th></tr>
+      </thead>
+      <tbody>
+        {% for access in users %}
+        <tr>
+          <td class="fw-medium">{{ access.user.get_full_name|default:access.user.username }}</td>
+          <td class="text-muted">{{ access.user.email }}</td>
+          <td><span class="orion-badge orion-badge-info">{{ access.role }}</span></td>
+          <td>
+            {% if access.is_active %}
+            <span class="orion-badge orion-badge-success">Actif</span>
+            {% else %}
+            <span class="orion-badge orion-badge-secondary">Inactif</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">
+            Aucun utilisateur — <button class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#addUserModal">Ajouter le premier</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ajouter un utilisateur à {{ company.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_user">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Adresse email</label>
+            <input type="email" name="email" class="form-control" placeholder="admin@entreprise.fr" required>
+            <div class="text-muted small mt-1">
+              Si l'utilisateur n'existe pas, il sera créé avec un mot de passe auto-généré (affiché une seule fois).
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn orion-btn-outline" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="orion-btn orion-orion-btn primary">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

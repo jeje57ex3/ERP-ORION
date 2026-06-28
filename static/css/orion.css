@@ -1,0 +1,166 @@
+/* ═══════════════════════════════════════════════════════════
+   Orion ERP — Charte graphique & variables CSS
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --orion-primary:       #3A2A1A;
+  --orion-primary-dark:  #24180F;
+  --orion-secondary:     #C6A15B;
+  --orion-secondary-dark:#9D7A3F;
+  --orion-accent:        #E8D8B0;
+  --orion-bg:            #F8F3EA;
+  --orion-text:          #2B2118;
+  --orion-gold-glow:     rgba(198, 161, 91, 0.25);
+  --orion-divider:       rgba(198, 161, 91, 0.2);
+}
+
+/* ─── Sidebar ──────────────────────────────────────────────── */
+.erp-sidebar {
+  background: var(--orion-primary) !important;
+  border-right: 1px solid var(--orion-divider) !important;
+}
+
+.sidebar-brand {
+  border-bottom: 1px solid var(--orion-divider) !important;
+}
+
+.orion-sidebar-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-name {
+  color: var(--orion-secondary) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+.brand-sub {
+  color: rgba(232, 216, 176, 0.55) !important;
+  font-size: 0.72rem !important;
+}
+
+/* ─── Navigation items ─────────────────────────────────────── */
+.nav-link-erp {
+  color: rgba(232, 216, 176, 0.72) !important;
+}
+
+.nav-link-erp:hover {
+  color: var(--orion-accent) !important;
+  background: var(--orion-gold-glow) !important;
+}
+
+.nav-link-erp.active {
+  color: var(--orion-secondary) !important;
+  background: var(--orion-gold-glow) !important;
+  border-left: 3px solid var(--orion-secondary) !important;
+}
+
+.nav-section-title {
+  color: rgba(198, 161, 91, 0.45) !important;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+/* ─── Company selector ─────────────────────────────────────── */
+.company-selector-btn {
+  border-bottom: 1px solid var(--orion-divider) !important;
+  color: var(--orion-accent) !important;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--orion-divider) !important;
+}
+
+/* ─── Logo placeholder (sans logo entreprise) ─────────────── */
+.logo-placeholder {
+  background: rgba(198, 161, 91, 0.15) !important;
+  color: var(--orion-secondary) !important;
+}
+
+/* ─── Footer ERP ───────────────────────────────────────────── */
+.erp-footer {
+  color: var(--orion-text);
+  opacity: 0.55;
+  font-size: 0.78rem;
+}
+
+/* ─── Topbar ───────────────────────────────────────────────── */
+.erp-topbar {
+  background: #fff !important;
+  border-bottom: 1px solid rgba(58, 42, 26, 0.1) !important;
+}
+
+/* ─── Login page Orion ─────────────────────────────────────── */
+.login-page {
+  background: linear-gradient(135deg, var(--orion-primary) 0%, #1A110A 50%, var(--orion-primary) 100%) !important;
+}
+
+.login-logo {
+  background: linear-gradient(135deg, var(--orion-secondary), var(--orion-secondary-dark)) !important;
+  border-radius: 1rem;
+}
+
+.login-logo img {
+  height: 48px;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
+.login-title {
+  color: var(--orion-primary) !important;
+}
+
+.form-control:focus {
+  border-color: var(--orion-secondary) !important;
+  box-shadow: 0 0 0 3px var(--orion-gold-glow) !important;
+}
+
+.btn-login {
+  background: linear-gradient(135deg, var(--orion-secondary), var(--orion-secondary-dark)) !important;
+  color: var(--orion-primary) !important;
+}
+
+.btn-login:hover {
+  box-shadow: 0 4px 15px var(--orion-gold-glow) !important;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────── */
+.btn-primary {
+  background-color: var(--orion-secondary);
+  border-color: var(--orion-secondary);
+  color: var(--orion-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--orion-secondary-dark);
+  border-color: var(--orion-secondary-dark);
+  color: var(--orion-accent);
+}
+
+.btn-primary:focus {
+  box-shadow: 0 0 0 3px var(--orion-gold-glow);
+}
+
+/* ─── "Powered by" badge ───────────────────────────────────── */
+.orion-powered-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+}
+
+.orion-powered-badge img {
+  height: 16px;
+  width: auto;
+  opacity: 0.6;
+  filter: brightness(0) invert(1);
+}
+
+.orion-powered-badge:hover {
+  color: rgba(255,255,255,0.8);
+}

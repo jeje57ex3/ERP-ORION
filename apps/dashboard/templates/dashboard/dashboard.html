@@ -1,0 +1,230 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load humanize %}
+{% load dashboard_tags %}
+
+{% block title %}Mon tableau de bord{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="orion-page-header">
+  <div class="orion-page-header-text">
+    <p class="orion-page-eyebrow">Orion ERP</p>
+    <h1 class="orion-page-title">Tableau de bord</h1>
+    <p class="orion-page-subtitle">Votre espace de travail personnalisé — raccourcis, tâches et indicateurs.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'dashboard:shortcut_create' %}" class="orion-btn sm">
+      <i class="bi bi-lightning" aria-hidden="true"></i>Raccourci
+    </a>
+    <a href="{% url 'dashboard:widget_catalog' %}" class="orion-btn sm">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Widget
+    </a>
+    <a href="{% url 'dashboard:customize' %}" class="orion-btn sm primary">
+      <i class="bi bi-sliders" aria-hidden="true"></i>Personnaliser
+    </a>
+    <form method="post" action="{% url 'dashboard:reset' %}" class="d-inline"
+          onsubmit="return confirm('Réinitialiser votre tableau de bord ?')">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn sm danger">
+        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>Réinitialiser
+      </button>
+    </form>
+    <button class="orion-btn sm ghost" type="button" onclick="location.reload()" aria-label="Actualiser">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if dashboard_pref.show_welcome_message %}
+<div class="orion-welcome">
+  <div>
+    <p class="orion-welcome-greeting">
+      Bonjour, {{ request.user.get_full_name|default:request.user.username }} 👋
+    </p>
+    <p class="orion-welcome-sub">
+      {% if current_company %}<strong>{{ current_company.name }}</strong> — {% endif %}
+      {{ brand_name|default:"Orion ERP" }}
+    </p>
+  </div>
+  <div class="orion-welcome-date">
+    <div class="day">{% now "d" %}</div>
+    <div class="label">{% now "F Y" %} · {% now "H:i" %}</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── Messages flash ──────────────────────────────────────────────────────── -->
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show mb-3" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<!-- ─── Raccourcis favoris ─────────────────────────────────────────────────── -->
+{% if user_shortcuts %}
+<div class="mb-4">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h6 class="fw-semibold mb-0" style="color:var(--dashboard-primary)">
+      <i class="bi bi-lightning-charge me-2" style="color:var(--dashboard-secondary)"></i>Raccourcis
+    </h6>
+    <a href="{% url 'dashboard:shortcut_create' %}" class="btn btn-sm btn-link text-muted p-0">+ Ajouter</a>
+  </div>
+  <div class="shortcut-grid">
+    {% for sc in user_shortcuts %}
+    <a href="{{ sc.get_resolved_url }}" class="shortcut-card" title="{{ sc.description }}">
+      <div class="shortcut-icon" style="background-color:{{ sc.color }}">
+        <i class="{{ sc.icon }}"></i>
+      </div>
+      <span class="shortcut-label">{{ sc.label|truncatechars:18 }}</span>
+    </a>
+    {% endfor %}
+    <a href="{% url 'dashboard:shortcut_create' %}" class="shortcut-add-card">
+      <i class="bi bi-plus-circle fs-4"></i>
+      <span style="font-size:0.75rem">Ajouter</span>
+    </a>
+  </div>
+</div>
+{% else %}
+<div class="mb-4 p-3 rounded" style="background:var(--dashboard-bg);border:1.5px dashed var(--dashboard-border)">
+  <div class="text-center py-2">
+    <i class="bi bi-lightning-charge fs-3 d-block mb-2" style="color:var(--dashboard-secondary);opacity:.5"></i>
+    <p class="mb-2 small text-muted">Aucun raccourci personnalisé. Ajoutez vos actions favorites pour gagner du temps.</p>
+    <a href="{% url 'dashboard:shortcut_create' %}" class="btn btn-sm btn-outline-warning">
+      <i class="bi bi-plus-lg me-1"></i>Créer un raccourci
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── Widgets ───────────────────────────────────────────────────────────── -->
+{% if user_widgets %}
+<div class="row g-3" id="widgetGrid">
+  {% for uw in user_widgets %}
+  {% if uw.is_visible %}
+  <div class="col-12 col-md-{{ uw.width }} dashboard-widget-col" id="widget-col-{{ uw.pk }}" data-widget-id="{{ uw.pk }}" data-pos-x="{{ uw.position_x }}" data-pos-y="{{ uw.position_y }}">
+    <div class="dashboard-widget h-100">
+      <!-- En-tête widget -->
+      <div class="dashboard-widget-header">
+        <div class="dashboard-widget-drag-handle sortable-handle" title="Déplacer">
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+        <div class="dashboard-widget-title">
+          <div class="widget-icon" style="background-color:{{ uw.widget.color }}20;color:{{ uw.widget.color }}">
+            <i class="{{ uw.widget.icon }}"></i>
+          </div>
+          <div>
+            <h3>{{ uw.get_display_title }}</h3>
+          </div>
+        </div>
+        <div class="dashboard-widget-actions">
+          <a href="{% url 'dashboard:configure_widget' uw.pk %}" class="btn btn-sm btn-light" title="Configurer">
+            <i class="bi bi-gear"></i>
+          </a>
+          <form method="post" action="{% url 'dashboard:toggle_widget' uw.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-sm btn-light" title="Masquer">
+              <i class="bi bi-eye-slash"></i>
+            </button>
+          </form>
+          <form method="post" action="{% url 'dashboard:remove_widget' uw.pk %}" class="d-inline" onsubmit="return confirm('Supprimer ce widget ?')">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <!-- Corps widget -->
+      <div class="dashboard-widget-body">
+        {% include uw.widget.template_name with widget_data=widget_data user_widget=uw %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<!-- Widgets masqués -->
+{% with hidden_widgets=user_widgets|length %}
+{% for uw in user_widgets %}{% if not uw.is_visible %}
+<div class="mt-3 p-2 rounded d-flex align-items-center gap-2 justify-content-between" style="background:var(--dashboard-bg);border:1px solid var(--dashboard-border);font-size:.82rem">
+  <span class="text-muted"><i class="{{ uw.widget.icon }} me-2"></i>{{ uw.get_display_title }} <span class="badge bg-secondary ms-1">Masqué</span></span>
+  <form method="post" action="{% url 'dashboard:toggle_widget' uw.pk %}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button type="submit" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem">Afficher</button>
+  </form>
+</div>
+{% endif %}{% endfor %}
+{% endwith %}
+
+{% else %}
+<!-- Dashboard vide -->
+<div class="widget-empty-state py-5">
+  <i class="bi bi-grid-3x3-gap-fill"></i>
+  <p>Votre dashboard est vide. Ajoutez des widgets pour personnaliser votre espace de travail.</p>
+  <a href="{% url 'dashboard:widget_catalog' %}" class="btn btn-warning btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Ajouter un widget
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Sortable.js pour drag & drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+  const grid = document.getElementById('widgetGrid');
+  if (!grid) return;
+
+  const sortable = Sortable.create(grid, {
+    animation: 150,
+    handle: '.sortable-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'widget-dragging',
+    onEnd: saveLayout,
+  });
+
+  function saveLayout() {
+    const items = grid.querySelectorAll('[data-widget-id]');
+    const widgets = [];
+    items.forEach((el, i) => {
+      widgets.push({
+        widget_id: parseInt(el.dataset.widgetId),
+        position_y: i,
+        position_x: 0,
+      });
+    });
+    fetch('{% url "dashboard:save_layout" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({ widgets }),
+    }).catch(console.error);
+  }
+})();
+</script>
+
+{% if dashboard_pref.auto_refresh and dashboard_pref.refresh_interval > 0 %}
+<script>
+  setTimeout(() => location.reload(), {{ dashboard_pref.refresh_interval }} * 1000);
+</script>
+{% endif %}
+{% endblock %}

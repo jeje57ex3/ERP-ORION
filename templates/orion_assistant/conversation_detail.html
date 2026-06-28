@@ -1,0 +1,50 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'orion_assistant:list' %}">Assistant IA</a></div>
+    <h1 class="orion-page-title">{{ conversation.title|default:"Conversation" }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-10 mx-auto">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-body" style="max-height:520px;overflow-y:auto" id="chat-messages">
+        {% for msg in history %}
+        {% if msg.role != 'system' %}
+        <div class="mb-3 d-flex {% if msg.role == 'user' %}justify-content-end{% endif %}">
+          <div style="max-width:75%;padding:12px 16px;border-radius:12px;font-size:13.5px;
+            background:{% if msg.role == 'user' %}var(--orion-accent){% else %}var(--orion-surface){% endif %};
+            color:{% if msg.role == 'user' %}#fff{% else %}var(--orion-text){% endif %};
+            border:1px solid var(--orion-border)">
+            {% if msg.role == 'assistant' %}
+            <div style="font-size:11px;font-weight:700;color:var(--orion-accent);margin-bottom:4px">ORION</div>
+            {% endif %}
+            {{ msg.content|linebreaksbr }}
+            <div style="font-size:10px;opacity:0.6;margin-top:6px">{{ msg.created_at|date:"H:i" }}</div>
+          </div>
+        </div>
+        {% endif %}
+        {% empty %}
+        <p class="text-muted text-center" style="font-size:13px">Envoyez votre premier message.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <form method="post" action="{% url 'orion_assistant:send' conversation.pk %}">
+      {% csrf_token %}
+      <div class="d-flex gap-2">
+        <input type="text" name="message" class="form-control" placeholder="Posez une question à Orion…" autofocus autocomplete="off">
+        <button type="submit" class="orion-btn" style="min-width:100px">
+          <i class="bi bi-send me-1"></i>Envoyer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  const chatBox = document.getElementById('chat-messages');
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-label="Orion ERP">
+  <!-- Geometric icon mark — light/white version for dark backgrounds -->
+
+  <!-- Cream "L" shape -->
+  <path fill="#F8F3EA" d="M0,0 L32,0 L32,68 L100,68 L100,100 L0,100 Z"/>
+
+  <!-- Gold shape with inner hollow -->
+  <path fill-rule="evenodd" fill="#C6A15B"
+    d="M32,0 L100,0 L100,53 L86,68 L32,68 Z
+       M46,13 L86,13 L86,53 L46,53 Z"/>
+</svg>

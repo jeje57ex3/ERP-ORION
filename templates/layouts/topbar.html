@@ -1,0 +1,268 @@
+{% load static humanize %}
+<header class="orion-topbar-v2" id="orionTopbar" role="banner">
+
+  {# ── Gauche : toggle mobile + entreprise ────────────────────────────── #}
+  <div class="orion-topbar-left">
+
+    {# Bouton mobile #}
+    <button class="orion-topbar-btn" id="orionMobileMenuBtn" type="button"
+            aria-label="Ouvrir le menu" aria-expanded="false"
+            onclick="document.body.classList.toggle('orion-sidebar-open');this.setAttribute('aria-expanded', document.body.classList.contains('orion-sidebar-open'))">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+
+    {# Entreprise active #}
+    {% if current_company %}
+    <div class="orion-topbar-company">
+      <span class="orion-topbar-company-label">Entreprise</span>
+      <span class="orion-topbar-company-name">{{ current_company.name|truncatechars:24 }}</span>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── Centre : recherche globale ──────────────────────────────────────── #}
+  <div class="orion-topbar-center">
+    <div class="orion-search-wrap">
+      <i class="bi bi-search orion-search-icon" aria-hidden="true"></i>
+      <input
+        type="search"
+        class="orion-search-input"
+        id="orionSearchInput"
+        placeholder="Rechercher client, facture, chantier…"
+        aria-label="Recherche globale"
+        autocomplete="off"
+        data-bs-toggle="modal"
+        data-bs-target="#globalSearchModal"
+        readonly
+      >
+      <span class="orion-search-shortcut">Ctrl K</span>
+    </div>
+  </div>
+
+  {# ── Droite : actions + user ─────────────────────────────────────────── #}
+  <div class="orion-topbar-right">
+
+    {# Bouton créer #}
+    {% if request.user.is_authenticated %}
+    <div class="dropdown">
+      <button class="orion-topbar-btn primary" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus" aria-hidden="true"></i>
+        <span class="orion-sidebar-toggle-label">Créer</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:12px;border:1px solid var(--orion-border);box-shadow:var(--orion-shadow-soft);padding:6px">
+        {% if perms.crm.add_customer %}
+        <li><a class="dropdown-item" href="{% url 'crm:customer_create' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+          <i class="bi bi-person-plus me-2 text-muted"></i>Client
+        </a></li>
+        {% endif %}
+        {% if perms.sales.add_quote %}
+        <li><a class="dropdown-item" href="{% url 'sales:quote_create' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+          <i class="bi bi-file-earmark-text me-2 text-muted"></i>Devis
+        </a></li>
+        {% endif %}
+        {% if perms.sales.add_invoice %}
+        <li><a class="dropdown-item" href="{% url 'sales:invoice_create' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+          <i class="bi bi-receipt me-2 text-muted"></i>Facture
+        </a></li>
+        {% endif %}
+        {% if perms.btp.add_project %}
+        <li><a class="dropdown-item" href="{% url 'btp:project_create' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+          <i class="bi bi-building me-2 text-muted"></i>Chantier
+        </a></li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Notifications #}
+    <div class="dropdown">
+      <button class="orion-topbar-btn" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              aria-label="Notifications{% if unread_notifications_count %} ({{ unread_notifications_count }} non lues){% endif %}"
+              style="position:relative">
+        <i class="bi bi-bell" aria-hidden="true"></i>
+        {% if unread_notifications_count %}
+        <span style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--orion-danger);border:2px solid var(--orion-bg)"></span>
+        {% endif %}
+      </button>
+      <div class="dropdown-menu dropdown-menu-end" style="width:320px;border-radius:14px;border:1px solid var(--orion-border);box-shadow:var(--orion-shadow-soft);padding:0;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--orion-border);display:flex;align-items:center;justify-content:space-between">
+          <strong style="font-size:14px">Notifications</strong>
+          {% if unread_notifications_count %}
+          <span class="orion-badge neutral">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </div>
+        <div style="max-height:320px;overflow-y:auto" id="topbarNotifList">
+          {% if recent_notifications %}
+            {% for notif in recent_notifications|slice:":6" %}
+            <a href="{{ notif.url|default:'#' }}" class="dropdown-item"
+               style="padding:11px 16px;border-bottom:1px solid var(--orion-border-light);font-size:12.5px;{% if not notif.is_read %}background:var(--orion-accent-soft){% endif %}">
+              <div style="font-weight:600;color:var(--orion-text);margin-bottom:2px">{{ notif.title|truncatechars:48 }}</div>
+              <div style="color:var(--orion-muted)">{{ notif.created_at|naturaltime }}</div>
+            </a>
+            {% endfor %}
+          {% else %}
+            <div style="padding:24px;text-align:center;color:var(--orion-muted);font-size:13px">
+              <i class="bi bi-bell-slash d-block mb-2" style="font-size:22px;opacity:.4"></i>
+              Aucune notification
+            </div>
+          {% endif %}
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--orion-border)">
+          <a href="{% url 'notifications:list' %}" style="font-size:12.5px;color:var(--orion-accent-strong);text-decoration:none;font-weight:600">
+            Voir toutes les notifications →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# Thème #}
+    <button class="orion-topbar-btn" id="themeToggle" type="button"
+            aria-label="Changer de thème">
+      <i class="bi bi-moon-stars" id="themeIcon" aria-hidden="true"></i>
+    </button>
+
+    {# Profil utilisateur #}
+    <div class="dropdown">
+      <button class="orion-topbar-user" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              aria-label="Menu utilisateur — {{ request.user.get_full_name|default:request.user.email }}">
+        <div class="orion-topbar-avatar">
+          {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" alt="">
+          {% else %}
+            {{ request.user.profile.initials|default:request.user.first_name|first|default:"U" }}
+          {% endif %}
+        </div>
+        <div class="orion-topbar-user-info">
+          <span class="orion-topbar-user-name">{{ request.user.get_full_name|default:request.user.username|truncatechars:22 }}</span>
+          <span class="orion-topbar-user-email">{{ request.user.email|truncatechars:28 }}</span>
+        </div>
+        <i class="bi bi-chevron-down" style="font-size:10px;opacity:.5;margin-left:4px" aria-hidden="true"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:12px;border:1px solid var(--orion-border);box-shadow:var(--orion-shadow-soft);padding:6px">
+        <li>
+          <a class="dropdown-item" href="{% url 'accounts:profile' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+            <i class="bi bi-person me-2 text-muted"></i>Mon profil
+          </a>
+        </li>
+        <li><hr class="dropdown-divider my-1"></li>
+        {% if request.user.is_superuser %}
+        <li>
+          <a class="dropdown-item" href="/admin/" style="border-radius:8px;font-size:13px;padding:8px 12px">
+            <i class="bi bi-gear me-2 text-muted"></i>Administration
+          </a>
+        </li>
+        <li><hr class="dropdown-divider my-1"></li>
+        {% endif %}
+        <li>
+          <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}" style="border-radius:8px;font-size:13px;padding:8px 12px">
+            <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
+          </a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+</header>
+
+{# Modal recherche globale (reprise de l'existant) #}
+<div class="modal fade" id="globalSearchModal" tabindex="-1" aria-label="Recherche globale">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top:80px">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--orion-border);box-shadow:var(--orion-shadow-soft)">
+      <div class="modal-header border-0 pb-0" style="padding:16px 16px 8px">
+        <div style="display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--orion-border);border-radius:12px;padding:0 14px;background:var(--orion-surface-alt)">
+          <i class="bi bi-search" style="color:var(--orion-muted);font-size:15px"></i>
+          <input type="text" id="globalSearchModalInput" class="form-control border-0 bg-transparent shadow-none"
+                 placeholder="Rechercher dans Orion ERP…" autocomplete="off"
+                 style="height:44px;font-size:14px;padding:0">
+          <button class="orion-btn sm" data-bs-dismiss="modal" aria-label="Fermer"
+                  style="background:var(--orion-border);border:none;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--orion-muted)">
+            Esc
+          </button>
+        </div>
+      </div>
+      <div class="modal-body pt-2" id="globalSearchModalResults" style="padding:8px 12px 16px">
+        <div class="text-center py-5" id="globalSearchModalEmpty" style="color:var(--orion-muted)">
+          <i class="bi bi-search d-block mb-2" style="font-size:28px;opacity:.25"></i>
+          <span style="font-size:13px">Tapez pour rechercher clients, devis, factures, chantiers…</span>
+          <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <span style="font-size:11px;background:var(--orion-surface-alt);border:1px solid var(--orion-border);border-radius:6px;padding:3px 8px;color:var(--orion-muted)">Ctrl+K pour ouvrir</span>
+            <span style="font-size:11px;background:var(--orion-surface-alt);border:1px solid var(--orion-border);border-radius:6px;padding:3px 8px;color:var(--orion-muted)">Échap pour fermer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* Ctrl+K → ouvre la recherche */
+  document.addEventListener('keydown', function(e){
+    if((e.ctrlKey||e.metaKey) && e.key==='k'){
+      e.preventDefault();
+      var modal = new bootstrap.Modal(document.getElementById('globalSearchModal'));
+      modal.show();
+    }
+  });
+
+  /* Recherche AJAX */
+  var modal  = document.getElementById('globalSearchModal');
+  var input  = document.getElementById('globalSearchModalInput');
+  var results= document.getElementById('globalSearchModalResults');
+  var empty  = document.getElementById('globalSearchModalEmpty');
+  if(!input||!modal) return;
+  var timer;
+  input.addEventListener('input',function(){
+    clearTimeout(timer);
+    var q=this.value.trim();
+    if(q.length<2){results.innerHTML='';results.appendChild(empty);return;}
+    timer=setTimeout(function(){
+      fetch('/search/?q='+encodeURIComponent(q)+'&format=json',{headers:{'X-Requested-With':'XMLHttpRequest'}})
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(data){
+          if(!data||!data.results||!data.results.length){
+            results.innerHTML='<div class="text-center py-4" style="color:var(--orion-muted);font-size:13px"><i class="bi bi-search d-block mb-2" style="font-size:24px;opacity:.25"></i>Aucun résultat pour « '+q+' »</div>';return;}
+          var html='<div style="display:flex;flex-direction:column;gap:2px">';
+          var byType={};
+          data.results.forEach(function(r){if(!byType[r.label])byType[r.label]=[];byType[r.label].push(r);});
+          Object.entries(byType).forEach(function(entry){
+            var label=entry[0],items=entry[1];
+            html+='<div style="padding:8px 12px 4px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orion-muted)">'+label+'</span></div>';
+            items.forEach(function(item){
+              html+='<a href="'+item.url+'" data-bs-dismiss="modal" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;text-decoration:none;transition:background .12s" onmouseover="this.style.background=\'rgba(184,155,107,.08)\'" onmouseout="this.style.background=\'\'">'
+                +'<span style="width:32px;height:32px;border-radius:8px;background:rgba(139,129,119,.1);display:grid;place-items:center;color:var(--orion-muted);font-size:14px;flex-shrink:0"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
+                +'<span><span style="display:block;font-size:13px;font-weight:600;color:var(--orion-text)">'+item.title+'</span>'+(item.subtitle?'<span style="display:block;font-size:12px;color:var(--orion-muted)">'+item.subtitle+'</span>':'')+'</span></a>';
+            });
+          });
+          html+='</div>';
+          results.innerHTML=html;
+        }).catch(function(){
+          results.innerHTML='<div style="text-align:center;padding:24px;color:var(--orion-muted);font-size:13px"><i class="bi bi-wifi-off me-1"></i>Erreur de connexion</div>';
+        });
+    },280);
+  });
+  if(modal) modal.addEventListener('shown.bs.modal',function(){input.focus();input.value='';results.innerHTML='';results.appendChild(empty);});
+
+  /* Thème */
+  var themeBtn=document.getElementById('themeToggle');
+  var themeIcon=document.getElementById('themeIcon');
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    document.documentElement.setAttribute('data-bs-theme',t);
+    if(themeIcon){themeIcon.className=t==='dark'?'bi bi-sun':'bi bi-moon-stars';}
+    localStorage.setItem('orion-theme',t);
+  }
+  if(themeBtn){
+    var cur=document.documentElement.getAttribute('data-theme')||'light';
+    if(themeIcon){themeIcon.className=cur==='dark'?'bi bi-sun':'bi bi-moon-stars';}
+    themeBtn.addEventListener('click',function(){
+      applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+    });
+  }
+})();
+</script>

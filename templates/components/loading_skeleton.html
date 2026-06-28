@@ -1,0 +1,50 @@
+{# Composant : Skeleton de chargement
+   Variables : rows (int, défaut 5), cols (int, défaut 4), show_header (bool), card (bool)
+   Usage : {% include "components/loading_skeleton.html" with rows=6 cols=4 %}
+#}
+{% with rows_count=rows|default:5 cols_count=cols|default:4 %}
+{% if card|default:True %}
+<div class="orion-card">
+{% endif %}
+  {% if show_header|default:True %}
+  <div class="d-flex align-items-center justify-content-between px-4 pt-3 pb-3 border-bottom">
+    <div class="orion-skeleton orion-skeleton-text" style="width:180px;height:18px"></div>
+    <div class="orion-skeleton orion-skeleton-text" style="width:90px;height:30px;border-radius:6px"></div>
+  </div>
+  {% endif %}
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          {% for i in "1234"|make_list|slice:cols_count %}
+          <th><div class="orion-skeleton orion-skeleton-text" style="width:80%;height:14px"></div></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in "12345678910"|make_list|slice:rows_count %}
+        <tr class="orion-skeleton-table-row">
+          {% for j in "1234"|make_list|slice:cols_count %}
+          <td>
+            {% if forloop.first %}
+            <div class="d-flex align-items-center gap-2">
+              <div class="orion-skeleton" style="width:32px;height:32px;border-radius:50%"></div>
+              <div>
+                <div class="orion-skeleton orion-skeleton-text" style="width:120px;height:13px;margin-bottom:4px"></div>
+                <div class="orion-skeleton orion-skeleton-text" style="width:80px;height:11px"></div>
+              </div>
+            </div>
+            {% else %}
+            <div class="orion-skeleton orion-skeleton-text" style="width:{% cycle '75' '60' '85' '50' %}%;height:13px"></div>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% if card|default:True %}
+</div>
+{% endif %}
+{% endwith %}

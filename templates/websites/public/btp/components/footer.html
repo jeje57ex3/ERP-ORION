@@ -1,0 +1,81 @@
+﻿{% load static %}
+<footer class="btp-footer">
+  <div class="btp-container">
+    <div class="btp-footer-grid">
+
+      <!-- Marque -->
+      <div class="btp-footer-brand">
+        {% if site.logo %}
+          <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="filter:brightness(0) invert(1);opacity:.85">
+        {% else %}
+          <img src="{% static 'img/brand/orion-logo-white.svg' %}" alt="{{ site.name }}">
+        {% endif %}
+        <p style="margin-top:.75rem">{{ site.meta_description|default:"Entreprise de batiment a votre service." }}</p>
+        {% if site.contact_phone %}
+        <a href="tel:{{ site.contact_phone }}" style="display:flex;align-items:center;gap:.5rem;margin-top:1rem;color:var(--btp-secondary);font-weight:600;">
+          <i class="bi bi-telephone-fill"></i>{{ site.contact_phone }}
+        </a>
+        {% endif %}
+        <div class="btp-footer-social">
+          {% if site.facebook_url  %}<a href="{{ site.facebook_url  }}" aria-label="Facebook"  target="_blank" rel="noopener"><i class="bi bi-facebook"></i></a>{% endif %}
+          {% if site.instagram_url %}<a href="{{ site.instagram_url }}" aria-label="Instagram" target="_blank" rel="noopener"><i class="bi bi-instagram"></i></a>{% endif %}
+          {% if site.linkedin_url  %}<a href="{{ site.linkedin_url  }}" aria-label="LinkedIn"  target="_blank" rel="noopener"><i class="bi bi-linkedin"></i></a>{% endif %}
+          {% if site.youtube_url   %}<a href="{{ site.youtube_url   }}" aria-label="YouTube"   target="_blank" rel="noopener"><i class="bi bi-youtube"></i></a>{% endif %}
+        </div>
+      </div>
+
+      <!-- Services -->
+      <div class="btp-footer-col">
+        <h4>Nos services</h4>
+        <ul>
+          <li><a href="{% url 'public_websites:btp_services' site.public_slug %}">Tous les services</a></li>
+          <li><a href="{% url 'public_websites:btp_works' site.public_slug %}">Types de travaux</a></li>
+          <li><a href="{% url 'public_websites:btp_emergency' site.public_slug %}">Depannage urgent</a></li>
+          <li><a href="{% url 'public_websites:btp_portfolio' site.public_slug %}">Nos realisations</a></li>
+        </ul>
+      </div>
+
+      <!-- Acces rapide -->
+      <div class="btp-footer-col">
+        <h4>Acces rapide</h4>
+        <ul>
+          <li><a href="{% url 'guided_quote:wizard_start' %}">Demander un devis</a></li>
+          <li><a href="{% url 'public_websites:btp_client_access' site.public_slug %}">Espace client</a></li>
+          <li><a href="{% url 'client_portal:login' %}">Se connecter</a></li>
+          <li><a href="{% url 'public_websites:btp_blog' site.public_slug %}">Blog</a></li>
+          <li><a href="{% url 'public_websites:btp_contact' site.public_slug %}">Contact</a></li>
+        </ul>
+      </div>
+
+      <!-- Infos -->
+      <div class="btp-footer-col">
+        <h4>Informations</h4>
+        <ul>
+          {% if site.address %}<li style="color:#C9B89A;font-size:.86rem">{{ site.address|linebreaksbr }}</li>{% endif %}
+          {% if site.contact_email %}<li><a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></li>{% endif %}
+        </ul>
+        {% if site.legal_company_name %}
+        <p style="margin-top:1rem;font-size:.8rem;opacity:.6">
+          {{ site.legal_company_name }}<br>
+          {% if site.legal_siret %}SIRET : {{ site.legal_siret }}{% endif %}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Footer bottom -->
+    <div class="btp-footer-bottom">
+      <p>&copy; {% now "Y" %} {{ site.company.name }}. Tous droits reserves.</p>
+      <p style="display:flex;gap:1.5rem;flex-wrap:wrap">
+        <a href="{% url 'public_websites:page' site.public_slug 'mentions-legales' %}" style="color:#C9B89A;font-size:.82rem">Mentions legales</a>
+        <a href="{% url 'public_websites:page' site.public_slug 'confidentialite' %}"  style="color:#C9B89A;font-size:.82rem">Confidentialite</a>
+      </p>
+      {% if site.show_powered_by_orion %}
+      <a href="#" class="btp-powered" title="Orion ERP">
+        Propulse par
+        <img src="{% static 'img/brand/orion-logo-white.svg' %}" alt="Orion ERP">
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</footer>

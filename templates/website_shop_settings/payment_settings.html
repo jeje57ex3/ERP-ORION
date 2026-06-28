@@ -1,0 +1,109 @@
+{% extends "website_shop_settings/_settings_layout.html" %}
+
+{% block settings_content %}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="orion-card mb-3">
+    <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Configuration générale</h3></div>
+    <div class="orion-orion-orion-card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for field in form %}{% if field.name in "payments_enabled,default_provider,payment_capture_mode" %}
+        <div class="orion-form-group">
+          {% if field.field.widget.input_type == 'checkbox' %}
+          <div style="display:flex;align-items:center;gap:10px">
+            {{ field }}
+            <label class="orion-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+          {% else %}
+          <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% endif %}
+          {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="orion-card mb-3">
+    <div class="orion-orion-orion-card-header">
+      <h3 class="orion-card-title">Stripe</h3>
+      <span class="orion-badge" style="font-size:11px">Chiffrement Fernet</span>
+    </div>
+    <div class="orion-orion-orion-card-body">
+      <div class="orion-alert warning mb-3" style="font-size:12.5px">
+        <i class="bi bi-shield-lock me-1"></i>Les clés secrètes sont chiffrées en base — elles ne sont jamais affichées en clair.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for field in form %}{% if field.name in "stripe_enabled,stripe_mode" %}
+        <div class="orion-form-group">
+          {% if field.field.widget.input_type == 'checkbox' %}
+          <div style="display:flex;align-items:center;gap:10px">
+            {{ field }}
+            <label class="orion-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+          {% else %}
+          <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% endif %}
+          {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+      {% for field in form %}{% if field.name in "stripe_publishable_key,stripe_secret_key,stripe_webhook_secret,stripe_success_url,stripe_cancel_url" %}
+      <div class="orion-form-group">
+        <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="orion-help-text">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+
+  <div class="orion-card mb-3">
+    <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Méthodes acceptées</h3></div>
+    <div class="orion-orion-orion-card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        {% for field in form %}{% if field.name in "allow_card_payments,allow_apple_pay,allow_google_pay" %}
+        <div class="orion-form-group">
+          <div style="display:flex;align-items:center;gap:10px">
+            {{ field }}
+            <label class="orion-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="orion-card mb-3">
+    <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Limites de commande</h3></div>
+    <div class="orion-orion-orion-card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for field in form %}{% if field.name in "minimum_order_amount,maximum_order_amount" %}
+        <div class="orion-form-group">
+          <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+      {% for field in form %}{% if field.name == "payment_failed_message" %}
+      <div class="orion-form-group">
+        <label class="orion-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p class="orion-error">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-check-lg me-1"></i>Enregistrer
+    </button>
+  </div>
+</form>
+{% endblock %}

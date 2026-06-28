@@ -1,0 +1,106 @@
+{% load dashboard_tags %}
+{% with zones=widget_data|dict_get:"cloudflare_zones_status" %}
+{% with firewall=widget_data|dict_get:"cloudflare_firewall_events" %}
+{% with traffic=widget_data|dict_get:"cloudflare_traffic_stats" %}
+{% with ssl=widget_data|dict_get:"cloudflare_ssl_status" %}
+{% with rules=widget_data|dict_get:"cloudflare_page_rules" %}
+{% with analytics=widget_data|dict_get:"cloudflare_analytics" %}
+{% with code=user_widget.widget.code %}
+
+{% if code == 'cloudflare_zones_status' %}
+  {% if zones.zones %}
+  <div class="mb-2"><span class="badge" style="background:#F59E0B;color:#1a0e05">{{ zones.count }} zone(s) configurée(s)</span></div>
+  {% for z in zones.zones %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fef3c7;color:#D97706"><i class="bi bi-cloud-fill"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ z.name|default:"Zone" }}</div>
+      <div class="widget-item-sub">Statut : {{ z.status|default:"—" }}</div>
+    </div>
+    {% if z.status == 'active' %}
+    <span class="badge bg-success" style="font-size:.65rem">Actif</span>
+    {% else %}
+    <span class="badge bg-secondary" style="font-size:.65rem">{{ z.status|default:"—" }}</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-cloud-fill"></i><p>Aucune zone Cloudflare configurée.</p></div>
+  {% endif %}
+
+{% elif code == 'cloudflare_firewall_events' %}
+  {% if firewall.events %}
+  <div class="mb-2"><span class="badge bg-danger">{{ firewall.count }} événement(s) bloqué(s)</span></div>
+  {% for e in firewall.events %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#fee2e2;color:#DC2626"><i class="bi bi-shield-fill-exclamation"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ e.rule|default:"Règle de sécurité" }}</div>
+      <div class="widget-item-sub">IP : {{ e.ip|default:"—" }} · {{ e.date|date:"d/m H:i"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-shield-check"></i><p>Aucun événement de sécurité récent.</p></div>
+  {% endif %}
+
+{% elif code == 'cloudflare_traffic_stats' %}
+  <div class="row g-2">
+    <div class="col-6 text-center">
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ traffic.requests|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.72rem">Requêtes</div>
+    </div>
+    <div class="col-6 text-center">
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ traffic.bandwidth_gb|default:"0" }} Go</div>
+      <div class="text-muted" style="font-size:.72rem">Bande passante</div>
+    </div>
+  </div>
+
+{% elif code == 'cloudflare_ssl_status' %}
+  {% if ssl.zones %}
+  {% if ssl.expiring_count > 0 %}
+  <div class="mb-2"><span class="badge bg-warning text-dark">{{ ssl.expiring_count }} certificat(s) expirant bientôt</span></div>
+  {% endif %}
+  {% for z in ssl.zones %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#dcfce7;color:#16A34A"><i class="bi bi-lock-fill"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ z.domain|default:"Domaine" }}</div>
+      <div class="widget-item-sub">Expire : {{ z.expires|date:"d/m/Y"|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-lock-fill"></i><p>Aucun certificat SSL Cloudflare trouvé.</p></div>
+  {% endif %}
+
+{% elif code == 'cloudflare_page_rules' %}
+  {% if rules.rules %}
+  <div class="mb-2"><span class="badge bg-secondary">{{ rules.count }} règle(s) active(s)</span></div>
+  {% for r in rules.rules %}
+  <div class="widget-item">
+    <div class="widget-item-icon" style="background:#f3f4f6;color:#6B7280"><i class="bi bi-signpost-split"></i></div>
+    <div class="widget-item-body">
+      <div class="widget-item-title">{{ r.pattern|default:"Règle" |truncatechars:40 }}</div>
+      <div class="widget-item-sub">{{ r.action|default:"—" }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="widget-empty-state"><i class="bi bi-signpost-split"></i><p>Aucune règle de page Cloudflare configurée.</p></div>
+  {% endif %}
+
+{% elif code == 'cloudflare_analytics' %}
+  <div class="row g-2">
+    <div class="col-6 text-center">
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ analytics.visitors|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.72rem">Visiteurs uniques</div>
+    </div>
+    <div class="col-6 text-center">
+      <div class="fw-bold" style="font-size:1.3rem;color:var(--dashboard-primary)">{{ analytics.pageviews|default:"0" }}</div>
+      <div class="text-muted" style="font-size:.72rem">Pages vues</div>
+    </div>
+  </div>
+{% endif %}
+
+{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}{% endwith %}

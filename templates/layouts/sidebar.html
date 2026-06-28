@@ -1,0 +1,170 @@
+{% load static %}
+<aside class="orion-sidebar-v2" id="orionSidebar" role="navigation" aria-label="Navigation principale">
+
+  {# ── Marque ──────────────────────────────────────────────────────────── #}
+  <div class="orion-sidebar-brand">
+    <div class="orion-brand-mark" aria-hidden="true">
+      {% if current_company and current_company.logo %}
+        <img src="{{ current_company.logo.url }}" alt="" style="width:20px;height:20px;object-fit:contain">
+      {% else %}
+        O
+      {% endif %}
+    </div>
+    <div class="orion-brand-label">
+      <strong>{{ brand_name|default:"Orion ERP" }}</strong>
+      <span>Private Suite</span>
+    </div>
+  </div>
+
+  {# ── Entreprise ──────────────────────────────────────────────────────── #}
+  {% if companies and current_company %}
+  <div class="orion-company-pill dropdown" id="orionCompanyDropdown">
+    <button class="orion-company-pill w-100 text-start" type="button"
+            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Changer d'entreprise">
+      <div class="orion-company-icon" aria-hidden="true">
+        {% if current_company.sector_color %}
+          <i class="bi bi-building" style="color:{{ current_company.sector_color }}"></i>
+        {% else %}
+          <i class="bi bi-building"></i>
+        {% endif %}
+      </div>
+      <div class="orion-company-info">
+        <span class="orion-company-name">{{ current_company.name|truncatechars:20 }}</span>
+        <span class="orion-company-sector">{{ current_company.get_sector_display }}</span>
+      </div>
+      <i class="bi bi-chevron-expand" style="font-size:10px;opacity:.45;margin-left:auto" aria-hidden="true"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-dark" style="min-width:220px;margin-top:4px">
+      {% for comp in companies %}
+      <li>
+        <a class="dropdown-item {% if current_company.pk == comp.pk %}active{% endif %}"
+           href="{% url 'core:switch_company' comp.pk %}?next={{ request.path }}"
+           style="font-size:13px;padding:8px 14px">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ comp.sector_color }};margin-right:9px;flex-shrink:0"></span>
+          {{ comp.name }}
+          {% if current_company.pk == comp.pk %}
+          <i class="bi bi-check2 float-end mt-1" style="color:var(--orion-accent)"></i>
+          {% endif %}
+        </a>
+      </li>
+      {% endfor %}
+      {% if request.user.is_superuser %}
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:13px;padding:8px 14px">
+          <i class="bi bi-plus-circle me-2"></i>Nouvelle entreprise
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ── Navigation ─────────────────────────────────────────────────────── #}
+  <nav class="orion-sidebar-nav" aria-label="Modules">
+    {% for group in nav_groups %}
+    <div class="orion-nav-group">
+      {% if group.label %}
+      <span class="orion-nav-group-title">{{ group.label }}</span>
+      {% endif %}
+      {% for module in group.items %}
+        {% if module.children %}
+        {# Module avec sous-menu #}
+        <button class="orion-nav-item w-100 text-start {% if active_module == module.id %}active{% endif %}"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navSub-{{ module.id }}"
+                aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}"
+                aria-controls="navSub-{{ module.id }}">
+          <span class="orion-nav-icon-wrap" aria-hidden="true">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %}></i>
+          </span>
+          <span class="orion-nav-label">{{ module.label }}</span>
+          <i class="bi bi-chevron-down orion-nav-arrow" aria-hidden="true"></i>
+        </button>
+        <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navSub-{{ module.id }}">
+          <div class="orion-nav-submenu">
+            {% for child in module.children %}
+            <a class="orion-nav-subitem {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+               href="{% url child.url_name %}">
+              <i class="bi {{ child.icon }}" style="font-size:12px;opacity:.7" aria-hidden="true"></i>
+              {{ child.label }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        {# Module simple #}
+        <a class="orion-nav-item {% if active_module == module.id %}active{% endif %}"
+           href="{% url module.url_name %}"
+           {% if module.label %}title="{{ module.label }}"{% endif %}>
+          <span class="orion-nav-icon-wrap" aria-hidden="true">
+            <i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %}></i>
+          </span>
+          <span class="orion-nav-label">{{ module.label }}</span>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% empty %}
+    {# Fallback : ancienne structure nav_modules plate #}
+    {% for module in nav_modules %}
+    <div class="orion-nav-group">
+      {% if module.children %}
+      <button class="orion-nav-item w-100 text-start {% if active_module == module.id %}active{% endif %}"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navMod-{{ module.id }}"
+              aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}">
+        <span class="orion-nav-icon-wrap"><i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %}></i></span>
+        <span class="orion-nav-label">{{ module.label }}</span>
+        <i class="bi bi-chevron-down orion-nav-arrow"></i>
+      </button>
+      <div class="collapse {% if active_module == module.id %}show{% endif %}" id="navMod-{{ module.id }}">
+        <div class="orion-nav-submenu">
+          {% for child in module.children %}
+          <a class="orion-nav-subitem {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
+             href="{% url child.url_name %}">
+            <i class="bi {{ child.icon }}" style="font-size:12px;opacity:.7"></i>
+            {{ child.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <a class="orion-nav-item {% if active_module == module.id %}active{% endif %}"
+         href="{% url module.url_name %}">
+        <span class="orion-nav-icon-wrap"><i class="bi {{ module.icon }}" {% if module.color %}style="color:{{ module.color }}"{% endif %}></i></span>
+        <span class="orion-nav-label">{{ module.label }}</span>
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+
+  {# ── Footer sidebar ─────────────────────────────────────────────────── #}
+  <div class="orion-sidebar-footer">
+    <a href="{% url 'accounts:profile' %}" class="orion-sidebar-user" title="Mon profil">
+      <div class="orion-sidebar-avatar">
+        {% if request.user.profile.avatar %}
+          <img src="{{ request.user.profile.avatar.url }}" alt="{{ request.user.profile.display_name }}">
+        {% else %}
+          {{ request.user.profile.initials }}
+        {% endif %}
+      </div>
+      <div class="orion-sidebar-user-text">
+        <span class="orion-sidebar-user-name">{{ request.user.profile.display_name|truncatechars:18 }}</span>
+        <span class="orion-sidebar-user-role">{{ request.user.profile.get_role_display }}</span>
+      </div>
+    </a>
+    <button class="orion-sidebar-toggle-btn" id="orionSidebarToggleDesktop"
+            type="button" aria-label="Réduire la sidebar" title="Réduire">
+      <i class="bi bi-layout-sidebar-reverse"></i>
+    </button>
+    <a href="{% url 'accounts:logout' %}" class="orion-sidebar-logout" title="Déconnexion" aria-label="Se déconnecter">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+
+</aside>

@@ -1,0 +1,87 @@
+﻿{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Événements Audio</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Concerts, mariages, événements corporate et spectacles.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'audio:event_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel événement</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-music-note-beamed"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ confirmed }}</div><div class="kpi-label">Confirmés</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#3B82F6">
+      <div class="kpi-icon"><i class="bi bi-play-circle"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ in_progress }}</div><div class="kpi-label">En cours</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="--kpi-color:#16A34A">
+      <div class="kpi-icon"><i class="bi bi-currency-euro"></i></div>
+      <div class="kpi-body"><div class="kpi-value">{{ total_amount|floatformat:0 }} €</div><div class="kpi-label">CA prévu</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-chips mb-3">
+  <a href="{% url 'audio:event_list' %}" class="filter-chip {% if not status %}active{% endif %}">Tous</a>
+  {% for s, label in status_choices %}
+  <a href="?status={{ s }}" class="filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex align-items-center gap-2">
+    <form method="get" class="ms-auto d-flex gap-2">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Nom ou lieu..." style="width:220px;">
+      <button class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-orion-table mb-0">
+      <thead><tr><th>Événement</th><th>Type</th><th>Client</th><th>Lieu</th><th>Date</th><th class="text-end">Montant HT</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td><a href="{% url 'audio:event_detail' event.pk %}" class="fw-semibold text-dark text-decoration-none small">{{ event.name }}</a></td>
+          <td class="small text-muted">{{ event.get_event_type_display }}</td>
+          <td class="small">{{ event.customer.name|default:"—" }}</td>
+          <td class="small text-muted">{{ event.venue|default:"—" }}</td>
+          <td class="small text-muted">{{ event.event_date|date:"d/m/Y" }}</td>
+          <td class="text-end small fw-semibold">{{ event.estimated_amount }} €</td>
+          <td>
+            {% if event.status == 'inquiry' %}<span class="badge-status badge-draft">Demande</span>
+            {% elif event.status == 'quoted' %}<span class="badge-status badge-pending">Devis envoyé</span>
+            {% elif event.status == 'confirmed' %}<span class="badge-status badge-paid">Confirmé</span>
+            {% elif event.status == 'in_progress' %}<span class="badge-status badge-partial">En cours</span>
+            {% elif event.status == 'completed' %}<span class="badge-status badge-sent">Terminé</span>
+            {% elif event.status == 'invoiced' %}<span class="badge-status badge-paid">Facturé</span>
+            {% elif event.status == 'cancelled' %}<span class="badge-status badge-cancelled">Annulé</span>{% endif %}
+          </td>
+          <td>
+            <div class="row-actions">
+              <a href="{% url 'audio:event_detail' event.pk %}" class="btn btn-icon btn-outline-primary btn-xs" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'audio:event_edit' event.pk %}" class="btn btn-icon btn-outline-secondary btn-xs" title="Modifier"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">
+          <div class="empty-state">
+            <i class="bi bi-music-note-beamed empty-icon"></i>
+            <h4>Aucun événement</h4>
+            <p>Créez votre premier événement audio/AV.</p>
+            <a href="{% url 'audio:event_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel événement</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

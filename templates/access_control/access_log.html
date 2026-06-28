@@ -1,0 +1,50 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
+<li class="breadcrumb-item active">Journal des accès</li>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>Journal des accès (500 derniers)</h6></div>
+  <div class="erp-orion-orion-card-body p-0">
+    {% if logs %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Utilisateur</th>
+            <th>Module</th>
+            <th>Vue / Action</th>
+            <th class="text-center">Résultat</th>
+            <th>Raison</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr class="{% if not log.allowed %}table-danger{% endif %}">
+            <td class="text-muted small text-nowrap">{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
+            <td class="fw-semibold small">{{ log.user.get_full_name|default:log.user.username }}</td>
+            <td class="small">{{ log.module }}</td>
+            <td class="small">
+              {% if log.view_code %}<code>{{ log.view_code }}</code>{% endif %}
+              {% if log.action %} → <span class="orion-badge neutral">{{ log.action }}</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if log.allowed %}<span class="orion-badge success">OK</span>{% else %}<span class="orion-badge danger">Refusé</span>{% endif %}
+            </td>
+            <td class="small text-muted">{{ log.reason|truncatechars:40 }}</td>
+            <td class="small text-muted">{{ log.ip_address|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">Journal vide.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

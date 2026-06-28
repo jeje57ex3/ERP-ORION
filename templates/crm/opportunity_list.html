@@ -1,0 +1,295 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load humanize %}
+{% block title %}Opportunités — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">CRM</a></li>
+<li class="breadcrumb-item active">Opportunités</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'crm:opportunity_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+  <i class="bi bi-download"></i> Exporter
+</a>
+<a href="{% url 'sales:quote_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+  <i class="bi bi-file-earmark-plus"></i> Créer devis
+</a>
+<a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
+  <i class="bi bi-plus-lg"></i> Nouvelle opportunité
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for message in messages %}
+<div class="orion-alert orion-alert-{{ message.tags|default:'info' }} mb-3" role="alert">
+  <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+  <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="orion-page-header">
+  <div>
+    <h1 class="orion-page-title">Opportunités</h1>
+    <p class="orion-page-subtitle">Pipeline commercial et suivi des ventes potentielles</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'crm:opportunity_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+      <i class="bi bi-download"></i> Exporter
+    </a>
+    <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+      <i class="bi bi-file-earmark-plus"></i> Créer devis
+    </a>
+    <a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
+      <i class="bi bi-plus-lg"></i> Nouvelle opportunité
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
+      <div class="orion-kpi-icon" style="background: rgba(8,145,178,.12); color: var(--orion-info)">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ total_active|default:"0" }}</div>
+        <div class="orion-kpi-label">Opportunités actives</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-secondary)">
+      <div class="orion-kpi-icon" style="background: rgba(198,161,91,.12); color: var(--orion-secondary)">
+        <i class="bi bi-currency-euro"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ total_pipeline|default:0|floatformat:0|intcomma }} €</div>
+        <div class="orion-kpi-label">Montant pipeline</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-success)">
+      <div class="orion-kpi-icon" style="background: rgba(22,163,74,.12); color: var(--orion-success)">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ won_this_month|default:"0" }}</div>
+        <div class="orion-kpi-label">Gagnées ce mois</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: #7C3AED">
+      <div class="orion-kpi-icon" style="background: rgba(124,58,237,.12); color: #7C3AED">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ conversion_rate|default:"0" }}%</div>
+        <div class="orion-kpi-label">Taux de conversion</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-header">
+    <div class="orion-tabs" style="border:none;margin:0;">
+      <a href="?view=list{% if stage %}&stage={{ stage }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-tab {% if request.GET.view != 'kanban' %}active{% endif %}">
+        <i class="bi bi-list-ul"></i> Liste
+      </a>
+      <a href="?view=kanban{% if stage %}&stage={{ stage }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-tab {% if request.GET.view == 'kanban' %}active{% endif %}">
+        <i class="bi bi-kanban"></i> Kanban
+      </a>
+    </div>
+    <form method="get" class="d-flex align-items-center gap-2">
+      {% if request.GET.view == 'kanban' %}<input type="hidden" name="view" value="kanban">{% endif %}
+      {% if stage %}<input type="hidden" name="stage" value="{{ stage }}">{% endif %}
+      <div class="position-relative">
+        <i class="bi bi-search" style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--orion-muted);font-size:.8rem;pointer-events:none;"></i>
+        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Rechercher…" class="orion-search-input" style="padding-left:2rem;min-width:220px;">
+      </div>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{% url 'crm:opportunity_list' %}{% if request.GET.view == 'kanban' %}?view=kanban{% endif %}" class="orion-filter-chip {% if not stage %}active{% endif %}">Toutes</a>
+  <a href="?stage=qualification{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'qualification' %}active{% endif %}">Qualification</a>
+  <a href="?stage=need{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'need' %}active{% endif %}">Besoin</a>
+  <a href="?stage=quote{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'quote' %}active{% endif %}">Devis</a>
+  <a href="?stage=sent{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'sent' %}active{% endif %}">Envoyé</a>
+  <a href="?stage=negotiation{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'negotiation' %}active{% endif %}">Négociation</a>
+  <a href="?stage=won{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'won' %}active{% endif %}">Gagnée</a>
+  <a href="?stage=lost{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'lost' %}active{% endif %}">Perdue</a>
+</div>
+
+{% if request.GET.view == 'kanban' %}
+
+<div class="row g-3" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:.5rem;">
+  {% for col_stage, col_label, col_color in kanban_columns %}
+  <div class="col" style="min-width:260px;">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-header" style="background:rgba({{ col_color }},.06);">
+        <span class="orion-card-title" style="font-size:.8rem;">{{ col_label }}</span>
+        <span class="orion-badge orion-badge-secondary">{{ kanban_counts|default_if_none:0 }}</span>
+      </div>
+      <div class="orion-orion-orion-card-body p-2 d-flex flex-column gap-2">
+        {% for opp in opportunities %}{% if opp.stage == col_stage %}
+        <div class="orion-card p-3" style="border-left:3px solid {{ col_color }};">
+          <div class="fw-semibold mb-1" style="font-size:.84rem;color:var(--orion-primary)">
+            <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="text-decoration-none" style="color:inherit">{{ opp.name }}</a>
+          </div>
+          <div style="font-size:.75rem;color:var(--orion-muted);">
+            {% if opp.customer %}{{ opp.customer.name }}{% elif opp.prospect %}{{ opp.prospect.name }}{% endif %}
+          </div>
+          {% if opp.expected_revenue %}
+          <div class="mt-2 fw-semibold" style="font-size:.82rem;color:var(--orion-secondary)">{{ opp.expected_revenue|floatformat:0 }} €</div>
+          {% endif %}
+          {% if opp.close_date %}
+          <div style="font-size:.72rem;color:var(--orion-muted);">Clôture : {{ opp.close_date|date:"d/m/Y" }}</div>
+          {% endif %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  {% for col_stage, col_label in stage_choices %}
+  <div class="col" style="min-width:260px;">
+    <div class="orion-card h-100">
+      <div class="orion-orion-orion-card-header">
+        <span class="orion-card-title" style="font-size:.8rem;">{{ col_label }}</span>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        {% for opp in opportunities %}{% if opp.stage == col_stage %}
+        <div class="orion-card p-3 mb-2">
+          <div class="fw-semibold" style="font-size:.84rem;">
+            <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="text-decoration-none" style="color:var(--orion-primary)">{{ opp.name }}</a>
+          </div>
+          {% if opp.expected_revenue %}<div class="fw-semibold mt-1" style="font-size:.82rem;color:var(--orion-secondary)">{{ opp.expected_revenue|floatformat:0 }} €</div>{% endif %}
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
+
+{% else %}
+
+{% if opportunities %}
+<div class="orion-table-container">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Client / Prospect</th>
+          <th>Montant estimé</th>
+          <th>Probabilité</th>
+          <th>Étape</th>
+          <th>Date clôture</th>
+          <th>Responsable</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for opp in opportunities %}
+        <tr>
+          <td>
+            <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="fw-semibold text-decoration-none" style="color:var(--orion-primary)">{{ opp.name }}</a>
+          </td>
+          <td style="font-size:.82rem;color:var(--orion-muted);">
+            {% if opp.customer %}<a href="{% url 'crm:customer_detail' opp.customer.pk %}" class="text-decoration-none" style="color:inherit">{{ opp.customer.name }}</a>
+            {% elif opp.prospect %}{{ opp.prospect.name }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if opp.expected_revenue %}
+            <span class="fw-semibold" style="font-size:.84rem;">{{ opp.expected_revenue|floatformat:0 }} €</span>
+            {% else %}<span style="color:var(--orion-muted)">—</span>{% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:56px;height:6px;border-radius:3px;background:var(--orion-border);overflow:hidden;">
+                <div style="height:100%;width:{{ opp.probability|default:0 }}%;background:{% if opp.probability >= 70 %}var(--orion-success){% elif opp.probability >= 40 %}var(--orion-warning){% else %}var(--orion-danger){% endif %};border-radius:3px;"></div>
+              </div>
+              <span style="font-size:.8rem;font-weight:600;">{{ opp.probability|default:0 }}%</span>
+            </div>
+          </td>
+          <td>
+            {% if opp.stage == 'qualification' %}<span class="orion-badge orion-badge-secondary">Qualification</span>
+            {% elif opp.stage == 'need' %}<span class="orion-badge orion-badge-info">Besoin</span>
+            {% elif opp.stage == 'quote' %}<span class="orion-badge orion-badge-warning">Devis</span>
+            {% elif opp.stage == 'sent' %}<span class="orion-badge orion-badge-primary">Envoyé</span>
+            {% elif opp.stage == 'negotiation' %}<span class="orion-badge orion-badge-purple">Négociation</span>
+            {% elif opp.stage == 'won' %}<span class="orion-badge orion-badge-success">Gagnée</span>
+            {% elif opp.stage == 'lost' %}<span class="orion-badge orion-badge-danger">Perdue</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">{{ opp.get_stage_display }}</span>{% endif %}
+          </td>
+          <td style="font-size:.82rem;color:var(--orion-muted);">{{ opp.close_date|date:"d/m/Y"|default:"—" }}</td>
+          <td style="font-size:.82rem;color:var(--orion-muted);">{{ opp.salesperson.get_full_name|default:"—" }}</td>
+          <td class="actions">
+            <div class="d-flex align-items-center justify-content-end gap-1">
+              <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'sales:quote_create' %}?opportunity={{ opp.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Créer devis">
+                <i class="bi bi-file-earmark-plus"></i>
+              </a>
+              <a href="{% url 'crm:opportunity_edit' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="orion-pagination mt-3">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if stage %}&stage={{ stage }}{% endif %}" class="orion-page-link"><i class="bi bi-chevron-left"></i></a>
+  {% endif %}
+  {% for num in page_obj.paginator.page_range %}
+  {% if page_obj.number == num %}
+  <span class="orion-page-link active">{{ num }}</span>
+  {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+  <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}{% if stage %}&stage={{ stage }}{% endif %}" class="orion-page-link">{{ num }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if stage %}&stage={{ stage }}{% endif %}" class="orion-page-link"><i class="bi bi-chevron-right"></i></a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="orion-empty">
+  <i class="bi bi-trophy orion-empty-icon"></i>
+  <div class="orion-empty-title">Aucune opportunité</div>
+  <p class="orion-empty-text">
+    {% if q or stage %}Aucune opportunité ne correspond à vos critères.{% else %}Créez votre première opportunité pour suivre votre pipeline commercial.{% endif %}
+  </p>
+  {% if not q and not stage %}
+  <a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
+    <i class="bi bi-plus-lg"></i> Nouvelle opportunité
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:quote_list' %}">Devis BTP</a></li>
+<li class="breadcrumb-item active">{{ quote.number }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">Devis BTP {{ quote.number }}</h1>
+      <div class="detail-meta">
+        <span class="badge-status badge-{{ quote.status }}">{{ quote.get_status_display }}</span>
+        <span><i class="bi bi-person me-1"></i>{{ quote.customer.name }}</span>
+        {% if quote.project %}<span><i class="bi bi-building-gear me-1"></i>{{ quote.project.name }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'btp:quote_edit' quote.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'btp:quote_delete' quote.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
+      <a href="{% url 'btp:quote_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>Lignes de devis</h6></div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead>
+            <tr><th>Désignation</th><th>Unité</th><th class="text-end">Quantité</th><th class="text-end">PU HT</th><th class="text-end">Total HT</th></tr>
+          </thead>
+          <tbody>
+            {% for line in lines %}
+            <tr {% if line.is_section %}class="table-active"{% endif %}>
+              <td>{% if line.is_section %}<strong>{{ line.description }}</strong>{% else %}{{ line.description }}{% endif %}</td>
+              <td class="small text-muted">{% if not line.is_section %}{{ line.unit }}{% endif %}</td>
+              <td class="text-end small">{% if not line.is_section %}{{ line.quantity|floatformat:3 }}{% endif %}</td>
+              <td class="text-end small">{% if not line.is_section %}{{ line.unit_price|floatformat:4 }} €{% endif %}</td>
+              <td class="text-end fw-semibold small">{{ line.total_ht|floatformat:2 }} €</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune ligne — modifiez le devis pour ajouter des ouvrages.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-end p-3">
+        <table class="totals-table" style="min-width:260px">
+          <tr><td class="text-muted">Total HT</td><td class="text-end fw-semibold">{{ quote.total_ht|floatformat:2 }} €</td></tr>
+          <tr><td class="text-muted">TVA</td><td class="text-end">{{ quote.total_tva|floatformat:2 }} €</td></tr>
+          <tr class="total-row"><td>Total TTC</td><td class="text-end">{{ quote.total_ttc|floatformat:2 }} €</td></tr>
+        </table>
+      </div>
+    </div>
+    {% if quote.notes %}
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="p-3 small text-muted">{{ quote.notes|linebreaks }}</div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Client</label><div class="value"><a href="{% url 'crm:customer_detail' quote.customer.pk %}">{{ quote.customer.name }}</a></div></div>
+        {% if quote.project %}<div class="info-item"><label>Chantier</label><div class="value"><a href="{% url 'btp:project_detail' quote.project.pk %}">{{ quote.project.name }}</a></div></div>{% endif %}
+        <div class="info-item"><label>Date</label><div class="value">{{ quote.issue_date|date:"d/m/Y" }}</div></div>
+        <div class="info-item"><label>Validité</label><div class="value {% if not quote.validity_date %}empty{% endif %}">{{ quote.validity_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Objet</label><div class="value small {% if not quote.subject %}empty{% endif %}">{{ quote.subject|default:"—" }}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

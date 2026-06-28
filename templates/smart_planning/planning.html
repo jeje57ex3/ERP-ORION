@@ -1,0 +1,69 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow">Opérations</div>
+    <h1 class="orion-page-title">Planning intelligent</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+{% if conflicts %}
+<div class="orion-alert danger mb-3">
+  <i class="bi bi-exclamation-octagon me-2"></i>
+  <strong>{{ conflicts|length }} conflit(s) détecté(s)</strong> dans le planning.
+</div>
+{% endif %}
+<div class="orion-dash-grid mb-4">
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Cette semaine</div>
+    <div class="orion-metric-value">{{ stats.this_week }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Total</div>
+    <div class="orion-metric-value" style="color:var(--orion-accent)">{{ stats.total }}</div>
+  </div>
+  <div class="orion-metric col-3">
+    <div class="orion-metric-header">Conflits actifs</div>
+    <div class="orion-metric-value" style="color:var(--orion-danger)">{{ stats.conflicts }}</div>
+  </div>
+</div>
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Événements — 30 prochains jours</h3></div>
+  <div class="orion-orion-orion-card-body p-0">
+    {% if events %}
+    <div class="list-group list-group-flush">
+      {% for event in events %}
+      <div class="list-group-item px-4 py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div style="min-width:48px;text-align:center">
+            <div style="font-size:11px;color:var(--orion-muted)">{{ event.start_at|date:"d/m" }}</div>
+            <div style="font-size:13px;font-weight:600">{{ event.start_at|date:"H:i" }}</div>
+          </div>
+          <div class="flex-grow-1">
+            <div style="font-weight:600;font-size:14px">
+              <a href="{% url 'smart_planning:event_detail' event.pk %}" style="color:inherit;text-decoration:none">{{ event.title }}</a>
+            </div>
+            <div style="font-size:12px;color:var(--orion-muted)">
+              {{ event.get_event_type_display }}
+              {% if event.employee %} · {{ event.employee.full_name }}{% endif %}
+              {% if event.customer %} · {{ event.customer.name }}{% endif %}
+              {% if event.location %} · {{ event.location }}{% endif %}
+            </div>
+          </div>
+          <span class="orion-badge {% if event.status == 'done' %}success{% elif event.status == 'cancelled' %}danger{% elif event.status == 'in_progress' %}warning{% else %}neutral{% endif %}">
+            {{ event.get_status_display }}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="orion-empty-state">
+      <i class="bi bi-calendar3" style="font-size:32px;color:var(--orion-muted)"></i>
+      <p style="color:var(--orion-muted);margin-top:12px">Aucun événement prévu dans les 30 prochains jours.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORION INTERNAL — App Shell Layout
+   Sidebar + main area, topbar, page wrappers, grids
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── App shell ──────────────────────────────────────────────────── */
+.orion-app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.orion-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Page wrapper ───────────────────────────────────────────────── */
+.orion-page {
+  flex: 1;
+  padding: 28px 32px;
+  max-width: 1700px;
+  width: 100%;
+}
+
+/* ── Page header ────────────────────────────────────────────────── */
+.orion-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.orion-page-title {
+  font-size: var(--orion-h2);
+  font-family: var(--orion-font-heading);
+  font-weight: 600;
+  color: var(--orion-text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.orion-page-subtitle {
+  font-size: var(--orion-small);
+  color: var(--orion-text-muted);
+  margin: 5px 0 0;
+}
+
+.orion-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────── */
+.orion-topbar {
+  height: var(--orion-topbar-height);
+  background: var(--orion-bg-soft);
+  border-bottom: 1px solid var(--orion-border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.orion-topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--orion-text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orion-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.orion-footer {
+  padding: 14px 32px;
+  background: var(--orion-bg-soft);
+  border-top: 1px solid var(--orion-border);
+  color: var(--orion-text-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.orion-footer .sep { opacity: 0.4; }
+
+/* ── Breadcrumb ─────────────────────────────────────────────────── */
+.orion-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--orion-text-muted);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.orion-breadcrumb a          { color: var(--orion-text-muted); }
+.orion-breadcrumb a:hover    { color: var(--orion-gold); }
+.orion-breadcrumb .sep       { opacity: 0.4; }
+.orion-breadcrumb .current   { color: var(--orion-text-soft); }
+
+/* ── Section ────────────────────────────────────────────────────── */
+.orion-section { margin-bottom: 32px; }
+
+.orion-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--orion-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.orion-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Grid helpers ───────────────────────────────────────────────── */
+.orion-grid      { display: grid; gap: 20px; }
+.orion-grid-2    { grid-template-columns: repeat(2, 1fr); }
+.orion-grid-3    { grid-template-columns: repeat(3, 1fr); }
+.orion-grid-4    { grid-template-columns: repeat(4, 1fr); }
+.orion-grid-auto { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .orion-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .orion-page { padding: 16px; }
+  .orion-grid-2,
+  .orion-grid-3,
+  .orion-grid-4 { grid-template-columns: 1fr; }
+  .orion-page-header { flex-direction: column; }
+  .orion-topbar { padding: 0 16px; }
+  .orion-footer { padding: 12px 16px; }
+}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 64" fill="none" role="img" aria-label="Orion ERP">
+  <!-- Geometric icon mark — light/white version for dark backgrounds -->
+
+  <!-- Cream "L" shape: left arm + bottom arm -->
+  <path fill="#F8F3EA" d="M2,2 L21,2 L21,43 L62,43 L62,62 L2,62 Z"/>
+
+  <!-- Gold shape (upper-right) with inner hollow -->
+  <path fill-rule="evenodd" fill="#C6A15B"
+    d="M21,2 L62,2 L62,34 L54,43 L21,43 Z
+       M30,10 L54,10 L54,34 L30,34 Z"/>
+
+  <!-- Wordmark white -->
+  <text x="78" y="29"
+        font-family="Poppins, Inter, 'Segoe UI', system-ui, sans-serif"
+        font-weight="700"
+        font-size="19"
+        fill="#F8F3EA"
+        letter-spacing="1.5">ORION</text>
+  <text x="78" y="48"
+        font-family="Inter, 'Segoe UI', system-ui, sans-serif"
+        font-weight="500"
+        font-size="12"
+        fill="#C6A15B"
+        letter-spacing="4">ERP</text>
+</svg>

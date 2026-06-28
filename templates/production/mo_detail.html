@@ -1,0 +1,72 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">Ordres de fabrication</a></li>
+<li class="breadcrumb-item active">{{ order.order_number }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ order.order_number }}</h1>
+      <div class="detail-meta">
+        {% if order.status == 'draft' %}<span class="badge-status badge-draft">Brouillon</span>
+        {% elif order.status == 'planned' %}<span class="badge-status badge-pending">Planifié</span>
+        {% elif order.status == 'in_progress' %}<span class="badge-status badge-partial">En cours</span>
+        {% elif order.status == 'completed' %}<span class="badge-status badge-paid">Terminé</span>
+        {% elif order.status == 'cancelled' %}<span class="badge-status badge-cancelled">Annulé</span>{% endif %}
+        <span class="fw-semibold">{{ order.product.name }}</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'production:order_edit' order.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+      <a href="{% url 'production:order_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-4">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Détails</h6></div>
+      <div class="info-grid">
+        <div class="info-item"><label>Produit</label><div class="value">{{ order.product.name }}</div></div>
+        <div class="info-item"><label>Nomenclature</label><div class="value {% if not order.bom %}empty{% endif %}">{{ order.bom.name|default:"—" }}</div></div>
+        <div class="info-item"><label>Qté planifiée</label><div class="value">{{ order.quantity_planned }}</div></div>
+        <div class="info-item"><label>Qté produite</label><div class="value">{{ order.quantity_produced }}</div></div>
+        <div class="info-item"><label>Début planifié</label><div class="value {% if not order.planned_start %}empty{% endif %}">{{ order.planned_start|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>Fin planifiée</label><div class="value {% if not order.planned_end %}empty{% endif %}">{{ order.planned_end|date:"d/m/Y"|default:"—" }}</div></div>
+        {% if order.actual_start %}<div class="info-item"><label>Début réel</label><div class="value">{{ order.actual_start|date:"d/m/Y" }}</div></div>{% endif %}
+        {% if order.actual_end %}<div class="info-item"><label>Fin réelle</label><div class="value">{{ order.actual_end|date:"d/m/Y" }}</div></div>{% endif %}
+        {% if order.notes %}<div class="info-item"><label>Notes</label><div class="value small">{{ order.notes }}</div></div>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% if order.bom %}
+  <div class="col-12 col-lg-8">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-diagram-3 me-1 text-primary"></i>Composants (nomenclature)</h6></div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>Composant</th><th class="text-end">Qté</th><th>Unité</th><th>Notes</th></tr></thead>
+          <tbody>
+            {% for line in order.bom.lines.all %}
+            <tr>
+              <td class="small fw-semibold">{{ line.component.name }}</td>
+              <td class="text-end small">{{ line.quantity }}</td>
+              <td class="small text-muted">{{ line.unit }}</td>
+              <td class="small text-muted">{{ line.notes|default:"" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3 small">Aucun composant.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

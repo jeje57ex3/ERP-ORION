@@ -1,0 +1,73 @@
+{% extends "websites/public/btp/base.html" %}
+{% load static %}
+{% block title %}Nos réalisations — {{ site.name }}{% endblock %}
+{% block meta_description %}Découvrez nos réalisations BTP : photos avant / après, types de travaux, avis clients.{% endblock %}
+
+{% block content %}
+<section class="btp-page-hero">
+  <div class="btp-container">
+    <span class="btp-h-label" style="color:var(--btp-secondary)">Réalisations</span>
+    <h1>Nos chantiers terminés</h1>
+    <p>Découvrez nos travaux en images. Avant / après, types de chantiers, avis clients.</p>
+  </div>
+</section>
+
+<section class="btp-section btp-section-white">
+  <div class="btp-container">
+
+    <!-- Filtres -->
+    <div class="btp-filters">
+      <a href="?type=all" class="btp-filter-pill {% if not work_type_filter %}active{% endif %}" data-filter="all">Tous</a>
+      {% for wt_key, wt_label in work_types %}
+      <a href="?type={{ wt_key }}" class="btp-filter-pill {% if work_type_filter == wt_key %}active{% endif %}" data-filter="{{ wt_key }}">{{ wt_label }}</a>
+      {% endfor %}
+    </div>
+
+    <!-- Grille réalisations -->
+    {% if portfolio_projects %}
+    <div class="btp-portfolio-grid">
+      {% for project in portfolio_projects %}
+      <div class="btp-project-card btp-reveal" data-work-type="{{ project.work_type }}">
+        <!-- Before / After -->
+        {% if project.before_image and project.after_image %}
+        <div class="btp-before-after">
+          <img src="{{ project.before_image.url }}" alt="Avant — {{ project.title }}" class="btp-ba-img">
+          <img src="{{ project.after_image.url }}"  alt="Après — {{ project.title }}" class="btp-ba-img btp-ba-after">
+          <span class="btp-ba-label before">Avant</span>
+          <span class="btp-ba-label after">Après</span>
+        </div>
+        {% elif project.after_image %}
+        <div class="btp-project-img"><img src="{{ project.after_image.url }}" alt="{{ project.title }}"></div>
+        {% elif project.before_image %}
+        <div class="btp-project-img"><img src="{{ project.before_image.url }}" alt="{{ project.title }}"></div>
+        {% else %}
+        <div class="btp-project-img"><i class="bi bi-building"></i></div>
+        {% endif %}
+
+        <div class="btp-project-body">
+          <div class="btp-project-type">{{ project.get_work_type_display }}</div>
+          <h3>{{ project.title }}</h3>
+          {% if project.city %}<p class="btp-project-city"><i class="bi bi-geo-alt"></i> {{ project.city }}</p>{% endif %}
+          {% if project.description %}<p style="font-size:.86rem;color:var(--btp-muted);margin-top:.5rem">{{ project.description|truncatewords:20 }}</p>{% endif %}
+          {% if project.customer_review %}
+          <div style="margin-top:.75rem;padding:.75rem;background:var(--btp-bg);border-radius:8px">
+            <div class="btp-stars" data-rating="5" style="font-size:.85rem;margin-bottom:.3rem"></div>
+            <p style="font-size:.84rem;font-style:italic;margin:0">"{{ project.customer_review|truncatewords:25 }}"</p>
+            {% if project.customer_name %}<p style="font-size:.8rem;font-weight:600;margin:.4rem 0 0">— {{ project.customer_name }}</p>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:4rem 0;color:var(--btp-muted)">
+      <i class="bi bi-building" style="font-size:3rem;display:block;margin-bottom:1rem"></i>
+      <p>Nos réalisations arrivent bientôt.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% include "websites/public/btp/components/cta_guided_quote.html" %}
+{% endblock %}

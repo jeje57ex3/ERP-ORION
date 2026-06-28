@@ -1,0 +1,40 @@
+# Env & secrets
+.env
+*.env.local
+
+# Python
+*.pyc
+*.pyo
+__pycache__/
+*.pycache/
+.pytest_cache/
+
+# DB
+db.sqlite3
+db_local.sqlite3
+*.db
+
+# Generated / large assets
+media/
+staticfiles/
+storage/
+
+# Logs & backups
+logs/
+*.log
+backups/
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

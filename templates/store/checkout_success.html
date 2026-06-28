@@ -1,0 +1,66 @@
+{% extends "store/base_store.html" %}
+{% block title %}Commande confirmée — {{ website.name }}{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-7">
+      <div class="border rounded-3 p-5">
+        <div class="mb-4">
+          <div style="width:80px;height:80px;background:#d1fae5;border-radius:50%;display:inline-flex;align-items:center;justify-content:center">
+            <i class="bi bi-check-lg text-success" style="font-size:2.5rem"></i>
+          </div>
+        </div>
+        <h1 class="fw-bold mb-2">Commande confirmée !</h1>
+        <p class="text-muted mb-4">Merci pour votre achat. Vous allez recevoir un email de confirmation.</p>
+
+        <div class="bg-light rounded-3 p-4 text-start mb-4">
+          <div class="row g-2 small">
+            <div class="col-6 text-muted">N° de commande</div>
+            <div class="col-6 fw-bold font-monospace text-end">{{ order.order_number }}</div>
+            <div class="col-6 text-muted">Date</div>
+            <div class="col-6 text-end">{{ order.created_at|date:"d/m/Y à H:i" }}</div>
+            <div class="col-6 text-muted">Adresse de livraison</div>
+            <div class="col-6 text-end">{{ order.shipping_address }}</div>
+            {% if order.shipping_method %}
+            <div class="col-6 text-muted">Mode de livraison</div>
+            <div class="col-6 text-end">{{ order.shipping_method }}</div>
+            {% endif %}
+            <div class="col-6 text-muted fw-bold">Total payé</div>
+            <div class="col-6 fw-bold text-primary text-end">{{ order.total_ttc|floatformat:2 }}€</div>
+          </div>
+        </div>
+
+        <!-- Lignes de commande -->
+        <div class="text-start mb-4">
+          <h6 class="fw-bold mb-2">Articles commandés</h6>
+          {% for item in order.lines.all %}
+          <div class="d-flex justify-content-between small py-1 border-bottom">
+            <span>{{ item.product_name }} <span class="text-muted">x{{ item.quantity }}</span></span>
+            <span class="fw-semibold">{{ item.total|floatformat:2 }}€</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 flex-wrap justify-content-center">
+          {% if user.is_authenticated %}
+          <a href="{% url 'store:customer_orders' %}" class="btn btn-store-primary px-4">
+            <i class="bi bi-bag me-1"></i>Mes commandes
+          </a>
+          {% endif %}
+          <a href="{% url 'store:order_tracking' %}?order={{ order.order_number }}" class="btn btn-outline-secondary px-4">
+            <i class="bi bi-geo-alt me-1"></i>Suivre ma commande
+          </a>
+          <a href="{% url 'store:store_home' %}" class="btn btn-outline-dark px-4">
+            <i class="bi bi-shop me-1"></i>Retour boutique
+          </a>
+        </div>
+
+        <div class="mt-4 text-muted small">
+          <i class="bi bi-envelope me-1"></i>Un récapitulatif a été envoyé à votre adresse email.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

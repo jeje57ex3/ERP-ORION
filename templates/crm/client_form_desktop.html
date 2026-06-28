@@ -1,0 +1,277 @@
+{% extends "layouts/desktop_app.html" %}
+{% load static %}
+
+{% block title %}{{ customer.name|default:"Nouveau client" }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="orion-breadcrumb-sep">›</span>
+<a href="{% url 'crm:customer_list' %}">Clients</a>
+<span class="orion-breadcrumb-sep">›</span>
+<span>{{ customer.name|default:"Nouveau" }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <!-- En-tête -->
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <h1 class="orion-record-title">
+        {{ customer.name|default:"Nouveau client" }}
+      </h1>
+      {% if customer.pk %}
+      <span class="orion-status {% if customer.is_active %}active{% else %}closed{% endif %}">
+        {{ customer.is_active|yesno:"Actif,Inactif" }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="orion-record-toolbar">
+      <button class="orion-icon-btn" form="customer-form" type="submit" title="Enregistrer (Ctrl+S)">
+        <i class="bi bi-save"></i>
+      </button>
+      <button class="orion-icon-btn" onclick="window.print()" title="Imprimer">
+        <i class="bi bi-printer"></i>
+      </button>
+      {% if customer.pk %}
+      <a href="{% url 'crm:customer_confirm_delete' customer.pk %}" class="orion-icon-btn danger" title="Supprimer"
+         data-confirm="Supprimer ce client ?">
+        <i class="bi bi-trash"></i>
+      </a>
+      <div class="orion-toolbar-sep"></div>
+      <div class="dropdown">
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning me-1"></i>Actions <i class="bi bi-chevron-down ms-1" style="font-size:10px"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
+          <li><a class="dropdown-item py-1" href="{% url 'sales:quote_create' %}?customer={{ customer.pk }}"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>Créer un devis</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'sales:invoice_create' %}?customer={{ customer.pk }}"><i class="bi bi-receipt me-2 text-success"></i>Créer une facture</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'btp:project_create' %}?customer={{ customer.pk }}"><i class="bi bi-building-gear me-2 text-info"></i>Créer un chantier</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item py-1" href="#" onclick="window.print();return false"><i class="bi bi-printer me-2"></i>Imprimer fiche</a></li>
+          {% if customer.is_active %}
+          <li><a class="dropdown-item py-1 text-muted" href="#"><i class="bi bi-archive me-2"></i>Archiver</a></li>
+          {% endif %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Formulaire -->
+  <form id="customer-form" method="post" class="orion-main-form">
+    {% csrf_token %}
+
+    <div class="orion-record-grid cols-2-1">
+
+      <!-- Col gauche : infos principales -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Panneau : Informations client -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-person-badge text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Informations client</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row">
+              <label class="required">Nom / Raison sociale</label>
+              {{ form.name }}
+            </div>
+            <div class="orion-form-row">
+              <label>Forme juridique</label>
+              {{ form.company_type }}
+            </div>
+            <div class="orion-form-row">
+              <label>SIRET</label>
+              {{ form.siret }}
+            </div>
+            <div class="orion-form-row">
+              <label>N° TVA intrac.</label>
+              {{ form.vat_number }}
+            </div>
+            <div class="orion-form-row">
+              <label>Secteur d'activité</label>
+              {{ form.industry }}
+            </div>
+            <div class="orion-form-row">
+              <label>Site web</label>
+              {{ form.website }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Panneau : Coordonnées -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-geo-alt text-primary" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Coordonnées</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row">
+              <label>Email</label>
+              {{ form.email }}
+            </div>
+            <div class="orion-form-row">
+              <label>Téléphone</label>
+              {{ form.phone }}
+            </div>
+            <div class="orion-form-row">
+              <label>Mobile</label>
+              {{ form.mobile }}
+            </div>
+            <div class="orion-form-row">
+              <label>Adresse</label>
+              {{ form.address }}
+            </div>
+            <div class="orion-form-row">
+              <label>Code postal</label>
+              {{ form.zip_code }}
+            </div>
+            <div class="orion-form-row">
+              <label>Ville</label>
+              {{ form.city }}
+            </div>
+            <div class="orion-form-row">
+              <label>Pays</label>
+              {{ form.country }}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Col droite : données commerciales -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Panneau : Données commerciales -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-graph-up text-success" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Données commerciales</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-row">
+              <label>Commercial</label>
+              {{ form.salesperson }}
+            </div>
+            <div class="orion-form-row">
+              <label>Source</label>
+              {{ form.source }}
+            </div>
+            <div class="orion-form-row">
+              <label>Catégorie prix</label>
+              {{ form.price_list }}
+            </div>
+            <div class="orion-form-row">
+              <label>Délai paiement</label>
+              {{ form.payment_terms }}
+            </div>
+            <div class="orion-form-row">
+              <label>Limite crédit</label>
+              {{ form.credit_limit }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Panneau : Paramètres -->
+        <div class="orion-record-panel">
+          <div class="orion-record-panel-header">
+            <i class="bi bi-gear text-muted" style="font-size:13px"></i>
+            <h2 class="orion-record-panel-title">Paramètres</h2>
+          </div>
+          <div class="orion-record-panel-body">
+            <div class="orion-form-check mb-2">
+              {{ form.is_active }}
+              <label for="{{ form.is_active.id_for_label }}">Client actif</label>
+            </div>
+            <div class="orion-form-check mb-2">
+              {{ form.is_prospect }}
+              <label for="{{ form.is_prospect.id_for_label }}">Est un prospect</label>
+            </div>
+            <div class="orion-form-check mb-2">
+              {{ form.newsletter }}
+              <label for="{{ form.newsletter.id_for_label }}">Inscrit newsletter</label>
+            </div>
+            <div class="orion-form-row mt-2">
+              <label>Notes internes</label>
+              {{ form.notes }}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="orion-form-actions">
+      <a href="{% url 'crm:customer_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
+      <button type="submit" class="orion-btn orion-btn-gold">
+        <i class="bi bi-save me-1"></i>Enregistrer
+      </button>
+    </div>
+  </form>
+
+  <!-- Onglets bas -->
+  {% if customer.pk %}
+  <div class="orion-bottom-tabs">
+    <div class="orion-bottom-tabs-nav">
+      <button class="orion-bottom-tab active" data-tab="tab-contacts"><i class="bi bi-people"></i> Contacts</button>
+      <button class="orion-bottom-tab" data-tab="tab-quotes"><i class="bi bi-file-earmark-text"></i> Devis</button>
+      <button class="orion-bottom-tab" data-tab="tab-orders"><i class="bi bi-bag"></i> Commandes</button>
+      <button class="orion-bottom-tab" data-tab="tab-invoices"><i class="bi bi-receipt"></i> Factures</button>
+      <button class="orion-bottom-tab" data-tab="tab-opportunities"><i class="bi bi-trophy"></i> Opportunités</button>
+      <button class="orion-bottom-tab" data-tab="tab-projects"><i class="bi bi-building-gear"></i> Chantiers</button>
+      <button class="orion-bottom-tab" data-tab="tab-documents"><i class="bi bi-folder"></i> Documents</button>
+      <button class="orion-bottom-tab" data-tab="tab-history"><i class="bi bi-clock-history"></i> Historique</button>
+    </div>
+    <div class="orion-bottom-tab-content active" id="tab-contacts">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="orion-section-title" style="border:none;margin:0">Contacts associés</span>
+        <a href="{% url 'crm:contact_form' %}?customer={{ customer.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+          <i class="bi bi-plus me-1"></i>Ajouter
+        </a>
+      </div>
+      {% if customer.contacts.all %}
+      <table class="orion-dense-table">
+        <thead><tr><th>Nom</th><th>Poste</th><th>Email</th><th>Téléphone</th><th></th></tr></thead>
+        <tbody>
+          {% for c in customer.contacts.all %}
+          <tr>
+            <td>{{ c.full_name }}</td>
+            <td>{{ c.position }}</td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.phone }}</td>
+            <td><a href="{% url 'crm:contact_detail' c.pk %}" class="orion-btn orion-btn-outline orion-btn-xs">Voir</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="orion-tab-empty"><i class="bi bi-people"></i>Aucun contact</div>
+      {% endif %}
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-quotes">
+      <div class="orion-tab-empty"><i class="bi bi-file-earmark-text"></i>Devis associés</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-orders">
+      <div class="orion-tab-empty"><i class="bi bi-bag"></i>Commandes associées</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-invoices">
+      <div class="orion-tab-empty"><i class="bi bi-receipt"></i>Factures associées</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-opportunities">
+      <div class="orion-tab-empty"><i class="bi bi-trophy"></i>Opportunités</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-projects">
+      <div class="orion-tab-empty"><i class="bi bi-building-gear"></i>Chantiers BTP</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-documents">
+      <div class="orion-tab-empty"><i class="bi bi-folder"></i>Documents liés</div>
+    </div>
+    <div class="orion-bottom-tab-content" id="tab-history">
+      <div class="orion-tab-empty"><i class="bi bi-clock-history"></i>Historique des actions</div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Techniciens</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Techniciens son, lumière et vidéo.</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'audio:technician_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau technicien</a>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="table-responsive">
+    <table class="table erp-orion-table mb-0">
+      <thead><tr><th>Nom</th><th>Spécialités</th><th>Téléphone</th><th class="text-end">Tarif/jour</th><th>Type</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for tech in technicians %}
+        <tr>
+          <td class="small fw-semibold">{{ tech.name }}</td>
+          <td class="small text-muted">{{ tech.specialties|default:"—" }}</td>
+          <td class="small text-muted">{{ tech.phone|default:"—" }}</td>
+          <td class="text-end small">{{ tech.day_rate }} €</td>
+          <td>{% if tech.is_employee %}<span class="badge-status badge-paid">Salarié</span>{% else %}<span class="badge-status badge-draft">Freelance</span>{% endif %}</td>
+          <td>{% if tech.is_active %}<span class="badge-status badge-paid">Actif</span>{% else %}<span class="badge-status badge-cancelled">Inactif</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">
+          <div class="empty-state">
+            <i class="bi bi-person-badge empty-icon"></i>
+            <h4>Aucun technicien</h4>
+            <p>Ajoutez vos techniciens pour les affecter aux événements.</p>
+            <a href="{% url 'audio:technician_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau technicien</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

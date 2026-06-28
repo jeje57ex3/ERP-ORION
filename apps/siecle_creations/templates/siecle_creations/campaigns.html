@@ -1,0 +1,60 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}Campagnes & Commandes — SIÈCLE{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">SIÈCLE · Créations</p>
+    <h1 class="orion-page-title">Commandes & Campagnes</h1>
+    <p class="orion-page-subtitle">Suivi des commandes clients sur les créations SIÈCLE.</p>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'siecle_creations:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Création</th>
+        <th>Client</th>
+        <th>Qté</th>
+        <th>Total</th>
+        <th>Personnalisation</th>
+        <th>Statut</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td style="font-family:monospace;color:var(--orion-muted)">#{{ order.pk }}</td>
+        <td style="font-weight:500">{{ order.creation.title|default:"—" }}</td>
+        <td>{{ order.customer|default:"—" }}</td>
+        <td>{{ order.quantity }}</td>
+        <td><strong>{{ order.total_price }} €</strong></td>
+        <td style="font-size:12px;color:var(--orion-muted);max-width:180px">{{ order.personalization|truncatechars:60|default:"—" }}</td>
+        <td>
+          <span class="orion-badge {% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status == 'confirmed' %}neutral{% else %}warning{% endif %}">
+            {{ order.get_status_display }}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--orion-muted)">{{ order.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;color:var(--orion-muted);padding:48px">
+          <i class="bi bi-bag d-block mb-2" style="font-size:32px;opacity:.3"></i>
+          Aucune commande pour l'instant.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

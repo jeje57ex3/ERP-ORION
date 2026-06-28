@@ -1,0 +1,75 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+<li class="breadcrumb-item active">Créer un site vitrine</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Créer un site vitrine</h1>
+    <p class="page-subtitle">Votre site sera créé avec toutes les pages essentielles déjà configurées.</p>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-building me-1 text-primary"></i>Informations générales</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label form-label-sm">Nom du site *</label>{{ form.name }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">Langue</label>{{ form.language }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Domaine</label>{{ form.domain }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Sous-domaine</label>{{ form.subdomain }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-telephone me-1 text-primary"></i>Contact</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label form-label-sm">Email de contact</label>{{ form.contact_email }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Téléphone</label>{{ form.contact_phone }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">Adresse</label>{{ form.address }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-share me-1 text-primary"></i>Réseaux sociaux</h6></div>
+        <div class="orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label form-label-sm">Facebook</label>{{ form.facebook_url }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">Instagram</label>{{ form.instagram_url }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">LinkedIn</label>{{ form.linkedin_url }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Créer le site vitrine</button>
+        <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="erp-card">
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Pages créées automatiquement</h6></div>
+      <div class="orion-orion-card-body p-0">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item small"><i class="bi bi-house me-2 text-primary"></i>Accueil</li>
+          <li class="list-group-item small"><i class="bi bi-info-circle me-2 text-primary"></i>À propos</li>
+          <li class="list-group-item small"><i class="bi bi-gear me-2 text-primary"></i>Services</li>
+          <li class="list-group-item small"><i class="bi bi-images me-2 text-primary"></i>Réalisations</li>
+          <li class="list-group-item small"><i class="bi bi-journal-text me-2 text-primary"></i>Blog</li>
+          <li class="list-group-item small"><i class="bi bi-envelope me-2 text-primary"></i>Contact</li>
+          <li class="list-group-item small"><i class="bi bi-file-earmark me-2 text-primary"></i>Demande de devis</li>
+          <li class="list-group-item small"><i class="bi bi-shield me-2 text-muted"></i>Politique de confidentialité</li>
+          <li class="list-group-item small"><i class="bi bi-file-text me-2 text-muted"></i>Mentions légales</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

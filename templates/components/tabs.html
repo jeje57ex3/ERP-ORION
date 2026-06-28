@@ -1,0 +1,21 @@
+{# Composant onglets
+   Variables : tabs (liste de dicts {id, label, icon, active, badge, badge_color}), tab_content_id
+#}
+{% if tabs %}
+<div class="orion-tabs mb-4" id="{{ tab_content_id|default:'tabNav' }}">
+  {% for tab in tabs %}
+  <a href="{{ tab.url|default:'#' }}"
+     class="orion-tab{% if tab.active %} active{% endif %}"
+     {% if not tab.url %}data-bs-toggle="tab" data-bs-target="#tab-{{ tab.id }}"{% endif %}
+     role="tab">
+    {% if tab.icon %}<i class="{{ tab.icon }} me-1"></i>{% endif %}
+    {{ tab.label }}
+    {% if tab.badge %}
+    <span class="ms-1 orion-badge orion-badge-{{ tab.badge_color|default:'secondary' }}" style="font-size:.68rem;padding:.15rem .4rem">
+      {{ tab.badge }}
+    </span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

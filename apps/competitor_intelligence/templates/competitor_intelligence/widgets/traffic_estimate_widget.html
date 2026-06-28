@@ -1,0 +1,27 @@
+{% load humanize %}
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-bar-chart-line text-warning"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+    <small class="text-muted ms-auto">(estimés)</small>
+  </div>
+  <div class="card-body p-0">
+    {% if traffic_data %}
+    <ul class="list-group list-group-flush">
+      {% for row in traffic_data %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small">{{ row.competitor.name }}</span>
+        <span class="text-muted small">
+          {% if row.estimated_monthly %}~{{ row.estimated_monthly|intcomma }}/mois{% else %}—{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-0">Aucune estimation disponible</p>
+    {% endif %}
+  </div>
+  <div class="card-footer text-muted" style="font-size:.7rem">
+    <i class="bi bi-info-circle me-1"></i>Données estimées — pas de données réelles
+  </div>
+</div>

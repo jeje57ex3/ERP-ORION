@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commande confirmée — SIÈCLE</title>
+</head>
+<body style="margin:0;padding:0;background:#050505;font-family:Arial,Helvetica,sans-serif;color:#f5f1e8;">
+  <div style="max-width:680px;margin:0 auto;padding:48px 24px;">
+
+    <!-- Header -->
+    <div style="margin-bottom:40px;">
+      <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#d7b98c;">SIÈCLE</p>
+      <h1 style="margin:0;font-size:36px;font-weight:900;letter-spacing:-0.04em;color:#fff;">Commande confirmée</h1>
+    </div>
+
+    <!-- Greeting -->
+    <p style="color:#c8c2b5;margin:0 0 32px;line-height:1.7;">
+      Merci pour votre commande. Votre paiement a été validé avec succès.
+      Vous recevrez une notification lorsque votre commande sera expédiée.
+    </p>
+
+    <!-- Order summary box -->
+    <div style="border:1px solid rgba(215,185,140,0.2);border-radius:20px;padding:28px;margin-bottom:32px;background:rgba(255,255,255,0.04);">
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#d7b98c;">RÉCAPITULATIF</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+        <tr>
+          <td style="padding:6px 0;color:#c8c2b5;font-size:14px;">Numéro de commande</td>
+          <td style="padding:6px 0;text-align:right;font-weight:700;color:#fff;font-size:14px;">{{ order.order_number }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#c8c2b5;font-size:14px;">Statut</td>
+          <td style="padding:6px 0;text-align:right;color:#4caf50;font-weight:700;font-size:14px;">Paiement confirmé</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#c8c2b5;font-size:14px;">Total</td>
+          <td style="padding:6px 0;text-align:right;font-weight:700;color:#d7b98c;font-size:16px;">{{ order.total_ttc }} €</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Order lines -->
+    {% if order.lines.all %}
+    <div style="margin-bottom:32px;">
+      <p style="margin:0 0 14px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#d7b98c;">ARTICLES</p>
+      {% for line in order.lines.all %}
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="color:#f5f1e8;font-size:14px;">{{ line.quantity }} × {{ line.product_name }}</span>
+        <span style="color:#d7b98c;font-weight:700;font-size:14px;">{{ line.total }} €</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Shipping address -->
+    {% if order.shipping_address %}
+    <div style="margin-bottom:32px;">
+      <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#d7b98c;">LIVRAISON</p>
+      <p style="margin:0;color:#c8c2b5;font-size:14px;line-height:1.7;">{{ order.shipping_address|linebreaksbr }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:28px;text-align:center;">
+      <p style="margin:0 0 8px;color:#888;font-size:13px;">
+        Une question ? Contactez-nous : <a href="mailto:contact@siecle.example.com" style="color:#d7b98c;text-decoration:none;">contact@siecle.example.com</a>
+      </p>
+      <p style="margin:0;color:#555;font-size:11px;">© SIÈCLE — Tous droits réservés</p>
+    </div>
+
+  </div>
+</body>
+</html>

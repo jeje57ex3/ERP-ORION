@@ -1,0 +1,20 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"website_pages_to_publish" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}{% if data.count %}<span class="badge bg-warning text-dark ms-2">{{ data.count }}</span>{% endif %}</div>
+{% if data.has_data %}
+<ul class="list-unstyled mb-0">
+  {% for page in data.pages %}
+  <li class="px-3 py-2 border-bottom d-flex align-items-center gap-3">
+    <i class="bi bi-file-earmark-richtext text-warning flex-shrink-0"></i>
+    <div class="flex-grow-1">
+      <div class="fw-semibold" style="font-size:.84rem">{{ page }}</div>
+      <div class="text-muted" style="font-size:.72rem">Modifié le {{ page.updated_at|date:"d/m/Y" }}</div>
+    </div>
+    <span class="badge bg-secondary" style="font-size:.65rem">Brouillon</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-file-earmark-check"></i><p class="mt-2 mb-0">Aucune page en attente de publication.</p></div>
+{% endif %}
+{% endwith %}

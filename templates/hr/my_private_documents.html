@@ -1,0 +1,62 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Mes documents</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Vos documents personnels mis à disposition par les RH.</p>{% endblock %}
+
+{% block content %}
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-person me-2"></i>Mes documents</h6></div>
+  <div class="erp-orion-orion-card-body">
+    {% if documents %}
+    <div class="table-responsive">
+      <table class="orion-table align-middle">
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Type</th>
+            <th>Ajouté le</th>
+            <th>Expire le</th>
+            <th>Signature</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+          <tr {% if doc.is_expired %}class="table-danger"{% elif doc.expires_soon %}class="table-warning"{% endif %}>
+            <td>
+              <div class="fw-semibold">{{ doc.title }}</div>
+              {% if doc.description %}<small class="text-muted">{{ doc.description|truncatechars:60 }}</small>{% endif %}
+            </td>
+            <td><span class="orion-badge neutral">{{ doc.get_document_type_display }}</span></td>
+            <td>{{ doc.created_at|date:"d/m/Y" }}</td>
+            <td>
+              {% if doc.expires_at %}
+                {% if doc.is_expired %}<span class="text-danger fw-semibold">{{ doc.expires_at|date:"d/m/Y" }}</span>
+                {% elif doc.expires_soon %}<span class="text-warning fw-semibold">{{ doc.expires_at|date:"d/m/Y" }}</span>
+                {% else %}{{ doc.expires_at|date:"d/m/Y" }}{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if doc.requires_signature %}
+                {% if doc.signed_at %}<span class="orion-badge success"><i class="bi bi-check-lg me-1"></i>Signé</span>
+                {% else %}<span class="orion-badge warning text-dark"><i class="bi bi-pen me-1"></i>À signer</span>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'hr:private_document_download' doc.pk %}" class="orion-btn sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i>Télécharger
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state text-center py-5">
+      <i class="bi bi-file-person display-5 text-muted mb-3 d-block"></i>
+      <p class="text-muted">Aucun document disponible pour le moment.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

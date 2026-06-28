@@ -1,0 +1,19 @@
+{% load dashboard_tags %}
+{% with data=widget_data|dict_get:"btp_recent_site_photos" %}
+<div class="widget-header"><i class="{{ user_widget.widget.icon }} me-2" style="color:{{ user_widget.widget.color }}"></i>{{ user_widget.get_display_title }}</div>
+{% if data.has_data %}
+<div class="d-flex flex-wrap gap-2 p-3">
+  {% for project in data.projects %}
+  <a href="/btp/projects/{{ project.pk }}/documents/" class="d-flex align-items-center gap-2 text-decoration-none p-2 border rounded-3 bg-light flex-grow-1" style="min-width:160px">
+    <i class="bi bi-camera fs-4 text-secondary"></i>
+    <div>
+      <div class="fw-semibold" style="font-size:.8rem">{{ project.name|truncatechars:22 }}</div>
+      <div class="text-muted" style="font-size:.7rem">Voir les photos</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="widget-empty-state py-4"><i class="bi bi-camera"></i><p class="mt-2 mb-0">Aucun chantier actif avec photos.</p></div>
+{% endif %}
+{% endwith %}

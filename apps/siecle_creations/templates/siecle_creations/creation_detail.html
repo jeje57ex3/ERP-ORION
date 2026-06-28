@@ -1,0 +1,127 @@
+{% extends "layouts/erp_shell.html" %}
+
+{% block title %}{{ creation.title }} — SIÈCLE{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'siecle_creations:dashboard' %}" style="color:var(--orion-muted);text-decoration:none">SIÈCLE</a>
+      <i class="bi bi-chevron-right mx-1" style="font-size:11px;color:var(--orion-muted)"></i>
+      <a href="{% url 'siecle_creations:catalog' %}" style="color:var(--orion-muted);text-decoration:none">Catalogue</a>
+      <i class="bi bi-chevron-right mx-1" style="font-size:11px;color:var(--orion-muted)"></i>
+      {{ creation.reference }}
+    </p>
+    <h1 class="orion-page-title" style="font-size:22px">{{ creation.title }}</h1>
+  </div>
+  <div class="orion-page-actions">
+    {% if creation.status == 'draft' %}
+    <form method="post" action="{% url 'siecle_creations:publish' creation.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-check2-circle me-1"></i>Publier
+      </button>
+    </form>
+    {% elif creation.status == 'published' %}
+    <form method="post" action="{% url 'siecle_creations:archive' creation.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn">
+        <i class="bi bi-archive me-1"></i>Archiver
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'siecle_creations:catalog' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Catalogue
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <h2 style="font-size:14px;font-weight:600;margin:0">Informations</h2>
+        <span class="orion-badge {% if creation.status == 'published' %}success{% elif creation.status == 'sold_out' %}danger{% elif creation.status == 'draft' %}neutral{% else %}neutral{% endif %}">
+          {{ creation.get_status_display }}
+        </span>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:13.5px">
+          <span style="color:var(--orion-muted)">Référence</span>
+          <strong style="font-family:monospace">{{ creation.reference }}</strong>
+          <span style="color:var(--orion-muted)">Catégorie</span>
+          <span>{{ creation.get_category_display }}</span>
+          <span style="color:var(--orion-muted)">Prix HT</span>
+          <span>{{ creation.price_ht }} €</span>
+          <span style="color:var(--orion-muted)">Prix TTC</span>
+          <strong>{{ creation.price_ttc }} €</strong>
+          <span style="color:var(--orion-muted)">Stock</span>
+          <span>
+            {{ creation.stock_qty }}
+            {% if creation.is_limited_edition and creation.limited_qty %}
+            <span style="color:var(--orion-muted)">/ {{ creation.limited_qty }} (limitée)</span>
+            {% endif %}
+          </span>
+          {% if creation.weight_grams %}
+          <span style="color:var(--orion-muted)">Poids</span>
+          <span>{{ creation.weight_grams }} g</span>
+          {% endif %}
+          {% if creation.dimensions %}
+          <span style="color:var(--orion-muted)">Dimensions</span>
+          <span>{{ creation.dimensions }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if creation.description or creation.materials %}
+    <div class="orion-card mt-4">
+      <div class="orion-card-header">
+        <h2 style="font-size:14px;font-weight:600;margin:0">Description & Matériaux</h2>
+      </div>
+      <div style="padding:16px 20px;font-size:13.5px;line-height:1.6">
+        {% if creation.description %}
+        <p style="margin-bottom:12px">{{ creation.description }}</p>
+        {% endif %}
+        {% if creation.materials %}
+        <div>
+          <strong style="color:var(--orion-muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em">Matériaux</strong>
+          <p style="margin-top:4px">{{ creation.materials }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-5">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <h2 style="font-size:14px;font-weight:600;margin:0">Commandes récentes</h2>
+        <span style="font-size:12px;color:var(--orion-muted)">{{ orders|length }} commande(s)</span>
+      </div>
+      {% if orders %}
+      <div style="padding:8px 16px">
+        {% for order in orders %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--orion-border);font-size:13px">
+          <div>
+            <div style="font-weight:500">Commande #{{ order.pk }}</div>
+            <div style="color:var(--orion-muted);font-size:12px">
+              {{ order.quantity }} × {{ order.unit_price }} € · {{ order.created_at|date:"d/m/Y" }}
+            </div>
+          </div>
+          <span class="orion-badge {% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% else %}neutral{% endif %}">
+            {{ order.get_status_display }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding:32px;text-align:center;color:var(--orion-muted);font-size:13px">
+        Aucune commande pour cette création.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

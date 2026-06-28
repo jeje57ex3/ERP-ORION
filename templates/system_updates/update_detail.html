@@ -1,0 +1,121 @@
+{% extends "layouts/erp_shell.html" %}
+{% load humanize %}
+
+{% block title %}Mise à jour #{{ update_run.id }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Mises à jour</p>
+    <h1 class="orion-page-title">Mise à jour #{{ update_run.id }}</h1>
+    <p class="orion-page-subtitle">
+      {% if update_run.status == "success" %}
+        <span style="color:var(--orion-success)"><i class="bi bi-check-circle-fill me-1"></i>Succès</span>
+      {% elif update_run.status == "failed" %}
+        <span style="color:var(--orion-danger)"><i class="bi bi-x-circle-fill me-1"></i>Échec</span>
+      {% elif update_run.status == "running" %}
+        <span style="color:var(--orion-warning)"><i class="bi bi-hourglass-split me-1"></i>En cours</span>
+      {% elif update_run.status == "rolled_back" %}
+        <span style="color:var(--orion-muted)"><i class="bi bi-arrow-counterclockwise me-1"></i>Rollback effectué</span>
+      {% else %}
+        {{ update_run.get_status_display }}
+      {% endif %}
+    </p>
+  </div>
+  <div class="orion-page-actions">
+    {% if update_run.status == "failed" and update_run.from_commit %}
+    <a href="{% url 'system_updates:rollback' update_run.id %}" class="orion-btn danger">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Rollback
+    </a>
+    {% endif %}
+    <a href="{% url 'system_updates:dashboard' %}" class="orion-btn">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+
+<div class="orion-dashboard-grid" style="grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">De</span>
+    <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
+      {{ update_run.from_commit|slice:":8"|default:"—" }}
+    </strong>
+  </div>
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Vers</span>
+    <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
+      {{ update_run.to_commit|slice:":8"|default:"—" }}
+    </strong>
+  </div>
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Démarré</span>
+    <strong class="orion-metric-value" style="font-size:12px">{{ update_run.started_at|naturaltime }}</strong>
+  </div>
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Terminé</span>
+    <strong class="orion-metric-value" style="font-size:12px">{{ update_run.finished_at|naturaltime|default:"—" }}</strong>
+  </div>
+</div>
+
+{% if update_run.error_message %}
+<div class="orion-alert danger mb-4">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>Erreur :</strong> {{ update_run.error_message }}
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Étapes d'exécution</h2>
+  </div>
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Étape</th>
+        <th>Niveau</th>
+        <th>Message</th>
+        <th>Durée</th>
+        <th>Fin</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr style="{% if log.level == 'error' %}background:rgba(220,53,69,.04){% elif log.level == 'success' %}background:rgba(25,135,84,.04){% endif %}">
+        <td><code style="font-size:11.5px">{{ log.step_code }}</code></td>
+        <td style="font-weight:500">{{ log.step_name }}</td>
+        <td>
+          {% if log.level == "success" %}
+            <span class="orion-badge success">Succès</span>
+          {% elif log.level == "error" %}
+            <span class="orion-badge danger">Erreur</span>
+          {% elif log.level == "warning" %}
+            <span class="orion-badge warning">Avertissement</span>
+          {% else %}
+            <span class="orion-badge neutral">Info</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12.5px;max-width:320px;word-break:break-word">{{ log.message|default:"—" }}</td>
+        <td style="font-family:monospace;font-size:12px">
+          {% if log.duration_seconds %}{{ log.duration_seconds }}s{% else %}—{% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--orion-muted)">{{ log.finished_at|naturaltime|default:"—" }}</td>
+      </tr>
+      {% if log.error_output %}
+      <tr>
+        <td colspan="6" style="padding:0 16px 12px;background:rgba(220,53,69,.04)">
+          <pre style="font-size:11px;color:var(--orion-danger);margin:0;white-space:pre-wrap;word-break:break-all">{{ log.error_output }}</pre>
+        </td>
+      </tr>
+      {% endif %}
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--orion-muted);padding:32px">
+          Aucune étape enregistrée.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,358 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ORION INTERNAL — Cards, Buttons, Alerts, Metric Cards
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.orion-card {
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-md);
+  box-shadow: var(--orion-shadow-soft);
+  color: var(--orion-text);
+  overflow: hidden;
+  transition: box-shadow var(--orion-transition), border-color var(--orion-transition);
+}
+
+.orion-card:hover {
+  box-shadow: var(--orion-shadow-hover);
+  border-color: var(--orion-border-soft);
+}
+
+.orion-card-header {
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.025);
+  border-bottom: 1px solid var(--orion-border);
+  color: var(--orion-text-soft);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orion-card-header .orion-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--orion-text);
+  margin: 0;
+}
+
+.orion-card-body {
+  padding: 20px;
+  color: var(--orion-text);
+}
+
+.orion-card-footer {
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.015);
+  border-top: 1px solid var(--orion-border);
+  color: var(--orion-text-muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ── Metric Cards ───────────────────────────────────────────────── */
+.orion-metric,
+.orion-metric-card {
+  background: var(--orion-surface);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-md);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow var(--orion-transition), border-color var(--orion-transition);
+}
+
+.orion-metric:hover,
+.orion-metric-card:hover {
+  border-color: rgba(214, 179, 106, 0.28);
+  box-shadow: var(--orion-shadow-soft);
+}
+
+.orion-metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--orion-font-heading);
+  color: var(--orion-gold);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.orion-metric-label {
+  font-size: 11px;
+  color: var(--orion-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.orion-metric-trend {
+  font-size: 12px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.orion-metric-trend.up   { color: var(--orion-success); }
+.orion-metric-trend.down { color: var(--orion-danger); }
+.orion-metric-trend.flat { color: var(--orion-text-muted); }
+
+.orion-metric-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 24px;
+  color: var(--orion-gold);
+  opacity: 0.25;
+}
+
+/* Gold accent strip */
+.orion-metric::after,
+.orion-metric-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--orion-gold-dark), var(--orion-gold));
+  border-radius: 3px 0 0 3px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.orion-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--orion-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--orion-font);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--orion-transition), border-color var(--orion-transition),
+              box-shadow var(--orion-transition), color var(--orion-transition);
+  text-decoration: none;
+  white-space: nowrap;
+  line-height: 1;
+  background: rgba(255,255,255,0.06);
+  color: var(--orion-text-soft);
+  border-color: var(--orion-border);
+  vertical-align: middle;
+  user-select: none;
+}
+
+.orion-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--orion-text);
+  text-decoration: none;
+}
+
+/* Variants */
+.orion-btn.primary {
+  background: var(--orion-gold);
+  color: var(--orion-text-inverse);
+  border-color: var(--orion-gold);
+}
+.orion-btn.primary:hover {
+  background: var(--orion-gold-light);
+  border-color: var(--orion-gold-light);
+  box-shadow: 0 4px 20px rgba(214, 179, 106, 0.35);
+  color: var(--orion-text-inverse);
+}
+
+.orion-btn.danger {
+  background: var(--orion-danger-bg);
+  color: #FFB8B8;
+  border-color: rgba(224, 82, 82, 0.3);
+}
+.orion-btn.danger:hover {
+  background: rgba(224, 82, 82, 0.2);
+  color: #FFD0D0;
+}
+
+.orion-btn.success {
+  background: var(--orion-success-bg);
+  color: #9EF0BC;
+  border-color: rgba(71, 194, 122, 0.3);
+}
+.orion-btn.success:hover {
+  background: rgba(71, 194, 122, 0.2);
+  color: #C0F8D6;
+}
+
+.orion-btn.warning {
+  background: var(--orion-warning-bg);
+  color: #FFD89B;
+  border-color: rgba(230, 169, 62, 0.3);
+}
+.orion-btn.warning:hover {
+  background: rgba(230, 169, 62, 0.2);
+  color: #FFE8BE;
+}
+
+.orion-btn.outline {
+  background: transparent;
+  color: var(--orion-gold);
+  border-color: var(--orion-gold);
+}
+.orion-btn.outline:hover {
+  background: var(--orion-gold-subtle);
+  box-shadow: 0 0 0 1px var(--orion-gold);
+}
+
+.orion-btn.ghost {
+  background: transparent;
+  color: var(--orion-text-muted);
+  border-color: transparent;
+}
+.orion-btn.ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--orion-text);
+  border-color: transparent;
+}
+
+/* Sizes */
+.orion-btn.sm,
+.orion-btn.small { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+.orion-btn.lg   { padding: 12px 26px; font-size: 16px; }
+.orion-btn.xl   { padding: 14px 32px; font-size: 17px; }
+
+/* Icon-only */
+.orion-btn.icon-only {
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+}
+.orion-btn.icon-only.sm { width: 28px; height: 28px; padding: 4px; }
+
+/* States */
+.orion-btn:disabled,
+.orion-btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.orion-btn.loading   { opacity: 0.7; cursor: wait; pointer-events: none; }
+
+/* Button group */
+.orion-btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────── */
+.orion-alert {
+  padding: 12px 16px;
+  border-radius: var(--orion-radius-sm);
+  border: 1px solid var(--orion-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--orion-text-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.orion-alert i { flex-shrink: 0; margin-top: 2px; font-size: 15px; }
+
+.orion-alert-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 16px;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.orion-alert-close:hover { opacity: 1; }
+
+.orion-alert.success, .orion-alert-success {
+  background: var(--orion-success-bg);
+  border-color: rgba(71,194,122,.28);
+  color: #9EF0BC;
+}
+.orion-alert.warning, .orion-alert-warning {
+  background: var(--orion-warning-bg);
+  border-color: rgba(230,169,62,.28);
+  color: #FFD89B;
+}
+.orion-alert.danger,  .orion-alert-danger,
+.orion-alert.error,   .orion-alert-error {
+  background: var(--orion-danger-bg);
+  border-color: rgba(224,82,82,.28);
+  color: #FFB8B8;
+}
+.orion-alert.info, .orion-alert-info {
+  background: var(--orion-info-bg);
+  border-color: rgba(90,167,255,.28);
+  color: #BFDFFF;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────── */
+.orion-divider {
+  border: none;
+  border-top: 1px solid var(--orion-border);
+  margin: 24px 0;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.orion-empty {
+  text-align: center;
+  padding: 52px 24px;
+  color: var(--orion-text-muted);
+}
+.orion-empty-icon  { font-size: 44px; margin-bottom: 14px; opacity: 0.35; display: block; }
+.orion-empty-title { font-size: 16px; font-weight: 600; color: var(--orion-text-soft); margin-bottom: 8px; }
+.orion-empty-text  { font-size: 14px; margin-bottom: 20px; }
+
+/* ── Confirm modal helper ─────────────────────────────────────────── */
+.orion-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(3px);
+  z-index: 1040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orion-modal {
+  background: var(--orion-surface-elevated);
+  border: 1px solid var(--orion-border);
+  border-radius: var(--orion-radius-lg);
+  box-shadow: var(--orion-shadow-card);
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+}
+
+.orion-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--orion-text);
+  margin-bottom: 10px;
+}
+
+.orion-modal-body {
+  color: var(--orion-text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.orion-modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}

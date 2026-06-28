@@ -1,0 +1,19 @@
+{# Composant KPI Card
+   Variables : value, label, icon, color (hex), url (optionnel), trend, trend_label
+#}
+<div class="orion-kpi" style="--kpi-color:{{ color|default:'#C6A15B' }}">
+  <div class="orion-kpi-icon" style="background:{{ color|default:'#C6A15B' }}20;color:{{ color|default:'#C6A15B' }}">
+    <i class="{{ icon|default:'bi-bar-chart' }}"></i>
+  </div>
+  <div class="flex-grow-1">
+    <div class="orion-kpi-value">{{ value|default:'—' }}</div>
+    <div class="orion-kpi-label">{{ label }}</div>
+    {% if trend is not None %}
+    <div class="orion-kpi-trend {% if trend >= 0 %}up{% else %}down{% endif %}">
+      <i class="bi bi-arrow-{% if trend >= 0 %}up{% else %}down{% endif %}-short"></i>
+      {{ trend|floatformat:1 }}% {{ trend_label|default:'' }}
+    </div>
+    {% endif %}
+  </div>
+  {% if url %}<a href="{{ url }}" class="stretched-link"></a>{% endif %}
+</div>

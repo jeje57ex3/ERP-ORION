@@ -1,0 +1,72 @@
+{% extends "erp_base.html" %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'inventory:product_list' %}">Produits</a></li>
+<li class="breadcrumb-item active">{% if action == 'create' %}Nouveau produit{% else %}Modifier{% endif %}</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% if product %}{% url 'inventory:product_detail' product.pk %}{% else %}{% url 'inventory:product_list' %}{% endif %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-box-seam me-1 text-primary"></i>Identité produit</h6></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-md-4"><label class="form-label">Type</label>{{ form.product_type }}</div>
+            <div class="col-md-4"><label class="form-label">Référence</label>{{ form.reference }}</div>
+            <div class="col-md-4"><label class="form-label">Code-barres</label>{{ form.barcode }}</div>
+            <div class="col-12"><label class="form-label">Nom *</label>{{ form.name }}{% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors }}</div>{% endif %}</div>
+            <div class="col-md-6"><label class="form-label">Catégorie</label>{{ form.category }}</div>
+            <div class="col-md-3"><label class="form-label">Unité</label>{{ form.unit }}</div>
+            <div class="col-md-3"><label class="form-label">Poids (kg)</label>{{ form.weight }}</div>
+            <div class="col-12"><label class="form-label">Description</label>{{ form.description }}</div>
+            <div class="col-12"><label class="form-label">Description vente</label>{{ form.description_sale }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-currency-euro me-1 text-primary"></i>Tarifs</h6></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-md-4"><label class="form-label">Prix vente HT</label>{{ form.sale_price }}</div>
+            <div class="col-md-4"><label class="form-label">Prix achat HT</label>{{ form.purchase_price }}</div>
+            <div class="col-md-4"><label class="form-label">TVA (%)</label>{{ form.vat_rate }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-layers me-1 text-primary"></i>Stock</h6></div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check">{{ form.track_inventory }}<label class="form-check-label ms-2">Gérer le stock pour ce produit</label></div>
+            </div>
+            <div class="col-md-4"><label class="form-label">Stock actuel</label>{{ form.stock_quantity }}</div>
+            <div class="col-md-4"><label class="form-label">Stock minimum</label>{{ form.min_stock_quantity }}</div>
+            <div class="col-md-4"><label class="form-label">Stock maximum</label>{{ form.max_stock_quantity }}</div>
+            <div class="col-md-6"><label class="form-label">Réf. fournisseur</label>{{ form.supplier_reference }}</div>
+            <div class="col-md-6"><label class="form-label">Délai appro. (j)</label>{{ form.lead_time_days }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-sliders me-1 text-primary"></i>Paramètres</h6></div>
+        <div class="p-3">
+          <div class="form-check mb-3">{{ form.is_active }}<label class="form-check-label ms-2">Actif</label></div>
+          <div class="form-check">{{ form.is_published }}<label class="form-check-label ms-2">Publié sur site web</label></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2 justify-content-end mt-3">
+    <a href="{% if product %}{% url 'inventory:product_detail' product.pk %}{% else %}{% url 'inventory:product_list' %}{% endif %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}Créer le produit{% else %}Enregistrer{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

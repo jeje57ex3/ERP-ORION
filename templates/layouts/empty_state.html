@@ -1,0 +1,24 @@
+<div class="orion-empty-state" role="status">
+  {% if icon %}
+  <div class="orion-empty-icon" aria-hidden="true">
+    <i class="bi {{ icon }}"></i>
+  </div>
+  {% else %}
+  <div class="orion-empty-icon" aria-hidden="true" style="font-size:18px;opacity:.6">○</div>
+  {% endif %}
+
+  <h3>{{ title|default:"Aucun élément" }}</h3>
+
+  {% if message %}
+  <p>{{ message }}</p>
+  {% endif %}
+
+  {% if action_url %}
+  <a href="{{ action_url }}" class="orion-btn primary">
+    {% if action_icon %}<i class="bi {{ action_icon }}" aria-hidden="true"></i>{% endif %}
+    {{ action_label|default:"Créer" }}
+  </a>
+  {% endif %}
+
+  {% block empty_extra %}{% endblock %}
+</div>

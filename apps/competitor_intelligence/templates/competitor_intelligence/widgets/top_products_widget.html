@@ -1,0 +1,23 @@
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-star text-warning"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+  </div>
+  <div class="card-body p-0">
+    {% if products %}
+    <ul class="list-group list-group-flush">
+      {% for p in products %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small fw-semibold">{{ p.name|truncatechars:35 }}</div>
+          <div class="text-muted" style="font-size:.7rem">{{ p.competitor.name }} · {{ p.category|default:"—" }}</div>
+        </div>
+        <span class="badge bg-info">{{ p.price_display }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-0">Aucun produit</p>
+    {% endif %}
+  </div>
+</div>

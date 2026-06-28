@@ -1,0 +1,78 @@
+{% extends "client_portal/base_client_portal.html" %}
+{% block title %}Demandes de modification — {{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">Modifications</li>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-bold mb-0">Demandes de modification — {{ project.name }}</h5>
+  {% if account.can_request_changes %}
+  <button class="orion-btn warning orion-btn sm" data-bs-toggle="collapse" data-bs-target="#add-change-form">
+    <i class="bi bi-plus-circle me-1"></i>Nouvelle demande
+  </button>
+  {% endif %}
+</div>
+
+{% if account.can_request_changes %}
+<div class="collapse mb-4" id="add-change-form">
+  <div class="bg-white border rounded-3 p-4">
+    <h6 class="fw-bold mb-3">Demande de modification (avenant)</h6>
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-12"><label class="form-label small fw-semibold">Titre *</label><input type="text" name="title" class="form-control" required placeholder="Ex: Ajouter une prise dans le garage"></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Description *</label><textarea name="description" class="form-control" rows="4" required placeholder="Décrivez précisément la modification souhaitée..."></textarea></div>
+        <div class="col-md-6"><label class="form-label small fw-semibold">Pièce / Zone concernée</label><input type="text" name="location" class="form-control" placeholder="Ex: Garage"></div>
+        <div class="col-md-6"><label class="form-label small fw-semibold">Délai souhaité</label><input type="text" name="desired_timeline" class="form-control" placeholder="Ex: Avant la fin du chantier"></div>
+        <div class="col-12"><button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-send me-1"></i>Envoyer la demande</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if changes %}
+<div class="d-flex flex-column gap-3">
+  {% for change in changes %}
+  <div class="bg-white border rounded-3 p-4">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div class="fw-bold">{{ change.title }}</div>
+      {% if change.status == 'requested' %}<span class="badge badge-status-pending">En attente</span>
+      {% elif change.status == 'analyzing' %}<span class="badge badge-status-progress">En analyse</span>
+      {% elif change.status == 'quoting' %}<span class="orion-badge info text-dark">Chiffrage en cours</span>
+      {% elif change.status == 'amendment_proposed' %}<span class="orion-badge warning text-dark">Avenant proposé</span>
+      {% elif change.status == 'accepted' %}<span class="badge badge-status-done">Accepté</span>
+      {% elif change.status == 'refused' %}<span class="orion-badge danger">Refusé</span>
+      {% elif change.status == 'integrated' %}<span class="badge badge-status-done">Intégré au chantier</span>
+      {% else %}<span class="orion-badge neutral">{{ change.status }}</span>{% endif %}
+    </div>
+    <p class="small text-muted mb-2">{{ change.description }}</p>
+    {% if change.location %}<div class="small text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>{{ change.location }}</div>{% endif %}
+    {% if change.staff_response %}<div class="small bg-light border rounded p-2 mb-2"><strong>Réponse de l'équipe :</strong> {{ change.staff_response }}</div>{% endif %}
+    {% if change.estimated_amount %}
+    <div class="d-flex gap-3 small mb-2">
+      <span class="text-muted"><strong>Estimation :</strong> {{ change.estimated_amount|floatformat:2 }} € HT</span>
+    </div>
+    {% endif %}
+    {% if change.status == 'amendment_proposed' %}
+    <form method="post" class="d-flex gap-2 mt-2">
+      {% csrf_token %}
+      <input type="hidden" name="change_pk" value="{{ change.pk }}">
+      <button type="submit" name="action" value="accept_change" class="orion-btn sm orion-btn success">Accepter l'avenant</button>
+      <button type="submit" name="action" value="refuse_change" class="orion-btn sm btn-outline-danger">Refuser</button>
+    </form>
+    {% endif %}
+    <div class="text-muted small mt-2">Demandé le {{ change.created_at|date:"d/m/Y" }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white border rounded-3 p-5 text-center text-muted">
+  <i class="bi bi-pencil-square fs-1 d-block mb-3"></i>
+  <h6>Aucune demande de modification</h6>
+  <p class="small">Vous pouvez demander des modifications à votre chantier via le bouton ci-dessus.</p>
+</div>
+{% endif %}
+{% endblock %}

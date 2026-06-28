@@ -1,0 +1,81 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Catalogue de widgets{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-title"><i class="bi bi-shop me-2 text-warning"></i>Catalogue de widgets</h1>
+    <p class="page-subtitle text-muted mb-0">Choisissez parmi {{ available_widgets|length }} widget(s) disponible(s) selon vos droits.</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour au dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Filtres par type -->
+<div class="d-flex gap-2 flex-wrap mb-4">
+  <button class="btn btn-sm btn-warning active" data-filter="all">Tous</button>
+  {% for val, label in widget_types %}<button class="btn btn-sm btn-outline-secondary" data-filter="{{ val }}">{{ label }}</button>{% endfor %}
+</div>
+
+<div class="row g-3">
+  {% for w in available_widgets %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <div class="catalog-widget-card {% if w.code in user_widget_codes %}already-added{% endif %}">
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="widget-icon-preview flex-shrink-0" style="background:{{ w.color }}20;color:{{ w.color }}">
+          <i class="{{ w.icon }}"></i>
+        </div>
+        <div class="flex-1">
+          <div class="fw-semibold" style="font-size:.88rem">{{ w.name }}</div>
+          {% if w.module_code %}
+          <span class="badge bg-light text-secondary border" style="font-size:.65rem">{{ w.module_code }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <p class="text-muted mb-3" style="font-size:.78rem;line-height:1.4">{{ w.description }}</p>
+      {% if w.code in user_widget_codes %}
+        <span class="badge bg-success-subtle text-success border border-success-subtle">
+          <i class="bi bi-check2-circle me-1"></i>Déjà sur votre dashboard
+        </span>
+      {% else %}
+        <form method="post" action="{% url 'dashboard:add_widget' w.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'dashboard:home' %}">
+          <button type="submit" class="btn btn-warning btn-sm w-100">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter au dashboard
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="widget-empty-state">
+      <i class="bi bi-shop"></i>
+      <p>Aucun widget disponible. Exécutez <code>python manage.py seed_dashboard_widgets</code> pour peupler le catalogue.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

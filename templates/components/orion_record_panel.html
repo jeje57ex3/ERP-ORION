@@ -1,0 +1,21 @@
+{#
+  Panneau de fiche réutilisable.
+  Variables :
+    panel_title  — titre du panneau
+    panel_icon   — classe Bootstrap Icon ex. "bi-person"
+    panel_color  — couleur de l'icône ex. "text-primary"
+    panel_body   — corps HTML (utiliser {% capture %} ou passer via block)
+    panel_no_pad — si "true", pas de padding sur le body (ex. table)
+#}
+<div class="orion-record-panel">
+  {% if panel_title %}
+  <div class="orion-record-panel-header">
+    {% if panel_icon %}<i class="bi {{ panel_icon }} {{ panel_color|default:'text-muted' }}" style="font-size:13px"></i>{% endif %}
+    <h2 class="orion-record-panel-title">{{ panel_title }}</h2>
+    {% block panel_header_actions %}{% endblock %}
+  </div>
+  {% endif %}
+  <div class="orion-record-panel-body" {% if panel_no_pad == "true" %}style="padding:0"{% endif %}>
+    {% block panel_body %}{{ panel_body }}{% endblock %}
+  </div>
+</div>

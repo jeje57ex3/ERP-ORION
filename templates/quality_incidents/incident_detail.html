@@ -1,0 +1,74 @@
+{% extends "erp_base.html" %}
+{% block page_header %}
+<div class="orion-page-header">
+  <div>
+    <div class="orion-page-eyebrow"><a href="{% url 'quality_incidents:list' %}">Incidents</a></div>
+    <h1 class="orion-page-title">{{ incident.title }}</h1>
+  </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-8">
+    <div class="orion-card mb-4">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Détails</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <dl class="orion-dl">
+          <dt>Sévérité</dt><dd><span class="orion-badge {% if incident.severity == 'critical' %}danger{% elif incident.severity == 'high' %}warning{% else %}neutral{% endif %}">{{ incident.get_severity_display }}</span></dd>
+          <dt>Type</dt><dd>{{ incident.get_incident_type_display }}</dd>
+          <dt>Statut</dt><dd>{{ incident.get_status_display }}</dd>
+          {% if incident.brand_key %}<dt>Marque</dt><dd><span class="orion-badge accent">{{ incident.brand_key }}</span></dd>{% endif %}
+          {% if incident.customer %}<dt>Client</dt><dd>{{ incident.customer.name }}</dd>{% endif %}
+          {% if incident.assigned_to %}<dt>Assigné à</dt><dd>{{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}</dd>{% endif %}
+          {% if incident.due_at %}<dt>Échéance</dt><dd>{{ incident.due_at|date:"d/m/Y" }}</dd>{% endif %}
+          <dt>Créé le</dt><dd>{{ incident.created_at|date:"d/m/Y H:i" }}</dd>
+        </dl>
+        {% if incident.description %}<p class="mt-3">{{ incident.description|linebreaksbr }}</p>{% endif %}
+        {% if incident.cause %}<div class="orion-info-box mt-2"><strong>Cause :</strong> {{ incident.cause }}</div>{% endif %}
+        {% if incident.corrective_action %}<div class="orion-info-box success mt-2"><strong>Action corrective :</strong> {{ incident.corrective_action }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Commentaires</h3></div>
+      <div class="orion-orion-orion-card-body">
+        {% for comment in comments %}
+        <div class="mb-3 pb-3" style="border-bottom:1px solid var(--orion-border)">
+          <div style="font-size:12px;color:var(--orion-muted);margin-bottom:4px">
+            {{ comment.user.get_full_name|default:comment.user.username }} · {{ comment.created_at|date:"d/m/Y H:i" }}
+          </div>
+          <div style="font-size:13.5px">{{ comment.content|linebreaksbr }}</div>
+        </div>
+        {% empty %}
+        <p class="text-muted" style="font-size:13px">Aucun commentaire.</p>
+        {% endfor %}
+        <form method="post" action="{% url 'quality_incidents:add_comment' incident.pk %}" class="mt-3">
+          {% csrf_token %}
+          <textarea name="content" class="form-control form-control-sm mb-2" rows="3" placeholder="Ajouter un commentaire…"></textarea>
+          <button type="submit" class="orion-btn sm">Commenter</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    {% if incident.status != 'resolved' and incident.status != 'closed' %}
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header"><h3 class="orion-card-title">Résoudre l'incident</h3></div>
+      <div class="orion-orion-orion-card-body">
+        <form method="post" action="{% url 'quality_incidents:resolve' incident.pk %}">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label" style="font-size:12px">Action corrective</label>
+            <textarea name="corrective_action" class="form-control form-control-sm" rows="3" placeholder="Décrivez l'action corrective…"></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-size:12px">Commentaire</label>
+            <textarea name="comment" class="form-control form-control-sm" rows="2" placeholder="Optionnel…"></textarea>
+          </div>
+          <button type="submit" class="orion-btn success w-100">Marquer comme résolu</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+<div class="card erp-card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-bell text-danger"></i>
+    <h6 class="mb-0">{{ widget_title }}</h6>
+    {% if alerts %}<span class="badge bg-danger ms-auto">{{ alerts.count }}</span>{% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if alerts %}
+    <ul class="list-group list-group-flush">
+      {% for alert in alerts %}
+      <li class="list-group-item">
+        <div class="d-flex gap-2 align-items-start">
+          <i class="{{ alert.severity_icon }} text-{{ alert.severity_color }} mt-1 flex-shrink-0"></i>
+          <div>
+            <div class="small fw-semibold">{{ alert.title|truncatechars:50 }}</div>
+            <div class="text-muted" style="font-size:.7rem">
+              {{ alert.competitor.name }} · {{ alert.created_at|date:"d/m H:i" }}
+            </div>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-0">Aucune alerte non lue</p>
+    {% endif %}
+  </div>
+</div>
