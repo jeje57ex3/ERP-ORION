@@ -1,6 +1,10 @@
-# Env & secrets
+# Env & secrets — NE JAMAIS committer les vraies valeurs
 .env
-*.env.local
+.env.local
+.env.production
+.env.staging
+.env.*
+!.env.example
 
 # Python
 *.pyc
