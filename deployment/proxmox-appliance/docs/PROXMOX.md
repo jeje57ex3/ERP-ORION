@@ -1,6 +1,44 @@
 # Import Proxmox
 
-## Import automatique
+## Tout-en-un (recommandé) — build + import + démarrage
+
+`deploy.sh` s'exécute **directement sur le host Proxmox** (Shell du nœud dans
+l'UI, ou SSH `root@proxmox`) : Proxmox fournit déjà `qemu-img`/`qm`/`pvesh`/
+`pvesm` nativement, donc build et import se font en une seule commande, sans
+aller-retour SCP :
+
+```bash
+git clone https://github.com/jeje57ex3/ERP-ORION.git
+cd ERP-ORION
+./deploy_proxmox_vm.sh
+```
+
+Ce script :
+1. Construit l'image (`build.sh`) si `build/OrionERP.qcow2` n'existe pas déjà
+   (`--rebuild` pour forcer, `--skip-build` pour réutiliser un build existant).
+2. Détecte automatiquement : le prochain VMID libre (`pvesh get /cluster/nextid`),
+   le premier stockage supportant le contenu `images`, celui supportant
+   `snippets`, et le premier bridge `vmbr*` — tout est surchargeable
+   (`--vmid`, `--storage`, `--snippets-storage`, `--bridge`, `--memory`,
+   `--cores`, `--sshkey`, `--as-template`).
+3. Importe et démarre la VM (`import_proxmox.sh` en interne).
+
+```bash
+# Exemple avec paramètres explicites
+./deploy_proxmox_vm.sh 2026.08.05 \
+  --name OrionERP-Client1 \
+  --storage local-lvm \
+  --bridge vmbr0 \
+  --sshkey ~/.ssh/id_ed25519.pub
+```
+
+Relancer plus tard pour une **nouvelle VM à partir du même build** (utile pour
+déployer plusieurs clients) : `./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`.
+
+## Étape par étape (build ailleurs que sur le host Proxmox)
+
+Si le build a lieu sur un autre hôte Linux (CI, VM de build dédiée), copier
+`build/` sur le host Proxmox puis lancer l'import séparément :
 
 ```bash
 cd build/                     # ou le dossier scp'é sur le host Proxmox

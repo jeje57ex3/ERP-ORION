@@ -189,62 +189,66 @@ pilotables — topologie identique à la production réelle.
 Ressources VM : 4 vCPU, 8 Go RAM, disque 80 Go (VirtIO, discard/TRIM), BIOS
 UEFI (OVMF), machine `q35`.
 
-### 1 — Construire l'image (sur un hôte Linux avec `qemu-img`)
+### 1 — Créer la VM (tout-en-un, recommandé)
 
-Le build **doit** s'exécuter sur Linux — typiquement le serveur Proxmox
-lui-même via SSH (pas sur un poste Windows sans WSL/qemu-img) :
+`deploy_proxmox_vm.sh` s'exécute **directement sur le host Proxmox** (Shell
+du nœud dans l'UI, ou SSH `root@proxmox` — Proxmox fournit déjà `qemu-img` /
+`qm` / `pvesh` / `pvesm` nativement) et enchaîne build + import + démarrage,
+avec détection automatique du VMID, du stockage et du bridge :
 
 ```bash
-sudo apt-get install -y qemu-utils curl python3 git tar coreutils gawk
+git clone https://github.com/jeje57ex3/ERP-ORION.git
+cd ERP-ORION
+./deploy_proxmox_vm.sh
+```
 
+Paramètres explicites (tous optionnels) :
+
+```bash
+./deploy_proxmox_vm.sh 2026.08.05 \
+  --name OrionERP \
+  --storage local-lvm \
+  --bridge vmbr0 \
+  --sshkey ~/.ssh/id_ed25519.pub
+```
+
+Redéployer une nouvelle VM à partir du même build (multi-clients) :
+`./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`.
+
+<details>
+<summary>Étape par étape (si le build a lieu sur un autre hôte Linux que le host Proxmox)</summary>
+
+```bash
+# Sur l'hôte de build (n'importe quel Linux avec qemu-img)
+sudo apt-get install -y qemu-utils curl python3 git tar coreutils gawk
 git clone https://github.com/jeje57ex3/ERP-ORION.git
 cd ERP-ORION
 ./build_proxmox_appliance.sh 2026.08.05
-```
 
-Produit dans `build/` :
-
-```
-OrionERP.qcow2                          # disque de la VM
-OrionERP.ova                            # export portable (VMware, etc.)
-OrionERP.manifest                       # JSON : versions, modules, ports
-checksum.sha256                         # SHA256 du qcow2 et de l'ova
-OrionERP.cloudinit-userdata.yaml        # provisioning automatique (Stage A)
-OrionERP.cloudinit-network-config.yaml
-import_proxmox.sh                       # script d'import (étape suivante)
-```
-
-### 2 — Importer dans Proxmox
-
-Si le build a eu lieu ailleurs, copier `build/` sur le host Proxmox :
-
-```bash
+# Copier build/ sur le host Proxmox
 scp -r build/ root@proxmox:/root/orion-appliance-2026.08.05
 ssh root@proxmox
 cd /root/orion-appliance-2026.08.05
-```
 
-Puis importer et démarrer la VM :
-
-```bash
+# Importer et démarrer
 ./import_proxmox.sh \
-  --vmid 9000 \
-  --name OrionERP \
-  --storage local-lvm \
-  --snippets-storage local \
-  --bridge vmbr0 \
-  --sshkey ~/.ssh/id_ed25519.pub \
-  --start
+  --vmid 9000 --name OrionERP \
+  --storage local-lvm --snippets-storage local --bridge vmbr0 \
+  --sshkey ~/.ssh/id_ed25519.pub --start
 ```
 
-Le script exécute `qm create` (q35, OVMF, VirtIO), `qm importdisk`,
-`qm set` (disque + cloud-init personnalisé via `--cicustom`), `qm resize`,
-puis démarre la VM (`--start`) ou la convertit en template (`--as-template`).
+`build/` contient `OrionERP.qcow2`, `OrionERP.ova`, `OrionERP.manifest`,
+`checksum.sha256`, les fichiers cloud-init et `import_proxmox.sh`.
+</details>
 
-> Le stockage `--snippets-storage` doit autoriser le contenu **Snippets**
+Sous le capot : `qm create` (q35, OVMF, VirtIO), `qm importdisk`, `qm set`
+(disque + cloud-init personnalisé via `--cicustom`), `qm resize`, puis
+démarrage (ou `--as-template` pour convertir en template au lieu de démarrer).
+
+> Le stockage snippets doit autoriser le contenu **Snippets**
 > (Datacenter → Stockage → *storage* → Contenu, ou `pvesm set local --content ...,snippets`).
 
-### 3 — Premier démarrage (assistant interactif)
+### 2 — Premier démarrage (assistant interactif)
 
 1. Ouvrir la **console noVNC** de la VM dans Proxmox.
 2. Attendre la fin du provisioning automatique (Stage A, ~2-5 min).
@@ -256,7 +260,7 @@ puis démarre la VM (`--start`) ou la convertit en template (`--as-template`).
 
 Aucune configuration manuelle au-delà de ces questions.
 
-### 4 — Exploitation
+### 3 — Exploitation
 
 ```bash
 # Tableau de bord système (CPU/RAM/disque/services/SSL/backups)
