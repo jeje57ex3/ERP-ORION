@@ -1,0 +1,10 @@
+# Configuration réseau par défaut : DHCP sur la première interface.
+# Proxmox peut surcharger ceci via son propre cloud-init (cicustom/ipconfig0) —
+# voir PROXMOX.md pour configurer une IP statique après import.
+version: 2
+ethernets:
+  eth0:
+    match:
+      name: en*
+    dhcp4: true
+    dhcp6: false

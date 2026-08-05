@@ -1,0 +1,29 @@
+[Unit]
+Description=Orion ERP — Vitrine Django (orion.elysiums.fr — port 5172)
+After=network-online.target orion-db-stack.service orion-backend.service
+Wants=network-online.target
+Requires=orion-db-stack.service
+
+[Service]
+Type=simple
+User=orion
+Group=orion
+WorkingDirectory=/opt/orion/backend
+EnvironmentFile=/opt/orion/backend/.env
+Environment=DJANGO_SETTINGS_MODULE=erp_btp.settings.production
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 3306 60
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
+ExecStart=/opt/orion/backend/.venv/bin/gunicorn erp_btp.wsgi:application \
+    --bind 127.0.0.1:5172 \
+    --workers 2 \
+    --timeout 120 \
+    --access-logfile /opt/orion/logs/gunicorn-frontend-access.log \
+    --error-logfile /opt/orion/logs/gunicorn-frontend-error.log
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

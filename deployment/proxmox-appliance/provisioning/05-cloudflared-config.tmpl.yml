@@ -1,0 +1,18 @@
+# Orion ERP Appliance — Cloudflare Tunnel ingress.
+# Le tunnel n'est PAS démarré tant qu'aucun token n'a été saisi dans l'assistant
+# de premier démarrage (voir first-boot-wizard.sh). Placeholders __*__ substitués
+# par le wizard avec les domaines réels et le nom du tunnel.
+
+tunnel: __TUNNEL_NAME__
+credentials-file: /etc/cloudflared/__TUNNEL_ID__.json
+
+ingress:
+  - hostname: __LOGIN_DOMAIN__
+    service: http://127.0.0.1:9000
+  - hostname: __ORION_DOMAIN__
+    service: http://127.0.0.1:5172
+  - hostname: __SIECLE_DOMAIN__
+    service: http://127.0.0.1:5173
+  - hostname: __LUNEA_DOMAIN__
+    service: http://127.0.0.1:5174
+  - service: http_status:404

@@ -1,0 +1,11 @@
+[Unit]
+Description=Exécute orion-health.service toutes les minutes
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=60s
+Unit=orion-health.service
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
