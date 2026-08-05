@@ -1,0 +1,10 @@
+[Unit]
+Description=Orion ERP — Vérification de santé (services + Cloudflare)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 /opt/orion/scripts/orion_health_check.py
+StandardOutput=journal
+StandardError=journal

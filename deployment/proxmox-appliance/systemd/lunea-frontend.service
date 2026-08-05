@@ -1,0 +1,18 @@
+[Unit]
+Description=Orion ERP — LUNEA Store (lunea.elysiums.fr — port 5174)
+After=network-online.target orion-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=orion
+Group=orion
+WorkingDirectory=/opt/orion/lunea
+ExecStart=/usr/bin/env serve -s /opt/orion/lunea -l 5174
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
