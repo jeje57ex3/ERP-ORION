@@ -150,9 +150,14 @@ if [ -f "$USERDATA_FILE" ] && [ -f "$NETWORK_FILE" ]; then
     SNIPPETS_DIR="$(pvesm path "${SNIPPETS_STORAGE}:snippets" 2>/dev/null || echo "/var/lib/vz/snippets")"
   fi
   mkdir -p "$SNIPPETS_DIR"
-  cp "$USERDATA_FILE" "$SNIPPETS_DIR/OrionERP.cloudinit-userdata.yaml"
-  cp "$NETWORK_FILE" "$SNIPPETS_DIR/OrionERP.cloudinit-network-config.yaml"
-  qm set "$VMID" --cicustom "user=${SNIPPETS_STORAGE}:snippets/OrionERP.cloudinit-userdata.yaml,network=${SNIPPETS_STORAGE}:snippets/OrionERP.cloudinit-network-config.yaml"
+  # Nommage par VMID : deux VM ne doivent jamais partager le même fichier
+  # snippet, sinon un nouveau build peut écraser (et faire lire à moitié
+  # écrit) le cloud-init d'une VM déjà en train de démarrer.
+  USERDATA_SNIPPET="OrionERP-${VMID}.cloudinit-userdata.yaml"
+  NETWORK_SNIPPET="OrionERP-${VMID}.cloudinit-network-config.yaml"
+  cp "$USERDATA_FILE" "$SNIPPETS_DIR/$USERDATA_SNIPPET"
+  cp "$NETWORK_FILE" "$SNIPPETS_DIR/$NETWORK_SNIPPET"
+  qm set "$VMID" --cicustom "user=${SNIPPETS_STORAGE}:snippets/${USERDATA_SNIPPET},network=${SNIPPETS_STORAGE}:snippets/${NETWORK_SNIPPET}"
   echo "  -> cloud-init personnalisé activé (stockage '${SNIPPETS_STORAGE}' doit autoriser le contenu 'snippets')."
 else
   echo "  ATTENTION: fichiers cloud-init introuvables à côté du script — VM créée sans provisioning automatique."
