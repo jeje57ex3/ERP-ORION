@@ -1,0 +1,53 @@
+# Orion ERP — infrastructure Docker : MySQL + Redis uniquement.
+# Le backend Django tourne en natif (systemd + venv/gunicorn), voir orion-backend.service.
+# Démarré par le service systemd orion-db-stack.service.
+# Les chemins /opt/orion sont substitués par install.sh si ORION_HOME diffère.
+
+services:
+  orion-db:
+    image: mysql:8.0
+    container_name: orion-db
+    restart: unless-stopped
+    env_file:
+      - /opt/orion/backend/.env
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-orion_core}
+      MYSQL_USER: ${DB_USER:-orion}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - /opt/orion/docker/mysql:/var/lib/mysql
+      - /opt/orion/backups:/backups
+    networks:
+      - orion-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER:-orion}", "-p${DB_PASSWORD}"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  orion-redis:
+    image: redis:7-alpine
+    container_name: orion-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - /opt/orion/docker/redis:/data
+    networks:
+      - orion-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+networks:
+  orion-net:
+    driver: bridge

@@ -165,6 +165,33 @@ du projet, la roadmap par phases, et le build de l'application mobile Flutter
 
 ---
 
+## Installation rapide — Serveur Linux vierge (une ligne)
+
+Pour un déploiement simple et rapide sur un serveur Ubuntu 22.04/24.04 ou
+Debian 12 fraîchement installé (VPS ou machine physique), sans passer par
+l'appliance Proxmox complète : [`deployment/quick-install/install.sh`](deployment/quick-install/install.sh)
+installe et configure tout en une seule commande — Docker (MySQL + Redis),
+Python/venv, Nginx, l'application, un compte super-admin, et les services
+systemd.
+
+```bash
+ORION_DOMAIN=erp.mondomaine.fr \
+ORION_ADMIN_EMAIL=admin@mondomaine.fr \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/jeje57ex3/ERP-ORION/main/deployment/quick-install/install.sh)"
+```
+
+Variables disponibles : voir l'en-tête de
+[`install.sh`](deployment/quick-install/install.sh) (mot de passe admin,
+nom d'entreprise, branche, répertoire d'installation...).
+
+À la fin de l'installation, le script affiche l'URL, l'email admin et le
+mot de passe généré (si non fourni). HTTPS (Certbot) et l'envoi d'emails
+réels (relais SMTP auto-hébergé, réutilise
+[`setup_mail_relay.sh`](deployment/proxmox-appliance/scripts/setup_mail_relay.sh))
+sont à activer ensuite, les commandes exactes sont affichées en fin de script.
+
+---
+
 ## Manuel d'installation — Appliance Proxmox (production)
 
 Déploiement production packagé en **VM Proxmox clé en main** : Ubuntu 24.04,
@@ -193,8 +220,30 @@ UEFI (OVMF), machine `q35`.
 
 `deploy_proxmox_vm.sh` s'exécute **directement sur le host Proxmox** (Shell
 du nœud dans l'UI, ou SSH `root@proxmox` — Proxmox fournit déjà `qemu-img` /
-`qm` / `pvesh` / `pvesm` nativement) et enchaîne build + import + démarrage,
-avec détection automatique du VMID, du stockage et du bridge :
+`qm` / `pvesh` / `pvesm` nativement) et enchaîne build + import + démarrage.
+
+Lancé sans option, il ouvre un **assistant interactif** : choix du disque
+d'installation (liste des stockages Proxmox détectés), de sa taille, du
+bridge réseau (DHCP ou IP statique), de la RAM/vCPU, de la clé SSH (détection
+des `~/.ssh/*.pub`), puis récapitulatif avant de créer la VM.
+
+**Ligne unique** (façon scripts communautaires Proxmox) — à coller dans le
+Shell du nœud (UI Proxmox) ou en SSH `root@proxmox`, clone le dépôt puis
+lance l'assistant interactif :
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/jeje57ex3/ERP-ORION/main/deployment/proxmox-appliance/bootstrap.sh)"
+```
+
+Pour passer directement des options non-interactives, ajouter `bash` (place-
+holder `$0` requis par la syntaxe `bash -c`) puis les options de `deploy.sh`
+à la suite de la ligne ci-dessus :
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/jeje57ex3/ERP-ORION/main/deployment/proxmox-appliance/bootstrap.sh)" bash --vmid 210 --name OrionERP-Client
+```
+
+Ou, si le dépôt est déjà cloné localement sur le host Proxmox :
 
 ```bash
 git clone https://github.com/jeje57ex3/ERP-ORION.git
@@ -202,18 +251,21 @@ cd ERP-ORION
 ./deploy_proxmox_vm.sh
 ```
 
-Paramètres explicites (tous optionnels) :
+Mode non-interactif (paramètres explicites, pour scripts/CI) :
 
 ```bash
 ./deploy_proxmox_vm.sh 2026.08.05 \
   --name OrionERP \
   --storage local-lvm \
+  --disk-size 120G \
   --bridge vmbr0 \
+  --ip 192.168.1.50/24 --gateway 192.168.1.1 \
   --sshkey ~/.ssh/id_ed25519.pub
 ```
 
 Redéployer une nouvelle VM à partir du même build (multi-clients) :
-`./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`.
+`./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`. Voir
+`./deploy_proxmox_vm.sh --help` pour toutes les options.
 
 <details>
 <summary>Étape par étape (si le build a lieu sur un autre hôte Linux que le host Proxmox)</summary>
