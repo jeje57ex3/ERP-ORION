@@ -56,6 +56,7 @@ runcmd:
   - [ touch, /opt/orion/.awaiting-setup ]
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, orion-first-boot.service ]
+  - [ systemctl, start, orion-first-boot.service ]
   - [ bash, -c, "echo 'Orion ERP Appliance — provisioning Stage A terminé.' > /etc/motd" ]
 
 final_message: "Orion ERP Appliance prête — l'assistant de premier démarrage se lance sur la console série (ttyS0)."
