@@ -2,7 +2,7 @@
 Description=Orion ERP — Assistant de premier démarrage (console)
 After=cloud-final.service network-online.target orion-db-stack.service
 Wants=network-online.target orion-db-stack.service
-Conflicts=getty@tty1.service
+Conflicts=serial-getty@ttyS0.service
 ConditionPathExists=/opt/orion/.awaiting-setup
 
 [Service]
@@ -11,10 +11,10 @@ ExecStart=/opt/orion/scripts/first-boot-wizard.sh
 StandardInput=tty
 StandardOutput=tty
 StandardError=tty
-TTYPath=/dev/tty1
+TTYPath=/dev/ttyS0
 TTYReset=yes
 TTYVHangup=yes
-TTYVTDisallocate=yes
+TTYVTDisallocate=no
 RemainAfterExit=no
 
 [Install]
