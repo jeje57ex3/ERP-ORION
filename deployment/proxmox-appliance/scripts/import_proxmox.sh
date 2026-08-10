@@ -5,20 +5,27 @@
 #
 # Usage :
 #   ./import_proxmox.sh [options]
+#   ./import_proxmox.sh --list-storage      # liste les stockages disponibles et quitte
+#   ./import_proxmox.sh --list-bridges      # liste les bridges réseau disponibles et quitte
 #
 # Options :
-#   --vmid ID            ID de la VM (def: 9000)
-#   --name NAME           Nom de la VM (def: OrionERP)
-#   --storage STORAGE     Stockage disque (def: local-lvm)
-#   --snippets-storage S  Stockage contenant "snippets" pour le cloud-init custom (def: local)
-#   --bridge BRIDGE       Bridge réseau (def: vmbr0)
-#   --memory MB            RAM en Mo (def: 8192)
-#   --cores N              vCPU (def: 4)
-#   --disk PATH            Chemin du qcow2 (def: ./OrionERP.qcow2)
-#   --sshkey PATH          Clé publique SSH à injecter (def: aucune)
-#   --as-template          Convertit la VM en template Proxmox après import
-#   --start                Démarre la VM après import
-#   -h, --help              Affiche cette aide
+#   --vmid ID              ID de la VM (def: 9000)
+#   --name NAME             Nom de la VM (def: OrionERP)
+#   --storage STORAGE       Stockage du disque d'installation (def: local-lvm)
+#                           Voir --list-storage pour les stockages disponibles.
+#   --snippets-storage S    Stockage contenant "snippets" pour le cloud-init custom (def: local)
+#   --bridge BRIDGE         Bridge réseau (def: vmbr0). Voir --list-bridges.
+#   --memory MB              RAM en Mo (def: 8192)
+#   --cores N                vCPU (def: 4)
+#   --disk PATH              Chemin du qcow2 (def: ./OrionERP.qcow2)
+#   --disk-size SIZE         Taille cible du disque virtuel, ex: 80G, 120G, 500G (def: 80G)
+#   --ip IP/CIDR             IP statique (ex: 192.168.1.50/24). Omis = DHCP.
+#   --gateway IP             Passerelle (requis si --ip fourni)
+#   --dns IP                 Serveur DNS (def: identique à --gateway si omis)
+#   --sshkey PATH             Clé publique SSH à injecter (def: aucune)
+#   --as-template             Convertit la VM en template Proxmox après import
+#   --start                   Démarre la VM après import
+#   -h, --help                Affiche cette aide
 
 set -euo pipefail
 
@@ -30,6 +37,10 @@ BRIDGE="vmbr0"
 MEMORY=8192
 CORES=4
 DISK_PATH="./OrionERP.qcow2"
+DISK_SIZE="80G"
+STATIC_IP=""
+GATEWAY=""
+DNS=""
 SSHKEY=""
 AS_TEMPLATE=0
 START_VM=0
@@ -38,7 +49,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USERDATA_FILE="$SCRIPT_DIR/OrionERP.cloudinit-userdata.yaml"
 NETWORK_FILE="$SCRIPT_DIR/OrionERP.cloudinit-network-config.yaml"
 
-usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; }
+
+list_storage() {
+  command -v pvesm >/dev/null 2>&1 || { echo "ERREUR: pvesm introuvable (hôte non-Proxmox)." >&2; exit 1; }
+  echo "Stockages disponibles (contenu 'images') :"
+  pvesm status --content images
+  echo ""
+  echo "Stockages disponibles (contenu 'snippets') :"
+  pvesm status --content snippets
+}
+
+list_bridges() {
+  echo "Bridges réseau disponibles :"
+  ip -o link show type bridge 2>/dev/null | awk -F': ' '{print "  " $2}' | sed 's/@.*//'
+}
+
+if [ "${1:-}" = "--list-storage" ]; then list_storage; exit 0; fi
+if [ "${1:-}" = "--list-bridges" ]; then list_bridges; exit 0; fi
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -50,6 +78,10 @@ while [ $# -gt 0 ]; do
     --memory) MEMORY="$2"; shift 2 ;;
     --cores) CORES="$2"; shift 2 ;;
     --disk) DISK_PATH="$2"; shift 2 ;;
+    --disk-size) DISK_SIZE="$2"; shift 2 ;;
+    --ip) STATIC_IP="$2"; shift 2 ;;
+    --gateway) GATEWAY="$2"; shift 2 ;;
+    --dns) DNS="$2"; shift 2 ;;
     --sshkey) SSHKEY="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; shift ;;
     --start) START_VM=1; shift ;;
@@ -60,6 +92,10 @@ done
 
 command -v qm >/dev/null 2>&1 || { echo "ERREUR: commande 'qm' introuvable — ce script doit tourner sur un host Proxmox VE."; exit 1; }
 [ -f "$DISK_PATH" ] || { echo "ERREUR: image introuvable : $DISK_PATH"; exit 1; }
+[[ "$DISK_SIZE" =~ ^[0-9]+[GgTt]$ ]] || { echo "ERREUR: --disk-size invalide ('$DISK_SIZE') — format attendu : 80G, 120G, 1T..."; exit 1; }
+if [ -n "$STATIC_IP" ] && [ -z "$GATEWAY" ]; then
+  echo "ERREUR: --gateway est requis quand --ip est fourni."; exit 1
+fi
 
 if qm status "$VMID" >/dev/null 2>&1; then
   echo "ERREUR: une VM avec l'ID $VMID existe déjà. Choisir un autre --vmid."
@@ -72,9 +108,11 @@ echo "======================================"
 echo " VMID              : $VMID"
 echo " Nom                : $VM_NAME"
 echo " Stockage disque    : $STORAGE"
+echo " Taille disque       : $DISK_SIZE"
 echo " Stockage snippets  : $SNIPPETS_STORAGE"
 echo " Bridge             : $BRIDGE"
 echo " RAM / vCPU         : ${MEMORY}Mo / ${CORES}"
+echo " Réseau              : $([ -n "$STATIC_IP" ] && echo "statique $STATIC_IP (gw $GATEWAY)" || echo "DHCP")"
 echo " Image               : $DISK_PATH"
 echo "======================================"
 
@@ -95,7 +133,7 @@ qm create "$VMID" \
 echo "[2/6] Ajout du disque EFI (OVMF)..."
 qm set "$VMID" --efidisk0 "${STORAGE}:0,efitype=4m,pre-enrolled-keys=1"
 
-echo "[3/6] Import du disque qcow2..."
+echo "[3/6] Import du disque qcow2 sur '${STORAGE}'..."
 qm importdisk "$VMID" "$DISK_PATH" "$STORAGE"
 
 echo "[4/6] Attache et configuration du disque (VirtIO SCSI, discard/ssd, trim)..."
@@ -121,11 +159,17 @@ else
   echo "             Relancer build.sh, ou copier OrionERP.cloudinit-*.yaml à côté de import_proxmox.sh."
 fi
 
-qm set "$VMID" --ipconfig0 ip=dhcp
+if [ -n "$STATIC_IP" ]; then
+  DNS="${DNS:-$GATEWAY}"
+  qm set "$VMID" --ipconfig0 "ip=${STATIC_IP},gw=${GATEWAY}"
+  qm set "$VMID" --nameserver "$DNS"
+else
+  qm set "$VMID" --ipconfig0 ip=dhcp
+fi
 [ -n "$SSHKEY" ] && qm set "$VMID" --sshkeys "$SSHKEY"
 
-echo "[6/6] Finalisation..."
-qm resize "$VMID" scsi0 80G || echo "  (déjà à la taille cible, ou redimensionnement ignoré)"
+echo "[6/6] Finalisation (redimensionnement à ${DISK_SIZE})..."
+qm resize "$VMID" scsi0 "$DISK_SIZE" || echo "  (déjà à la taille cible, ou redimensionnement ignoré)"
 
 if [ "$AS_TEMPLATE" -eq 1 ]; then
   qm template "$VMID"
