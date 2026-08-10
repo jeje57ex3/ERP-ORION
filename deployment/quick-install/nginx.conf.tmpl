@@ -1,0 +1,31 @@
+# Orion ERP — vhost Nginx généré par install.sh.
+# __ORION_DOMAIN__ substitué par install.sh avec le domaine saisi.
+# Lancer certbot --nginx -d __ORION_DOMAIN__ ensuite pour activer HTTPS.
+
+server {
+    listen 80;
+    server_name __ORION_DOMAIN__;
+
+    client_max_body_size 20M;
+
+    access_log /var/log/nginx/orion_access.log;
+    error_log  /var/log/nginx/orion_error.log warn;
+
+    location /static/ {
+        alias /opt/orion/backend/staticfiles/;
+    }
+
+    location /media/ {
+        alias /opt/orion/backend/media/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+}
