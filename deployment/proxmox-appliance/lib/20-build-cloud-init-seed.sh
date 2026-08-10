@@ -28,6 +28,14 @@ base64 -w0 "$WORK_DIR/payload.tar.gz" > "$WORK_DIR/payload.b64"
 PAYLOAD_SIZE_KB=$(( $(stat -c%s "$WORK_DIR/payload.b64" 2>/dev/null || stat -f%z "$WORK_DIR/payload.b64") / 1024 ))
 echo "[20] Payload encodé : ${PAYLOAD_SIZE_KB} Ko"
 
+echo "[20] Vérification d'intégrité du payload (détecte un disque plein / une écriture tronquée)..."
+if ! base64 -d "$WORK_DIR/payload.b64" | tar tz >/dev/null 2>&1; then
+  echo "[20] ERREUR: le payload généré est corrompu (base64/tar invalide)." >&2
+  echo "        Cause probable : espace disque insuffisant pendant la génération." >&2
+  df -h "$WORK_DIR" >&2 || true
+  exit 1
+fi
+
 echo "[20] Rendu du user-data cloud-init..."
 python3 "$APPLIANCE_DIR/lib/_render.py" \
   "$APPLIANCE_DIR/cloud-init/user-data.yaml.tmpl" \
