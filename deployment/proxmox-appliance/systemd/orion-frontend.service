@@ -11,6 +11,7 @@ Group=orion
 WorkingDirectory=/opt/orion/backend
 EnvironmentFile=/opt/orion/backend/.env
 Environment=DJANGO_SETTINGS_MODULE=erp_btp.settings.production
+ExecStartPre=/opt/orion/scripts/refresh_allowed_hosts.sh
 ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 3306 60
 ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
 ExecStart=/opt/orion/backend/.venv/bin/gunicorn erp_btp.wsgi:application \
