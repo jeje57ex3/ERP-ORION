@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'production:bom_list' %}">Nomenclatures</a></li>
+<li class="breadcrumb-item"><a href="{% url 'production:bom_list' %}">{% trans "Nomenclatures" %}</a></li>
 <li class="breadcrumb-item active">{{ bom.name }}</li>
 {% endblock %}
 
@@ -10,14 +11,14 @@
     <div>
       <h1 class="detail-title">{{ bom.name }}</h1>
       <div class="detail-meta">
-        {% if bom.is_active %}<span class="badge-status badge-paid">Active</span>{% else %}<span class="badge-status badge-cancelled">Inactive</span>{% endif %}
+        {% if bom.is_active %}<span class="badge-status badge-paid">{% trans "Active" %}</span>{% else %}<span class="badge-status badge-cancelled">{% trans "Inactive" %}</span>{% endif %}
         <span>v{{ bom.version }}</span>
         <span>{{ bom.product.name }}</span>
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'production:bom_edit' bom.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'production:bom_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'production:bom_edit' bom.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'production:bom_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -27,21 +28,21 @@
 <div class="row g-3">
   <div class="col-12 col-lg-4">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Informations" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Produit fini</label><div class="value">{{ bom.product.name }}</div></div>
-        <div class="info-item"><label>Version</label><div class="value">v{{ bom.version }}</div></div>
-        <div class="info-item"><label>Quantité produite</label><div class="value">{{ bom.quantity }} {{ bom.unit }}</div></div>
-        {% if bom.notes %}<div class="info-item"><label>Notes</label><div class="value small">{{ bom.notes }}</div></div>{% endif %}
+        <div class="info-item"><label>{% trans "Produit fini" %}</label><div class="value">{{ bom.product.name }}</div></div>
+        <div class="info-item"><label>{% trans "Version" %}</label><div class="value">v{{ bom.version }}</div></div>
+        <div class="info-item"><label>{% trans "Quantité produite" %}</label><div class="value">{{ bom.quantity }} {{ bom.unit }}</div></div>
+        {% if bom.notes %}<div class="info-item"><label>{% trans "Notes" %}</label><div class="value small">{{ bom.notes }}</div></div>{% endif %}
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-8">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>Composants</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Composants" %}</h6></div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
-          <thead><tr><th>Composant</th><th class="text-end">Quantité</th><th>Unité</th><th>Notes</th></tr></thead>
+          <thead><tr><th>{% trans "Composant" %}</th><th class="text-end">{% trans "Quantité" %}</th><th>{% trans "Unité" %}</th><th>{% trans "Notes" %}</th></tr></thead>
           <tbody>
             {% for line in bom.lines.all %}
             <tr>
@@ -51,7 +52,7 @@
               <td class="small text-muted">{{ line.notes|default:"" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-center text-muted py-3 small">Aucun composant défini.</td></tr>
+            <tr><td colspan="4" class="text-center text-muted py-3 small">{% trans "Aucun composant défini." %}</td></tr>
             {% endfor %}
           </tbody>
         </table>

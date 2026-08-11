@@ -1,8 +1,10 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Demandes de devis — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% if request.current_company %}{% blocktrans with company=request.current_company.name %}Demandes de devis — {{ company }}{% endblocktrans %}{% else %}{% trans 'Demandes de devis — Orion ERP' %}{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Demandes de devis</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Demandes reçues via vos formulaires en ligne.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans 'Demandes de devis' %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans 'Demandes reçues via vos formulaires en ligne.' %}</p>{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
@@ -10,13 +12,13 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-file-earmark-text"></i></div>
       <div class="orion-kpi-value">{{ new_count }}</div>
-      <div class="orion-kpi-label">Nouvelles demandes</div>
+      <div class="orion-kpi-label">{% trans 'Nouvelles demandes' %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'websites:quote_request_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  <a href="{% url 'websites:quote_request_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans 'Toutes' %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -25,7 +27,7 @@
 <div class="orion-card">
   <div class="table-responsive">
     <table class="orion-table">
-      <thead><tr><th>Nom</th><th>Société</th><th>Type projet</th><th>Budget</th><th>Site</th><th>Statut</th><th>Date</th></tr></thead>
+      <thead><tr><th>{% trans 'Nom' %}</th><th>{% trans 'Société' %}</th><th>{% trans 'Type projet' %}</th><th>{% trans 'Budget' %}</th><th>{% trans 'Site' %}</th><th>{% trans 'Statut' %}</th><th>{% trans 'Date' %}</th></tr></thead>
       <tbody>
         {% for qr in quote_requests %}
         <tr>
@@ -35,11 +37,11 @@
           <td class="small">{{ qr.budget|default:"—" }}</td>
           <td class="small text-muted">{{ qr.website.name }}</td>
           <td>
-            {% if qr.status == 'new' %}<span class="orion-badge orion-badge-warning">Nouveau</span>
-            {% elif qr.status == 'processing' %}<span class="orion-badge info text-dark">En traitement</span>
-            {% elif qr.status == 'quoted' %}<span class="orion-badge gold">Devis envoyé</span>
-            {% elif qr.status == 'won' %}<span class="orion-badge orion-badge-success">Gagné</span>
-            {% elif qr.status == 'lost' %}<span class="orion-badge orion-badge-danger">Perdu</span>
+            {% if qr.status == 'new' %}<span class="orion-badge orion-badge-warning">{% trans 'Nouveau' %}</span>
+            {% elif qr.status == 'processing' %}<span class="orion-badge info text-dark">{% trans 'En traitement' %}</span>
+            {% elif qr.status == 'quoted' %}<span class="orion-badge gold">{% trans 'Devis envoyé' %}</span>
+            {% elif qr.status == 'won' %}<span class="orion-badge orion-badge-success">{% trans 'Gagné' %}</span>
+            {% elif qr.status == 'lost' %}<span class="orion-badge orion-badge-danger">{% trans 'Perdu' %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">Spam</span>{% endif %}
           </td>
           <td class="small text-muted">{{ qr.created_at|date:"d/m/Y" }}</td>
@@ -48,8 +50,8 @@
         <tr><td colspan="7">
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
-            <div class="orion-empty-title">Aucune demande de devis</div>
-            <div class="orion-empty-text">Les demandes arriveront ici depuis vos formulaires en ligne.</div>
+            <div class="orion-empty-title">{% trans 'Aucune demande de devis' %}</div>
+            <div class="orion-empty-text">{% trans 'Les demandes arriveront ici depuis vos formulaires en ligne.' %}</div>
           </div>
         </td></tr>
         {% endfor %}

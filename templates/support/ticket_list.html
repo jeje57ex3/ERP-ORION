@@ -1,11 +1,11 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Tickets support — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Tickets support" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Tickets</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Gérez les demandes clients, incidents, SAV et réclamations.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Tickets" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Gérez les demandes clients, incidents, SAV et réclamations." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau ticket</a>
+<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau ticket" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -14,28 +14,28 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-envelope-open"></i></div>
       <div class="orion-kpi-value">{{ count_open }}</div>
-      <div class="orion-kpi-label">Ouverts</div>
+      <div class="orion-kpi-label">{% trans "Ouverts" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-arrow-repeat"></i></div>
       <div class="orion-kpi-value">{{ count_in_progress }}</div>
-      <div class="orion-kpi-label">En cours</div>
+      <div class="orion-kpi-label">{% trans "En cours" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-clock-history"></i></div>
       <div class="orion-kpi-value">{{ count_waiting }}</div>
-      <div class="orion-kpi-label">En attente</div>
+      <div class="orion-kpi-label">{% trans "En attente" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-exclamation-triangle"></i></div>
       <div class="orion-kpi-value">{{ count_critical }}</div>
-      <div class="orion-kpi-label">Critiques</div>
+      <div class="orion-kpi-label">{% trans "Critiques" %}</div>
     </div>
   </div>
 </div>
@@ -43,22 +43,22 @@
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width:200px;">
+      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="{% trans 'Rechercher...' %}" style="max-width:200px;">
       <select name="status" class="form-select form-select-sm" style="max-width:160px;">
-        <option value="">Tous les statuts</option>
+        <option value="">{% trans "Tous les statuts" %}</option>
         {% for s, label in status_choices %}<option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
       <select name="priority" class="form-select form-select-sm" style="max-width:150px;">
-        <option value="">Toutes priorités</option>
+        <option value="">{% trans "Toutes priorités" %}</option>
         {% for p, label in priority_choices %}<option value="{{ p }}" {% if priority == p %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
       <select name="type" class="form-select form-select-sm" style="max-width:160px;">
-        <option value="">Tous types</option>
+        <option value="">{% trans "Tous types" %}</option>
         {% for t, label in type_choices %}<option value="{{ t }}" {% if ticket_type == t %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
       {% if search or status or priority or ticket_type %}
-      <a href="{% url 'support:ticket_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>
+      <a href="{% url 'support:ticket_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>{% trans "Réinit." %}</a>
       {% endif %}
     </form>
   </div>
@@ -67,14 +67,14 @@
       <table class="orion-table mb-0">
         <thead>
           <tr>
-            <th>Numéro</th>
-            <th>Sujet</th>
-            <th>Type</th>
-            <th>Client</th>
-            <th>Priorité</th>
-            <th>Statut</th>
-            <th>Créé le</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "Numéro" %}</th>
+            <th>{% trans "Sujet" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Client" %}</th>
+            <th>{% trans "Priorité" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th>{% trans "Créé le" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -91,27 +91,27 @@
             <td class="small text-muted">{{ ticket.get_ticket_type_display }}</td>
             <td class="small text-muted">{{ ticket.customer.name|default:"—" }}</td>
             <td>
-              {% if ticket.priority == 'critical' %}<span class="orion-badge orion-badge-danger">Critique</span>
-              {% elif ticket.priority == 'high' %}<span class="orion-badge orion-badge-warning">Haute</span>
-              {% elif ticket.priority == 'medium' %}<span class="orion-badge orion-badge-info">Normale</span>
-              {% else %}<span class="orion-badge orion-badge-secondary">Basse</span>{% endif %}
+              {% if ticket.priority == 'critical' %}<span class="orion-badge orion-badge-danger">{% trans "Critique" %}</span>
+              {% elif ticket.priority == 'high' %}<span class="orion-badge orion-badge-warning">{% trans "Haute" %}</span>
+              {% elif ticket.priority == 'medium' %}<span class="orion-badge orion-badge-info">{% trans "Normale" %}</span>
+              {% else %}<span class="orion-badge orion-badge-secondary">{% trans "Basse" %}</span>{% endif %}
             </td>
             <td>
-              {% if ticket.status == 'open' %}<span class="orion-badge orion-badge-danger">Ouvert</span>
-              {% elif ticket.status == 'in_progress' %}<span class="orion-badge orion-badge-info">En cours</span>
-              {% elif ticket.status == 'waiting' %}<span class="orion-badge orion-badge-warning">En attente</span>
-              {% elif ticket.status == 'resolved' %}<span class="orion-badge orion-badge-success">Résolu</span>
-              {% elif ticket.status == 'closed' %}<span class="orion-badge orion-badge-secondary">Fermé</span>
+              {% if ticket.status == 'open' %}<span class="orion-badge orion-badge-danger">{% trans "Ouvert" %}</span>
+              {% elif ticket.status == 'in_progress' %}<span class="orion-badge orion-badge-info">{% trans "En cours" %}</span>
+              {% elif ticket.status == 'waiting' %}<span class="orion-badge orion-badge-warning">{% trans "En attente" %}</span>
+              {% elif ticket.status == 'resolved' %}<span class="orion-badge orion-badge-success">{% trans "Résolu" %}</span>
+              {% elif ticket.status == 'closed' %}<span class="orion-badge orion-badge-secondary">{% trans "Fermé" %}</span>
               {% else %}<span class="orion-badge orion-badge-secondary">{{ ticket.get_status_display }}</span>{% endif %}
             </td>
             <td class="small text-muted">{{ ticket.created_at|date:"d/m/Y" }}</td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'support:ticket_detail' ticket.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                <a href="{% url 'support:ticket_edit' ticket.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'support:ticket_detail' ticket.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'support:ticket_edit' ticket.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
                 {% if ticket.status not in 'resolved,closed' %}
                 <form method="post" action="{% url 'support:ticket_resolve' ticket.pk %}" class="d-inline">{% csrf_token %}
-                  <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="Résoudre"><i class="bi bi-check-circle text-success"></i></button>
+                  <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Résoudre' %}"><i class="bi bi-check-circle text-success"></i></button>
                 </form>
                 {% endif %}
               </div>
@@ -121,9 +121,9 @@
           <tr><td colspan="8">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-life-preserver"></i></div>
-              <div class="orion-empty-title">Aucun ticket de support</div>
-              <div class="orion-empty-text">Créez votre premier ticket pour commencer à gérer les demandes et incidents clients.</div>
-              <a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau ticket</a>
+              <div class="orion-empty-title">{% trans "Aucun ticket de support" %}</div>
+              <div class="orion-empty-text">{% trans "Créez votre premier ticket pour commencer à gérer les demandes et incidents clients." %}</div>
+              <a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau ticket" %}</a>
             </div>
           </td></tr>
           {% endfor %}

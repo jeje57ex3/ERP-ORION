@@ -1,16 +1,18 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block content %}
+{% trans "Commande" as order_number_fallback %}
 <div class="delete-confirm-card erp-card p-4 text-center">
   <div style="font-size:4rem;color:var(--color-success);opacity:0.7;margin-bottom:1rem;"><i class="bi bi-box-seam"></i></div>
-  <h4 class="mb-2">Confirmer la réception ?</h4>
-  <p class="fw-semibold fs-5 mb-3">{{ order.number|default:"Commande" }} — {{ order.supplier.name }}</p>
+  <h4 class="mb-2">{% trans "Confirmer la réception ?" %}</h4>
+  <p class="fw-semibold fs-5 mb-3">{{ order.number|default:order_number_fallback }} — {{ order.supplier.name }}</p>
   <div class="orion-alert info text-start mb-4">
-    <i class="bi bi-info-circle me-2"></i>La commande sera marquée comme <strong>Reçue</strong>. Cette action peut être modifiée ultérieurement.
+    <i class="bi bi-info-circle me-2"></i>{% trans "La commande sera marquée comme" %} <strong>{% trans "Reçue" %}</strong>. {% trans "Cette action peut être modifiée ultérieurement." %}
   </div>
   <form method="post" class="d-flex gap-2 justify-content-center">
     {% csrf_token %}
-    <a href="{% url 'purchases:order_detail' order.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
-    <button type="submit" class="orion-btn success"><i class="bi bi-check-circle me-1"></i>Confirmer la réception</button>
+    <a href="{% url 'purchases:order_detail' order.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn success"><i class="bi bi-check-circle me-1"></i>{% trans "Confirmer la réception" %}</button>
   </form>
 </div>
 {% endblock %}

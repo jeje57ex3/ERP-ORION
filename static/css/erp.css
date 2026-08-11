@@ -5,13 +5,13 @@
 
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
-  /* Couleurs principales */
-  --color-primary: #2563EB;
-  --color-primary-dark: #1E40AF;
-  --color-primary-light: #DBEAFE;
+  /* Couleurs principales — alignées sur la palette de marque Orion (marron/or) */
+  --color-primary: #3A2A1A;
+  --color-primary-dark: #24180F;
+  --color-primary-light: rgba(198, 161, 91, 0.15);
 
-  --color-secondary: #7C3AED;
-  --color-secondary-light: #EDE9FE;
+  --color-secondary: #C6A15B;
+  --color-secondary-light: rgba(198, 161, 91, 0.15);
 
   --color-success: #16A34A;
   --color-success-light: #DCFCE7;
@@ -32,14 +32,14 @@
   --color-bg: #F8FAFC;
   --color-surface: #FFFFFF;
 
-  /* Sidebar */
-  --sidebar-bg: #0F172A;
-  --sidebar-hover: #1E293B;
-  --sidebar-text: #94A3B8;
-  --sidebar-active-bg: rgba(56, 189, 248, 0.1);
-  --sidebar-active-color: #38BDF8;
-  --sidebar-active-border: #38BDF8;
-  --sidebar-brand-bg: #0A0F1E;
+  /* Sidebar — plus sombre que le marron des icônes pour un vrai contraste */
+  --sidebar-bg: #1C120A;
+  --sidebar-hover: #3A2A1A;
+  --sidebar-text: #C9B896;
+  --sidebar-active-bg: rgba(198, 161, 91, 0.15);
+  --sidebar-active-color: #C6A15B;
+  --sidebar-active-border: #C6A15B;
+  --sidebar-brand-bg: #120B05;
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 70px;
 
@@ -294,12 +294,30 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-icon {
-  width: 22px;
+  width: 28px;
   font-size: 1.05rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.nav-icon-img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  max-width: 26px;
+  max-height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+.nav-icon-img.sm {
+  width: 19px;
+  height: 19px;
+  max-width: 19px;
+  max-height: 19px;
 }
 
 .nav-label { flex: 1; }
@@ -1177,12 +1195,12 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Devis */
 .badge-draft    { background:#F3F4F6; color:#6B7280; }
-.badge-sent     { background:#DBEAFE; color:#1D4ED8; }
+.badge-sent     { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-accepted { background:#DCFCE7; color:#15803D; }
 .badge-refused  { background:#FEE2E2; color:#DC2626; }
 .badge-expired  { background:#FEF3C7; color:#92400E; }
 .badge-cancelled{ background:#F3F4F6; color:#6B7280; }
-.badge-converted{ background:#EDE9FE; color:#6D28D9; }
+.badge-converted{ background:rgba(58,42,26,.08); color:#3A2A1A; }
 
 /* Factures */
 .badge-paid     { background:#DCFCE7; color:#15803D; }
@@ -1190,17 +1208,17 @@ h1, h2, h3, h4, h5, h6 {
 .badge-overdue  { background:#FEE2E2; color:#DC2626; }
 
 /* Commandes */
-.badge-confirmed     { background:#DBEAFE; color:#1D4ED8; }
+.badge-confirmed     { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-in_preparation{ background:#FEF3C7; color:#92400E; }
-.badge-shipped       { background:#EDE9FE; color:#6D28D9; }
+.badge-shipped       { background:rgba(58,42,26,.08); color:#3A2A1A; }
 .badge-delivered     { background:#DCFCE7; color:#15803D; }
 .badge-invoiced      { background:#CFFAFE; color:#0E7490; }
 
 /* CRM */
 .badge-new        { background:#F0F9FF; color:#0369A1; }
 .badge-contacted  { background:#FEF3C7; color:#92400E; }
-.badge-qualified  { background:#DBEAFE; color:#1D4ED8; }
-.badge-proposal   { background:#EDE9FE; color:#6D28D9; }
+.badge-qualified  { background:rgba(198,161,91,.15); color:#8f7042; }
+.badge-proposal   { background:rgba(58,42,26,.08); color:#3A2A1A; }
 .badge-negotiation{ background:#CFFAFE; color:#0E7490; }
 .badge-won        { background:#DCFCE7; color:#15803D; }
 .badge-lost       { background:#FEE2E2; color:#DC2626; }
@@ -1214,21 +1232,21 @@ h1, h2, h3, h4, h5, h6 {
 
 /* BTP */
 .badge-study    { background:#F0F9FF; color:#0369A1; }
-.badge-planned  { background:#DBEAFE; color:#1D4ED8; }
+.badge-planned  { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-ongoing  { background:#FEF3C7; color:#92400E; }
 .badge-suspended{ background:#FEE2E2; color:#DC2626; }
 .badge-finished { background:#DCFCE7; color:#15803D; }
 .badge-closed   { background:#F3F4F6; color:#6B7280; }
 
 /* Support */
-.badge-open     { background:#DBEAFE; color:#1D4ED8; }
+.badge-open     { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-waiting  { background:#FEF3C7; color:#92400E; }
 .badge-resolved { background:#DCFCE7; color:#15803D; }
 .badge-closed   { background:#F3F4F6; color:#6B7280; }
 
 /* Priority */
 .badge-low      { background:#F0FDF4; color:#15803D; }
-.badge-normal   { background:#DBEAFE; color:#1D4ED8; }
+.badge-normal   { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-high     { background:#FEF3C7; color:#92400E; }
 .badge-urgent   { background:#FEE2E2; color:#DC2626; }
 
@@ -1238,9 +1256,9 @@ h1, h2, h3, h4, h5, h6 {
 /* Stock movements */
 .badge-in         { background:#DCFCE7; color:#15803D; }
 .badge-out        { background:#FEE2E2; color:#DC2626; }
-.badge-transfer   { background:#DBEAFE; color:#1D4ED8; }
+.badge-transfer   { background:rgba(198,161,91,.15); color:#8f7042; }
 .badge-adjustment { background:#FEF3C7; color:#92400E; }
-.badge-return     { background:#EDE9FE; color:#6D28D9; }
+.badge-return     { background:rgba(58,42,26,.08); color:#3A2A1A; }
 .badge-loss       { background:#FEE2E2; color:#DC2626; }
 
 /* Purchases */

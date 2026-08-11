@@ -1,16 +1,17 @@
 {% extends "client_portal/base_client_portal.html" %}
-{% block title %}Réserves — {{ project.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=project.name %}Réserves — {{ name }}{% endblocktrans %}{% endblock %}
 {% block nav_projects %}active{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item active">Réserves</li>
+<li class="breadcrumb-item active">{% trans "Réserves" %}</li>
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-bold mb-0">Réserves — {{ project.name }}</h5>
+  <h5 class="fw-bold mb-0">{% blocktrans with name=project.name %}Réserves — {{ name }}{% endblocktrans %}</h5>
   {% if account.can_report_reservations %}
   <button class="orion-btn danger orion-btn sm" data-bs-toggle="collapse" data-bs-target="#add-res-form">
-    <i class="bi bi-exclamation-circle me-1"></i>Signaler une réserve
+    <i class="bi bi-exclamation-circle me-1"></i>{% trans "Signaler une réserve" %}
   </button>
   {% endif %}
 </div>
@@ -18,18 +19,18 @@
 {% if account.can_report_reservations %}
 <div class="collapse mb-4" id="add-res-form">
   <div class="bg-white border rounded-3 p-4">
-    <h6 class="fw-bold mb-3">Signaler une réserve</h6>
+    <h6 class="fw-bold mb-3">{% trans "Signaler une réserve" %}</h6>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="row g-3">
-        <div class="col-md-8"><label class="form-label small fw-semibold">Titre *</label><input type="text" name="title" class="form-control" required placeholder="Ex: Prise manquante dans chambre"></div>
-        <div class="col-md-4"><label class="form-label small fw-semibold">Importance</label>
-          <select name="importance" class="form-select"><option value="low">Faible</option><option value="medium" selected>Moyenne</option><option value="high">Importante</option><option value="blocking">Bloquante</option></select>
+        <div class="col-md-8"><label class="form-label small fw-semibold">{% trans "Titre" %} *</label><input type="text" name="title" class="form-control" required placeholder="{% trans 'Ex: Prise manquante dans chambre' %}"></div>
+        <div class="col-md-4"><label class="form-label small fw-semibold">{% trans "Importance" %}</label>
+          <select name="importance" class="form-select"><option value="low">{% trans "Faible" %}</option><option value="medium" selected>{% trans "Moyenne" %}</option><option value="high">{% trans "Importante" %}</option><option value="blocking">{% trans "Bloquante" %}</option></select>
         </div>
-        <div class="col-md-6"><label class="form-label small fw-semibold">Pièce concernée</label><input type="text" name="room" class="form-control" placeholder="Ex: Chambre 1"></div>
-        <div class="col-12"><label class="form-label small fw-semibold">Description *</label><textarea name="description" class="form-control" rows="3" required></textarea></div>
-        <div class="col-12"><label class="form-label small fw-semibold">Photos</label><input type="file" name="photos" class="form-control" multiple accept="image/*"></div>
-        <div class="col-12"><button type="submit" class="orion-btn danger fw-bold"><i class="bi bi-send me-1"></i>Envoyer la réserve</button></div>
+        <div class="col-md-6"><label class="form-label small fw-semibold">{% trans "Pièce concernée" %}</label><input type="text" name="room" class="form-control" placeholder="{% trans 'Ex: Chambre 1' %}"></div>
+        <div class="col-12"><label class="form-label small fw-semibold">{% trans "Description" %} *</label><textarea name="description" class="form-control" rows="3" required></textarea></div>
+        <div class="col-12"><label class="form-label small fw-semibold">{% trans "Photos" %}</label><input type="file" name="photos" class="form-control" multiple accept="image/*"></div>
+        <div class="col-12"><button type="submit" class="orion-btn danger fw-bold"><i class="bi bi-send me-1"></i>{% trans "Envoyer la réserve" %}</button></div>
       </div>
     </form>
   </div>
@@ -46,14 +47,14 @@
         {% if res.room %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ res.room }}</div>{% endif %}
       </div>
       <div class="d-flex gap-2 align-items-center">
-        {% if res.importance == 'blocking' %}<span class="orion-badge danger">Bloquante</span>
-        {% elif res.importance == 'high' %}<span class="badge bg-orange" style="background:#EA580C">Importante</span>
-        {% elif res.importance == 'medium' %}<span class="orion-badge warning text-dark">Moyenne</span>
-        {% else %}<span class="orion-badge neutral">Faible</span>{% endif %}
-        {% if res.status == 'new' %}<span class="badge badge-status-pending">Nouvelle</span>
-        {% elif res.status == 'corrected' %}<span class="badge badge-status-done">Corrigée</span>
-        {% elif res.status == 'lifted' %}<span class="badge badge-status-done">Levée ✓</span>
-        {% elif res.status == 'planned' %}<span class="badge badge-status-progress">Planifiée</span>
+        {% if res.importance == 'blocking' %}<span class="orion-badge danger">{% trans "Bloquante" %}</span>
+        {% elif res.importance == 'high' %}<span class="badge bg-orange" style="background:#EA580C">{% trans "Importante" %}</span>
+        {% elif res.importance == 'medium' %}<span class="orion-badge warning text-dark">{% trans "Moyenne" %}</span>
+        {% else %}<span class="orion-badge neutral">{% trans "Faible" %}</span>{% endif %}
+        {% if res.status == 'new' %}<span class="badge badge-status-pending">{% trans "Nouvelle" %}</span>
+        {% elif res.status == 'corrected' %}<span class="badge badge-status-done">{% trans "Corrigée" %}</span>
+        {% elif res.status == 'lifted' %}<span class="badge badge-status-done">{% trans "Levée" %} ✓</span>
+        {% elif res.status == 'planned' %}<span class="badge badge-status-progress">{% trans "Planifiée" %}</span>
         {% else %}<span class="orion-badge neutral">{{ res.status }}</span>{% endif %}
       </div>
     </div>
@@ -63,14 +64,14 @@
       {% for photo in res.photos.all %}<img src="{{ photo.photo.url }}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">{% endfor %}
     </div>
     {% endif %}
-    <div class="text-muted small mt-2">Signalée le {{ res.created_at|date:"d/m/Y" }}</div>
+    <div class="text-muted small mt-2">{% blocktrans with d=res.created_at|date:"d/m/Y" %}Signalée le {{ d }}{% endblocktrans %}</div>
   </div>
   {% endfor %}
 </div>
 {% else %}
 <div class="bg-white border rounded-3 p-5 text-center text-muted">
   <i class="bi bi-check-circle fs-1 d-block mb-3 text-success"></i>
-  <h6>Aucune réserve signalée — tout est en ordre !</h6>
+  <h6>{% trans "Aucune réserve signalée — tout est en ordre !" %}</h6>
 </div>
 {% endif %}
 {% endblock %}

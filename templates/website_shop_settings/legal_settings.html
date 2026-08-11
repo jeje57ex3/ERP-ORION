@@ -1,11 +1,12 @@
 {% extends "website_shop_settings/_settings_layout.html" %}
+{% load i18n %}
 
 {% block settings_content %}
 <form method="post">
   {% csrf_token %}
 
   <div class="orion-alert info mb-3" style="font-size:12.5px">
-    <i class="bi bi-info-circle me-1"></i>Ces textes sont affichés sur le site public dans les pages légales correspondantes.
+    <i class="bi bi-info-circle me-1"></i>{% trans "Ces textes sont affichés sur le site public dans les pages légales correspondantes." %}
   </div>
 
   {% for field in form %}
@@ -21,7 +22,7 @@
 
   <div style="display:flex;justify-content:flex-end">
     <button type="submit" class="orion-btn primary">
-      <i class="bi bi-check-lg me-1"></i>Enregistrer
+      <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}
     </button>
   </div>
 </form>

@@ -1,4 +1,5 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block content %}
 <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:40px 16px">
   <div style="max-width:480px;width:100%;text-align:center">
@@ -8,16 +9,16 @@
     </div>
 
     <h1 style="font-size:22px;font-weight:700;color:var(--orion-text);margin-bottom:10px">
-      Fiche salarié manquante
+      {% trans 'Fiche salarié manquante' %}
     </h1>
     <p style="font-size:14px;color:var(--orion-text-soft);line-height:1.6;margin-bottom:28px">
-      Votre compte utilisateur n'est pas encore associé à une fiche salarié.<br>
-      Merci de contacter un administrateur pour régulariser votre situation avant de continuer.
+      {% trans "Votre compte utilisateur n'est pas encore associé à une fiche salarié." %}<br>
+      {% trans "Merci de contacter un administrateur pour régulariser votre situation avant de continuer." %}
     </p>
 
     <div style="background:var(--orion-surface);border:1px solid var(--orion-border);border-radius:12px;padding:20px;text-align:left;margin-bottom:28px">
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--orion-muted);margin-bottom:12px">
-        Votre compte
+        {% trans 'Votre compte' %}
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:38px;height:38px;border-radius:9px;background:var(--orion-accent-soft);color:var(--orion-accent-strong);display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0">
@@ -33,11 +34,11 @@
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       {% if next_url %}
       <a href="{{ next_url }}" class="orion-btn ghost">
-        <i class="bi bi-arrow-left"></i> Retour
+        <i class="bi bi-arrow-left"></i> {% trans 'Retour' %}
       </a>
       {% endif %}
       <a href="{% url 'accounts:logout' %}" class="orion-btn outline-accent">
-        <i class="bi bi-box-arrow-right"></i> Se déconnecter
+        <i class="bi bi-box-arrow-right"></i> {% trans 'Se déconnecter' %}
       </a>
     </div>
 

@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'purchases:supplier_list' %}">Fournisseurs</a></li>
+<li class="breadcrumb-item"><a href="{% url 'purchases:supplier_list' %}">{% trans "Fournisseurs" %}</a></li>
 <li class="breadcrumb-item active">{{ supplier.name }}</li>
 {% endblock %}
 
@@ -10,23 +11,23 @@
     <div>
       <h1 class="detail-title">{{ supplier.name }}</h1>
       <div class="detail-meta">
-        {% if supplier.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}
+        {% if supplier.is_active %}<span class="badge-status badge-active">{% trans "Actif" %}</span>{% else %}<span class="badge-status badge-inactive">{% trans "Inactif" %}</span>{% endif %}
         {% if supplier.code %}<span>{{ supplier.code }}</span>{% endif %}
         <span>{{ supplier.get_supplier_type_display }}</span>
         {% if supplier.city %}<span><i class="bi bi-geo-alt me-1"></i>{{ supplier.city }}</span>{% endif %}
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'purchases:order_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-cart-plus me-1"></i>Nouvelle commande</a>
-      <a href="{% url 'purchases:supplier_edit' supplier.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'purchases:supplier_delete' supplier.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
-      <a href="{% url 'purchases:supplier_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'purchases:order_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-cart-plus me-1"></i>{% trans "Nouvelle commande" %}</a>
+      <a href="{% url 'purchases:supplier_edit' supplier.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'purchases:supplier_delete' supplier.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
+      <a href="{% url 'purchases:supplier_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
   <div class="erp-tabs mt-3">
-    <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>Informations</a>
-    <a href="?tab=orders" class="erp-tab {% if tab == 'orders' %}active{% endif %}"><i class="bi bi-cart3 me-1"></i>Commandes</a>
-    <a href="?tab=invoices" class="erp-tab {% if tab == 'invoices' %}active{% endif %}"><i class="bi bi-file-earmark-text me-1"></i>Factures</a>
+    <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>{% trans "Informations" %}</a>
+    <a href="?tab=orders" class="erp-tab {% if tab == 'orders' %}active{% endif %}"><i class="bi bi-cart3 me-1"></i>{% trans "Commandes" %}</a>
+    <a href="?tab=invoices" class="erp-tab {% if tab == 'invoices' %}active{% endif %}"><i class="bi bi-file-earmark-text me-1"></i>{% trans "Factures" %}</a>
   </div>
 </div>
 {% endblock %}
@@ -35,12 +36,12 @@
 {% if tab == 'orders' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-cart3 me-1 text-primary"></i>Commandes</h6>
-    <a href="{% url 'purchases:order_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Nouvelle commande</a>
+    <h6 class="card-title mb-0"><i class="bi bi-cart3 me-1 text-primary"></i>{% trans "Commandes" %}</h6>
+    <a href="{% url 'purchases:order_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle commande" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>N°</th><th>Date</th><th>Livraison</th><th class="text-end">Total HT</th><th>Statut</th></tr></thead>
+      <thead><tr><th>{% trans "N°" %}</th><th>{% trans "Date" %}</th><th>{% trans "Livraison" %}</th><th class="text-end">{% trans "Total HT" %}</th><th>{% trans "Statut" %}</th></tr></thead>
       <tbody>
         {% for o in orders %}
         <tr>
@@ -51,7 +52,7 @@
           <td><span class="badge-status badge-{{ o.status }}">{{ o.get_status_display }}</span></td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune commande pour ce fournisseur.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3 small">{% trans "Aucune commande pour ce fournisseur." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -61,12 +62,12 @@
 {% elif tab == 'invoices' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Factures</h6>
-    <a href="{% url 'purchases:supplier_invoice_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Saisir une facture</a>
+    <h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Factures" %}</h6>
+    <a href="{% url 'purchases:supplier_invoice_create' %}?supplier={{ supplier.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Saisir une facture" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>Réf.</th><th>Date</th><th>Échéance</th><th class="text-end">Total TTC</th><th>Statut</th></tr></thead>
+      <thead><tr><th>{% trans "Réf." %}</th><th>{% trans "Date" %}</th><th>{% trans "Échéance" %}</th><th class="text-end">{% trans "Total TTC" %}</th><th>{% trans "Statut" %}</th></tr></thead>
       <tbody>
         {% for inv in invoices %}
         <tr>
@@ -77,7 +78,7 @@
           <td><span class="badge-status badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune facture pour ce fournisseur.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3 small">{% trans "Aucune facture pour ce fournisseur." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -88,29 +89,29 @@
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Coordonnées</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>{% trans "Coordonnées" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Contact</label><div class="value {% if not supplier.contact_name %}empty{% endif %}">{{ supplier.contact_name|default:"—" }}</div></div>
-        <div class="info-item"><label>Email</label><div class="value {% if not supplier.email %}empty{% endif %}">{% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}—{% endif %}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not supplier.phone %}empty{% endif %}">{{ supplier.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Adresse</label><div class="value small {% if not supplier.address %}empty{% endif %}">{% if supplier.address %}{{ supplier.address }}<br>{{ supplier.zip_code }} {{ supplier.city }} — {{ supplier.country }}{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Contact" %}</label><div class="value {% if not supplier.contact_name %}empty{% endif %}">{{ supplier.contact_name|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Email" %}</label><div class="value {% if not supplier.email %}empty{% endif %}">{% if supplier.email %}<a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not supplier.phone %}empty{% endif %}">{{ supplier.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Adresse" %}</label><div class="value small {% if not supplier.address %}empty{% endif %}">{% if supplier.address %}{{ supplier.address }}<br>{{ supplier.zip_code }} {{ supplier.city }} — {{ supplier.country }}{% else %}—{% endif %}</div></div>
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-building me-1 text-primary"></i>Données légales &amp; commerciales</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-building me-1 text-primary"></i>{% trans "Données légales & commerciales" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>SIRET</label><div class="value {% if not supplier.siret %}empty{% endif %}">{{ supplier.siret|default:"—" }}</div></div>
-        <div class="info-item"><label>N° TVA</label><div class="value {% if not supplier.vat_number %}empty{% endif %}">{{ supplier.vat_number|default:"—" }}</div></div>
-        <div class="info-item"><label>Délai paiement</label><div class="value">{{ supplier.payment_terms }} jours</div></div>
-        <div class="info-item"><label>Délai livraison</label><div class="value">{{ supplier.lead_time_days }} jours</div></div>
-        <div class="info-item"><label>Remise habituelle</label><div class="value">{{ supplier.discount_rate }} %</div></div>
+        <div class="info-item"><label>{% trans "SIRET" %}</label><div class="value {% if not supplier.siret %}empty{% endif %}">{{ supplier.siret|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "N° TVA" %}</label><div class="value {% if not supplier.vat_number %}empty{% endif %}">{{ supplier.vat_number|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Délai paiement" %}</label><div class="value">{{ supplier.payment_terms }} {% trans "jours" %}</div></div>
+        <div class="info-item"><label>{% trans "Délai livraison" %}</label><div class="value">{{ supplier.lead_time_days }} {% trans "jours" %}</div></div>
+        <div class="info-item"><label>{% trans "Remise habituelle" %}</label><div class="value">{{ supplier.discount_rate }} %</div></div>
       </div>
     </div>
     {% if supplier.notes %}
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
       <div class="p-3 small text-muted">{{ supplier.notes|linebreaks }}</div>
     </div>
     {% endif %}

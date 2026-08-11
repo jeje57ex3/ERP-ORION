@@ -1,11 +1,12 @@
 {% extends "store/base_store.html" %}
+{% load i18n %}
 {% block title %}{{ product.name }} — {{ website.name }}{% endblock %}
 {% block content %}
 
 <div class="breadcrumb-store">
   <div class="container">
     <nav><ol class="breadcrumb mb-0 small">
-      <li class="breadcrumb-item"><a href="{% url 'store:store_home' %}">Accueil</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'store:store_home' %}">{% trans "Accueil" %}</a></li>
       {% if product.category %}<li class="breadcrumb-item"><a href="{% url 'store:store_category' product.category.slug %}">{{ product.category.name }}</a></li>{% endif %}
       <li class="breadcrumb-item active">{{ product.name }}</li>
     </ol></nav>
@@ -53,21 +54,21 @@
     <div class="col-12 col-md-6">
       {% if product.category %}<p class="text-muted small mb-1">{{ product.category.name }}</p>{% endif %}
       <h1 class="fw-bold mb-2">{{ product.name }}</h1>
-      {% if product.sku %}<p class="text-muted small mb-2">Réf : <span class="font-monospace">{{ product.sku }}</span></p>{% endif %}
+      {% if product.sku %}<p class="text-muted small mb-2">{% trans "Réf :" %} <span class="font-monospace">{{ product.sku }}</span></p>{% endif %}
 
       <div class="d-flex align-items-center gap-3 mb-3">
         <span class="product-price fs-3">{{ product.price|floatformat:2 }}€</span>
         {% if product.is_on_sale %}
         <span class="product-price-old fs-5">{{ product.compare_at_price|floatformat:2 }}€</span>
-        <span class="badge-promo">-{{ product.price|floatformat:0 }}€ d'économie</span>
+        <span class="badge-promo">{% blocktrans with amount=product.price|floatformat:0 %}-{{ amount }}€ d'économie{% endblocktrans %}</span>
         {% endif %}
       </div>
 
       <div class="mb-3">
         {% if product.in_stock %}
-        <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>En stock ({{ product.stock_quantity }} disponible{{ product.stock_quantity|pluralize }})</span>
+        <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>{% blocktrans with qty=product.stock_quantity %}En stock ({{ qty }} disponible{{ qty|pluralize }}){% endblocktrans %}</span>
         {% else %}
-        <span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>Rupture de stock</span>
+        <span class="text-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>{% trans "Rupture de stock" %}</span>
         {% endif %}
       </div>
 
@@ -85,19 +86,19 @@
             <button type="button" class="btn border-0 px-3 py-2" onclick="document.getElementById('qty').value++">+</button>
           </div>
           <button type="submit" class="btn btn-store-primary flex-fill" {% if not product.in_stock %}disabled{% endif %}>
-            <i class="bi bi-cart-plus me-2"></i>Ajouter au panier
+            <i class="bi bi-cart-plus me-2"></i>{% trans "Ajouter au panier" %}
           </button>
         </div>
       </form>
 
       <a href="{% url 'store:checkout' %}" class="btn btn-outline-dark w-100 mb-4" {% if not product.in_stock %}disabled{% endif %}>
-        <i class="bi bi-lightning me-1"></i>Acheter maintenant
+        <i class="bi bi-lightning me-1"></i>{% trans "Acheter maintenant" %}
       </a>
 
       <div class="d-flex gap-3 text-muted small mb-4">
-        <span><i class="bi bi-truck me-1"></i>Livraison rapide</span>
-        <span><i class="bi bi-arrow-return-left me-1"></i>Retours 30 jours</span>
-        <span><i class="bi bi-shield-check me-1"></i>Paiement sécurisé</span>
+        <span><i class="bi bi-truck me-1"></i>{% trans "Livraison rapide" %}</span>
+        <span><i class="bi bi-arrow-return-left me-1"></i>{% trans "Retours 30 jours" %}</span>
+        <span><i class="bi bi-shield-check me-1"></i>{% trans "Paiement sécurisé" %}</span>
       </div>
     </div>
   </div>
@@ -106,7 +107,7 @@
   {% if product.description %}
   <div class="mt-5">
     <ul class="nav nav-tabs mb-4" id="productTabs">
-      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#desc">Description</a></li>
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#desc">{% trans "Description" %}</a></li>
     </ul>
     <div class="tab-content">
       <div class="tab-pane fade show active" id="desc">
@@ -119,7 +120,7 @@
   <!-- Produits similaires -->
   {% if related_products %}
   <div class="mt-5">
-    <h3 class="fw-bold mb-4">Produits similaires</h3>
+    <h3 class="fw-bold mb-4">{% trans "Produits similaires" %}</h3>
     <div class="row g-3">
       {% for p in related_products %}
       <div class="col-6 col-md-3">

@@ -1,13 +1,14 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
-<li class="breadcrumb-item active">Créer une boutique en ligne</li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Créer une boutique en ligne" %}</li>
 {% endblock %}
 {% block page_header %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Créer une boutique en ligne</h1>
-    <p class="page-subtitle">Votre boutique sera connectée à l'ERP et créée avec toutes les pages e-commerce.</p>
+    <h1 class="page-title">{% trans "Créer une boutique en ligne" %}</h1>
+    <p class="page-subtitle">{% trans "Votre boutique sera connectée à l'ERP et créée avec toutes les pages e-commerce." %}</p>
   </div>
 </div>
 {% endblock %}
@@ -17,67 +18,67 @@
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>Boutique</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>{% trans "Boutique" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-md-8"><label class="form-label form-label-sm">Nom de la boutique *</label>{{ form.name }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Langue</label>{{ form.language }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Domaine</label>{{ form.domain }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Sous-domaine</label>{{ form.subdomain }}</div>
+            <div class="col-md-8"><label class="form-label form-label-sm">{% trans "Nom de la boutique" %} *</label>{{ form.name }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Langue" %}</label>{{ form.language }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Domaine" %}</label>{{ form.domain }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Sous-domaine" %}</label>{{ form.subdomain }}</div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>Commerce</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>{% trans "Commerce" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-md-4"><label class="form-label form-label-sm">Devise</label>{{ form.currency }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Pays</label>{{ form.country }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Email support</label>{{ form.contact_email }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Téléphone support</label>{{ form.contact_phone }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Devise" %}</label>{{ form.currency }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Pays" %}</label>{{ form.country }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Email support" %}</label>{{ form.contact_email }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Téléphone support" %}</label>{{ form.contact_phone }}</div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-text me-1 text-primary"></i>Mentions légales</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-text me-1 text-primary"></i>{% trans "Mentions légales" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-12"><label class="form-label form-label-sm">Conditions générales de vente</label>{{ form.terms_and_conditions }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Politique de retour</label>{{ form.return_policy }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Politique de livraison</label>{{ form.shipping_policy }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Conditions générales de vente" %}</label>{{ form.terms_and_conditions }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Politique de retour" %}</label>{{ form.return_policy }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Politique de livraison" %}</label>{{ form.shipping_policy }}</div>
           </div>
         </div>
       </div>
       <div class="d-flex gap-2">
-        <button type="submit" class="orion-btn primary"><i class="bi bi-shop me-1"></i>Créer la boutique</button>
-        <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        <button type="submit" class="orion-btn primary"><i class="bi bi-shop me-1"></i>{% trans "Créer la boutique" %}</button>
+        <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </form>
   </div>
   <div class="col-12 col-lg-4">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-link me-1 text-primary"></i>Connexion ERP</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-link me-1 text-primary"></i>{% trans "Connexion ERP" %}</h6></div>
       <div class="orion-orion-card-body">
         <ul class="list-unstyled small mb-0">
-          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Stock en temps réel depuis l'inventaire</li>
-          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Import des produits ERP en 1 clic</li>
-          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Création automatique des clients CRM</li>
-          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Génération de factures ERP</li>
-          <li><i class="bi bi-check-circle text-success me-2"></i>Gestion des expéditions intégrée</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>{% trans "Stock en temps réel depuis l'inventaire" %}</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>{% trans "Import des produits ERP en 1 clic" %}</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>{% trans "Création automatique des clients CRM" %}</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>{% trans "Génération de factures ERP" %}</li>
+          <li><i class="bi bi-check-circle text-success me-2"></i>{% trans "Gestion des expéditions intégrée" %}</li>
         </ul>
       </div>
     </div>
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Pages créées automatiquement</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Pages créées automatiquement" %}</h6></div>
       <div class="orion-orion-card-body p-0">
         <ul class="list-group list-group-flush" style="font-size:.82rem">
-          <li class="list-group-item"><i class="bi bi-house me-2 text-primary"></i>Accueil boutique</li>
-          <li class="list-group-item"><i class="bi bi-grid me-2 text-primary"></i>Catalogue</li>
-          <li class="list-group-item"><i class="bi bi-envelope me-2 text-primary"></i>Contact</li>
+          <li class="list-group-item"><i class="bi bi-house me-2 text-primary"></i>{% trans "Accueil boutique" %}</li>
+          <li class="list-group-item"><i class="bi bi-grid me-2 text-primary"></i>{% trans "Catalogue" %}</li>
+          <li class="list-group-item"><i class="bi bi-envelope me-2 text-primary"></i>{% trans "Contact" %}</li>
           <li class="list-group-item"><i class="bi bi-question-circle me-2 text-primary"></i>FAQ</li>
-          <li class="list-group-item"><i class="bi bi-shield me-2 text-muted"></i>Mentions légales</li>
-          <li class="list-group-item"><i class="bi bi-shield-check me-2 text-muted"></i>Politique de confidentialité</li>
-          <li class="list-group-item"><i class="bi bi-file-text me-2 text-muted"></i>CGV, retour, livraison</li>
+          <li class="list-group-item"><i class="bi bi-shield me-2 text-muted"></i>{% trans "Mentions légales" %}</li>
+          <li class="list-group-item"><i class="bi bi-shield-check me-2 text-muted"></i>{% trans "Politique de confidentialité" %}</li>
+          <li class="list-group-item"><i class="bi bi-file-text me-2 text-muted"></i>{% trans "CGV, retour, livraison" %}</li>
         </ul>
       </div>
     </div>

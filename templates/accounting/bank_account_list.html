@@ -1,26 +1,26 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Comptes bancaires — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Comptes bancaires" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Comptes bancaires</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Comptes bancaires" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-bank me-2"></i>Ajouter un compte</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-bank me-2"></i>{% trans "Ajouter un compte" %}</h6></div>
       <div class="orion-orion-orion-card-body">
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Banque <span class="text-danger">*</span></label>
-            <input type="text" name="bank_name" class="form-control" required placeholder="ex. Crédit Agricole">
+            <label class="form-label fw-semibold">{% trans "Banque" %} <span class="text-danger">*</span></label>
+            <input type="text" name="bank_name" class="form-control" required placeholder="{% trans 'ex. Crédit Agricole' %}">
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Nom du compte <span class="text-danger">*</span></label>
-            <input type="text" name="account_name" class="form-control" required placeholder="ex. Compte courant professionnel">
+            <label class="form-label fw-semibold">{% trans "Nom du compte" %} <span class="text-danger">*</span></label>
+            <input type="text" name="account_name" class="form-control" required placeholder="{% trans 'ex. Compte courant professionnel' %}">
           </div>
           <div class="mb-3">
             <label class="form-label">IBAN</label>
@@ -31,10 +31,10 @@
             <input type="text" name="bic" class="form-control" placeholder="AGRIFRPP">
           </div>
           <div class="mb-3">
-            <label class="form-label">Solde initial (€)</label>
+            <label class="form-label">{% trans "Solde initial (€)" %}</label>
             <input type="number" name="opening_balance" class="form-control" step="0.01" value="0">
           </div>
-          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter</button>
+          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter" %}</button>
         </form>
       </div>
     </div>
@@ -42,13 +42,13 @@
 
   <div class="col-lg-7">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-credit-card me-2"></i>Mes comptes</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-credit-card me-2"></i>{% trans "Mes comptes" %}</h6></div>
       <div class="orion-orion-orion-card-body p-0">
         {% if accounts %}
         <div class="table-responsive">
           <table class="orion-table">
             <thead>
-              <tr><th>Banque</th><th>Compte</th><th>IBAN</th><th class="text-end">Solde</th></tr>
+              <tr><th>{% trans "Banque" %}</th><th>{% trans "Compte" %}</th><th>IBAN</th><th class="text-end">{% trans "Solde" %}</th></tr>
             </thead>
             <tbody>
               {% for acc in accounts %}
@@ -66,7 +66,7 @@
         </div>
         {% else %}
         <div class="orion-empty">
-          <div class="orion-empty-title">Aucun compte bancaire.</div>
+          <div class="orion-empty-title">{% trans "Aucun compte bancaire." %}</div>
         </div>
         {% endif %}
       </div>

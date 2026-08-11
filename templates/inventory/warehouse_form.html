@@ -1,10 +1,11 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'inventory:warehouse_list' %}">Entrepôts</a></li>
-<li class="breadcrumb-item active">{% if action == 'create' %}Nouvel entrepôt{% else %}Modifier{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'inventory:warehouse_list' %}">{% trans "Entrepôts" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'create' %}{% trans "Nouvel entrepôt" %}{% else %}{% trans "Modifier" %}{% endif %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'inventory:warehouse_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+<a href="{% url 'inventory:warehouse_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -13,22 +14,22 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-building me-1 text-primary"></i>Entrepôt</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-building me-1 text-primary"></i>{% trans "Entrepôt" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
-            <div class="col-md-8"><label class="form-label">Nom *</label>{{ form.name }}{% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors }}</div>{% endif %}</div>
-            <div class="col-md-4"><label class="form-label">Code</label>{{ form.code }}</div>
-            <div class="col-12"><label class="form-label">Adresse</label>{{ form.address }}</div>
-            <div class="col-12"><label class="form-label">Responsable</label>{{ form.manager }}</div>
-            <div class="col-12"><div class="form-check">{{ form.is_active }}<label class="form-check-label ms-2">Actif</label></div></div>
+            <div class="col-md-8"><label class="form-label">{% trans "Nom" %} *</label>{{ form.name }}{% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors }}</div>{% endif %}</div>
+            <div class="col-md-4"><label class="form-label">{% trans "Code" %}</label>{{ form.code }}</div>
+            <div class="col-12"><label class="form-label">{% trans "Adresse" %}</label>{{ form.address }}</div>
+            <div class="col-12"><label class="form-label">{% trans "Responsable" %}</label>{{ form.manager }}</div>
+            <div class="col-12"><div class="form-check">{{ form.is_active }}<label class="form-check-label ms-2">{% trans "Actif" %}</label></div></div>
           </div>
         </div>
       </div>
     </div>
   </div>
   <div class="d-flex gap-2 justify-content-end mt-3">
-    <a href="{% url 'inventory:warehouse_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
-    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}Créer l'entrepôt{% else %}Enregistrer{% endif %}</button>
+    <a href="{% url 'inventory:warehouse_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}{% trans "Créer l'entrepôt" %}{% else %}{% trans "Enregistrer" %}{% endif %}</button>
   </div>
 </form>
 {% endblock %}

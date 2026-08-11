@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_profile_list' %}">Clients boutique</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_profile_list' %}">{% trans "Clients boutique" %}</a></li>
 <li class="breadcrumb-item active">{{ account.full_name }}</li>
 {% endblock %}
 {% block page_header %}
@@ -11,12 +12,12 @@
       <div class="detail-meta">
         <span>{{ account.email }}</span>
         {% if account.phone %}<span>{{ account.phone }}</span>{% endif %}
-        {% if account.is_active %}<span class="badge-status badge-paid">Actif</span>{% else %}<span class="badge-status badge-cancelled">Inactif</span>{% endif %}
-        {% if account.newsletter_opt_in %}<span class="badge-status badge-info">Newsletter</span>{% endif %}
+        {% if account.is_active %}<span class="badge-status badge-paid">{% trans "Actif" %}</span>{% else %}<span class="badge-status badge-cancelled">{% trans "Inactif" %}</span>{% endif %}
+        {% if account.newsletter_opt_in %}<span class="badge-status badge-info">{% trans "Newsletter" %}</span>{% endif %}
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'ecommerce:customer_profile_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'ecommerce:customer_profile_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -24,21 +25,21 @@
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
-    <div class="kpi-card" style="--kpi-color:#6366F1">
+    <div class="kpi-card" style="--kpi-color:#C6A15B">
       <div class="kpi-icon"><i class="bi bi-cart-check"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ account.total_orders }}</div><div class="kpi-label">Commandes</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.total_orders }}</div><div class="kpi-label">{% trans "Commandes" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#10B981">
       <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ account.total_spent|floatformat:2 }}€</div><div class="kpi-label">Total dépensé</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.total_spent|floatformat:2 }}€</div><div class="kpi-label">{% trans "Total dépensé" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#F59E0B">
       <div class="kpi-icon"><i class="bi bi-star"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ account.loyalty_points }}</div><div class="kpi-label">Points fidélité</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ account.loyalty_points }}</div><div class="kpi-label">{% trans "Points fidélité" %}</div></div>
     </div>
   </div>
 </div>
@@ -46,26 +47,26 @@
 <div class="row g-3">
   <div class="col-12 col-lg-5">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Profil</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>{% trans "Profil" %}</h6></div>
       <div class="info-grid">
         <div class="info-item"><label>Email</label><div class="value">{{ account.email }}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not account.phone %}empty{% endif %}">{{ account.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Segment</label><div class="value">{% if account.profile.segment %}{{ account.profile.segment.name }}{% else %}—{% endif %}</div></div>
-        <div class="info-item"><label>Inscrit le</label><div class="value">{{ account.created_at|date:"d/m/Y" }}</div></div>
-        <div class="info-item"><label>Dernière connexion</label><div class="value {% if not account.last_login %}empty{% endif %}">{% if account.last_login %}{{ account.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not account.phone %}empty{% endif %}">{{ account.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Segment" %}</label><div class="value">{% if account.profile.segment %}{{ account.profile.segment.name }}{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Inscrit le" %}</label><div class="value">{{ account.created_at|date:"d/m/Y" }}</div></div>
+        <div class="info-item"><label>{% trans "Dernière connexion" %}</label><div class="value {% if not account.last_login %}empty{% endif %}">{% if account.last_login %}{{ account.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}</div></div>
         {% if account.profile %}
-        <div class="info-item"><label>Panier moyen</label><div class="value">{{ account.profile.avg_order_value|floatformat:2 }}€</div></div>
-        <div class="info-item"><label>Source acquisition</label><div class="value {% if not account.profile.acquisition_source %}empty{% endif %}">{{ account.profile.acquisition_source|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Panier moyen" %}</label><div class="value">{{ account.profile.avg_order_value|floatformat:2 }}€</div></div>
+        <div class="info-item"><label>{% trans "Source acquisition" %}</label><div class="value {% if not account.profile.acquisition_source %}empty{% endif %}">{{ account.profile.acquisition_source|default:"—" }}</div></div>
         {% endif %}
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-7">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cart me-1 text-primary"></i>Dernières commandes</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cart me-1 text-primary"></i>{% trans "Dernières commandes" %}</h6></div>
       <div class="table-responsive">
         <table class="erp-table">
-          <thead><tr><th>N°</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+          <thead><tr><th>N°</th><th>{% trans "Montant" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Date" %}</th></tr></thead>
           <tbody>
             {% for o in orders %}
             <tr>
@@ -75,7 +76,7 @@
               <td class="text-muted small">{{ o.created_at|date:"d/m/Y" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-muted text-center py-3">Aucune commande</td></tr>
+            <tr><td colspan="4" class="text-muted text-center py-3">{% trans "Aucune commande" %}</td></tr>
             {% endfor %}
           </tbody>
         </table>

@@ -88,7 +88,7 @@
   <div class="mb-2"><span class="badge bg-secondary">{{ reviews.count }} avis à modérer</span></div>
   {% for r in reviews.reviews %}
   <div class="widget-item">
-    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-chat-square-text"></i></div>
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#8f7042"><i class="bi bi-chat-square-text"></i></div>
     <div class="widget-item-body">
       <div class="widget-item-title">{{ r.product.name|truncatechars:30 }}</div>
       <div class="widget-item-sub">Note : {{ r.rating }}/5 — {{ r.created_at|date:"d/m/Y" }}</div>
@@ -140,7 +140,7 @@
 
 {% elif code == 'lunea_loyalty_points_issued' %}
   <div class="d-flex align-items-center gap-3">
-    <div style="background:#f5f3ff;color:#7C3AED;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
+    <div style="background:#f5f3ff;color:#8f7042;width:52px;height:52px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem">
       <i class="bi bi-gem"></i>
     </div>
     <div>

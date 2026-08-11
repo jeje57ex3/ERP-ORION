@@ -1,0 +1,75 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Mes compétences" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Vos compétences et certifications enregistrées par les RH." %}</p>{% endblock %}
+
+{% block content %}
+<div class="erp-card mb-3">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-stars me-2"></i>{% trans "Compétences" %}</h6></div>
+  <div class="erp-orion-orion-card-body">
+    {% if skills %}
+    <div class="d-flex flex-wrap gap-2">
+      {% for skill in skills %}
+      <span class="orion-badge {% if skill.level == 'expert' %}gold{% elif skill.level == 'intermediate' %}accent{% else %}neutral{% endif %}">
+        {{ skill.name }} <span class="text-muted small">({{ skill.get_level_display }})</span>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state text-center py-4">
+      <i class="bi bi-stars display-5 text-muted mb-3 d-block"></i>
+      <p class="text-muted">{% trans "Aucune compétence enregistrée." %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="erp-card">
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-patch-check me-2"></i>{% trans "Certifications & Habilitations" %}</h6></div>
+  <div class="erp-orion-orion-card-body">
+    {% if certifications %}
+    <div class="table-responsive">
+      <table class="orion-table align-middle">
+        <thead>
+          <tr>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Nom" %}</th>
+            <th>{% trans "Référence" %}</th>
+            <th>{% trans "Expiration" %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cert in certifications %}
+          <tr {% if cert.is_expired %}class="table-danger"{% elif cert.expires_soon %}class="table-warning"{% endif %}>
+            <td><span class="orion-badge neutral">{{ cert.get_category_display }}</span></td>
+            <td class="fw-semibold">{{ cert.name }}</td>
+            <td>{{ cert.reference|default:"—" }}</td>
+            <td>
+              {% if cert.expiry_date %}
+                {% if cert.is_expired %}<span class="text-danger fw-semibold">{{ cert.expiry_date|date:"d/m/Y" }}</span>
+                {% elif cert.expires_soon %}<span class="text-warning fw-semibold">{{ cert.expiry_date|date:"d/m/Y" }}</span>
+                {% else %}{{ cert.expiry_date|date:"d/m/Y" }}{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-end">
+              {% if cert.file %}
+              <a href="{{ cert.file.url }}" target="_blank" class="orion-btn sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i>{% trans "Voir" %}
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state text-center py-4">
+      <i class="bi bi-patch-check display-5 text-muted mb-3 d-block"></i>
+      <p class="text-muted">{% trans "Aucune certification enregistrée." %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

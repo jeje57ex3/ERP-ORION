@@ -1,8 +1,10 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Messages de contact — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% if request.current_company %}{% blocktrans with company=request.current_company.name %}Messages de contact — {{ company }}{% endblocktrans %}{% else %}{% trans 'Messages de contact — Orion ERP' %}{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Messages de contact</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Messages reçus via les formulaires de vos sites.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans 'Messages de contact' %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans 'Messages reçus via les formulaires de vos sites.' %}</p>{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
@@ -10,13 +12,13 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-envelope"></i></div>
       <div class="orion-kpi-value">{{ new_count }}</div>
-      <div class="orion-kpi-label">Nouveaux</div>
+      <div class="orion-kpi-label">{% trans 'Nouveaux' %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'websites:message_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="{% url 'websites:message_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans 'Tous' %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -25,7 +27,7 @@
 <div class="orion-card">
   <div class="table-responsive">
     <table class="orion-table">
-      <thead><tr><th>Nom</th><th>Email</th><th>Sujet</th><th>Site</th><th>Statut</th><th>Date</th></tr></thead>
+      <thead><tr><th>{% trans 'Nom' %}</th><th>Email</th><th>{% trans 'Sujet' %}</th><th>{% trans 'Site' %}</th><th>{% trans 'Statut' %}</th><th>{% trans 'Date' %}</th></tr></thead>
       <tbody>
         {% for msg in messages_list %}
         <tr>
@@ -34,11 +36,11 @@
           <td class="small text-muted">{{ msg.subject|default:"—"|truncatechars:40 }}</td>
           <td class="small text-muted">{{ msg.website.name }}</td>
           <td>
-            {% if msg.status == 'new' %}<span class="orion-badge orion-badge-warning">Nouveau</span>
-            {% elif msg.status == 'read' %}<span class="orion-badge info text-dark">Lu</span>
-            {% elif msg.status == 'replied' %}<span class="orion-badge orion-badge-success">Répondu</span>
+            {% if msg.status == 'new' %}<span class="orion-badge orion-badge-warning">{% trans 'Nouveau' %}</span>
+            {% elif msg.status == 'read' %}<span class="orion-badge info text-dark">{% trans 'Lu' %}</span>
+            {% elif msg.status == 'replied' %}<span class="orion-badge orion-badge-success">{% trans 'Répondu' %}</span>
             {% elif msg.status == 'spam' %}<span class="orion-badge orion-badge-danger">Spam</span>
-            {% else %}<span class="orion-badge orion-badge-secondary">Archivé</span>{% endif %}
+            {% else %}<span class="orion-badge orion-badge-secondary">{% trans 'Archivé' %}</span>{% endif %}
           </td>
           <td class="small text-muted">{{ msg.created_at|date:"d/m/Y H:i" }}</td>
         </tr>
@@ -46,8 +48,8 @@
         <tr><td colspan="6">
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-envelope"></i></div>
-            <div class="orion-empty-title">Aucun message</div>
-            <div class="orion-empty-text">Les messages de contact apparaîtront ici.</div>
+            <div class="orion-empty-title">{% trans 'Aucun message' %}</div>
+            <div class="orion-empty-text">{% trans 'Les messages de contact apparaîtront ici.' %}</div>
           </div>
         </td></tr>
         {% endfor %}

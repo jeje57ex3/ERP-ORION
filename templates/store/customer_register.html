@@ -1,12 +1,13 @@
 {% extends "store/base_store.html" %}
-{% block title %}Créer un compte — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Créer un compte" %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-12 col-md-6">
       <div class="border rounded-3 p-4">
-        <h1 class="fw-bold mb-1 fs-4">Créer un compte</h1>
-        <p class="text-muted small mb-4">Inscrivez-vous pour suivre vos commandes et gérer vos retours.</p>
+        <h1 class="fw-bold mb-1 fs-4">{% trans "Créer un compte" %}</h1>
+        <p class="text-muted small mb-4">{% trans "Inscrivez-vous pour suivre vos commandes et gérer vos retours." %}</p>
 
         <form method="post">
           {% csrf_token %}
@@ -16,56 +17,56 @@
 
           <div class="row g-3 mb-3">
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Prénom *</label>
+              <label class="form-label small fw-semibold">{% trans "Prénom" %} *</label>
               <input type="text" name="first_name" class="form-control" required placeholder="Jean" value="{{ form.first_name.value|default:'' }}">
               {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>{% endif %}
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Nom *</label>
+              <label class="form-label small fw-semibold">{% trans "Nom" %} *</label>
               <input type="text" name="last_name" class="form-control" required placeholder="Dupont" value="{{ form.last_name.value|default:'' }}">
               {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>{% endif %}
             </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Adresse email *</label>
+            <label class="form-label small fw-semibold">{% trans "Adresse email" %} *</label>
             <input type="email" name="email" class="form-control" required placeholder="votre@email.com" value="{{ form.email.value|default:'' }}">
             {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Téléphone</label>
+            <label class="form-label small fw-semibold">{% trans "Téléphone" %}</label>
             <input type="tel" name="phone" class="form-control" placeholder="06 00 00 00 00" value="{{ form.phone.value|default:'' }}">
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Mot de passe *</label>
-            <input type="password" name="password1" class="form-control" required placeholder="8 caractères minimum">
+            <label class="form-label small fw-semibold">{% trans "Mot de passe" %} *</label>
+            <input type="password" name="password1" class="form-control" required placeholder="{% trans '8 caractères minimum' %}">
             {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
           </div>
 
           <div class="mb-4">
-            <label class="form-label small fw-semibold">Confirmer le mot de passe *</label>
-            <input type="password" name="password2" class="form-control" required placeholder="Répétez le mot de passe">
+            <label class="form-label small fw-semibold">{% trans "Confirmer le mot de passe" %} *</label>
+            <input type="password" name="password2" class="form-control" required placeholder="{% trans 'Répétez le mot de passe' %}">
             {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
           </div>
 
           <div class="form-check mb-4">
             <input class="form-check-input" type="checkbox" name="accept_terms" id="acceptTerms" required>
             <label class="form-check-label small" for="acceptTerms">
-              J'accepte les <a href="#">conditions générales</a> et la <a href="#">politique de confidentialité</a>
+              {% trans "J'accepte les" %} <a href="#">{% trans "conditions générales" %}</a> {% trans "et la" %} <a href="#">{% trans "politique de confidentialité" %}</a>
             </label>
           </div>
 
-          <button type="submit" class="btn btn-store-primary w-100 mb-3">Créer mon compte</button>
+          <button type="submit" class="btn btn-store-primary w-100 mb-3">{% trans "Créer mon compte" %}</button>
         </form>
 
         <hr>
-        <p class="text-center text-muted small mb-0">Déjà un compte ? <a href="{% url 'store:customer_login' %}" class="fw-semibold">Se connecter</a></p>
+        <p class="text-center text-muted small mb-0">{% trans "Déjà un compte ?" %} <a href="{% url 'store:customer_login' %}" class="fw-semibold">{% trans "Se connecter" %}</a></p>
       </div>
 
       <div class="text-center mt-4">
-        <a href="{% url 'store:store_home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Retour à la boutique</a>
+        <a href="{% url 'store:store_home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour à la boutique" %}</a>
       </div>
     </div>
   </div>

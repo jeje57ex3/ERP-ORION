@@ -1,12 +1,13 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Instructions DNS — {{ domain.domain }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with domain_name=domain.domain %}Instructions DNS — {{ domain_name }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">Domaines</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">{% trans "Domaines" %}</a></li>
 <li class="breadcrumb-item"><a href="{% url 'websites:domain_detail' domain.pk %}">{{ domain.domain }}</a></li>
-<li class="breadcrumb-item active">Instructions DNS</li>
+<li class="breadcrumb-item active">{% trans "Instructions DNS" %}</li>
 {% endblock %}
 
 {% block page_actions %}
@@ -14,7 +15,7 @@
   {% csrf_token %}
   <input type="hidden" name="action" value="verify">
   <button type="submit" class="orion-btn orion-orion-btn primary">
-    <i class="bi bi-arrow-clockwise me-1"></i> Vérifier maintenant
+    <i class="bi bi-arrow-clockwise me-1"></i> {% trans "Vérifier maintenant" %}
   </button>
 </form>
 {% endblock %}
@@ -26,15 +27,15 @@
   {% if domain.dns_verified %}
     <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
     <div>
-      <strong>DNS vérifié.</strong> Votre domaine <code>{{ domain.domain }}</code> est correctement configuré.
+      <strong>{% trans "DNS vérifié." %}</strong> {% trans "Votre domaine" %} <code>{{ domain.domain }}</code> {% trans "est correctement configuré." %}
     </div>
   {% else %}
     <i class="bi bi-info-circle-fill text-primary fs-4 me-3"></i>
     <div>
-      <strong>Votre domaine n'est pas encore connecté.</strong><br>
-      Ajoutez les enregistrements DNS ci-dessous chez votre fournisseur de domaine.
-      La propagation DNS peut prendre de quelques minutes à <strong>48 heures</strong>.
-      Cliquez ensuite sur <em>Vérifier maintenant</em>.
+      <strong>{% trans "Votre domaine n'est pas encore connecté." %}</strong><br>
+      {% trans "Ajoutez les enregistrements DNS ci-dessous chez votre fournisseur de domaine." %}
+      {% trans "La propagation DNS peut prendre de quelques minutes à" %} <strong>{% trans "48 heures" %}</strong>.
+      {% trans "Cliquez ensuite sur" %} <em>{% trans "Vérifier maintenant" %}</em>.
     </div>
   {% endif %}
 </div>
@@ -45,7 +46,7 @@
     {# Sélecteur fournisseur #}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-body">
-        <label class="form-label fw-medium mb-2">Votre fournisseur DNS :</label>
+        <label class="form-label fw-medium mb-2">{% trans "Votre fournisseur DNS :" %}</label>
         <div class="d-flex flex-wrap gap-2" id="providerTabs">
           {% for p in PROVIDERS %}
           <button type="button"
@@ -62,7 +63,7 @@
     {# Enregistrements DNS à ajouter #}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-terminal me-2"></i>Enregistrements à ajouter</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-terminal me-2"></i>{% trans "Enregistrements à ajouter" %}</h6>
       </div>
       <div class="orion-orion-card-body">
 
@@ -79,30 +80,30 @@
                 </div>
 
                 <div class="mb-2">
-                  <div class="text-muted small fw-medium mb-1">TYPE</div>
+                  <div class="text-muted small fw-medium mb-1">{% trans "TYPE" %}</div>
                   <div class="d-flex align-items-center gap-2">
                     <code class="bg-light px-2 py-1 rounded flex-grow-1">{{ rec.type }}</code>
-                    <button class="btn btn-outline-secondary orion-btn sm" onclick="copyText('{{ rec.type }}',this)" title="Copier">
+                    <button class="btn btn-outline-secondary orion-btn sm" onclick="copyText('{{ rec.type }}',this)" title="{% trans 'Copier' %}">
                       <i class="bi bi-clipboard"></i>
                     </button>
                   </div>
                 </div>
 
                 <div class="mb-2">
-                  <div class="text-muted small fw-medium mb-1">NOM</div>
+                  <div class="text-muted small fw-medium mb-1">{% trans "NOM" %}</div>
                   <div class="d-flex align-items-center gap-2">
                     <code class="bg-light px-2 py-1 rounded flex-grow-1">{{ rec.name }}</code>
-                    <button class="btn btn-outline-secondary orion-btn sm" onclick="copyText('{{ rec.name }}',this)" title="Copier">
+                    <button class="btn btn-outline-secondary orion-btn sm" onclick="copyText('{{ rec.name }}',this)" title="{% trans 'Copier' %}">
                       <i class="bi bi-clipboard"></i>
                     </button>
                   </div>
                 </div>
 
                 <div class="mb-0">
-                  <div class="text-muted small fw-medium mb-1">VALEUR</div>
+                  <div class="text-muted small fw-medium mb-1">{% trans "VALEUR" %}</div>
                   <div class="d-flex align-items-center gap-2">
                     <code class="bg-light px-2 py-1 rounded flex-grow-1 text-break" style="word-break:break-all">{{ rec.value }}</code>
-                    <button class="btn btn-outline-secondary orion-btn sm flex-shrink-0" onclick="copyText('{{ rec.value }}',this)" title="Copier">
+                    <button class="btn btn-outline-secondary orion-btn sm flex-shrink-0" onclick="copyText('{{ rec.value }}',this)" title="{% trans 'Copier' %}">
                       <i class="bi bi-clipboard"></i>
                     </button>
                   </div>
@@ -115,7 +116,7 @@
 
         <div class="mt-3">
           <button class="btn btn-outline-secondary orion-btn sm" onclick="copyAllRecords()">
-            <i class="bi bi-clipboard-plus me-1"></i> Tout copier (format tableau)
+            <i class="bi bi-clipboard-plus me-1"></i> {% trans "Tout copier (format tableau)" %}
           </button>
         </div>
       </div>
@@ -124,22 +125,22 @@
     {# Enregistrement de vérification #}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-shield-check me-2"></i>Vérification de propriété</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-shield-check me-2"></i>{% trans "Vérification de propriété" %}</h6>
       </div>
       <div class="orion-orion-card-body">
         <p class="text-muted small mb-3">
-          Pour confirmer que vous êtes propriétaire de ce domaine, ajoutez aussi cet enregistrement TXT :
+          {% trans "Pour confirmer que vous êtes propriétaire de ce domaine, ajoutez aussi cet enregistrement TXT :" %}
         </p>
         <div class="row g-2">
           <div class="col-md-4">
-            <label class="text-muted small fw-medium">Nom</label>
+            <label class="text-muted small fw-medium">{% trans "Nom" %}</label>
             <div class="d-flex gap-1">
               <code class="bg-light p-2 rounded flex-grow-1 small">_orion-verification{% if domain.domain_type == 'subdomain' %}.{{ domain.domain.split.0 }}{% endif %}</code>
               <button class="btn btn-outline-secondary orion-btn sm" onclick="copyText('_orion-verification',this)"><i class="bi bi-clipboard"></i></button>
             </div>
           </div>
           <div class="col-md-8">
-            <label class="text-muted small fw-medium">Valeur</label>
+            <label class="text-muted small fw-medium">{% trans "Valeur" %}</label>
             <div class="d-flex gap-1">
               <code class="bg-light p-2 rounded flex-grow-1 small text-break">orion-verification={{ domain.verification_token }}</code>
               <button class="btn btn-outline-secondary orion-btn sm flex-shrink-0" onclick="copyText('orion-verification={{ domain.verification_token }}',this)"><i class="bi bi-clipboard"></i></button>
@@ -155,21 +156,21 @@
     {# Aide générale #}
     <div class="card border-0 shadow-sm mb-3">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-question-circle me-2"></i>Aide</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-question-circle me-2"></i>{% trans "Aide" %}</h6>
       </div>
       <div class="orion-orion-card-body">
         <ul class="list-unstyled mb-0 small text-muted">
-          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>Connectez-vous à l'interface de gestion DNS de votre registrar</li>
-          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>Créez les enregistrements ci-contre</li>
-          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>Attendez la propagation (quelques minutes à 48h)</li>
-          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>Revenez ici et cliquez sur <strong>Vérifier</strong></li>
+          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>{% trans "Connectez-vous à l'interface de gestion DNS de votre registrar" %}</li>
+          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>{% trans "Créez les enregistrements ci-contre" %}</li>
+          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>{% trans "Attendez la propagation (quelques minutes à 48h)" %}</li>
+          <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i>{% trans "Revenez ici et cliquez sur" %} <strong>{% trans "Vérifier" %}</strong></li>
         </ul>
         <hr>
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="action" value="verify">
           <button type="submit" class="orion-btn primary w-100">
-            <i class="bi bi-arrow-clockwise me-1"></i> Vérifier la configuration
+            <i class="bi bi-arrow-clockwise me-1"></i> {% trans "Vérifier la configuration" %}
           </button>
         </form>
       </div>
@@ -179,17 +180,17 @@
     <div class="card border-0 shadow-sm">
       <div class="orion-orion-card-body">
         <div class="small text-muted">
-          <div class="mb-1"><strong>Domaine :</strong> {{ domain.domain }}</div>
-          <div class="mb-1"><strong>Type :</strong> {{ domain.get_domain_type_display }}</div>
-          <div class="mb-1"><strong>Statut :</strong>
+          <div class="mb-1"><strong>{% trans "Domaine :" %}</strong> {{ domain.domain }}</div>
+          <div class="mb-1"><strong>{% trans "Type :" %}</strong> {{ domain.get_domain_type_display }}</div>
+          <div class="mb-1"><strong>{% trans "Statut :" %}</strong>
             {% if domain.dns_verified %}
-              <span class="text-success">Vérifié</span>
+              <span class="text-success">{% trans "Vérifié" %}</span>
             {% else %}
-              <span class="text-warning">En attente</span>
+              <span class="text-warning">{% trans "En attente" %}</span>
             {% endif %}
           </div>
           {% if domain.last_checked_at %}
-          <div class="mb-1"><strong>Dernier check :</strong> {{ domain.last_checked_at|date:"d/m/Y H:i" }}</div>
+          <div class="mb-1"><strong>{% trans "Dernier check :" %}</strong> {{ domain.last_checked_at|date:"d/m/Y H:i" }}</div>
           {% endif %}
           {% if domain.last_error %}
           <div class="mt-2 text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>{{ domain.last_error|truncatechars:80 }}</div>
@@ -204,14 +205,14 @@
 {% block extra_js %}
 <script>
 const PROVIDER_HINTS = {
-  ovh:        'OVH : allez dans Domaines > Zone DNS > Ajouter une entrée.',
-  ionos:      'Ionos : allez dans Domaines & SSL > Gérer > DNS.',
-  gandi:      'Gandi : allez dans Domaines > votre domaine > Enregistrements DNS.',
-  cloudflare: 'Cloudflare : allez dans DNS > Records > Add record. Désactivez le proxy (nuage orange) pour la vérification.',
-  godaddy:    'GoDaddy : allez dans Mes produits > DNS > Gérer.',
-  namecheap:  'Namecheap : allez dans Domain List > Manage > Advanced DNS.',
-  hostinger:  'Hostinger : allez dans Hébergement > DNS / Nameservers.',
-  other:      'Connectez-vous à l\'interface DNS de votre registrar et ajoutez les enregistrements ci-contre.',
+  ovh:        '{% trans "OVH : allez dans Domaines > Zone DNS > Ajouter une entrée." %}',
+  ionos:      '{% trans "Ionos : allez dans Domaines & SSL > Gérer > DNS." %}',
+  gandi:      '{% trans "Gandi : allez dans Domaines > votre domaine > Enregistrements DNS." %}',
+  cloudflare: '{% trans "Cloudflare : allez dans DNS > Records > Add record. Désactivez le proxy (nuage orange) pour la vérification." %}',
+  godaddy:    '{% trans "GoDaddy : allez dans Mes produits > DNS > Gérer." %}',
+  namecheap:  '{% trans "Namecheap : allez dans Domain List > Manage > Advanced DNS." %}',
+  hostinger:  '{% trans "Hostinger : allez dans Hébergement > DNS / Nameservers." %}',
+  other:      "{% trans "Connectez-vous à l'interface DNS de votre registrar et ajoutez les enregistrements ci-contre." %}",
 };
 
 function selectProvider(id, btn) {
@@ -249,7 +250,7 @@ function copyAllRecords() {
   rows.push('{{ rec.type }}\t{{ rec.name }}\t{{ rec.value }}');
   {% endfor %}
   navigator.clipboard.writeText(rows.join('\n')).then(() => {
-    alert('Enregistrements copiés dans le presse-papiers.');
+    alert('{% trans "Enregistrements copiés dans le presse-papiers." %}');
   });
 }
 </script>

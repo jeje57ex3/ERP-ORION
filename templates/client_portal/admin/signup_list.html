@@ -1,18 +1,22 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 
-{% block title %}Inscriptions client — Orion ERP{% endblock %}
+{% block title %}{% trans "Inscriptions client — Orion ERP" %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-  <li class="breadcrumb-item"><a href="{% url 'portals:index' %}">Portails</a></li>
-  <li class="breadcrumb-item active">Inscriptions client</li>
+  <li class="breadcrumb-item"><a href="{% url 'portals:index' %}">{% trans "Portails" %}</a></li>
+  <li class="breadcrumb-item active">{% trans "Inscriptions client" %}</li>
 {% endblock %}
 {% block page_actions %}
-<div class="d-flex gap-2 flex-wrap">
+<div class="d-flex gap-2 flex-wrap align-items-center">
   {% for val, label in status_choices %}
   <a href="?status={{ val }}" class="orion-filter-chip {% if status_filter == val %}active{% endif %}">{{ label }}</a>
   {% endfor %}
-  <a href="?" class="orion-filter-chip {% if not status_filter %}active{% endif %}">Tous</a>
+  <a href="?" class="orion-filter-chip {% if not status_filter %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="{% url 'client_portal:register' %}" target="_blank" rel="noopener" class="orion-btn orion-btn-outline orion-orion-btn sm ms-auto">
+    <i class="bi bi-box-arrow-up-right"></i> {% trans "Page d'inscription publique" %}
+  </a>
 </div>
 {% endblock %}
 
@@ -21,8 +25,8 @@
 <div class="orion-alert warning d-flex align-items-center gap-2 mb-4" style="border-radius:12px">
   <i class="bi bi-hourglass-split fs-5"></i>
   <div>
-    <strong>{{ pending_count }} demande{% if pending_count > 1 %}s{% endif %} en attente de validation.</strong>
-    <a href="?status=pending_approval" class="ms-2">Voir les demandes en attente</a>
+    <strong>{% blocktrans with n=pending_count %}{{ n }} demande en attente de validation.{% endblocktrans %}</strong>
+    <a href="?status=pending_approval" class="ms-2">{% trans "Voir les demandes en attente" %}</a>
   </div>
 </div>
 {% endif %}
@@ -34,14 +38,14 @@
       <table class="orion-table mb-0 align-middle">
         <thead style="background:#f9fafb;font-size:.78rem;color:#6b7280;text-transform:uppercase;letter-spacing:.08em">
           <tr>
-            <th class="ps-4 py-3">Client</th>
-            <th>Email</th>
-            <th>Téléphone</th>
-            <th>Entreprise</th>
-            <th>Statut</th>
-            <th>Email vérifié</th>
-            <th>Date</th>
-            <th class="pe-4">Actions</th>
+            <th class="ps-4 py-3">{% trans "Client" %}</th>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Téléphone" %}</th>
+            <th>{% trans "Entreprise" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th>{% trans "Email vérifié" %}</th>
+            <th>{% trans "Date" %}</th>
+            <th class="pe-4">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -71,17 +75,20 @@
             <td class="text-muted" style="font-size:.82rem">{{ signup.created_at|date:"d/m/Y H:i" }}</td>
             <td class="pe-4">
               <div class="d-flex gap-1">
+                {% trans "Voir" as voir_title %}
                 <a href="{% url 'portals:signup_detail' signup.pk %}"
-                   class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir">
+                   class="orion-btn orion-btn-outline orion-orion-btn sm" title="{{ voir_title }}">
                   <i class="bi bi-eye"></i>
                 </a>
                 {% if signup.status == 'pending_approval' or signup.status == 'pending_email_verification' %}
                 <form method="post" action="{% url 'portals:signup_approve' signup.pk %}" class="d-inline">
                   {% csrf_token %}
+                  {% trans "Valider" as valider_title %}
+                  {% blocktrans with name=signup.full_name asvar confirm_approve_msg %}Valider la demande de {{ name }} ?{% endblocktrans %}
                   <button type="submit" class="orion-btn orion-orion-btn sm"
                           style="background:#22c55e;color:#fff;border:none"
-                          title="Valider"
-                          onclick="return confirm('Valider la demande de {{ signup.full_name }} ?')">
+                          title="{{ valider_title }}"
+                          onclick="return confirm('{{ confirm_approve_msg|escapejs }}')">
                     <i class="bi bi-check-lg"></i>
                   </button>
                 </form>
@@ -115,9 +122,9 @@
     {% else %}
     <div class="orion-empty py-5">
       <div class="orion-empty-icon"><i class="bi bi-person-plus"></i></div>
-      <div class="orion-empty-title">Aucune demande d'inscription</div>
+      <div class="orion-empty-title">{% trans "Aucune demande d'inscription" %}</div>
       <div class="orion-empty-text">
-        {% if status_filter %}Les demandes de ce statut apparaîtront ici.{% else %}Aucune demande reçue pour l'instant.{% endif %}
+        {% if status_filter %}{% trans "Les demandes de ce statut apparaîtront ici." %}{% else %}{% trans "Aucune demande reçue pour l'instant." %}{% endif %}
       </div>
     </div>
     {% endif %}

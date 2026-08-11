@@ -79,7 +79,7 @@
   <div class="mb-2"><span class="badge bg-secondary">{{ promos.count }} promotion(s) détectée(s)</span></div>
   {% for p in promos.promos %}
   <div class="widget-item">
-    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-percent"></i></div>
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#8f7042"><i class="bi bi-percent"></i></div>
     <div class="widget-item-body">
       <div class="widget-item-title">{{ p.competitor|default:"Concurrent" }}</div>
       <div class="widget-item-sub">{{ p.description|default:"Promotion détectée" }}</div>
@@ -109,7 +109,7 @@
   <div class="mb-2"><span class="badge bg-primary">{{ ads.count }} publicité(s) détectée(s)</span></div>
   {% for a in ads.ads %}
   <div class="widget-item">
-    <div class="widget-item-icon" style="background:#dbeafe;color:#2563EB"><i class="bi bi-display"></i></div>
+    <div class="widget-item-icon" style="background:#F8F3EA;color:#C6A15B"><i class="bi bi-display"></i></div>
     <div class="widget-item-body">
       <div class="widget-item-title">{{ a.competitor|default:"Concurrent" }}</div>
       <div class="widget-item-sub">{{ a.platform|default:"—" }} · {{ a.format|default:"—" }}</div>

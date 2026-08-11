@@ -1,15 +1,16 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Produits — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Produits" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Produits</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Catalogue produits, tarifs et niveaux de stock.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Produits" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Catalogue produits, tarifs et niveaux de stock." %}</p>{% endblock %}
 {% block page_actions %}
 <div class="d-flex gap-2 flex-wrap">
-  <a href="{% url 'inventory:product_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau produit</a>
-  <button class="orion-btn orion-btn-outline" onclick="alert('Import CSV à configurer')"><i class="bi bi-upload me-1"></i>Importer</button>
-  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
-  <a href="{% url 'inventory:movement_create' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrows-collapse me-1"></i>Ajuster stock</a>
+  {% trans "Import CSV à configurer" as import_csv_msg %}
+  <a href="{% url 'inventory:product_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau produit" %}</a>
+  <button class="orion-btn orion-btn-outline" onclick="alert('{{ import_csv_msg|escapejs }}')"><i class="bi bi-upload me-1"></i>{% trans "Importer" %}</button>
+  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>{% trans "Exporter" %}</a>
+  <a href="{% url 'inventory:movement_create' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrows-collapse me-1"></i>{% trans "Ajuster stock" %}</a>
 </div>
 {% endblock %}
 
@@ -20,39 +21,39 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-box-seam"></i></div>
       <div class="orion-kpi-value">{{ total|default:"0" }}</div>
-      <div class="orion-kpi-label">Total produits</div>
+      <div class="orion-kpi-label">{% trans "Total produits" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-exclamation-triangle"></i></div>
       <div class="orion-kpi-value">{{ low_stock_count|default:"0" }}</div>
-      <div class="orion-kpi-label">En rupture / faible</div>
+      <div class="orion-kpi-label">{% trans "En rupture / faible" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-currency-euro"></i></div>
       <div class="orion-kpi-value">{{ stock_value|floatformat:0|default:"0" }} €</div>
-      <div class="orion-kpi-label">Valeur stock total</div>
+      <div class="orion-kpi-label">{% trans "Valeur stock total" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#CCFBF1;color:#0D9488"><i class="bi bi-shop"></i></div>
       <div class="orion-kpi-value">{{ published_count|default:"0" }}</div>
-      <div class="orion-kpi-label">Publiés en boutique</div>
+      <div class="orion-kpi-label">{% trans "Publiés en boutique" %}</div>
     </div>
   </div>
 </div>
 
 <!-- Chips filtres -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'inventory:product_list' %}" class="orion-filter-chip {% if not filter_status %}active{% endif %}">Tous</a>
-  <a href="?status=active{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'active' %}active{% endif %}">Actifs</a>
-  <a href="?status=low_stock{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'low_stock' %}active{% endif %}"><i class="bi bi-exclamation-triangle me-1 text-danger"></i>En rupture</a>
-  <a href="?status=service{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'service' %}active{% endif %}">Services</a>
-  <a href="?status=archived{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'archived' %}active{% endif %}">Archivés</a>
+  <a href="{% url 'inventory:product_list' %}" class="orion-filter-chip {% if not filter_status %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="?status=active{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'active' %}active{% endif %}">{% trans "Actifs" %}</a>
+  <a href="?status=low_stock{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'low_stock' %}active{% endif %}"><i class="bi bi-exclamation-triangle me-1 text-danger"></i>{% trans "En rupture" %}</a>
+  <a href="?status=service{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'service' %}active{% endif %}">{% trans "Services" %}</a>
+  <a href="?status=archived{% if q %}&q={{ q }}{% endif %}{% if category %}&category={{ category }}{% endif %}" class="orion-filter-chip {% if filter_status == 'archived' %}active{% endif %}">{% trans "Archivés" %}</a>
 </div>
 
 <!-- Tableau -->
@@ -60,16 +61,16 @@
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex gap-2 flex-wrap flex-grow-1">
       {% if filter_status %}<input type="hidden" name="status" value="{{ filter_status }}">{% endif %}
-      <input type="text" name="q" class="form-control form-control-sm" placeholder="Nom, référence, code-barres..." value="{{ q }}" style="flex:1;min-width:220px">
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Nom, référence, code-barres...' %}" value="{{ q }}" style="flex:1;min-width:220px">
       <select name="category" class="form-select form-select-sm" style="max-width:180px" onchange="this.form.submit()">
-        <option value="">Toutes catégories</option>
+        <option value="">{% trans "Toutes catégories" %}</option>
         {% for cat in categories %}
         <option value="{{ cat.pk }}" {% if category == cat.pk|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
       {% if q or filter_status or category %}
-      <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-x-circle me-1"></i>Réinit.</a>
+      <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-x-circle me-1"></i>{% trans "Réinit." %}</a>
       {% endif %}
     </form>
   </div>
@@ -79,15 +80,15 @@
         <thead>
           <tr>
             <th style="width:48px"></th>
-            <th>Référence</th>
-            <th>Nom produit</th>
-            <th>Catégorie</th>
-            <th class="text-end">Prix HT</th>
-            <th class="text-end">Stock</th>
-            <th class="text-end">Stock mini</th>
-            <th>Statut</th>
-            <th class="text-center">Boutique</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "Référence" %}</th>
+            <th>{% trans "Nom produit" %}</th>
+            <th>{% trans "Catégorie" %}</th>
+            <th class="text-end">{% trans "Prix HT" %}</th>
+            <th class="text-end">{% trans "Stock" %}</th>
+            <th class="text-end">{% trans "Stock mini" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th class="text-center">{% trans "Boutique" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -109,38 +110,39 @@
             <td class="text-end fw-semibold small">{{ p.sale_price|floatformat:2 }} €</td>
             <td class="text-end small {% if p.needs_reorder %}text-danger fw-semibold{% endif %}">
               {% if p.track_inventory %}
-                {{ p.stock_quantity|floatformat:0 }} {{ p.unit|default:"u." }}
+                {% trans "u." as default_unit_abbr %}
+                {{ p.stock_quantity|floatformat:0 }} {{ p.unit|default:default_unit_abbr }}
               {% else %}
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
             <td class="text-end small text-muted">
-              {% if p.track_inventory and p.min_stock %}{{ p.min_stock }} {{ p.unit|default:"u." }}{% else %}—{% endif %}
+              {% if p.track_inventory and p.min_stock %}{% trans "u." as default_unit_abbr2 %}{{ p.min_stock }} {{ p.unit|default:default_unit_abbr2 }}{% else %}—{% endif %}
             </td>
             <td>
               {% if not p.is_active %}
-                <span class="orion-badge orion-badge-secondary">Archivé</span>
+                <span class="orion-badge orion-badge-secondary">{% trans "Archivé" %}</span>
               {% elif not p.track_inventory %}
-                <span class="orion-badge orion-badge-secondary">Service</span>
+                <span class="orion-badge orion-badge-secondary">{% trans "Service" %}</span>
               {% elif p.needs_reorder %}
-                <span class="orion-badge orion-badge-danger"><i class="bi bi-exclamation-triangle me-1"></i>Rupture</span>
+                <span class="orion-badge orion-badge-danger"><i class="bi bi-exclamation-triangle me-1"></i>{% trans "Rupture" %}</span>
               {% else %}
                 <span class="orion-badge orion-badge-success">OK</span>
               {% endif %}
             </td>
             <td class="text-center">
               {% if p.published_on_website %}
-                <i class="bi bi-check-circle-fill text-success" title="Publié"></i>
+                <i class="bi bi-check-circle-fill text-success" title="{% trans 'Publié' %}"></i>
               {% else %}
-                <i class="bi bi-dash-circle text-muted" title="Non publié"></i>
+                <i class="bi bi-dash-circle text-muted" title="{% trans 'Non publié' %}"></i>
               {% endif %}
             </td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'inventory:product_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                <a href="{% url 'inventory:movement_create' %}?product={{ p.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Mouvement stock"><i class="bi bi-arrows-collapse"></i></a>
-                <a href="{% url 'inventory:product_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
-                <a href="{% url 'inventory:product_delete' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Archiver"><i class="bi bi-archive"></i></a>
+                <a href="{% url 'inventory:product_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'inventory:movement_create' %}?product={{ p.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Mouvement stock' %}"><i class="bi bi-arrows-collapse"></i></a>
+                <a href="{% url 'inventory:product_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'inventory:product_delete' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{% trans 'Archiver' %}"><i class="bi bi-archive"></i></a>
               </div>
             </td>
           </tr>
@@ -149,12 +151,12 @@
             <td colspan="10">
               <div class="orion-empty">
                 <div class="orion-empty-icon"><i class="bi bi-box-seam"></i></div>
-                <div class="orion-empty-title">Aucun produit trouvé</div>
-                <div class="orion-empty-text">{% if q or filter_status or category %}Aucun produit ne correspond aux filtres sélectionnés.{% else %}Créez votre premier produit pour commencer à gérer votre catalogue et votre stock.{% endif %}</div>
+                <div class="orion-empty-title">{% trans "Aucun produit trouvé" %}</div>
+                <div class="orion-empty-text">{% if q or filter_status or category %}{% trans "Aucun produit ne correspond aux filtres sélectionnés." %}{% else %}{% trans "Créez votre premier produit pour commencer à gérer votre catalogue et votre stock." %}{% endif %}</div>
                 {% if q or filter_status or category %}
-                <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-btn-outline mt-3"><i class="bi bi-x-circle me-1"></i>Réinitialiser</a>
+                <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-btn-outline mt-3"><i class="bi bi-x-circle me-1"></i>{% trans "Réinitialiser" %}</a>
                 {% endif %}
-                <a href="{% url 'inventory:product_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau produit</a>
+                <a href="{% url 'inventory:product_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau produit" %}</a>
               </div>
             </td>
           </tr>

@@ -1,9 +1,10 @@
 {% extends "client_portal/base_client_portal.html" %}
-{% block title %}Mes chantiers{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Mes chantiers" %}{% endblock %}
 {% block nav_projects %}active{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Mes chantiers</li>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Mes chantiers" %}</li>{% endblock %}
 {% block content %}
-<h4 class="fw-bold mb-4">Mes chantiers</h4>
+<h4 class="fw-bold mb-4">{% trans "Mes chantiers" %}</h4>
 {% if projects %}
 <div class="row g-3">
   {% for project in projects %}
@@ -16,18 +17,18 @@
             <div class="text-muted small mt-1"><i class="bi bi-geo-alt me-1"></i>{{ project.address }}, {{ project.city }}</div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="small text-muted mb-1">Avancement</div>
+            <div class="small text-muted mb-1">{% trans "Avancement" %}</div>
             <div class="progress" style="height:6px"><div class="progress-bar progress-bar-electric" style="width:{{ project.completion_rate }}%"></div></div>
             <div class="small mt-1">{{ project.completion_rate }}%</div>
           </div>
           <div class="col-6 col-md-2 text-center">
-            {% if project.status == 'in_progress' %}<span class="badge badge-status-progress">En cours</span>
-            {% elif project.status == 'won' %}<span class="badge badge-status-pending">Planifié</span>
-            {% elif project.status == 'completed' %}<span class="badge badge-status-done">Terminé</span>
+            {% if project.status == 'in_progress' %}<span class="badge badge-status-progress">{% trans "En cours" %}</span>
+            {% elif project.status == 'won' %}<span class="badge badge-status-pending">{% trans "Planifié" %}</span>
+            {% elif project.status == 'completed' %}<span class="badge badge-status-done">{% trans "Terminé" %}</span>
             {% else %}<span class="orion-badge neutral">{{ project.get_status_display }}</span>{% endif %}
           </div>
           <div class="col-12 col-md-2 text-end mt-2 mt-md-0">
-            <a href="{% url 'client_portal:project_detail' project.pk %}" class="btn btn-outline-primary orion-btn sm">Voir</a>
+            <a href="{% url 'client_portal:project_detail' project.pk %}" class="btn btn-outline-primary orion-btn sm">{% trans "Voir" %}</a>
           </div>
         </div>
       </div>
@@ -38,8 +39,8 @@
 {% else %}
 <div class="bg-white border rounded-3 p-5 text-center text-muted">
   <i class="bi bi-building-gear fs-1 d-block mb-3"></i>
-  <h5>Aucun chantier</h5>
-  <a href="{% url 'guided_quote:wizard_start' %}" class="orion-btn warning mt-2">Faire une demande de devis</a>
+  <h5>{% trans "Aucun chantier" %}</h5>
+  <a href="{% url 'guided_quote:wizard_start' %}" class="orion-btn warning mt-2">{% trans "Faire une demande de devis" %}</a>
 </div>
 {% endif %}
 {% endblock %}

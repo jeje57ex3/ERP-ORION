@@ -1,0 +1,125 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">{% trans "Articles SIÈCLE." %}</li>
+{% endblock %}
+
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Source unique de vérité pour tous les articles de la boutique SIÈCLE." %}</p>{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ecommerce:article_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvel article" %}</a>
+<a href="{% url 'ecommerce:sync_log_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-repeat me-1"></i>{% trans "Journal sync" %}</a>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-collection"></i></div>
+      <div><div class="orion-kpi-value">{{ total }}</div><div class="orion-kpi-label">{% trans "Articles" %}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:#16A34A">
+      <div class="orion-kpi-icon" style="background:#F0FDF4;color:#16A34A"><i class="bi bi-check-circle"></i></div>
+      <div><div class="orion-kpi-value">{{ articles|length }}</div><div class="orion-kpi-label">{% trans "Résultats filtrés" %}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="d-flex flex-wrap gap-2 mb-4">
+  <input type="text" name="q" value="{{ search }}" placeholder="{% trans 'Rechercher…' %}" class="orion-input" style="width:220px">
+  <select name="status" class="orion-select" style="width:200px">
+    <option value="">{% trans "Tous les statuts" %}</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="category" class="orion-select" style="width:200px">
+    <option value="">{% trans "Toutes les catégories" %}</option>
+    {% for cat in categories %}
+    <option value="{{ cat.slug }}" {% if category_filter == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="archive" value="{{ archive_filter }}" placeholder="{% trans 'Archive (ex: 001)' %}" class="orion-input" style="width:140px">
+  <button type="submit" class="orion-btn orion-btn-outline"><i class="bi bi-search me-1"></i>{% trans "Filtrer" %}</button>
+  {% if search or status_filter or archive_filter or category_filter %}
+  <a href="{% url 'ecommerce:article_list' %}" class="orion-btn orion-btn-ghost">{% trans "Réinitialiser" %}</a>
+  {% endif %}
+</form>
+
+<!-- Tableau -->
+<div class="orion-table-wrapper">
+<table class="orion-table">
+  <thead>
+    <tr>
+      <th>{% trans "Article" %}</th>
+      <th>{% trans "Catégorie" %}</th>
+      <th>{% trans "Archive" %}</th>
+      <th>SKU</th>
+      <th>{% trans "Prix" %}</th>
+      <th>{% trans "Stock" %}</th>
+      <th>{% trans "Statut" %}</th>
+      <th>{% trans "Accès" %}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for art in articles %}
+    <tr>
+      <td>
+        <a href="{% url 'ecommerce:article_detail' pk=art.pk %}" class="fw-semibold text-decoration-none">{{ art.name }}</a>
+      </td>
+      <td>
+        {% if art.category %}<span class="orion-badge" style="background:#F0FDF4;color:#16A34A">{{ art.category.name }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+      <td>
+        {% if art.archive_ref %}<span class="orion-badge" style="background:#EEF2FF;color:#C6A15B">{{ art.archive_ref }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+      <td><code>{{ art.sku|default:"—" }}</code></td>
+      <td>{{ art.price }} €</td>
+      <td>
+        {% if art.stock_quantity == 0 %}<span class="text-danger fw-semibold">0</span>
+        {% elif art.stock_quantity < 5 %}<span class="text-warning fw-semibold">{{ art.stock_quantity }}</span>
+        {% else %}<span>{{ art.stock_quantity }}</span>{% endif %}
+      </td>
+      <td>
+        {% if art.status == 'published' %}<span class="orion-badge orion-badge-success">{{ art.get_status_display }}</span>
+        {% elif art.status == 'draft' %}<span class="orion-badge">{{ art.get_status_display }}</span>
+        {% elif art.status == 'out_of_stock' %}<span class="orion-badge orion-badge-danger">{{ art.get_status_display }}</span>
+        {% elif art.status == 'avant_premiere' %}<span class="orion-badge" style="background:#FEF3C7;color:#92400E">{{ art.get_status_display }}</span>
+        {% else %}<span class="orion-badge orion-badge-warning">{{ art.get_status_display }}</span>{% endif %}
+      </td>
+      <td>
+        {% if art.early_access_type == 'gold_early_access' %}<span class="orion-badge" style="background:#FEF9C3;color:#713F12"><i class="bi bi-star-fill me-1" style="font-size:9px"></i>Gold</span>
+        {% else %}<span class="text-muted" style="font-size:12px">{% trans "Public" %}</span>{% endif %}
+      </td>
+      <td class="text-end">
+        <a href="{% url 'ecommerce:article_detail' pk=art.pk %}" class="orion-btn orion-btn-ghost orion-btn-sm"><i class="bi bi-eye"></i></a>
+        <a href="{% url 'ecommerce:article_edit' pk=art.pk %}" class="orion-btn orion-btn-ghost orion-btn-sm"><i class="bi bi-pencil"></i></a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9" class="text-center py-5 text-muted">{% trans "Aucun article trouvé." %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

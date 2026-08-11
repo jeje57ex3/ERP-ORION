@@ -1,31 +1,32 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:marketplace_list' %}">Marketplaces</a></li>
-<li class="breadcrumb-item active">{% if action == 'edit' %}{{ marketplace.account_name }}{% else %}Nouvelle marketplace{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:marketplace_list' %}">{% trans "Marketplaces" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ marketplace.account_name }}{% else %}{% trans "Nouvelle marketplace" %}{% endif %}</li>
 {% endblock %}
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}{{ marketplace.account_name }}{% else %}Nouvelle marketplace{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{{ marketplace.account_name }}{% else %}{% trans "Nouvelle marketplace" %}{% endif %}</h1>
 </div>
 {% endblock %}
 {% block content %}
 <div class="row g-3">
   <div class="col-12 col-lg-7">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>Compte marketplace</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>{% trans "Compte marketplace" %}</h6></div>
       <div class="orion-orion-card-body">
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="row g-3">
             <div class="col-md-6"><label class="form-label form-label-sm">Marketplace</label>{{ form.marketplace_type }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Nom du compte *</label>{{ form.account_name }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">ID vendeur</label>{{ form.seller_id }}</div>
-            <div class="col-md-3"><label class="form-label form-label-sm">Statut</label>{{ form.status }}</div>
-            <div class="col-md-3"><label class="form-label form-label-sm">Commission %</label>{{ form.commission_rate }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Nom du compte" %} *</label>{{ form.account_name }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "ID vendeur" %}</label>{{ form.seller_id }}</div>
+            <div class="col-md-3"><label class="form-label form-label-sm">{% trans "Statut" %}</label>{{ form.status }}</div>
+            <div class="col-md-3"><label class="form-label form-label-sm">{% trans "Commission %" %}</label>{{ form.commission_rate }}</div>
           </div>
           <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
-            <a href="{% url 'ecommerce:marketplace_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer" %}</button>
+            <a href="{% url 'ecommerce:marketplace_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>
@@ -34,18 +35,18 @@
     {% if action == 'edit' and listings %}
     <div class="erp-card">
       <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-        <h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>Listings ({{ listings.count }})</h6>
+        <h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>{% blocktrans with count=listings.count %}Listings ({{ count }}){% endblocktrans %}</h6>
         <a href="{% url 'ecommerce:marketplace_listing_create' %}" class="btn btn-outline-primary orion-btn sm">+ Listing</a>
       </div>
       <div class="table-responsive">
         <table class="erp-table">
-          <thead><tr><th>Produit</th><th>SKU</th><th>Prix</th><th>Statut</th></tr></thead>
+          <thead><tr><th>{% trans "Produit" %}</th><th>SKU</th><th>{% trans "Prix" %}</th><th>{% trans "Statut" %}</th></tr></thead>
           <tbody>
             {% for l in listings %}
             <tr>
               <td>{{ l.product.name }}</td>
               <td class="font-monospace small">{{ l.external_sku|default:"—" }}</td>
-              <td>{% if l.price_override %}{{ l.price_override }}€{% else %}Prix ERP{% endif %}</td>
+              <td>{% if l.price_override %}{{ l.price_override }}€{% else %}{% trans "Prix ERP" %}{% endif %}</td>
               <td><span class="badge-status badge-{{ l.status }}">{{ l.get_status_display }}</span></td>
             </tr>
             {% endfor %}

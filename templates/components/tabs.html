@@ -1,6 +1,6 @@
-{# Composant onglets
+{% comment %} Composant onglets
    Variables : tabs (liste de dicts {id, label, icon, active, badge, badge_color}), tab_content_id
-#}
+{% endcomment %}
 {% if tabs %}
 <div class="orion-tabs mb-4" id="{{ tab_content_id|default:'tabNav' }}">
   {% for tab in tabs %}

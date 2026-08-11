@@ -1,12 +1,13 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Segments clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Segments clients" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_profile_list' %}">Clients boutique</a></li>
-<li class="breadcrumb-item active">Segments</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_profile_list' %}">{% trans "Clients boutique" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Segments" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'ecommerce:customer_segment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau segment</a>
+<a href="{% url 'ecommerce:customer_segment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau segment" %}</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3">
@@ -17,18 +18,18 @@
         <div class="d-flex align-items-center gap-2 mb-2">
           <div style="width:12px;height:12px;border-radius:50%;background:{{ seg.color }}"></div>
           <div class="fw-semibold">{{ seg.name }}</div>
-          {% if seg.is_auto %}<span class="orion-badge badge-info ms-auto">Auto</span>{% endif %}
+          {% if seg.is_auto %}<span class="orion-badge badge-info ms-auto">{% trans "Auto" %}</span>{% endif %}
         </div>
         <div class="text-muted small mb-2">{{ seg.get_segment_type_display }}</div>
         {% if seg.description %}<div class="small mb-2">{{ seg.description }}</div>{% endif %}
         <div class="small text-muted">
-          {% if seg.min_orders %}<span>Min. {{ seg.min_orders }} commandes</span>{% endif %}
-          {% if seg.min_spent %}<span class="ms-2">Min. {{ seg.min_spent }}€</span>{% endif %}
+          {% if seg.min_orders %}<span>{% blocktrans with n=seg.min_orders %}Min. {{ n }} commandes{% endblocktrans %}</span>{% endif %}
+          {% if seg.min_spent %}<span class="ms-2">{% blocktrans with n=seg.min_spent %}Min. {{ n }}€{% endblocktrans %}</span>{% endif %}
         </div>
-        <div class="mt-2 fw-bold">{{ seg.customer_count }} client{{ seg.customer_count|pluralize }}</div>
+        <div class="mt-2 fw-bold">{% blocktrans count counter=seg.customer_count %}{{ counter }} client{% plural %}{{ counter }} clients{% endblocktrans %}</div>
         <div class="d-flex gap-1 justify-content-end mt-3">
           <a href="{% url 'ecommerce:customer_segment_edit' seg.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
-          <a href="{% url 'ecommerce:customer_profile_list' %}?segment={{ seg.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-people me-1"></i>Voir</a>
+          <a href="{% url 'ecommerce:customer_profile_list' %}?segment={{ seg.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-people me-1"></i>{% trans "Voir" %}</a>
         </div>
       </div>
     </div>
@@ -37,8 +38,8 @@
   <div class="col-12">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-collection"></i></div>
-      <div class="orion-empty-title">Aucun segment créé.</div>
-      <a href="{% url 'ecommerce:customer_segment_create' %}" class="orion-btn orion-orion-btn primary mt-2">Créer un segment</a>
+      <div class="orion-empty-title">{% trans "Aucun segment créé." %}</div>
+      <a href="{% url 'ecommerce:customer_segment_create' %}" class="orion-btn orion-orion-btn primary mt-2">{% trans "Créer un segment" %}</a>
     </div>
   </div>
   {% endfor %}

@@ -1,35 +1,36 @@
 {% extends "erp_base.html" %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Comptabilité</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Tableau de bord comptable — {{ today|date:"d F Y" }}</p>{% endblock %}
+{% load i18n %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Comptabilité" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Tableau de bord comptable" %} — {{ today|date:"d F Y" }}</p>{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#0D9488">
       <div class="kpi-icon"><i class="bi bi-bank2"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ bank_total|floatformat:2 }} €</div><div class="kpi-label">Trésorerie totale</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ bank_total|floatformat:2 }} €</div><div class="kpi-label">{% trans "Trésorerie totale" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#F59E0B">
       <div class="kpi-icon"><i class="bi bi-journal-x"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ draft_entries }}</div><div class="kpi-label">Écritures brouillon</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ draft_entries }}</div><div class="kpi-label">{% trans "Écritures brouillon" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="kpi-card" style="--kpi-color:#8B5CF6">
+    <div class="kpi-card" style="--kpi-color:#C6A15B">
       <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ pending_expenses }}</div><div class="kpi-label">Notes de frais en attente</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ pending_expenses }}</div><div class="kpi-label">{% trans "Notes de frais en attente" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="kpi-card" style="--kpi-color:#6366F1">
+    <div class="kpi-card" style="--kpi-color:#C6A15B">
       <div class="kpi-icon"><i class="bi bi-graph-up"></i></div>
       <div class="kpi-body">
         <div class="kpi-value">
-          <a href="{% url 'accounting:report_income_statement' %}" class="text-white text-decoration-none">Résultat</a>
+          <a href="{% url 'accounting:report_income_statement' %}" class="text-white text-decoration-none">{% trans "Résultat" %}</a>
         </div>
-        <div class="kpi-label">Voir le compte de résultat</div>
+        <div class="kpi-label">{% trans "Voir le compte de résultat" %}</div>
       </div>
     </div>
   </div>
@@ -38,29 +39,29 @@
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="erp-card h-100">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-lightning me-2"></i>Navigation rapide</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-lightning me-2"></i>{% trans "Navigation rapide" %}</h6></div>
       <div class="erp-orion-orion-card-body d-flex flex-column gap-2">
-        <a href="{% url 'accounting:entry_list' %}" class="btn btn-outline-primary text-start"><i class="bi bi-journal-text me-2"></i>Écritures comptables</a>
-        <a href="{% url 'accounting:entry_create' %}" class="btn btn-outline-success text-start"><i class="bi bi-plus-circle me-2"></i>Nouvelle écriture</a>
-        <a href="{% url 'accounting:account_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-list-ol me-2"></i>Plan comptable</a>
-        <a href="{% url 'accounting:tva' %}" class="btn btn-outline-warning text-start"><i class="bi bi-percent me-2"></i>Déclaration TVA</a>
-        <a href="{% url 'accounting:payment_list' %}" class="btn btn-outline-info text-start"><i class="bi bi-credit-card me-2"></i>Paiements</a>
-        <a href="{% url 'accounting:expense_report_list' %}" class="btn btn-outline-dark text-start"><i class="bi bi-receipt me-2"></i>Notes de frais</a>
-        <a href="{% url 'accounting:bank_statement_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-check2-all me-2"></i>Rapprochement</a>
-        <a href="{% url 'accounting:report_balance' %}" class="btn btn-outline-primary text-start"><i class="bi bi-bar-chart me-2"></i>Balance</a>
+        <a href="{% url 'accounting:entry_list' %}" class="btn btn-outline-primary text-start"><i class="bi bi-journal-text me-2"></i>{% trans "Écritures comptables" %}</a>
+        <a href="{% url 'accounting:entry_create' %}" class="btn btn-outline-success text-start"><i class="bi bi-plus-circle me-2"></i>{% trans "Nouvelle écriture" %}</a>
+        <a href="{% url 'accounting:account_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-list-ol me-2"></i>{% trans "Plan comptable" %}</a>
+        <a href="{% url 'accounting:tva' %}" class="btn btn-outline-warning text-start"><i class="bi bi-percent me-2"></i>{% trans "Déclaration TVA" %}</a>
+        <a href="{% url 'accounting:payment_list' %}" class="btn btn-outline-info text-start"><i class="bi bi-credit-card me-2"></i>{% trans "Paiements" %}</a>
+        <a href="{% url 'accounting:expense_report_list' %}" class="btn btn-outline-dark text-start"><i class="bi bi-receipt me-2"></i>{% trans "Notes de frais" %}</a>
+        <a href="{% url 'accounting:bank_statement_list' %}" class="btn btn-outline-secondary text-start"><i class="bi bi-check2-all me-2"></i>{% trans "Rapprochement" %}</a>
+        <a href="{% url 'accounting:report_balance' %}" class="btn btn-outline-primary text-start"><i class="bi bi-bar-chart me-2"></i>{% trans "Balance" %}</a>
       </div>
     </div>
   </div>
 
   <div class="col-lg-8">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>Dernières écritures</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>{% trans "Dernières écritures" %}</h6></div>
       <div class="erp-orion-orion-card-body p-0">
         {% if recent_entries %}
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
-              <tr><th>N°</th><th>Journal</th><th>Date</th><th>Description</th><th class="text-center">Statut</th></tr>
+              <tr><th>{% trans "N°" %}</th><th>{% trans "Journal" %}</th><th>{% trans "Date" %}</th><th>{% trans "Description" %}</th><th class="text-center">{% trans "Statut" %}</th></tr>
             </thead>
             <tbody>
               {% for entry in recent_entries %}
@@ -70,10 +71,10 @@
                 <td class="text-muted small">{{ entry.entry_date|date:"d/m/Y" }}</td>
                 <td class="small">{{ entry.description|truncatechars:50 }}</td>
                 <td class="text-center">
-                  {% if entry.status == 'validated' %}<span class="orion-badge success">Validée</span>
-                  {% elif entry.status == 'draft' %}<span class="orion-badge warning text-dark">Brouillon</span>
-                  {% elif entry.status == 'cancelled' %}<span class="orion-badge neutral">Annulée</span>
-                  {% elif entry.status == 'reversed' %}<span class="orion-badge info">Extournée</span>
+                  {% if entry.status == 'validated' %}<span class="orion-badge success">{% trans "Validée" %}</span>
+                  {% elif entry.status == 'draft' %}<span class="orion-badge warning text-dark">{% trans "Brouillon" %}</span>
+                  {% elif entry.status == 'cancelled' %}<span class="orion-badge neutral">{% trans "Annulée" %}</span>
+                  {% elif entry.status == 'reversed' %}<span class="orion-badge info">{% trans "Extournée" %}</span>
                   {% else %}<span class="badge bg-light text-dark">{{ entry.status }}</span>{% endif %}
                 </td>
               </tr>
@@ -82,7 +83,7 @@
           </table>
         </div>
         {% else %}
-        <div class="text-center py-4 text-muted">Aucune écriture.</div>
+        <div class="text-center py-4 text-muted">{% trans "Aucune écriture." %}</div>
         {% endif %}
       </div>
     </div>

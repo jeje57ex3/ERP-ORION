@@ -1,0 +1,118 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:index' %}">{% trans 'Sites web' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Niveaux clients (Fidélité)' %}</li>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">{% for m in messages %}<div class="orion-alert {{ m.tags }} alert-dismissible fade show">{{ m }}<button class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}</div>
+{% endif %}
+
+<!-- KPI par niveau -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3F4F6;color:#6B7280"><i class="bi bi-person"></i></div>
+      <div class="orion-kpi-value">{{ counts.classic }}</div>
+      <div class="orion-kpi-label">Classic</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#E0E7FF;color:#6366F1"><i class="bi bi-star"></i></div>
+      <div class="orion-kpi-value">{{ counts.silver }}</div>
+      <div class="orion-kpi-label">Silver</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-star-fill"></i></div>
+      <div class="orion-kpi-value">{{ counts.gold }}</div>
+      <div class="orion-kpi-label">Gold</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#1F2937;color:#F9FAFB"><i class="bi bi-gem"></i></div>
+      <div class="orion-kpi-value">{{ counts.black }}</div>
+      <div class="orion-kpi-label">Black</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+    <i class="bi bi-search text-muted"></i>
+    {% trans 'Email client…' as loyalty_search_placeholder %}
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="{{ loyalty_search_placeholder }}" style="max-width:240px">
+    <div class="d-flex gap-1">
+      <a href="?" class="orion-filter-chip {% if not tier %}active{% endif %}">{% trans 'Tous' %}</a>
+      {% for val, label in tier_choices %}
+      <a href="?tier={{ val }}" class="orion-filter-chip {% if tier == val %}active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans 'Filtrer' %}</button>
+    {% if q %}<a href="{% url 'websites:loyalty_list' %}" class="orion-btn orion-btn-outline orion-btn sm"><i class="bi bi-x"></i></a>{% endif %}
+  </form>
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>{% trans 'Email client' %}</th>
+          <th>{% trans 'Niveau' %}</th>
+          <th class="text-end">{% trans 'Points actuels' %}</th>
+          <th class="text-end">{% trans 'Points cumulés' %}</th>
+          <th>{% trans 'Mis à jour' %}</th>
+          <th class="actions">{% trans 'Actions' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for acc in accounts %}
+        <tr>
+          <td>{{ acc.customer_email }}</td>
+          <td>
+            {% if acc.tier == 'black' %}
+            <span class="orion-badge" style="background:#1F2937;color:#F9FAFB">⬛ Black</span>
+            {% elif acc.tier == 'gold' %}
+            <span class="orion-badge orion-badge-warning">⭐ Gold</span>
+            {% elif acc.tier == 'silver' %}
+            <span class="orion-badge" style="background:#E0E7FF;color:#4338CA">★ Silver</span>
+            {% else %}
+            <span class="orion-badge orion-badge-secondary">{% trans 'Classic' %}</span>
+            {% endif %}
+          </td>
+          <td class="text-end fw-semibold">{{ acc.points_balance }}</td>
+          <td class="text-end text-muted">{{ acc.lifetime_points }}</td>
+          <td class="small text-muted">{{ acc.updated_at|date:"d/m/Y" }}</td>
+          <td class="actions">
+            {% trans 'Gérer' as loyalty_manage_title %}
+            <a href="{% url 'websites:loyalty_detail' acc.pk %}" class="orion-btn orion-btn-outline orion-btn sm orion-btn-icon" title="{{ loyalty_manage_title }}">
+              <i class="bi bi-sliders"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="orion-empty">
+              <i class="bi bi-people" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
+              <h5>{% trans 'Aucun compte fidélité' %}</h5>
+              <p class="text-muted">{% trans 'Les clients reçoivent un compte fidélité lors de leur inscription ou premier achat.' %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

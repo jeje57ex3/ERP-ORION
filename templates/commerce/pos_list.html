@@ -1,10 +1,10 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Sessions caisse — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Sessions caisse" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Sessions caisse</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Suivez les ouvertures et fermetures de caisse.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Sessions caisse" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Suivez les ouvertures et fermetures de caisse." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'commerce:pos_session_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ouvrir une session</a>
+<a href="{% url 'commerce:pos_session_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ouvrir une session" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-cash-coin"></i></div>
       <div class="orion-kpi-value">{{ open_count }}</div>
-      <div class="orion-kpi-label">Sessions ouvertes</div>
+      <div class="orion-kpi-label">{% trans "Sessions ouvertes" %}</div>
     </div>
   </div>
 </div>
@@ -22,19 +22,19 @@
   <div class="orion-orion-orion-card-header">
     <form method="get" class="orion-filter-bar d-flex gap-2 ms-auto">
       <select name="store" class="form-select form-select-sm" style="width:160px;" onchange="this.form.submit()">
-        <option value="">Tous les magasins</option>
+        <option value="">{% trans "Tous les magasins" %}</option>
         {% for s in stores %}<option value="{{ s.pk }}" {% if store_id == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
       </select>
       <select name="status" class="form-select form-select-sm" style="width:130px;" onchange="this.form.submit()">
-        <option value="">Tous statuts</option>
-        <option value="open" {% if status == 'open' %}selected{% endif %}>Ouverte</option>
-        <option value="closed" {% if status == 'closed' %}selected{% endif %}>Fermée</option>
+        <option value="">{% trans "Tous statuts" %}</option>
+        <option value="open" {% if status == 'open' %}selected{% endif %}>{% trans "Ouverte" %}</option>
+        <option value="closed" {% if status == 'closed' %}selected{% endif %}>{% trans "Fermée" %}</option>
       </select>
     </form>
   </div>
   <div class="table-responsive">
     <table class="orion-table">
-      <thead><tr><th>Magasin</th><th>Caissier</th><th>Date</th><th class="text-end">Fond ouv.</th><th class="text-end">CA session</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr><th>{% trans "Magasin" %}</th><th>{% trans "Caissier" %}</th><th>{% trans "Date" %}</th><th class="text-end">{% trans "Fond ouv." %}</th><th class="text-end">{% trans "CA session" %}</th><th>{% trans "Statut" %}</th><th class="text-end">{% trans "Actions" %}</th></tr></thead>
       <tbody>
         {% for session in sessions %}
         <tr>
@@ -43,13 +43,13 @@
           <td class="small text-muted">{{ session.session_date|date:"d/m/Y" }}</td>
           <td class="text-end small">{{ session.opening_cash }} €</td>
           <td class="text-end small fw-semibold">{{ session.total_sales }} €</td>
-          <td>{% if session.status == 'open' %}<span class="orion-badge orion-badge-success">Ouverte</span>{% else %}<span class="orion-badge orion-badge-secondary">Fermée</span>{% endif %}</td>
+          <td>{% if session.status == 'open' %}<span class="orion-badge orion-badge-success">{% trans "Ouverte" %}</span>{% else %}<span class="orion-badge orion-badge-secondary">{% trans "Fermée" %}</span>{% endif %}</td>
           <td>
             <div class="d-flex gap-1 justify-content-end">
               {% if session.status == 'open' %}
               <form method="post" action="{% url 'commerce:pos_session_close' session.pk %}" class="d-inline">
                 {% csrf_token %}
-                <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="Fermer"><i class="bi bi-lock"></i></button>
+                <button class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Fermer' %}"><i class="bi bi-lock"></i></button>
               </form>
               {% endif %}
             </div>
@@ -59,9 +59,9 @@
         <tr><td colspan="7">
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-cash-coin"></i></div>
-            <div class="orion-empty-title">Aucune session</div>
-            <div class="orion-empty-text">Ouvrez une session caisse pour commencer les ventes.</div>
-            <a href="{% url 'commerce:pos_session_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ouvrir une session</a>
+            <div class="orion-empty-title">{% trans "Aucune session" %}</div>
+            <div class="orion-empty-text">{% trans "Ouvrez une session caisse pour commencer les ventes." %}</div>
+            <a href="{% url 'commerce:pos_session_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ouvrir une session" %}</a>
           </div>
         </td></tr>
         {% endfor %}

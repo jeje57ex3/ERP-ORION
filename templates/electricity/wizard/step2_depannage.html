@@ -1,5 +1,6 @@
 {% extends "electricity/base_electricity.html" %}
-{% block title %}Dépannage — Étape 2{% endblock %}
+{% load i18n %}
+{% block title %}{% trans 'Dépannage — Étape 2' %}{% endblock %}
 {% block content %}
 <div class="bg-white border-bottom py-3">
   <div class="container">
@@ -13,7 +14,7 @@
       <div class="wizard-progress-step pending">4</div>
     </div>
     <div class="d-flex justify-content-between small text-muted mt-2">
-      <span>Type</span><span><strong>Questions dépannage</strong></span><span>Coordonnées</span><span>Validation</span>
+      <span>{% trans 'Type' %}</span><span><strong>{% trans 'Questions dépannage' %}</strong></span><span>{% trans 'Coordonnées' %}</span><span>{% trans 'Validation' %}</span>
     </div>
   </div>
 </div>
@@ -24,8 +25,8 @@
       <div class="mb-4 d-flex align-items-center gap-3">
         <div class="service-icon"><i class="bi bi-tools"></i></div>
         <div>
-          <h2 class="fw-bold mb-1">Dépannage électrique</h2>
-          <p class="text-muted mb-0">Répondez aux questions pour nous aider à mieux préparer l'intervention.</p>
+          <h2 class="fw-bold mb-1">{% trans 'Dépannage électrique' %}</h2>
+          <p class="text-muted mb-0">{% trans "Répondez aux questions pour nous aider à mieux préparer l'intervention." %}</p>
         </div>
       </div>
 
@@ -34,20 +35,20 @@
 
         <!-- Urgence -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-clock me-2 text-warning"></i>Niveau d'urgence</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-clock me-2 text-primary"></i>{% trans "Niveau d'urgence" %}</h6>
           <div class="row g-2">
             <div class="col-12">
               <label class="choice-card d-flex align-items-center gap-3">
                 <input type="radio" name="urgency" value="urgent" required>
                 <i class="bi bi-lightning-fill text-danger fs-4"></i>
-                <div><div class="fw-semibold">Urgence — intervention rapide souhaitée</div><div class="text-muted small">Panne totale, danger, odeur, étincelles</div></div>
+                <div><div class="fw-semibold">{% trans 'Urgence — intervention rapide souhaitée' %}</div><div class="text-muted small">{% trans 'Panne totale, danger, odeur, étincelles' %}</div></div>
               </label>
             </div>
             <div class="col-12">
               <label class="choice-card d-flex align-items-center gap-3">
                 <input type="radio" name="urgency" value="normal">
                 <i class="bi bi-calendar-check text-primary fs-4"></i>
-                <div><div class="fw-semibold">Normal — intervention planifiable</div><div class="text-muted small">Gêne acceptée, nous pouvons planifier</div></div>
+                <div><div class="fw-semibold">{% trans 'Normal — intervention planifiable' %}</div><div class="text-muted small">{% trans 'Gêne acceptée, nous pouvons planifier' %}</div></div>
               </label>
             </div>
           </div>
@@ -55,7 +56,7 @@
 
         <!-- Type de panne -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-exclamation-circle me-2 text-warning"></i>Quel est le problème ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-exclamation-circle me-2 text-primary"></i>{% trans 'Quel est le problème ?' %}</h6>
           <div class="row g-2">
             {% for val, label in problem_type_choices %}
             <div class="col-12 col-sm-6">
@@ -70,19 +71,19 @@
 
         <!-- Sécurité -->
         <div class="border rounded-3 p-4 mb-4" style="border-color:#FCA5A5 !important;background:#FFF5F5">
-          <h6 class="fw-bold mb-3"><i class="bi bi-shield-exclamation me-2 text-danger"></i>Y a-t-il un danger immédiat ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-shield-exclamation me-2 text-danger"></i>{% trans 'Y a-t-il un danger immédiat ?' %}</h6>
           <div class="row g-2">
-            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="burn" required><span>Odeur de brûlé</span></label></div>
-            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="smoke"><span>Fumée</span></label></div>
-            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="sparks"><span>Étincelles</span></label></div>
-            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="exposed_wire"><span>Câble apparent</span></label></div>
-            <div class="col-12"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="no"><span>Non, pas de danger immédiat</span></label></div>
+            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="burn" required><span>{% trans 'Odeur de brûlé' %}</span></label></div>
+            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="smoke"><span>{% trans 'Fumée' %}</span></label></div>
+            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="sparks"><span>{% trans 'Étincelles' %}</span></label></div>
+            <div class="col-12 col-sm-6"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="exposed_wire"><span>{% trans 'Câble apparent' %}</span></label></div>
+            <div class="col-12"><label class="choice-card d-flex gap-2 py-2"><input type="radio" name="safety_issue" value="no"><span>{% trans 'Non, pas de danger immédiat' %}</span></label></div>
           </div>
         </div>
 
         <!-- Type de bien -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-house me-2 text-primary"></i>Type de logement ou local</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-house me-2 text-primary"></i>{% trans 'Type de logement ou local' %}</h6>
           <div class="row g-2">
             {% for val, label in property_type_choices %}
             <div class="col-12 col-sm-4">
@@ -97,26 +98,26 @@
 
         <!-- Tableau accessible -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i>Le tableau électrique est-il accessible ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2 text-primary"></i>{% trans 'Le tableau électrique est-il accessible ?' %}</h6>
           <div class="row g-2">
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="yes"><div>Oui</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="no"><div>Non</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="unknown"><div>Je ne sais pas</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="yes"><div>{% trans 'Oui' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="no"><div>{% trans 'Non' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="panel_accessible" value="unknown"><div>{% trans 'Je ne sais pas' %}</div></label></div>
           </div>
         </div>
 
         <!-- Notes -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-pencil me-2"></i>Informations supplémentaires (optionnel)</h6>
-          <textarea name="client_notes" class="form-control" rows="3" placeholder="Décrivez le problème avec plus de détails..."></textarea>
+          <h6 class="fw-bold mb-3"><i class="bi bi-pencil me-2"></i>{% trans 'Informations supplémentaires (optionnel)' %}</h6>
+          <textarea name="client_notes" class="form-control" rows="3" placeholder="{% trans 'Décrivez le problème avec plus de détails...' %}"></textarea>
         </div>
 
         <div class="d-flex gap-3">
           <a href="{% url 'guided_quote:wizard_start' %}" class="btn btn-outline-secondary px-4">
-            <i class="bi bi-arrow-left me-1"></i>Retour
+            <i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}
           </a>
           <button type="submit" class="btn btn-electric flex-fill py-3 fw-bold">
-            Étape suivante — Mes coordonnées <i class="bi bi-arrow-right ms-1"></i>
+            {% trans 'Étape suivante — Mes coordonnées' %} <i class="bi bi-arrow-right ms-1"></i>
           </button>
         </div>
       </form>

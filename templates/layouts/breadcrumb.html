@@ -1,9 +1,12 @@
+{% load i18n %}
+{% trans "Fil d'Ariane" as orion_breadcrumb_v2_label %}
+{% trans "Tableau de bord" as orion_dashboard_label %}
 {% if breadcrumbs %}
-<nav class="orion-breadcrumb-v2" aria-label="Fil d'Ariane" style="margin-bottom:16px">
+<nav class="orion-breadcrumb-v2" aria-label="{{ orion_breadcrumb_v2_label }}" style="margin-bottom:16px">
   <ol style="display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-size:12.5px">
     <li>
       <a href="{% url 'core:dashboard' %}" style="color:var(--orion-muted);text-decoration:none;display:flex;align-items:center"
-         aria-label="Tableau de bord">
+         aria-label="{{ orion_dashboard_label }}">
         <i class="bi bi-house" style="font-size:13px"></i>
       </a>
     </li>
@@ -23,7 +26,7 @@
   </ol>
 </nav>
 {% elif page_title %}
-<nav class="orion-breadcrumb-v2" aria-label="Fil d'Ariane" style="margin-bottom:16px">
+<nav class="orion-breadcrumb-v2" aria-label="{{ orion_breadcrumb_v2_label }}" style="margin-bottom:16px">
   <ol style="display:flex;align-items:center;gap:6px;list-style:none;margin:0;padding:0;font-size:12.5px">
     <li>
       <a href="{% url 'core:dashboard' %}" style="color:var(--orion-muted);text-decoration:none">

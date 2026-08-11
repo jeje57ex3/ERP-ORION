@@ -1,37 +1,37 @@
 {% extends "layouts/desktop_app.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}{{ product.name|default:"Nouveau produit" }}{% endblock %}
+{% block title %}{% trans "Nouveau produit" as default_new_product_title %}{{ product.name|default:default_new_product_title }}{% endblock %}
 
 {% block breadcrumb %}
 <span class="orion-breadcrumb-sep">›</span>
-<a href="{% url 'inventory:product_list' %}">Produits</a>
+<a href="{% url 'inventory:product_list' %}">{% trans "Produits" %}</a>
 <span class="orion-breadcrumb-sep">›</span>
-<span>{{ product.name|default:"Nouveau" }}</span>
+<span>{% trans "Nouveau" as default_new_short %}{{ product.name|default:default_new_short }}</span>
 {% endblock %}
 
 {% block content %}
 <div class="orion-record-page">
   <div class="orion-record-header">
     <div class="orion-record-header-left">
-      <h1 class="orion-record-title">{{ product.name|default:"Nouveau produit" }}</h1>
+      <h1 class="orion-record-title">{% trans "Nouveau produit" as default_new_product %}{{ product.name|default:default_new_product }}</h1>
       {% if product.pk %}
-      <span class="orion-status {% if product.is_active %}active{% else %}closed{% endif %}">{{ product.is_active|yesno:"Actif,Inactif" }}</span>
+      <span class="orion-status {% if product.is_active %}active{% else %}closed{% endif %}">{% if product.is_active %}{% trans "Actif" %}{% else %}{% trans "Inactif" %}{% endif %}</span>
       {% if product.stock_quantity <= product.min_stock_quantity %}
-      <span class="orion-status danger">Stock bas</span>
+      <span class="orion-status danger">{% trans "Stock bas" %}</span>
       {% endif %}
       {% endif %}
     </div>
     <div class="orion-record-toolbar">
-      <button class="orion-icon-btn" form="product-form" type="submit" title="Enregistrer"><i class="bi bi-save"></i></button>
+      <button class="orion-icon-btn" form="product-form" type="submit" title="{% trans 'Enregistrer' %}"><i class="bi bi-save"></i></button>
       {% if product.pk %}
-      <a href="{% url 'inventory:product_confirm_delete' product.pk %}" class="orion-icon-btn danger" data-confirm="Supprimer ce produit ?"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'inventory:product_confirm_delete' product.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer ce produit ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
-        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>Actions</button>
+        <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>{% trans "Actions" %}</button>
         <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
-          <li><a class="dropdown-item py-1" href="{% url 'inventory:movement_form' %}?product={{ product.pk }}"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Mouvement de stock</a></li>
-          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>Fiche produit PDF</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'inventory:movement_form' %}?product={{ product.pk }}"><i class="bi bi-arrow-left-right me-2 text-primary"></i>{% trans "Mouvement de stock" %}</a></li>
+          <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>{% trans "Fiche produit PDF" %}</a></li>
         </ul>
       </div>
       {% endif %}
@@ -42,45 +42,45 @@
     <div class="orion-record-grid cols-2-1">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="orion-record-panel">
-          <div class="orion-record-panel-header"><i class="bi bi-box text-success" style="font-size:13px"></i><h2 class="orion-record-panel-title">Informations produit</h2></div>
+          <div class="orion-record-panel-header"><i class="bi bi-box text-success" style="font-size:13px"></i><h2 class="orion-record-panel-title">{% trans "Informations produit" %}</h2></div>
           <div class="orion-record-panel-body">
-            <div class="orion-form-row"><label class="required">Nom</label>{{ form.name }}</div>
-            <div class="orion-form-row"><label>Référence</label>{{ form.sku }}</div>
-            <div class="orion-form-row"><label>Code barre</label>{{ form.barcode }}</div>
-            <div class="orion-form-row"><label>Catégorie</label>{{ form.category }}</div>
-            <div class="orion-form-row"><label>Fournisseur principal</label>{{ form.supplier }}</div>
-            <div class="orion-form-row"><label>Description</label>{{ form.description }}</div>
+            <div class="orion-form-row"><label class="required">{% trans "Nom" %}</label>{{ form.name }}</div>
+            <div class="orion-form-row"><label>{% trans "Référence" %}</label>{{ form.sku }}</div>
+            <div class="orion-form-row"><label>{% trans "Code barre" %}</label>{{ form.barcode }}</div>
+            <div class="orion-form-row"><label>{% trans "Catégorie" %}</label>{{ form.category }}</div>
+            <div class="orion-form-row"><label>{% trans "Fournisseur principal" %}</label>{{ form.supplier }}</div>
+            <div class="orion-form-row"><label>{% trans "Description" %}</label>{{ form.description }}</div>
           </div>
         </div>
         <div class="orion-record-panel">
-          <div class="orion-record-panel-header"><i class="bi bi-tag text-warning" style="font-size:13px"></i><h2 class="orion-record-panel-title">Prix</h2></div>
+          <div class="orion-record-panel-header"><i class="bi bi-tag text-warning" style="font-size:13px"></i><h2 class="orion-record-panel-title">{% trans "Prix" %}</h2></div>
           <div class="orion-record-panel-body">
-            <div class="orion-form-row"><label>Prix vente HT</label>{{ form.sale_price }}</div>
-            <div class="orion-form-row"><label>Prix achat HT</label>{{ form.purchase_price }}</div>
-            <div class="orion-form-row"><label>Taux TVA</label>{{ form.vat_rate }}</div>
-            <div class="orion-form-row"><label>Unité</label>{{ form.unit }}</div>
+            <div class="orion-form-row"><label>{% trans "Prix vente HT" %}</label>{{ form.sale_price }}</div>
+            <div class="orion-form-row"><label>{% trans "Prix achat HT" %}</label>{{ form.purchase_price }}</div>
+            <div class="orion-form-row"><label>{% trans "Taux TVA" %}</label>{{ form.vat_rate }}</div>
+            <div class="orion-form-row"><label>{% trans "Unité" %}</label>{{ form.unit }}</div>
           </div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="orion-record-panel">
-          <div class="orion-record-panel-header"><i class="bi bi-boxes text-info" style="font-size:13px"></i><h2 class="orion-record-panel-title">Stock</h2></div>
+          <div class="orion-record-panel-header"><i class="bi bi-boxes text-info" style="font-size:13px"></i><h2 class="orion-record-panel-title">{% trans "Stock" %}</h2></div>
           <div class="orion-record-panel-body">
             {% if product.pk %}
             <div style="text-align:center;padding:10px 0 14px">
               <div style="font-size:28px;font-weight:700;color:var(--orion-primary)">{{ product.stock_quantity|default:0 }}</div>
-              <div style="font-size:11px;color:var(--orion-muted)">{{ product.unit|default:"unités" }} en stock</div>
+              <div style="font-size:11px;color:var(--orion-muted)">{% trans "unités" as default_unit %}{% blocktrans with unit=product.unit|default:default_unit %}{{ unit }} en stock{% endblocktrans %}</div>
             </div>
             {% endif %}
-            <div class="orion-form-row"><label>Stock min.</label>{{ form.min_stock_quantity }}</div>
-            <div class="orion-form-row"><label>Entrepôt</label>{{ form.warehouse }}</div>
-            <div class="orion-form-check mb-2">{{ form.track_inventory }}<label for="{{ form.track_inventory.id_for_label }}">Suivi stock actif</label></div>
-            <div class="orion-form-check">{{ form.is_active }}<label for="{{ form.is_active.id_for_label }}">Produit actif</label></div>
+            <div class="orion-form-row"><label>{% trans "Stock min." %}</label>{{ form.min_stock_quantity }}</div>
+            <div class="orion-form-row"><label>{% trans "Entrepôt" %}</label>{{ form.warehouse }}</div>
+            <div class="orion-form-check mb-2">{{ form.track_inventory }}<label for="{{ form.track_inventory.id_for_label }}">{% trans "Suivi stock actif" %}</label></div>
+            <div class="orion-form-check">{{ form.is_active }}<label for="{{ form.is_active.id_for_label }}">{% trans "Produit actif" %}</label></div>
           </div>
         </div>
         {% if product.photo %}
         <div class="orion-record-panel">
-          <div class="orion-record-panel-header"><i class="bi bi-image text-muted" style="font-size:13px"></i><h2 class="orion-record-panel-title">Photo</h2></div>
+          <div class="orion-record-panel-header"><i class="bi bi-image text-muted" style="font-size:13px"></i><h2 class="orion-record-panel-title">{% trans "Photo" %}</h2></div>
           <div class="orion-record-panel-body" style="text-align:center">
             <img src="{{ product.photo.url }}" alt="{{ product.name }}" style="max-width:100%;max-height:120px;object-fit:contain">
             <div class="mt-2">{{ form.photo }}</div>
@@ -90,20 +90,20 @@
       </div>
     </div>
     <div class="orion-form-actions">
-      <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
-      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+      <a href="{% url 'inventory:product_list' %}" class="orion-btn orion-btn-outline btn-cancel">{% trans "Annuler" %}</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>{% trans "Enregistrer" %}</button>
     </div>
   </form>
   {% if product.pk %}
   <div class="orion-bottom-tabs">
     <div class="orion-bottom-tabs-nav">
-      <button class="orion-bottom-tab active" data-tab="p-movements"><i class="bi bi-arrow-left-right"></i> Mouvements</button>
-      <button class="orion-bottom-tab" data-tab="p-suppliers"><i class="bi bi-building"></i> Fournisseurs</button>
-      <button class="orion-bottom-tab" data-tab="p-history"><i class="bi bi-clock-history"></i> Historique</button>
+      <button class="orion-bottom-tab active" data-tab="p-movements"><i class="bi bi-arrow-left-right"></i> {% trans "Mouvements" %}</button>
+      <button class="orion-bottom-tab" data-tab="p-suppliers"><i class="bi bi-building"></i> {% trans "Fournisseurs" %}</button>
+      <button class="orion-bottom-tab" data-tab="p-history"><i class="bi bi-clock-history"></i> {% trans "Historique" %}</button>
     </div>
-    <div class="orion-bottom-tab-content active" id="p-movements"><div class="orion-tab-empty"><i class="bi bi-arrow-left-right"></i>Aucun mouvement</div></div>
-    <div class="orion-bottom-tab-content" id="p-suppliers"><div class="orion-tab-empty"><i class="bi bi-building"></i>Aucun fournisseur</div></div>
-    <div class="orion-bottom-tab-content" id="p-history"><div class="orion-tab-empty"><i class="bi bi-clock-history"></i>Historique vide</div></div>
+    <div class="orion-bottom-tab-content active" id="p-movements"><div class="orion-tab-empty"><i class="bi bi-arrow-left-right"></i>{% trans "Aucun mouvement" %}</div></div>
+    <div class="orion-bottom-tab-content" id="p-suppliers"><div class="orion-tab-empty"><i class="bi bi-building"></i>{% trans "Aucun fournisseur" %}</div></div>
+    <div class="orion-bottom-tab-content" id="p-history"><div class="orion-tab-empty"><i class="bi bi-clock-history"></i>{% trans "Historique vide" %}</div></div>
   </div>
   {% endif %}
 </div>

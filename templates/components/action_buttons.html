@@ -1,8 +1,8 @@
-{# Composant boutons d'actions rapides pour les lignes de tableau
+{% comment %} Composant boutons d'actions rapides pour les lignes de tableau
    Variables : actions (liste de dicts {label, url, icon, color, confirm, confirm_message, method})
    color : primary, gold, outline, danger
    method : get (défaut) ou post
-#}
+{% endcomment %}
 <div class="d-flex gap-1 justify-content-end flex-wrap">
   {% for action in actions %}
     {% if action.method == 'post' %}

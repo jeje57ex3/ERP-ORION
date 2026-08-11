@@ -1,4 +1,4 @@
-{#
+{% comment %}
   Onglets bas d'une fiche (contacts, devis, factures, etc.)
   Usage :
     {% include "components/orion_bottom_tabs.html" with tabs=bottom_tabs_list %}
@@ -9,7 +9,7 @@
 
   Le contenu de chaque panel doit être dans des blocs nommés du template parent
   ou via du HTML inline (voir ci-dessous).
-#}
+{% endcomment %}
 {% if bottom_tabs %}
 <div class="orion-bottom-tabs">
   <div class="orion-bottom-tabs-nav">

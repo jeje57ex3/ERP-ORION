@@ -1,20 +1,21 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accounting:payment_list' %}">Paiements</a></li>
-<li class="breadcrumb-item active">Nouveau paiement</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:payment_list' %}">{% trans "Paiements" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Nouveau paiement" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-credit-card me-2"></i>Nouveau paiement</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-credit-card me-2"></i>{% trans "Nouveau paiement" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Type" %} <span class="text-danger">*</span></label>
             <div class="d-flex gap-3">
               {% for val, label in type_choices %}
               <div class="form-check">
@@ -25,21 +26,21 @@
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Tiers (client/fournisseur) <span class="text-danger">*</span></label>
-            <input type="text" name="partner_name" class="form-control" required placeholder="Nom du tiers">
+            <label class="form-label fw-semibold">{% trans "Tiers (client/fournisseur)" %} <span class="text-danger">*</span></label>
+            <input type="text" name="partner_name" class="form-control" required placeholder="{% trans "Nom du tiers" %}">
           </div>
           <div class="row g-3 mb-3">
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Montant (€) <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% trans "Montant (€)" %} <span class="text-danger">*</span></label>
               <input type="number" name="amount" class="form-control" required step="0.01" min="0" placeholder="0.00">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% trans "Date" %} <span class="text-danger">*</span></label>
               <input type="date" name="payment_date" class="form-control" required>
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Mode de règlement <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Mode de règlement" %} <span class="text-danger">*</span></label>
             <select name="payment_method" class="form-select" required>
               {% for val, label in method_choices %}
               <option value="{{ val }}">{{ label }}</option>
@@ -48,9 +49,9 @@
           </div>
           {% if bank_accounts %}
           <div class="mb-3">
-            <label class="form-label">Compte bancaire</label>
+            <label class="form-label">{% trans "Compte bancaire" %}</label>
             <select name="bank_account" class="form-select">
-              <option value="">-- Sélectionner --</option>
+              <option value="">{% trans "-- Sélectionner --" %}</option>
               {% for ba in bank_accounts %}
               <option value="{{ ba.pk }}">{{ ba.bank_name }} — {{ ba.account_name }}</option>
               {% endfor %}
@@ -58,12 +59,12 @@
           </div>
           {% endif %}
           <div class="mb-3">
-            <label class="form-label">Référence</label>
-            <input type="text" name="reference" class="form-control" placeholder="ex. CHQ-12345">
+            <label class="form-label">{% trans "Référence" %}</label>
+            <input type="text" name="reference" class="form-control" placeholder="{% trans "ex. CHQ-12345" %}">
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
-            <a href="{% url 'accounting:payment_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}</button>
+            <a href="{% url 'accounting:payment_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>

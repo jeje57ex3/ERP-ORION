@@ -1,4 +1,5 @@
 {% extends "store/base_store.html" %}
+{% load i18n %}
 {% block title %}{{ category.name }} — {{ website.name }}{% endblock %}
 {% block content %}
 
@@ -6,7 +7,7 @@
   <div class="container">
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb mb-0 small">
-        <li class="breadcrumb-item"><a href="{% url 'store:store_home' %}">Accueil</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'store:store_home' %}">{% trans "Accueil" %}</a></li>
         {% if category.parent %}<li class="breadcrumb-item"><a href="{% url 'store:store_category' category.parent.slug %}">{{ category.parent.name }}</a></li>{% endif %}
         <li class="breadcrumb-item active">{{ category.name }}</li>
       </ol>
@@ -19,26 +20,26 @@
     <!-- Filtres latéraux -->
     <div class="col-12 col-md-3">
       <div class="border rounded-3 p-3 sticky-top" style="top:80px">
-        <h6 class="fw-bold mb-3">Filtrer</h6>
+        <h6 class="fw-bold mb-3">{% trans "Filtrer" %}</h6>
         <form method="get">
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Prix</label>
+            <label class="form-label small fw-semibold">{% trans "Prix" %}</label>
             <div class="d-flex gap-2">
-              <input type="number" name="min_price" value="{{ min_price }}" class="form-control form-control-sm" placeholder="Min">
-              <input type="number" name="max_price" value="{{ max_price }}" class="form-control form-control-sm" placeholder="Max">
+              <input type="number" name="min_price" value="{{ min_price }}" class="form-control form-control-sm" placeholder="{% trans 'Min' %}">
+              <input type="number" name="max_price" value="{{ max_price }}" class="form-control form-control-sm" placeholder="{% trans 'Max' %}">
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Trier par</label>
+            <label class="form-label small fw-semibold">{% trans "Trier par" %}</label>
             <select name="sort" class="form-select form-select-sm">
-              <option value="name" {% if sort == 'name' %}selected{% endif %}>Nom A-Z</option>
-              <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Prix croissant</option>
-              <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Prix décroissant</option>
-              <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Nouveautés</option>
+              <option value="name" {% if sort == 'name' %}selected{% endif %}>{% trans "Nom A-Z" %}</option>
+              <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>{% trans "Prix croissant" %}</option>
+              <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>{% trans "Prix décroissant" %}</option>
+              <option value="newest" {% if sort == 'newest' %}selected{% endif %}>{% trans "Nouveautés" %}</option>
             </select>
           </div>
-          <button type="submit" class="btn btn-store-primary btn-sm w-100">Appliquer</button>
-          <a href="?" class="btn btn-outline-secondary btn-sm w-100 mt-2">Réinitialiser</a>
+          <button type="submit" class="btn btn-store-primary btn-sm w-100">{% trans "Appliquer" %}</button>
+          <a href="?" class="btn btn-outline-secondary btn-sm w-100 mt-2">{% trans "Réinitialiser" %}</a>
         </form>
       </div>
     </div>
@@ -47,7 +48,7 @@
     <div class="col-12 col-md-9">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 fw-bold mb-0">{{ category.name }}</h1>
-        <span class="text-muted small">{{ products|length }} produit{{ products|length|pluralize }}</span>
+        <span class="text-muted small">{{ products|length }} {% trans "produit" %}{{ products|length|pluralize }}</span>
       </div>
 
       {% if products %}
@@ -62,7 +63,7 @@
               </div>
             </a>
             <div class="p-3">
-              {% if product.is_on_sale %}<span class="badge-promo mb-1">Promo</span>{% endif %}
+              {% if product.is_on_sale %}<span class="badge-promo mb-1">{% trans "Promo" %}</span>{% endif %}
               <h6 class="fw-semibold mt-1 mb-1">
                 <a href="{% url 'store:store_product_detail' product.slug %}" class="text-dark text-decoration-none">{{ product.name }}</a>
               </h6>
@@ -75,7 +76,7 @@
                 <input type="hidden" name="product_id" value="{{ product.pk }}">
                 <input type="hidden" name="quantity" value="1">
                 <button type="submit" class="btn btn-store-primary btn-sm w-100" {% if not product.in_stock %}disabled{% endif %}>
-                  {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>Ajouter{% else %}Rupture{% endif %}
+                  {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>{% trans "Ajouter" %}{% else %}{% trans "Rupture" %}{% endif %}
                 </button>
               </form>
             </div>
@@ -86,8 +87,8 @@
       {% else %}
       <div class="text-center py-5 text-muted">
         <i class="bi bi-inbox fs-1 mb-3 d-block"></i>
-        <h5>Aucun produit dans cette catégorie</h5>
-        <a href="{% url 'store:store_home' %}" class="btn btn-store-primary btn-sm mt-3">Retour à l'accueil</a>
+        <h5>{% trans "Aucun produit dans cette catégorie" %}</h5>
+        <a href="{% url 'store:store_home' %}" class="btn btn-store-primary btn-sm mt-3">{% trans "Retour à l'accueil" %}</a>
       </div>
       {% endif %}
     </div>

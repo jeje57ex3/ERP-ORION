@@ -1,8 +1,8 @@
-{% load static %}
-<aside class="orion-sidebar" id="orionSidebar" role="navigation" aria-label="Navigation principale">
+{% load static i18n %}
+<aside class="orion-sidebar" id="orionSidebar" role="navigation" aria-label="{% trans 'Navigation principale' %}">
 
   {# ── Marque ────────────────────────────────────────────────────────── #}
-  <a href="{% block sidebar_home_url %}{% url 'core:home' %}{% endblock %}" class="orion-sidebar-brand" aria-label="Accueil">
+  <a href="{% block sidebar_home_url %}{% url 'core:home' %}{% endblock %}" class="orion-sidebar-brand" aria-label="{% trans 'Accueil' %}">
     {% if current_company and current_company.logo %}
       <img src="{{ current_company.logo.url }}" alt="" class="orion-sidebar-logo">
     {% else %}
@@ -16,10 +16,11 @@
 
   {# ── Entreprise (sélecteur) ─────────────────────────────────────────── #}
   {% if companies and current_company %}
+  {% trans "Changer d'entreprise" as change_company_label %}
   <div style="padding:8px 10px;border-bottom:1px solid var(--orion-border-soft)">
     <div class="dropdown">
       <button class="orion-nav-link w-100 text-start" type="button"
-              data-bs-toggle="dropdown" aria-expanded="false" aria-label="Changer d'entreprise"
+              data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ change_company_label }}"
               style="gap:8px;padding:8px 12px">
         <i class="bi bi-building" style="color:{% if current_company.sector_color %}{{ current_company.sector_color }}{% else %}var(--orion-text-muted){% endif %}" aria-hidden="true"></i>
         <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ current_company.name|truncatechars:22 }}</span>
@@ -43,7 +44,7 @@
         <li><hr class="dropdown-divider"></li>
         <li>
           <a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:13px;padding:8px 14px">
-            <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Nouvelle entreprise
+            <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>{% trans 'Nouvelle entreprise' %}
           </a>
         </li>
         {% endif %}
@@ -53,7 +54,7 @@
   {% endif %}
 
   {# ── Navigation ────────────────────────────────────────────────────── #}
-  <nav class="orion-sidebar-nav" aria-label="Modules">
+  <nav class="orion-sidebar-nav" aria-label="{% trans 'Modules' %}">
     {% for group in nav_groups %}
     <div class="orion-nav-section">
       {% if group.label %}
@@ -144,7 +145,7 @@
   {# ── Pied de sidebar ───────────────────────────────────────────────── #}
   <div class="orion-sidebar-footer">
     {% if request.user.is_authenticated %}
-    <a class="orion-sidebar-user" href="{% url 'core:profile' %}" title="Profil">
+    <a class="orion-sidebar-user" href="{% url 'core:profile' %}" title="{% trans 'Profil' %}">
       <div class="orion-sidebar-avatar">
         {% if request.user.profile_picture %}
           <img src="{{ request.user.profile_picture.url }}" alt="">
@@ -155,9 +156,9 @@
       <div style="flex:1;min-width:0">
         <div class="orion-sidebar-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
         {% if request.user.is_superuser %}
-        <div class="orion-sidebar-user-role">Super Admin</div>
+        <div class="orion-sidebar-user-role">{% trans 'Super Admin' %}</div>
         {% elif request.user.is_staff %}
-        <div class="orion-sidebar-user-role">Admin</div>
+        <div class="orion-sidebar-user-role">{% trans 'Admin' %}</div>
         {% endif %}
       </div>
     </a>

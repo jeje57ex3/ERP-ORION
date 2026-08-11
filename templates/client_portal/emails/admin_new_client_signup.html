@@ -1,3 +1,4 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -8,35 +9,35 @@
 
   <tr>
     <td style="background:#1C120A;padding:24px 40px;text-align:center">
-      <p style="margin:0;color:#D4A843;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase">Orion ERP — Notification admin</p>
-      <h1 style="margin:6px 0 0;color:#fff;font-size:1.25rem;font-weight:700">Nouvelle inscription client</h1>
+      <p style="margin:0;color:#D4A843;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase">{% trans 'Orion ERP — Notification admin' %}</p>
+      <h1 style="margin:6px 0 0;color:#fff;font-size:1.25rem;font-weight:700">{% trans 'Nouvelle inscription client' %}</h1>
     </td>
   </tr>
 
   <tr>
     <td style="padding:32px 40px">
       <p style="margin:0 0 20px;color:#374151;font-size:.92rem;line-height:1.6">
-        Une nouvelle demande d'inscription au portail client est en attente de validation.
+        {% blocktrans %}Une nouvelle demande d'inscription au portail client est en attente de validation.{% endblocktrans %}
       </p>
 
       <!-- Infos client -->
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:10px;overflow:hidden;margin-bottom:24px">
         <tr>
           <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">Client</span><br>
+            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">{% trans 'Client' %}</span><br>
             <span style="font-size:.95rem;color:#1a0e05;font-weight:600">{{ signup.first_name }} {{ signup.last_name }}</span>
           </td>
         </tr>
         <tr>
           <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">Email</span><br>
+            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">{% trans 'Email' %}</span><br>
             <a href="mailto:{{ signup.email }}" style="font-size:.9rem;color:#2563eb">{{ signup.email }}</a>
           </td>
         </tr>
         {% if signup.phone %}
         <tr>
           <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">Téléphone</span><br>
+            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">{% trans 'Téléphone' %}</span><br>
             <span style="font-size:.9rem;color:#374151">{{ signup.phone }}</span>
           </td>
         </tr>
@@ -44,7 +45,7 @@
         {% if signup.company_name %}
         <tr>
           <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">Entreprise</span><br>
+            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">{% trans 'Entreprise' %}</span><br>
             <span style="font-size:.9rem;color:#374151">{{ signup.company_name }}</span>
           </td>
         </tr>
@@ -52,7 +53,7 @@
         {% if signup.message %}
         <tr>
           <td style="padding:12px 16px">
-            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">Message</span><br>
+            <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em">{% trans 'Message' %}</span><br>
             <span style="font-size:.88rem;color:#374151;font-style:italic">{{ signup.message }}</span>
           </td>
         </tr>
@@ -64,14 +65,14 @@
           <td align="center" style="padding:8px 0 8px">
             <a href="{{ admin_url }}"
                style="display:inline-block;background:#D4A843;color:#1a0e05;font-weight:700;text-decoration:none;border-radius:9px;padding:12px 32px;font-size:.95rem">
-              Voir la demande dans Orion ERP
+              {% trans 'Voir la demande dans Orion ERP' %}
             </a>
           </td>
         </tr>
       </table>
 
       <p style="margin:16px 0 0;color:#9ca3af;font-size:.78rem;text-align:center">
-        Demande reçue le {{ signup.created_at|date:"d/m/Y à H:i" }}
+        {% blocktrans with date_recue=signup.created_at|date:"d/m/Y à H:i" %}Demande reçue le {{ date_recue }}{% endblocktrans %}
       </p>
     </td>
   </tr>
@@ -79,7 +80,7 @@
   <tr>
     <td style="background:#f9fafb;padding:16px 40px;text-align:center;border-top:1px solid #f3f4f6">
       <p style="margin:0;color:#9ca3af;font-size:.73rem">
-        Orion ERP — Notification automatique interne — {{ company.name }}
+        {% blocktrans %}Orion ERP — Notification automatique interne — {{ company.name }}{% endblocktrans %}
       </p>
     </td>
   </tr>

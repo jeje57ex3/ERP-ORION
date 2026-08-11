@@ -1,16 +1,18 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block content %}
+{% trans "Commande" as order_number_fallback %}
 <div class="delete-confirm-card erp-card p-4 text-center">
   <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
-  <h4 class="mb-2">Supprimer cette commande achat ?</h4>
-  <p class="fw-semibold fs-5 mb-3">{{ order.number|default:"Commande" }} — {{ order.supplier.name }}</p>
+  <h4 class="mb-2">{% trans "Supprimer cette commande achat ?" %}</h4>
+  <p class="fw-semibold fs-5 mb-3">{{ order.number|default:order_number_fallback }} — {{ order.supplier.name }}</p>
   <div class="orion-alert warning text-start mb-4">
-    <i class="bi bi-exclamation-circle me-2"></i><strong>Cette action est irréversible.</strong> La commande sera définitivement supprimée.
+    <i class="bi bi-exclamation-circle me-2"></i><strong>{% trans "Cette action est irréversible." %}</strong> {% trans "La commande sera définitivement supprimée." %}
   </div>
   <form method="post" class="d-flex gap-2 justify-content-center">
     {% csrf_token %}
-    <a href="{% url 'purchases:order_detail' order.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
-    <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>Supprimer</button>
+    <a href="{% url 'purchases:order_detail' order.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</button>
   </form>
 </div>
 {% endblock %}

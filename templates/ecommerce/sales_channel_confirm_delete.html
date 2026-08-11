@@ -1,18 +1,19 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:sales_channel_list' %}">Canaux de vente</a></li>
-<li class="breadcrumb-item active">Supprimer</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:sales_channel_list' %}">{% trans "Canaux de vente" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Supprimer" %}</li>
 {% endblock %}
-{% block page_header %}<div class="page-header"><h1 class="page-title">Supprimer le canal</h1></div>{% endblock %}
+{% block page_header %}<div class="page-header"><h1 class="page-title">{% trans "Supprimer le canal" %}</h1></div>{% endblock %}
 {% block content %}
 <div class="delete-confirm-card">
   <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle-fill text-danger"></i></div>
-  <h5>Supprimer « {{ channel.name }} » ?</h5>
-  <p class="text-muted">Cette action est irréversible. Toutes les données associées à ce canal seront supprimées.</p>
+  <h5>{% blocktrans with name=channel.name %}Supprimer « {{ name }} » ?{% endblocktrans %}</h5>
+  <p class="text-muted">{% trans "Cette action est irréversible. Toutes les données associées à ce canal seront supprimées." %}</p>
   <form method="post" class="d-flex gap-2 justify-content-center mt-3">
     {% csrf_token %}
-    <button type="submit" class="orion-btn danger">Supprimer</button>
-    <a href="{% url 'ecommerce:sales_channel_list' %}" class="btn btn-outline-secondary">Annuler</a>
+    <button type="submit" class="orion-btn danger">{% trans "Supprimer" %}</button>
+    <a href="{% url 'ecommerce:sales_channel_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
   </form>
 </div>
 {% endblock %}

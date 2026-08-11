@@ -1,0 +1,42 @@
+{% load i18n %}
+{% trans "Changer d'entreprise" as ha_change_company_title %}
+{% if has_active_company %}
+<div class="orion-active-company-badge d-flex align-items-center gap-2">
+  <span class="badge" style="background:var(--orion-gold,#D6B36A);color:#0B0B0D;font-size:0.7rem;letter-spacing:.04em;padding:3px 8px;">
+    {% trans "Entreprise" %}
+  </span>
+  <span class="fw-semibold text-truncate" style="max-width:160px;" title="{{ active_company.name }}">
+    {{ active_company.name }}
+  </span>
+  {% if available_companies|length > 1 %}
+  <form method="post" action="{% url 'private_saas:clear_active_company' %}" class="d-inline m-0">
+    {% csrf_token %}
+    <button type="submit"
+            class="btn sm btn-link p-0 text-muted"
+            title="{{ ha_change_company_title }}"
+            style="font-size:.8rem;text-decoration:none;">
+      <i class="bi bi-arrow-left-right"></i>
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="orion-company-select-inline d-flex align-items-center gap-2">
+  <form method="post" action="{% url 'private_saas:select_active_company' %}" class="d-flex align-items-center gap-2 m-0">
+    {% csrf_token %}
+    <select name="company_id"
+            class="form-select form-select-sm"
+            style="min-width:160px;max-width:220px;font-size:.85rem;"
+            required
+            onchange="this.form.submit()">
+      <option value="">{% trans "Sélectionner une entreprise…" %}</option>
+      {% for company in available_companies %}
+        <option value="{{ company.id }}">{{ company.name }}</option>
+      {% endfor %}
+    </select>
+    <noscript>
+      <button type="submit" class="orion-btn sm primary">{% trans "OK" %}</button>
+    </noscript>
+  </form>
+</div>
+{% endif %}

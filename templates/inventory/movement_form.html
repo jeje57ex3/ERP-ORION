@@ -1,10 +1,11 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'inventory:movement_list' %}">Mouvements</a></li>
-<li class="breadcrumb-item active">Nouveau mouvement</li>
+<li class="breadcrumb-item"><a href="{% url 'inventory:movement_list' %}">{% trans "Mouvements" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Nouveau mouvement" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'inventory:movement_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+<a href="{% url 'inventory:movement_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -13,39 +14,39 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-arrow-left-right me-1 text-primary"></i>Mouvement de stock</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-arrow-left-right me-1 text-primary"></i>{% trans "Mouvement de stock" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
-            <div class="col-12"><label class="form-label">Produit *</label>{{ form.product }}{% if form.product.errors %}<div class="invalid-feedback d-block">{{ form.product.errors }}</div>{% endif %}</div>
-            <div class="col-md-6"><label class="form-label">Type de mouvement *</label>{{ form.movement_type }}</div>
-            <div class="col-md-6"><label class="form-label">Quantité *</label>{{ form.quantity }}</div>
-            <div class="col-md-6"><label class="form-label">Coût unitaire</label>{{ form.unit_cost }}</div>
-            <div class="col-md-6"><label class="form-label">Référence</label>{{ form.reference }}</div>
-            <div class="col-md-6"><label class="form-label">N° lot</label>{{ form.lot_number }}</div>
-            <div class="col-md-6"><label class="form-label">N° série</label>{{ form.serial_number }}</div>
-            <div class="col-md-6"><label class="form-label">Depuis emplacement</label>{{ form.from_location }}</div>
-            <div class="col-md-6"><label class="form-label">Vers emplacement</label>{{ form.to_location }}</div>
-            <div class="col-12"><label class="form-label">Notes</label>{{ form.notes }}</div>
+            <div class="col-12"><label class="form-label">{% trans "Produit" %} *</label>{{ form.product }}{% if form.product.errors %}<div class="invalid-feedback d-block">{{ form.product.errors }}</div>{% endif %}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Type de mouvement" %} *</label>{{ form.movement_type }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Quantité" %} *</label>{{ form.quantity }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Coût unitaire" %}</label>{{ form.unit_cost }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Référence" %}</label>{{ form.reference }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "N° lot" %}</label>{{ form.lot_number }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "N° série" %}</label>{{ form.serial_number }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Depuis emplacement" %}</label>{{ form.from_location }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Vers emplacement" %}</label>{{ form.to_location }}</div>
+            <div class="col-12"><label class="form-label">{% trans "Notes" %}</label>{{ form.notes }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-4">
       <div class="erp-card">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-info-circle me-1 text-primary"></i>Types de mouvements</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Types de mouvements" %}</h6></div>
         <div class="p-3 small text-muted">
-          <p class="mb-2"><strong>Entrée</strong> — Augmente le stock (réception, retour client)</p>
-          <p class="mb-2"><strong>Sortie</strong> — Diminue le stock (expédition, prélèvement)</p>
-          <p class="mb-2"><strong>Ajustement</strong> — Définit le stock à la quantité saisie</p>
-          <p class="mb-2"><strong>Transfert</strong> — Entre deux emplacements</p>
-          <p class="mb-0"><strong>Perte</strong> — Diminue le stock (casse, vol, péremption)</p>
+          <p class="mb-2"><strong>{% trans "Entrée" %}</strong> — {% trans "Augmente le stock (réception, retour client)" %}</p>
+          <p class="mb-2"><strong>{% trans "Sortie" %}</strong> — {% trans "Diminue le stock (expédition, prélèvement)" %}</p>
+          <p class="mb-2"><strong>{% trans "Ajustement" %}</strong> — {% trans "Définit le stock à la quantité saisie" %}</p>
+          <p class="mb-2"><strong>{% trans "Transfert" %}</strong> — {% trans "Entre deux emplacements" %}</p>
+          <p class="mb-0"><strong>{% trans "Perte" %}</strong> — {% trans "Diminue le stock (casse, vol, péremption)" %}</p>
         </div>
       </div>
     </div>
   </div>
   <div class="d-flex gap-2 justify-content-end mt-3">
-    <a href="{% url 'inventory:movement_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
-    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer le mouvement</button>
+    <a href="{% url 'inventory:movement_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer le mouvement" %}</button>
   </div>
 </form>
 {% endblock %}

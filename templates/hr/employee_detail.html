@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'hr:employee_list' %}">Salariés</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hr:employee_list' %}">{% trans "Salariés" %}</a></li>
 <li class="breadcrumb-item active">{{ employee.first_name }} {{ employee.last_name }}</li>
 {% endblock %}
 
@@ -12,17 +13,17 @@
       <div>
         <h1 class="detail-title">{{ employee.first_name }} {{ employee.last_name }}</h1>
         <div class="detail-meta">
-          {% if employee.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}
+          {% if employee.is_active %}<span class="badge-status badge-active">{% trans "Actif" %}</span>{% else %}<span class="badge-status badge-inactive">{% trans "Inactif" %}</span>{% endif %}
           {% if employee.job_title %}<span>{{ employee.job_title }}</span>{% endif %}
           {% if employee.department %}<span><i class="bi bi-building me-1"></i>{{ employee.department }}</span>{% endif %}
         </div>
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-calendar-x me-1"></i>Demande congé</a>
-      <a href="{% url 'hr:employee_edit' employee.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'hr:employee_delete' employee.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
-      <a href="{% url 'hr:employee_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-calendar-x me-1"></i>{% trans "Demande congé" %}</a>
+      <a href="{% url 'hr:employee_edit' employee.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'hr:employee_delete' employee.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
+      <a href="{% url 'hr:employee_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -32,33 +33,33 @@
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>Informations personnelles</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-primary"></i>{% trans "Informations personnelles" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>N° salarié</label><div class="value {% if not employee.employee_number %}empty{% endif %}">{{ employee.employee_number|default:"—" }}</div></div>
-        <div class="info-item"><label>Email</label><div class="value {% if not employee.email %}empty{% endif %}">{% if employee.email %}<a href="mailto:{{ employee.email }}">{{ employee.email }}</a>{% else %}—{% endif %}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not employee.phone %}empty{% endif %}">{{ employee.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Manager</label><div class="value {% if not employee.manager %}empty{% endif %}">{% if employee.manager %}<a href="{% url 'hr:employee_detail' employee.manager.pk %}">{{ employee.manager }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "N° salarié" %}</label><div class="value {% if not employee.employee_number %}empty{% endif %}">{{ employee.employee_number|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Email" %}</label><div class="value {% if not employee.email %}empty{% endif %}">{% if employee.email %}<a href="mailto:{{ employee.email }}">{{ employee.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not employee.phone %}empty{% endif %}">{{ employee.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Manager" %}</label><div class="value {% if not employee.manager %}empty{% endif %}">{% if employee.manager %}<a href="{% url 'hr:employee_detail' employee.manager.pk %}">{{ employee.manager }}</a>{% else %}—{% endif %}</div></div>
       </div>
     </div>
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Contrat</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Contrat" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Type de contrat</label><div class="value">{{ employee.get_contract_type_display }}</div></div>
-        <div class="info-item"><label>Date d'entrée</label><div class="value {% if not employee.hire_date %}empty{% endif %}">{{ employee.hire_date|date:"d/m/Y"|default:"—" }}</div></div>
-        <div class="info-item"><label>Date de fin</label><div class="value {% if not employee.end_date %}empty{% endif %}">{{ employee.end_date|date:"d/m/Y"|default:"—" }}</div></div>
-        <div class="info-item"><label>Salaire brut</label><div class="value fw-semibold">{{ employee.gross_salary|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>{% trans "Type de contrat" %}</label><div class="value">{{ employee.get_contract_type_display }}</div></div>
+        <div class="info-item"><label>{% trans "Date d'entrée" %}</label><div class="value {% if not employee.hire_date %}empty{% endif %}">{{ employee.hire_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Date de fin" %}</label><div class="value {% if not employee.end_date %}empty{% endif %}">{{ employee.end_date|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Salaire brut" %}</label><div class="value fw-semibold">{{ employee.gross_salary|floatformat:2 }} €</div></div>
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
       <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-        <h6 class="card-title mb-0"><i class="bi bi-calendar-x me-1 text-primary"></i>Congés récents</h6>
-        <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Demande</a>
+        <h6 class="card-title mb-0"><i class="bi bi-calendar-x me-1 text-primary"></i>{% trans "Congés récents" %}</h6>
+        <a href="{% url 'hr:leave_create' %}?employee={{ employee.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Demande" %}</a>
       </div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
-          <thead><tr><th>Type</th><th>Dates</th><th>Jours</th><th>Statut</th></tr></thead>
+          <thead><tr><th>{% trans "Type" %}</th><th>{% trans "Dates" %}</th><th>{% trans "Jours" %}</th><th>{% trans "Statut" %}</th></tr></thead>
           <tbody>
             {% for leave in leaves %}
             <tr>
@@ -68,7 +69,77 @@
               <td><span class="badge-status badge-{{ leave.status }}">{{ leave.get_status_display }}</span></td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-center text-muted py-3 small">Aucune demande de congé.</td></tr>
+            <tr><td colspan="4" class="text-center text-muted py-3 small">{% trans "Aucune demande de congé." %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ── Compétences ─────────────────────────────────────────────────────── #}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-stars me-1 text-primary"></i>{% trans "Compétences" %}</h6>
+        {% if is_hr_admin %}
+        <a href="{% url 'hr:skill_create' employee.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter" %}</a>
+        {% endif %}
+      </div>
+      <div class="orion-orion-card-body">
+        {% if skills %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for skill in skills %}
+          <span class="orion-badge {% if skill.level == 'expert' %}gold{% elif skill.level == 'intermediate' %}accent{% else %}neutral{% endif %}" style="display:inline-flex;align-items:center;gap:6px">
+            {{ skill.name }}
+            <span class="text-muted small">({{ skill.get_level_display }})</span>
+            {% if is_hr_admin %}
+            <a href="{% url 'hr:skill_edit' skill.pk %}" class="text-decoration-none" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'hr:skill_delete' skill.pk %}" class="text-decoration-none text-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-x-circle"></i></a>
+            {% endif %}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">{% trans "Aucune compétence enregistrée." %}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Certifications & Habilitations ──────────────────────────────────── #}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-patch-check me-1 text-primary"></i>{% trans "Certifications & Habilitations" %}</h6>
+        {% if is_hr_admin %}
+        <a href="{% url 'hr:certification_create' employee.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter" %}</a>
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead><tr><th>{% trans "Type" %}</th><th>{% trans "Nom" %}</th><th>{% trans "Référence" %}</th><th>{% trans "Expiration" %}</th><th></th></tr></thead>
+          <tbody>
+            {% for cert in certifications %}
+            <tr {% if cert.is_expired %}class="table-danger"{% elif cert.expires_soon %}class="table-warning"{% endif %}>
+              <td><span class="orion-badge neutral">{{ cert.get_category_display }}</span></td>
+              <td class="small">
+                {{ cert.name }}
+                {% if cert.file %}<a href="{{ cert.file.url }}" target="_blank" class="ms-1" title="{% trans 'Voir le document' %}"><i class="bi bi-paperclip"></i></a>{% endif %}
+              </td>
+              <td class="small text-muted">{{ cert.reference|default:"—" }}</td>
+              <td class="small">
+                {% if cert.expiry_date %}
+                  {% if cert.is_expired %}<span class="text-danger fw-semibold">{{ cert.expiry_date|date:"d/m/Y" }} <i class="bi bi-x-circle-fill"></i></span>
+                  {% elif cert.expires_soon %}<span class="text-warning fw-semibold">{{ cert.expiry_date|date:"d/m/Y" }} <i class="bi bi-exclamation-triangle-fill"></i></span>
+                  {% else %}{{ cert.expiry_date|date:"d/m/Y" }}{% endif %}
+                {% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td class="text-end">
+                {% if is_hr_admin %}
+                <a href="{% url 'hr:certification_edit' cert.pk %}" class="orion-btn sm btn-outline-secondary" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'hr:certification_delete' cert.pk %}" class="orion-btn sm btn-outline-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3 small">{% trans "Aucune certification enregistrée." %}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -78,7 +149,7 @@
     {# ── Compte utilisateur ──────────────────────────────────────────────── #}
     <div class="orion-card">
       <div class="orion-orion-orion-card-header">
-        <h5 class="orion-card-title"><i class="bi bi-person-lock me-2"></i>Compte utilisateur</h5>
+        <h5 class="orion-card-title"><i class="bi bi-person-lock me-2"></i>{% trans "Compte utilisateur" %}</h5>
       </div>
       <div class="orion-orion-orion-card-body">
         {% if employee.user %}
@@ -91,15 +162,15 @@
               <div style="font-size:12px;color:var(--orion-muted)">{{ employee.user.email }}</div>
             </div>
             {% if employee.user.is_active %}
-              <span class="orion-badge success ms-auto">Actif</span>
+              <span class="orion-badge success ms-auto">{% trans "Actif" %}</span>
             {% else %}
-              <span class="orion-badge neutral ms-auto">Inactif</span>
+              <span class="orion-badge neutral ms-auto">{% trans "Inactif" %}</span>
             {% endif %}
           </div>
           <dl style="display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:13px;margin-bottom:14px">
-            <dt style="color:var(--orion-muted)">Identifiant</dt>
+            <dt style="color:var(--orion-muted)">{% trans "Identifiant" %}</dt>
             <dd style="margin:0;font-weight:600">{{ employee.user.username }}</dd>
-            <dt style="color:var(--orion-muted)">Rôle</dt>
+            <dt style="color:var(--orion-muted)">{% trans "Rôle" %}</dt>
             <dd style="margin:0">
               {% if employee.user.profile %}
                 <span class="orion-badge {% if employee.user.profile.role in 'superadmin,admin' %}accent{% else %}neutral{% endif %}">
@@ -107,12 +178,12 @@
                 </span>
               {% else %}—{% endif %}
             </dd>
-            <dt style="color:var(--orion-muted)">Dernière connexion</dt>
+            <dt style="color:var(--orion-muted)">{% trans "Dernière connexion" %}</dt>
             <dd style="margin:0">{{ employee.user.last_login|date:"d/m/Y H:i"|default:"—" }}</dd>
           </dl>
           {% if request.user.is_superuser or request.user.profile.role in 'admin,superadmin' %}
           <a href="{% url 'accounts:user_detail' employee.user.pk %}" class="orion-btn sm">
-            <i class="bi bi-arrow-right-circle"></i> Voir le profil utilisateur
+            <i class="bi bi-arrow-right-circle"></i> {% trans "Voir le profil utilisateur" %}
           </a>
           {% endif %}
         {% else %}
@@ -120,16 +191,16 @@
             <div style="padding:18px;border:1.5px dashed rgba(100,100,100,.25);background:var(--orion-surface);border-radius:10px">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                 <i class="bi bi-person-x" style="font-size:20px;color:var(--orion-muted)"></i>
-                <span style="color:var(--orion-text-soft);font-size:13px">Aucun compte utilisateur associé à ce salarié.</span>
+                <span style="color:var(--orion-text-soft);font-size:13px">{% trans "Aucun compte utilisateur associé à ce salarié." %}</span>
               </div>
               <a href="{% url 'accounts:user_create' %}?employee={{ employee.pk }}" class="orion-btn sm primary">
-                <i class="bi bi-plus-circle"></i> Créer un compte utilisateur
+                <i class="bi bi-plus-circle"></i> {% trans "Créer un compte utilisateur" %}
               </a>
             </div>
           {% else %}
             <div style="display:flex;align-items:center;gap:10px;color:var(--orion-muted);font-size:13px">
               <i class="bi bi-person-dash" style="font-size:18px"></i>
-              <span>Pas de compte utilisateur associé.</span>
+              <span>{% trans "Pas de compte utilisateur associé." %}</span>
             </div>
           {% endif %}
         {% endif %}

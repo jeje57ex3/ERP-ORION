@@ -1,10 +1,10 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block page_header %}
 <div class="orion-page-header">
   <div>
-    <h1 class="page-title">Recherche</h1>
+    <h1 class="page-title">{% trans "Recherche" %}</h1>
     {% if query %}
     <p class="text-muted mb-0 small">{{ result_count }} résultat{{ result_count|pluralize }} pour &laquo; {{ query }} &raquo;</p>
     {% endif %}
@@ -17,8 +17,8 @@
     <div class="input-group">
       <span class="input-group-text"><i class="bi bi-search"></i></span>
       <input type="search" name="q" value="{{ query }}" class="form-control form-control-lg"
-             placeholder="Clients, factures, chantiers, produits..." autofocus>
-      <button type="submit" class="orion-btn orion-orion-btn primary">Rechercher</button>
+             placeholder="{% trans 'Clients, factures, chantiers, produits...' %}" autofocus>
+      <button type="submit" class="orion-btn orion-orion-btn primary">{% trans "Rechercher" %}</button>
     </div>
   </form>
 </div>
@@ -59,15 +59,15 @@
   {% else %}
   <div class="orion-empty-premium py-5" style="max-width:500px">
     <div class="orion-empty-icon"><i class="bi bi-search"></i></div>
-    <h5>Aucun résultat</h5>
-    <p class="text-muted">Aucun élément trouvé pour &laquo; {{ query }} &raquo;.<br>Essayez un autre terme de recherche.</p>
+    <h5>{% trans "Aucun résultat" %}</h5>
+    <p class="text-muted">{% blocktrans %}Aucun élément trouvé pour &laquo; {{ query }} &raquo;.{% endblocktrans %}<br>{% trans "Essayez un autre terme de recherche." %}</p>
   </div>
   {% endif %}
 {% else %}
 <div class="orion-empty-premium py-5" style="max-width:500px">
   <div class="orion-empty-icon"><i class="bi bi-search"></i></div>
-  <h5>Recherche globale</h5>
-  <p class="text-muted">Tapez au moins 2 caractères pour rechercher dans vos clients, factures, chantiers et produits.</p>
+  <h5>{% trans "Recherche globale" %}</h5>
+  <p class="text-muted">{% trans "Tapez au moins 2 caractères pour rechercher dans vos clients, factures, chantiers et produits." %}</p>
 </div>
 {% endif %}
 {% endblock %}

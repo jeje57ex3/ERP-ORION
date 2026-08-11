@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:carrier_list' %}">Transporteurs</a></li>
-<li class="breadcrumb-item active">{% if action == 'edit' %}{{ carrier.name }}{% else %}Nouveau transporteur{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:carrier_list' %}">{% trans "Transporteurs" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ carrier.name }}{% else %}{% trans "Nouveau transporteur" %}{% endif %}</li>
 {% endblock %}
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}{{ carrier.name }}{% else %}Nouveau transporteur{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{{ carrier.name }}{% else %}{% trans "Nouveau transporteur" %}{% endif %}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -14,19 +15,19 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-truck me-1 text-primary"></i>Transporteur</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-truck me-1 text-primary"></i>{% trans "Transporteur" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-md-6"><label class="form-label form-label-sm">Nom *</label>{{ form.name }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Type</label>{{ form.carrier_type }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">URL de suivi</label>{{ form.tracking_url_template }}<small class="text-muted">Utiliser {"{tracking_number}"} comme variable</small></div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Nom" %} *</label>{{ form.name }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Type" %}</label>{{ form.carrier_type }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "URL de suivi" %}</label>{{ form.tracking_url_template }}<small class="text-muted">{% trans "Utiliser" %} {"{tracking_number}"} {% trans "comme variable" %}</small></div>
             <div class="col-12"><label class="form-label form-label-sm">API endpoint</label>{{ form.api_endpoint }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">Clé API</label>{{ form.api_key }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Délai min (j)</label>{{ form.estimated_days_min }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Délai max (j)</label>{{ form.estimated_days_max }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Gratuit si panier > (€)</label>{{ form.is_free_for_amount }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Clé API" %}</label>{{ form.api_key }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Délai min (j)" %}</label>{{ form.estimated_days_min }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Délai max (j)" %}</label>{{ form.estimated_days_max }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Gratuit si panier > (€)" %}</label>{{ form.is_free_for_amount }}</div>
             <div class="col-md-4">
-              <div class="form-check mt-2">{{ form.is_active }}<label class="form-check-label ms-1 small">Actif</label></div>
+              <div class="form-check mt-2">{{ form.is_active }}<label class="form-check-label ms-1 small">{% trans "Actif" %}</label></div>
             </div>
           </div>
         </div>
@@ -34,12 +35,12 @@
       {% if action == 'edit' and methods %}
       <div class="erp-card">
         <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-          <h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>Modes de livraison</h6>
-          <a href="{% url 'ecommerce:shipping_method_create' carrier.pk %}" class="btn btn-outline-primary orion-btn sm">+ Mode</a>
+          <h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>{% trans "Modes de livraison" %}</h6>
+          <a href="{% url 'ecommerce:shipping_method_create' carrier.pk %}" class="btn btn-outline-primary orion-btn sm">+ {% trans "Mode" %}</a>
         </div>
         <div class="table-responsive">
           <table class="erp-table">
-            <thead><tr><th>Nom</th><th>Prix HT</th><th>Gratuit si</th><th>Délai</th><th>Actif</th></tr></thead>
+            <thead><tr><th>{% trans "Nom" %}</th><th>{% trans "Prix HT" %}</th><th>{% trans "Gratuit si" %}</th><th>{% trans "Délai" %}</th><th>{% trans "Actif" %}</th></tr></thead>
             <tbody>
               {% for m in methods %}
               <tr>
@@ -47,7 +48,7 @@
                 <td>{{ m.base_price }}€</td>
                 <td>{% if m.free_above %}> {{ m.free_above }}€{% else %}—{% endif %}</td>
                 <td>{{ m.estimated_days }} j</td>
-                <td>{% if m.is_active %}<span class="badge-status badge-paid">Oui</span>{% else %}<span class="badge-status badge-cancelled">Non</span>{% endif %}</td>
+                <td>{% if m.is_active %}<span class="badge-status badge-paid">{% trans "Oui" %}</span>{% else %}<span class="badge-status badge-cancelled">{% trans "Non" %}</span>{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -58,8 +59,8 @@
     </div>
     <div class="col-12 col-lg-4">
       <div class="d-grid gap-2">
-        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
-        <a href="{% url 'ecommerce:carrier_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer" %}</button>
+        <a href="{% url 'ecommerce:carrier_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </div>
   </div>

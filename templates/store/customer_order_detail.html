@@ -1,5 +1,6 @@
 {% extends "store/base_store.html" %}
-{% block title %}Commande {{ order.order_number }} — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with num=order.order_number %}Commande {{ num }}{% endblocktrans %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row g-4">
@@ -9,11 +10,11 @@
         <div class="fw-bold mb-1">{{ user.get_full_name|default:user.email }}</div>
         <div class="text-muted small mb-3">{{ user.email }}</div>
         <nav class="nav flex-column">
-          <a href="{% url 'store:customer_account' %}" class="nav-link text-dark"><i class="bi bi-house me-2"></i>Tableau de bord</a>
-          <a href="{% url 'store:customer_orders' %}" class="nav-link fw-semibold text-dark active"><i class="bi bi-bag me-2"></i>Mes commandes</a>
-          <a href="{% url 'store:customer_returns' %}" class="nav-link text-dark"><i class="bi bi-arrow-return-left me-2"></i>Mes retours</a>
+          <a href="{% url 'store:customer_account' %}" class="nav-link text-dark"><i class="bi bi-house me-2"></i>{% trans "Tableau de bord" %}</a>
+          <a href="{% url 'store:customer_orders' %}" class="nav-link fw-semibold text-dark active"><i class="bi bi-bag me-2"></i>{% trans "Mes commandes" %}</a>
+          <a href="{% url 'store:customer_returns' %}" class="nav-link text-dark"><i class="bi bi-arrow-return-left me-2"></i>{% trans "Mes retours" %}</a>
           <hr class="my-2">
-          <a href="{% url 'store:customer_logout' %}" class="nav-link text-danger"><i class="bi bi-box-arrow-right me-2"></i>Se déconnecter</a>
+          <a href="{% url 'store:customer_logout' %}" class="nav-link text-danger"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Se déconnecter" %}</a>
         </nav>
       </div>
     </div>
@@ -22,16 +23,16 @@
       <!-- Header -->
       <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
-          <a href="{% url 'store:customer_orders' %}" class="text-muted small d-block mb-1"><i class="bi bi-arrow-left me-1"></i>Mes commandes</a>
+          <a href="{% url 'store:customer_orders' %}" class="text-muted small d-block mb-1"><i class="bi bi-arrow-left me-1"></i>{% trans "Mes commandes" %}</a>
           <h2 class="fw-bold mb-0 font-monospace">{{ order.order_number }}</h2>
           <span class="text-muted small">{{ order.created_at|date:"d/m/Y à H:i" }}</span>
         </div>
         <div>
-          {% if order.status == 'pending' %}<span class="badge bg-warning text-dark fs-6">En attente</span>
-          {% elif order.status == 'confirmed' %}<span class="badge bg-info fs-6">Confirmée</span>
-          {% elif order.status == 'shipped' %}<span class="badge bg-primary fs-6">Expédiée</span>
-          {% elif order.status == 'delivered' %}<span class="badge bg-success fs-6">Livrée</span>
-          {% elif order.status == 'cancelled' %}<span class="badge bg-danger fs-6">Annulée</span>
+          {% if order.status == 'pending' %}<span class="badge bg-warning text-dark fs-6">{% trans "En attente" %}</span>
+          {% elif order.status == 'confirmed' %}<span class="badge bg-info fs-6">{% trans "Confirmée" %}</span>
+          {% elif order.status == 'shipped' %}<span class="badge bg-primary fs-6">{% trans "Expédiée" %}</span>
+          {% elif order.status == 'delivered' %}<span class="badge bg-success fs-6">{% trans "Livrée" %}</span>
+          {% elif order.status == 'cancelled' %}<span class="badge bg-danger fs-6">{% trans "Annulée" %}</span>
           {% else %}<span class="badge bg-secondary fs-6">{{ order.status }}</span>{% endif %}
         </div>
       </div>
@@ -39,7 +40,7 @@
       <!-- Progression livraison -->
       {% if order.status in 'confirmed,shipped,delivered' %}
       <div class="border rounded-3 p-4 mb-4">
-        <h6 class="fw-bold mb-3">Suivi de commande</h6>
+        <h6 class="fw-bold mb-3">{% trans "Suivi de commande" %}</h6>
         <div class="d-flex justify-content-between position-relative mb-3" style="--bs-progress-height:4px">
           <div class="progress position-absolute" style="top:16px;left:16px;right:16px;height:4px;z-index:0">
             <div class="progress-bar bg-primary" style="width:{% if order.status == 'confirmed' %}0{% elif order.status == 'shipped' %}50{% elif order.status == 'delivered' %}100{% else %}0{% endif %}%"></div>
@@ -58,11 +59,11 @@
 
       <!-- Lignes commande -->
       <div class="border rounded-3 overflow-hidden mb-4">
-        <div class="p-3 border-bottom bg-light fw-bold">Articles commandés</div>
+        <div class="p-3 border-bottom bg-light fw-bold">{% trans "Articles commandés" %}</div>
         <div class="table-responsive">
           <table class="table mb-0">
             <thead class="table-light"><tr>
-              <th>Produit</th><th class="text-center">Qté</th><th class="text-end">Prix unit.</th><th class="text-end">Total</th>
+              <th>{% trans "Produit" %}</th><th class="text-center">{% trans "Qté" %}</th><th class="text-end">{% trans "Prix unit." %}</th><th class="text-end">{% trans "Total" %}</th>
             </tr></thead>
             <tbody>
               {% for line in order.lines.all %}
@@ -75,10 +76,10 @@
               {% endfor %}
             </tbody>
             <tfoot class="table-light">
-              <tr><td colspan="3" class="text-end text-muted">Sous-total</td><td class="text-end">{{ order.subtotal|floatformat:2 }}€</td></tr>
-              {% if order.discount_amount %}<tr><td colspan="3" class="text-end text-success">Remise</td><td class="text-end text-success">-{{ order.discount_amount|floatformat:2 }}€</td></tr>{% endif %}
-              <tr><td colspan="3" class="text-end text-muted">Livraison</td><td class="text-end">{{ order.shipping_cost|floatformat:2 }}€</td></tr>
-              <tr><td colspan="3" class="text-end fw-bold">Total TTC</td><td class="text-end fw-bold text-primary">{{ order.total_ttc|floatformat:2 }}€</td></tr>
+              <tr><td colspan="3" class="text-end text-muted">{% trans "Sous-total" %}</td><td class="text-end">{{ order.subtotal|floatformat:2 }}€</td></tr>
+              {% if order.discount_amount %}<tr><td colspan="3" class="text-end text-success">{% trans "Remise" %}</td><td class="text-end text-success">-{{ order.discount_amount|floatformat:2 }}€</td></tr>{% endif %}
+              <tr><td colspan="3" class="text-end text-muted">{% trans "Livraison" %}</td><td class="text-end">{{ order.shipping_cost|floatformat:2 }}€</td></tr>
+              <tr><td colspan="3" class="text-end fw-bold">{% trans "Total TTC" %}</td><td class="text-end fw-bold text-primary">{{ order.total_ttc|floatformat:2 }}€</td></tr>
             </tfoot>
           </table>
         </div>
@@ -88,16 +89,16 @@
       <div class="row g-3">
         <div class="col-md-6">
           <div class="border rounded-3 p-3 h-100">
-            <h6 class="fw-bold mb-2"><i class="bi bi-geo-alt me-1"></i>Adresse de livraison</h6>
+            <h6 class="fw-bold mb-2"><i class="bi bi-geo-alt me-1"></i>{% trans "Adresse de livraison" %}</h6>
             <p class="text-muted small mb-0">{{ order.shipping_address|linebreaks }}</p>
           </div>
         </div>
         <div class="col-md-6">
           <div class="border rounded-3 p-3 h-100">
-            <h6 class="fw-bold mb-2"><i class="bi bi-truck me-1"></i>Mode de livraison</h6>
+            <h6 class="fw-bold mb-2"><i class="bi bi-truck me-1"></i>{% trans "Mode de livraison" %}</h6>
             <p class="text-muted small mb-1">{{ order.shipping_method|default:"Standard" }}</p>
             {% if order.tracking_number %}
-            <p class="small mb-0"><strong>N° de suivi :</strong> <span class="font-monospace">{{ order.tracking_number }}</span></p>
+            <p class="small mb-0"><strong>{% trans "N° de suivi :" %}</strong> <span class="font-monospace">{{ order.tracking_number }}</span></p>
             {% endif %}
           </div>
         </div>
@@ -105,11 +106,11 @@
 
       <div class="d-flex gap-2 mt-4 flex-wrap">
         <a href="{% url 'store:order_tracking' %}?order={{ order.order_number }}" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-geo-alt me-1"></i>Suivre ma commande
+          <i class="bi bi-geo-alt me-1"></i>{% trans "Suivre ma commande" %}
         </a>
         {% if order.status == 'delivered' %}
         <a href="#" class="btn btn-outline-secondary btn-sm">
-          <i class="bi bi-arrow-return-left me-1"></i>Faire un retour
+          <i class="bi bi-arrow-return-left me-1"></i>{% trans "Faire un retour" %}
         </a>
         {% endif %}
       </div>

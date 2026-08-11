@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'inventory:product_list' %}">Produits</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inventory:product_list' %}">{% trans "Produits" %}</a></li>
 <li class="breadcrumb-item active">{{ product.name }}</li>
 {% endblock %}
 
@@ -10,23 +11,23 @@
     <div>
       <h1 class="detail-title">{{ product.name }}</h1>
       <div class="detail-meta">
-        {% if product.is_active %}<span class="badge-status badge-active">Actif</span>{% else %}<span class="badge-status badge-inactive">Inactif</span>{% endif %}
-        {% if product.needs_reorder %}<span class="badge-status badge-overdue"><i class="bi bi-exclamation-triangle me-1"></i>Stock faible</span>{% endif %}
-        {% if product.reference %}<span>Réf. {{ product.reference }}</span>{% endif %}
+        {% if product.is_active %}<span class="badge-status badge-active">{% trans "Actif" %}</span>{% else %}<span class="badge-status badge-inactive">{% trans "Inactif" %}</span>{% endif %}
+        {% if product.needs_reorder %}<span class="badge-status badge-overdue"><i class="bi bi-exclamation-triangle me-1"></i>{% trans "Stock faible" %}</span>{% endif %}
+        {% if product.reference %}<span>{% trans "Réf." %} {{ product.reference }}</span>{% endif %}
         <span>{{ product.get_product_type_display }}</span>
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'inventory:movement_create' %}?product={{ product.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-arrow-left-right me-1"></i>Mouvement stock</a>
-      <a href="{% url 'inventory:product_edit' product.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
-      <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'inventory:movement_create' %}?product={{ product.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-arrow-left-right me-1"></i>{% trans "Mouvement stock" %}</a>
+      <a href="{% url 'inventory:product_edit' product.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
+      <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
   <div class="erp-tabs mt-3">
-    <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>Informations</a>
-    <a href="?tab=stock" class="erp-tab {% if tab == 'stock' %}active{% endif %}"><i class="bi bi-layers me-1"></i>Stock</a>
-    <a href="?tab=movements" class="erp-tab {% if tab == 'movements' %}active{% endif %}"><i class="bi bi-arrow-left-right me-1"></i>Mouvements</a>
+    <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>{% trans "Informations" %}</a>
+    <a href="?tab=stock" class="erp-tab {% if tab == 'stock' %}active{% endif %}"><i class="bi bi-layers me-1"></i>{% trans "Stock" %}</a>
+    <a href="?tab=movements" class="erp-tab {% if tab == 'movements' %}active{% endif %}"><i class="bi bi-arrow-left-right me-1"></i>{% trans "Mouvements" %}</a>
   </div>
 </div>
 {% endblock %}
@@ -37,20 +38,20 @@
   <div class="col-12 col-md-4">
     <div class="kpi-card" style="--kpi-color:{% if product.needs_reorder %}#DC2626{% else %}#16A34A{% endif %}">
       <div class="kpi-icon"><i class="bi bi-layers"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ product.stock_quantity|floatformat:0 }}</div><div class="kpi-label">Stock actuel ({{ product.unit }})</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ product.stock_quantity|floatformat:0 }}</div><div class="kpi-label">{% blocktrans with unit=product.unit %}Stock actuel ({{ unit }}){% endblocktrans %}</div></div>
     </div>
   </div>
   <div class="col-12 col-md-4">
     <div class="kpi-card" style="--kpi-color:#F59E0B">
       <div class="kpi-icon"><i class="bi bi-arrow-down-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ product.min_stock_quantity|floatformat:0 }}</div><div class="kpi-label">Stock minimum</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ product.min_stock_quantity|floatformat:0 }}</div><div class="kpi-label">{% trans "Stock minimum" %}</div></div>
     </div>
   </div>
   {% if product.max_stock_quantity %}
   <div class="col-12 col-md-4">
-    <div class="kpi-card" style="--kpi-color:#2563EB">
+    <div class="kpi-card" style="--kpi-color:#C6A15B">
       <div class="kpi-icon"><i class="bi bi-arrow-up-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ product.max_stock_quantity|floatformat:0 }}</div><div class="kpi-label">Stock maximum</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ product.max_stock_quantity|floatformat:0 }}</div><div class="kpi-label">{% trans "Stock maximum" %}</div></div>
     </div>
   </div>
   {% endif %}
@@ -59,12 +60,12 @@
 {% elif tab == 'movements' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-arrow-left-right me-1 text-primary"></i>Mouvements de stock</h6>
-    <a href="{% url 'inventory:movement_create' %}?product={{ product.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>Saisir un mouvement</a>
+    <h6 class="card-title mb-0"><i class="bi bi-arrow-left-right me-1 text-primary"></i>{% trans "Mouvements de stock" %}</h6>
+    <a href="{% url 'inventory:movement_create' %}?product={{ product.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Saisir un mouvement" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>Date</th><th>Type</th><th class="text-end">Quantité</th><th>Référence</th><th>Notes</th></tr></thead>
+      <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Type" %}</th><th class="text-end">{% trans "Quantité" %}</th><th>{% trans "Référence" %}</th><th>{% trans "Notes" %}</th></tr></thead>
       <tbody>
         {% for mv in movements %}
         <tr>
@@ -77,7 +78,7 @@
           <td class="small text-muted">{{ mv.notes|truncatechars:50|default:"—" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-3 small">Aucun mouvement enregistré.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3 small">{% trans "Aucun mouvement enregistré." %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -88,41 +89,41 @@
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations générales</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Informations générales" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Type</label><div class="value">{{ product.get_product_type_display }}</div></div>
-        <div class="info-item"><label>Référence</label><div class="value {% if not product.reference %}empty{% endif %}">{{ product.reference|default:"—" }}</div></div>
-        <div class="info-item"><label>Code-barres</label><div class="value {% if not product.barcode %}empty{% endif %}">{{ product.barcode|default:"—" }}</div></div>
-        <div class="info-item"><label>Catégorie</label><div class="value {% if not product.category %}empty{% endif %}">{{ product.category.name|default:"—" }}</div></div>
-        <div class="info-item"><label>Unité</label><div class="value">{{ product.unit }}</div></div>
-        <div class="info-item"><label>Poids</label><div class="value {% if not product.weight %}empty{% endif %}">{% if product.weight %}{{ product.weight }} kg{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Type" %}</label><div class="value">{{ product.get_product_type_display }}</div></div>
+        <div class="info-item"><label>{% trans "Référence" %}</label><div class="value {% if not product.reference %}empty{% endif %}">{{ product.reference|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Code-barres" %}</label><div class="value {% if not product.barcode %}empty{% endif %}">{{ product.barcode|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Catégorie" %}</label><div class="value {% if not product.category %}empty{% endif %}">{{ product.category.name|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Unité" %}</label><div class="value">{{ product.unit }}</div></div>
+        <div class="info-item"><label>{% trans "Poids" %}</label><div class="value {% if not product.weight %}empty{% endif %}">{% if product.weight %}{{ product.weight }} kg{% else %}—{% endif %}</div></div>
       </div>
     </div>
     {% if product.description %}
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Description</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Description" %}</h6></div>
       <div class="p-3 small text-muted">{{ product.description|linebreaks }}</div>
     </div>
     {% endif %}
   </div>
   <div class="col-12 col-lg-6">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>Tarifs</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>{% trans "Tarifs" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Prix vente HT</label><div class="value fw-semibold text-primary">{{ product.sale_price|floatformat:2 }} €</div></div>
-        <div class="info-item"><label>Prix achat HT</label><div class="value">{{ product.purchase_price|floatformat:2 }} €</div></div>
-        <div class="info-item"><label>TVA</label><div class="value">{{ product.vat_rate }} %</div></div>
-        <div class="info-item"><label>Prix vente TTC</label><div class="value fw-semibold">{{ product.sale_price_ttc|floatformat:2|default:"—" }} €</div></div>
+        <div class="info-item"><label>{% trans "Prix vente HT" %}</label><div class="value fw-semibold text-primary">{{ product.sale_price|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>{% trans "Prix achat HT" %}</label><div class="value">{{ product.purchase_price|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>{% trans "TVA" %}</label><div class="value">{{ product.vat_rate }} %</div></div>
+        <div class="info-item"><label>{% trans "Prix vente TTC" %}</label><div class="value fw-semibold">{{ product.sale_price_ttc|floatformat:2|default:"—" }} €</div></div>
       </div>
     </div>
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-layers me-1 text-primary"></i>Stock</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-layers me-1 text-primary"></i>{% trans "Stock" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Gestion du stock</label><div class="value">{% if product.track_inventory %}Activée{% else %}Désactivée{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Gestion du stock" %}</label><div class="value">{% if product.track_inventory %}{% trans "Activée" %}{% else %}{% trans "Désactivée" %}{% endif %}</div></div>
         {% if product.track_inventory %}
-        <div class="info-item"><label>Stock actuel</label><div class="value {% if product.needs_reorder %}text-danger fw-semibold{% endif %}">{{ product.stock_quantity|floatformat:0 }} {{ product.unit }}</div></div>
-        <div class="info-item"><label>Stock minimum</label><div class="value">{{ product.min_stock_quantity|floatformat:0 }} {{ product.unit }}</div></div>
-        <div class="info-item"><label>Délai appro.</label><div class="value">{{ product.lead_time_days }} jours</div></div>
+        <div class="info-item"><label>{% trans "Stock actuel" %}</label><div class="value {% if product.needs_reorder %}text-danger fw-semibold{% endif %}">{{ product.stock_quantity|floatformat:0 }} {{ product.unit }}</div></div>
+        <div class="info-item"><label>{% trans "Stock minimum" %}</label><div class="value">{{ product.min_stock_quantity|floatformat:0 }} {{ product.unit }}</div></div>
+        <div class="info-item"><label>{% trans "Délai appro." %}</label><div class="value">{% blocktrans with days=product.lead_time_days %}{{ days }} jours{% endblocktrans %}</div></div>
         {% endif %}
       </div>
     </div>

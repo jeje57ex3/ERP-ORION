@@ -1,12 +1,12 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Fidélité — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Fidélité" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Fidélité</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Cartes de fidélité et points clients.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Fidélité" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Cartes de fidélité et points clients." %}</p>{% endblock %}
 {% block page_actions %}
 <form method="get" class="d-flex gap-2">
-  <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="N° carte ou client..." style="width:220px;">
+  <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="{% trans 'N° carte ou client...' %}" style="width:220px;">
   <button class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
 </form>
 {% endblock %}
@@ -17,7 +17,7 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-star"></i></div>
       <div class="orion-kpi-value">{{ total_active }}</div>
-      <div class="orion-kpi-label">Cartes actives</div>
+      <div class="orion-kpi-label">{% trans "Cartes actives" %}</div>
     </div>
   </div>
 </div>
@@ -26,7 +26,7 @@
   <div class="orion-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="orion-table mb-0">
-        <thead><tr><th>N° Carte</th><th>Client</th><th class="text-end">Points</th><th class="text-end">CA total</th><th>Statut</th><th>Depuis</th></tr></thead>
+        <thead><tr><th>{% trans "N° Carte" %}</th><th>{% trans "Client" %}</th><th class="text-end">{% trans "Points" %}</th><th class="text-end">{% trans "CA total" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Depuis" %}</th></tr></thead>
         <tbody>
           {% for card in cards %}
           <tr>
@@ -34,15 +34,15 @@
             <td class="small">{{ card.customer.name }}</td>
             <td class="text-end small fw-semibold">{{ card.points }}</td>
             <td class="text-end small">{{ card.total_spent }} €</td>
-            <td>{% if card.is_active %}<span class="orion-badge orion-badge-success">Active</span>{% else %}<span class="orion-badge orion-badge-secondary">Inactive</span>{% endif %}</td>
+            <td>{% if card.is_active %}<span class="orion-badge orion-badge-success">{% trans "Active" %}</span>{% else %}<span class="orion-badge orion-badge-secondary">{% trans "Inactive" %}</span>{% endif %}</td>
             <td class="small text-muted">{{ card.created_at|date:"d/m/Y" }}</td>
           </tr>
           {% empty %}
           <tr><td colspan="6">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-star"></i></div>
-              <div class="orion-empty-title">Aucune carte de fidélité</div>
-              <div class="orion-empty-text">Les cartes seront créées lors des ventes en caisse.</div>
+              <div class="orion-empty-title">{% trans "Aucune carte de fidélité" %}</div>
+              <div class="orion-empty-text">{% trans "Les cartes seront créées lors des ventes en caisse." %}</div>
             </div>
           </td></tr>
           {% endfor %}

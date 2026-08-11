@@ -1,21 +1,22 @@
 {% extends "erp_base.html" %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Mes documents</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Vos documents personnels mis à disposition par les RH.</p>{% endblock %}
+{% load i18n %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Mes documents" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Vos documents personnels mis à disposition par les RH." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-person me-2"></i>Mes documents</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-person me-2"></i>{% trans "Mes documents" %}</h6></div>
   <div class="erp-orion-orion-card-body">
     {% if documents %}
     <div class="table-responsive">
       <table class="orion-table align-middle">
         <thead>
           <tr>
-            <th>Document</th>
-            <th>Type</th>
-            <th>Ajouté le</th>
-            <th>Expire le</th>
-            <th>Signature</th>
+            <th>{% trans "Document" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th>{% trans "Ajouté le" %}</th>
+            <th>{% trans "Expire le" %}</th>
+            <th>{% trans "Signature" %}</th>
             <th></th>
           </tr>
         </thead>
@@ -37,13 +38,13 @@
             </td>
             <td class="text-center">
               {% if doc.requires_signature %}
-                {% if doc.signed_at %}<span class="orion-badge success"><i class="bi bi-check-lg me-1"></i>Signé</span>
-                {% else %}<span class="orion-badge warning text-dark"><i class="bi bi-pen me-1"></i>À signer</span>{% endif %}
+                {% if doc.signed_at %}<span class="orion-badge success"><i class="bi bi-check-lg me-1"></i>{% trans "Signé" %}</span>
+                {% else %}<span class="orion-badge warning text-dark"><i class="bi bi-pen me-1"></i>{% trans "À signer" %}</span>{% endif %}
               {% else %}<span class="text-muted">—</span>{% endif %}
             </td>
             <td class="text-end">
               <a href="{% url 'hr:private_document_download' doc.pk %}" class="orion-btn sm btn-outline-primary">
-                <i class="bi bi-download me-1"></i>Télécharger
+                <i class="bi bi-download me-1"></i>{% trans "Télécharger" %}
               </a>
             </td>
           </tr>
@@ -54,7 +55,7 @@
     {% else %}
     <div class="empty-state text-center py-5">
       <i class="bi bi-file-person display-5 text-muted mb-3 d-block"></i>
-      <p class="text-muted">Aucun document disponible pour le moment.</p>
+      <p class="text-muted">{% trans "Aucun document disponible pour le moment." %}</p>
     </div>
     {% endif %}
   </div>

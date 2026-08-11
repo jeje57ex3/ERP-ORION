@@ -1,0 +1,96 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">{% trans "Parrainages" %}</li>
+{% endblock %}
+
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Codes parrainage SIÈCLE-XXXXXX — suivi des parrains, filleuls et commissions." %}</p>{% endblock %}
+
+{% block content %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-people-fill"></i></div>
+      <div><div class="orion-kpi-value">{{ total }}</div><div class="orion-kpi-label">{% trans "Total parrainages" %}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi" style="--kpi-color:#16A34A">
+      <div class="orion-kpi-icon" style="background:#F0FDF4;color:#16A34A"><i class="bi bi-check-circle-fill"></i></div>
+      <div><div class="orion-kpi-value">{{ referrals|length }}</div><div class="orion-kpi-label">{% trans "Filtrés" %}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="d-flex flex-wrap gap-2 mb-4">
+  <input type="text" name="q" value="{{ search }}" placeholder="{% trans 'Email parrain ou filleul…' %}" class="orion-input" style="width:280px">
+  <select name="status" class="orion-select" style="width:180px">
+    <option value="">{% trans "Tous les statuts" %}</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="orion-btn orion-btn-outline"><i class="bi bi-search me-1"></i>{% trans "Filtrer" %}</button>
+  {% if search or status_filter %}
+  <a href="{% url 'ecommerce:referral_list' %}" class="orion-btn orion-btn-ghost">{% trans "Réinitialiser" %}</a>
+  {% endif %}
+</form>
+
+<!-- Tableau -->
+<div class="orion-table-wrapper">
+<table class="orion-table">
+  <thead>
+    <tr>
+      <th>{% trans "Date" %}</th>
+      <th>{% trans "Code" %}</th>
+      <th>{% trans "Parrain" %}</th>
+      <th>{% trans "Filleul" %}</th>
+      <th>{% trans "Commande" %}</th>
+      <th>{% trans "Commission" %}</th>
+      <th>{% trans "Points parrain" %}</th>
+      <th>{% trans "Statut" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ref in referrals %}
+    <tr>
+      <td style="font-size:12px;white-space:nowrap">{{ ref.created_at|date:"d/m/Y" }}</td>
+      <td>
+        {% if ref.affiliate_code %}
+        <code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:12px">{{ ref.affiliate_code.code }}</code>
+        {% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+      <td style="font-size:13px">{{ ref.referrer_email }}</td>
+      <td style="font-size:13px">{{ ref.referred_email }}</td>
+      <td>
+        {% if ref.order %}
+        <a href="{% url 'ecommerce:order_detail' pk=ref.order.pk %}" style="font-size:12px">#{{ ref.order.pk }}</a>
+        {% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+      <td>{{ ref.commission_amount }} €</td>
+      <td>{{ ref.points_reward }} {% trans "pts" %}</td>
+      <td>
+        {% if ref.status == 'validated' %}<span class="orion-badge orion-badge-success">{% trans "Validé" %}</span>
+        {% elif ref.status == 'pending' %}<span class="orion-badge orion-badge-warning">{% trans "En attente" %}</span>
+        {% elif ref.status == 'rejected' %}<span class="orion-badge orion-badge-danger">{% trans "Refusé" %}</span>
+        {% elif ref.status == 'paid' %}<span class="orion-badge orion-badge-success"><i class="bi bi-check2-all me-1"></i>{% trans "Payé" %}</span>
+        {% elif ref.status == 'cancelled' %}<span class="orion-badge">{% trans "Annulé" %}</span>
+        {% else %}<span class="orion-badge">{{ ref.get_status_display }}</span>{% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" class="text-center py-5 text-muted">{% trans "Aucun parrainage enregistré." %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

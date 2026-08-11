@@ -1,4 +1,5 @@
 ﻿{% extends "websites/public/base.html" %}
+{% load i18n %}
 
 {% block meta_title %}{{ post.title }} — {{ site.name }}{% endblock %}
 {% block meta_description %}{{ post.meta_description|default:post.excerpt }}{% endblock %}
@@ -28,7 +29,7 @@
             <div class="d-flex align-items-center gap-3 text-muted small mt-3 flex-wrap">
               {% if post.author %}<span><i class="bi bi-person me-1"></i>{{ post.author.get_full_name|default:post.author.username }}</span>{% endif %}
               {% if post.published_at %}<span><i class="bi bi-calendar3 me-1"></i>{{ post.published_at|date:"d F Y" }}</span>{% endif %}
-              {% if post.reading_time %}<span><i class="bi bi-clock me-1"></i>{{ post.reading_time }} min de lecture</span>{% endif %}
+              {% if post.reading_time %}<span><i class="bi bi-clock me-1"></i>{% blocktrans with rt=post.reading_time %}{{ rt }} min de lecture{% endblocktrans %}</span>{% endif %}
             </div>
           </div>
 
@@ -40,10 +41,10 @@
           <!-- Navigation -->
           <div class="d-flex justify-content-between mt-5 pt-4 border-top">
             <a href="{% url 'public_websites:blog_list' site.public_slug %}" class="btn-site-outline">
-              <i class="bi bi-arrow-left me-1"></i>Retour au blog
+              <i class="bi bi-arrow-left me-1"></i>{% trans "Retour au blog" %}
             </a>
             <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site">
-              <i class="bi bi-envelope me-1"></i>Nous contacter
+              <i class="bi bi-envelope me-1"></i>{% trans "Nous contacter" %}
             </a>
           </div>
 
@@ -53,7 +54,7 @@
         {% if related_posts %}
         <div class="col-12 col-lg-4 mt-5 mt-lg-0">
           <div class="bg-white p-4 rounded-3 border sticky-top" style="top:90px;">
-            <h3 class="h6 fw-bold mb-3">Articles similaires</h3>
+            <h3 class="h6 fw-bold mb-3">{% trans "Articles similaires" %}</h3>
             {% for rp in related_posts %}
             <a href="{% url 'public_websites:blog_detail' site.public_slug rp.slug %}" class="d-flex gap-3 mb-3 text-decoration-none">
               {% if rp.cover_image %}

@@ -1,5 +1,6 @@
 {% extends "store/base_store.html" %}
-{% block title %}Mes retours — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Mes retours" %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row g-4">
@@ -9,17 +10,17 @@
         <div class="fw-bold mb-1">{{ user.get_full_name|default:user.email }}</div>
         <div class="text-muted small mb-3">{{ user.email }}</div>
         <nav class="nav flex-column">
-          <a href="{% url 'store:customer_account' %}" class="nav-link text-dark"><i class="bi bi-house me-2"></i>Tableau de bord</a>
-          <a href="{% url 'store:customer_orders' %}" class="nav-link text-dark"><i class="bi bi-bag me-2"></i>Mes commandes</a>
-          <a href="{% url 'store:customer_returns' %}" class="nav-link fw-semibold text-dark active"><i class="bi bi-arrow-return-left me-2"></i>Mes retours</a>
+          <a href="{% url 'store:customer_account' %}" class="nav-link text-dark"><i class="bi bi-house me-2"></i>{% trans "Tableau de bord" %}</a>
+          <a href="{% url 'store:customer_orders' %}" class="nav-link text-dark"><i class="bi bi-bag me-2"></i>{% trans "Mes commandes" %}</a>
+          <a href="{% url 'store:customer_returns' %}" class="nav-link fw-semibold text-dark active"><i class="bi bi-arrow-return-left me-2"></i>{% trans "Mes retours" %}</a>
           <hr class="my-2">
-          <a href="{% url 'store:customer_logout' %}" class="nav-link text-danger"><i class="bi bi-box-arrow-right me-2"></i>Se déconnecter</a>
+          <a href="{% url 'store:customer_logout' %}" class="nav-link text-danger"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Se déconnecter" %}</a>
         </nav>
       </div>
     </div>
 
     <div class="col-12 col-md-9">
-      <h2 class="fw-bold mb-4">Mes retours</h2>
+      <h2 class="fw-bold mb-4">{% trans "Mes retours" %}</h2>
 
       {% if returns %}
       <div class="d-flex flex-column gap-3">
@@ -27,22 +28,22 @@
         <div class="border rounded-3 p-4">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <div class="fw-bold">Retour — commande <span class="font-monospace">{{ ret.order.order_number }}</span></div>
-              <div class="small text-muted">Demande du {{ ret.created_at|date:"d/m/Y" }}</div>
+              <div class="fw-bold">{% blocktrans with num=ret.order.order_number %}Retour — commande <span class="font-monospace">{{ num }}</span>{% endblocktrans %}</div>
+              <div class="small text-muted">{% blocktrans with d=ret.created_at|date:"d/m/Y" %}Demande du {{ d }}{% endblocktrans %}</div>
             </div>
-            {% if ret.status == 'requested' %}<span class="badge bg-warning text-dark">En attente</span>
-            {% elif ret.status == 'approved' %}<span class="badge bg-info">Approuvé</span>
-            {% elif ret.status == 'received' %}<span class="badge bg-primary">Reçu</span>
-            {% elif ret.status == 'refunded' %}<span class="badge bg-success">Remboursé</span>
-            {% elif ret.status == 'closed' %}<span class="badge bg-secondary">Clôturé</span>
+            {% if ret.status == 'requested' %}<span class="badge bg-warning text-dark">{% trans "En attente" %}</span>
+            {% elif ret.status == 'approved' %}<span class="badge bg-info">{% trans "Approuvé" %}</span>
+            {% elif ret.status == 'received' %}<span class="badge bg-primary">{% trans "Reçu" %}</span>
+            {% elif ret.status == 'refunded' %}<span class="badge bg-success">{% trans "Remboursé" %}</span>
+            {% elif ret.status == 'closed' %}<span class="badge bg-secondary">{% trans "Clôturé" %}</span>
             {% else %}<span class="badge bg-secondary">{{ ret.status }}</span>{% endif %}
           </div>
           <div class="small text-muted mb-2">
-            <strong>Motif :</strong> {{ ret.reason }}
+            <strong>{% trans "Motif :" %}</strong> {{ ret.reason }}
           </div>
           {% if ret.staff_notes %}
           <div class="alert alert-light border small py-2 mb-2">
-            <i class="bi bi-chat-text me-1"></i><strong>Message du service client :</strong> {{ ret.staff_notes }}
+            <i class="bi bi-chat-text me-1"></i><strong>{% trans "Message du service client :" %}</strong> {{ ret.staff_notes }}
           </div>
           {% endif %}
         </div>
@@ -51,18 +52,18 @@
       {% else %}
       <div class="border rounded-3 p-5 text-center text-muted">
         <i class="bi bi-arrow-return-left fs-1 d-block mb-3"></i>
-        <h5>Aucun retour</h5>
-        <p>Vous n'avez effectué aucune demande de retour.</p>
-        <a href="{% url 'store:customer_orders' %}" class="btn btn-outline-secondary btn-sm">Voir mes commandes</a>
+        <h5>{% trans "Aucun retour" %}</h5>
+        <p>{% trans "Vous n'avez effectué aucune demande de retour." %}</p>
+        <a href="{% url 'store:customer_orders' %}" class="btn btn-outline-secondary btn-sm">{% trans "Voir mes commandes" %}</a>
       </div>
       {% endif %}
 
       <!-- Politique de retours -->
       <div class="border rounded-3 p-4 mt-4 bg-light">
-        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>Politique de retours</h6>
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>{% trans "Politique de retours" %}</h6>
         <p class="small text-muted mb-0">
-          Vous avez <strong>30 jours</strong> après réception pour retourner un article. Les articles doivent être dans leur état d'origine, non utilisés et dans leur emballage d'origine.
-          Pour initier un retour, contactez notre service client.
+          {% blocktrans %}Vous avez <strong>30 jours</strong> après réception pour retourner un article. Les articles doivent être dans leur état d'origine, non utilisés et dans leur emballage d'origine.
+          Pour initier un retour, contactez notre service client.{% endblocktrans %}
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 <aside class="erp-sidebar orion-sidebar" id="erpSidebar">
 
   <!-- Marque / Logo -->
@@ -13,11 +14,13 @@
              style="width:28px;height:28px;object-fit:contain">
       {% endif %}
     </div>
+    {% trans "ERP Multi-sociétés" as orion_sidebar_default_tagline %}
     <div class="sidebar-brand-text">
       <span class="brand-name">{{ brand_name|default:"Orion ERP" }}</span>
-      <span class="brand-sub">{% if current_company %}{{ current_company.name|truncatechars:22 }}{% else %}{{ brand_tagline|default:"ERP Multi-sociétés" }}{% endif %}</span>
+      <span class="brand-sub">{% if current_company %}{{ current_company.name|truncatechars:22 }}{% else %}{{ brand_tagline|default:orion_sidebar_default_tagline }}{% endif %}</span>
     </div>
-    <button class="sidebar-toggle-btn d-lg-none" id="sidebarClose" aria-label="Fermer">
+    {% trans "Fermer" as orion_sidebar_close_label %}
+    <button class="sidebar-toggle-btn d-lg-none" id="sidebarClose" aria-label="{{ orion_sidebar_close_label }}">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
@@ -49,7 +52,7 @@
         {% endfor %}
         {% if request.user.is_superuser %}
         <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{% url 'core:company_create' %}"><i class="bi bi-plus-circle me-2"></i>Nouvelle entreprise</a></li>
+        <li><a class="dropdown-item" href="{% url 'core:company_create' %}"><i class="bi bi-plus-circle me-2"></i>{% trans "Nouvelle entreprise" %}</a></li>
         {% endif %}
       </ul>
     </div>
@@ -57,7 +60,8 @@
   {% endif %}
 
   <!-- Navigation principale -->
-  <nav class="sidebar-nav" aria-label="Navigation principale">
+  {% trans "Navigation principale" as orion_sidebar_nav_label %}
+  <nav class="sidebar-nav" aria-label="{{ orion_sidebar_nav_label }}">
     {% for module in nav_modules %}
     <div class="nav-item {% if active_module == module.id %}active{% endif %}">
       {% if module.children %}
@@ -93,11 +97,14 @@
   </nav>
 
   <!-- Pied de sidebar -->
+  {% trans "Mon profil" as orion_sidebar_profile_title %}
+  {% trans "Avatar" as orion_sidebar_avatar_alt %}
+  {% trans "Déconnexion" as orion_sidebar_logout_title %}
   <div class="sidebar-footer">
-    <a href="{% url 'accounts:profile' %}" class="sidebar-user" title="Mon profil">
+    <a href="{% url 'accounts:profile' %}" class="sidebar-user" title="{{ orion_sidebar_profile_title }}">
       <div class="user-avatar">
         {% if request.user.profile.avatar %}
-          <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+          <img src="{{ request.user.profile.avatar.url }}" alt="{{ orion_sidebar_avatar_alt }}">
         {% else %}
           <span class="avatar-initials">{{ request.user.profile.initials }}</span>
         {% endif %}
@@ -107,7 +114,7 @@
         <span class="user-role">{{ request.user.profile.get_role_display }}</span>
       </div>
     </a>
-    <a href="{% url 'accounts:logout' %}" class="logout-btn" title="Déconnexion">
+    <a href="{% url 'accounts:logout' %}" class="logout-btn" title="{{ orion_sidebar_logout_title }}">
       <i class="bi bi-box-arrow-right"></i>
     </a>
   </div>

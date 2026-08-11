@@ -1,21 +1,21 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
 {% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Commandes web</li>
+<li class="breadcrumb-item active">{% trans "Commandes web" %}</li>
 {% endblock %}
 
-{% block page_subtitle %}<p class="orion-page-subtitle">Centralisez et traitez les commandes issues de votre boutique en ligne.</p>{% endblock %}
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Centralisez et traitez les commandes issues de votre boutique en ligne." %}</p>{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'ecommerce:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Confirmer</a>
-<button type="button" class="orion-btn orion-btn-outline" onclick="document.getElementById('prepare-form').submit()"><i class="bi bi-boxes me-1"></i>Préparer sélection</button>
-<a href="{% url 'ecommerce:order_import' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cloud-download me-1"></i>Importer commandes</a>
-<a href="{% url 'ecommerce:order_export' %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
+<a href="{% url 'ecommerce:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Confirmer" %}</a>
+<button type="button" class="orion-btn orion-btn-outline" onclick="document.getElementById('prepare-form').submit()"><i class="bi bi-boxes me-1"></i>{% trans "Préparer sélection" %}</button>
+<a href="{% url 'ecommerce:order_import' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cloud-download me-1"></i>{% trans "Importer commandes" %}</a>
+<a href="{% url 'ecommerce:order_export' %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>{% trans "Exporter" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -34,11 +34,11 @@
 <!-- KPIs -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#6366F1">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-inbox"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-inbox"></i></div>
       <div>
         <div class="orion-kpi-value">{{ new_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Nouvelles commandes</div>
+        <div class="orion-kpi-label">{% trans "Nouvelles commandes" %}</div>
       </div>
     </div>
   </div>
@@ -47,16 +47,16 @@
       <div class="orion-kpi-icon" style="background:#FFFBEB;color:#F59E0B"><i class="bi bi-box-seam"></i></div>
       <div>
         <div class="orion-kpi-value">{{ preparing_count|default:"0" }}</div>
-        <div class="orion-kpi-label">En préparation</div>
+        <div class="orion-kpi-label">{% trans "En préparation" %}</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#3B82F6">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#3B82F6"><i class="bi bi-truck"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-truck"></i></div>
       <div>
         <div class="orion-kpi-value">{{ shipped_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Expédiées</div>
+        <div class="orion-kpi-label">{% trans "Expédiées" %}</div>
       </div>
     </div>
   </div>
@@ -65,7 +65,7 @@
       <div class="orion-kpi-icon" style="background:#F0FDF4;color:#16A34A"><i class="bi bi-currency-euro"></i></div>
       <div>
         <div class="orion-kpi-value">{{ total_revenue|floatformat:0|default:"0" }} €</div>
-        <div class="orion-kpi-label">CA e-commerce</div>
+        <div class="orion-kpi-label">{% trans "CA e-commerce" %}</div>
       </div>
     </div>
   </div>
@@ -73,14 +73,14 @@
 
 <!-- Chips statut -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'ecommerce:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
-  <a href="?status=new" class="orion-filter-chip {% if status == 'new' %}active{% endif %}">Nouvelle</a>
-  <a href="?status=paid" class="orion-filter-chip {% if status == 'paid' %}active{% endif %}">Payée</a>
-  <a href="?status=processing" class="orion-filter-chip {% if status == 'processing' %}active{% endif %}">En préparation</a>
-  <a href="?status=shipped" class="orion-filter-chip {% if status == 'shipped' %}active{% endif %}">Expédiée</a>
-  <a href="?status=delivered" class="orion-filter-chip {% if status == 'delivered' %}active{% endif %}">Livrée</a>
-  <a href="?status=returned" class="orion-filter-chip {% if status == 'returned' %}active{% endif %}">Retournée</a>
-  <a href="?status=cancelled" class="orion-filter-chip {% if status == 'cancelled' %}active{% endif %}">Annulée</a>
+  <a href="{% url 'ecommerce:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Toutes" %}</a>
+  <a href="?status=new" class="orion-filter-chip {% if status == 'new' %}active{% endif %}">{% trans "Nouvelle" %}</a>
+  <a href="?status=paid" class="orion-filter-chip {% if status == 'paid' %}active{% endif %}">{% trans "Payée" %}</a>
+  <a href="?status=processing" class="orion-filter-chip {% if status == 'processing' %}active{% endif %}">{% trans "En préparation" %}</a>
+  <a href="?status=shipped" class="orion-filter-chip {% if status == 'shipped' %}active{% endif %}">{% trans "Expédiée" %}</a>
+  <a href="?status=delivered" class="orion-filter-chip {% if status == 'delivered' %}active{% endif %}">{% trans "Livrée" %}</a>
+  <a href="?status=returned" class="orion-filter-chip {% if status == 'returned' %}active{% endif %}">{% trans "Retournée" %}</a>
+  <a href="?status=cancelled" class="orion-filter-chip {% if status == 'cancelled' %}active{% endif %}">{% trans "Annulée" %}</a>
 </div>
 
 <!-- Barre de filtre -->
@@ -88,10 +88,10 @@
   <form method="get" class="d-flex gap-2 flex-wrap align-items-center w-100" id="prepare-form">
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     <i class="bi bi-search text-muted"></i>
-    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="N° commande, client…" style="max-width:260px;">
-    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="{% trans "N° commande, client…" %}" style="max-width:260px;">
+    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
     {% if q or status %}
-    <a href="{% url 'ecommerce:order_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>
+    <a href="{% url 'ecommerce:order_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>{% trans "Réinit." %}</a>
     {% endif %}
   </form>
 </div>
@@ -103,14 +103,14 @@
       <thead>
         <tr>
           <th><input type="checkbox" class="form-check-input" id="selectAll"></th>
-          <th>Numéro</th>
-          <th>Client</th>
-          <th>Canal</th>
-          <th>Date</th>
-          <th class="text-end">Montant TTC</th>
-          <th>Statut</th>
-          <th>Transporteur</th>
-          <th class="actions">Actions</th>
+          <th>{% trans "Numéro" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th>{% trans "Canal" %}</th>
+          <th>{% trans "Date" %}</th>
+          <th class="text-end">{% trans "Montant TTC" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Transporteur" %}</th>
+          <th class="actions">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -130,13 +130,13 @@
           <td class="small text-muted">{{ order.order_date|date:"d/m/Y" }}</td>
           <td class="text-end fw-semibold small">{{ order.total_ttc|floatformat:2 }} €</td>
           <td>
-            {% if order.status == 'new' %}<span class="orion-badge orion-badge-info">Nouvelle</span>
-            {% elif order.status == 'paid' %}<span class="orion-badge orion-badge-success">Payée</span>
-            {% elif order.status == 'processing' %}<span class="orion-badge orion-badge-warning">En préparation</span>
-            {% elif order.status == 'shipped' %}<span class="orion-badge orion-badge-info">Expédiée</span>
-            {% elif order.status == 'delivered' %}<span class="orion-badge orion-badge-success">Livrée</span>
-            {% elif order.status == 'returned' %}<span class="orion-badge orion-badge-purple">Retournée</span>
-            {% elif order.status == 'cancelled' %}<span class="orion-badge orion-badge-danger">Annulée</span>
+            {% if order.status == 'new' %}<span class="orion-badge orion-badge-info">{% trans "Nouvelle" %}</span>
+            {% elif order.status == 'paid' %}<span class="orion-badge orion-badge-success">{% trans "Payée" %}</span>
+            {% elif order.status == 'processing' %}<span class="orion-badge orion-badge-warning">{% trans "En préparation" %}</span>
+            {% elif order.status == 'shipped' %}<span class="orion-badge orion-badge-info">{% trans "Expédiée" %}</span>
+            {% elif order.status == 'delivered' %}<span class="orion-badge orion-badge-success">{% trans "Livrée" %}</span>
+            {% elif order.status == 'returned' %}<span class="orion-badge orion-badge-purple">{% trans "Retournée" %}</span>
+            {% elif order.status == 'cancelled' %}<span class="orion-badge orion-badge-danger">{% trans "Annulée" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ order.get_status_display }}</span>
             {% endif %}
           </td>
@@ -144,14 +144,14 @@
           <td class="actions">
             <div class="d-flex gap-1 justify-content-end">
               {% if order.status == 'paid' or order.status == 'new' %}
-              <a href="{% url 'ecommerce:order_prepare' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Préparer"><i class="bi bi-box-seam"></i></a>
+              <a href="{% url 'ecommerce:order_prepare' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans "Préparer" %}"><i class="bi bi-box-seam"></i></a>
               {% endif %}
               {% if order.status == 'processing' %}
-              <a href="{% url 'ecommerce:order_ship' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Expédier"><i class="bi bi-truck"></i></a>
+              <a href="{% url 'ecommerce:order_ship' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans "Expédier" %}"><i class="bi bi-truck"></i></a>
               {% endif %}
-              <a href="{% url 'ecommerce:order_detail' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'ecommerce:order_detail' order.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans "Voir" %}"><i class="bi bi-eye"></i></a>
               {% if order.payment_status == 'paid' %}
-              <a href="{% url 'ecommerce:order_refund' order.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="Rembourser"><i class="bi bi-arrow-counterclockwise"></i></a>
+              <a href="{% url 'ecommerce:order_refund' order.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="{% trans "Rembourser" %}"><i class="bi bi-arrow-counterclockwise"></i></a>
               {% endif %}
             </div>
           </td>
@@ -161,9 +161,9 @@
           <td colspan="9">
             <div class="orion-empty">
               <i class="bi bi-bag-x" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
-              <h5 style="color:var(--orion-primary)">Aucune commande web</h5>
-              <p class="text-muted mb-3">Connectez votre boutique ou saisissez une commande manuellement.</p>
-              <a href="{% url 'ecommerce:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle commande</a>
+              <h5 style="color:var(--orion-primary)">{% trans "Aucune commande web" %}</h5>
+              <p class="text-muted mb-3">{% trans "Connectez votre boutique ou saisissez une commande manuellement." %}</p>
+              <a href="{% url 'ecommerce:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle commande" %}</a>
             </div>
           </td>
         </tr>

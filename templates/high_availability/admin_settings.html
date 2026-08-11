@@ -1,19 +1,22 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Système</p>
-    <h1>Haute disponibilité</h1>
-    <p class="orion-page-subtitle">Configuration du serveur principal et des deux serveurs secondaires Orion.</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Système" %}</p>
+    <h1 class="page-title">{% trans "Haute disponibilité" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Configuration du serveur principal et des deux serveurs secondaires Orion." %}</p>
   </div>
-  <div class="orion-page-actions">
-    <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">Serveurs</a>
-    <a class="orion-btn" href="{% url 'high_availability:admin_failover' %}">Bascule</a>
-    <a class="orion-btn" href="{% url 'high_availability:admin_events' %}">Journal</a>
+  <div class="page-header-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">{% trans "Serveurs" %}</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_failover' %}">{% trans "Bascule" %}</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_events' %}">{% trans "Journal" %}</a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
   {% for msg in messages %}
     <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
@@ -23,21 +26,22 @@
 <!-- Métriques cluster -->
 <div class="orion-dashboard-grid" style="grid-template-columns: repeat(4,1fr); gap:16px; margin-bottom:24px;">
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Serveur actif</span>
-    <strong class="orion-metric-value">{{ active_node.name|default:"Non défini" }}</strong>
+    <span class="orion-metric-label">{% trans "Serveur actif" %}</span>
+    {% trans "Non défini" as ha_no_active_node %}
+    <strong class="orion-metric-value">{{ active_node.name|default:ha_no_active_node }}</strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Secondaires sains</span>
+    <span class="orion-metric-label">{% trans "Secondaires sains" %}</span>
     <strong class="orion-metric-value">{{ healthy_secondaries }}/2</strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Verrou cluster</span>
+    <span class="orion-metric-label">{% trans "Verrou cluster" %}</span>
     <strong class="orion-metric-value" style="font-size:13px;">{{ cluster_lock.active_node_id }}</strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Failover auto</span>
+    <span class="orion-metric-label">{% trans "Failover auto" %}</span>
     <strong class="orion-metric-value {% if settings_obj.automatic_failover_enabled %}orion-text-success{% else %}orion-text-muted{% endif %}">
-      {% if settings_obj.automatic_failover_enabled %}Activé{% else %}Désactivé{% endif %}
+      {% if settings_obj.automatic_failover_enabled %}{% trans "Activé" %}{% else %}{% trans "Désactivé" %}{% endif %}
     </strong>
   </div>
 </div>
@@ -47,7 +51,7 @@
   <!-- Paramètres -->
   <div class="orion-card">
     <div class="orion-orion-orion-card-header">
-      <h2>Paramètres HA</h2>
+      <h2>{% trans "Paramètres HA" %}</h2>
     </div>
     <div class="orion-orion-orion-card-body">
       <form method="post" class="orion-form">
@@ -69,11 +73,11 @@
             {{ form.require_manual_confirmation }}
           </div>
           <div class="orion-form-field">
-            <label>{{ form.failover_after_seconds.label }} (secondes)</label>
+            <label>{{ form.failover_after_seconds.label }} ({% trans "secondes" %})</label>
             {{ form.failover_after_seconds }}
           </div>
           <div class="orion-form-field">
-            <label>{{ form.max_allowed_replication_lag_seconds.label }} (secondes)</label>
+            <label>{{ form.max_allowed_replication_lag_seconds.label }} ({% trans "secondes" %})</label>
             {{ form.max_allowed_replication_lag_seconds }}
           </div>
           <div class="orion-form-field">
@@ -83,7 +87,7 @@
         </div>
 
         <div class="orion-form-section">
-          <h3 class="orion-form-section-title">Cibles de bascule</h3>
+          <h3 class="orion-form-section-title">{% trans "Cibles de bascule" %}</h3>
           <div class="orion-form-field">
             <label>{{ form.preferred_secondary_node.label }}</label>
             {{ form.preferred_secondary_node }}
@@ -95,7 +99,7 @@
         </div>
 
         <div class="orion-form-section">
-          <h3 class="orion-form-section-title">Surveillance</h3>
+          <h3 class="orion-form-section-title">{% trans "Surveillance" %}</h3>
           <div class="orion-form-field">
             <label>{{ form.media_sync_enabled.label }}</label>
             {{ form.media_sync_enabled }}
@@ -107,7 +111,7 @@
         </div>
 
         <div class="orion-form-section">
-          <h3 class="orion-form-section-title">Cloudflare DNS</h3>
+          <h3 class="orion-form-section-title">{% trans "Cloudflare DNS" %}</h3>
           <div class="orion-form-field">
             <label>{{ form.cloudflare_failover_enabled.label }}</label>
             {{ form.cloudflare_failover_enabled }}
@@ -127,7 +131,7 @@
         </div>
 
         <div class="orion-form-section">
-          <h3 class="orion-form-section-title">Alertes & Sécurité</h3>
+          <h3 class="orion-form-section-title">{% trans "Alertes & Sécurité" %}</h3>
           <div class="orion-form-field">
             <label>{{ form.notify_admins.label }}</label>
             {{ form.notify_admins }}
@@ -155,7 +159,7 @@
         {% endif %}
 
         <div class="orion-form-actions">
-          <button type="submit" class="orion-btn orion-btn--primary">Enregistrer</button>
+          <button type="submit" class="orion-btn orion-btn--primary">{% trans "Enregistrer" %}</button>
         </div>
       </form>
     </div>
@@ -164,18 +168,18 @@
   <!-- Serveurs configurés -->
   <div class="orion-card">
     <div class="orion-orion-orion-card-header">
-      <h2>Serveurs configurés</h2>
-      <a class="orion-btn orion-btn--sm" href="{% url 'high_availability:admin_check_nodes' %}">Vérifier</a>
+      <h2>{% trans "Serveurs configurés" %}</h2>
+      <a class="orion-btn orion-btn--sm" href="{% url 'high_availability:admin_check_nodes' %}">{% trans "Vérifier" %}</a>
     </div>
     <div class="orion-orion-orion-card-body" style="padding:0;">
       <table class="orion-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>Serveur</th>
-            <th>Rôle</th>
-            <th>Statut</th>
-            <th>Actif</th>
+            <th>{% trans "Serveur" %}</th>
+            <th>{% trans "Rôle" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th>{% trans "Actif" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -193,14 +197,14 @@
             </td>
             <td>
               {% if node.is_current_active %}
-                <span class="orion-badge orion-badge--success">Actif</span>
+                <span class="orion-badge orion-badge--success">{% trans "Actif" %}</span>
               {% else %}
                 <span class="orion-text-muted">—</span>
               {% endif %}
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="orion-table-empty">Aucun serveur. <a href="{% url 'high_availability:admin_check_nodes' %}">Lancer le seed</a></td></tr>
+          <tr><td colspan="5" class="orion-table-empty">{% trans "Aucun serveur." %} <a href="{% url 'high_availability:admin_check_nodes' %}">{% trans "Lancer le seed" %}</a></td></tr>
           {% endfor %}
         </tbody>
       </table>

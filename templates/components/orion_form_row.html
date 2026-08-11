@@ -1,11 +1,11 @@
-{#
+{% comment %}
   Ligne de formulaire label + champ.
   Variables :
     row_label    — libellé
     row_field    — champ Django (form.field) ou HTML
     row_required — si "true" ajoute .required au label
     row_readonly — si "true" ajoute readonly attr
-#}
+{% endcomment %}
 <div class="orion-form-row">
   <label {% if row_required == "true" %}class="required"{% endif %}>{{ row_label }}</label>
   {{ row_field }}

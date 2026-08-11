@@ -1,0 +1,73 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:index' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:gift_card_list' %}">{% trans "Cartes cadeaux" %}</a></li>
+<li class="breadcrumb-item active">{{ gc.code }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h1 class="page-title font-monospace">{{ gc.code }}</h1>
+  {% if gc.status == 'active' %}
+  <form method="post" action="{% url 'websites:gift_card_cancel' gc.pk %}">
+    {% csrf_token %}
+    {% trans "Annuler cette carte cadeau ?" as confirm_cancel_gc %}
+    <button type="submit" class="orion-btn orion-btn-danger" onclick="return confirm('{{ confirm_cancel_gc }}')">
+      <i class="bi bi-x-circle me-1"></i>{% trans "Annuler la carte" %}
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="erp-card mb-3">
+      <div class="orion-card-header"><h6 class="card-title mb-0">{% trans "Informations" %}</h6></div>
+      <div class="orion-card-body">
+        {% trans "Illimitée" as gc_unlimited %}
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><td class="text-muted">{% trans "Statut" %}</td><td><span class="orion-badge orion-badge-{{ gc.status }}">{{ gc.get_status_display }}</span></td></tr>
+            <tr><td class="text-muted">{% trans "Montant initial" %}</td><td class="fw-semibold">{{ gc.initial_amount|floatformat:2 }} {{ gc.currency }}</td></tr>
+            <tr><td class="text-muted">{% trans "Solde restant" %}</td><td class="fw-semibold {% if gc.remaining_amount <= 0 %}text-danger{% else %}text-success{% endif %}">{{ gc.remaining_amount|floatformat:2 }} {{ gc.currency }}</td></tr>
+            <tr><td class="text-muted">{% trans "Destinataire" %}</td><td>{{ gc.assigned_to_email|default:"—" }}</td></tr>
+            <tr><td class="text-muted">{% trans "Acheteur" %}</td><td>{{ gc.purchased_by_email|default:"—" }}</td></tr>
+            <tr><td class="text-muted">{% trans "Expiration" %}</td><td>{{ gc.expires_at|date:"d/m/Y"|default:gc_unlimited }}</td></tr>
+            <tr><td class="text-muted">{% trans "Créée le" %}</td><td>{{ gc.created_at|date:"d/m/Y H:i" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-7">
+    <div class="erp-card">
+      <div class="orion-card-header"><h6 class="card-title mb-0">{% blocktrans with nb=redemptions.count %}Historique d'utilisation ({{ nb }}){% endblocktrans %}</h6></div>
+      {% if redemptions %}
+      <div class="table-responsive">
+        <table class="orion-table">
+          <thead><tr><th>{% trans "Date" %}</th><th class="text-end">{% trans "Montant" %}</th><th>{% trans "Commande" %}</th></tr></thead>
+          <tbody>
+            {% for r in redemptions %}
+            <tr>
+              <td>{{ r.created_at|date:"d/m/Y H:i" }}</td>
+              <td class="text-end text-danger fw-semibold">−{{ r.amount_used|floatformat:2 }} €</td>
+              <td class="small text-muted">{{ r.order|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="orion-card-body">
+        <p class="text-muted mb-0">{% trans "Aucune utilisation enregistrée." %}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,46 +1,47 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}CRM Clients Boutique — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "CRM Clients Boutique" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Clients boutique</li>
+<li class="breadcrumb-item active">{% trans "Clients boutique" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'ecommerce:customer_segment_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-collection me-1"></i>Segments</a>
-<a href="{% url 'ecommerce:abandoned_cart_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cart-x me-1"></i>Paniers abandonnés</a>
+<a href="{% url 'ecommerce:customer_segment_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-collection me-1"></i>{% trans "Segments" %}</a>
+<a href="{% url 'ecommerce:abandoned_cart_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cart-x me-1"></i>{% trans "Paniers abandonnés" %}</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-people"></i></div>
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-people"></i></div>
       <div class="orion-kpi-value">{{ total_customers }}</div>
-      <div class="orion-kpi-label">Clients</div>
+      <div class="orion-kpi-label">{% trans "Clients" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#10B981"><i class="bi bi-cash-stack"></i></div>
       <div class="orion-kpi-value">{{ total_spent|floatformat:0 }}€</div>
-      <div class="orion-kpi-label">Dépenses cumulées</div>
+      <div class="orion-kpi-label">{% trans "Dépenses cumulées" %}</div>
     </div>
   </div>
 </div>
 
 <form class="d-flex gap-2 mb-3" method="get">
   <select name="segment" class="form-select form-select-sm" style="max-width:200px" onchange="this.form.submit()">
-    <option value="">Tous les segments</option>
+    <option value="">{% trans "Tous les segments" %}</option>
     {% for seg in segments %}<option value="{{ seg.pk }}" {% if segment == seg.pk|stringformat:"s" %}selected{% endif %}>{{ seg.name }}</option>{% endfor %}
   </select>
-  <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:220px" placeholder="Rechercher un client..."></div>
-  <button type="submit" class="orion-btn orion-btn-outline">Filtrer</button>
+  <div class="position-relative"><i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i><input type="search" name="q" value="{{ search }}" class="orion-search-input ps-4" style="width:220px" placeholder="{% trans 'Rechercher un client...' %}"></div>
+  <button type="submit" class="orion-btn orion-btn-outline">{% trans "Filtrer" %}</button>
 </form>
 
 <div class="orion-card">
   <div class="table-responsive">
     <table class="orion-table">
       <thead>
-        <tr><th>Client</th><th>Email</th><th>Segment</th><th>Commandes</th><th>Dépenses</th><th>Fidélité</th><th></th></tr>
+        <tr><th>{% trans "Client" %}</th><th>Email</th><th>{% trans "Segment" %}</th><th>{% trans "Commandes" %}</th><th>{% trans "Dépenses" %}</th><th>{% trans "Fidélité" %}</th><th></th></tr>
       </thead>
       <tbody>
         {% for c in customers %}
@@ -61,7 +62,7 @@
         <tr><td colspan="7">
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-people"></i></div>
-            <div class="orion-empty-title">Aucun client boutique.</div>
+            <div class="orion-empty-title">{% trans "Aucun client boutique." %}</div>
           </div>
         </td></tr>
         {% endfor %}

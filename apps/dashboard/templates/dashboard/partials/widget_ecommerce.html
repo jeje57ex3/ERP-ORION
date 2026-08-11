@@ -11,7 +11,7 @@
   <div class="mb-2"><span class="badge bg-primary">{{ orders_data.count }} commande(s)</span></div>
   {% for o in orders_data.orders %}
   <div class="widget-item">
-    <div class="widget-item-icon" style="background:#f5f3ff;color:#7C3AED"><i class="bi bi-bag-check"></i></div>
+    <div class="widget-item-icon" style="background:#f5f3ff;color:#8f7042"><i class="bi bi-bag-check"></i></div>
     <div class="widget-item-body">
       <div class="widget-item-title">Commande #{{ o.pk }}</div>
       <div class="widget-item-sub">{{ o.created_at|date:"d/m H:i" }}</div>

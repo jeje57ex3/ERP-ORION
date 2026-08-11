@@ -1,9 +1,10 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Erreur serveur</title>
+  <title>{% trans "Erreur serveur" %}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #f8fafc; color: #1e293b;
       display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
@@ -17,8 +18,8 @@
 <body>
   <div class="card">
     <div class="num">500</div>
-    <h1>Une erreur est survenue.</h1>
-    <p>Veuillez réessayer plus tard. Si le problème persiste, contactez l'administrateur du site.</p>
+    <h1>{% trans "Une erreur est survenue." %}</h1>
+    <p>{% trans "Veuillez réessayer plus tard. Si le problème persiste, contactez l'administrateur du site." %}</p>
   </div>
 </body>
 </html>

@@ -1,18 +1,21 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
-    <h1>Réplication</h1>
-    <p class="orion-page-subtitle">État de la réplication MySQL pour chaque serveur secondaire.</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Haute disponibilité" %}</p>
+    <h1 class="page-title">{% trans "Réplication" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "État de la réplication MySQL pour chaque serveur secondaire." %}</p>
   </div>
-  <div class="orion-page-actions">
-    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">← Paramètres HA</a>
-    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">Rafraîchir</a>
+  <div class="page-header-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">← {% trans "Paramètres HA" %}</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">{% trans "Rafraîchir" %}</a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
   {% for msg in messages %}
     <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
@@ -43,7 +46,7 @@
           </strong>
         </div>
         <div>
-          <p class="orion-metric-label">Retard (Seconds Behind)</p>
+          <p class="orion-metric-label">{% trans "Retard (Seconds Behind)" %}</p>
           <strong>{{ rep.seconds_behind_primary|default:"—" }}{% if rep.seconds_behind_primary %} s{% endif %}</strong>
         </div>
         <div>
@@ -55,7 +58,7 @@
           <code style="font-size:12px;">{{ rep.primary_log_position|default:"—" }}</code>
         </div>
         <div>
-          <p class="orion-metric-label">Vérifié le</p>
+          <p class="orion-metric-label">{% trans "Vérifié le" %}</p>
           <span>{{ rep.checked_at }}</span>
         </div>
       </div>
@@ -65,7 +68,7 @@
 {% else %}
   <div class="orion-card">
     <div class="orion-orion-orion-card-body">
-      <p class="orion-text-muted">Aucune donnée de réplication. Lancez une vérification des nœuds.</p>
+      <p class="orion-text-muted">{% trans "Aucune donnée de réplication. Lancez une vérification des nœuds." %}</p>
     </div>
   </div>
 {% endif %}

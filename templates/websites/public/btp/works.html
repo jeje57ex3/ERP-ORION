@@ -1,27 +1,27 @@
 {% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}Types de travaux — {{ site.name }}{% endblock %}
-{% block meta_description %}Travaux neufs, rénovation, mise aux normes, extension, aménagement. Devis gratuit.{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Types de travaux" %}{% endblock %}
+{% block meta_description %}{% trans "Travaux neufs, rénovation, mise aux normes, extension, aménagement. Devis gratuit." %}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero">
-  <div class="btp-container">
-    <span class="btp-h-label" style="color:var(--btp-secondary)">Travaux</span>
-    <h1>Tous types de travaux</h1>
-    <p>De la construction neuve à la rénovation complète, nous prenons en charge tous vos projets.</p>
+<section class="site-section" style="padding-top:60px">
+  <div class="site-container">
+    <span class="site-h-label">{% trans "Travaux" %}</span>
+    <h1 class="site-h-xxl">{% trans "Tous types de travaux" %}</h1>
+    <p class="site-subtitle">{% trans "De la construction neuve à la rénovation complète, nous prenons en charge tous vos projets." %}</p>
   </div>
 </section>
 
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-cards-grid">
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-grid site-grid-3">
       {% for wt in work_categories %}
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi {{ wt.icon }}"></i></div>
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi {{ wt.icon }}" aria-hidden="true"></i></div>
         <h3>{{ wt.name }}</h3>
         <p>{{ wt.desc }}</p>
-        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-btn-outline btp-orion-btn sm" style="margin-top:1rem">
-          <i class="bi bi-pencil-square"></i>Devis gratuit
+        <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-outline site-btn-sm" style="margin-top:1rem">
+          <span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans "Devis gratuit" %}</span>
         </a>
       </div>
       {% endfor %}

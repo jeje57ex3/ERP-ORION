@@ -1,12 +1,13 @@
-{# Composant : conteneur toast Bootstrap + fonction JS orionToast()
-   Usage : include "components/toast.html"
-   Ajouter une fois dans le layout (de préférence avant </body>).
-   Expose la fonction globale : orionToast(message, type='success')
-   Types disponibles : success, danger, warning, info
-   Auto-dismiss après 4 secondes.
+{% comment %}
+Composant : conteneur toast Bootstrap + fonction JS orionToast()
+Usage : include "components/toast.html"
+Ajouter une fois dans le layout (de préférence avant </body>).
+Expose la fonction globale : orionToast(message, type='success')
+Types disponibles : success, danger, warning, info
+Auto-dismiss après 4 secondes.
 
-   Note : si OrionToast (orion-ui.js) est déjà chargé, orionToast() est un alias vers OrionToast.show().
-#}
+Note : si OrionToast (orion-ui.js) est déjà chargé, orionToast() est un alias vers OrionToast.show().
+{% endcomment %}
 
 {# Conteneur de toasts Bootstrap en bas à droite #}
 <div

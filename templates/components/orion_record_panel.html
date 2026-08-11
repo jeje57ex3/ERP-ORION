@@ -1,4 +1,4 @@
-{#
+{% comment %}
   Panneau de fiche réutilisable.
   Variables :
     panel_title  — titre du panneau
@@ -6,7 +6,7 @@
     panel_color  — couleur de l'icône ex. "text-primary"
     panel_body   — corps HTML (utiliser {% capture %} ou passer via block)
     panel_no_pad — si "true", pas de padding sur le body (ex. table)
-#}
+{% endcomment %}
 <div class="orion-record-panel">
   {% if panel_title %}
   <div class="orion-record-panel-header">

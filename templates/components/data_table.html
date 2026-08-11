@@ -1,11 +1,11 @@
-{# Composant tableau de données générique
+{% comment %} Composant tableau de données générique
    Variables :
      columns   — liste de dicts {label, key, sortable, align}
      rows      — queryset ou liste
      empty_msg — message quand vide
      sort      — colonne active
      order     — 'asc' ou 'desc'
-#}
+{% endcomment %}
 <div class="table-responsive">
   <table class="orion-table">
     <thead>

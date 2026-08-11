@@ -1,5 +1,6 @@
 {% extends "electricity/base_electricity.html" %}
-{% block title %}Travaux électriques — Étape 2{% endblock %}
+{% load i18n %}
+{% block title %}{% trans 'Travaux électriques — Étape 2' %}{% endblock %}
 {% block content %}
 <div class="bg-white border-bottom py-3">
   <div class="container">
@@ -13,7 +14,7 @@
       <div class="wizard-progress-step pending">4</div>
     </div>
     <div class="d-flex justify-content-between small text-muted mt-2">
-      <span>Type</span><span><strong>Questions travaux</strong></span><span>Coordonnées</span><span>Validation</span>
+      <span>{% trans 'Type' %}</span><span><strong>{% trans 'Questions travaux' %}</strong></span><span>{% trans 'Coordonnées' %}</span><span>{% trans 'Validation' %}</span>
     </div>
   </div>
 </div>
@@ -24,8 +25,8 @@
       <div class="mb-4 d-flex align-items-center gap-3">
         <div class="service-icon"><i class="bi bi-hammer"></i></div>
         <div>
-          <h2 class="fw-bold mb-1">Travaux électriques</h2>
-          <p class="text-muted mb-0">Ces informations nous permettront de vous générer une estimation précise.</p>
+          <h2 class="fw-bold mb-1">{% trans 'Travaux électriques' %}</h2>
+          <p class="text-muted mb-0">{% trans 'Ces informations nous permettront de vous générer une estimation précise.' %}</p>
         </div>
       </div>
 
@@ -34,7 +35,7 @@
 
         <!-- Type de bien -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-house me-2 text-primary"></i>Type de bien</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-house me-2 text-primary"></i>{% trans 'Type de bien' %}</h6>
           <div class="row g-2">
             {% for val, label in property_type_choices %}
             <div class="col-6 col-sm-4"><label class="choice-card text-center py-3"><input type="radio" name="property_type" value="{{ val }}" required><div class="fw-semibold">{{ label }}</div></label></div>
@@ -44,7 +45,7 @@
 
         <!-- Surface -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-rulers me-2 text-primary"></i>Surface approximative</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-rulers me-2 text-primary"></i>{% trans 'Surface approximative' %}</h6>
           <div class="row g-2">
             {% for val, label in surface_choices %}
             <div class="col-6 col-sm-4"><label class="choice-card text-center py-3"><input type="radio" name="surface" value="{{ val }}" required><div>{{ label }}</div></label></div>
@@ -54,63 +55,63 @@
 
         <!-- Tableau électrique -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i>Le tableau électrique doit-il être remplacé ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2 text-primary"></i>{% trans 'Le tableau électrique doit-il être remplacé ?' %}</h6>
           <div class="row g-2">
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="yes"><div>Oui</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="no"><div>Non</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="unknown"><div>Je ne sais pas</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="yes"><div>{% trans 'Oui' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="no"><div>{% trans 'Non' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="replace_panel" value="unknown"><div>{% trans 'Je ne sais pas' %}</div></label></div>
           </div>
         </div>
 
         <!-- Quantités -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>Quantités souhaitées <span class="text-muted fw-normal small">(si connues)</span></h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>{% trans 'Quantités souhaitées' %} <span class="text-muted fw-normal small">({% trans 'si connues' %})</span></h6>
           <div class="row g-3">
-            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">Prises</label><input type="number" name="nb_prises" class="form-control" min="0" placeholder="0"></div>
-            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">Interrupteurs</label><input type="number" name="nb_interrupteurs" class="form-control" min="0" placeholder="0"></div>
-            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">Points lumineux</label><input type="number" name="nb_lights" class="form-control" min="0" placeholder="0"></div>
-            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">Circuits spécialisés</label><input type="number" name="nb_circuits" class="form-control" min="0" placeholder="0"></div>
-            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">Radiateurs élec.</label><input type="number" name="nb_radiateurs" class="form-control" min="0" placeholder="0"></div>
+            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">{% trans 'Prises' %}</label><input type="number" name="nb_prises" class="form-control" min="0" placeholder="0"></div>
+            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">{% trans 'Interrupteurs' %}</label><input type="number" name="nb_interrupteurs" class="form-control" min="0" placeholder="0"></div>
+            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">{% trans 'Points lumineux' %}</label><input type="number" name="nb_lights" class="form-control" min="0" placeholder="0"></div>
+            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">{% trans 'Circuits spécialisés' %}</label><input type="number" name="nb_circuits" class="form-control" min="0" placeholder="0"></div>
+            <div class="col-6 col-md-4"><label class="form-label small fw-semibold">{% trans 'Radiateurs élec.' %}</label><input type="number" name="nb_radiateurs" class="form-control" min="0" placeholder="0"></div>
           </div>
         </div>
 
         <!-- Options -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-stars me-2 text-warning"></i>Options supplémentaires</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-stars me-2 text-primary"></i>{% trans 'Options supplémentaires' %}</h6>
           <div class="row g-2">
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="borne_recharge" value="1"><span>Borne de recharge VE</span></label></div>
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="domotique" value="1"><span>Domotique</span></label></div>
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="alarme" value="1"><span>Alarme / Sécurité</span></label></div>
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="eclairage_connecte" value="1"><span>Éclairage connecté</span></label></div>
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="interphone" value="1"><span>Interphone / Visiophone</span></label></div>
-            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="vmc" value="1"><span>VMC</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="borne_recharge" value="1"><span>{% trans 'Borne de recharge VE' %}</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="domotique" value="1"><span>{% trans 'Domotique' %}</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="alarme" value="1"><span>{% trans 'Alarme / Sécurité' %}</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="eclairage_connecte" value="1"><span>{% trans 'Éclairage connecté' %}</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="interphone" value="1"><span>{% trans 'Interphone / Visiophone' %}</span></label></div>
+            <div class="col-6 col-sm-4"><label class="choice-card d-flex align-items-center gap-2 py-2"><input type="checkbox" name="vmc" value="1"><span>{% trans 'VMC' %}</span></label></div>
           </div>
         </div>
 
         <!-- Délais -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-calendar me-2 text-primary"></i>Quand souhaitez-vous commencer ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-calendar me-2 text-primary"></i>{% trans 'Quand souhaitez-vous commencer ?' %}</h6>
           <div class="row g-2">
-            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="asap"><div>Dès que possible</div></label></div>
-            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="month"><div>Dans le mois</div></label></div>
-            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="3months"><div>Dans 3 mois</div></label></div>
-            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="flexible"><div>Flexible</div></label></div>
+            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="asap"><div>{% trans 'Dès que possible' %}</div></label></div>
+            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="month"><div>{% trans 'Dans le mois' %}</div></label></div>
+            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="3months"><div>{% trans 'Dans 3 mois' %}</div></label></div>
+            <div class="col-6 col-sm-3"><label class="choice-card text-center py-3"><input type="radio" name="start_delay" value="flexible"><div>{% trans 'Flexible' %}</div></label></div>
           </div>
         </div>
 
         <!-- Logement occupé -->
         <div class="border rounded-3 p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-person-home me-2 text-primary"></i>Le logement sera-t-il occupé pendant les travaux ?</h6>
+          <h6 class="fw-bold mb-3"><i class="bi bi-person-home me-2 text-primary"></i>{% trans 'Le logement sera-t-il occupé pendant les travaux ?' %}</h6>
           <div class="row g-2">
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="yes"><div>Oui</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="no"><div>Non</div></label></div>
-            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="partial"><div>Partiellement</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="yes"><div>{% trans 'Oui' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="no"><div>{% trans 'Non' %}</div></label></div>
+            <div class="col-4"><label class="choice-card text-center py-3"><input type="radio" name="occupied" value="partial"><div>{% trans 'Partiellement' %}</div></label></div>
           </div>
         </div>
 
         <div class="d-flex gap-3">
-          <a href="{% url 'guided_quote:wizard_start' %}" class="btn btn-outline-secondary px-4"><i class="bi bi-arrow-left me-1"></i>Retour</a>
-          <button type="submit" class="btn btn-electric flex-fill py-3 fw-bold">Mes coordonnées <i class="bi bi-arrow-right ms-1"></i></button>
+          <a href="{% url 'guided_quote:wizard_start' %}" class="btn btn-outline-secondary px-4"><i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}</a>
+          <button type="submit" class="btn btn-electric flex-fill py-3 fw-bold">{% trans 'Mes coordonnées' %} <i class="bi bi-arrow-right ms-1"></i></button>
         </div>
       </form>
     </div>

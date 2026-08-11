@@ -1,31 +1,32 @@
-{% extends "base.html" %}
-{% block title %}Journaux de chantier{% endblock %}
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block title %}{% trans 'Journaux de chantier' %}{% endblock %}
 {% block content %}
 <div class="container-fluid py-4">
-  <h1 class="h3 mb-4">Journaux de chantier</h1>
+  <h1 class="h3 mb-4">{% trans 'Journaux de chantier' %}</h1>
   <form class="row g-2 mb-4" method="get">
     <div class="col-auto">
-      <input type="text" name="project_id" class="form-control form-control-sm" placeholder="ID chantier" value="{{ project_id }}">
+      <input type="text" name="project_id" class="form-control form-control-sm" placeholder="{% trans 'ID chantier' %}" value="{{ project_id }}">
     </div>
     <div class="col-auto">
       <select name="log_type" class="form-select form-select-sm">
-        <option value="">Tous types</option>
-        <option value="daily" {% if log_type == 'daily' %}selected{% endif %}>Quotidien</option>
-        <option value="incident" {% if log_type == 'incident' %}selected{% endif %}>Incident</option>
-        <option value="inspection" {% if log_type == 'inspection' %}selected{% endif %}>Inspection</option>
-        <option value="delivery" {% if log_type == 'delivery' %}selected{% endif %}>Livraison</option>
-        <option value="meeting" {% if log_type == 'meeting' %}selected{% endif %}>Réunion</option>
+        <option value="">{% trans 'Tous types' %}</option>
+        <option value="daily" {% if log_type == 'daily' %}selected{% endif %}>{% trans 'Quotidien' %}</option>
+        <option value="incident" {% if log_type == 'incident' %}selected{% endif %}>{% trans 'Incident' %}</option>
+        <option value="inspection" {% if log_type == 'inspection' %}selected{% endif %}>{% trans 'Inspection' %}</option>
+        <option value="delivery" {% if log_type == 'delivery' %}selected{% endif %}>{% trans 'Livraison' %}</option>
+        <option value="meeting" {% if log_type == 'meeting' %}selected{% endif %}>{% trans 'Réunion' %}</option>
       </select>
     </div>
     <div class="col-auto">
-      <button type="submit" class="orion-btn sm orion-btn primary">Filtrer</button>
+      <button type="submit" class="orion-btn sm orion-btn primary">{% trans 'Filtrer' %}</button>
     </div>
   </form>
   <div class="card shadow-sm">
     <div class="orion-orion-card-body p-0">
       <table class="orion-table mb-0">
         <thead class="table-light"><tr>
-          <th>Chantier</th><th>Type</th><th>Titre</th><th>Ouvriers</th><th>Météo</th><th>Date</th><th></th>
+          <th>{% trans 'Chantier' %}</th><th>{% trans 'Type' %}</th><th>{% trans 'Titre' %}</th><th>{% trans 'Ouvriers' %}</th><th>{% trans 'Météo' %}</th><th>{% trans 'Date' %}</th><th></th>
         </tr></thead>
         <tbody>
           {% for l in logs %}
@@ -36,10 +37,10 @@
             <td>{{ l.workers_count }}</td>
             <td>{{ l.get_weather_display|default:"—" }}</td>
             <td>{{ l.logged_at|date:"d/m/Y" }}</td>
-            <td><a href="{% url 'btp_smart_site_log:log_detail' l.pk %}" class="orion-btn sm btn-outline-secondary">Voir</a></td>
+            <td><a href="{% url 'btp_smart_site_log:log_detail' l.pk %}" class="orion-btn sm btn-outline-secondary">{% trans 'Voir' %}</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="7" class="text-center text-muted py-4">Aucun journal trouvé.</td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4">{% trans 'Aucun journal trouvé.' %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

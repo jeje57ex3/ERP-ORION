@@ -1,0 +1,241 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+<style>
+.img-thumb { width:80px;height:80px;object-fit:cover;border-radius:4px;border:2px solid transparent; }
+.img-thumb.primary { border-color:#C6A15B; }
+.drag-handle { cursor:grab; color:#aaa; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:article_list' %}">{% trans "Articles SIÈCLE." %}</a></li>
+<li class="breadcrumb-item active">{{ article.name }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ecommerce:article_edit' pk=article.pk %}" class="orion-btn orion-btn-primary"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+<button class="orion-btn orion-btn-outline" data-bs-toggle="modal" data-bs-target="#publishModal"><i class="bi bi-globe me-1"></i>{% trans "Changer le statut" %}</button>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+<!-- Col principale -->
+<div class="col-lg-8">
+
+  <!-- Résumé -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">{% trans "Identité" %}</h6>
+      {% if article.status == 'published' %}<span class="orion-badge orion-badge-success">{% trans "Publié" %}</span>
+      {% elif article.status == 'draft' %}<span class="orion-badge">{% trans "Brouillon" %}</span>
+      {% elif article.status == 'out_of_stock' %}<span class="orion-badge orion-badge-danger">{% trans "Rupture" %}</span>
+      {% else %}<span class="orion-badge orion-badge-warning">{{ article.get_status_display }}</span>{% endif %}
+    </div>
+    <div class="orion-card-body">
+      <dl class="row mb-0" style="row-gap:12px">
+        <dt class="col-sm-3 text-muted">SKU</dt><dd class="col-sm-9"><code>{{ article.sku|default:"—" }}</code></dd>
+        <dt class="col-sm-3 text-muted">{% trans "Archive" %}</dt><dd class="col-sm-9">{{ article.archive_ref|default:"—" }}</dd>
+        <dt class="col-sm-3 text-muted">{% trans "Prix" %}</dt><dd class="col-sm-9">{{ article.price }} €{% if article.compare_at_price %} <s class="text-muted ms-2">{{ article.compare_at_price }} €</s>{% endif %}</dd>
+        <dt class="col-sm-3 text-muted">{% trans "Stock" %}</dt><dd class="col-sm-9">{{ article.stock_quantity }}</dd>
+        <dt class="col-sm-3 text-muted">{% trans "Accès" %}</dt>
+        <dd class="col-sm-9">
+          {% if article.early_access_type == 'gold_early_access' %}
+          <span class="orion-badge" style="background:#FEF9C3;color:#713F12"><i class="bi bi-star-fill me-1" style="font-size:9px"></i>{% trans "Gold — Avant-première" %}</span>
+          {% if article.gold_access_start %}<small class="ms-2 text-muted">{% trans "Gold dès :" %} {{ article.gold_access_start|date:"d/m/Y H:i" }}</small>{% endif %}
+          {% if article.public_access_start %}<small class="ms-2 text-muted"> — {% trans "Public dès :" %} {{ article.public_access_start|date:"d/m/Y H:i" }}</small>{% endif %}
+          {% else %}<span class="text-muted">{% trans "Public" %}</span>{% endif %}
+        </dd>
+        {% if article.short_description %}
+        <dt class="col-sm-3 text-muted">{% trans "Accroche" %}</dt><dd class="col-sm-9">{{ article.short_description }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Images -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Images" %} <span class="text-muted fw-normal">({{ images|length }})</span></h6></div>
+    <div class="orion-card-body">
+      {% if images %}
+      <div class="d-flex flex-wrap gap-3 mb-4" id="img-grid">
+        {% for img in images %}
+        <div class="text-center" data-img-id="{{ img.pk }}">
+          <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="img-thumb {% if img.is_primary %}primary{% endif %}">
+          {% if img.variant_label %}<div style="font-size:10px;color:#aaa;margin-top:4px">{{ img.variant_label }}</div>{% endif %}
+          <div class="d-flex gap-1 mt-1 justify-content-center">
+            {% if not img.is_primary %}
+            <button onclick="setPrimary({{ img.pk }})" class="orion-btn orion-btn-ghost orion-btn-sm" title="{% trans 'Définir principale' %}"><i class="bi bi-star"></i></button>
+            {% else %}
+            <i class="bi bi-star-fill" style="color:#C6A15B;font-size:14px;padding:4px 6px" title="{% trans 'Image principale' %}"></i>
+            {% endif %}
+            <form method="post" action="{% url 'ecommerce:article_image_delete' pk=article.pk image_pk=img.pk %}" onsubmit="return confirm('{% trans "Supprimer cette image ?" %}')">
+              {% csrf_token %}<button type="submit" class="orion-btn orion-btn-ghost orion-btn-sm text-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted mb-3">{% trans "Aucune image. Ajoutez la première ci-dessous." %}</p>
+      {% endif %}
+
+      <!-- Upload -->
+      <form method="post" action="{% url 'ecommerce:article_image_upload' pk=article.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5">
+            <label class="orion-label">{% trans "Fichier image" %} <small class="text-muted">({% trans "JPG, PNG, WEBP — max 10 Mo" %})</small></label>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="orion-input" required>
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Texte alternatif" %}</label>
+            <input type="text" name="alt_text" class="orion-input" placeholder="{% trans 'Description accessibilité' %}">
+          </div>
+          <div class="col-md-2">
+            <label class="orion-label">{% trans "Variante" %}</label>
+            <input type="text" name="variant_label" class="orion-input" placeholder="CHROME">
+          </div>
+          <div class="col-md-2">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" name="is_primary" value="1" id="is_primary">
+              <label class="form-check-label orion-label" for="is_primary">{% trans "Principale" %}</label>
+            </div>
+            <button type="submit" class="orion-btn orion-btn-primary w-100"><i class="bi bi-upload me-1"></i>{% trans "Ajouter" %}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Variantes -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">{% trans "Variantes" %} <span class="text-muted fw-normal">({{ variants|length }})</span></h6>
+      <a href="{% url 'ecommerce:article_variants' pk=article.pk %}" class="orion-btn orion-btn-primary orion-btn-sm"><i class="bi bi-palette me-1"></i>{% trans "Gérer tailles & couleurs" %}</a>
+    </div>
+    <div class="orion-card-body">
+      {% if variants %}
+      <table class="orion-table mb-0">
+        <thead><tr><th>{% trans "Variante" %}</th><th>{% trans "Taille" %}</th><th>{% trans "Couleur" %}</th><th>{% trans "Prix" %}</th><th>{% trans "Stock" %}</th><th>{% trans "Défaut" %}</th><th></th></tr></thead>
+        <tbody>
+          {% for v in variants %}
+          <tr>
+            <td class="fw-semibold">{{ v.name }}</td>
+            <td>{{ v.size|default:"—" }}</td>
+            <td>
+              {% if v.color_hex %}<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{{ v.color_hex }};border:1px solid #ccc;vertical-align:middle;margin-right:4px"></span>{% endif %}
+              {{ v.color|default:"—" }}
+            </td>
+            <td>{{ v.final_price }} €</td>
+            <td>{% if v.is_sold_out %}<span class="text-danger fw-semibold">0</span>{% else %}{{ v.stock_quantity }}{% endif %}</td>
+            <td>{% if v.is_default %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="text-end">
+              {% blocktrans asvar confirm_delete_variant with name=v.name %}Supprimer la variante {{ name }} ?{% endblocktrans %}
+              <form method="post" action="{% url 'ecommerce:article_variant_delete' pk=article.pk variant_pk=v.pk %}" onsubmit="return confirm('{{ confirm_delete_variant|escapejs }}')">
+                {% csrf_token %}<button type="submit" class="orion-btn orion-btn-ghost orion-btn-sm text-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted mb-3">{% trans "Aucune variante. Utilisez le bouton « Gérer tailles & couleurs » pour en ajouter." %}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sync Logs -->
+  {% if sync_logs %}
+  <div class="orion-card mb-4">
+    <div class="orion-card-header d-flex justify-content-between">
+      <h6 class="mb-0">{% trans "Journal de synchronisation récent" %}</h6>
+      <a href="{% url 'ecommerce:sync_log_list' %}" class="orion-btn orion-btn-ghost orion-btn-sm">{% trans "Voir tout" %}</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <table class="orion-table mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Direction" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Message" %}</th></tr></thead>
+        <tbody>
+          {% for log in sync_logs %}
+          <tr>
+            <td style="font-size:12px;white-space:nowrap">{{ log.created_at|date:"d/m H:i" }}</td>
+            <td><span class="orion-badge">{{ log.get_direction_display }}</span></td>
+            <td>
+              {% if log.status == 'success' %}<span class="orion-badge orion-badge-success">{% trans "Succès" %}</span>
+              {% elif log.status == 'failure' %}<span class="orion-badge orion-badge-danger">{% trans "Échec" %}</span>
+              {% else %}<span class="orion-badge orion-badge-warning">{% trans "Partiel" %}</span>{% endif %}
+            </td>
+            <td style="font-size:12px">{{ log.message|truncatechars:80 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Col droite -->
+<div class="col-lg-4">
+  <div class="orion-card">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Actions rapides" %}</h6></div>
+    <div class="orion-card-body d-grid gap-2">
+      <a href="{% url 'ecommerce:article_edit' pk=article.pk %}" class="orion-btn orion-btn-primary"><i class="bi bi-pencil me-1"></i>{% trans "Modifier l'article" %}</a>
+      <a href="{% url 'ecommerce:article_variants' pk=article.pk %}" class="orion-btn orion-btn-outline"><i class="bi bi-palette me-1"></i>{% trans "Gérer tailles & couleurs" %}</a>
+      <button class="orion-btn orion-btn-outline" data-bs-toggle="modal" data-bs-target="#publishModal"><i class="bi bi-globe me-1"></i>{% trans "Changer le statut" %}</button>
+      <a href="{% url 'ecommerce:article_list' %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour aux articles" %}</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Modal statut -->
+<div class="modal fade" id="publishModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{% trans "Changer le statut de publication" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'ecommerce:article_publish' pk=article.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p class="text-muted mb-3">{% trans "Statut actuel :" %} <strong>{{ article.get_status_display }}</strong></p>
+          <select name="status" class="orion-select">
+            {% for val, label in article.STATUS_CHOICES %}
+            <option value="{{ val }}" {% if article.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn orion-btn-ghost" data-bs-dismiss="modal">{% trans "Annuler" %}</button>
+          <button type="submit" class="orion-btn orion-btn-primary">{% trans "Appliquer" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+function setPrimary(imageId) {
+  fetch(`/erp/ecommerce/siecle/articles/{{ article.pk }}/images/${imageId}/principale/`, {
+    method: 'POST', headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'}
+  }).then(r => r.json()).then(() => location.reload());
+}
+</script>
+{% endblock %}

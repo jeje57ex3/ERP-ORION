@@ -1,13 +1,14 @@
-{# Composant timeline générique
+{% load i18n %}
+{% comment %} Composant timeline générique
    Variables : events (liste de dicts {date, title, description, icon, color, user, link})
    Couleurs disponibles : success, danger, info, warning, secondary, primary
-#}
+{% endcomment %}
 {% if events %}
 <ul class="orion-timeline">
   {% for ev in events %}
   <li class="orion-timeline-item">
     <div class="orion-timeline-dot"
-         style="{% if ev.color == 'success' %}background:#DCFCE7;color:#15803D{% elif ev.color == 'danger' %}background:#FEE2E2;color:#B91C1C{% elif ev.color == 'warning' %}background:#FEF3C7;color:#D97706{% elif ev.color == 'info' %}background:#DBEAFE;color:#1D4ED8{% elif ev.color == 'primary' %}background:#EFF6FF;color:#1E3A5F{% else %}background:#F3F4F6;color:#6B7280{% endif %}">
+         style="{% if ev.color == 'success' %}background:#DCFCE7;color:#15803D{% elif ev.color == 'danger' %}background:#FEE2E2;color:#B91C1C{% elif ev.color == 'warning' %}background:#FEF3C7;color:#D97706{% elif ev.color == 'info' %}background:#F8F3EA;color:#8f7042{% elif ev.color == 'primary' %}background:#EFF6FF;color:#1E3A5F{% else %}background:#F3F4F6;color:#6B7280{% endif %}">
       <i class="bi bi-{{ ev.icon|default:'clock' }}"></i>
     </div>
     <div class="orion-timeline-content">
@@ -30,6 +31,6 @@
 {% else %}
 <div class="text-center py-4 text-muted">
   <i class="bi bi-clock-history fs-2 d-block mb-2 opacity-40"></i>
-  Aucun événement.
+  {% trans "Aucun événement." %}
 </div>
 {% endif %}

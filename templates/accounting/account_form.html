@@ -1,30 +1,31 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accounting:account_list' %}">Plan comptable</a></li>
-<li class="breadcrumb-item active">{% if account %}Modifier{% else %}Nouveau compte{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:account_list' %}">{% trans "Plan comptable" %}</a></li>
+<li class="breadcrumb-item active">{% if account %}{% trans "Modifier" %}{% else %}{% trans "Nouveau compte" %}{% endif %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-plus-circle me-2"></i>{% if account %}Modifier le compte{% else %}Nouveau compte{% endif %}</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-plus-circle me-2"></i>{% if account %}{% trans "Modifier le compte" %}{% else %}{% trans "Nouveau compte" %}{% endif %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <form method="post">
           {% csrf_token %}
           <div class="row g-3 mb-3">
             <div class="col-md-4">
-              <label class="form-label fw-semibold">N° de compte <span class="text-danger">*</span></label>
-              <input type="text" name="number" class="form-control" required value="{{ account.number|default:'' }}" placeholder="ex. 411000">
+              <label class="form-label fw-semibold">{% trans "N° de compte" %} <span class="text-danger">*</span></label>
+              <input type="text" name="number" class="form-control" required value="{{ account.number|default:'' }}" placeholder="{% trans 'ex. 411000' %}">
             </div>
             <div class="col-md-8">
-              <label class="form-label fw-semibold">Libellé <span class="text-danger">*</span></label>
-              <input type="text" name="name" class="form-control" required value="{{ account.name|default:'' }}" placeholder="ex. Clients">
+              <label class="form-label fw-semibold">{% trans "Libellé" %} <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" required value="{{ account.name|default:'' }}" placeholder="{% trans 'ex. Clients' %}">
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Type de compte <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Type de compte" %} <span class="text-danger">*</span></label>
             <select name="account_type" class="form-select" required>
               {% for val, label in type_choices %}
               <option value="{{ val }}" {% if account and account.account_type == val %}selected{% endif %}>{{ label }}</option>
@@ -35,17 +36,17 @@
             <div class="form-check form-switch">
               <input type="checkbox" name="is_active" class="form-check-input" id="activeCheck"
                 {% if not account or account.is_active %}checked{% endif %}>
-              <label class="form-check-label" for="activeCheck">Compte actif</label>
+              <label class="form-check-label" for="activeCheck">{% trans "Compte actif" %}</label>
             </div>
             <div class="form-check form-switch">
               <input type="checkbox" name="allow_manual_entries" class="form-check-input" id="manualCheck"
                 {% if not account or account.allow_manual_entries %}checked{% endif %}>
-              <label class="form-check-label" for="manualCheck">Saisie manuelle autorisée</label>
+              <label class="form-check-label" for="manualCheck">{% trans "Saisie manuelle autorisée" %}</label>
             </div>
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
-            <a href="{% url 'accounting:account_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}</button>
+            <a href="{% url 'accounting:account_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>

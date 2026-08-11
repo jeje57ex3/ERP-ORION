@@ -1,44 +1,45 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Grand livre</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Grand livre" %}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Détail des mouvements par compte comptable.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Détail des mouvements par compte comptable." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card mb-4">
   <div class="erp-orion-orion-card-body">
     <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
       <div>
-        <label class="form-label fw-semibold">Compte</label>
+        <label class="form-label fw-semibold">{% trans "Compte" %}</label>
         <select name="account" class="form-select" style="min-width:280px">
-          <option value="">Tous les comptes</option>
+          <option value="">{% trans "Tous les comptes" %}</option>
           {% for acc in accounts %}
           <option value="{{ acc.pk }}" {% if account_filter == acc.pk|stringformat:"s" %}selected{% endif %}>{{ acc.number }} — {{ acc.name }}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label class="form-label fw-semibold">Du</label>
+        <label class="form-label fw-semibold">{% trans "Du" %}</label>
         <input type="date" name="start" class="form-control" value="{{ period_start }}">
       </div>
       <div>
-        <label class="form-label fw-semibold">Au</label>
+        <label class="form-label fw-semibold">{% trans "Au" %}</label>
         <input type="date" name="end" class="form-control" value="{{ period_end }}">
       </div>
-      <button type="submit" class="orion-btn primary"><i class="bi bi-search me-1"></i>Filtrer</button>
+      <button type="submit" class="orion-btn primary"><i class="bi bi-search me-1"></i>{% trans "Filtrer" %}</button>
     </form>
   </div>
 </div>
 
 {% if lines %}
 <div class="erp-card">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>Mouvements ({{ lines|length }})</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journal-text me-2"></i>{% blocktrans with count=lines|length %}Mouvements ({{ count }}){% endblocktrans %}</h6></div>
   <div class="erp-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="table table-sm table-hover align-middle mb-0">
         <thead class="table-dark">
-          <tr><th>Compte</th><th>Date</th><th>Journal</th><th>N° Écriture</th><th>Libellé</th><th class="text-end">Débit</th><th class="text-end">Crédit</th></tr>
+          <tr><th>{% trans "Compte" %}</th><th>{% trans "Date" %}</th><th>{% trans "Journal" %}</th><th>{% trans "N° Écriture" %}</th><th>{% trans "Libellé" %}</th><th class="text-end">{% trans "Débit" %}</th><th class="text-end">{% trans "Crédit" %}</th></tr>
         </thead>
         <tbody>
           {% for line in lines %}
@@ -58,6 +59,6 @@
   </div>
 </div>
 {% elif period_start or account_filter %}
-<div class="erp-card"><div class="erp-orion-orion-card-body text-center py-5 text-muted">Aucun mouvement pour les critères sélectionnés.</div></div>
+<div class="erp-card"><div class="erp-orion-orion-card-body text-center py-5 text-muted">{% trans "Aucun mouvement pour les critères sélectionnés." %}</div></div>
 {% endif %}
 {% endblock %}

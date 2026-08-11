@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="fr">
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ site.name|default:"Site" }} — Maintenance</title>
+  <title>{{ site.name|default:"Site" }} — {% trans "Maintenance" %}</title>
   <meta name="robots" content="noindex,nofollow">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,16 +54,16 @@
 <body>
   <div class="card">
     <div class="icon">🔧</div>
-    <span class="badge">En maintenance</span>
+    <span class="badge">{% trans "En maintenance" %}</span>
     <h1 style="margin-top:1rem">{{ site.name|default:"Ce site" }}</h1>
-    <p>Ce site est temporairement en maintenance. Merci de revenir plus tard.</p>
-    <p style="font-size:0.875rem">Nous travaillons à améliorer votre expérience et reviendrons très prochainement.</p>
+    <p>{% trans "Ce site est temporairement en maintenance. Merci de revenir plus tard." %}</p>
+    <p style="font-size:0.875rem">{% trans "Nous travaillons à améliorer votre expérience et reviendrons très prochainement." %}</p>
     {% if site.contact_email %}
     <p style="font-size:0.875rem">
-      Pour toute urgence, contactez-nous : <a href="mailto:{{ site.contact_email }}" style="color:inherit">{{ site.contact_email }}</a>
+      {% trans "Pour toute urgence, contactez-nous :" %} <a href="mailto:{{ site.contact_email }}" style="color:inherit">{{ site.contact_email }}</a>
     </p>
     {% endif %}
-    <div class="footer">Propulsé par Orion ERP</div>
+    <div class="footer">{% trans "Propulsé par Orion ERP" %}</div>
   </div>
 </body>
 </html>

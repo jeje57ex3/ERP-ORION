@@ -1,8 +1,9 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Dossiers privés salariés — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Dossiers privés salariés" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Dossiers privés salariés</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Accès sécurisé aux documents confidentiels de chaque salarié.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Dossiers privés salariés" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Accès sécurisé aux documents confidentiels de chaque salarié." %}</p>{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
@@ -10,7 +11,7 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#CCFBF1;color:#0D9488"><i class="bi bi-folder-lock"></i></div>
       <div class="orion-kpi-value">{{ folders|length }}</div>
-      <div class="orion-kpi-label">Dossiers</div>
+      <div class="orion-kpi-label">{% trans "Dossiers" %}</div>
     </div>
   </div>
   {% if expiring %}
@@ -18,7 +19,7 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="bi bi-exclamation-triangle"></i></div>
       <div class="orion-kpi-value">{{ expiring }}</div>
-      <div class="orion-kpi-label">Documents expirant bientôt</div>
+      <div class="orion-kpi-label">{% trans "Documents expirant bientôt" %}</div>
     </div>
   </div>
   {% endif %}
@@ -27,33 +28,33 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#EF4444"><i class="bi bi-x-circle"></i></div>
       <div class="orion-kpi-value">{{ expired }}</div>
-      <div class="orion-kpi-label">Documents expirés</div>
+      <div class="orion-kpi-label">{% trans "Documents expirés" %}</div>
     </div>
   </div>
   {% endif %}
   {% if pending_sig %}
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EDE9FE;color:#8B5CF6"><i class="bi bi-pen"></i></div>
+      <div class="orion-kpi-icon" style="background:#F8F3EA;color:#C6A15B"><i class="bi bi-pen"></i></div>
       <div class="orion-kpi-value">{{ pending_sig }}</div>
-      <div class="orion-kpi-label">Signatures en attente</div>
+      <div class="orion-kpi-label">{% trans "Signatures en attente" %}</div>
     </div>
   </div>
   {% endif %}
 </div>
 
 <div class="orion-card">
-  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-folder-lock me-2"></i>Dossiers salariés</h6></div>
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-folder-lock me-2"></i>{% trans "Dossiers salariés" %}</h6></div>
   <div class="orion-orion-orion-card-body">
     {% if folders %}
     <div class="table-responsive">
       <table class="orion-table">
         <thead>
           <tr>
-            <th>Salarié</th>
-            <th>Service</th>
-            <th>Poste</th>
-            <th class="text-center">Alertes</th>
+            <th>{% trans "Salarié" %}</th>
+            <th>{% trans "Service" %}</th>
+            <th>{% trans "Poste" %}</th>
+            <th class="text-center">{% trans "Alertes" %}</th>
             <th></th>
           </tr>
         </thead>
@@ -73,13 +74,13 @@
             <td>{{ item.employee.job_title|default:"-" }}</td>
             <td class="text-center">
               {% if item.folder.expired_count %}
-              <span class="orion-badge orion-badge-danger me-1"><i class="bi bi-x-circle me-1"></i>{{ item.folder.expired_count }} expirés</span>
+              <span class="orion-badge orion-badge-danger me-1"><i class="bi bi-x-circle me-1"></i>{% blocktrans count counter=item.folder.expired_count %}{{ counter }} expiré{% plural %}{{ counter }} expirés{% endblocktrans %}</span>
               {% endif %}
               {% if item.folder.expiring_soon_count %}
-              <span class="orion-badge orion-badge-warning me-1"><i class="bi bi-clock me-1"></i>{{ item.folder.expiring_soon_count }} expirent</span>
+              <span class="orion-badge orion-badge-warning me-1"><i class="bi bi-clock me-1"></i>{% blocktrans with n=item.folder.expiring_soon_count %}{{ n }} expirent{% endblocktrans %}</span>
               {% endif %}
               {% if item.folder.pending_signature_count %}
-              <span class="badge bg-purple me-1"><i class="bi bi-pen me-1"></i>{{ item.folder.pending_signature_count }} signatures</span>
+              <span class="badge bg-purple me-1"><i class="bi bi-pen me-1"></i>{% blocktrans with n=item.folder.pending_signature_count %}{{ n }} signatures{% endblocktrans %}</span>
               {% endif %}
               {% if not item.folder.expired_count and not item.folder.expiring_soon_count and not item.folder.pending_signature_count %}
               <span class="text-muted">—</span>
@@ -87,7 +88,7 @@
             </td>
             <td class="text-end">
               <a href="{% url 'hr:private_folder_detail' item.employee.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-                <i class="bi bi-folder-open me-1"></i>Ouvrir
+                <i class="bi bi-folder-open me-1"></i>{% trans "Ouvrir" %}
               </a>
             </td>
           </tr>
@@ -98,7 +99,7 @@
     {% else %}
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-folder-lock"></i></div>
-      <div class="orion-empty-title">Aucun salarié actif</div>
+      <div class="orion-empty-title">{% trans "Aucun salarié actif" %}</div>
     </div>
     {% endif %}
   </div>

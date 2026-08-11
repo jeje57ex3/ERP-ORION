@@ -1,18 +1,21 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
-    <h1>Serveurs Orion</h1>
-    <p class="orion-page-subtitle">Principal + 2 secondaires.</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Haute disponibilité" %}</p>
+    <h1 class="page-title">{% trans "Serveurs Orion" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Principal + 2 secondaires." %}</p>
   </div>
-  <div class="orion-page-actions">
-    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">Vérifier les serveurs</a>
-    <a class="orion-btn orion-btn--primary" href="{% url 'high_availability:admin_settings' %}">Paramètres HA</a>
+  <div class="page-header-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">{% trans "Vérifier les serveurs" %}</a>
+    <a class="orion-btn orion-btn--primary" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
   {% for msg in messages %}
     <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
@@ -24,14 +27,14 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Priorité</th>
-          <th>Serveur</th>
-          <th>Rôle</th>
+          <th>{% trans "Priorité" %}</th>
+          <th>{% trans "Serveur" %}</th>
+          <th>{% trans "Rôle" %}</th>
           <th>URL</th>
-          <th>Statut</th>
+          <th>{% trans "Statut" %}</th>
           <th>Heartbeat</th>
-          <th>Lag DB</th>
-          <th>Actif</th>
+          <th>{% trans "Lag DB" %}</th>
+          <th>{% trans "Actif" %}</th>
           <th>Failover</th>
           <th></th>
         </tr>
@@ -61,7 +64,7 @@
               {{ node.heartbeat_age_seconds }}s
               {% if node.is_stale %}<span class="orion-badge orion-badge--warning">stale</span>{% endif %}
             {% else %}
-              <span class="orion-text-muted">Jamais</span>
+              <span class="orion-text-muted">{% trans "Jamais" %}</span>
             {% endif %}
           </td>
           <td>
@@ -73,22 +76,22 @@
           </td>
           <td>
             {% if node.is_current_active %}
-              <span class="orion-badge orion-badge--success">Actif</span>
+              <span class="orion-badge orion-badge--success">{% trans "Actif" %}</span>
             {% else %}—{% endif %}
           </td>
           <td>
             {% if node.is_failover_target %}
-              <span class="orion-badge orion-badge--info">Cible</span>
+              <span class="orion-badge orion-badge--info">{% trans "Cible" %}</span>
             {% else %}—{% endif %}
           </td>
           <td>
-            <a class="orion-btn orion-btn--sm" href="{% url 'high_availability:admin_node_detail' node.pk %}">Modifier</a>
+            <a class="orion-btn orion-btn--sm" href="{% url 'high_availability:admin_node_detail' node.pk %}">{% trans "Modifier" %}</a>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="10" class="orion-table-empty">
-            Aucun serveur configuré. Exécutez <code>python manage.py ha_seed</code>.
+            {% trans "Aucun serveur configuré. Exécutez" %} <code>python manage.py ha_seed</code>.
           </td>
         </tr>
         {% endfor %}

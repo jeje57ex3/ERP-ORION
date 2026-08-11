@@ -1,0 +1,78 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:article_list' %}">{% trans "Articles SIÈCLE." %}</a></li>
+<li class="breadcrumb-item active">{% trans "Journal de synchronisation" %}</li>
+{% endblock %}
+
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Historique de toutes les opérations de synchronisation ERP ↔ Boutique SIÈCLE." %}</p>{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Filtres statut -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{% url 'ecommerce:sync_log_list' %}" class="orion-filter-chip {% if not status_filter %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="?status=success" class="orion-filter-chip {% if status_filter == 'success' %}active{% endif %}">{% trans "Succès" %}</a>
+  <a href="?status=failure" class="orion-filter-chip {% if status_filter == 'failure' %}active{% endif %}">{% trans "Échecs" %}</a>
+  <a href="?status=partial" class="orion-filter-chip {% if status_filter == 'partial' %}active{% endif %}">{% trans "Partiels" %}</a>
+</div>
+
+<div class="orion-table-wrapper">
+<table class="orion-table">
+  <thead>
+    <tr>
+      <th>{% trans "Date" %}</th>
+      <th>{% trans "Article" %}</th>
+      <th>{% trans "Direction" %}</th>
+      <th>{% trans "Statut" %}</th>
+      <th>{% trans "Message" %}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for log in logs %}
+    <tr>
+      <td style="white-space:nowrap;font-size:12px">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+      <td>
+        {% if log.product %}
+        <a href="{% url 'ecommerce:article_detail' pk=log.product.pk %}">{{ log.product_name }}</a>
+        {% else %}<span class="text-muted">{{ log.product_name|default:"—" }}</span>{% endif %}
+      </td>
+      <td><span class="orion-badge">{{ log.get_direction_display }}</span></td>
+      <td>
+        {% if log.status == 'success' %}<span class="orion-badge orion-badge-success"><i class="bi bi-check me-1"></i>{% trans "Succès" %}</span>
+        {% elif log.status == 'failure' %}<span class="orion-badge orion-badge-danger"><i class="bi bi-x me-1"></i>{% trans "Échec" %}</span>
+        {% else %}<span class="orion-badge orion-badge-warning">{% trans "Partiel" %}</span>{% endif %}
+      </td>
+      <td style="font-size:12px;max-width:320px">{{ log.message|truncatechars:120 }}</td>
+      <td class="text-end">
+        {% if log.status == 'failure' and log.product %}
+        <form method="post" action="{% url 'ecommerce:sync_retry' log_pk=log.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="orion-btn orion-btn-ghost orion-btn-sm" title="{% trans 'Relancer' %}"><i class="bi bi-arrow-repeat"></i></button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="text-center py-5 text-muted">{% trans "Aucun journal de synchronisation." %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

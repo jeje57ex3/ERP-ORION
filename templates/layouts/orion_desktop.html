@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load humanize %}
+{% load i18n %}
 
 {% block body %}
 <div class="erp-wrapper orion-wrapper">
@@ -14,12 +15,13 @@
     {# ── Topbar ────────────────────────────────────────────── #}
     <header class="erp-navbar orion-topbar">
       <div class="navbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Navigation">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="{% trans 'Navigation' %}">
           <i class="bi bi-list"></i>
         </button>
-        <nav aria-label="Fil d'Ariane" class="d-none d-md-flex">
+        {% trans "Fil d'Ariane" as orion_breadcrumb_label %}
+        <nav aria-label="{{ orion_breadcrumb_label }}" class="d-none d-md-flex">
           <div class="orion-breadcrumb">
-            <a href="{% url 'core:dashboard' %}" title="Tableau de bord"><i class="bi bi-house"></i></a>
+            <a href="{% url 'core:dashboard' %}" title="{% trans 'Tableau de bord' %}"><i class="bi bi-house"></i></a>
             {% block breadcrumb %}
               {% if page_title %}
               <span class="orion-breadcrumb-sep">›</span>
@@ -44,7 +46,7 @@
       <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show erp-alert" role="alert">
         <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Fermer' %}"></button>
       </div>
       {% endfor %}
     </div>
@@ -90,20 +92,20 @@
 {% include "components/toast.html" %}
 
 {# Modal recherche globale #}
-<div class="modal fade" id="globalSearchModal" tabindex="-1" aria-label="Recherche globale">
+<div class="modal fade" id="globalSearchModal" tabindex="-1" aria-label="{% trans 'Recherche globale' %}">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header border-0 pb-0">
         <div class="input-group">
           <span class="input-group-text bg-transparent border-0"><i class="bi bi-search fs-5"></i></span>
-          <input type="text" id="globalSearchModalInput" class="form-control border-0 fs-5 shadow-none" placeholder="Rechercher dans Orion ERP…" autocomplete="off">
-          <button class="btn btn-outline-secondary orion-btn sm" data-bs-dismiss="modal" aria-label="Fermer"><kbd>Esc</kbd></button>
+          <input type="text" id="globalSearchModalInput" class="form-control border-0 fs-5 shadow-none" placeholder="{% trans 'Rechercher dans Orion ERP…' %}" autocomplete="off">
+          <button class="btn btn-outline-secondary orion-btn sm" data-bs-dismiss="modal" aria-label="{% trans 'Fermer' %}"><kbd>Esc</kbd></button>
         </div>
       </div>
       <div class="modal-body pt-0" id="globalSearchModalResults">
         <div class="text-center text-muted py-4 small" id="globalSearchModalEmpty">
           <i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>
-          Tapez pour rechercher clients, devis, factures, chantiers…
+          {% trans "Tapez pour rechercher clients, devis, factures, chantiers…" %}
         </div>
       </div>
     </div>
@@ -130,7 +132,7 @@
         .then(function(r){return r.ok?r.json():null;})
         .then(function(data){
           if(!data||!data.results||!data.results.length){
-            results.innerHTML='<div class="text-center text-muted py-4 small"><i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>Aucun résultat pour « '+q+' »</div>';return;}
+            results.innerHTML='<div class="text-center text-muted py-4 small"><i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>{% trans "Aucun résultat pour «" %} '+q+' {% trans "»" %}</div>';return;}
           var html='';var byType={};
           data.results.forEach(function(r){if(!byType[r.label])byType[r.label]=[];byType[r.label].push(r);});
           Object.entries(byType).forEach(function(entry){
@@ -142,7 +144,7 @@
                 +'<span><span class="d-block fw-medium text-dark">'+item.title+'</span>'+(item.subtitle?'<span class="d-block small text-muted">'+item.subtitle+'</span>':'')+'</span></a>';});
           });
           results.innerHTML=html;
-        }).catch(function(){results.innerHTML='<div class="text-center text-muted py-3 small"><i class="bi bi-wifi-off me-1"></i>Erreur</div>';});
+        }).catch(function(){results.innerHTML='<div class="text-center text-muted py-3 small"><i class="bi bi-wifi-off me-1"></i>{% trans "Erreur" %}</div>';});
     },300);
   });
   modal.addEventListener('shown.bs.modal',function(){input.focus();input.value='';results.innerHTML='';results.appendChild(empty);});

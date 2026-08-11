@@ -1,5 +1,6 @@
 {% extends "electricity/base_electricity.html" %}
-{% block title %}Demande de devis guidée — Étape 1{% endblock %}
+{% load i18n %}
+{% block title %}{% trans 'Demande de devis guidée — Étape 1' %}{% endblock %}
 {% block content %}
 
 <!-- Progress bar -->
@@ -15,7 +16,7 @@
       <div class="wizard-progress-step pending">4</div>
     </div>
     <div class="d-flex justify-content-between small text-muted mt-2">
-      <span><strong>Type de demande</strong></span><span>Questions</span><span>Coordonnées</span><span>Validation</span>
+      <span><strong>{% trans 'Type de demande' %}</strong></span><span>{% trans 'Questions' %}</span><span>{% trans 'Coordonnées' %}</span><span>{% trans 'Validation' %}</span>
     </div>
   </div>
 </div>
@@ -25,12 +26,12 @@
     <div class="col-12 col-lg-8">
       <div class="text-center mb-5">
         <div class="mb-3" style="font-size:3rem">⚡</div>
-        <h1 class="fw-bold">Décrivez votre besoin</h1>
-        <p class="text-muted fs-5">Notre assistant vous posera les bonnes questions pour générer une estimation précise. <strong>100% gratuit, sans engagement.</strong></p>
+        <h1 class="fw-bold">{% trans 'Décrivez votre besoin' %}</h1>
+        <p class="text-muted fs-5">{% trans 'Notre assistant vous posera les bonnes questions pour générer une estimation précise.' %} <strong>{% trans '100% gratuit, sans engagement.' %}</strong></p>
         <div class="d-flex gap-2 justify-content-center flex-wrap mt-3">
-          <span class="badge-trust"><i class="bi bi-shield-check me-1"></i>Devis gratuit</span>
-          <span class="badge-trust"><i class="bi bi-clock me-1"></i>Réponse rapide</span>
-          <span class="badge-trust"><i class="bi bi-award me-1"></i>Artisan qualifié</span>
+          <span class="badge-trust"><i class="bi bi-shield-check me-1"></i>{% trans 'Devis gratuit' %}</span>
+          <span class="badge-trust"><i class="bi bi-clock me-1"></i>{% trans 'Réponse rapide' %}</span>
+          <span class="badge-trust"><i class="bi bi-award me-1"></i>{% trans 'Artisan qualifié' %}</span>
         </div>
       </div>
 
@@ -42,8 +43,8 @@
               <input type="radio" name="request_type" value="depannage" required>
               <div class="service-icon flex-shrink-0"><i class="bi bi-tools"></i></div>
               <div>
-                <div class="fw-bold">Dépannage électrique</div>
-                <div class="text-muted small">Panne, disjoncteur, câble défectueux</div>
+                <div class="fw-bold">{% trans 'Dépannage électrique' %}</div>
+                <div class="text-muted small">{% trans 'Panne, disjoncteur, câble défectueux' %}</div>
               </div>
             </label>
           </div>
@@ -52,8 +53,8 @@
               <input type="radio" name="request_type" value="travaux">
               <div class="service-icon flex-shrink-0"><i class="bi bi-hammer"></i></div>
               <div>
-                <div class="fw-bold">Travaux électriques</div>
-                <div class="text-muted small">Installation, rénovation, mise aux normes</div>
+                <div class="fw-bold">{% trans 'Travaux électriques' %}</div>
+                <div class="text-muted small">{% trans 'Installation, rénovation, mise aux normes' %}</div>
               </div>
             </label>
           </div>
@@ -62,8 +63,8 @@
               <input type="radio" name="request_type" value="renovation">
               <div class="service-icon flex-shrink-0"><i class="bi bi-house-gear"></i></div>
               <div>
-                <div class="fw-bold">Rénovation électrique</div>
-                <div class="text-muted small">Refonte complète d'une installation existante</div>
+                <div class="fw-bold">{% trans 'Rénovation électrique' %}</div>
+                <div class="text-muted small">{% trans "Refonte complète d'une installation existante" %}</div>
               </div>
             </label>
           </div>
@@ -72,8 +73,8 @@
               <input type="radio" name="request_type" value="mise_normes">
               <div class="service-icon flex-shrink-0"><i class="bi bi-check-circle"></i></div>
               <div>
-                <div class="fw-bold">Mise aux normes</div>
-                <div class="text-muted small">NF C 15-100, diagnostic, conformité</div>
+                <div class="fw-bold">{% trans 'Mise aux normes' %}</div>
+                <div class="text-muted small">{% trans 'NF C 15-100, diagnostic, conformité' %}</div>
               </div>
             </label>
           </div>
@@ -82,8 +83,8 @@
               <input type="radio" name="request_type" value="installation_neuve">
               <div class="service-icon flex-shrink-0"><i class="bi bi-building-add"></i></div>
               <div>
-                <div class="fw-bold">Installation neuve</div>
-                <div class="text-muted small">Neuf, extension, construction</div>
+                <div class="fw-bold">{% trans 'Installation neuve' %}</div>
+                <div class="text-muted small">{% trans 'Neuf, extension, construction' %}</div>
               </div>
             </label>
           </div>
@@ -92,8 +93,8 @@
               <input type="radio" name="request_type" value="autre">
               <div class="service-icon flex-shrink-0"><i class="bi bi-question-circle"></i></div>
               <div>
-                <div class="fw-bold">Je ne sais pas</div>
-                <div class="text-muted small">Guidez-moi, je décrirai mon besoin</div>
+                <div class="fw-bold">{% trans 'Je ne sais pas' %}</div>
+                <div class="text-muted small">{% trans 'Guidez-moi, je décrirai mon besoin' %}</div>
               </div>
             </label>
           </div>
@@ -104,17 +105,17 @@
           <div class="d-flex align-items-center gap-3">
             <i class="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
             <div class="flex-grow-1">
-              <div class="fw-bold">Besoin urgent ?</div>
-              <div class="small text-muted">Odeur de brûlé, panne totale, danger — nous intervenons rapidement.</div>
+              <div class="fw-bold">{% trans 'Besoin urgent ?' %}</div>
+              <div class="small text-muted">{% trans 'Odeur de brûlé, panne totale, danger — nous intervenons rapidement.' %}</div>
             </div>
             <a href="tel:0600000000" class="btn btn-urgent px-4">
-              <i class="bi bi-telephone-fill me-1"></i>Appeler maintenant
+              <i class="bi bi-telephone-fill me-1"></i>{% trans 'Appeler maintenant' %}
             </a>
           </div>
         </div>
 
         <button type="submit" class="btn btn-electric w-100 py-3 fs-5 fw-bold">
-          Commencer mon estimation <i class="bi bi-arrow-right ms-2"></i>
+          {% trans 'Commencer mon estimation' %} <i class="bi bi-arrow-right ms-2"></i>
         </button>
       </form>
     </div>

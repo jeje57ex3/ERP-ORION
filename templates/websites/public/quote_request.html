@@ -1,12 +1,13 @@
 {% extends "websites/public/base.html" %}
+{% load i18n %}
 
-{% block meta_title %}Demande de devis — {{ site.name }}{% endblock %}
+{% block meta_title %}{% blocktrans with site_name=site.name %}Demande de devis — {{ site_name }}{% endblocktrans %}{% endblock %}
 
 {% block content %}
 <section class="py-5" style="background: linear-gradient(135deg, var(--site-secondary), var(--site-primary));">
   <div class="container text-center text-white py-3">
-    <h1 class="display-5 fw-bold mb-2">Demande de devis gratuit</h1>
-    <p class="lead opacity-75">Décrivez votre projet, nous vous répondons sous 24h</p>
+    <h1 class="display-5 fw-bold mb-2">{% trans "Demande de devis gratuit" %}</h1>
+    <p class="lead opacity-75">{% trans "Décrivez votre projet, nous vous répondons sous 24h" %}</p>
   </div>
 </section>
 
@@ -15,8 +16,8 @@
     <div class="row justify-content-center">
       <div class="col-12 col-lg-8">
         <div class="bg-white p-4 p-md-5 rounded-3 shadow-sm border">
-          <h2 class="h4 fw-bold mb-1">Votre projet</h2>
-          <p class="text-muted mb-4 small">Remplissez ce formulaire pour recevoir une estimation personnalisée.</p>
+          <h2 class="h4 fw-bold mb-1">{% trans "Votre projet" %}</h2>
+          <p class="text-muted mb-4 small">{% trans "Remplissez ce formulaire pour recevoir une estimation personnalisée." %}</p>
 
           {% if messages %}
           {% for message in messages %}
@@ -35,16 +36,16 @@
             <div class="row g-3">
               <!-- Coordonnées -->
               <div class="col-12">
-                <h5 class="fw-semibold text-muted small text-uppercase mb-2" style="letter-spacing:1px;">Vos coordonnées</h5>
+                <h5 class="fw-semibold text-muted small text-uppercase mb-2" style="letter-spacing:1px;">{% trans "Vos coordonnées" %}</h5>
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Nom complet *</label>
+                <label class="form-label fw-semibold small">{% trans "Nom complet" %} *</label>
                 <input type="text" name="name" class="site-form-control" placeholder="Jean Dupont"
                        value="{{ form.name.value|default:'' }}" required>
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Société</label>
-                <input type="text" name="company_name" class="site-form-control" placeholder="Nom de votre entreprise"
+                <label class="form-label fw-semibold small">{% trans "Société" %}</label>
+                <input type="text" name="company_name" class="site-form-control" placeholder="{% trans 'Nom de votre entreprise' %}"
                        value="{{ form.company_name.value|default:'' }}">
               </div>
               <div class="col-12 col-sm-6">
@@ -53,7 +54,7 @@
                        value="{{ form.email.value|default:'' }}" required>
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Téléphone</label>
+                <label class="form-label fw-semibold small">{% trans "Téléphone" %}</label>
                 <input type="tel" name="phone" class="site-form-control" placeholder="+33 6 00 00 00 00"
                        value="{{ form.phone.value|default:'' }}">
               </div>
@@ -61,43 +62,43 @@
               <!-- Projet -->
               <div class="col-12 mt-2">
                 <hr class="my-1">
-                <h5 class="fw-semibold text-muted small text-uppercase mt-3 mb-2" style="letter-spacing:1px;">Votre projet</h5>
+                <h5 class="fw-semibold text-muted small text-uppercase mt-3 mb-2" style="letter-spacing:1px;">{% trans "Votre projet" %}</h5>
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Type de projet</label>
-                <input type="text" name="project_type" class="site-form-control" placeholder="Ex: Construction, Rénovation..."
+                <label class="form-label fw-semibold small">{% trans "Type de projet" %}</label>
+                <input type="text" name="project_type" class="site-form-control" placeholder="{% trans 'Ex: Construction, Rénovation...' %}"
                        value="{{ form.project_type.value|default:'' }}">
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Budget estimé</label>
-                <input type="text" name="budget" class="site-form-control" placeholder="Ex: 10 000 - 50 000 €"
+                <label class="form-label fw-semibold small">{% trans "Budget estimé" %}</label>
+                <input type="text" name="budget" class="site-form-control" placeholder="{% trans 'Ex: 10 000 - 50 000 €' %}"
                        value="{{ form.budget.value|default:'' }}">
               </div>
               <div class="col-12">
-                <label class="form-label fw-semibold small">Description du projet *</label>
+                <label class="form-label fw-semibold small">{% trans "Description du projet" %} *</label>
                 <textarea name="description" class="site-form-control" rows="5"
-                          placeholder="Décrivez votre projet en détail : nature des travaux, surface, localisation, contraintes particulières..." required>{{ form.description.value|default:'' }}</textarea>
+                          placeholder="{% trans 'Décrivez votre projet en détail : nature des travaux, surface, localisation, contraintes particulières...' %}" required>{{ form.description.value|default:'' }}</textarea>
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Délai souhaité</label>
-                <input type="text" name="deadline" class="site-form-control" placeholder="Ex: dans 3 mois, avant juin..."
+                <label class="form-label fw-semibold small">{% trans "Délai souhaité" %}</label>
+                <input type="text" name="deadline" class="site-form-control" placeholder="{% trans 'Ex: dans 3 mois, avant juin...' %}"
                        value="{{ form.deadline.value|default:'' }}">
               </div>
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small">Pièce jointe <span class="text-muted">(plans, cahier des charges...)</span></label>
+                <label class="form-label fw-semibold small">{% trans "Pièce jointe" %} <span class="text-muted">({% trans "plans, cahier des charges..." %})</span></label>
                 <input type="file" name="attachments" class="site-form-control" style="padding:0.55rem;">
               </div>
 
               <div class="col-12 mt-2">
                 <button type="submit" class="btn-site w-100 py-3 fs-6">
-                  <i class="bi bi-send-fill me-2"></i>Envoyer ma demande de devis
+                  <i class="bi bi-send-fill me-2"></i>{% trans "Envoyer ma demande de devis" %}
                 </button>
               </div>
               <div class="col-12 text-center">
                 <p class="small text-muted">
                   <i class="bi bi-shield-check me-1 text-success"></i>
-                  Vos informations sont confidentielles et ne seront pas partagées.
-                  Nous vous répondons sous 24h ouvrées.
+                  {% trans "Vos informations sont confidentielles et ne seront pas partagées." %}
+                  {% trans "Nous vous répondons sous 24h ouvrées." %}
                 </p>
               </div>
             </div>

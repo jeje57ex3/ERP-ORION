@@ -1,0 +1,1051 @@
+/* ================================================================
+   Orion Workspace — Système d'onglets multitâche (Phase 1)
+   ================================================================ */
+
+/* ── Tab bar ─────────────────────────────────────────────────────── */
+
+#orionWsTabBar {
+  display: flex;
+  align-items: stretch;
+  height: 36px;
+  background: #0D0D10;
+  border-bottom: 1px solid var(--orion-border, rgba(255,255,255,.07));
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.ows-tabs {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: none;
+}
+.ows-tabs::-webkit-scrollbar { display: none; }
+
+/* ── Individual tab ────────────────────────────────────────────── */
+
+.ows-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 11px;
+  min-width: 120px;
+  max-width: 220px;
+  height: 36px;
+  cursor: pointer;
+  position: relative;
+  border-right: 1px solid var(--orion-border, rgba(255,255,255,.06));
+  color: var(--orion-muted, #8A8598);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 100ms, color 100ms;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ows-tab:hover {
+  background: rgba(255,255,255,.04);
+  color: var(--orion-text, #F7F2E7);
+}
+
+.ows-tab.ows-active {
+  color: var(--orion-text, #F7F2E7);
+  background: var(--orion-surface, #17171B);
+}
+
+.ows-tab.ows-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--orion-gold, #D6B36A);
+}
+
+/* Pinned tab: narrower, icon-only */
+.ows-tab.ows-pinned {
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0;
+  justify-content: center;
+}
+.ows-tab.ows-pinned .ows-tab-title { display: none; }
+.ows-tab.ows-pinned .ows-tab-close { display: none; }
+.ows-tab.ows-pinned .ows-tab-dirty { display: none; }
+
+/* Tab icon */
+.ows-tab-icon {
+  width: 14px;
+  font-size: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .7;
+}
+.ows-tab.ows-active .ows-tab-icon { opacity: 1; }
+
+/* Loading spinner (replaces icon while fetching) */
+.ows-tab-spinner {
+  display: none;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255,255,255,.12);
+  border-top-color: var(--orion-gold, #D6B36A);
+  border-radius: 50%;
+  animation: owsSpin .65s linear infinite;
+  flex-shrink: 0;
+}
+.ows-tab.ows-loading .ows-tab-icon    { display: none; }
+.ows-tab.ows-loading .ows-tab-spinner { display: block; }
+
+/* Pin indicator (visible only when pinned) */
+.ows-tab-pin {
+  font-size: 10px;
+  color: var(--orion-gold, #D6B36A);
+  display: none;
+}
+.ows-tab.ows-pinned .ows-tab-pin { display: flex; align-items: center; }
+
+/* Title */
+.ows-tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+/* Dirty dot (unsaved changes) */
+.ows-tab-dirty {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--orion-gold, #D6B36A);
+  flex-shrink: 0;
+  display: none;
+}
+.ows-tab.ows-dirty .ows-tab-dirty { display: block; }
+.ows-tab.ows-dirty .ows-tab-close { display: none; }
+
+/* Close button */
+.ows-tab-close {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: var(--orion-muted, #8A8598);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 100ms, background 100ms, color 100ms;
+  margin-left: 1px;
+  line-height: 1;
+}
+.ows-tab:hover .ows-tab-close,
+.ows-tab.ows-active .ows-tab-close {
+  opacity: 1;
+}
+.ows-tab-close:hover {
+  background: rgba(255,255,255,.1);
+  color: var(--orion-text, #F7F2E7);
+}
+
+/* Drag */
+.ows-tab.ows-dragging { opacity: .35; }
+.ows-tab.ows-drag-over::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--orion-gold, #D6B36A);
+  border-radius: 1px;
+}
+
+/* ── Tab bar action buttons ──────────────────────────────────────── */
+
+.ows-bar-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  gap: 2px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--orion-border, rgba(255,255,255,.06));
+}
+
+.ows-btn-icon {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: var(--orion-muted, #8A8598);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 100ms, color 100ms;
+  padding: 0;
+  flex-shrink: 0;
+}
+.ows-btn-icon:hover {
+  background: rgba(255,255,255,.07);
+  color: var(--orion-text, #F7F2E7);
+}
+
+/* ── Panels container ────────────────────────────────────────────── */
+
+#orionWsPanels {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ows-panel {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 32px;
+  box-sizing: border-box;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ows-panel.ows-panel-active {
+  display: flex;
+}
+
+/* Loading overlay */
+.ows-panel-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--orion-bg, #0B0B0D);
+  z-index: 5;
+}
+.ows-panel-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--orion-muted, #8A8598);
+  font-size: 13px;
+}
+.ows-panel-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid rgba(255,255,255,.08);
+  border-top-color: var(--orion-gold, #D6B36A);
+  border-radius: 50%;
+  animation: owsSpin .75s linear infinite;
+}
+
+/* Error panel */
+.ows-panel-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 12px;
+  color: var(--orion-muted, #8A8598);
+  text-align: center;
+  padding: 48px 32px;
+}
+.ows-panel-error i {
+  font-size: 36px;
+  opacity: .35;
+  display: block;
+  margin-bottom: 4px;
+}
+.ows-panel-error p { margin: 0; font-size: 14px; line-height: 1.6; }
+.ows-panel-error .sub { font-size: 12px; opacity: .6; margin-top: 4px; }
+
+/* ── Context menu ────────────────────────────────────────────────── */
+
+#owsContextMenu {
+  position: fixed;
+  z-index: 9998;
+  background: #1A1A20;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  padding: 5px;
+  min-width: 185px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.65);
+  animation: owsFadeIn 90ms ease;
+}
+
+.ows-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--orion-text, #F7F2E7);
+  white-space: nowrap;
+  transition: background 70ms;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  line-height: 1;
+}
+.ows-ctx-item:hover { background: rgba(255,255,255,.06); }
+.ows-ctx-item i { width: 14px; text-align: center; font-size: 12px; opacity: .75; }
+.ows-ctx-item.danger { color: #e87878; }
+.ows-ctx-item.danger:hover { background: rgba(232,120,120,.1); }
+
+.ows-ctx-kbd {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--orion-muted, #8A8598);
+  padding-left: 8px;
+  font-family: inherit;
+}
+
+.ows-ctx-sep {
+  height: 1px;
+  background: rgba(255,255,255,.06);
+  margin: 4px 2px;
+}
+
+/* ── Dirty-guard dialog ──────────────────────────────────────────── */
+
+#owsDirtyOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(3px);
+  animation: owsFadeIn 110ms ease;
+}
+
+.ows-dialog {
+  background: #1C1C23;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  padding: 26px 26px 20px;
+  max-width: 370px;
+  width: 90%;
+  box-shadow: 0 24px 64px rgba(0,0,0,.7);
+}
+.ows-dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--orion-text, #F7F2E7);
+  margin: 0 0 8px;
+}
+.ows-dialog-body {
+  font-size: 13px;
+  color: var(--orion-muted, #8A8598);
+  line-height: 1.65;
+  margin: 0 0 22px;
+}
+.ows-dialog-body strong { color: var(--orion-text, #F7F2E7); font-weight: 500; }
+.ows-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.ows-dialog-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 90ms, opacity 90ms;
+}
+.ows-dialog-btn.cancel {
+  background: rgba(255,255,255,.07);
+  color: var(--orion-text, #F7F2E7);
+}
+.ows-dialog-btn.cancel:hover { background: rgba(255,255,255,.12); }
+.ows-dialog-btn.confirm-close {
+  background: rgba(232,120,120,.15);
+  color: #e87878;
+}
+.ows-dialog-btn.confirm-close:hover { background: rgba(232,120,120,.25); }
+
+/* ── Session restore banner ──────────────────────────────────────── */
+
+#owsRestoreBar {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9990;
+  background: #1C1C23;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.55);
+  font-size: 13px;
+  color: var(--orion-text, #F7F2E7);
+  white-space: nowrap;
+  animation: owsSlideUp 200ms cubic-bezier(.2,.8,.4,1);
+}
+#owsRestoreBar i { color: var(--orion-gold, #D6B36A); }
+
+.ows-restore-btn {
+  padding: 5px 13px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 90ms, opacity 90ms;
+}
+.ows-restore-btn.primary {
+  background: var(--orion-gold, #D6B36A);
+  color: #0B0B0D;
+}
+.ows-restore-btn.primary:hover { opacity: .88; }
+.ows-restore-btn.dismiss {
+  background: rgba(255,255,255,.07);
+  color: var(--orion-muted, #8A8598);
+}
+.ows-restore-btn.dismiss:hover { background: rgba(255,255,255,.12); }
+
+/* ── Animations ──────────────────────────────────────────────────── */
+
+@keyframes owsSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes owsFadeIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes owsSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Hide original main once workspace is ready ──────────────────── */
+body.ows-ready > * > * main#orionContent,
+.orion-main > main#orionContent.ows-hidden {
+  display: none !important;
+}
+
+/* ── Ensure panels inherit page structure from orion-page ────────── */
+.ows-panel .orion-page-header {
+  margin-bottom: 24px;
+}
+
+/* ================================================================
+   Phase 2 additions
+================================================================ */
+
+/* ── Nav back/forward buttons (left of tabs) ──────────────────── */
+
+.ows-nav-btns {
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  gap: 1px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--orion-border, rgba(255,255,255,.06));
+}
+
+.ows-nav-btns .ows-btn-icon:disabled {
+  opacity: .22;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Tab switcher modal (Ctrl+Shift+L) ────────────────────────── */
+
+#owsSwitcher {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(4px);
+  animation: owsFadeIn 100ms ease;
+}
+
+.ows-sw-box {
+  background: #1A1A20;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  width: 540px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+.ows-sw-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  color: var(--orion-text, #F7F2E7);
+  font-size: 14px;
+  padding: 14px 18px;
+  outline: none;
+  flex-shrink: 0;
+}
+.ows-sw-input::placeholder { color: var(--orion-muted, #8A8598); }
+
+.ows-sw-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px;
+}
+
+.ows-sw-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 80ms;
+  color: var(--orion-text, #F7F2E7);
+  min-width: 0;
+}
+.ows-sw-item:hover,
+.ows-sw-item:focus            { background: rgba(255,255,255,.06); outline: none; }
+.ows-sw-item.ows-sw-active    { background: rgba(214,179,106,.08); }
+.ows-sw-item.ows-sw-active .ows-sw-icon { color: var(--orion-gold, #D6B36A); }
+
+.ows-sw-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  opacity: .6;
+}
+.ows-sw-icon.ows-sw-pinned { color: var(--orion-gold, #D6B36A); opacity: 1; }
+
+.ows-sw-title {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.ows-sw-url {
+  font-size: 11px;
+  color: var(--orion-muted, #8A8598);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+  flex-shrink: 0;
+}
+
+.ows-sw-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--orion-gold, #D6B36A);
+  flex-shrink: 0;
+}
+
+.ows-sw-empty {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 13px;
+  color: var(--orion-muted, #8A8598);
+}
+
+/* ── Context menu disabled state ──────────────────────────────── */
+.ows-ctx-disabled {
+  opacity: .3;
+  pointer-events: none;
+}
+
+/* ================================================================
+   Phase 3 — Split view & Saved workspaces
+================================================================ */
+
+/* ── Panels split layout ────────────────────────────────────── */
+
+#orionWsPanels {
+  display: flex;
+  flex-direction: row;
+}
+.ows-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+.ows-pane-hidden { display: none !important; }
+
+/* Non-split: paneL fills everything */
+#orionWsPanels:not(.ows-split) .ows-pane-l {
+  flex: 1;
+}
+
+/* Split: both panes equal by default, can be resized */
+#orionWsPanels.ows-split .ows-pane-l { flex: 1; }
+#orionWsPanels.ows-split .ows-pane-r { flex: 1; }
+
+/* Splitter / resize handle */
+.ows-splitter {
+  width: 5px;
+  background: var(--orion-border, rgba(255,255,255,.07));
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 150ms;
+}
+.ows-splitter:hover,
+.ows-splitter:active {
+  background: var(--orion-gold, #D6B36A);
+}
+.ows-splitter::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+/* Pane focus indicator: thin colored top border */
+#orionWsPanels.ows-split .ows-pane-l::before,
+#orionWsPanels.ows-split .ows-pane-r::before {
+  content: '';
+  display: block;
+  height: 2px;
+  flex-shrink: 0;
+}
+#orionWsPanels.ows-split .ows-pane-l::before { background: var(--orion-gold, #D6B36A); }
+#orionWsPanels.ows-split .ows-pane-r::before { background: #4A9EFF; }
+
+/* Right-pane tab indicator in the tab bar */
+.ows-tab.ows-pane-r {
+  border-top: 2px solid #4A9EFF;
+}
+.ows-tab.ows-active-r::after {
+  background: #4A9EFF;
+}
+
+/* Active split toggle button */
+.ows-btn-icon.ows-btn-active {
+  background: rgba(214,179,106,.15);
+  color: var(--orion-gold, #D6B36A);
+}
+
+/* ── Saved workspaces menu ──────────────────────────────────── */
+
+.ows-ws-menu {
+  position: fixed;
+  z-index: 9998;
+  background: #1A1A20;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  padding: 5px;
+  min-width: 240px;
+  max-height: 360px;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,.65);
+  animation: owsFadeIn 90ms ease;
+}
+
+.ows-ws-entry {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.ows-ws-entry .ows-ws-load {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+}
+.ows-ws-entry .ows-ws-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ows-ws-meta {
+  font-size: 11px;
+  color: var(--orion-muted, #8A8598);
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+.ows-ws-del {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: var(--orion-muted, #8A8598);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 100ms, background 100ms, color 100ms;
+}
+.ows-ws-entry:hover .ows-ws-del { opacity: 1; }
+.ows-ws-del:hover { background: rgba(232,120,120,.15); color: #e87878; }
+
+/* ── Workspace name input (dialog) ─────────────────────────── */
+
+.ows-ws-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  color: var(--orion-text, #F7F2E7);
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+  margin-bottom: 18px;
+  transition: border-color 150ms;
+}
+.ows-ws-name-input:focus { border-color: var(--orion-gold, #D6B36A); }
+.ows-ws-name-input::placeholder { color: var(--orion-muted, #8A8598); }
+
+/* ── Save workspace button highlight ─────────────────────────  */
+.ows-dialog-btn.confirm-close.ws-save {
+  background: rgba(214,179,106,.2);
+  color: var(--orion-gold, #D6B36A);
+}
+.ows-dialog-btn.confirm-close.ws-save:hover {
+  background: rgba(214,179,106,.35);
+}
+
+/* ── Toast notification ──────────────────────────────────────── */
+
+.ows-toast {
+  position: fixed;
+  bottom: 22px;
+  right: 20px;
+  z-index: 9995;
+  background: #1C1C23;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--orion-text, #F7F2E7);
+  box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 220ms, transform 220ms;
+  pointer-events: none;
+}
+.ows-toast.ows-toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.ows-toast .bi { color: var(--orion-gold, #D6B36A); font-size: 14px; }
+
+/* ================================================================
+   Phase 4 — §12–22 : Aperçu rapide, Groupes, Focus, Veille, Récents, etc.
+   ================================================================ */
+
+/* ── §13 Tab group color bar ─────────────────────────────────── */
+
+.ows-tab-group-bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  pointer-events: none;
+}
+
+/* ── §15 Sleeping tab indicator ──────────────────────────────── */
+
+.ows-tab-sleep {
+  display: none;
+  font-size: 10px;
+  color: var(--orion-muted, #8A8598);
+  opacity: .7;
+}
+.ows-tab.ows-sleeping .ows-tab-sleep { display: flex; }
+.ows-tab.ows-sleeping .ows-tab-title { opacity: .5; }
+
+/* §15 Sleeping panel overlay */
+.ows-sleeping {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  gap: 8px;
+  color: var(--orion-muted, #8A8598);
+}
+.ows-sleeping .bi-moon-stars {
+  font-size: 32px;
+  opacity: .4;
+}
+.ows-sleeping p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--orion-text-muted, #8A8598);
+}
+.ows-sleeping p.sub {
+  font-size: 12px;
+  opacity: .65;
+}
+
+/* ── §12 Quick preview tooltip ──────────────────────────────── */
+
+#owsPreview {
+  position: fixed;
+  z-index: 9950;
+  background: #17171B;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 10px 14px 10px;
+  width: 270px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.55);
+  pointer-events: none;
+  animation: owsFadeIn 120ms ease forwards;
+}
+.ows-preview-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orion-text, #F7F2E7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.ows-preview-url {
+  font-size: 11px;
+  color: var(--orion-muted, #8A8598);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+.ows-preview-hint {
+  font-size: 10.5px;
+  color: #5A5570;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ows-preview-hint kbd {
+  font-family: inherit;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  color: var(--orion-text, #F7F2E7);
+}
+
+/* ── §14 Focus mode ─────────────────────────────────────────── */
+
+body.ows-focus-mode .orion-sidebar,
+body.ows-focus-mode #orionTopbar {
+  display: none !important;
+}
+body.ows-focus-mode #orionWsTabBar {
+  display: none !important;
+}
+body.ows-focus-mode #orionWsPanels {
+  height: 100vh;
+  border-radius: 0;
+}
+
+.ows-focus-exit {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+  background: rgba(30,30,36,.92);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--orion-text, #F7F2E7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  transition: background 120ms;
+}
+.ows-focus-exit:hover {
+  background: rgba(50,50,60,.95);
+}
+
+/* ── §18 Offline banner ─────────────────────────────────────── */
+
+.ows-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9998;
+  background: rgba(220,38,38,.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  justify-content: center;
+  animation: owsSlideUp 220ms ease forwards;
+}
+
+/* ── §13 Context menu group picker row ──────────────────────── */
+
+.ows-ctx-group-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px 6px;
+  flex-wrap: nowrap;
+}
+.ows-ctx-group-label {
+  font-size: 11px;
+  color: var(--orion-muted, #8A8598);
+  margin-right: 3px;
+  white-space: nowrap;
+}
+.ows-gp-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 120ms, border-color 120ms;
+}
+.ows-gp-dot:hover { transform: scale(1.25); }
+.ows-gp-dot.ows-gp-active { border-color: #fff; }
+.ows-gp-none {
+  background: rgba(255,255,255,.12);
+  color: var(--orion-muted, #8A8598);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ── §19 Tab switcher — group dot + sleep icon ──────────────── */
+
+.ows-sw-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.ows-sw-sleep {
+  font-size: 11px;
+  color: var(--orion-muted, #8A8598);
+  opacity: .7;
+  margin-left: 2px;
+}
+.ows-sw-right {
+  color: #4A9EFF !important;
+}
+
+/* ── §16 Recent pages menu (shares .ows-ws-menu styles) ─────── */
+
+#owsRecentMenu { max-height: 360px; overflow-y: auto; }
+#owsRecentMenu .ows-ws-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#owsRecentMenu .ows-ws-meta {
+  font-size: 10.5px;
+  color: var(--orion-muted, #8A8598);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* ── §1 Bar action button active state ──────────────────────── */
+
+.ows-btn-active {
+  color: #4A9EFF !important;
+  background: rgba(74,158,255,.1) !important;
+}
+
+/* ── Restore banner ─────────────────────────────────────────── */
+
+.ows-restore-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: transparent;
+  color: var(--orion-text, #F7F2E7);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms;
+  white-space: nowrap;
+}
+.ows-restore-btn.primary {
+  background: var(--orion-gold, #D6B36A);
+  border-color: var(--orion-gold, #D6B36A);
+  color: #0B0B0D;
+  font-weight: 600;
+}
+.ows-restore-btn.primary:hover { background: #c9a458; }
+.ows-restore-btn.dismiss:hover { background: rgba(255,255,255,.06); }

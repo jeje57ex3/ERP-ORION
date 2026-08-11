@@ -1,7 +1,8 @@
-{# Composant liste de documents liés
+{% load i18n %}
+{% comment %} Composant liste de documents liés
    Variables : documents (queryset/liste), upload_url, object_type, object_id
    Chaque document : name, file_type, file_size, uploaded_by, created_at, url
-#}
+{% endcomment %}
 <div class="document-list-component">
   {% if documents %}
   <ul class="list-unstyled mb-0">
@@ -24,12 +25,14 @@
       </div>
       <div class="d-flex gap-1 flex-shrink-0">
         {% if doc.file %}
-        <a href="{{ doc.file.url }}" download class="orion-btn orion-btn-outline orion-orion-btn sm" title="Télécharger">
+        {% trans "Télécharger" as orion_doc_download_title %}
+        <a href="{{ doc.file.url }}" download class="orion-btn orion-btn-outline orion-orion-btn sm" title="{{ orion_doc_download_title }}">
           <i class="bi bi-download"></i>
         </a>
         {% endif %}
         {% if can_delete %}
-        <a href="{% url 'documents:document_delete' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer">
+        {% trans "Supprimer" as orion_doc_delete_title %}
+        <a href="{% url 'documents:document_delete' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{{ orion_doc_delete_title }}">
           <i class="bi bi-trash"></i>
         </a>
         {% endif %}
@@ -40,14 +43,14 @@
   {% else %}
   <div class="text-center py-3 text-muted">
     <i class="bi bi-folder2-open fs-2 d-block mb-2 opacity-40"></i>
-    <span class="small">Aucun document associé.</span>
+    <span class="small">{% trans "Aucun document associé." %}</span>
   </div>
   {% endif %}
 
   {% if upload_url %}
   <div class="mt-3">
     <a href="{{ upload_url }}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-paperclip"></i>Ajouter un document
+      <i class="bi bi-paperclip"></i>{% trans "Ajouter un document" %}
     </a>
   </div>
   {% endif %}

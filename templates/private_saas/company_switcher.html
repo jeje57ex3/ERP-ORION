@@ -1,13 +1,14 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Changer d'entreprise — Orion ERP{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Changer d'entreprise — Orion ERP" %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Changer d'entreprise</li>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Changer d'entreprise" %}</li>{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-12 col-lg-7">
-    <p class="text-muted mb-4">Sélectionnez l'entreprise sur laquelle vous souhaitez travailler.</p>
+    <p class="text-muted mb-4">{% trans "Sélectionnez l'entreprise sur laquelle vous souhaitez travailler." %}</p>
     <div class="row g-3">
       {% for company in companies %}
       <div class="col-12 col-md-6">
@@ -17,7 +18,7 @@
           <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
           <button type="submit" class="orion-card w-100 text-start border-0 {% if current_company.pk == company.pk %}border border-primary{% endif %}" style="cursor:pointer">
             <div class="orion-orion-orion-card-body d-flex align-items-center gap-3">
-              <div class="orion-kpi-icon" style="background:{{ company.primary_color|default:'#EFF6FF' }}20;color:{{ company.primary_color|default:'#2563EB' }}">
+              <div class="orion-kpi-icon" style="background:{{ company.primary_color|default:'#EFF6FF' }}20;color:{{ company.primary_color|default:'#C6A15B' }}">
                 <i class="bi bi-building"></i>
               </div>
               <div class="flex-grow-1">
@@ -25,7 +26,7 @@
                 <div class="text-muted small">{{ company.sector|default:"—" }}</div>
               </div>
               {% if current_company.pk == company.pk %}
-              <span class="orion-badge orion-badge-primary"><i class="bi bi-check2 me-1"></i>Actif</span>
+              <span class="orion-badge orion-badge-primary"><i class="bi bi-check2 me-1"></i>{% trans "Actif" %}</span>
               {% endif %}
             </div>
           </button>
@@ -35,9 +36,9 @@
       <div class="col-12">
         <div class="orion-empty">
           <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
-          <div class="orion-empty-title">Aucune entreprise disponible</div>
+          <div class="orion-empty-title">{% trans "Aucune entreprise disponible" %}</div>
           {% if request.user.is_superuser %}
-          <a href="{% url 'private_saas:company_create' %}" class="orion-btn orion-orion-btn primary mt-3">Créer une entreprise</a>
+          <a href="{% url 'private_saas:company_create' %}" class="orion-btn orion-orion-btn primary mt-3">{% trans "Créer une entreprise" %}</a>
           {% endif %}
         </div>
       </div>

@@ -1,58 +1,61 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
 {% load humanize %}
+{% load i18n %}
 
-{% block title %}Mise à jour #{{ update_run.id }} — Orion ERP{% endblock %}
+{% block title %}{% blocktrans %}Mise à jour #{{ update_run.id }}{% endblocktrans %} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Mises à jour</p>
-    <h1 class="orion-page-title">Mise à jour #{{ update_run.id }}</h1>
-    <p class="orion-page-subtitle">
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Mises à jour" %}</p>
+    <h1 class="page-title">{% blocktrans %}Mise à jour #{{ update_run.id }}{% endblocktrans %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">
       {% if update_run.status == "success" %}
-        <span style="color:var(--orion-success)"><i class="bi bi-check-circle-fill me-1"></i>Succès</span>
+        <span style="color:var(--orion-success)"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Succès" %}</span>
       {% elif update_run.status == "failed" %}
-        <span style="color:var(--orion-danger)"><i class="bi bi-x-circle-fill me-1"></i>Échec</span>
+        <span style="color:var(--orion-danger)"><i class="bi bi-x-circle-fill me-1"></i>{% trans "Échec" %}</span>
       {% elif update_run.status == "running" %}
-        <span style="color:var(--orion-warning)"><i class="bi bi-hourglass-split me-1"></i>En cours</span>
+        <span style="color:var(--orion-warning)"><i class="bi bi-hourglass-split me-1"></i>{% trans "En cours" %}</span>
       {% elif update_run.status == "rolled_back" %}
-        <span style="color:var(--orion-muted)"><i class="bi bi-arrow-counterclockwise me-1"></i>Rollback effectué</span>
+        <span style="color:var(--orion-muted)"><i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Rollback effectué" %}</span>
       {% else %}
         {{ update_run.get_status_display }}
       {% endif %}
     </p>
   </div>
-  <div class="orion-page-actions">
+  <div class="page-header-actions">
     {% if update_run.status == "failed" and update_run.from_commit %}
     <a href="{% url 'system_updates:rollback' update_run.id %}" class="orion-btn danger">
-      <i class="bi bi-arrow-counterclockwise me-1"></i>Rollback
+      <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Rollback" %}
     </a>
     {% endif %}
     <a href="{% url 'system_updates:dashboard' %}" class="orion-btn">
-      <i class="bi bi-arrow-left me-1"></i>Retour
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}
     </a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 <div class="orion-dashboard-grid" style="grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
   <div class="orion-metric-card">
-    <span class="orion-metric-label">De</span>
+    <span class="orion-metric-label">{% trans "De" %}</span>
     <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
       {{ update_run.from_commit|slice:":8"|default:"—" }}
     </strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Vers</span>
+    <span class="orion-metric-label">{% trans "Vers" %}</span>
     <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
       {{ update_run.to_commit|slice:":8"|default:"—" }}
     </strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Démarré</span>
+    <span class="orion-metric-label">{% trans "Démarré" %}</span>
     <strong class="orion-metric-value" style="font-size:12px">{{ update_run.started_at|naturaltime }}</strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Terminé</span>
+    <span class="orion-metric-label">{% trans "Terminé" %}</span>
     <strong class="orion-metric-value" style="font-size:12px">{{ update_run.finished_at|naturaltime|default:"—" }}</strong>
   </div>
 </div>
@@ -60,23 +63,23 @@
 {% if update_run.error_message %}
 <div class="orion-alert danger mb-4">
   <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>Erreur :</strong> {{ update_run.error_message }}
+  <strong>{% trans "Erreur :" %}</strong> {{ update_run.error_message }}
 </div>
 {% endif %}
 
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
-    <h2 style="font-size:15px;font-weight:600;margin:0">Étapes d'exécution</h2>
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Étapes d'exécution" %}</h2>
   </div>
   <table class="orion-table">
     <thead>
       <tr>
-        <th>Code</th>
-        <th>Étape</th>
-        <th>Niveau</th>
-        <th>Message</th>
-        <th>Durée</th>
-        <th>Fin</th>
+        <th>{% trans "Code" %}</th>
+        <th>{% trans "Étape" %}</th>
+        <th>{% trans "Niveau" %}</th>
+        <th>{% trans "Message" %}</th>
+        <th>{% trans "Durée" %}</th>
+        <th>{% trans "Fin" %}</th>
       </tr>
     </thead>
     <tbody>
@@ -86,13 +89,13 @@
         <td style="font-weight:500">{{ log.step_name }}</td>
         <td>
           {% if log.level == "success" %}
-            <span class="orion-badge success">Succès</span>
+            <span class="orion-badge success">{% trans "Succès" %}</span>
           {% elif log.level == "error" %}
-            <span class="orion-badge danger">Erreur</span>
+            <span class="orion-badge danger">{% trans "Erreur" %}</span>
           {% elif log.level == "warning" %}
-            <span class="orion-badge warning">Avertissement</span>
+            <span class="orion-badge warning">{% trans "Avertissement" %}</span>
           {% else %}
-            <span class="orion-badge neutral">Info</span>
+            <span class="orion-badge neutral">{% trans "Info" %}</span>
           {% endif %}
         </td>
         <td style="font-size:12.5px;max-width:320px;word-break:break-word">{{ log.message|default:"—" }}</td>
@@ -111,7 +114,7 @@
       {% empty %}
       <tr>
         <td colspan="6" style="text-align:center;color:var(--orion-muted);padding:32px">
-          Aucune étape enregistrée.
+          {% trans "Aucune étape enregistrée." %}
         </td>
       </tr>
       {% endfor %}

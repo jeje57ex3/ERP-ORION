@@ -1,205 +1,187 @@
-﻿{% extends "websites/public/btp/base.html" %}
-{% load static %}
+{% extends "websites/public/btp/base.html" %}
+{% load static i18n %}
 
-{% block title %}{{ site.meta_title|default:"Entreprise de batiment | Devis travaux et suivi chantier en ligne" }}{% endblock %}
-{% block meta_description %}{{ site.meta_description|default:"Demandez un devis travaux guide, suivez votre chantier en ligne et echangez avec notre equipe depuis votre espace client securise." }}{% endblock %}
+{% block title %}{{ site.meta_title|default:"Entreprise de bâtiment | Devis travaux et suivi chantier en ligne" }}{% endblock %}
+{% block meta_description %}{{ site.meta_description|default:"Demandez un devis travaux guidé, suivez votre chantier en ligne et échangez avec notre équipe depuis votre espace client sécurisé." }}{% endblock %}
 
 {% block content %}
 
-<!-- Hero -->
-<section class="btp-hero">
-  <div class="btp-container">
-    <div class="btp-hero-grid">
-      <div>
-        <span class="btp-hero-tag"><i class="bi bi-patch-check-fill"></i> Devis gratuit &amp; sans engagement</span>
-        <h1>Vos travaux de batiment suivis simplement, du devis au chantier</h1>
-        <p class="btp-hero-lead">Demandez un devis guide, suivez votre projet en ligne et echangez avec notre equipe depuis votre espace client securise.</p>
-        <div class="btp-btn-group">
-          <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-orion-btn primary btp-btn-lg">
-            <i class="bi bi-pencil-square"></i>Demarrer mon devis guide
-          </a>
-          <a href="{% url 'client_portal:login' %}" class="btp-btn btp-btn-outline-white">
-            <i class="bi bi-person-lock"></i>Acceder a mon espace client
-          </a>
-        </div>
-        <div class="btp-hero-badges">
-          <span class="btp-hero-badge"><i class="bi bi-gift"></i> Devis gratuit</span>
-          <span class="btp-hero-badge"><i class="bi bi-display"></i> Suivi chantier en ligne</span>
-          <span class="btp-hero-badge"><i class="bi bi-shield-lock"></i> Espace client securise</span>
-        </div>
-      </div>
-
-      <!-- Carte confiance -->
-      <div class="btp-hero-card">
-        <div class="btp-hero-card-title"><i class="bi bi-shield-check" style="color:var(--btp-secondary)"></i> Pourquoi nous choisir ?</div>
-        <div class="btp-hero-card-item"><i class="bi bi-clock-fill"></i> Devis en 48h</div>
-        <div class="btp-hero-card-item"><i class="bi bi-geo-alt-fill"></i> Intervention rapide sur site</div>
-        <div class="btp-hero-card-item"><i class="bi bi-camera-fill"></i> Photos avant / apres</div>
-        <div class="btp-hero-card-item"><i class="bi bi-file-earmark-check"></i> Devis detaille et transparent</div>
-        <div class="btp-hero-card-item"><i class="bi bi-headset"></i> Suivi par votre espace client</div>
-        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-orion-btn primary" style="margin-top:1rem;width:100%;justify-content:center">
-          <i class="bi bi-arrow-right-circle"></i>Demarrer maintenant
+<section class="site-hero">
+  <div class="site-hero-bg" aria-hidden="true">
+    <span class="site-blob site-blob-1"></span>
+    <span class="site-blob site-blob-2"></span>
+  </div>
+  <div class="site-container site-hero-grid">
+    <div>
+      <span class="site-h-label"><i class="bi bi-patch-check-fill" aria-hidden="true"></i> {% trans 'Devis gratuit & sans engagement' %}</span>
+      <h1 class="site-hero-title">{% trans 'Vos travaux de bâtiment suivis simplement, du devis au chantier' %}</h1>
+      <p class="site-hero-lead">{% trans 'Demandez un devis guidé, suivez votre projet en ligne et échangez avec notre équipe depuis votre espace client sécurisé.' %}</p>
+      <div class="site-hero-actions">
+        <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-primary site-btn-lg">
+          <span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans 'Démarrer mon devis guidé' %}</span>
+        </a>
+        <a href="{% url 'client_portal:login' %}" class="site-btn site-btn-outline site-btn-lg">
+          <span class="site-btn-label"><i class="bi bi-person-lock" aria-hidden="true"></i>{% trans 'Accéder à mon espace client' %}</span>
         </a>
       </div>
+      <div class="site-hero-trust">
+        <span class="site-badge"><i class="bi bi-gift" aria-hidden="true"></i> {% trans 'Devis gratuit' %}</span>
+        <span class="site-badge"><i class="bi bi-display" aria-hidden="true"></i> {% trans 'Suivi chantier en ligne' %}</span>
+        <span class="site-badge"><i class="bi bi-shield-lock" aria-hidden="true"></i> {% trans 'Espace client sécurisé' %}</span>
+      </div>
+    </div>
+
+    <div class="site-hero-card site-glass site-reveal">
+      <h3 style="margin-bottom:1rem"><i class="bi bi-shield-check" style="color:var(--site-accent)" aria-hidden="true"></i> {% trans 'Pourquoi nous choisir ?' %}</h3>
+      <ul class="site-card-advantages" style="margin-bottom:1rem">
+        <li><i class="bi bi-clock-fill" aria-hidden="true"></i> {% trans 'Devis en 48h' %}</li>
+        <li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> {% trans 'Intervention rapide sur site' %}</li>
+        <li><i class="bi bi-camera-fill" aria-hidden="true"></i> {% trans 'Photos avant / après' %}</li>
+        <li><i class="bi bi-file-earmark-check" aria-hidden="true"></i> {% trans 'Devis détaillé et transparent' %}</li>
+        <li><i class="bi bi-headset" aria-hidden="true"></i> {% trans 'Suivi par votre espace client' %}</li>
+      </ul>
+      <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-primary site-btn-block">
+        <span class="site-btn-label"><i class="bi bi-arrow-right-circle" aria-hidden="true"></i>{% trans 'Démarrer maintenant' %}</span>
+      </a>
     </div>
   </div>
 </section>
 
-<!-- Services principaux -->
 {% if featured_services %}
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Nos services</span>
-      <h2>Ce que nous realisons pour vous</h2>
-      <p>Des artisans qualifies pour tous vos travaux, de la renovation au depannage.</p>
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Nos services' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Ce que nous réalisons pour vous' %}</h2>
+      <p>{% trans 'Des artisans qualifiés pour tous vos travaux, de la rénovation au dépannage.' %}</p>
     </div>
-    <div class="btp-cards-grid">
+    <div class="site-grid site-grid-4">
       {% for service in featured_services %}
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon">
-          <i class="bi {{ service.icon|default:'bi-tools' }}"></i>
-        </div>
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi {{ service.icon|default:'bi-tools' }}" aria-hidden="true"></i></div>
         <h3>{{ service.title }}</h3>
         <p>{{ service.description|truncatewords:20 }}</p>
-        <a href="{% url 'public_websites:btp_services' site.public_slug %}" class="btp-service-link">
-          En savoir plus <i class="bi bi-arrow-right"></i>
+        <a href="{% url 'public_websites:btp_services' site.public_slug %}" class="site-btn-ghost" style="display:inline-flex;margin-top:.8rem;padding:0">
+          {% trans 'En savoir plus' %} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </a>
       </div>
       {% endfor %}
     </div>
     <div style="text-align:center;margin-top:2.5rem">
-      <a href="{% url 'public_websites:btp_services' site.public_slug %}" class="btp-btn btp-btn-outline">
-        Voir tous nos services <i class="bi bi-arrow-right"></i>
+      <a href="{% url 'public_websites:btp_services' site.public_slug %}" class="site-btn site-btn-outline">
+        <span class="site-btn-label">{% trans 'Voir tous nos services' %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
       </a>
     </div>
   </div>
 </section>
 {% endif %}
 
-<!-- Processus -->
-<section class="btp-section btp-section-bg">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Comment ca marche</span>
-      <h2>Un processus simple du devis au chantier</h2>
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Comment ça marche' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Un processus simple du devis au chantier' %}</h2>
     </div>
-    <div class="btp-process-grid">
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">1</div><h4>Devis guide</h4><p>Decrivez votre projet en quelques etapes.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">2</div><h4>Analyse et reponse</h4><p>Nous etudions votre demande sous 48h.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">3</div><h4>Devis detaille</h4><p>Recevez un devis clair et transparent.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">4</div><h4>Suivi en ligne</h4><p>Suivez l'avancement depuis votre espace client.</p></div>
+    <div class="site-grid site-grid-4">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-1-circle-fill" aria-hidden="true"></i></div><h3>{% trans 'Devis guidé' %}</h3><p>{% trans 'Décrivez votre projet en quelques étapes.' %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-2-circle-fill" aria-hidden="true"></i></div><h3>{% trans 'Analyse et réponse' %}</h3><p>{% trans 'Nous étudions votre demande sous 48h.' %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-3-circle-fill" aria-hidden="true"></i></div><h3>{% trans 'Devis détaillé' %}</h3><p>{% trans 'Recevez un devis clair et transparent.' %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-4-circle-fill" aria-hidden="true"></i></div><h3>{% trans 'Suivi en ligne' %}</h3><p>{% trans "Suivez l'avancement depuis votre espace client." %}</p></div>
     </div>
   </div>
 </section>
 
-<!-- Realisations recentes -->
 {% if btp_portfolio %}
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Realisations</span>
-      <h2>Nos derniers chantiers termines</h2>
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Réalisations' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Nos derniers chantiers terminés' %}</h2>
     </div>
-    <div class="btp-portfolio-grid">
+    <div class="site-grid site-grid-3">
       {% for project in btp_portfolio %}
-      <div class="btp-project-card btp-reveal">
-        <div class="btp-project-img">
-          {% if project.after_image %}<img src="{{ project.after_image.url }}" alt="{{ project.title }}">
-          {% elif project.before_image %}<img src="{{ project.before_image.url }}" alt="{{ project.title }}">
-          {% else %}<i class="bi bi-building"></i>{% endif %}
-        </div>
-        <div class="btp-project-body">
-          <div class="btp-project-type">{{ project.get_work_type_display }}</div>
-          <h3>{{ project.title }}</h3>
-          {% if project.city %}<p class="btp-project-city"><i class="bi bi-geo-alt"></i> {{ project.city }}</p>{% endif %}
+      <div class="site-gallery-card site-reveal">
+        <figure style="margin:0">
+          {% if project.after_image %}<img src="{{ project.after_image.url }}" alt="{{ project.title }}" loading="lazy" style="aspect-ratio:4/3;object-fit:cover;width:100%">
+          {% elif project.before_image %}<img src="{{ project.before_image.url }}" alt="{{ project.title }}" loading="lazy" style="aspect-ratio:4/3;object-fit:cover;width:100%">
+          {% endif %}
+        </figure>
+        <div class="site-gallery-body">
+          <span class="site-badge">{{ project.get_work_type_display }}</span>
+          <h3 style="margin-top:.6rem">{{ project.title }}</h3>
+          {% if project.city %}<p class="site-muted"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ project.city }}</p>{% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
     <div style="text-align:center;margin-top:2.5rem">
-      <a href="{% url 'public_websites:btp_portfolio' site.public_slug %}" class="btp-btn btp-btn-outline">
-        Voir toutes nos realisations <i class="bi bi-arrow-right"></i>
+      <a href="{% url 'public_websites:btp_portfolio' site.public_slug %}" class="site-btn site-btn-outline">
+        <span class="site-btn-label">{% trans 'Voir toutes nos réalisations' %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
       </a>
     </div>
   </div>
 </section>
 {% endif %}
 
-<!-- Avis clients -->
 {% if btp_reviews %}
-<section class="btp-section btp-section-bg">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Avis clients</span>
-      <h2>Ce que disent nos clients</h2>
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Avis clients' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Ce que disent nos clients' %}</h2>
     </div>
-    <div class="btp-reviews-grid">
-      {% for review in btp_reviews %}
-      <div class="btp-review-card btp-reveal">
-        <div class="btp-stars" data-rating="{{ review.rating }}"></div>
-        <p class="btp-review-text">{{ review.comment }}</p>
-        <div class="btp-reviewer">{{ review.customer_name }}</div>
-        {% if review.customer_city %}<div class="btp-reviewer-city"><i class="bi bi-geo-alt"></i> {{ review.customer_city }}</div>{% endif %}
+    <div class="site-testimonial-slider site-reveal">
+      <div class="site-testimonial-track">
+        {% for review in btp_reviews %}
+        <div class="site-testimonial-slide">
+          <div class="site-testimonial-card">
+            <div class="site-testimonial-avatar" aria-hidden="true"><i class="bi bi-person-circle" style="font-size:2.5rem;color:var(--site-muted)"></i></div>
+            <div class="site-testimonial-stars">{% for i in "12345" %}<i class="bi {% if forloop.counter <= review.rating %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</div>
+            <p>{{ review.comment }}</p>
+            <p class="site-muted" style="margin-top:1rem;font-weight:600">{{ review.customer_name }}{% if review.customer_city %} — {{ review.customer_city }}{% endif %}</p>
+          </div>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+      <div class="site-testimonial-nav"></div>
     </div>
     <div style="text-align:center;margin-top:2rem">
-      <a href="{% url 'public_websites:btp_reviews' site.public_slug %}" class="btp-btn btp-btn-outline">
-        Voir tous les avis <i class="bi bi-arrow-right"></i>
+      <a href="{% url 'public_websites:btp_reviews' site.public_slug %}" class="site-btn site-btn-outline">
+        <span class="site-btn-label">{% trans 'Voir tous les avis' %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
       </a>
     </div>
   </div>
 </section>
 {% endif %}
 
-<!-- Chiffres cles -->
-<section class="btp-section btp-section-dark">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label" style="color:var(--btp-secondary)">En chiffres</span>
-      <h2>Notre experience a votre service</h2>
+<section class="site-section site-section-alt" aria-label="{% trans 'Chiffres clés' %}">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'En chiffres' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Notre expérience à votre service' %}</h2>
     </div>
-    <div class="btp-stats-grid">
-      <div class="btp-stat-card btp-reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)">
-        <div class="btp-stat-number" data-count="{{ btp_portfolio|length|default:50 }}">0</div>
-        <div class="btp-stat-label" style="color:#C9B89A">Chantiers realises</div>
-      </div>
-      <div class="btp-stat-card btp-reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)">
-        <div class="btp-stat-number" data-count="{{ btp_reviews|length|default:120 }}">0</div>
-        <div class="btp-stat-label" style="color:#C9B89A">Clients satisfaits</div>
-      </div>
-      <div class="btp-stat-card btp-reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)">
-        <div class="btp-stat-number">10+</div>
-        <div class="btp-stat-label" style="color:#C9B89A">Ans d'experience</div>
-      </div>
-      <div class="btp-stat-card btp-reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)">
-        <div class="btp-stat-number">48h</div>
-        <div class="btp-stat-label" style="color:#C9B89A">Delai devis moyen</div>
-      </div>
+    <div class="site-stats">
+      <div><div class="site-stat-num" data-count="{{ btp_portfolio|length|default:50 }}">0</div><div class="site-stat-label">{% trans 'Chantiers réalisés' %}</div></div>
+      <div><div class="site-stat-num" data-count="{{ btp_reviews|length|default:120 }}">0</div><div class="site-stat-label">{% trans 'Clients satisfaits' %}</div></div>
+      <div><div class="site-stat-num" data-count="10">0</div><div class="site-stat-label">{% trans "Ans d'expérience" %}</div></div>
+      <div><div class="site-stat-num" data-count="48">0</div><div class="site-stat-label">{% trans 'h délai devis moyen' %}</div></div>
     </div>
   </div>
 </section>
 
-<!-- CTA Devis guide -->
 {% include "websites/public/btp/components/cta_guided_quote.html" %}
 
-<!-- Espace client acces rapide -->
-<section class="btp-section-sm btp-section-bg">
-  <div class="btp-container">
-    <div style="display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center" class="btp-reveal">
+<section class="site-section-sm">
+  <div class="site-container">
+    <div class="site-card site-reveal" style="display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center">
       <div>
-        <span class="btp-h-label">Espace client</span>
-        <h2 style="font-size:1.5rem;margin-bottom:.5rem">Suivez vos chantiers en ligne</h2>
-        <p class="btp-muted">Consultez vos devis, factures, documents et l'avancement de vos travaux depuis votre espace securise.</p>
+        <span class="site-h-label">{% trans 'Espace client' %}</span>
+        <h2 class="site-h-xxl" style="font-size:1.5rem;margin-bottom:.5rem">{% trans 'Suivez vos chantiers en ligne' %}</h2>
+        <p class="site-muted">{% trans "Consultez vos devis, factures, documents et l'avancement de vos travaux depuis votre espace sécurisé." %}</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:.75rem;flex-shrink:0">
-        <a href="{% url 'client_portal:login' %}" class="btp-btn btp-btn-dark">
-          <i class="bi bi-person-lock"></i>Se connecter
-        </a>
-        <a href="{% url 'public_websites:btp_client_access' site.public_slug %}" class="btp-btn btp-btn-outline">
-          Decouvrir l'espace client
-        </a>
+        <a href="{% url 'client_portal:login' %}" class="site-btn site-btn-primary"><span class="site-btn-label"><i class="bi bi-person-lock" aria-hidden="true"></i>{% trans 'Se connecter' %}</span></a>
+        <a href="{% url 'public_websites:btp_client_access' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label">{% trans "Découvrir l'espace client" %}</span></a>
       </div>
     </div>
   </div>

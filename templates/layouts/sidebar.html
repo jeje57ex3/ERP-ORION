@@ -1,5 +1,6 @@
 {% load static %}
-<aside class="orion-sidebar-v2" id="orionSidebar" role="navigation" aria-label="Navigation principale">
+{% load i18n %}
+<aside class="orion-sidebar-v2" id="orionSidebar" role="navigation" aria-label="{% trans 'Navigation principale' %}">
 
   {# ── Marque ──────────────────────────────────────────────────────────── #}
   <div class="orion-sidebar-brand">
@@ -12,15 +13,16 @@
     </div>
     <div class="orion-brand-label">
       <strong>{{ brand_name|default:"Orion ERP" }}</strong>
-      <span>Private Suite</span>
+      <span>{% trans "Private Suite" %}</span>
     </div>
   </div>
 
   {# ── Entreprise ──────────────────────────────────────────────────────── #}
   {% if companies and current_company %}
+  {% trans "Changer d'entreprise" as sb_change_company %}
   <div class="orion-company-pill dropdown" id="orionCompanyDropdown">
     <button class="orion-company-pill w-100 text-start" type="button"
-            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Changer d'entreprise">
+            data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ sb_change_company }}">
       <div class="orion-company-icon" aria-hidden="true">
         {% if current_company.sector_color %}
           <i class="bi bi-building" style="color:{{ current_company.sector_color }}"></i>
@@ -52,7 +54,7 @@
       <li><hr class="dropdown-divider"></li>
       <li>
         <a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:13px;padding:8px 14px">
-          <i class="bi bi-plus-circle me-2"></i>Nouvelle entreprise
+          <i class="bi bi-plus-circle me-2"></i>{% trans "Nouvelle entreprise" %}
         </a>
       </li>
       {% endif %}
@@ -145,7 +147,7 @@
 
   {# ── Footer sidebar ─────────────────────────────────────────────────── #}
   <div class="orion-sidebar-footer">
-    <a href="{% url 'accounts:profile' %}" class="orion-sidebar-user" title="Mon profil">
+    <a href="{% url 'accounts:profile' %}" class="orion-sidebar-user" title="{% trans 'Mon profil' %}">
       <div class="orion-sidebar-avatar">
         {% if request.user.profile.avatar %}
           <img src="{{ request.user.profile.avatar.url }}" alt="{{ request.user.profile.display_name }}">
@@ -159,10 +161,10 @@
       </div>
     </a>
     <button class="orion-sidebar-toggle-btn" id="orionSidebarToggleDesktop"
-            type="button" aria-label="Réduire la sidebar" title="Réduire">
+            type="button" aria-label="{% trans 'Réduire la sidebar' %}" title="{% trans 'Réduire' %}">
       <i class="bi bi-layout-sidebar-reverse"></i>
     </button>
-    <a href="{% url 'accounts:logout' %}" class="orion-sidebar-logout" title="Déconnexion" aria-label="Se déconnecter">
+    <a href="{% url 'accounts:logout' %}" class="orion-sidebar-logout" title="{% trans 'Déconnexion' %}" aria-label="{% trans 'Se déconnecter' %}">
       <i class="bi bi-box-arrow-right"></i>
     </a>
   </div>

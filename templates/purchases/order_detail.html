@@ -1,14 +1,16 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'purchases:order_list' %}">Commandes achat</a></li>
-<li class="breadcrumb-item active">{{ order.number|default:"Commande" }}</li>
+{% trans "Commande" as order_number_fallback %}
+<li class="breadcrumb-item"><a href="{% url 'purchases:order_list' %}">{% trans "Commandes achat" %}</a></li>
+<li class="breadcrumb-item active">{{ order.number|default:order_number_fallback }}</li>
 {% endblock %}
 
 {% block page_header %}
 <div class="detail-header">
   <div class="detail-header-top">
     <div>
-      <h1 class="detail-title">Commande {{ order.number|default:"#" }}</h1>
+      <h1 class="detail-title">{% blocktrans with number=order.number|default:"#" %}Commande {{ number }}{% endblocktrans %}</h1>
       <div class="detail-meta">
         <span class="badge-status badge-{{ order.status }}">{{ order.get_status_display }}</span>
         <span><i class="bi bi-building me-1"></i>{{ order.supplier.name }}</span>
@@ -17,12 +19,12 @@
     </div>
     <div class="detail-actions">
       {% if order.status in 'draft,sent,confirmed' %}
-      <a href="{% url 'purchases:order_receive' order.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-box-seam me-1"></i>Marquer reçu</a>
+      <a href="{% url 'purchases:order_receive' order.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-box-seam me-1"></i>{% trans "Marquer reçu" %}</a>
       {% endif %}
-      <a href="{% url 'purchases:supplier_invoice_create' %}?order={{ order.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>Saisir facture</a>
-      <a href="{% url 'purchases:order_edit' order.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'purchases:order_delete' order.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
-      <a href="{% url 'purchases:order_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'purchases:supplier_invoice_create' %}?order={{ order.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>{% trans "Saisir facture" %}</a>
+      <a href="{% url 'purchases:order_edit' order.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'purchases:order_delete' order.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
+      <a href="{% url 'purchases:order_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -32,28 +34,28 @@
 <div class="row g-3">
   <div class="col-12 col-lg-8">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>Récapitulatif</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-list-ul me-1 text-primary"></i>{% trans "Récapitulatif" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Fournisseur</label><div class="value"><a href="{% url 'purchases:supplier_detail' order.supplier.pk %}">{{ order.supplier.name }}</a></div></div>
-        <div class="info-item"><label>Date commande</label><div class="value">{{ order.order_date|date:"d/m/Y" }}</div></div>
-        <div class="info-item"><label>Livraison prévue</label><div class="value {% if not order.expected_delivery %}empty{% endif %}">{{ order.expected_delivery|date:"d/m/Y"|default:"—" }}</div></div>
-        <div class="info-item"><label>Total HT</label><div class="value fw-semibold">{{ order.total_ht|floatformat:2 }} €</div></div>
-        <div class="info-item"><label>Total TTC</label><div class="value fw-bold text-primary">{{ order.total_ttc|floatformat:2 }} €</div></div>
-        <div class="info-item"><label>Créé par</label><div class="value {% if not order.created_by %}empty{% endif %}">{{ order.created_by.get_full_name|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Fournisseur" %}</label><div class="value"><a href="{% url 'purchases:supplier_detail' order.supplier.pk %}">{{ order.supplier.name }}</a></div></div>
+        <div class="info-item"><label>{% trans "Date commande" %}</label><div class="value">{{ order.order_date|date:"d/m/Y" }}</div></div>
+        <div class="info-item"><label>{% trans "Livraison prévue" %}</label><div class="value {% if not order.expected_delivery %}empty{% endif %}">{{ order.expected_delivery|date:"d/m/Y"|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Total HT" %}</label><div class="value fw-semibold">{{ order.total_ht|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>{% trans "Total TTC" %}</label><div class="value fw-bold text-primary">{{ order.total_ttc|floatformat:2 }} €</div></div>
+        <div class="info-item"><label>{% trans "Créé par" %}</label><div class="value {% if not order.created_by %}empty{% endif %}">{{ order.created_by.get_full_name|default:"—" }}</div></div>
       </div>
     </div>
     {% if order.notes %}
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
       <div class="p-3 small text-muted">{{ order.notes|linebreaks }}</div>
     </div>
     {% endif %}
     {% if invoices %}
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Factures liées</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Factures liées" %}</h6></div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
-          <thead><tr><th>Réf.</th><th>Date</th><th class="text-end">Total TTC</th><th>Statut</th></tr></thead>
+          <thead><tr><th>{% trans "Réf." %}</th><th>{% trans "Date" %}</th><th class="text-end">{% trans "Total TTC" %}</th><th>{% trans "Statut" %}</th></tr></thead>
           <tbody>
             {% for inv in invoices %}
             <tr>
@@ -71,12 +73,12 @@
   </div>
   <div class="col-12 col-lg-4">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-building me-1 text-primary"></i>Fournisseur</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-building me-1 text-primary"></i>{% trans "Fournisseur" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Nom</label><div class="value">{{ order.supplier.name }}</div></div>
-        <div class="info-item"><label>Contact</label><div class="value {% if not order.supplier.contact_name %}empty{% endif %}">{{ order.supplier.contact_name|default:"—" }}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not order.supplier.phone %}empty{% endif %}">{{ order.supplier.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Email</label><div class="value {% if not order.supplier.email %}empty{% endif %}">{% if order.supplier.email %}<a href="mailto:{{ order.supplier.email }}">{{ order.supplier.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Nom" %}</label><div class="value">{{ order.supplier.name }}</div></div>
+        <div class="info-item"><label>{% trans "Contact" %}</label><div class="value {% if not order.supplier.contact_name %}empty{% endif %}">{{ order.supplier.contact_name|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not order.supplier.phone %}empty{% endif %}">{{ order.supplier.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Email" %}</label><div class="value {% if not order.supplier.email %}empty{% endif %}">{% if order.supplier.email %}<a href="mailto:{{ order.supplier.email }}">{{ order.supplier.email }}</a>{% else %}—{% endif %}</div></div>
       </div>
     </div>
   </div>

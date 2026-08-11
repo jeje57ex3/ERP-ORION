@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'commerce:store_list' %}">Magasins</a></li>
+<li class="breadcrumb-item"><a href="{% url 'commerce:store_list' %}">{% trans "Magasins" %}</a></li>
 <li class="breadcrumb-item active">{{ store.name }}</li>
 {% endblock %}
 
@@ -10,15 +11,15 @@
     <div>
       <h1 class="detail-title">{{ store.name }}</h1>
       <div class="detail-meta">
-        {% if store.is_active %}<span class="badge-status badge-paid">Actif</span>{% else %}<span class="badge-status badge-cancelled">Inactif</span>{% endif %}
-        {% if store.code %}<span>Code : {{ store.code }}</span>{% endif %}
+        {% if store.is_active %}<span class="badge-status badge-paid">{% trans "Actif" %}</span>{% else %}<span class="badge-status badge-cancelled">{% trans "Inactif" %}</span>{% endif %}
+        {% if store.code %}<span>{% trans "Code :" %} {{ store.code }}</span>{% endif %}
         {% if store.city %}<span><i class="bi bi-geo-alt me-1"></i>{{ store.city }}</span>{% endif %}
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'commerce:store_edit' store.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'commerce:store_delete' store.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>Supprimer</a>
-      <a href="{% url 'commerce:store_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'commerce:store_edit' store.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'commerce:store_delete' store.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
+      <a href="{% url 'commerce:store_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -28,33 +29,33 @@
 <div class="row g-3">
   <div class="col-12 col-lg-4">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Informations" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Adresse</label><div class="value small {% if not store.address %}empty{% endif %}">{{ store.address|default:"—" }}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not store.phone %}empty{% endif %}">{{ store.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Email</label><div class="value small {% if not store.email %}empty{% endif %}">{{ store.email|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Adresse" %}</label><div class="value small {% if not store.address %}empty{% endif %}">{{ store.address|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not store.phone %}empty{% endif %}">{{ store.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Email" %}</label><div class="value small {% if not store.email %}empty{% endif %}">{{ store.email|default:"—" }}</div></div>
         {% if store.opening_hours %}
-        <div class="info-item"><label>Horaires</label><div class="value small" style="white-space:pre-line">{{ store.opening_hours }}</div></div>
+        <div class="info-item"><label>{% trans "Horaires" %}</label><div class="value small" style="white-space:pre-line">{{ store.opening_hours }}</div></div>
         {% endif %}
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-8">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cash-coin me-1 text-primary"></i>Dernières sessions caisse</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-cash-coin me-1 text-primary"></i>{% trans "Dernières sessions caisse" %}</h6></div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
-          <thead><tr><th>Date</th><th>Caissier</th><th class="text-end">CA</th><th>Statut</th></tr></thead>
+          <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Caissier" %}</th><th class="text-end">{% trans "CA" %}</th><th>{% trans "Statut" %}</th></tr></thead>
           <tbody>
             {% for session in sessions %}
             <tr>
               <td class="small">{{ session.session_date|date:"d/m/Y" }}</td>
               <td class="small text-muted">{{ session.cashier.get_full_name|default:session.cashier.username }}</td>
               <td class="text-end small fw-semibold">{{ session.total_sales }} €</td>
-              <td>{% if session.status == 'open' %}<span class="badge-status badge-paid">Ouverte</span>{% else %}<span class="badge-status badge-draft">Fermée</span>{% endif %}</td>
+              <td>{% if session.status == 'open' %}<span class="badge-status badge-paid">{% trans "Ouverte" %}</span>{% else %}<span class="badge-status badge-draft">{% trans "Fermée" %}</span>{% endif %}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-center text-muted py-3 small">Aucune session.</td></tr>
+            <tr><td colspan="4" class="text-center text-muted py-3 small">{% trans "Aucune session." %}</td></tr>
             {% endfor %}
           </tbody>
         </table>

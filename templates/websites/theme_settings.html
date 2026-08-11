@@ -1,5 +1,6 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
 <div class="container-fluid py-3">
@@ -7,8 +8,8 @@
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'websites:theme_list' website.pk %}">Thèmes</a></li>
-      <li class="breadcrumb-item active">Paramètres thème</li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:theme_list' website.pk %}">{% trans 'Thèmes' %}</a></li>
+      <li class="breadcrumb-item active">{% trans 'Paramètres thème' %}</li>
     </ol>
   </nav>
 
@@ -19,7 +20,7 @@
         <div class="orion-orion-card-header bg-white border-bottom">
           <h6 class="mb-0 fw-semibold">
             <i class="bi bi-palette me-2"></i>
-            {% if theme %}Modifier « {{ theme.name }} »{% else %}Aucun thème{% endif %}
+            {% if theme %}{% blocktrans with name=theme.name %}Modifier « {{ name }} »{% endblocktrans %}{% else %}{% trans 'Aucun thème' %}{% endif %}
           </h6>
         </div>
         {% if theme %}
@@ -29,42 +30,42 @@
             <div class="row g-2 mb-3">
               {% with colors=theme.primary_color|add:'|'|add:theme.secondary_color|add:'|'|add:theme.accent_color|add:'|'|add:theme.background_color|add:'|'|add:theme.text_color|add:'|'|add:theme.button_color|add:'|'|add:theme.header_bg_color|add:'|'|add:theme.footer_bg_color %}
               <div class="col-6">
-                <label class="form-label small fw-medium">Couleur primaire</label>
+                <label class="form-label small fw-medium">{% trans 'Couleur primaire' %}</label>
                 <input type="color" name="primary_color" class="form-control form-control-color w-100"
                   value="{{ theme.primary_color }}" id="primaryColor">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Couleur secondaire</label>
+                <label class="form-label small fw-medium">{% trans 'Couleur secondaire' %}</label>
                 <input type="color" name="secondary_color" class="form-control form-control-color w-100"
                   value="{{ theme.secondary_color }}">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Accent</label>
+                <label class="form-label small fw-medium">{% trans 'Accent' %}</label>
                 <input type="color" name="accent_color" class="form-control form-control-color w-100"
                   value="{{ theme.accent_color }}">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Fond</label>
+                <label class="form-label small fw-medium">{% trans 'Fond' %}</label>
                 <input type="color" name="background_color" class="form-control form-control-color w-100"
                   value="{{ theme.background_color }}" id="bgColor">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Texte</label>
+                <label class="form-label small fw-medium">{% trans 'Texte' %}</label>
                 <input type="color" name="text_color" class="form-control form-control-color w-100"
                   value="{{ theme.text_color }}" id="textColor">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Boutons</label>
+                <label class="form-label small fw-medium">{% trans 'Boutons' %}</label>
                 <input type="color" name="button_color" class="form-control form-control-color w-100"
                   value="{{ theme.button_color }}" id="btnColor">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Fond header</label>
+                <label class="form-label small fw-medium">{% trans 'Fond header' %}</label>
                 <input type="color" name="header_bg_color" class="form-control form-control-color w-100"
                   value="{{ theme.header_bg_color }}">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-medium">Fond footer</label>
+                <label class="form-label small fw-medium">{% trans 'Fond footer' %}</label>
                 <input type="color" name="footer_bg_color" class="form-control form-control-color w-100"
                   value="{{ theme.footer_bg_color }}">
               </div>
@@ -72,7 +73,7 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label small fw-medium">Police principale</label>
+              <label class="form-label small fw-medium">{% trans 'Police principale' %}</label>
               <select name="font_primary" class="form-select form-select-sm">
                 {% for val, label in font_choices %}
                 <option value="{{ val }}" {% if theme.font_primary == val %}selected{% endif %}>{{ label }}</option>
@@ -81,7 +82,7 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label small fw-medium">Style boutons</label>
+              <label class="form-label small fw-medium">{% trans 'Style boutons' %}</label>
               <select name="button_style" class="form-select form-select-sm">
                 {% for val, label in button_style_choices %}
                 <option value="{{ val }}" {% if theme.button_style == val %}selected{% endif %}>{{ label }}</option>
@@ -90,30 +91,31 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label small fw-medium">Rayon bordures</label>
+              <label class="form-label small fw-medium">{% trans 'Rayon bordures' %}</label>
               <input type="text" name="border_radius" class="form-control form-control-sm"
                 value="{{ theme.border_radius }}" placeholder="0.5rem">
             </div>
 
             <div class="mb-3">
-              <label class="form-label small fw-medium">CSS personnalisé</label>
+              <label class="form-label small fw-medium">{% trans 'CSS personnalisé' %}</label>
+              {% trans '/* CSS personnalisé */' as custom_css_placeholder %}
               <textarea name="custom_css" class="form-control form-control-sm font-monospace" rows="4"
-                placeholder="/* CSS personnalisé */">{{ theme.custom_css }}</textarea>
+                placeholder="{{ custom_css_placeholder }}">{{ theme.custom_css }}</textarea>
             </div>
 
             <div class="d-flex gap-2">
               <a href="{% url 'websites:theme_list' website.pk %}" class="orion-orion-btn sm">
-                Annuler
+                {% trans 'Annuler' %}
               </a>
               <button type="submit" class="orion-btn primary orion-btn sm flex-grow-1">
-                <i class="bi bi-check-lg me-1"></i>Enregistrer le thème
+                <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer le thème' %}
               </button>
             </div>
           </form>
         </div>
         {% else %}
         <div class="orion-orion-card-body text-center py-4">
-          <p class="text-muted">Aucun thème actif. <a href="{% url 'websites:theme_list' website.pk %}">Choisissez un thème</a>.</p>
+          <p class="text-muted">{% trans 'Aucun thème actif.' %} <a href="{% url 'websites:theme_list' website.pk %}">{% trans 'Choisissez un thème' %}</a>.</p>
         </div>
         {% endif %}
       </div>
@@ -123,7 +125,7 @@
     <div class="col-lg-7">
       <div class="card border-0 shadow-sm">
         <div class="orion-orion-card-header bg-white border-bottom">
-          <h6 class="mb-0 fw-semibold"><i class="bi bi-eye me-2"></i>Aperçu live</h6>
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-eye me-2"></i>{% trans 'Aperçu live' %}</h6>
         </div>
         <div class="orion-orion-card-body p-0">
           <div id="themePreview" style="background:{{ theme.background_color|default:'#fff' }};min-height:400px;border-radius:0 0 0.5rem 0.5rem;overflow:hidden">
@@ -133,18 +135,18 @@
                 {{ website.name }}
               </span>
               <div style="display:flex;gap:1rem">
-                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Accueil</span>
-                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Services</span>
-                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">Contact</span>
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">{% trans 'Accueil' %}</span>
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">{% trans 'Services' %}</span>
+                <span style="color:{{ theme.text_color|default:'#000' }};font-size:0.875rem;cursor:pointer">{% trans 'Contact' %}</span>
               </div>
             </div>
             {# Hero preview #}
             <div style="background:{{ theme.primary_color|default:'#2563eb' }};padding:3rem 2rem;text-align:center">
               <h2 style="color:#fff;font-family:{{ theme.font_primary|default:'Inter' }},sans-serif;margin-bottom:1rem">
-                Bienvenue sur {{ website.name }}
+                {% blocktrans with site_name=website.name %}Bienvenue sur {{ site_name }}{% endblocktrans %}
               </h2>
               <p style="color:rgba(255,255,255,0.8);margin-bottom:1.5rem">
-                Votre présence web professionnelle avec Orion ERP.
+                {% trans 'Votre présence web professionnelle avec Orion ERP.' %}
               </p>
               <button id="previewBtn" style="
                 background:{{ theme.button_color|default:'#fff' }};
@@ -153,18 +155,18 @@
                 border-radius:{% if theme.button_style == 'pill' %}9999px{% elif theme.button_style == 'square' %}0{% else %}{{ theme.border_radius|default:'0.5rem' }}{% endif %};
                 font-family:{{ theme.font_primary|default:'Inter' }},sans-serif;
                 font-weight:600;cursor:pointer">
-                Nous contacter
+                {% trans 'Nous contacter' %}
               </button>
             </div>
             {# Content preview #}
             <div style="padding:2rem 2rem;color:{{ theme.text_color|default:'#111' }};font-family:{{ theme.font_primary|default:'Inter' }},sans-serif">
-              <h3 style="color:{{ theme.primary_color|default:'#2563eb' }};margin-bottom:1rem">Nos services</h3>
+              <h3 style="color:{{ theme.primary_color|default:'#2563eb' }};margin-bottom:1rem">{% trans 'Nos services' %}</h3>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
-                {% for label in 'Service 1,Service 2,Service 3'|split:',' %}
+                {% for n in "123" %}
                 <div style="background:{{ theme.secondary_color|default:'#f1f5f9' }};padding:1rem;border-radius:{{ theme.border_radius|default:'0.5rem' }}">
-                  <strong>{{ label }}</strong>
+                  <strong>{% blocktrans with i=n %}Service {{ i }}{% endblocktrans %}</strong>
                   <p style="color:{{ theme.text_color|default:'#111' }};opacity:0.7;font-size:0.875rem;margin:0.5rem 0 0">
-                    Description du service proposé.
+                    {% trans 'Description du service proposé.' %}
                   </p>
                 </div>
                 {% endfor %}
@@ -172,7 +174,7 @@
             </div>
             {# Footer preview #}
             <div style="background:{{ theme.footer_bg_color|default:'#111' }};padding:1.5rem 2rem;color:{{ theme.footer_text_color|default:'#cbd5e1' }};font-size:0.875rem;text-align:center">
-              © 2025 {{ website.name }} — Tous droits réservés
+              {% blocktrans with site_name=website.name %}© 2025 {{ site_name }} — Tous droits réservés{% endblocktrans %}
             </div>
           </div>
         </div>

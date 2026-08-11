@@ -1,47 +1,47 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Relevés bancaires — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Relevés bancaires" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Relevés bancaires</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Relevés bancaires" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Importer un relevé</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{% trans "Importer un relevé" %}</h6></div>
       <div class="orion-orion-orion-card-body">
         <form method="post" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Compte bancaire <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Compte bancaire" %} <span class="text-danger">*</span></label>
             <select name="bank_account" class="form-select" required>
-              <option value="">-- Sélectionner --</option>
+              <option value="">{% trans "-- Sélectionner --" %}</option>
               {% for ba in bank_accounts %}
               <option value="{{ ba.pk }}">{{ ba.bank_name }} — {{ ba.account_name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Date du relevé <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Date du relevé" %} <span class="text-danger">*</span></label>
             <input type="date" name="statement_date" class="form-control" required>
           </div>
           <div class="row g-3 mb-3">
             <div class="col-6">
-              <label class="form-label fw-semibold">Solde initial (€)</label>
+              <label class="form-label fw-semibold">{% trans "Solde initial (€)" %}</label>
               <input type="number" name="start_balance" class="form-control" step="0.01" value="0">
             </div>
             <div class="col-6">
-              <label class="form-label fw-semibold">Solde final (€)</label>
+              <label class="form-label fw-semibold">{% trans "Solde final (€)" %}</label>
               <input type="number" name="end_balance" class="form-control" step="0.01" value="0">
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Fichier (CSV/OFX)</label>
+            <label class="form-label">{% trans "Fichier (CSV/OFX)" %}</label>
             <input type="file" name="import_file" class="form-control" accept=".csv,.ofx,.qif">
           </div>
-          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-upload me-1"></i>Importer</button>
+          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-upload me-1"></i>{% trans "Importer" %}</button>
         </form>
       </div>
     </div>
@@ -49,13 +49,13 @@
 
   <div class="col-lg-7">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-list-columns me-2"></i>Relevés importés</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-list-columns me-2"></i>{% trans "Relevés importés" %}</h6></div>
       <div class="orion-orion-orion-card-body p-0">
         {% if statements %}
         <div class="table-responsive">
           <table class="orion-table">
             <thead>
-              <tr><th>Date</th><th>Banque</th><th class="text-end">Solde départ</th><th class="text-end">Solde fin</th><th></th></tr>
+              <tr><th>{% trans "Date" %}</th><th>{% trans "Banque" %}</th><th class="text-end">{% trans "Solde départ" %}</th><th class="text-end">{% trans "Solde fin" %}</th><th></th></tr>
             </thead>
             <tbody>
               {% for stmt in statements %}
@@ -66,7 +66,7 @@
                 <td class="text-end fw-semibold">{{ stmt.end_balance|floatformat:2 }} €</td>
                 <td class="text-end">
                   <a href="{% url 'accounting:bank_reconciliation' stmt.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-                    <i class="bi bi-check2-all me-1"></i>Rapprocher
+                    <i class="bi bi-check2-all me-1"></i>{% trans "Rapprocher" %}
                   </a>
                 </td>
               </tr>
@@ -76,7 +76,7 @@
         </div>
         {% else %}
         <div class="orion-empty">
-          <div class="orion-empty-title">Aucun relevé importé.</div>
+          <div class="orion-empty-title">{% trans "Aucun relevé importé." %}</div>
         </div>
         {% endif %}
       </div>

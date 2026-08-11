@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}{{ domain.domain }} — Domaine{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with domain_name=domain.domain %}{{ domain_name }} — Domaine{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
-<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">Domaines</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">{% trans "Domaines" %}</a></li>
 <li class="breadcrumb-item active">{{ domain.domain }}</li>
 {% endblock %}
 
@@ -13,14 +14,14 @@
 <div class="d-flex flex-wrap gap-2">
   {% if public_url %}
   <a href="{{ public_url }}" target="_blank" class="orion-btn orion-btn-outline">
-    <i class="bi bi-box-arrow-up-right me-1"></i> Ouvrir le site
+    <i class="bi bi-box-arrow-up-right me-1"></i> {% trans "Ouvrir le site" %}
   </a>
   {% endif %}
   <a href="{% url 'websites:domain_dns_instructions' domain.pk %}" class="orion-btn orion-btn-outline">
-    <i class="bi bi-terminal me-1"></i> Instructions DNS
+    <i class="bi bi-terminal me-1"></i> {% trans "Instructions DNS" %}
   </a>
   <a href="{% url 'websites:domain_redirects' domain.pk %}" class="orion-btn orion-btn-outline">
-    <i class="bi bi-signpost-split me-1"></i> Redirections
+    <i class="bi bi-signpost-split me-1"></i> {% trans "Redirections" %}
   </a>
 </div>
 {% endblock %}
@@ -31,25 +32,25 @@
 {% if domain.status == 'pending' %}
 <div class="orion-alert info mb-4">
   <i class="bi bi-info-circle-fill me-2"></i>
-  <strong>Ce domaine n'est pas encore connecté.</strong>
-  Ajoutez les enregistrements DNS ci-dessous chez votre fournisseur de domaine.
-  La propagation peut prendre de quelques minutes à 48h.
+  <strong>{% trans "Ce domaine n'est pas encore connecté." %}</strong>
+  {% trans "Ajoutez les enregistrements DNS ci-dessous chez votre fournisseur de domaine." %}
+  {% trans "La propagation peut prendre de quelques minutes à 48h." %}
 </div>
 {% elif domain.status == 'dns_pending' %}
 <div class="orion-alert warning mb-4">
   <i class="bi bi-hourglass-split me-2"></i>
-  <strong>DNS en cours de propagation.</strong>
-  Cliquez sur « Vérifier DNS » pour tester à nouveau.
+  <strong>{% trans "DNS en cours de propagation." %}</strong>
+  {% trans "Cliquez sur « Vérifier DNS » pour tester à nouveau." %}
 </div>
 {% elif domain.status == 'active' %}
 <div class="orion-alert success mb-4">
   <i class="bi bi-check-circle-fill me-2"></i>
-  <strong>Domaine actif</strong> — {{ public_url }}
+  <strong>{% trans "Domaine actif" %}</strong> — {{ public_url }}
 </div>
 {% elif domain.status == 'error' %}
 <div class="orion-alert danger mb-4">
   <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>Erreur :</strong> {{ domain.last_error }}
+  <strong>{% trans "Erreur :" %}</strong> {{ domain.last_error }}
 </div>
 {% endif %}
 
@@ -60,65 +61,65 @@
     {# Infos générales #}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-globe me-2"></i>Informations</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-globe me-2"></i>{% trans "Informations" %}</h6>
       </div>
       <div class="orion-orion-card-body">
         <dl class="row mb-0">
-          <dt class="col-sm-4 text-muted">Domaine complet</dt>
+          <dt class="col-sm-4 text-muted">{% trans "Domaine complet" %}</dt>
           <dd class="col-sm-8"><code>{{ domain.domain }}</code>
-            {% if domain.is_primary %}<span class="orion-badge gold ms-2">Principal</span>{% endif %}
+            {% if domain.is_primary %}<span class="orion-badge gold ms-2">{% trans "Principal" %}</span>{% endif %}
           </dd>
 
-          <dt class="col-sm-4 text-muted">URL publique</dt>
+          <dt class="col-sm-4 text-muted">{% trans "URL publique" %}</dt>
           <dd class="col-sm-8">
             {% if public_url %}
               <a href="{{ public_url }}" target="_blank" class="text-decoration-none">{{ public_url }}</a>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </dd>
 
-          <dt class="col-sm-4 text-muted">Cible</dt>
+          <dt class="col-sm-4 text-muted">{% trans "Cible" %}</dt>
           <dd class="col-sm-8">
             {% with tt=domain.target_type %}
-            {% if tt == 'shop' %}Boutique en ligne
-            {% elif tt == 'client_portal' %}Portail client
-            {% elif tt == 'erp' %}Orion ERP
-            {% elif tt == 'landing_page' %}Landing page
-            {% elif tt == 'blog' %}Blog
-            {% else %}Site web{% endif %}
+            {% if tt == 'shop' %}{% trans "Boutique en ligne" %}
+            {% elif tt == 'client_portal' %}{% trans "Portail client" %}
+            {% elif tt == 'erp' %}{% trans "Orion ERP" %}
+            {% elif tt == 'landing_page' %}{% trans "Landing page" %}
+            {% elif tt == 'blog' %}{% trans "Blog" %}
+            {% else %}{% trans "Site web" %}{% endif %}
             {% endwith %}
           </dd>
 
-          <dt class="col-sm-4 text-muted">Site relié</dt>
+          <dt class="col-sm-4 text-muted">{% trans "Site relié" %}</dt>
           <dd class="col-sm-8">
             {% if domain.website %}
               <a href="{% url 'websites:website_detail' domain.website.pk %}">{{ domain.website.name }}</a>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </dd>
 
-          <dt class="col-sm-4 text-muted">Type</dt>
+          <dt class="col-sm-4 text-muted">{% trans "Type" %}</dt>
           <dd class="col-sm-8">{{ domain.get_domain_type_display }}</dd>
 
-          <dt class="col-sm-4 text-muted">Statut DNS</dt>
+          <dt class="col-sm-4 text-muted">{% trans "Statut DNS" %}</dt>
           <dd class="col-sm-8">
             {% if domain.dns_verified %}
-              <span class="text-success fw-medium"><i class="bi bi-check-circle me-1"></i>Vérifié</span>
+              <span class="text-success fw-medium"><i class="bi bi-check-circle me-1"></i>{% trans "Vérifié" %}</span>
               {% if domain.dns_verified_at %}<small class="text-muted ms-2">{{ domain.dns_verified_at|date:"d/m/Y H:i" }}</small>{% endif %}
             {% else %}
-              <span class="text-warning fw-medium"><i class="bi bi-clock me-1"></i>En attente</span>
+              <span class="text-warning fw-medium"><i class="bi bi-clock me-1"></i>{% trans "En attente" %}</span>
             {% endif %}
           </dd>
 
-          <dt class="col-sm-4 text-muted">SSL / HTTPS</dt>
+          <dt class="col-sm-4 text-muted">{% trans "SSL / HTTPS" %}</dt>
           <dd class="col-sm-8">
             {% if domain.ssl_status == 'active' %}
-              <span class="text-success fw-medium"><i class="bi bi-lock-fill me-1"></i>Actif</span>
-              {% if domain.ssl_expires_at %}<small class="text-muted ms-2">Expire le {{ domain.ssl_expires_at|date:"d/m/Y" }}</small>{% endif %}
+              <span class="text-success fw-medium"><i class="bi bi-lock-fill me-1"></i>{% trans "Actif" %}</span>
+              {% if domain.ssl_expires_at %}<small class="text-muted ms-2">{% blocktrans with expires=domain.ssl_expires_at|date:"d/m/Y" %}Expire le {{ expires }}{% endblocktrans %}</small>{% endif %}
             {% elif domain.ssl_status == 'pending' %}
-              <span class="text-warning fw-medium"><i class="bi bi-hourglass me-1"></i>En attente</span>
+              <span class="text-warning fw-medium"><i class="bi bi-hourglass me-1"></i>{% trans "En attente" %}</span>
             {% elif domain.ssl_status == 'expired' %}
-              <span class="text-danger fw-medium"><i class="bi bi-lock me-1"></i>Expiré</span>
+              <span class="text-danger fw-medium"><i class="bi bi-lock me-1"></i>{% trans "Expiré" %}</span>
             {% else %}
-              <span class="text-muted">Non configuré</span>
+              <span class="text-muted">{% trans "Non configuré" %}</span>
             {% endif %}
           </dd>
         </dl>
@@ -128,16 +129,16 @@
     {# Instructions DNS #}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-terminal me-2"></i>Enregistrements DNS</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-terminal me-2"></i>{% trans "Enregistrements DNS" %}</h6>
         <a href="{% url 'websites:domain_dns_instructions' domain.pk %}" class="btn btn-outline-secondary orion-btn sm">
-          Voir les instructions complètes
+          {% trans "Voir les instructions complètes" %}
         </a>
       </div>
       <div class="orion-orion-card-body">
         {% if domain.status == 'pending' or not domain.dns_verified %}
         <div class="alert alert-light border mb-3">
           <i class="bi bi-info-circle me-2 text-primary"></i>
-          Ajoutez ces enregistrements chez votre fournisseur DNS. La propagation peut prendre jusqu'à 48h.
+          {% trans "Ajoutez ces enregistrements chez votre fournisseur DNS. La propagation peut prendre jusqu'à 48h." %}
         </div>
         {% endif %}
         <div class="row g-3">
@@ -148,31 +149,31 @@
                 <span class="badge bg-dark mb-2">{{ rec.type }}</span>
                 <table class="table table-sm table-borderless mb-0">
                   <tr>
-                    <td class="text-muted fw-medium pe-3" style="width:70px">Type</td>
+                    <td class="text-muted fw-medium pe-3" style="width:70px">{% trans "Type" %}</td>
                     <td>
                       <code>{{ rec.type }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
-                        onclick="copyText('{{ rec.type }}',this)" title="Copier">
+                        onclick="copyText('{{ rec.type }}',this)" title="{% trans 'Copier' %}">
                         <i class="bi bi-clipboard"></i>
                       </button>
                     </td>
                   </tr>
                   <tr>
-                    <td class="text-muted fw-medium">Nom</td>
+                    <td class="text-muted fw-medium">{% trans "Nom" %}</td>
                     <td>
                       <code>{{ rec.name }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
-                        onclick="copyText('{{ rec.name }}',this)" title="Copier">
+                        onclick="copyText('{{ rec.name }}',this)" title="{% trans 'Copier' %}">
                         <i class="bi bi-clipboard"></i>
                       </button>
                     </td>
                   </tr>
                   <tr>
-                    <td class="text-muted fw-medium">Valeur</td>
+                    <td class="text-muted fw-medium">{% trans "Valeur" %}</td>
                     <td>
                       <code class="text-break">{{ rec.value }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
-                        onclick="copyText('{{ rec.value }}',this)" title="Copier">
+                        onclick="copyText('{{ rec.value }}',this)" title="{% trans 'Copier' %}">
                         <i class="bi bi-clipboard"></i>
                       </button>
                     </td>
@@ -190,7 +191,7 @@
     {% if logs %}
     <div class="card border-0 shadow-sm mb-4">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2"></i>Historique récent</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2"></i>{% trans "Historique récent" %}</h6>
       </div>
       <ul class="list-group list-group-flush">
         {% for log in logs %}
@@ -220,7 +221,7 @@
     {# Actions principales #}
     <div class="card border-0 shadow-sm mb-3">
       <div class="orion-orion-card-header bg-white border-bottom py-3">
-        <h6 class="fw-semibold mb-0">Actions</h6>
+        <h6 class="fw-semibold mb-0">{% trans "Actions" %}</h6>
       </div>
       <div class="orion-orion-card-body d-flex flex-column gap-2">
 
@@ -228,7 +229,7 @@
         <form method="post" action="{% url 'websites:domain_verify' domain.pk %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-primary w-100">
-            <i class="bi bi-arrow-clockwise me-1"></i> Vérifier DNS maintenant
+            <i class="bi bi-arrow-clockwise me-1"></i> {% trans "Vérifier DNS maintenant" %}
           </button>
         </form>
 
@@ -237,8 +238,8 @@
         <form method="post" action="{% url 'websites:domain_request_ssl' domain.pk %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-success w-100"
-            {% if not domain.dns_verified %}disabled title="Vérifiez d'abord le DNS"{% endif %}>
-            <i class="bi bi-lock me-1"></i> Activer HTTPS / SSL
+            {% if not domain.dns_verified %}disabled title="{% trans "Vérifiez d'abord le DNS" %}"{% endif %}>
+            <i class="bi bi-lock me-1"></i> {% trans "Activer HTTPS / SSL" %}
           </button>
         </form>
         {% endif %}
@@ -248,7 +249,7 @@
         <form method="post" action="{% url 'websites:domain_mark_ssl_active' domain.pk %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-success w-100">
-            <i class="bi bi-shield-check me-1"></i> Marquer SSL comme actif
+            <i class="bi bi-shield-check me-1"></i> {% trans "Marquer SSL comme actif" %}
           </button>
         </form>
         {% endif %}
@@ -258,8 +259,8 @@
         <form method="post" action="{% url 'websites:domain_set_primary' domain.pk %}">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-secondary w-100"
-            {% if not domain.dns_verified %}disabled title="Vérifiez d'abord le DNS"{% endif %}>
-            <i class="bi bi-star me-1"></i> Définir comme domaine principal
+            {% if not domain.dns_verified %}disabled title="{% trans "Vérifiez d'abord le DNS" %}"{% endif %}>
+            <i class="bi bi-star me-1"></i> {% trans "Définir comme domaine principal" %}
           </button>
         </form>
         {% endif %}
@@ -267,10 +268,10 @@
         {# Désactiver #}
         {% if not domain.is_primary and domain.status != 'disabled' %}
         <form method="post" action="{% url 'websites:domain_disable' domain.pk %}"
-          onsubmit="return confirm('Désactiver ce domaine ?')">
+          onsubmit="return confirm('{% trans "Désactiver ce domaine ?" %}')">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-warning w-100">
-            <i class="bi bi-pause-circle me-1"></i> Désactiver
+            <i class="bi bi-pause-circle me-1"></i> {% trans "Désactiver" %}
           </button>
         </form>
         {% endif %}
@@ -280,10 +281,10 @@
         {# Supprimer #}
         {% if not domain.is_primary %}
         <form method="post" action="{% url 'websites:domain_delete' domain.pk %}"
-          onsubmit="return confirm('Supprimer définitivement {{ domain.domain }} ?')">
+          onsubmit="return confirm('{% blocktrans with domain_name=domain.domain %}Supprimer définitivement {{ domain_name }} ?{% endblocktrans %}')">
           {% csrf_token %}
           <button type="submit" class="btn btn-outline-danger w-100">
-            <i class="bi bi-trash me-1"></i> Supprimer ce domaine
+            <i class="bi bi-trash me-1"></i> {% trans "Supprimer ce domaine" %}
           </button>
         </form>
         {% endif %}
@@ -294,9 +295,9 @@
     {# Redirections actives #}
     <div class="card border-0 shadow-sm">
       <div class="orion-orion-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-signpost-split me-2"></i>Redirections</h6>
+        <h6 class="fw-semibold mb-0"><i class="bi bi-signpost-split me-2"></i>{% trans "Redirections" %}</h6>
         <a href="{% url 'websites:domain_redirects' domain.pk %}" class="btn btn-outline-secondary orion-btn sm">
-          Gérer
+          {% trans "Gérer" %}
         </a>
       </div>
       <div class="orion-orion-card-body">
@@ -310,7 +311,7 @@
           </div>
           {% endfor %}
         {% else %}
-          <p class="text-muted small mb-0">Aucune redirection configurée.</p>
+          <p class="text-muted small mb-0">{% trans "Aucune redirection configurée." %}</p>
         {% endif %}
       </div>
     </div>

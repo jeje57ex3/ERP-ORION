@@ -1,25 +1,26 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Balance générale</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Balance générale" %}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Soldes débiteurs et créditeurs par compte sur la période.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Soldes débiteurs et créditeurs par compte sur la période." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card mb-4">
   <div class="erp-orion-orion-card-body">
     <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
       <div>
-        <label class="form-label fw-semibold">Du</label>
+        <label class="form-label fw-semibold">{% trans "Du" %}</label>
         <input type="date" name="start" class="form-control" value="{{ period_start }}" required>
       </div>
       <div>
-        <label class="form-label fw-semibold">Au</label>
+        <label class="form-label fw-semibold">{% trans "Au" %}</label>
         <input type="date" name="end" class="form-control" value="{{ period_end }}" required>
       </div>
-      <button type="submit" class="orion-btn primary"><i class="bi bi-bar-chart me-1"></i>Générer</button>
+      <button type="submit" class="orion-btn primary"><i class="bi bi-bar-chart me-1"></i>{% trans "Générer" %}</button>
       {% if accounts_data %}
-      <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimer</button>
+      <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>{% trans "Imprimer" %}</button>
       {% endif %}
     </form>
   </div>
@@ -27,18 +28,18 @@
 
 {% if accounts_data %}
 <div class="erp-card">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>Balance — {{ period_start }} au {{ period_end }}</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>{% blocktrans with start=period_start end=period_end %}Balance — {{ start }} au {{ end }}{% endblocktrans %}</h6></div>
   <div class="erp-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="table table-sm table-hover align-middle mb-0">
         <thead class="table-dark">
           <tr>
-            <th>N° Compte</th>
-            <th>Libellé</th>
-            <th class="text-end">Mvt Débit</th>
-            <th class="text-end">Mvt Crédit</th>
-            <th class="text-end">Solde Débiteur</th>
-            <th class="text-end">Solde Créditeur</th>
+            <th>{% trans "N° Compte" %}</th>
+            <th>{% trans "Libellé" %}</th>
+            <th class="text-end">{% trans "Mvt Débit" %}</th>
+            <th class="text-end">{% trans "Mvt Crédit" %}</th>
+            <th class="text-end">{% trans "Solde Débiteur" %}</th>
+            <th class="text-end">{% trans "Solde Créditeur" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -59,7 +60,7 @@
         </tbody>
         <tfoot class="table-light fw-bold">
           <tr>
-            <td colspan="2" class="text-end">Totaux</td>
+            <td colspan="2" class="text-end">{% trans "Totaux" %}</td>
             <td class="text-end">{% with total=0 %}{% for r in accounts_data %}{{ r.total_debit|add:total }}{% endfor %}{% endwith %}—</td>
             <td class="text-end">—</td>
             <td class="text-end text-success">—</td>
@@ -71,6 +72,6 @@
   </div>
 </div>
 {% elif period_start %}
-<div class="erp-card"><div class="erp-orion-orion-card-body text-center py-5 text-muted">Aucune écriture validée sur cette période.</div></div>
+<div class="erp-card"><div class="erp-orion-orion-card-body text-center py-5 text-muted">{% trans "Aucune écriture validée sur cette période." %}</div></div>
 {% endif %}
 {% endblock %}

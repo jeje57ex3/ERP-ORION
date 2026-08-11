@@ -1,42 +1,42 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Fournisseurs — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Fournisseurs" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Fournisseurs</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Gérez votre panel fournisseurs et leurs conditions.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Fournisseurs" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Gérez votre panel fournisseurs et leurs conditions." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'purchases:supplier_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau fournisseur</a>
+<a href="{% url 'purchases:supplier_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau fournisseur" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-building"></i></div>
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-building"></i></div>
       <div class="orion-kpi-value">{{ suppliers.count }}</div>
-      <div class="orion-kpi-label">Total fournisseurs</div>
+      <div class="orion-kpi-label">{% trans "Total fournisseurs" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
       <div class="orion-kpi-value">{{ count_active }}</div>
-      <div class="orion-kpi-label">Actifs</div>
+      <div class="orion-kpi-label">{% trans "Actifs" %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'purchases:supplier_list' %}" class="orion-filter-chip {% if not active %}active{% endif %}">Tous</a>
-  <a href="?active=1" class="orion-filter-chip {% if active == '1' %}active{% endif %}">Actifs</a>
-  <a href="?active=0" class="orion-filter-chip {% if active == '0' %}active{% endif %}">Inactifs</a>
+  <a href="{% url 'purchases:supplier_list' %}" class="orion-filter-chip {% if not active %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="?active=1" class="orion-filter-chip {% if active == '1' %}active{% endif %}">{% trans "Actifs" %}</a>
+  <a href="?active=0" class="orion-filter-chip {% if active == '0' %}active{% endif %}">{% trans "Inactifs" %}</a>
 </div>
 
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex gap-2 flex-grow-1">
       {% if active %}<input type="hidden" name="active" value="{{ active }}">{% endif %}
-      <input type="text" name="q" class="form-control form-control-sm" placeholder="Nom, code, contact..." value="{{ q }}" style="flex:1">
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans "Nom, code, contact..." %}" value="{{ q }}" style="flex:1">
       <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
     </form>
   </div>
@@ -44,7 +44,7 @@
     <div class="table-responsive">
       <table class="orion-table mb-0">
         <thead>
-          <tr><th>Fournisseur</th><th>Contact</th><th>Téléphone</th><th>Ville</th><th>Délai (j)</th><th>Statut</th><th class="text-end">Actions</th></tr>
+          <tr><th>{% trans "Fournisseur" %}</th><th>{% trans "Contact" %}</th><th>{% trans "Téléphone" %}</th><th>{% trans "Ville" %}</th><th>{% trans "Délai (j)" %}</th><th>{% trans "Statut" %}</th><th class="text-end">{% trans "Actions" %}</th></tr>
         </thead>
         <tbody>
           {% for s in suppliers %}
@@ -64,16 +64,16 @@
             <td class="small">{{ s.lead_time_days }} j</td>
             <td>
               {% if s.is_active %}
-              <span class="orion-badge orion-badge-success">Actif</span>
+              <span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
               {% else %}
-              <span class="orion-badge orion-badge-secondary">Inactif</span>
+              <span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>
               {% endif %}
             </td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'purchases:supplier_detail' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                <a href="{% url 'purchases:supplier_edit' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
-                <a href="{% url 'purchases:supplier_delete' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                <a href="{% url 'purchases:supplier_detail' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Voir" %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'purchases:supplier_edit' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Modifier" %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'purchases:supplier_delete' s.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{% trans "Supprimer" %}"><i class="bi bi-trash"></i></a>
               </div>
             </td>
           </tr>
@@ -81,9 +81,9 @@
           <tr><td colspan="7">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
-              <div class="orion-empty-title">Aucun fournisseur</div>
-              <div class="orion-empty-text">Ajoutez votre premier fournisseur pour commencer à gérer vos achats.</div>
-              <a href="{% url 'purchases:supplier_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau fournisseur</a>
+              <div class="orion-empty-title">{% trans "Aucun fournisseur" %}</div>
+              <div class="orion-empty-text">{% trans "Ajoutez votre premier fournisseur pour commencer à gérer vos achats." %}</div>
+              <a href="{% url 'purchases:supplier_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau fournisseur" %}</a>
             </div>
           </td></tr>
           {% endfor %}

@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:store_product_list' website.pk %}">Produits boutique</a></li>
-<li class="breadcrumb-item active">{% if action == 'edit' %}{{ product.name }}{% else %}Nouveau produit{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'websites:store_product_list' website.pk %}">{% trans "Produits boutique" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ product.name }}{% else %}{% trans "Nouveau produit" %}{% endif %}</li>
 {% endblock %}
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ product.name }}{% else %}Nouveau produit boutique{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{% blocktrans with name=product.name %}Modifier {{ name }}{% endblocktrans %}{% else %}{% trans "Nouveau produit boutique" %}{% endif %}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -14,35 +15,35 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-box-seam me-1 text-primary"></i>Informations produit</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-box-seam me-1 text-primary"></i>{% trans "Informations produit" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-12"><label class="form-label form-label-sm">Nom *</label>{{ form.name }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Catégorie</label>{{ form.category }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Nom" %} *</label>{{ form.name }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Catégorie" %}</label>{{ form.category }}</div>
             <div class="col-md-6"><label class="form-label form-label-sm">SKU</label>{{ form.sku }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">Description courte</label>{{ form.short_description }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">Description complète</label>{{ form.description }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Description courte" %}</label>{{ form.short_description }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Description complète" %}</label>{{ form.description }}</div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>Prix & Stock</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-currency-euro me-1 text-primary"></i>{% trans "Prix & Stock" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
-            <div class="col-md-4"><label class="form-label form-label-sm">Prix TTC *</label>{{ form.price }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Ancien prix (barré)</label>{{ form.compare_at_price }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Poids (kg)</label>{{ form.weight_kg }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Stock</label>{{ form.stock_quantity }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Prix TTC" %} *</label>{{ form.price }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Ancien prix (barré)" %}</label>{{ form.compare_at_price }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Poids (kg)" %}</label>{{ form.weight_kg }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Stock" %}</label>{{ form.stock_quantity }}</div>
             <div class="col-md-6">
-              <div class="form-check mt-4">{{ form.stock_from_erp }}<label class="form-check-label small ms-1">Stock depuis l'ERP (synchronisé)</label></div>
+              <div class="form-check mt-4">{{ form.stock_from_erp }}<label class="form-check-label small ms-1">{% trans "Stock depuis l'ERP (synchronisé)" %}</label></div>
             </div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-link me-1 text-primary"></i>Connexion ERP</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-link me-1 text-primary"></i>{% trans "Connexion ERP" %}</h6></div>
         <div class="orion-orion-card-body">
-          <label class="form-label form-label-sm">Produit ERP lié <span class="text-muted small">(synchronisation stock et prix)</span></label>
+          <label class="form-label form-label-sm">{% trans "Produit ERP lié" %} <span class="text-muted small">({% trans "synchronisation stock et prix" %})</span></label>
           {{ form.erp_product }}
         </div>
       </div>
@@ -56,15 +57,15 @@
     </div>
     <div class="col-12 col-lg-4">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Publication</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>{% trans "Publication" %}</h6></div>
         <div class="orion-orion-card-body">
-          <div class="mb-3"><label class="form-label form-label-sm">Statut</label>{{ form.status }}</div>
-          <div class="form-check">{{ form.is_featured }}<label class="form-check-label small ms-1">Mise en avant sur la boutique</label></div>
+          <div class="mb-3"><label class="form-label form-label-sm">{% trans "Statut" %}</label>{{ form.status }}</div>
+          <div class="form-check">{{ form.is_featured }}<label class="form-check-label small ms-1">{% trans "Mise en avant sur la boutique" %}</label></div>
         </div>
       </div>
       <div class="d-grid gap-2">
-        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer le produit{% endif %}</button>
-        <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}{% trans "Enregistrer" %}{% else %}{% trans "Créer le produit" %}{% endif %}</button>
+        <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </div>
   </div>

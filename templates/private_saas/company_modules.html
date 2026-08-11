@@ -1,17 +1,18 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Modules — {{ company.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=company.name %}Modules — {{ name }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">{% trans "Super Admin" %}</a></li>
 <li class="breadcrumb-item"><a href="{% url 'private_saas:company_detail' company.pk %}">{{ company.name }}</a></li>
-<li class="breadcrumb-item active">Modules</li>
+<li class="breadcrumb-item active">{% trans "Modules" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="orion-card">
   <div class="orion-orion-card-header py-3">
-    <h6 class="mb-0 fw-semibold"><i class="bi bi-puzzle me-2 text-primary"></i>Modules de {{ company.name }}</h6>
+    <h6 class="mb-0 fw-semibold"><i class="bi bi-puzzle me-2 text-primary"></i>{% blocktrans with name=company.name %}Modules de {{ name }}{% endblocktrans %}</h6>
   </div>
   <div class="orion-orion-card-body">
     <form method="post">
@@ -30,9 +31,9 @@
                 <div class="text-muted" style="font-size:.75rem;font-weight:400">{{ mod.module_code }}</div>
               </label>
               {% if mod.is_enabled %}
-              <span class="orion-badge orion-badge-success">Actif</span>
+              <span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
               {% else %}
-              <span class="orion-badge orion-badge-secondary">Inactif</span>
+              <span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>
               {% endif %}
             </div>
           </div>
@@ -40,9 +41,9 @@
         {% endfor %}
       </div>
       <div class="d-flex justify-content-end gap-2">
-        <a href="{% url 'private_saas:company_detail' company.pk %}" class="orion-btn orion-btn-outline">Annuler</a>
+        <a href="{% url 'private_saas:company_detail' company.pk %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
         <button type="submit" class="orion-btn orion-orion-btn primary">
-          <i class="bi bi-check-lg me-1"></i>Enregistrer les modules
+          <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer les modules" %}
         </button>
       </div>
     </form>

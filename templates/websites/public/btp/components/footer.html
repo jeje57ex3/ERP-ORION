@@ -1,81 +1,77 @@
-﻿{% load static %}
-<footer class="btp-footer">
-  <div class="btp-container">
-    <div class="btp-footer-grid">
+{% load static i18n %}
+<footer class="site-footer">
+  <div class="site-container">
+    <div class="site-footer-grid">
 
-      <!-- Marque -->
-      <div class="btp-footer-brand">
+      <div>
         {% if site.logo %}
-          <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="filter:brightness(0) invert(1);opacity:.85">
+          <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="height:34px">
         {% else %}
-          <img src="{% static 'img/brand/orion-logo-white.svg' %}" alt="{{ site.name }}">
+          <div style="display:flex;align-items:center;gap:.5rem;font-weight:800;color:var(--site-text)">
+            <i class="bi bi-buildings-fill" style="color:var(--site-accent);font-size:1.3rem" aria-hidden="true"></i>
+            {{ site.company.name }}
+          </div>
         {% endif %}
-        <p style="margin-top:.75rem">{{ site.meta_description|default:"Entreprise de batiment a votre service." }}</p>
+        {% trans 'Entreprise du bâtiment à votre service.' as btp_footer_tagline %}
+        <p style="margin-top:.9rem;font-size:.88rem">
+          {{ site.meta_description|default:btp_footer_tagline }}
+        </p>
         {% if site.contact_phone %}
-        <a href="tel:{{ site.contact_phone }}" style="display:flex;align-items:center;gap:.5rem;margin-top:1rem;color:var(--btp-secondary);font-weight:600;">
-          <i class="bi bi-telephone-fill"></i>{{ site.contact_phone }}
+        <a href="tel:{{ site.contact_phone }}" style="display:flex;align-items:center;gap:.5rem;margin-top:1rem;color:var(--site-accent);font-weight:700">
+          <i class="bi bi-telephone-fill" aria-hidden="true"></i>{{ site.contact_phone }}
         </a>
         {% endif %}
-        <div class="btp-footer-social">
-          {% if site.facebook_url  %}<a href="{{ site.facebook_url  }}" aria-label="Facebook"  target="_blank" rel="noopener"><i class="bi bi-facebook"></i></a>{% endif %}
-          {% if site.instagram_url %}<a href="{{ site.instagram_url }}" aria-label="Instagram" target="_blank" rel="noopener"><i class="bi bi-instagram"></i></a>{% endif %}
-          {% if site.linkedin_url  %}<a href="{{ site.linkedin_url  }}" aria-label="LinkedIn"  target="_blank" rel="noopener"><i class="bi bi-linkedin"></i></a>{% endif %}
-          {% if site.youtube_url   %}<a href="{{ site.youtube_url   }}" aria-label="YouTube"   target="_blank" rel="noopener"><i class="bi bi-youtube"></i></a>{% endif %}
+        <div class="site-footer-social">
+          {% if site.facebook_url %}<a href="{{ site.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="bi bi-facebook" aria-hidden="true"></i></a>{% endif %}
+          {% if site.instagram_url %}<a href="{{ site.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram" aria-hidden="true"></i></a>{% endif %}
+          {% if site.linkedin_url %}<a href="{{ site.linkedin_url }}" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="bi bi-linkedin" aria-hidden="true"></i></a>{% endif %}
+          {% if site.youtube_url %}<a href="{{ site.youtube_url }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="bi bi-youtube" aria-hidden="true"></i></a>{% endif %}
         </div>
       </div>
 
-      <!-- Services -->
-      <div class="btp-footer-col">
-        <h4>Nos services</h4>
+      <div>
+        <h4>{% trans 'Nos services' %}</h4>
         <ul>
-          <li><a href="{% url 'public_websites:btp_services' site.public_slug %}">Tous les services</a></li>
-          <li><a href="{% url 'public_websites:btp_works' site.public_slug %}">Types de travaux</a></li>
-          <li><a href="{% url 'public_websites:btp_emergency' site.public_slug %}">Depannage urgent</a></li>
-          <li><a href="{% url 'public_websites:btp_portfolio' site.public_slug %}">Nos realisations</a></li>
+          <li><a href="{% url 'public_websites:btp_services' site.public_slug %}">{% trans 'Tous les services' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_works' site.public_slug %}">{% trans 'Types de travaux' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_emergency' site.public_slug %}">{% trans 'Dépannage urgent' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_portfolio' site.public_slug %}">{% trans 'Nos réalisations' %}</a></li>
         </ul>
       </div>
 
-      <!-- Acces rapide -->
-      <div class="btp-footer-col">
-        <h4>Acces rapide</h4>
+      <div>
+        <h4>{% trans 'Accès rapide' %}</h4>
         <ul>
-          <li><a href="{% url 'guided_quote:wizard_start' %}">Demander un devis</a></li>
-          <li><a href="{% url 'public_websites:btp_client_access' site.public_slug %}">Espace client</a></li>
-          <li><a href="{% url 'client_portal:login' %}">Se connecter</a></li>
-          <li><a href="{% url 'public_websites:btp_blog' site.public_slug %}">Blog</a></li>
-          <li><a href="{% url 'public_websites:btp_contact' site.public_slug %}">Contact</a></li>
+          <li><a href="{% url 'guided_quote:wizard_start' %}">{% trans 'Demander un devis' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_client_access' site.public_slug %}">{% trans 'Espace client' %}</a></li>
+          <li><a href="{% url 'client_portal:login' %}">{% trans 'Se connecter' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_blog' site.public_slug %}">{% trans 'Blog' %}</a></li>
+          <li><a href="{% url 'public_websites:btp_contact' site.public_slug %}">{% trans 'Contact' %}</a></li>
         </ul>
       </div>
 
-      <!-- Infos -->
-      <div class="btp-footer-col">
-        <h4>Informations</h4>
-        <ul>
-          {% if site.address %}<li style="color:#C9B89A;font-size:.86rem">{{ site.address|linebreaksbr }}</li>{% endif %}
-          {% if site.contact_email %}<li><a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></li>{% endif %}
-        </ul>
-        {% if site.legal_company_name %}
-        <p style="margin-top:1rem;font-size:.8rem;opacity:.6">
-          {{ site.legal_company_name }}<br>
-          {% if site.legal_siret %}SIRET : {{ site.legal_siret }}{% endif %}
-        </p>
-        {% endif %}
+      <div>
+        <h4>{% trans 'Newsletter' %}</h4>
+        <p style="font-size:.85rem">{% trans 'Actualités et conseils chantier, une fois par mois.' %}</p>
+        <form class="site-newsletter" method="post" action="{% url 'public_websites:newsletter_subscribe' %}">
+          {% csrf_token %}
+          <label for="footerNewsletterEmailBtp" class="visually-hidden" style="position:absolute;left:-9999px">{% trans 'Adresse email' %}</label>
+          <input type="email" id="footerNewsletterEmailBtp" name="email" placeholder="{% trans 'Votre email' %}" required>
+          {% trans "S'inscrire à la newsletter" as btp_newsletter_submit_label %}
+          <button type="submit" class="site-btn site-btn-accent site-btn-sm" aria-label="{{ btp_newsletter_submit_label }}">
+            <i class="bi bi-send" aria-hidden="true"></i>
+          </button>
+        </form>
       </div>
     </div>
 
-    <!-- Footer bottom -->
-    <div class="btp-footer-bottom">
-      <p>&copy; {% now "Y" %} {{ site.company.name }}. Tous droits reserves.</p>
+    <div class="site-footer-bottom">
+      <p>&copy; {% now "Y" %} {{ site.company.name }}. {% trans 'Tous droits réservés.' %}</p>
       <p style="display:flex;gap:1.5rem;flex-wrap:wrap">
-        <a href="{% url 'public_websites:page' site.public_slug 'mentions-legales' %}" style="color:#C9B89A;font-size:.82rem">Mentions legales</a>
-        <a href="{% url 'public_websites:page' site.public_slug 'confidentialite' %}"  style="color:#C9B89A;font-size:.82rem">Confidentialite</a>
+        <a href="{% url 'public_websites:page' site.public_slug 'mentions-legales' %}">{% trans 'Mentions légales' %}</a>
+        <a href="{% url 'public_websites:page' site.public_slug 'confidentialite' %}">{% trans 'Confidentialité' %}</a>
+        <a href="{% url 'public_websites:sitemap_public' site.public_slug %}">Sitemap</a>
       </p>
-      {% if site.show_powered_by_orion %}
-      <a href="#" class="btp-powered" title="Orion ERP">
-        Propulse par
-        <img src="{% static 'img/brand/orion-logo-white.svg' %}" alt="Orion ERP">
-      </a>
-      {% endif %}
     </div>
   </div>
 </footer>

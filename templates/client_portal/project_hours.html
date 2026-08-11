@@ -1,14 +1,15 @@
 {% extends "client_portal/base_client_portal.html" %}
-{% block title %}Heures — {{ project.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=project.name %}Heures — {{ name }}{% endblocktrans %}{% endblock %}
 {% block nav_projects %}active{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item active">Heures</li>
+<li class="breadcrumb-item active">{% trans "Heures" %}</li>
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-bold mb-0">Heures sur chantier — {{ project.name }}</h5>
-  <div class="text-muted small">{{ total_hours|floatformat:1 }}h total visible</div>
+  <h5 class="fw-bold mb-0">{% blocktrans with name=project.name %}Heures sur chantier — {{ name }}{% endblocktrans %}</h5>
+  <div class="text-muted small">{% blocktrans with h=total_hours|floatformat:1 %}{{ h }}h total visible{% endblocktrans %}</div>
 </div>
 
 {% if time_entries %}
@@ -17,11 +18,11 @@
     <table class="orion-table mb-0">
       <thead class="table-light">
         <tr>
-          <th>Intervenant</th>
-          <th>Date</th>
-          <th>Heures</th>
-          <th>Description</th>
-          <th>Statut</th>
+          <th>{% trans "Intervenant" %}</th>
+          <th>{% trans "Date" %}</th>
+          <th>{% trans "Heures" %}</th>
+          <th>{% trans "Description" %}</th>
+          <th>{% trans "Statut" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -40,15 +41,16 @@
         <td><span class="fw-bold">{{ entry.hours|floatformat:1 }}h</span></td>
         <td class="small text-muted">{{ entry.task_description|default:"—" }}</td>
         <td>
-          {% if entry.status == 'client_visible' %}<span class="badge badge-status-done">Validé</span>
+          {% if entry.status == 'client_visible' %}<span class="badge badge-status-done">{% trans "Validé" %}</span>
           {% elif entry.status == 'disputed' %}
-            <span class="orion-badge danger">Contesté</span>
+            <span class="orion-badge danger">{% trans "Contesté" %}</span>
           {% else %}<span class="badge bg-light text-muted border">{{ entry.get_status_display }}</span>{% endif %}
           {% if entry.status == 'client_visible' and not entry.status == 'disputed' %}
           <form method="post" class="d-inline">
             {% csrf_token %}
             <input type="hidden" name="dispute_entry" value="{{ entry.pk }}">
-            <button type="submit" class="btn btn-link orion-btn sm text-danger p-0 ms-2" title="Contester cette entrée">Contester</button>
+            {% trans "Contester cette entrée" as contest_title %}
+            <button type="submit" class="btn btn-link orion-btn sm text-danger p-0 ms-2" title="{{ contest_title }}">{% trans "Contester" %}</button>
           </form>
           {% endif %}
         </td>
@@ -57,21 +59,21 @@
       {% endfor %}
       </tbody>
       <tfoot class="table-light fw-bold">
-        <tr><td colspan="2">Total</td><td colspan="3">{{ total_hours|floatformat:1 }}h</td></tr>
+        <tr><td colspan="2">{% trans "Total" %}</td><td colspan="3">{{ total_hours|floatformat:1 }}h</td></tr>
       </tfoot>
     </table>
   </div>
 </div>
 
 <div class="bg-white border rounded-3 p-4">
-  <h6 class="fw-bold mb-1">À propos des heures</h6>
-  <p class="small text-muted mb-0">Ces heures sont rendues visibles par le responsable de chantier. Elles sont indicatives et peuvent évoluer jusqu'à la facturation. En cas de désaccord, utilisez le bouton "Contester" pour alerter votre responsable.</p>
+  <h6 class="fw-bold mb-1">{% trans "À propos des heures" %}</h6>
+  <p class="small text-muted mb-0">{% blocktrans %}Ces heures sont rendues visibles par le responsable de chantier. Elles sont indicatives et peuvent évoluer jusqu'à la facturation. En cas de désaccord, utilisez le bouton "Contester" pour alerter votre responsable.{% endblocktrans %}</p>
 </div>
 {% else %}
 <div class="bg-white border rounded-3 p-5 text-center text-muted">
   <i class="bi bi-clock-history fs-1 d-block mb-3"></i>
-  <h6>Aucune heure visible pour l'instant</h6>
-  <p class="small">Le responsable de chantier rendra les heures visibles au fur et à mesure de l'avancement.</p>
+  <h6>{% trans "Aucune heure visible pour l'instant" %}</h6>
+  <p class="small">{% trans "Le responsable de chantier rendra les heures visibles au fur et à mesure de l'avancement." %}</p>
 </div>
 {% endif %}
 {% endblock %}

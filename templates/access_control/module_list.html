@@ -1,12 +1,13 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
-<li class="breadcrumb-item active">Modules ERP</li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">{% trans "Contrôle d'accès" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Modules ERP" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="erp-card">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-grid-3x3-gap me-2"></i>Modules ERP</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-grid-3x3-gap me-2"></i>{% trans "Modules ERP" %}</h6></div>
   <div class="erp-orion-orion-card-body">
     {% if modules %}
     <div class="row g-3">
@@ -15,8 +16,8 @@
         <div class="card h-100 {% if not mod.is_active %}opacity-50{% endif %}">
           <div class="orion-orion-card-body">
             <div class="d-flex align-items-center gap-3 mb-2">
-              <div class="rounded-2 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:{{ mod.color|default:'#6366F1' }}20">
-                <i class="bi {{ mod.icon|default:'bi-grid' }}" style="color:{{ mod.color|default:'#6366F1' }}"></i>
+              <div class="rounded-2 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:{{ mod.color|default:'#C6A15B' }}20">
+                <i class="bi {{ mod.icon|default:'bi-grid' }}" style="color:{{ mod.color|default:'#C6A15B' }}"></i>
               </div>
               <div>
                 <div class="fw-semibold">{{ mod.name }}</div>
@@ -26,16 +27,16 @@
             {% if mod.description %}<p class="card-text small text-muted mb-0">{{ mod.description }}</p>{% endif %}
           </div>
           <div class="card-footer small text-muted d-flex justify-content-between">
-            <span>Ordre : {{ mod.order }}</span>
-            {% if mod.is_active %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> Actif</span>
-            {% else %}<span class="text-muted"><i class="bi bi-dash-circle"></i> Inactif</span>{% endif %}
+            <span>{% trans "Ordre" %} : {{ mod.order }}</span>
+            {% if mod.is_active %}<span class="text-success"><i class="bi bi-check-circle-fill"></i> {% trans "Actif" %}</span>
+            {% else %}<span class="text-muted"><i class="bi bi-dash-circle"></i> {% trans "Inactif" %}</span>{% endif %}
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-5 text-muted">Aucun module. Exécutez <code>python manage.py seed_permissions</code>.</div>
+    <div class="text-center py-5 text-muted">{% trans "Aucun module." %} {% trans "Exécutez" %} <code>python manage.py seed_permissions</code>.</div>
     {% endif %}
   </div>
 </div>

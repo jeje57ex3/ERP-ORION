@@ -1,22 +1,22 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Notes de frais — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Notes de frais" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block content %}
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
     <span class="orion-card-title">{{ page_title }}</span>
-    <input type="text" class="form-control form-control-sm" placeholder="Rechercher..." style="width:200px;" data-table-search="mainTable">
+    <input type="text" class="form-control form-control-sm" placeholder="{% trans 'Rechercher...' %}" style="width:200px;" data-table-search="mainTable">
   </div>
   <div class="orion-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="orion-table mb-0" id="mainTable">
-        <thead><tr><th>Données</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+        <thead><tr><th>{% trans "Données" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Date" %}</th><th></th></tr></thead>
         <tbody>
           <tr><td colspan="4" class="text-center py-5 text-muted">
             <i class="bi bi-inbox d-block fs-1 mb-3 opacity-25"></i>
-            Module en cours de développement.<br>
-            <small>Les données apparaîtront ici après configuration.</small>
+            {% trans "Module en cours de développement." %}<br>
+            <small>{% trans "Les données apparaîtront ici après configuration." %}</small>
           </td></tr>
         </tbody>
       </table>

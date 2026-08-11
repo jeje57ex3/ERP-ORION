@@ -1,34 +1,35 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
-<li class="breadcrumb-item"><a href="{% url 'access_control:role_list' %}">Rôles</a></li>
-<li class="breadcrumb-item active">Nouveau rôle</li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">{% trans "Contrôle d'accès" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:role_list' %}">{% trans "Rôles" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Nouveau rôle" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-shield-plus me-2"></i>Nouveau rôle</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-shield-plus me-2"></i>{% trans "Nouveau rôle" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Nom <span class="text-danger">*</span></label>
-            <input type="text" name="name" class="form-control" required placeholder="ex. Responsable chantier">
+            <label class="form-label fw-semibold">{% trans "Nom" %} <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="{% trans 'ex. Responsable chantier' %}">
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Code <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Code" %} <span class="text-danger">*</span></label>
             <input type="text" name="code" class="form-control" required placeholder="ex. site_manager">
-            <div class="form-text">Identifiant unique, lettres minuscules et tirets bas.</div>
+            <div class="form-text">{% trans "Identifiant unique, lettres minuscules et tirets bas." %}</div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Description</label>
+            <label class="form-label">{% trans "Description" %}</label>
             <textarea name="description" class="form-control" rows="3"></textarea>
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>Créer et configurer</button>
-            <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>{% trans "Créer et configurer" %}</button>
+            <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>

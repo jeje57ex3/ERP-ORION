@@ -1,8 +1,9 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'commerce:store_list' %}">Magasins</a></li>
+<li class="breadcrumb-item"><a href="{% url 'commerce:store_list' %}">{% trans "Magasins" %}</a></li>
 <li class="breadcrumb-item"><a href="{% url 'commerce:store_detail' store.pk %}">{{ store.name }}</a></li>
-<li class="breadcrumb-item active">Supprimer</li>
+<li class="breadcrumb-item active">{% trans "Supprimer" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -10,14 +11,14 @@
   <div class="col-md-6">
     <div class="delete-confirm-card">
       <div class="delete-icon"><i class="bi bi-exclamation-triangle-fill text-danger"></i></div>
-      <h4>Supprimer ce magasin ?</h4>
-      <p>Vous êtes sur le point de supprimer le magasin <strong>{{ store.name }}</strong>. Cette action est irréversible et supprimera toutes les données associées.</p>
+      <h4>{% trans "Supprimer ce magasin ?" %}</h4>
+      <p>{% blocktrans with name=store.name %}Vous êtes sur le point de supprimer le magasin <strong>{{ name }}</strong>. Cette action est irréversible et supprimera toutes les données associées.{% endblocktrans %}</p>
       <div class="d-flex gap-2 justify-content-center mt-4">
         <form method="post">
           {% csrf_token %}
-          <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>Supprimer définitivement</button>
+          <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>{% trans "Supprimer définitivement" %}</button>
         </form>
-        <a href="{% url 'commerce:store_detail' store.pk %}" class="btn btn-outline-secondary">Annuler</a>
+        <a href="{% url 'commerce:store_detail' store.pk %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </div>
   </div>

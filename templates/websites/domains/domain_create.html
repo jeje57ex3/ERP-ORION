@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Ajouter un domaine{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Ajouter un domaine" %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">Domaines</a></li>
-<li class="breadcrumb-item active">Ajouter</li>
+<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">{% trans "Domaines" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Ajouter" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -14,8 +15,8 @@
 
     <div class="card border-0 shadow-sm">
       <div class="orion-orion-card-body p-4">
-        <h5 class="fw-semibold mb-1"><i class="bi bi-plus-circle me-2 text-primary"></i>Ajouter un domaine</h5>
-        <p class="text-muted small mb-4">Connectez un nom de domaine ou sous-domaine à un site, une boutique, ou votre ERP.</p>
+        <h5 class="fw-semibold mb-1"><i class="bi bi-plus-circle me-2 text-primary"></i>{% trans "Ajouter un domaine" %}</h5>
+        <p class="text-muted small mb-4">{% trans "Connectez un nom de domaine ou sous-domaine à un site, une boutique, ou votre ERP." %}</p>
 
         {% if form.non_field_errors %}
         <div class="orion-alert danger">{{ form.non_field_errors }}</div>
@@ -55,7 +56,7 @@
 
           {# Options #}
           <div class="mb-4">
-            <label class="form-label fw-medium d-block mb-2">Options</label>
+            <label class="form-label fw-medium d-block mb-2">{% trans "Options" %}</label>
             <div class="form-check mb-2">
               {{ form.force_https }}
               <label class="form-check-label" for="{{ form.force_https.id_for_label }}">
@@ -73,19 +74,19 @@
           {# Info DNS #}
           <div class="orion-alert info mb-4">
             <i class="bi bi-info-circle me-2"></i>
-            <strong>Orion ERP ne modifie pas automatiquement votre DNS.</strong>
-            Après avoir ajouté le domaine, vous recevrez les enregistrements DNS à ajouter chez votre registrar (OVH, Cloudflare, Gandi, Ionos…).
+            <strong>{% trans "Orion ERP ne modifie pas automatiquement votre DNS." %}</strong>
+            {% trans "Après avoir ajouté le domaine, vous recevrez les enregistrements DNS à ajouter chez votre registrar (OVH, Cloudflare, Gandi, Ionos…)." %}
           </div>
 
           <div class="d-flex gap-2">
             <button type="submit" class="orion-btn orion-orion-btn primary">
-              <i class="bi bi-plus-circle me-1"></i> Ajouter le domaine
+              <i class="bi bi-plus-circle me-1"></i> {% trans "Ajouter le domaine" %}
             </button>
             <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline">
-              Annuler
+              {% trans "Annuler" %}
             </a>
             <a href="{% url 'websites:domain_wizard' %}" class="orion-btn orion-btn-outline ms-auto">
-              <i class="bi bi-magic me-1"></i> Utiliser l'assistant
+              <i class="bi bi-magic me-1"></i> {% trans "Utiliser l'assistant" %}
             </a>
           </div>
         </form>

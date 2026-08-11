@@ -1,22 +1,24 @@
-{% extends "base.html" %}
-{% block title %}Demande {{ quote.reference }}{% endblock %}
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block title %}{% blocktrans with ref=quote.reference %}Demande {{ ref }}{% endblocktrans %}{% endblock %}
 {% block content %}
+{% trans "Nouvelle demande" as new_request_label %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <a href="{% url 'btp:guided_quote_list' %}" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Demandes guidées</a>
-    <h4 class="fw-bold mb-0 mt-1">{{ quote.reference|default:"Nouvelle demande" }}</h4>
+    <a href="{% url 'btp:guided_quote_list' %}" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>{% trans "Demandes guidées" %}</a>
+    <h4 class="fw-bold mb-0 mt-1">{{ quote.reference|default:new_request_label }}</h4>
   </div>
   <div class="d-flex gap-2">
     {% if not quote.btp_project %}
     <form method="post" class="d-inline">
       {% csrf_token %}
-      <button type="submit" name="action" value="create_project" class="orion-btn success orion-btn sm"><i class="bi bi-building-add me-1"></i>Créer chantier</button>
+      <button type="submit" name="action" value="create_project" class="orion-btn success orion-btn sm"><i class="bi bi-building-add me-1"></i>{% trans "Créer chantier" %}</button>
     </form>
     {% endif %}
     {% if not quote.btp_quote %}
     <form method="post" class="d-inline">
       {% csrf_token %}
-      <button type="submit" name="action" value="create_quote" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>Créer devis</button>
+      <button type="submit" name="action" value="create_quote" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>{% trans "Créer devis" %}</button>
     </form>
     {% endif %}
   </div>
@@ -30,28 +32,28 @@
       <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
           <span class="badge {% if quote.request_type == 'depannage' %}bg-danger{% else %}bg-primary{% endif %} me-2">
-            {% if quote.request_type == 'depannage' %}Dépannage{% elif quote.request_type == 'travaux' %}Travaux{% elif quote.request_type == 'renovation' %}Rénovation{% else %}{{ quote.get_request_type_display }}{% endif %}
+            {% if quote.request_type == 'depannage' %}{% trans "Dépannage" %}{% elif quote.request_type == 'travaux' %}{% trans "Travaux" %}{% elif quote.request_type == 'renovation' %}{% trans "Rénovation" %}{% else %}{{ quote.get_request_type_display }}{% endif %}
           </span>
-          {% if quote.answers.safety_issue %}<span class="orion-badge danger"><i class="bi bi-exclamation-triangle me-1"></i>Problème de sécurité</span>{% endif %}
+          {% if quote.answers.safety_issue %}<span class="orion-badge danger"><i class="bi bi-exclamation-triangle me-1"></i>{% trans "Problème de sécurité" %}</span>{% endif %}
         </div>
         <form method="post" class="d-flex align-items-center gap-2">
           {% csrf_token %}
           <select name="status" class="form-select form-select-sm" style="width:auto">
-            <option value="new" {% if quote.status == 'new' %}selected{% endif %}>Nouveau</option>
-            <option value="contacted" {% if quote.status == 'contacted' %}selected{% endif %}>Contacté</option>
-            <option value="visit_scheduled" {% if quote.status == 'visit_scheduled' %}selected{% endif %}>Visite planifiée</option>
-            <option value="quote_sent" {% if quote.status == 'quote_sent' %}selected{% endif %}>Devis envoyé</option>
-            <option value="converted" {% if quote.status == 'converted' %}selected{% endif %}>Converti</option>
-            <option value="lost" {% if quote.status == 'lost' %}selected{% endif %}>Perdu</option>
+            <option value="new" {% if quote.status == 'new' %}selected{% endif %}>{% trans "Nouveau" %}</option>
+            <option value="contacted" {% if quote.status == 'contacted' %}selected{% endif %}>{% trans "Contacté" %}</option>
+            <option value="visit_scheduled" {% if quote.status == 'visit_scheduled' %}selected{% endif %}>{% trans "Visite planifiée" %}</option>
+            <option value="quote_sent" {% if quote.status == 'quote_sent' %}selected{% endif %}>{% trans "Devis envoyé" %}</option>
+            <option value="converted" {% if quote.status == 'converted' %}selected{% endif %}>{% trans "Converti" %}</option>
+            <option value="lost" {% if quote.status == 'lost' %}selected{% endif %}>{% trans "Perdu" %}</option>
           </select>
-          <button type="submit" name="action" value="update_status" class="orion-btn sm orion-btn warning">Enregistrer</button>
+          <button type="submit" name="action" value="update_status" class="orion-btn sm orion-btn warning">{% trans "Enregistrer" %}</button>
         </form>
       </div>
     </div>
 
     <!-- Réponses questionnaire -->
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Réponses du questionnaire</h6>
+      <h6 class="fw-bold mb-3">{% trans "Réponses du questionnaire" %}</h6>
       {% if quote.answers %}
       <dl class="row mb-0">
         {% for key, val in quote.answers.items %}
@@ -60,14 +62,14 @@
         {% endfor %}
       </dl>
       {% else %}
-      <div class="text-muted small">Aucune réponse enregistrée</div>
+      <div class="text-muted small">{% trans "Aucune réponse enregistrée" %}</div>
       {% endif %}
     </div>
 
     <!-- Photos & documents -->
     {% if photos %}
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Photos & documents</h6>
+      <h6 class="fw-bold mb-3">{% trans "Photos & documents" %}</h6>
       <div class="d-flex flex-wrap gap-3">
         {% for doc in photos %}
         <div class="text-center">
@@ -88,11 +90,11 @@
 
     <!-- Notes internes -->
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Notes internes</h6>
+      <h6 class="fw-bold mb-3">{% trans "Notes internes" %}</h6>
       <form method="post">
         {% csrf_token %}
         <textarea name="internal_notes" class="form-control mb-2" rows="3">{{ quote.internal_notes }}</textarea>
-        <button type="submit" name="action" value="update_notes" class="orion-btn sm btn-outline-secondary">Sauvegarder</button>
+        <button type="submit" name="action" value="update_notes" class="orion-btn sm btn-outline-secondary">{% trans "Sauvegarder" %}</button>
       </form>
     </div>
   </div>
@@ -101,7 +103,7 @@
   <div class="col-12 col-lg-4">
     <!-- Contact -->
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Contact</h6>
+      <h6 class="fw-bold mb-3">{% trans "Contact" %}</h6>
       <div class="d-flex align-items-center gap-2 mb-3">
         <div style="width:44px;height:44px;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0F172A;flex-shrink:0">{{ quote.client_first_name|first }}</div>
         <div>
@@ -119,14 +121,14 @@
     <!-- Pré-devis estimatif -->
     {% if quote.estimate %}
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Pré-devis estimatif</h6>
-      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">Minimum</span><span class="fw-semibold">{{ quote.estimate.amount_min_ht|floatformat:2 }} € HT</span></div>
-      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">Estimé</span><span class="fw-bold text-success fs-6">{{ quote.estimate.amount_avg_ht|floatformat:2 }} € HT</span></div>
-      <div class="d-flex justify-content-between mb-3 small"><span class="text-muted">Maximum</span><span class="fw-semibold">{{ quote.estimate.amount_max_ht|floatformat:2 }} € HT</span></div>
-      <div class="border-top pt-2"><div class="d-flex justify-content-between small fw-bold"><span>Total TTC</span><span class="text-warning">{{ quote.estimate.total_ttc|floatformat:2 }} €</span></div></div>
+      <h6 class="fw-bold mb-3">{% trans "Pré-devis estimatif" %}</h6>
+      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">{% trans "Minimum" %}</span><span class="fw-semibold">{{ quote.estimate.amount_min_ht|floatformat:2 }} € HT</span></div>
+      <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">{% trans "Estimé" %}</span><span class="fw-bold text-success fs-6">{{ quote.estimate.amount_avg_ht|floatformat:2 }} € HT</span></div>
+      <div class="d-flex justify-content-between mb-3 small"><span class="text-muted">{% trans "Maximum" %}</span><span class="fw-semibold">{{ quote.estimate.amount_max_ht|floatformat:2 }} € HT</span></div>
+      <div class="border-top pt-2"><div class="d-flex justify-content-between small fw-bold"><span>{% trans "Total TTC" %}</span><span class="text-warning">{{ quote.estimate.total_ttc|floatformat:2 }} €</span></div></div>
       {% if quote.estimate.items.exists %}
       <div class="mt-3">
-        <div class="small text-muted fw-semibold mb-2">Détail :</div>
+        <div class="small text-muted fw-semibold mb-2">{% trans "Détail :" %}</div>
         {% for line in quote.estimate.items.all %}
         <div class="d-flex justify-content-between small text-muted mb-1">
           <span>{{ line.label }}</span>
@@ -141,19 +143,20 @@
     <!-- Liens ERP -->
     {% if quote.btp_project or quote.btp_quote %}
     <div class="bg-white border rounded-3 p-4 mb-3">
-      <h6 class="fw-bold mb-3">Liens ERP</h6>
-      {% if quote.btp_project %}<a href="{% url 'btp:project_detail' quote.btp_project.pk %}" class="btn btn-outline-success orion-btn sm w-100 mb-2"><i class="bi bi-building me-1"></i>Chantier : {{ quote.btp_project.name }}</a>{% endif %}
-      {% if quote.btp_quote %}<a href="{% url 'btp:quote_detail' quote.btp_quote.pk %}" class="btn btn-outline-primary orion-btn sm w-100"><i class="bi bi-file-earmark-text me-1"></i>Devis : {{ quote.btp_quote.reference }}</a>{% endif %}
+      <h6 class="fw-bold mb-3">{% trans "Liens ERP" %}</h6>
+      {% if quote.btp_project %}<a href="{% url 'btp:project_detail' quote.btp_project.pk %}" class="btn btn-outline-success orion-btn sm w-100 mb-2"><i class="bi bi-building me-1"></i>{% blocktrans with name=quote.btp_project.name %}Chantier : {{ name }}{% endblocktrans %}</a>{% endif %}
+      {% if quote.btp_quote %}<a href="{% url 'btp:quote_detail' quote.btp_quote.pk %}" class="btn btn-outline-primary orion-btn sm w-100"><i class="bi bi-file-earmark-text me-1"></i>{% blocktrans with ref=quote.btp_quote.reference %}Devis : {{ ref }}{% endblocktrans %}</a>{% endif %}
     </div>
     {% endif %}
 
     <!-- Infos -->
     <div class="bg-white border rounded-3 p-4 text-muted small">
-      <div class="mb-1"><strong>Référence :</strong> {{ quote.reference|default:"—" }}</div>
-      <div class="mb-1"><strong>Reçue le :</strong> {{ quote.created_at|date:"d/m/Y H:i" }}</div>
-      {% if quote.preferred_slots %}<div class="mb-1"><strong>Créneaux souhaités :</strong> {{ quote.preferred_slots }}</div>{% endif %}
-      {% if quote.create_portal_account %}<span class="orion-badge success-subtle text-success border">Compte portail à créer</span>{% endif %}
+      <div class="mb-1"><strong>{% trans "Référence :" %}</strong> {{ quote.reference|default:"—" }}</div>
+      <div class="mb-1"><strong>{% trans "Reçue le :" %}</strong> {{ quote.created_at|date:"d/m/Y H:i" }}</div>
+      {% if quote.preferred_slots %}<div class="mb-1"><strong>{% trans "Créneaux souhaités :" %}</strong> {{ quote.preferred_slots }}</div>{% endif %}
+      {% if quote.create_portal_account %}<span class="orion-badge success-subtle text-success border">{% trans "Compte portail à créer" %}</span>{% endif %}
     </div>
   </div>
 </div>
 {% endblock %}
+</content>

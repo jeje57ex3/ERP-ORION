@@ -1,35 +1,38 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block title %}Rollback mise à jour #{{ update_run.id }} — Orion ERP{% endblock %}
+{% block title %}{% blocktrans %}Rollback mise à jour #{{ update_run.id }}{% endblocktrans %} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Mises à jour</p>
-    <h1 class="orion-page-title">Rollback — Mise à jour #{{ update_run.id }}</h1>
-    <p class="orion-page-subtitle">
-      Retour au commit <code>{{ update_run.from_commit|slice:":8" }}</code>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Mises à jour" %}</p>
+    <h1 class="page-title">{% blocktrans %}Rollback — Mise à jour #{{ update_run.id }}{% endblocktrans %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">
+      {% trans "Retour au commit" %} <code>{{ update_run.from_commit|slice:":8" }}</code>
     </p>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 <div class="orion-alert danger mb-4">
   <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>Action irréversible</strong> — Le rollback va faire un <code>git reset --hard</code>
-  vers le commit <strong>{{ update_run.from_commit }}</strong> et relancer les migrations.
-  Utilisez uniquement si la mise à jour a échoué et que l'ERP est instable.
+  {% blocktrans with commit=update_run.from_commit %}<strong>Action irréversible</strong> — Le rollback va faire un <code>git reset --hard</code>
+  vers le commit <strong>{{ commit }}</strong> et relancer les migrations.
+  Utilisez uniquement si la mise à jour a échoué et que l'ERP est instable.{% endblocktrans %}
 </div>
 
 <div class="orion-card mb-4" style="padding:16px">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
     <div>
-      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Commit actuel (échoué)</span>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">{% trans "Commit actuel (échoué)" %}</span>
       <div style="font-family:monospace;font-size:13px;margin-top:4px;color:var(--orion-danger)">
         {{ update_run.to_commit|slice:":8"|default:"—" }}
       </div>
     </div>
     <div>
-      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Retour vers</span>
+      <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">{% trans "Retour vers" %}</span>
       <div style="font-family:monospace;font-size:13px;margin-top:4px;color:var(--orion-success)">
         {{ update_run.from_commit|slice:":8" }}
       </div>
@@ -37,7 +40,7 @@
   </div>
   {% if update_run.error_message %}
   <div style="margin-top:12px">
-    <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">Erreur ayant causé l'échec</span>
+    <span style="font-size:11.5px;color:var(--orion-muted);text-transform:uppercase;letter-spacing:.05em">{% trans "Erreur ayant causé l'échec" %}</span>
     <p style="font-size:12.5px;margin-top:4px;color:var(--orion-danger)">{{ update_run.error_message }}</p>
   </div>
   {% endif %}
@@ -45,7 +48,7 @@
 
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
-    <h2 style="font-size:15px;font-weight:600;margin:0">Confirmation du rollback</h2>
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Confirmation du rollback" %}</h2>
   </div>
   <form method="post" style="padding:16px">
     {% csrf_token %}
@@ -62,9 +65,9 @@
     {% endfor %}
     <div style="display:flex;gap:10px;margin-top:16px">
       <button type="submit" class="orion-btn danger">
-        <i class="bi bi-arrow-counterclockwise me-1"></i>Confirmer le rollback
+        <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Confirmer le rollback" %}
       </button>
-      <a href="{% url 'system_updates:update_detail' update_run.id %}" class="orion-btn">Annuler</a>
+      <a href="{% url 'system_updates:update_detail' update_run.id %}" class="orion-btn">{% trans "Annuler" %}</a>
     </div>
   </form>
 </div>
