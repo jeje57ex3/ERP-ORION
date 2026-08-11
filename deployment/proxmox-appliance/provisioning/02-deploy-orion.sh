@@ -22,12 +22,23 @@ ORION_GIT_BRANCH="${ORION_GIT_BRANCH:-main}"
 mkdir -p "$ORION_HOME"/{uploads,logs,backups,docker,nginx,scripts}
 
 # ─── Code source (git clone) ────────────────────────────────────────────────────
+# Si le dépôt est privé, GITHUB_TOKEN (deploy-info.env, --github-token au
+# déploiement) est injecté via un en-tête HTTP temporaire (-c
+# http.extraheader) plutôt que dans l'URL — n'est jamais écrit dans
+# .git/config ni journalisé en clair (voir apps/system_updates/git_service.py
+# pour le même mécanisme côté mises à jour applicatives).
+GIT_AUTH_ARGS=()
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  GIT_AUTH_HEADER="AUTHORIZATION: basic $(printf '%s' "x-access-token:$GITHUB_TOKEN" | base64 -w0)"
+  GIT_AUTH_ARGS=(-c "http.extraheader=$GIT_AUTH_HEADER")
+fi
+
 if [ ! -d "$ORION_HOME/backend/.git" ]; then
   echo "[02] git clone $ORION_GIT_REPO_URL (branche $ORION_GIT_BRANCH) -> $ORION_HOME/backend"
-  git clone --branch "$ORION_GIT_BRANCH" --depth 1 "$ORION_GIT_REPO_URL" "$ORION_HOME/backend"
+  git "${GIT_AUTH_ARGS[@]}" clone --branch "$ORION_GIT_BRANCH" --depth 1 "$ORION_GIT_REPO_URL" "$ORION_HOME/backend"
 else
   echo "[02] Dépôt déjà cloné — pull..."
-  git -C "$ORION_HOME/backend" pull --ff-only || true
+  git -C "$ORION_HOME/backend" "${GIT_AUTH_ARGS[@]}" pull --ff-only || true
 fi
 
 # Alias de compatibilité avec l'arborescence demandée : "login" == même backend

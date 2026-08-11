@@ -9,6 +9,10 @@ class SystemUpdateSettings(models.Model):
 
     git_remote = models.CharField(max_length=120, default='origin')
     git_branch = models.CharField(max_length=120, default='main')
+    github_token_encrypted = models.TextField(
+        blank=True,
+        help_text="Jeton d'accès personnel GitHub (chiffré), requis si le dépôt est privé.",
+    )
 
     require_backup_before_update = models.BooleanField(default=True)
     require_health_check_before_update = models.BooleanField(default=True)

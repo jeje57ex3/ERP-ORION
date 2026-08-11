@@ -52,6 +52,9 @@ Toutes les options : `--vmid`, `--name`, `--storage`, `--disk-size`,
 omis = DHCP), `--memory`, `--cores`, `--sshkey`,
 `--login-domain`/`--orion-domain`/`--siecle-domain`/`--lunea-domain`
 (domaines publics, omis = accès par IP), `--cf-token` (Cloudflare Tunnel),
+`--github-token` (jeton d'accès GitHub, requis si `ORION_GIT_REPO_URL` est un
+dépôt privé — sinon le git clone de Stage A échoue ; peut aussi être
+configuré/renouvelé après coup depuis l'ERP en Réglages > Mises à jour),
 `--as-template`, `--rebuild`, `--skip-build`. Forcer l'assistant malgré des
 options fournies : `-i` / `--interactive`. Voir `./deploy_proxmox_vm.sh --help`
 pour le détail.
@@ -93,6 +96,7 @@ Options utiles (voir `import_proxmox.sh --help`) :
   --login-domain login.exemple.fr --orion-domain orion.exemple.fr \
   --siecle-domain siecle.exemple.fr --lunea-domain lunea.exemple.fr \
   --cf-token "$CF_TOKEN" \
+  --github-token "$GITHUB_TOKEN" \
   --start
 ```
 
