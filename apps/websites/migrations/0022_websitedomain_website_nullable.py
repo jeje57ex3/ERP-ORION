@@ -26,7 +26,12 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('websites', '0021_website_language_add_portuguese'),
+        # 0012-0021 existent en local (poste de dev) mais n'ont jamais été
+        # commitées sur git — elles correspondent à d'anciens modèles déjà
+        # retirés de models.py depuis (CloudflareTunnel, CustomerAddress...),
+        # donc orphelines et volontairement ignorées ici. 0011 est la
+        # dernière migration réellement commitée/déployée.
+        ('websites', '0011_domain_management'),
     ]
 
     operations = [
