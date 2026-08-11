@@ -34,7 +34,7 @@ def domain_dashboard(request):
     company = _company(request)
     all_domains = (
         WebsiteDomain.objects
-        .filter(website__company=company)
+        .filter(company=company)
         .select_related('website')
         .order_by('-is_primary', 'domain')
     )
@@ -55,7 +55,7 @@ def domain_dashboard(request):
     ssl_active_count = all_domains.filter(ssl_status='active').count()
 
     from .services.ssl_service import get_expiring_soon
-    expiring_ssl = get_expiring_soon(30).filter(website__company=company).count()
+    expiring_ssl = get_expiring_soon(30).filter(company=company).count()
 
     return render(request, 'websites/domains/domain_list.html', {
         'domains':           all_domains,
@@ -87,7 +87,8 @@ def domain_create(request):
         token  = generate_verification_token(domain)
 
         wd = WebsiteDomain.objects.create(
-            website          = cd.get('website') or Website.objects.filter(company=company).first(),
+            website          = cd.get('website'),
+            company          = company,
             domain           = domain,
             domain_type      = cd['domain_type'],
             target_type      = cd['target_type'],
@@ -98,10 +99,6 @@ def domain_create(request):
             status           = 'pending',
             created_by       = request.user,
         )
-        # Auto-set company on domain
-        if hasattr(wd, 'company'):
-            wd.company = company
-            wd.save(update_fields=['company'])
 
         log_domain_action(wd, 'created', f'Domaine {domain} ajouté.', 'success', request.user)
         messages.success(request, f'Domaine « {domain} » ajouté. Configurez vos DNS.')
@@ -121,7 +118,7 @@ def domain_detail(request, pk):
     """Page détail d'un domaine — instructions DNS, SSL, redirections, historique."""
     company   = _company(request)
     domain    = get_object_or_404(
-        WebsiteDomain, pk=pk, website__company=company
+        WebsiteDomain, pk=pk, company=company
     )
     dns_records = get_expected_dns_records(domain)
     redirects   = DomainRedirect.objects.filter(domain=domain).order_by('-created_at')
@@ -151,7 +148,7 @@ def domain_detail(request, pk):
 def domain_verify(request, pk):
     """Lance la vérification DNS d'un domaine et redirige avec résultat."""
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     verified = verify_domain_ownership(domain)
     log_domain_action(
@@ -180,7 +177,7 @@ def domain_verify(request, pk):
 def domain_request_ssl(request, pk):
     """Initie la demande SSL pour un domaine."""
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     from .services.ssl_service import request_ssl_certificate
     result = request_ssl_certificate(domain)
@@ -198,7 +195,7 @@ def domain_request_ssl(request, pk):
 def domain_mark_ssl_active(request, pk):
     """Marque manuellement le SSL comme actif (après configuration serveur)."""
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     from .services.ssl_service import mark_ssl_active, check_ssl_certificate
     # Vérification SSL réelle avant de marquer actif
@@ -220,7 +217,7 @@ def domain_mark_ssl_active(request, pk):
 @require_POST
 def domain_set_primary(request, pk):
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     if not domain.dns_verified:
         messages.error(request, 'Le DNS doit être vérifié avant de définir un domaine principal.')
@@ -238,7 +235,7 @@ def domain_set_primary(request, pk):
 @require_POST
 def domain_disable(request, pk):
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     if domain.is_primary:
         messages.error(request, 'Impossible de désactiver le domaine principal. Définissez d\'abord un autre domaine principal.')
@@ -256,7 +253,7 @@ def domain_disable(request, pk):
 @require_POST
 def domain_delete(request, pk):
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
 
     if domain.is_primary:
         messages.error(request, 'Impossible de supprimer le domaine principal.')
@@ -279,7 +276,7 @@ def domain_delete(request, pk):
 def domain_redirects(request, pk):
     """Liste et gestion des redirections d'un domaine."""
     company    = _company(request)
-    domain     = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain     = get_object_or_404(WebsiteDomain, pk=pk, company=company)
     redirects  = DomainRedirect.objects.filter(domain=domain)
     form       = DomainRedirectForm()
 
@@ -390,6 +387,7 @@ def domain_wizard(request):
                 website=website,
                 domain=domain_name,
                 defaults={
+                    'company':            company,
                     'domain_type':        domain_type,
                     'target_type':        target_type,
                     'verification_token': token,
@@ -412,7 +410,7 @@ def domain_wizard(request):
             # Étape 5 : Vérification DNS
             domain_pk = saved.get('domain_pk')
             if domain_pk:
-                wd = get_object_or_404(WebsiteDomain, pk=domain_pk, website__company=company)
+                wd = get_object_or_404(WebsiteDomain, pk=domain_pk, company=company)
                 verified = verify_domain_ownership(wd)
                 context['domain']   = wd
                 context['verified'] = verified
@@ -424,7 +422,7 @@ def domain_wizard(request):
             # Étape 6 : SSL
             domain_pk = saved.get('domain_pk')
             if domain_pk:
-                wd = get_object_or_404(WebsiteDomain, pk=domain_pk, website__company=company)
+                wd = get_object_or_404(WebsiteDomain, pk=domain_pk, company=company)
                 from .services.ssl_service import request_ssl_certificate
                 result = request_ssl_certificate(wd)
                 context['domain']        = wd
@@ -455,7 +453,7 @@ def domain_wizard(request):
             domain_pk = saved.get('domain_pk')
             if domain_pk:
                 try:
-                    wd = WebsiteDomain.objects.get(pk=domain_pk, website__company=company)
+                    wd = WebsiteDomain.objects.get(pk=domain_pk, company=company)
                     context['domain']      = wd
                     context['dns_records'] = get_expected_dns_records(wd)
                 except WebsiteDomain.DoesNotExist:
@@ -464,7 +462,7 @@ def domain_wizard(request):
             domain_pk = saved.get('domain_pk')
             if domain_pk:
                 try:
-                    context['domain'] = WebsiteDomain.objects.get(pk=domain_pk, website__company=company)
+                    context['domain'] = WebsiteDomain.objects.get(pk=domain_pk, company=company)
                 except WebsiteDomain.DoesNotExist:
                     pass
 
@@ -477,7 +475,7 @@ def domain_wizard(request):
 def domain_dns_instructions(request, pk):
     """Page complète des instructions DNS pour un domaine."""
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
     records = get_expected_dns_records(domain)
 
     if request.method == 'POST' and request.POST.get('action') == 'verify':
@@ -512,7 +510,7 @@ def domain_dns_instructions(request, pk):
 def api_domain_list(request):
     """GET /websites/domaines/api/ — liste JSON des domaines de l'entreprise."""
     company = _company(request)
-    domains = WebsiteDomain.objects.filter(website__company=company).select_related('website')
+    domains = WebsiteDomain.objects.filter(company=company).select_related('website')
     data    = [
         {
             'id':           d.pk,
@@ -522,7 +520,7 @@ def api_domain_list(request):
             'is_primary':   d.is_primary,
             'dns_verified': d.dns_verified,
             'target_type':  getattr(d, 'target_type', 'website'),
-            'website':      d.website.name,
+            'website':      d.website.name if d.website else None,
             'public_url':   build_public_url(d),
         }
         for d in domains
@@ -534,7 +532,7 @@ def api_domain_list(request):
 def api_domain_status(request, pk):
     """GET /websites/domaines/<pk>/api/status/ — statut JSON d'un domaine."""
     company = _company(request)
-    domain  = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain  = get_object_or_404(WebsiteDomain, pk=pk, company=company)
     return JsonResponse({
         'id':               domain.pk,
         'domain':           domain.domain,
@@ -554,7 +552,7 @@ def api_domain_status(request, pk):
 def api_domain_verify(request, pk):
     """POST /websites/domaines/<pk>/api/verify/ — vérifie DNS, retourne JSON."""
     company  = _company(request)
-    domain   = get_object_or_404(WebsiteDomain, pk=pk, website__company=company)
+    domain   = get_object_or_404(WebsiteDomain, pk=pk, company=company)
     verified = verify_domain_ownership(domain)
     return JsonResponse({
         'verified':  verified,

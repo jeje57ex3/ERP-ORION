@@ -65,7 +65,7 @@ def get_company_for_domain(host: str):
     """Retourne l'entreprise correspondant au host, ou None."""
     domain = resolve_domain(host)
     if domain:
-        return domain.website.company
+        return domain.company
     return None
 
 

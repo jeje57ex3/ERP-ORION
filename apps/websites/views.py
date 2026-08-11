@@ -598,6 +598,7 @@ def domain_settings(request, pk):
                 token = generate_verification_token(domain)
                 wd = WebsiteDomain.objects.create(
                     website=website,
+                    company=website.company,
                     domain=domain,
                     domain_type=domain_type,
                     verification_token=token,
