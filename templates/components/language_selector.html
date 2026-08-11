@@ -1,11 +1,15 @@
 {% load i18n %}
-{# Selecteur de langue ERP — a inclure dans la navbar ou le profil utilisateur #}
-<form action="{% url 'set_language' %}" method="post" class="language-selector d-inline-flex align-items-center gap-1">
-  {% csrf_token %}
+{# Selecteur de langue ERP — a inclure dans la navbar ou le profil utilisateur.
+   Utilise core:set_user_language (pas le set_language générique de Django) car
+   pour un utilisateur connecté, la préférence doit être persistée en base
+   (UserLanguagePreference), sinon apps/translations/middleware.py — qui donne
+   toujours priorité à la préférence enregistrée sur la session — annulerait
+   silencieusement tout changement fait via ce sélecteur. #}
+<form action="{% url 'core:set_user_language' %}" method="get" class="language-selector d-inline-flex align-items-center gap-1">
   <input name="next" type="hidden" value="{{ request.get_full_path }}">
   {% get_current_language as CURRENT_LANGUAGE %}
   {% get_available_languages as AVAILABLE_LANGUAGES %}
-  <select name="language" class="form-select form-select-sm" onchange="this.form.submit()"
+  <select name="lang" class="form-select form-select-sm" onchange="this.form.submit()"
           aria-label="{% trans 'Changer la langue' %}" style="max-width:140px">
     {% for code, name in AVAILABLE_LANGUAGES %}
       <option value="{{ code }}" {% if code == CURRENT_LANGUAGE %}selected{% endif %}>

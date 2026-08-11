@@ -47,7 +47,7 @@ class OrionLanguageMiddleware:
     def _user_language(self, request):
         try:
             from apps.translations.models import UserLanguagePreference
-            company = getattr(request, 'company', None)
+            company = getattr(request, 'current_company', None)
             qs = UserLanguagePreference.objects.select_related('language').filter(user=request.user)
             if company:
                 pref = qs.filter(company=company).first()
