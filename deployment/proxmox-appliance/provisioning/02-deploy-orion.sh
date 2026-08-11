@@ -80,7 +80,7 @@ HA_SECRET="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(32))')"
 # Docker qui ajoute ses propres interfaces bridge à `hostname -I`) : ajoutée
 # à ALLOWED_HOSTS pour que le vhost nginx default_server (accès par IP avant
 # tout DNS) ne se heurte pas au rejet Django "DisallowedHost" (400).
-VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1)"
+VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1)" || true
 
 ALLOWED_HOSTS="localhost,127.0.0.1${VM_IP:+,$VM_IP}"
 CSRF_ORIGINS=""
