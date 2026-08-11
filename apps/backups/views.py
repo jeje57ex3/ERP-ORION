@@ -10,10 +10,11 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from .models import BackupJob, BackupSchedule, BackupRestoreLog
-from .forms import BackupCreateForm, BackupScheduleForm, RestoreConfirmForm
+from .forms import BackupCreateForm, BackupScheduleForm, RestoreConfirmForm, BackupImportForm
 from .services import (
     create_database_backup, create_media_backup, create_full_backup,
     verify_backup_integrity, restore_backup, get_backup_stats,
+    create_portable_backup, import_portable_backup,
 )
 
 
@@ -153,6 +154,58 @@ def backup_download(request, pk):
         as_attachment=True,
         filename=os.path.basename(job.file_path),
     )
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def backup_export(request):
+    """
+    Crée une sauvegarde portable (base + médias en une seule archive .zip)
+    et redirige vers sa page détail — le téléchargement se fait ensuite via
+    la vue backup_download existante (fichier prêt à transférer vers une
+    autre instance Orion ERP).
+    """
+    if request.method == 'POST':
+        job = create_portable_backup(created_by=request.user)
+        if job.status == 'success':
+            messages.success(request, f'Export portable créé — {job.file_size_display}. Téléchargez-le ci-dessous.')
+        else:
+            messages.error(request, f'Export échoué : {job.error_message[:200]}')
+        return redirect('backups:detail', pk=job.pk)
+
+    return render(request, 'backups/backup_export.html', {
+        'page_title': 'Exporter vers une autre instance',
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def backup_import(request):
+    """
+    Importe une sauvegarde portable (exportée depuis cette instance ou une
+    autre) : REMPLACE la base de données et les médias actuels. Une
+    sauvegarde de sécurité de l'état actuel est créée automatiquement avant
+    l'import (restaurable via backups:restore en cas de problème).
+    """
+    if request.method == 'POST':
+        form = BackupImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            log = import_portable_backup(form.cleaned_data['file'], created_by=request.user)
+            if log.status == 'success':
+                messages.success(
+                    request,
+                    'Import réussi. Base de données et médias remplacés par le contenu de l\'archive.',
+                )
+            else:
+                messages.error(request, f'Import échoué : {log.error_message[:300]}')
+            return redirect('backups:detail', pk=log.backup_id)
+    else:
+        form = BackupImportForm()
+
+    return render(request, 'backups/backup_import.html', {
+        'page_title': 'Importer depuis une autre instance',
+        'form': form,
+    })
 
 
 @login_required

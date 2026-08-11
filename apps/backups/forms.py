@@ -46,3 +46,26 @@ class RestoreConfirmForm(forms.Form):
         required=True,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
+
+
+class BackupImportForm(forms.Form):
+    file = forms.FileField(
+        label='Fichier d\'export (.zip)',
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.zip'}),
+    )
+    confirm_text = forms.CharField(
+        label='Tapez IMPORTER pour confirmer',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+    )
+
+    def clean_confirm_text(self):
+        value = self.cleaned_data['confirm_text']
+        if value.strip().upper() != 'IMPORTER':
+            raise forms.ValidationError('Tapez exactement IMPORTER pour confirmer.')
+        return value
+
+    def clean_file(self):
+        f = self.cleaned_data['file']
+        if not f.name.lower().endswith('.zip'):
+            raise forms.ValidationError('Le fichier doit être une archive .zip (export Orion ERP).')
+        return f

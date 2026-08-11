@@ -13,6 +13,7 @@ class BackupJob(models.Model):
         ('pre_restore',   'Pré-restauration'),
         ('pre_migration', 'Pré-migration'),
         ('system',        'Système'),
+        ('imported',      'Importé'),
     ]
 
     SCOPE_CHOICES = [
@@ -22,6 +23,7 @@ class BackupJob(models.Model):
         ('media_files',      'Fichiers médias'),
         ('documents',        'Documents'),
         ('full_system',      'Système complet'),
+        ('portable_export',  'Export portable (base + médias, transfert entre instances)'),
     ]
 
     STATUS_CHOICES = [

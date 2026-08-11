@@ -10,6 +10,14 @@
 <a href="{% url 'backups:schedules' %}" class="orion-btn orion-btn-outline">
   <i class="bi bi-calendar-check"></i> Planification
 </a>
+{% if request.user.is_superuser %}
+<a href="{% url 'backups:import' %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-box-arrow-in-down"></i> Importer d'une autre instance
+</a>
+<a href="{% url 'backups:export' %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-box-arrow-up"></i> Exporter vers une autre instance
+</a>
+{% endif %}
 <a href="{% url 'backups:create' %}" class="orion-btn orion-btn-primary">
   <i class="bi bi-plus-lg"></i> Nouvelle sauvegarde
 </a>

@@ -280,6 +280,168 @@ def restore_backup(backup, restored_by=None):
     return log
 
 
+def create_portable_backup(created_by=None):
+    """
+    Sauvegarde portable : base de données centrale + médias dans une seule
+    archive .zip (database.sql + media/) — pensée pour être téléchargée et
+    importée sur une AUTRE instance Orion ERP, contrairement aux sauvegardes
+    classiques (restaurables seulement là où elles ont été créées, un
+    BackupJob local pointe vers un fichier sur le même disque).
+    """
+    from apps.backups.models import BackupJob
+
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    path = get_backup_storage_path(scope='portable')
+    file_path = str(path / f'orion_export_{ts}.zip')
+    tmp_sql = str(path / f'.tmp_db_{ts}.sql')
+
+    job = BackupJob.objects.create(
+        name=f'Export portable — {ts}',
+        backup_type='manual',
+        scope='portable_export',
+        status='running',
+        started_at=timezone.now(),
+        created_by=created_by,
+    )
+
+    t0 = time.time()
+    try:
+        db_cfg = _get_db_config()
+        success, err = _run_mysqldump(db_cfg['name'], tmp_sql)
+        if not success:
+            raise RuntimeError(err)
+
+        media_root = Path(settings.MEDIA_ROOT)
+        with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.write(tmp_sql, 'database.sql')
+            if media_root.exists():
+                for f in media_root.rglob('*'):
+                    if f.is_file():
+                        zf.write(f, str(Path('media') / f.relative_to(media_root)))
+
+        job.status = 'success'
+        job.file_path = file_path
+        job.file_size = os.path.getsize(file_path)
+        job.checksum = calculate_checksum(file_path)
+    except Exception as e:
+        job.status = 'failed'
+        job.error_message = str(e)
+    finally:
+        if os.path.exists(tmp_sql):
+            os.remove(tmp_sql)
+        job.finished_at = timezone.now()
+        job.duration_seconds = time.time() - t0
+        job.save()
+
+    return job
+
+
+def import_portable_backup(uploaded_file, created_by=None):
+    """
+    Importe une sauvegarde portable (créée par create_portable_backup, sur
+    cette instance ou une autre) : REMPLACE la base de données centrale et
+    les médias par le contenu de l'archive. Crée automatiquement une
+    sauvegarde de sécurité de l'état actuel juste avant, restaurable via
+    restore_backup en cas de problème.
+    """
+    from apps.backups.models import BackupJob, BackupRestoreLog
+
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    path = get_backup_storage_path(scope='portable')
+    file_path = str(path / f'import_{ts}_{uploaded_file.name}')
+
+    with open(file_path, 'wb') as f:
+        for chunk in uploaded_file.chunks():
+            f.write(chunk)
+
+    # IMPORTANT : database.sql est un dump COMPLET de la base, y compris les
+    # tables backups_backupjob/backups_backuprestorelog elles-mêmes. Toute
+    # ligne de suivi créée AVANT l'import mysql serait donc écrasée par
+    # l'import (remplacée par le contenu — antérieur — du dump importé) et
+    # disparaîtrait silencieusement. On extrait/valide/importe D'ABORD, et on
+    # ne crée les lignes de suivi (job, log) QU'APRÈS l'import, pour qu'elles
+    # persistent réellement dans l'état final de la base.
+    #
+    # La sauvegarde de sécurité pré-import, elle, doit être prise AVANT
+    # (avant que les données actuelles ne soient remplacées) — son fichier
+    # .zip reste donc la protection réelle même si sa propre ligne BackupJob
+    # peut, elle aussi, être écrasée par l'import.
+    pre_import = create_portable_backup(created_by=created_by)
+    pre_import.backup_type = 'pre_restore'
+    pre_import.name = f'PRE-IMPORT avant import de {uploaded_file.name}'
+    pre_import.save()
+
+    extract_dir = path / f'.extract_{ts}'
+    error_message = ''
+    try:
+        if not zipfile.is_zipfile(file_path):
+            raise ValueError('Le fichier fourni n\'est pas une archive .zip valide.')
+
+        with zipfile.ZipFile(file_path) as zf:
+            if 'database.sql' not in zf.namelist():
+                raise ValueError(
+                    'Archive invalide : database.sql introuvable '
+                    '(ce fichier a-t-il bien été exporté depuis Orion ERP ?).'
+                )
+            extract_dir.mkdir(parents=True, exist_ok=True)
+            zf.extractall(extract_dir)
+
+        db_cfg = _get_db_config()
+        mysql  = _find_executable('mysql', _MYSQL_FALLBACK_PATHS)
+        cmd = [mysql, f'-h{db_cfg["host"]}', f'-u{db_cfg["user"]}']
+        if db_cfg['password']:
+            cmd.append(f'-p{db_cfg["password"]}')
+        cmd.append(db_cfg['name'])
+
+        with open(extract_dir / 'database.sql', 'r', encoding='utf-8') as f:
+            result = subprocess.run(cmd, stdin=f, stderr=subprocess.PIPE, timeout=1800)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.decode('utf-8', errors='replace'))
+
+        media_src = extract_dir / 'media'
+        if media_src.exists():
+            media_root = Path(settings.MEDIA_ROOT)
+            media_root.mkdir(parents=True, exist_ok=True)
+            for item in media_src.rglob('*'):
+                if item.is_file():
+                    dest = media_root / item.relative_to(media_src)
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item, dest)
+
+        success = True
+    except Exception as e:
+        success = False
+        error_message = str(e)
+    finally:
+        shutil.rmtree(extract_dir, ignore_errors=True)
+
+    # Lignes de suivi créées maintenant seulement (voir note ci-dessus) — la
+    # base est soit celle importée (succès), soit inchangée (échec avant tout
+    # mysql import réussi), dans les deux cas ces INSERT persistent bien.
+    job = BackupJob.objects.create(
+        name=f'Import — {uploaded_file.name}',
+        backup_type='imported',
+        scope='portable_export',
+        status='success' if success else 'failed',
+        file_path=file_path,
+        file_size=os.path.getsize(file_path) if os.path.exists(file_path) else None,
+        checksum=calculate_checksum(file_path) if os.path.exists(file_path) else '',
+        error_message=error_message,
+        started_at=timezone.now(),
+        finished_at=timezone.now(),
+        created_by=created_by,
+    )
+    log = BackupRestoreLog.objects.create(
+        backup=job,
+        status='success' if success else 'failed',
+        error_message=error_message,
+        restored_by=created_by,
+        finished_at=timezone.now(),
+    )
+
+    return log
+
+
 def cleanup_old_backups():
     """Supprime les anciennes sauvegardes selon la rétention."""
     from apps.backups.models import BackupJob, BackupSchedule
