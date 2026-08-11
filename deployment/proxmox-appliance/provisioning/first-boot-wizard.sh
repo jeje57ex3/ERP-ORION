@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Orion ERP Appliance — Stage B : assistant interactif de premier démarrage.
-# Exécuté sur la console (tty1) par orion-first-boot.service, une seule fois
-# (protégé par le flag /opt/orion/.awaiting-setup).
+# Exécuté sur la console série (ttyS0) par orion-first-boot.service, une seule
+# fois (protégé par le flag /opt/orion/.awaiting-setup).
 
-set -uo pipefail
+set -euo pipefail
 
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
@@ -192,15 +192,24 @@ echo "[5/9] Collecte des fichiers statiques..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
 
 echo "[6/9] Création du compte administrateur..."
+# Passage par variables d'environnement (et non interpolation shell directe
+# dans la source Python) : un mot de passe/email contenant un guillemet
+# simple casserait la syntaxe Python, voire s'y injecterait.
+export ORION_BOOTSTRAP_ADMIN_EMAIL="$ADMIN_EMAIL"
+export ORION_BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PASSWORD"
 sudo -u orion -E "$VENV_PY" "$MANAGE" shell -c "
+import os
 from django.contrib.auth import get_user_model
 User = get_user_model()
-if not User.objects.filter(email='$ADMIN_EMAIL').exists():
-    User.objects.create_superuser(username='admin', email='$ADMIN_EMAIL', password='$ADMIN_PASSWORD')
-    print('Superadmin créé:', '$ADMIN_EMAIL')
+email = os.environ['ORION_BOOTSTRAP_ADMIN_EMAIL']
+password = os.environ['ORION_BOOTSTRAP_ADMIN_PASSWORD']
+if not User.objects.filter(email=email).exists():
+    User.objects.create_superuser(username='admin', email=email, password=password)
+    print('Superadmin créé:', email)
 else:
-    print('Superadmin existant:', '$ADMIN_EMAIL')
+    print('Superadmin existant:', email)
 "
+unset ORION_BOOTSTRAP_ADMIN_PASSWORD
 
 # ─── Build des frontends (URLs d'API désormais connues) ───────────────────────
 echo "[7/9] Build des frontends SIÈCLE / LUNEA..."
