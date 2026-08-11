@@ -19,7 +19,10 @@ def main():
     for kv in kvs:
         key, _, value = kv.partition("=")
         if value.startswith("@"):
-            value = pathlib.Path(value[1:]).read_text(encoding="utf-8").strip()
+            # rstrip("\n") seulement : un .strip() générique mangerait aussi
+            # l'indentation intentionnelle en tête de ligne (cas des blocs
+            # YAML "|" pré-indentés, ex. le payload base64 multi-lignes).
+            value = pathlib.Path(value[1:]).read_text(encoding="utf-8").rstrip("\n")
         text = text.replace(f"__{key}__", value)
 
     pathlib.Path(output_path).write_text(text, encoding="utf-8")
