@@ -12,8 +12,12 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
 # ─── Sécurité HTTPS ───────────────────────────────────────────────────────────
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Configurables (def: True) : un cookie "Secure" n'est envoyé par le
+# navigateur que sur HTTPS — en HTTP nu (accès par IP avant configuration
+# TLS sur l'appliance Proxmox), le cookie CSRF ne reviendrait jamais et
+# toute soumission de formulaire (dont /setup/) échouerait avec un 403.
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True, cast=bool)
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
 

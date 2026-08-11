@@ -97,10 +97,15 @@ cat > "$ENV_FILE" <<EOF
 DJANGO_SETTINGS_MODULE=erp_btp.settings.production
 SECRET_KEY=$SECRET_KEY
 DEBUG=False
-# Désactivé par défaut : l'assistant de premier accès (/setup/) doit rester
-# joignable en HTTP nu tant que TLS (certbot ou Cloudflare Tunnel) n'est pas
-# en place. À repasser à True une fois HTTPS confirmé (voir PROXMOX.md).
+# Désactivés par défaut : l'assistant de premier accès (/setup/) doit rester
+# joignable — et son formulaire soumissible (cookie CSRF) — en HTTP nu tant
+# que TLS (certbot ou Cloudflare Tunnel) n'est pas en place. Un cookie
+# "Secure" ne revient jamais au serveur sur une connexion HTTP, ce qui
+# ferait échouer toute soumission de formulaire avec un 403 CSRF. À repasser
+# les trois à True une fois HTTPS confirmé (voir PROXMOX.md).
 SECURE_SSL_REDIRECT=False
+SESSION_COOKIE_SECURE=False
+CSRF_COOKIE_SECURE=False
 
 ALLOWED_HOSTS=$ALLOWED_HOSTS
 CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS
