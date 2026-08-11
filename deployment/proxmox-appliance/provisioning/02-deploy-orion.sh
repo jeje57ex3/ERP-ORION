@@ -76,7 +76,13 @@ HA_SECRET="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(32))')"
 # deploy-info.env est déjà sourcé dans l'environnement par le runcmd qui a
 # lancé ce script (LOGIN_DOMAIN/ORION_DOMAIN/SIECLE_DOMAIN/LUNEA_DOMAIN),
 # chacun potentiellement vide si laissé de côté au déploiement.
-ALLOWED_HOSTS="localhost,127.0.0.1"
+# IP réelle de la VM (route par défaut, fiable même après l'installation de
+# Docker qui ajoute ses propres interfaces bridge à `hostname -I`) : ajoutée
+# à ALLOWED_HOSTS pour que le vhost nginx default_server (accès par IP avant
+# tout DNS) ne se heurte pas au rejet Django "DisallowedHost" (400).
+VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1)"
+
+ALLOWED_HOSTS="localhost,127.0.0.1${VM_IP:+,$VM_IP}"
 CSRF_ORIGINS=""
 CORS_ORIGINS=""
 for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}"; do
