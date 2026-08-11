@@ -26,11 +26,12 @@ users:
     # l'import (voir import_proxmox.sh / PROXMOX.md), ou à ajouter ici avant build.
 
 write_files:
-  - path: /opt/orion-appliance/payload.tar.gz.b64
+  - path: /opt/orion-appliance/payload.tar.gz
     encoding: b64
     permissions: '0600'
     owner: root:root
-    content: __PAYLOAD_B64__
+    content: |
+__PAYLOAD_B64__
 
   - path: /opt/orion-appliance/build-info.env
     permissions: '0644'
@@ -43,7 +44,6 @@ write_files:
 
 runcmd:
   - [ mkdir, -p, /opt/orion-appliance ]
-  - [ bash, -c, "base64 -d /opt/orion-appliance/payload.tar.gz.b64 > /opt/orion-appliance/payload.tar.gz" ]
   - [ bash, -c, "tar xzf /opt/orion-appliance/payload.tar.gz -C /opt/orion-appliance" ]
   - [ bash, -c, "chmod +x /opt/orion-appliance/provisioning/*.sh /opt/orion-appliance/scripts/*.sh" ]
   - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; set +a; /opt/orion-appliance/provisioning/01-system-packages.sh" ]
