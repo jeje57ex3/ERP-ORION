@@ -49,6 +49,13 @@ def load_env():
 
 ENV = load_env()
 
+# SIÈCLE/LUNEA ne sont construits et démarrés (03-systemd-units.sh) que si un
+# domaine Login a été fourni au déploiement (deploy.sh) — leur build Vite a
+# besoin de VITE_API_BASE_URL=https://<login-domain>/api/v1. Sans domaine
+# (accès par IP), ces services n'existent tout simplement pas : les compter
+# comme "required" ferait échouer orion-health.service en boucle.
+_FRONTENDS_BUILT = bool(ENV.get("ORION_LOGIN_DOMAIN", "").strip())
+
 CHECKS = [
     {"name": "Cloudflare Tunnel", "kind": "systemd", "unit": "cloudflared", "required": False},
     {"name": "Nginx", "kind": "systemd", "unit": "nginx", "port": 80, "required": True},
@@ -59,9 +66,9 @@ CHECKS = [
     {"name": "Orion Frontend (vitrine)", "kind": "systemd", "unit": "orion-frontend",
      "port": 5172, "url": "http://127.0.0.1:5172/", "required": True},
     {"name": "SIÈCLE Store", "kind": "systemd", "unit": "siecle-frontend",
-     "port": 5173, "url": "http://127.0.0.1:5173/", "required": True},
+     "port": 5173, "url": "http://127.0.0.1:5173/", "required": _FRONTENDS_BUILT},
     {"name": "LUNEA Store", "kind": "systemd", "unit": "lunea-frontend",
-     "port": 5174, "url": "http://127.0.0.1:5174/", "required": True},
+     "port": 5174, "url": "http://127.0.0.1:5174/", "required": _FRONTENDS_BUILT},
 ]
 
 
