@@ -24,9 +24,26 @@ systemctl daemon-reload
 # ─── Infrastructure MySQL / Redis ──────────────────────────────────────────────
 echo "[03] Démarrage MySQL / Redis..."
 systemctl enable --now orion-db-stack.service
-"$PAYLOAD_DIR/scripts/wait_for_port.sh" 127.0.0.1 3306 120
 "$PAYLOAD_DIR/scripts/wait_for_port.sh" 127.0.0.1 6379 60
-sleep 5
+
+# Le port 3306 peut répondre pendant l'initialisation interne de l'image
+# MySQL (bootstrap de la base/des identifiants) avant que le VRAI serveur ne
+# démarre — un simple test de port peut donc réussir juste avant que MySQL
+# ne se redémarre en interne, coupant la connexion de migrate en plein vol
+# ("Lost connection to MySQL server during query"). On attend plutôt le
+# statut "healthy" du conteneur (healthcheck docker-compose.yml, qui teste
+# une vraie authentification avec les identifiants réels).
+echo "[03] Attente de MySQL (healthcheck du conteneur)..."
+DB_HEALTHY=0
+DB_STATUS="starting"
+for i in $(seq 1 60); do
+  DB_STATUS="$(docker inspect --format='{{.State.Health.Status}}' orion-db 2>/dev/null || echo "starting")"
+  if [ "$DB_STATUS" = "healthy" ]; then DB_HEALTHY=1; break; fi
+  sleep 3
+done
+if [ "$DB_HEALTHY" -ne 1 ]; then
+  echo "ATTENTION: orion-db pas 'healthy' après ~180s (statut: $DB_STATUS) — on continue quand même." >&2
+fi
 
 # ─── Migrations + fichiers statiques ───────────────────────────────────────────
 echo "[03] Migrations Django..."
