@@ -74,6 +74,9 @@ fi
 echo "[03] Collecte des fichiers statiques..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
 
+echo "[03] Peuplement du catalogue de widgets dashboard..."
+sudo -u orion -E "$VENV_PY" "$MANAGE" seed_dashboard_widgets
+
 # ─── Backend Django ─────────────────────────────────────────────────────────────
 echo "[03] Démarrage orion-backend..."
 systemctl enable --now orion-backend.service
