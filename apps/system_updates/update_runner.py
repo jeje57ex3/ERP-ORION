@@ -1,3 +1,5 @@
+import shlex
+import sys
 from pathlib import Path
 from time import monotonic
 
@@ -107,13 +109,15 @@ def run_system_update(started_by=None):
         run_shell_step(update_run, 'git_pull', 'Récupération du code',
                        f'git pull {remote} {branch}', cwd=project_root, timeout=1200)
 
+        python_bin = shlex.quote(sys.executable)
+
         if update_settings.run_migrations:
             run_shell_step(update_run, 'migrations', 'Migrations Django',
-                           'python manage.py migrate', cwd=backend_path, timeout=1800)
+                           f'{python_bin} manage.py migrate', cwd=backend_path, timeout=1800)
 
         if update_settings.collect_static:
             run_shell_step(update_run, 'collectstatic', 'Collect static',
-                           'python manage.py collectstatic --noinput',
+                           f'{python_bin} manage.py collectstatic --noinput',
                            cwd=backend_path, timeout=1200)
 
         siecle_path = getattr(settings, 'ORION_FRONTEND_SIECLE_PATH', '')

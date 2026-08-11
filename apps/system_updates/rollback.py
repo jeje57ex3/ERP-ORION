@@ -1,3 +1,6 @@
+import shlex
+import sys
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -25,7 +28,7 @@ def rollback_update(update_run, started_by=None):
         if not result['ok']:
             raise RuntimeError(result['stderr'] or result['stdout'])
 
-        run_command('python manage.py migrate', cwd=backend_path, timeout=1800)
+        run_command(f'{shlex.quote(sys.executable)} manage.py migrate', cwd=backend_path, timeout=1800)
 
         restart_cmd = getattr(settings, 'ORION_UPDATE_RESTART_COMMAND', '')
         if restart_cmd:

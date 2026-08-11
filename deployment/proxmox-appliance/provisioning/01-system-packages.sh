@@ -21,7 +21,8 @@ apt-get install -y --no-install-recommends \
   nginx certbot python3-certbot-nginx \
   fail2ban ufw \
   qemu-guest-agent \
-  jq unzip
+  jq unzip \
+  default-mysql-client
 
 echo "[01] QEMU Guest Agent..."
 systemctl enable --now qemu-guest-agent
