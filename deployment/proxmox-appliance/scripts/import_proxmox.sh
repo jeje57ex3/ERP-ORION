@@ -23,6 +23,11 @@
 #   --gateway IP             Passerelle (requis si --ip fourni)
 #   --dns IP                 Serveur DNS (def: identique à --gateway si omis)
 #   --sshkey PATH             Clé publique SSH à injecter (def: aucune)
+#   --login-domain DOMAIN     Domaine ERP/admin — def: aucun (accès par IP)
+#   --orion-domain DOMAIN     Domaine vitrine — def: aucun
+#   --siecle-domain DOMAIN    Domaine boutique SIÈCLE — def: aucun
+#   --lunea-domain DOMAIN     Domaine boutique LUNEA — def: aucun
+#   --cf-token TOKEN          Token Cloudflare Tunnel — def: aucun
 #   --as-template             Convertit la VM en template Proxmox après import
 #   --start                   Démarre la VM après import
 #   -h, --help                Affiche cette aide
@@ -42,6 +47,11 @@ STATIC_IP=""
 GATEWAY=""
 DNS=""
 SSHKEY=""
+LOGIN_DOMAIN=""
+ORION_DOMAIN=""
+SIECLE_DOMAIN=""
+LUNEA_DOMAIN=""
+CF_TOKEN=""
 AS_TEMPLATE=0
 START_VM=0
 
@@ -83,6 +93,11 @@ while [ $# -gt 0 ]; do
     --gateway) GATEWAY="$2"; shift 2 ;;
     --dns) DNS="$2"; shift 2 ;;
     --sshkey) SSHKEY="$2"; shift 2 ;;
+    --login-domain) LOGIN_DOMAIN="$2"; shift 2 ;;
+    --orion-domain) ORION_DOMAIN="$2"; shift 2 ;;
+    --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
+    --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
+    --cf-token) CF_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; shift ;;
     --start) START_VM=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -157,6 +172,23 @@ if [ -f "$USERDATA_FILE" ] && [ -f "$NETWORK_FILE" ]; then
   NETWORK_SNIPPET="OrionERP-${VMID}.cloudinit-network-config.yaml"
   cp "$USERDATA_FILE" "$SNIPPETS_DIR/$USERDATA_SNIPPET"
   cp "$NETWORK_FILE" "$SNIPPETS_DIR/$NETWORK_SNIPPET"
+
+  # 2e passe de rendu : domaines + token Cloudflare, propres à CETTE VM et
+  # inconnus au moment du build (mis en cache, partagé entre déploiements).
+  # Opère in-place sur la copie snippet déjà scopée par VMID, jamais sur
+  # $USERDATA_FILE (le fichier source de build/, réutilisé tel quel par les
+  # prochains déploiements).
+  RENDER_PY="$SCRIPT_DIR/_render.py"
+  if [ -f "$RENDER_PY" ]; then
+    python3 "$RENDER_PY" \
+      "$SNIPPETS_DIR/$USERDATA_SNIPPET" "$SNIPPETS_DIR/$USERDATA_SNIPPET" \
+      "LOGIN_DOMAIN=$LOGIN_DOMAIN" "ORION_DOMAIN=$ORION_DOMAIN" \
+      "SIECLE_DOMAIN=$SIECLE_DOMAIN" "LUNEA_DOMAIN=$LUNEA_DOMAIN" \
+      "CF_TUNNEL_TOKEN=$CF_TOKEN"
+  else
+    echo "  ATTENTION: $RENDER_PY introuvable — domaines/token Cloudflare non appliqués." >&2
+  fi
+
   qm set "$VMID" --cicustom "user=${SNIPPETS_STORAGE}:snippets/${USERDATA_SNIPPET},network=${SNIPPETS_STORAGE}:snippets/${NETWORK_SNIPPET}"
   echo "  -> cloud-init personnalisé activé (stockage '${SNIPPETS_STORAGE}' doit autoriser le contenu 'snippets')."
 else

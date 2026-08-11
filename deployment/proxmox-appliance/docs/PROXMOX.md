@@ -13,27 +13,58 @@ cd ERP-ORION
 ./deploy_proxmox_vm.sh
 ```
 
-Ce script :
-1. Construit l'image (`build.sh`) si `build/OrionERP.qcow2` n'existe pas déjà
-   (`--rebuild` pour forcer, `--skip-build` pour réutiliser un build existant).
-2. Détecte automatiquement : le prochain VMID libre (`pvesh get /cluster/nextid`),
-   le premier stockage supportant le contenu `images`, celui supportant
-   `snippets`, et le premier bridge `vmbr*` — tout est surchargeable
-   (`--vmid`, `--storage`, `--snippets-storage`, `--bridge`, `--memory`,
-   `--cores`, `--sshkey`, `--as-template`).
-3. Importe et démarre la VM (`import_proxmox.sh` en interne).
+Lancé sans option depuis un terminal, `deploy_proxmox_vm.sh` ouvre un
+**assistant interactif** qui pose les questions dans l'ordre :
+
+1. Version du build (reconstruire ou réutiliser un build existant).
+2. Nom de la VM et VMID (un ID libre est suggéré via `pvesh get /cluster/nextid`).
+3. **Disque d'installation** : liste les stockages Proxmox disponibles
+   (`pvesm status --content images`) sous forme de menu numéroté à choisir,
+   puis la **taille du disque virtuel** (80G par défaut, personnalisable —
+   120G, 500G, 1T...).
+4. Stockage pour le cloud-init personnalisé (`snippets`).
+5. **Réseau** : bridge à choisir dans un menu (détection des `vmbr*`
+   existants), puis DHCP ou IP statique (adresse/CIDR, passerelle, DNS).
+6. RAM / vCPU.
+7. Clé SSH à injecter (détection automatique des `~/.ssh/*.pub` disponibles,
+   ou saisie manuelle d'un chemin).
+8. Comportement final : démarrer la VM, la laisser arrêtée, ou la convertir
+   en template Proxmox.
+9. Récapitulatif complet avant toute action — rien n'est créé sans confirmation.
+
+### Mode non-interactif (scripts, CI, déploiements répétés)
+
+Passer au moins une option désactive l'assistant et utilise les valeurs
+fournies (auto-détection pour le reste) :
 
 ```bash
-# Exemple avec paramètres explicites
 ./deploy_proxmox_vm.sh 2026.08.05 \
   --name OrionERP-Client1 \
   --storage local-lvm \
+  --disk-size 120G \
   --bridge vmbr0 \
+  --ip 192.168.1.50/24 --gateway 192.168.1.1 \
   --sshkey ~/.ssh/id_ed25519.pub
 ```
 
-Relancer plus tard pour une **nouvelle VM à partir du même build** (utile pour
-déployer plusieurs clients) : `./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`.
+Toutes les options : `--vmid`, `--name`, `--storage`, `--disk-size`,
+`--snippets-storage`, `--bridge`, `--ip`/`--gateway`/`--dns` (IP statique —
+omis = DHCP), `--memory`, `--cores`, `--sshkey`,
+`--login-domain`/`--orion-domain`/`--siecle-domain`/`--lunea-domain`
+(domaines publics, omis = accès par IP), `--cf-token` (Cloudflare Tunnel),
+`--as-template`, `--rebuild`, `--skip-build`. Forcer l'assistant malgré des
+options fournies : `-i` / `--interactive`. Voir `./deploy_proxmox_vm.sh --help`
+pour le détail.
+
+Lister les stockages/bridges disponibles sans lancer l'assistant :
+
+```bash
+cd build && ./import_proxmox.sh --list-storage
+cd build && ./import_proxmox.sh --list-bridges
+```
+
+Relancer pour une **nouvelle VM à partir du même build** (utile pour déployer
+plusieurs clients) : `./deploy_proxmox_vm.sh --skip-build --name OrionERP-Client2`.
 
 ## Étape par étape (build ailleurs que sur le host Proxmox)
 
@@ -52,18 +83,26 @@ Options utiles (voir `import_proxmox.sh --help`) :
   --vmid 9000 \
   --name OrionERP \
   --storage local-lvm \
+  --disk-size 120G \
   --snippets-storage local \
   --bridge vmbr0 \
+  --ip 192.168.1.50/24 --gateway 192.168.1.1 --dns 192.168.1.1 \
   --memory 8192 \
   --cores 4 \
   --sshkey ~/.ssh/id_ed25519.pub \
+  --login-domain login.exemple.fr --orion-domain orion.exemple.fr \
+  --siecle-domain siecle.exemple.fr --lunea-domain lunea.exemple.fr \
+  --cf-token "$CF_TOKEN" \
   --start
 ```
+
+Lister les stockages/bridges disponibles sur ce host avant de choisir :
+`./import_proxmox.sh --list-storage` / `--list-bridges`.
 
 Ce que fait le script :
 
 1. `qm create` — VM q35, BIOS OVMF (UEFI), VirtIO SCSI + réseau.
-2. `qm set --efidisk0` — disque EFI.
+2. `qm set --efidisk0` — disque EFI, sur le stockage choisi (`--storage`).
 3. `qm importdisk` — importe `OrionERP.qcow2` dans le stockage cible.
 4. `qm set --scsi0 ...,discard=on,ssd=1,iothread=1` — attache le disque
    (TRIM/discard actif).
@@ -72,8 +111,11 @@ Ce que fait le script :
    `OrionERP.cloudinit-network-config.yaml` (copiés dans le dossier
    `snippets` du stockage choisi — ce stockage doit autoriser le contenu
    **Snippets** dans Datacenter → Stockage → *storage* → Contenu).
-6. `qm resize scsi0 80G` — garantit la taille cible.
-7. Démarre la VM (`--start`) ou la convertit en template (`--as-template`).
+6. `qm set --ipconfig0` — IP statique (`--ip`/`--gateway`/`--dns`) ou DHCP
+   par défaut.
+7. `qm resize scsi0 <taille>` — applique la taille de disque choisie
+   (`--disk-size`, 80G par défaut).
+8. Démarre la VM (`--start`) ou la convertit en template (`--as-template`).
 
 ## Stockage "snippets"
 
@@ -88,21 +130,24 @@ Ou en CLI : `pvesm set local --content ...,snippets`
 
 ## Premier démarrage
 
-1. Ouvrir la **console noVNC** de la VM dans l'interface Proxmox.
-2. Attendre la fin du provisioning automatique (Stage A, ~2-5 min — messages
-   cloud-init défilent, terminé par `Orion ERP Appliance prête`).
-3. L'assistant interactif (Stage B) apparaît automatiquement sur la console :
-   Entreprise, Nom ERP, domaines (Login/Orion/SIÈCLE/LUNEA), email/mot de
-   passe administrateur, fuseau horaire, token Cloudflare Tunnel (optionnel).
-4. À la fin, les 4 services applicatifs et la supervision (`orion-health.timer`)
-   démarrent automatiquement.
+Le provisioning (Stage A) est **entièrement automatique, sans aucune étape
+interactive sur la console** — domaines et token Cloudflare (si fournis à
+`deploy.sh`, voir plus haut) sont déjà connus au démarrage, nginx et les
+services applicatifs (backend, frontends SIÈCLE/LUNEA si un domaine Login a
+été fourni, supervision `orion-health.timer`) démarrent seuls, ~3-8 min après
+le premier boot selon la taille des paquets à installer.
 
-Si le boot est interrompu avant la fin du wizard, il se relance
-automatiquement au prochain démarrage (protégé par `/opt/orion/.awaiting-setup`).
+Une fois le provisioning terminé, **ouvrir un navigateur** sur le domaine
+Login (ou directement sur l'IP de la VM, même sans DNS configuré — le vhost
+Login répond en `default_server`) : la page affiche automatiquement
+l'assistant de premier accès (`/setup/`) tant qu'aucun compte n'existe —
+nom de l'entreprise, email/mot de passe administrateur, fuseau horaire.
+Cette étape ne se déroule qu'une seule fois ; une fois complétée, `/setup/`
+redirige vers la page de connexion normale.
 
 ## Activer Cloudflare Tunnel après coup
 
-Si aucun token n'a été saisi au premier démarrage :
+Si aucun token n'a été fourni à `deploy.sh` au moment du déploiement :
 
 ```bash
 ssh orion@<ip-vm>
@@ -146,13 +191,9 @@ sudo /opt/orion/scripts/orion-dashboard.sh
 # Vérification de santé manuelle (sans réparation)
 sudo python3 /opt/orion/scripts/orion_health_check.py --dry-run --json
 
-# Rejouer le wizard manuellement
-sudo touch /opt/orion/.awaiting-setup
-sudo systemctl restart orion-first-boot.service
-
-# Logs de provisioning Stage A
+# Logs de provisioning Stage A (installation, .env, migrations, nginx...)
 sudo tail -f /var/log/orion-provision.log
 
-# Logs du wizard Stage B
-sudo tail -f /opt/orion/logs/first-boot-wizard.log
+# Statut du backend Django (créé le compte admin via /setup/ dans le navigateur)
+sudo systemctl status orion-backend.service
 ```

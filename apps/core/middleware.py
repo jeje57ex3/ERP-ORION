@@ -129,6 +129,80 @@ class AuditLogMiddleware:
         return request.META.get('REMOTE_ADDR')
 
 
+class NoCacheMiddleware:
+    """
+    Empêche la mise en cache des pages ERP dynamiques (authentifiées) par le
+    navigateur ou par une WebView embarquée (ex. app desktop Qt WebEngine).
+
+    Sans ça, un déploiement de code peut rester invisible indéfiniment côté
+    client : sans en-tête Cache-Control explicite, certains moteurs (dont Qt
+    WebEngine) appliquent une mise en cache heuristique et un simple F5 ne
+    revalide jamais avec le serveur — seul un rechargement forçant le
+    contournement du cache (Ctrl+Maj+R) le ferait, et l'app desktop n'expose
+    pas forcément ce raccourci.
+
+    Les sites publics (request.website défini) et les utilisateurs anonymes
+    ne sont pas concernés — seules les pages ERP authentifiées le sont.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        user = getattr(request, 'user', None)
+        if user is not None and user.is_authenticated and not getattr(request, 'website', None):
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+        return response
+
+
+_setup_complete_cache = False
+
+
+class SetupRequiredMiddleware:
+    """
+    Redirige vers l'assistant de premier accès (/setup/) tant qu'aucune
+    Company n'existe en base — remplace l'ancien wizard de première
+    connexion (console série de l'appliance Proxmox) par un formulaire web,
+    comme la plupart des logiciels auto-hébergés (Nextcloud, WordPress...).
+    """
+
+    ALLOWED_PREFIXES = (
+        '/setup/',
+        '/static/',
+        '/media/',
+        '/ha/health/',
+        '/ha/public-health/',
+        '/admin/',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        global _setup_complete_cache
+
+        if not _setup_complete_cache:
+            from .models import Company
+            try:
+                _setup_complete_cache = Company.objects.exists()
+            except Exception:
+                # Base pas encore migrée/accessible : ne pas bloquer dessus.
+                return self.get_response(request)
+
+        is_setup_path = request.path.startswith('/setup/')
+
+        if _setup_complete_cache:
+            if is_setup_path:
+                return redirect('/')
+            return self.get_response(request)
+
+        if any(request.path.startswith(p) for p in self.ALLOWED_PREFIXES):
+            return self.get_response(request)
+        return redirect('/setup/')
+
+
 class MaintenanceModeMiddleware:
     """Retourne 503 pendant la maintenance, sauf pour les Super Admin et chemins critiques."""
 

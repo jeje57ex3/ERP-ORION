@@ -1,7 +1,9 @@
 # Orion ERP Appliance — Cloudflare Tunnel ingress.
-# Le tunnel n'est PAS démarré tant qu'aucun token n'a été saisi dans l'assistant
-# de premier démarrage (voir first-boot-wizard.sh). Placeholders __*__ substitués
-# par le wizard avec les domaines réels et le nom du tunnel.
+# Le tunnel n'est démarré (05-cloudflared-config.sh, via `cloudflared service
+# install <token>`) que si un token a été fourni au déploiement. Ce fichier
+# n'est copié qu'à titre de référence (config.yml.tmpl) — l'installation par
+# token gère l'ingress depuis le dashboard Cloudflare Zero Trust, pas ce
+# fichier local.
 
 tunnel: __TUNNEL_NAME__
 credentials-file: /etc/cloudflared/__TUNNEL_ID__.json

@@ -42,25 +42,35 @@ __PAYLOAD_B64__
       ORION_GIT_REPO_URL=__ORION_GIT_REPO_URL__
       ORION_GIT_BRANCH=__ORION_GIT_BRANCH__
 
+  # Valeurs propres à CE déploiement (domaines, token Cloudflare) — laissées
+  # en placeholders ici : le rendu de build.sh (mis en cache entre
+  # déploiements) ne les connaît pas. import_proxmox.sh fait une 2e passe de
+  # rendu, par-dessus la copie snippet déjà scopée par VMID, avec les
+  # vraies valeurs saisies pour cette VM précise.
+  - path: /opt/orion-appliance/deploy-info.env
+    permissions: '0600'
+    owner: root:root
+    content: |
+      LOGIN_DOMAIN=__LOGIN_DOMAIN__
+      ORION_DOMAIN=__ORION_DOMAIN__
+      SIECLE_DOMAIN=__SIECLE_DOMAIN__
+      LUNEA_DOMAIN=__LUNEA_DOMAIN__
+      CF_TUNNEL_TOKEN=__CF_TUNNEL_TOKEN__
+
 runcmd:
   - [ mkdir, -p, /opt/orion-appliance ]
   - [ bash, -c, "tar xzf /opt/orion-appliance/payload.tar.gz -C /opt/orion-appliance" ]
   - [ bash, -c, "chmod +x /opt/orion-appliance/provisioning/*.sh /opt/orion-appliance/scripts/*.sh" ]
   - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; set +a; /opt/orion-appliance/provisioning/01-system-packages.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; set +a; /opt/orion-appliance/provisioning/02-deploy-orion.sh" ]
-  - [ bash, -c, "/opt/orion-appliance/provisioning/03-systemd-units.sh" ]
-  - [ bash, -c, "/opt/orion-appliance/provisioning/04-nginx-config.sh" ]
-  - [ bash, -c, "/opt/orion-appliance/provisioning/05-cloudflared-config.sh" ]
-  - [ bash, -c, "/opt/orion-appliance/provisioning/06-ufw-fail2ban.sh" ]
+  - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/02-deploy-orion.sh" ]
+  # 07 avant 03 : /opt/orion/scripts/wait_for_port.sh (utilisé par les
+  # ExecStartPre des services orion-backend/orion-frontend) doit exister
+  # avant que 03 ne démarre ces services.
   - [ bash, -c, "/opt/orion-appliance/provisioning/07-backup-cron.sh" ]
-  - [ touch, /opt/orion/.awaiting-setup ]
-  - [ systemctl, daemon-reload ]
-  - [ systemctl, enable, orion-first-boot.service ]
-  # --no-block : orion-first-boot.service est interactif (attend une saisie
-  # humaine sur la console) et doit d'abord arrêter serial-getty@ttyS0.service
-  # (Conflicts=) — un `systemctl start` bloquant ici gèlerait le runcmd (donc
-  # tout le boot) en attendant indéfiniment cette transaction.
-  - [ systemctl, --no-block, start, orion-first-boot.service ]
-  - [ bash, -c, "echo 'Orion ERP Appliance — provisioning Stage A terminé.' > /etc/motd" ]
+  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/03-systemd-units.sh" ]
+  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/04-nginx-config.sh" ]
+  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/05-cloudflared-config.sh" ]
+  - [ bash, -c, "/opt/orion-appliance/provisioning/06-ufw-fail2ban.sh" ]
+  - [ bash, -c, "echo 'Orion ERP Appliance — provisioning terminé. Rendez-vous sur https://<votre-domaine>/ (ou l’IP de la VM) pour créer votre compte administrateur.' > /etc/motd" ]
 
-final_message: "Orion ERP Appliance prête — l'assistant de premier démarrage se lance sur la console série (ttyS0)."
+final_message: "Orion ERP Appliance prête — ouvrez votre navigateur sur le domaine (ou l'IP) de la VM pour créer votre compte administrateur."

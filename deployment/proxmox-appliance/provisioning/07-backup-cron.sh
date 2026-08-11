@@ -12,10 +12,6 @@ PAYLOAD_DIR="/opt/orion-appliance"
 
 cp "$PAYLOAD_DIR"/scripts/*.sh /opt/orion/scripts/
 cp "$PAYLOAD_DIR"/scripts/*.py /opt/orion/scripts/
-# first-boot-wizard.sh vit sous provisioning/ (Stage A) mais est lancé comme un
-# script opérationnel par orion-first-boot.service — il doit donc aussi
-# atterrir dans /opt/orion/scripts, là où pointe l'unité systemd.
-cp "$PAYLOAD_DIR"/provisioning/first-boot-wizard.sh /opt/orion/scripts/first-boot-wizard.sh
 chmod +x /opt/orion/scripts/*.sh /opt/orion/scripts/*.py
 chown -R orion:orion /opt/orion/scripts
 

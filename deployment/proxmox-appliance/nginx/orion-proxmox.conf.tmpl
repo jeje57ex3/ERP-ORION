@@ -1,11 +1,15 @@
 # Orion ERP Appliance — vhosts Nginx (accès direct/LAN + Certbot).
 # Le tunnel Cloudflare cible directement les ports 127.0.0.1:9000/5172/5173/5174
 # (voir cloudflared config.yml) — Nginx sert l'accès local/HTTPS classique.
-# Placeholders __*__ substitués par first-boot-wizard.sh avec les domaines saisis.
+# Placeholders __*__ substitués par 04-nginx-config.sh avec les domaines
+# fournis au déploiement (deploy.sh -> deploy-info.env).
 
 # ─── login.elysiums.fr → 9000 (ERP / admin) ────────────────────────────────────
+# default_server : permet d'atteindre l'assistant de premier accès (/setup/)
+# en visitant directement l'IP de la VM, avant même qu'un domaine ne pointe
+# dessus.
 server {
-    listen 80;
+    listen 80 default_server;
     server_name __LOGIN_DOMAIN__;
 
     access_log /var/log/nginx/orion_login_access.log;

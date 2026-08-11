@@ -8,7 +8,6 @@ DEBUG = False
 
 # Obligatoire en production — configurer via variable d'environnement
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
 
 # ─── Sécurité HTTPS ───────────────────────────────────────────────────────────
 SECURE_BROWSER_XSS_FILTER = True
@@ -23,7 +22,10 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = True
+# Configurable (def: True) : l'appliance Proxmox le désactive dans son .env
+# initial pour que l'assistant de premier accès (/setup/) reste joignable en
+# HTTP nu avant que TLS (certbot ou Cloudflare Tunnel) ne soit configuré.
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # ─── Fichiers statiques production ────────────────────────────────────────────
