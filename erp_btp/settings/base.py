@@ -8,7 +8,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-erp-btp-dev-key-change-in-production')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
+# [o for o in ... if o] : une valeur d'env vide donne [''] via .split(','),
+# pas [] — Django (4_0.E001) rejette cette chaîne vide comme origine sans
+# schéma. Se produit en pratique sur l'appliance Proxmox quand aucun domaine
+# n'est fourni au déploiement (accès par IP uniquement).
+CSRF_TRUSTED_ORIGINS = [o for o in config('CSRF_TRUSTED_ORIGINS', default='').split(',') if o]
 
 # ─── Applications ──────────────────────────────────────────────────────────────
 DJANGO_APPS = [
@@ -251,10 +255,14 @@ REST_FRAMEWORK = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = config(
+# Filtre les entrées vides (cf. CSRF_TRUSTED_ORIGINS plus haut) : une valeur
+# d'env présente mais vide (ex: CORS_ALLOWED_ORIGINS= dans le .env de
+# l'appliance Proxmox sans domaine fourni) N'utilise PAS le default ci-dessous
+# — decouple ne retombe sur le default que si la clé est absente, pas vide.
+CORS_ALLOWED_ORIGINS = [o for o in config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+).split(',') if o]
 
 CORS_ALLOW_CREDENTIALS = True
 
