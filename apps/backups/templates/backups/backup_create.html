@@ -1,0 +1,52 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item active">Nouvelle sauvegarde</li>
+{% endblock %}
+
+{% block page_subtitle %}Créer une sauvegarde manuelle immédiate{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-cloud-arrow-down me-2 text-primary"></i>Paramètres de sauvegarde</h5>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Périmètre <span class="text-danger">*</span></label>
+            {{ form.scope }}
+            <div class="form-text">Choisissez ce que vous souhaitez sauvegarder.</div>
+          </div>
+          <div class="mb-4" id="company-field">
+            <label class="form-label fw-semibold">Entreprise</label>
+            {{ form.company }}
+            <div class="form-text">Laissez vide pour la base centrale uniquement.</div>
+          </div>
+
+          <div class="alert alert-info d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Information :</strong> La sauvegarde est créée immédiatement.
+              Pour les sauvegardes automatiques, configurez une
+              <a href="{% url 'backups:schedule_create' %}">planification</a>.
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-cloud-arrow-down me-2"></i>Lancer la sauvegarde
+            </button>
+            <a href="{% url 'backups:dashboard' %}" class="orion-btn orion-btn-ghost">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

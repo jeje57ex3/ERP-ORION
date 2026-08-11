@@ -1,0 +1,128 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item active">Liste</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'backups:create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-plus-lg"></i> Nouvelle sauvegarde
+</a>
+{% endblock %}
+
+{% block page_subtitle %}{{ page_obj.paginator.count }} sauvegarde{{ page_obj.paginator.count|pluralize }}{% endblock %}
+
+{% block content %}
+
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap w-100">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="Rechercher..." style="max-width:220px">
+    <select name="status" class="form-select form-select-sm" style="max-width:160px">
+      <option value="">Tous statuts</option>
+      {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="scope" class="form-select form-select-sm" style="max-width:200px">
+      <option value="">Tous périmètres</option>
+      {% for val, label in scope_choices %}
+      <option value="{{ val }}" {% if val == scope_filter %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn-sm">
+      <i class="bi bi-search"></i> Filtrer
+    </button>
+    {% if search or status_filter or scope_filter %}
+    <a href="{% url 'backups:list' %}" class="orion-btn orion-btn-ghost orion-btn-sm">
+      <i class="bi bi-x"></i> Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card erp-card">
+  <div class="card-body p-0">
+    {% if page_obj %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Nom</th>
+            <th>Entreprise</th>
+            <th>Type</th>
+            <th>Périmètre</th>
+            <th>Statut</th>
+            <th>Taille</th>
+            <th>Durée</th>
+            <th>Créé le</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in page_obj %}
+          <tr>
+            <td class="text-muted">{{ job.pk }}</td>
+            <td>
+              <i class="{{ job.status_icon }} me-1 text-{{ job.status_color }}"></i>
+              <strong>{{ job.name|truncatechars:45 }}</strong>
+            </td>
+            <td>{{ job.company.name|default:"Core" }}</td>
+            <td><span class="badge bg-light text-dark border">{{ job.get_backup_type_display }}</span></td>
+            <td class="text-muted">{{ job.get_scope_display }}</td>
+            <td>
+              <span class="badge bg-{{ job.status_color }}">{{ job.get_status_display }}</span>
+            </td>
+            <td class="text-muted">{{ job.file_size_display }}</td>
+            <td class="text-muted">{{ job.duration_display }}</td>
+            <td class="text-muted">{{ job.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'backups:detail' job.pk %}" class="btn btn-sm btn-outline-secondary" title="Détail">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if job.status == 'success' %}
+                <a href="{% url 'backups:download' job.pk %}" class="btn btn-sm btn-outline-primary" title="Télécharger">
+                  <i class="bi bi-download"></i>
+                </a>
+                {% if request.user.is_superuser %}
+                <a href="{% url 'backups:restore' job.pk %}" class="btn btn-sm btn-outline-warning" title="Restaurer">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">&laquo;</a></li>
+          {% endif %}
+          <li class="page-item active"><a class="page-link" href="#">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">&raquo;</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-archive fs-1 d-block mb-3 opacity-25"></i>
+      <p>Aucune sauvegarde trouvée.</p>
+      <a href="{% url 'backups:create' %}" class="orion-btn orion-btn-primary">Créer une sauvegarde</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Sauvegardes</li>
+{% endblock %}
+
+{% block page_subtitle %}Gestion et surveillance des sauvegardes Orion ERP{% endblock %}
+{% block page_actions %}
+<a href="{% url 'backups:schedules' %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-calendar-check"></i> Planification
+</a>
+<a href="{% url 'backups:create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-plus-lg"></i> Nouvelle sauvegarde
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for message in messages %}
+<div class="orion-alert orion-alert-{{ message.tags|default:'info' }} mb-3" role="alert">
+  <i class="bi bi-info-circle"></i> <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-success)">
+      <div class="orion-kpi-icon" style="background:rgba(22,163,74,.12);color:var(--orion-success)">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ stats.success }}</div>
+        <div class="orion-kpi-label">Réussies</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-danger)">
+      <div class="orion-kpi-icon" style="background:rgba(220,38,38,.12);color:var(--orion-danger)">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ stats.failed }}</div>
+        <div class="orion-kpi-label">Échouées</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
+      <div class="orion-kpi-icon" style="background:rgba(8,145,178,.12);color:var(--orion-info)">
+        <i class="bi bi-archive-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">{{ stats.total }}</div>
+        <div class="orion-kpi-label">Total</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="orion-kpi" style="--kpi-color: var(--orion-secondary)">
+      <div class="orion-kpi-icon" style="background:rgba(198,161,91,.12);color:var(--orion-secondary)">
+        <i class="bi bi-hdd-fill"></i>
+      </div>
+      <div>
+        <div class="orion-kpi-value">
+          {% with stats.total_size as sz %}
+          {% if sz > 1073741824 %}{{ sz|filesizeformat }}
+          {% elif sz > 1048576 %}{{ sz|filesizeformat }}
+          {% elif sz > 1024 %}{{ sz|filesizeformat }}
+          {% else %}{{ sz }} o{% endif %}
+          {% endwith %}
+        </div>
+        <div class="orion-kpi-label">Espace utilisé</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Sauvegardes récentes -->
+  <div class="col-lg-8">
+    <div class="card erp-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Sauvegardes récentes</h5>
+        <a href="{% url 'backups:list' %}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_jobs %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nom</th>
+                <th>Entreprise</th>
+                <th>Statut</th>
+                <th>Taille</th>
+                <th>Durée</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in recent_jobs %}
+              <tr>
+                <td>
+                  <i class="{{ job.status_icon }} me-1 text-{{ job.status_color }}"></i>
+                  {{ job.name|truncatechars:40 }}
+                </td>
+                <td>{{ job.company.name|default:"Core" }}</td>
+                <td>
+                  <span class="badge bg-{{ job.status_color }}">{{ job.get_status_display }}</span>
+                </td>
+                <td class="text-muted">{{ job.file_size_display }}</td>
+                <td class="text-muted">{{ job.duration_display }}</td>
+                <td class="text-muted">{{ job.created_at|date:"d/m H:i" }}</td>
+                <td>
+                  <a href="{% url 'backups:detail' job.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-archive fs-1 d-block mb-3 opacity-25"></i>
+          <p>Aucune sauvegarde. <a href="{% url 'backups:create' %}">Créer la première</a></p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Planifications actives -->
+  <div class="col-lg-4">
+    <div class="card erp-card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-success"></i>Planifications</h5>
+        <a href="{% url 'backups:schedule_create' %}" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-plus"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if schedules %}
+        <ul class="list-group list-group-flush">
+          {% for s in schedules %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold">{{ s.name }}</div>
+                <small class="text-muted">
+                  {{ s.get_frequency_display }} — {{ s.time|time:"H:i" }}
+                </small>
+              </div>
+              <span class="badge {% if s.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if s.is_active %}Actif{% else %}Inactif{% endif %}
+              </span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-calendar-x fs-3 d-block mb-2 opacity-25"></i>
+          <small>Aucune planification.<br>
+            <a href="{% url 'backups:schedule_create' %}">Créer une planification</a>
+          </small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

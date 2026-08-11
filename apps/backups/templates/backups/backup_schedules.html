@@ -1,0 +1,64 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item active">Planification</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'backups:schedule_create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-plus-lg"></i> Nouvelle planification
+</a>
+{% endblock %}
+
+{% block page_subtitle %}{{ schedules.count }} planification{{ schedules.count|pluralize }}{% endblock %}
+
+{% block content %}
+
+<div class="card erp-card">
+  <div class="card-body p-0">
+    {% if schedules %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Nom</th>
+            <th>Entreprise</th>
+            <th>Périmètre</th>
+            <th>Fréquence</th>
+            <th>Heure</th>
+            <th>Rétention</th>
+            <th>Dernier run</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in schedules %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.company.name|default:"Core" }}</td>
+            <td>{{ s.get_scope_display }}</td>
+            <td>{{ s.get_frequency_display }}</td>
+            <td>{{ s.time|time:"H:i" }}</td>
+            <td>{{ s.retention_days }} jours</td>
+            <td class="text-muted">{{ s.last_run_at|date:"d/m H:i"|default:"—" }}</td>
+            <td>
+              <span class="badge {% if s.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if s.is_active %}Actif{% else %}Inactif{% endif %}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
+      <p>Aucune planification configurée.</p>
+      <a href="{% url 'backups:schedule_create' %}" class="orion-btn orion-btn-primary">Créer une planification</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

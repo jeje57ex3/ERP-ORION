@@ -1,0 +1,22 @@
+{% extends "erp_base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <div class="card erp-card border-danger">
+      <div class="card-header bg-danger bg-opacity-10 border-danger">
+        <h5 class="mb-0 text-danger"><i class="bi bi-trash me-2"></i>Supprimer la sauvegarde</h5>
+      </div>
+      <div class="card-body">
+        <p>Confirmez-vous la suppression de la sauvegarde <strong>{{ job.name }}</strong> ?</p>
+        <p class="text-muted small">Le fichier physique sera également supprimé.</p>
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}
+          <button type="submit" class="orion-btn orion-btn-danger">Supprimer</button>
+          <a href="{% url 'backups:detail' job.pk %}" class="orion-btn orion-btn-ghost">Annuler</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
