@@ -162,7 +162,8 @@ def verify_domain_ownership(website_domain) -> bool:
 
 def set_primary_domain(website_domain) -> None:
     """Définit un domaine comme domaine principal du site."""
-    website_domain.website.domains.update(is_primary=False)
+    if website_domain.website_id:
+        website_domain.website.domains.update(is_primary=False)
     website_domain.is_primary = True
     website_domain.save(update_fields=['is_primary'])
 
@@ -257,7 +258,7 @@ def log_domain_action(website_domain, action: str, message: str,
     try:
         from apps.websites.models_domains import DomainConnectionLog
         DomainConnectionLog.objects.create(
-            company=website_domain.website.company if website_domain.website_id else None,
+            company=website_domain.company,
             domain=website_domain,
             domain_name=website_domain.domain,
             action=action,

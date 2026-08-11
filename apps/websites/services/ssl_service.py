@@ -150,7 +150,7 @@ def _log(domain_obj, action: str, message: str, status: str = 'info') -> None:
     try:
         from apps.websites.models_domains import DomainConnectionLog
         DomainConnectionLog.objects.create(
-            company=domain_obj.website.company,
+            company=domain_obj.company,
             domain=domain_obj,
             domain_name=domain_obj.domain,
             action=action,

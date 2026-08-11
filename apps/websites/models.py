@@ -70,6 +70,7 @@ class Website(models.Model):
         ('portal', 'Portail client'),
         ('event', 'Site événementiel'),
         ('btp', 'Site BTP'),
+        ('electricite', 'Site Électricité'),
         ('commerce', 'Site commerce'),
         ('audio', 'Site audio / audiovisuel'),
         ('production', 'Site production / industrie'),
@@ -87,6 +88,7 @@ class Website(models.Model):
         ('es', 'Espagnol'),
         ('de', 'Allemand'),
         ('it', 'Italien'),
+        ('pt', 'Portugais'),
     ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='websites')
@@ -792,7 +794,14 @@ class WebsiteDomain(models.Model):
     ]
 
     # ── Relations ──────────────────────────────────────────────────────────────
-    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name='domains')
+    # Nullable : un domaine ciblant l'ERP ou le portail client (target_type)
+    # n'est rattaché à aucun Website précis — voir DomainCreateForm.website
+    # ("Optionnel si la cible est ERP ou portail client"). `company` (ci-dessous)
+    # est donc la source de vérité pour scoper un domaine à une entreprise,
+    # que `website` soit renseigné ou non.
+    website = models.ForeignKey(
+        Website, on_delete=models.CASCADE, related_name='domains', null=True, blank=True,
+    )
     company = models.ForeignKey(
         'core.Company', on_delete=models.CASCADE,
         related_name='website_domains', null=True, blank=True,

@@ -81,7 +81,7 @@ class Command(BaseCommand):
             from django.contrib.auth.models import User
 
             admins = User.objects.filter(
-                companymember__company=domain.website.company,
+                companymember__company=domain.company,
                 companymember__role__in=['admin', 'owner'],
                 is_active=True,
             )

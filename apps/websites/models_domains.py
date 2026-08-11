@@ -178,7 +178,7 @@ class DomainConnectionLog(models.Model):
             self.domain_name = self.domain.domain
         if self.domain and not self.company_id:
             try:
-                self.company = self.domain.website.company
+                self.company = self.domain.company
             except Exception:
                 pass
         super().save(*args, **kwargs)
