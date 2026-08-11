@@ -77,6 +77,9 @@ sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
 echo "[03] Peuplement du catalogue de widgets dashboard..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" seed_dashboard_widgets
 
+echo "[03] Peuplement des langues (sélecteur de langue ERP)..."
+sudo -u orion -E "$VENV_PY" "$MANAGE" seed_languages
+
 echo "[03] Paramètres mises à jour (+ jeton GitHub si dépôt privé)..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" seed_system_updates
 
