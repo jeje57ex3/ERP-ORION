@@ -1,4 +1,5 @@
 ﻿{% extends "erp_base.html" %}
+{% load i18n %}
 {% block content %}
 <div class="row g-4">
   <div class="col-12 col-lg-8">
@@ -6,16 +7,16 @@
       <div class="orion-orion-card-header"><h5 class="card-title mb-0">{{ company.name }}</h5></div>
       <div class="orion-orion-card-body">
         <div class="row g-3">
-          <div class="col-sm-6"><label class="small text-muted">Secteur</label><div class="fw-semibold">{{ company.get_sector_display }}</div></div>
-          <div class="col-sm-6"><label class="small text-muted">Email</label><div class="fw-semibold">{{ company.email }}</div></div>
-          <div class="col-sm-6"><label class="small text-muted">Téléphone</label><div class="fw-semibold">{{ company.phone }}</div></div>
-          <div class="col-sm-6"><label class="small text-muted">Ville</label><div class="fw-semibold">{{ company.city }}</div></div>
-          <div class="col-sm-6"><label class="small text-muted">SIRET</label><div class="fw-semibold">{{ company.siret|default:"-" }}</div></div>
-          <div class="col-sm-6"><label class="small text-muted">N° TVA</label><div class="fw-semibold">{{ company.vat_number|default:"-" }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "Secteur" %}</label><div class="fw-semibold">{{ company.get_sector_display }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "Email" %}</label><div class="fw-semibold">{{ company.email }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "Téléphone" %}</label><div class="fw-semibold">{{ company.phone }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "Ville" %}</label><div class="fw-semibold">{{ company.city }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "SIRET" %}</label><div class="fw-semibold">{{ company.siret|default:"-" }}</div></div>
+          <div class="col-sm-6"><label class="small text-muted">{% trans "N° TVA" %}</label><div class="fw-semibold">{{ company.vat_number|default:"-" }}</div></div>
         </div>
         <div class="mt-4">
-          <a href="{% url 'core:company_edit' company.pk %}" class="orion-btn primary me-2"><i class="bi bi-pencil me-1"></i>Modifier</a>
-          <a href="{% url 'core:switch_company' company.pk %}" class="btn btn-outline-primary"><i class="bi bi-arrow-right me-1"></i>Travailler sur cette entreprise</a>
+          <a href="{% url 'core:company_edit' company.pk %}" class="orion-btn primary me-2"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+          <a href="{% url 'core:switch_company' company.pk %}" class="btn btn-outline-primary"><i class="bi bi-arrow-right me-1"></i>{% trans "Travailler sur cette entreprise" %}</a>
         </div>
       </div>
     </div>

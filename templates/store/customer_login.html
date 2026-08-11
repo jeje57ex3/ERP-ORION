@@ -1,12 +1,13 @@
 {% extends "store/base_store.html" %}
-{% block title %}Connexion — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Connexion" %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-12 col-md-5">
       <div class="border rounded-3 p-4">
-        <h1 class="fw-bold mb-1 fs-4">Se connecter</h1>
-        <p class="text-muted small mb-4">Accédez à votre espace client pour suivre vos commandes.</p>
+        <h1 class="fw-bold mb-1 fs-4">{% trans "Se connecter" %}</h1>
+        <p class="text-muted small mb-4">{% trans "Accédez à votre espace client pour suivre vos commandes." %}</p>
 
         <form method="post">
           {% csrf_token %}
@@ -15,28 +16,28 @@
           {% endif %}
 
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Adresse email</label>
+            <label class="form-label small fw-semibold">{% trans "Adresse email" %}</label>
             <input type="email" name="email" class="form-control" required autofocus placeholder="votre@email.com" value="{{ form.email.value|default:'' }}">
             {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-4">
             <div class="d-flex justify-content-between">
-              <label class="form-label small fw-semibold">Mot de passe</label>
-              <a href="#" class="small text-muted">Mot de passe oublié ?</a>
+              <label class="form-label small fw-semibold">{% trans "Mot de passe" %}</label>
+              <a href="#" class="small text-muted">{% trans "Mot de passe oublié ?" %}</a>
             </div>
             <input type="password" name="password" class="form-control" required placeholder="••••••••">
             {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
           </div>
 
-          <button type="submit" class="btn btn-store-primary w-100 mb-3">Se connecter</button>
+          <button type="submit" class="btn btn-store-primary w-100 mb-3">{% trans "Se connecter" %}</button>
         </form>
 
         <hr>
-        <p class="text-center text-muted small mb-0">Pas encore de compte ? <a href="{% url 'store:customer_register' %}" class="fw-semibold">Créer un compte</a></p>
+        <p class="text-center text-muted small mb-0">{% trans "Pas encore de compte ?" %} <a href="{% url 'store:customer_register' %}" class="fw-semibold">{% trans "Créer un compte" %}</a></p>
       </div>
 
       <div class="text-center mt-4">
-        <a href="{% url 'store:store_home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Retour à la boutique</a>
+        <a href="{% url 'store:store_home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour à la boutique" %}</a>
       </div>
     </div>
   </div>

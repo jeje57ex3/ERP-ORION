@@ -1,7 +1,7 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Chantiers — {{ request.current_company.name|default:'Orion ERP' }}{% endblock %}
+{% block title %}{% trans "Chantiers" %} — {{ request.current_company.name|default:'Orion ERP' }}{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
@@ -9,21 +9,21 @@
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'btp:index' %}">BTP</a></li>
-<li class="breadcrumb-item active">Chantiers</li>
+<li class="breadcrumb-item active">{% trans "Chantiers" %}</li>
 {% endblock %}
 
-{% block page_title %}Chantiers{% endblock %}
-{% block page_subtitle %}Pilotez vos chantiers, budgets, équipes, documents, avancements et marges.{% endblock %}
+{% block page_title %}{% trans "Chantiers" %}{% endblock %}
+{% block page_subtitle %}{% trans "Pilotez vos chantiers, budgets, équipes, documents, avancements et marges." %}{% endblock %}
 
 {% block page_actions %}
 <a href="{% url 'btp:project_create' %}" class="orion-btn orion-orion-btn primary">
-  <i class="bi bi-plus-lg"></i>Nouveau chantier
+  <i class="bi bi-plus-lg"></i>{% trans "Nouveau chantier" %}
 </a>
 <a href="{% url 'btp:quote_create' %}" class="orion-btn orion-btn-outline">
-  <i class="bi bi-file-text"></i>Créer devis BTP
+  <i class="bi bi-file-text"></i>{% trans "Créer devis BTP" %}
 </a>
 <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if status %}&status={{ status }}{% endif %}" class="orion-btn orion-btn-outline">
-  <i class="bi bi-download"></i>Exporter
+  <i class="bi bi-download"></i>{% trans "Exporter" %}
 </a>
 {% endblock %}
 
@@ -43,64 +43,64 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FFF7ED;color:#EA580C"><i class="bi bi-building-gear"></i></div>
       <div class="orion-kpi-value">{{ active_count|default:'0' }}</div>
-      <div class="orion-kpi-label">Chantiers actifs</div>
+      <div class="orion-kpi-label">{% trans "Chantiers actifs" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-alarm"></i></div>
       <div class="orion-kpi-value">{{ overdue_count|default:'0' }}</div>
-      <div class="orion-kpi-label">En retard</div>
+      <div class="orion-kpi-label">{% trans "En retard" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-currency-euro"></i></div>
       <div class="orion-kpi-value">{{ total_budget|floatformat:0|default:'0' }} €</div>
-      <div class="orion-kpi-label">Budget total HT</div>
+      <div class="orion-kpi-label">{% trans "Budget total HT" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#0D9488"><i class="bi bi-graph-up-arrow"></i></div>
       <div class="orion-kpi-value">{{ avg_margin|floatformat:1|default:'0' }} %</div>
-      <div class="orion-kpi-label">Marge prévue moy.</div>
+      <div class="orion-kpi-label">{% trans "Marge prévue moy." %}</div>
     </div>
   </div>
 </div>
 
 <!-- Chips statut -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="?{% if q %}q={{ q }}&{% endif %}status=in_progress" class="orion-filter-chip {% if status == 'in_progress' %}active{% endif %}">En cours</a>
-  <a href="?{% if q %}q={{ q }}&{% endif %}status=planned" class="orion-filter-chip {% if status == 'planned' %}active{% endif %}">Planifié</a>
-  <a href="?{% if q %}q={{ q }}&{% endif %}status=completed" class="orion-filter-chip {% if status == 'completed' %}active{% endif %}">Terminé</a>
-  <a href="?{% if q %}q={{ q }}&{% endif %}status=archived" class="orion-filter-chip {% if status == 'archived' %}active{% endif %}">Archivé</a>
-  <a href="{% url 'btp:project_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=in_progress" class="orion-filter-chip {% if status == 'in_progress' %}active{% endif %}">{% trans "En cours" %}</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=planned" class="orion-filter-chip {% if status == 'planned' %}active{% endif %}">{% trans "Planifié" %}</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=completed" class="orion-filter-chip {% if status == 'completed' %}active{% endif %}">{% trans "Terminé" %}</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}status=archived" class="orion-filter-chip {% if status == 'archived' %}active{% endif %}">{% trans "Archivé" %}</a>
+  <a href="{% url 'btp:project_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Tous" %}</a>
 </div>
 
 <!-- Tableau -->
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
-    <h5 class="orion-card-title"><i class="bi bi-building-gear me-2"></i>Liste des chantiers</h5>
+    <h5 class="orion-card-title"><i class="bi bi-building-gear me-2"></i>{% trans "Liste des chantiers" %}</h5>
     <form method="get" class="orion-filter-bar" style="margin:0;padding:0;background:none;border:none;box-shadow:none">
       {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
       <div class="position-relative">
         <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none;font-size:.85rem"></i>
-        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="Nom, référence, client…" class="orion-search-input ps-4" style="width:220px">
+        <input type="search" name="q" value="{{ q|default:'' }}" placeholder="{% trans "Nom, référence, client…" %}" class="orion-search-input ps-4" style="width:220px">
       </div>
       <select name="responsable" class="orion-form-select" style="width:auto" onchange="this.form.submit()">
-        <option value="">Tous responsables</option>
+        <option value="">{% trans "Tous responsables" %}</option>
         {% for emp in responsables %}
         <option value="{{ emp.pk }}" {% if responsable == emp.pk|stringformat:'s' %}selected{% endif %}>{{ emp.get_full_name }}</option>
         {% endfor %}
       </select>
       <select name="client" class="orion-form-select" style="width:auto" onchange="this.form.submit()">
-        <option value="">Tous clients</option>
+        <option value="">{% trans "Tous clients" %}</option>
         {% for c in clients %}
         <option value="{{ c.pk }}" {% if client == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel"></i>Filtrer</button>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel"></i>{% trans "Filtrer" %}</button>
       {% if q or client or responsable %}
       <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-lg"></i></a>
       {% endif %}
@@ -110,16 +110,16 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Référence</th>
-          <th>Nom chantier</th>
-          <th>Client</th>
-          <th>Responsable</th>
-          <th class="text-end">Budget HT</th>
-          <th style="min-width:120px">Avancement</th>
-          <th>Date début</th>
-          <th>Date fin</th>
-          <th>Statut</th>
-          <th class="text-end">Actions</th>
+          <th>{% trans "Référence" %}</th>
+          <th>{% trans "Nom chantier" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th>{% trans "Responsable" %}</th>
+          <th class="text-end">{% trans "Budget HT" %}</th>
+          <th style="min-width:120px">{% trans "Avancement" %}</th>
+          <th>{% trans "Date début" %}</th>
+          <th>{% trans "Date fin" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -147,21 +147,21 @@
           <td class="small text-muted text-nowrap">{{ p.start_date|date:"d/m/Y"|default:'—' }}</td>
           <td class="small text-nowrap {% if p.is_overdue %}text-danger fw-semibold{% else %}text-muted{% endif %}">
             {{ p.end_date|date:"d/m/Y"|default:'—' }}
-            {% if p.is_overdue %}<i class="bi bi-alarm ms-1" title="En retard"></i>{% endif %}
+            {% if p.is_overdue %}<i class="bi bi-alarm ms-1" title="{% trans "En retard" %}"></i>{% endif %}
           </td>
           <td>
-            {% if p.status == 'in_progress' %}<span class="orion-badge orion-badge-info">En cours</span>
-            {% elif p.status == 'planned' %}<span class="orion-badge orion-badge-warning">Planifié</span>
-            {% elif p.status == 'completed' %}<span class="orion-badge orion-badge-success">Terminé</span>
-            {% elif p.status == 'archived' %}<span class="orion-badge orion-badge-secondary">Archivé</span>
+            {% if p.status == 'in_progress' %}<span class="orion-badge orion-badge-info">{% trans "En cours" %}</span>
+            {% elif p.status == 'planned' %}<span class="orion-badge orion-badge-warning">{% trans "Planifié" %}</span>
+            {% elif p.status == 'completed' %}<span class="orion-badge orion-badge-success">{% trans "Terminé" %}</span>
+            {% elif p.status == 'archived' %}<span class="orion-badge orion-badge-secondary">{% trans "Archivé" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ p.get_status_display }}</span>
             {% endif %}
           </td>
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end">
-              <a href="{% url 'btp:project_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-              <a href="{% url 'btp:timesheet_list' %}?project={{ p.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Pointages"><i class="bi bi-clock"></i></a>
-              <a href="{% url 'btp:project_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+              <a href="{% url 'btp:project_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Voir" %}"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'btp:timesheet_list' %}?project={{ p.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Pointages" %}"><i class="bi bi-clock"></i></a>
+              <a href="{% url 'btp:project_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Modifier" %}"><i class="bi bi-pencil"></i></a>
             </div>
           </td>
         </tr>
@@ -170,13 +170,13 @@
           <td colspan="10">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-building-gear"></i></div>
-              <div class="orion-empty-title">Aucun chantier{% if q or status %} trouvé{% endif %}</div>
+              <div class="orion-empty-title">{% trans "Aucun chantier" %}{% if q or status %} {% trans "trouvé" %}{% endif %}</div>
               <div class="orion-empty-text">
-                {% if q or status %}Aucun chantier ne correspond aux filtres. <a href="{% url 'btp:project_list' %}">Voir tous les chantiers</a>.
-                {% else %}Créez votre premier chantier pour gérer vos projets BTP.{% endif %}
+                {% if q or status %}{% trans "Aucun chantier ne correspond aux filtres." %} <a href="{% url 'btp:project_list' %}">{% trans "Voir tous les chantiers" %}</a>.
+                {% else %}{% trans "Créez votre premier chantier pour gérer vos projets BTP." %}{% endif %}
               </div>
               <a href="{% url 'btp:project_create' %}" class="orion-btn orion-orion-btn primary mt-3">
-                <i class="bi bi-plus-lg"></i>Nouveau chantier
+                <i class="bi bi-plus-lg"></i>{% trans "Nouveau chantier" %}
               </a>
             </div>
           </td>

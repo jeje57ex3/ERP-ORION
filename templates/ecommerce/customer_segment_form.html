@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_segment_list' %}">Segments</a></li>
-<li class="breadcrumb-item active">{% if action == 'edit' %}{{ segment.name }}{% else %}Nouveau segment{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:customer_segment_list' %}">{% trans "Segments" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ segment.name }}{% else %}{% trans "Nouveau segment" %}{% endif %}</li>
 {% endblock %}
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ segment.name }}{% else %}Nouveau segment client{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{% blocktrans with name=segment.name %}Modifier {{ name }}{% endblocktrans %}{% else %}{% trans "Nouveau segment client" %}{% endif %}</h1>
 </div>
 {% endblock %}
 {% block content %}
@@ -16,19 +17,19 @@
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="row g-3">
-            <div class="col-md-8"><label class="form-label form-label-sm">Nom *</label>{{ form.name }}</div>
-            <div class="col-md-4"><label class="form-label form-label-sm">Couleur</label>{{ form.color }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">Type de segment</label>{{ form.segment_type }}</div>
-            <div class="col-12"><label class="form-label form-label-sm">Description</label>{{ form.description }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Commandes minimum</label>{{ form.min_orders }}</div>
-            <div class="col-md-6"><label class="form-label form-label-sm">Dépenses minimum (€)</label>{{ form.min_spent }}</div>
+            <div class="col-md-8"><label class="form-label form-label-sm">{% trans "Nom" %} *</label>{{ form.name }}</div>
+            <div class="col-md-4"><label class="form-label form-label-sm">{% trans "Couleur" %}</label>{{ form.color }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Type de segment" %}</label>{{ form.segment_type }}</div>
+            <div class="col-12"><label class="form-label form-label-sm">{% trans "Description" %}</label>{{ form.description }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Commandes minimum" %}</label>{{ form.min_orders }}</div>
+            <div class="col-md-6"><label class="form-label form-label-sm">{% trans "Dépenses minimum (€)" %}</label>{{ form.min_spent }}</div>
             <div class="col-12">
-              <div class="form-check">{{ form.is_auto }}<label class="form-check-label small ms-1">Assignation automatique selon les critères</label></div>
+              <div class="form-check">{{ form.is_auto }}<label class="form-check-label small ms-1">{% trans "Assignation automatique selon les critères" %}</label></div>
             </div>
           </div>
           <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
-            <a href="{% url 'ecommerce:customer_segment_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer" %}</button>
+            <a href="{% url 'ecommerce:customer_segment_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>

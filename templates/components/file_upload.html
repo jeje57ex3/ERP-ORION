@@ -1,4 +1,4 @@
-{# Composant : zone de téléversement avec drag-and-drop
+{% comment %} Composant : zone de téléversement avec drag-and-drop
    Usage : {% include "components/file_upload.html" with field_name="document" accept=".pdf,.doc,.docx" max_size_mb=10 %}
    Variables :
      - field_name    : nom du champ (attribut name de l'input, requis)
@@ -8,7 +8,7 @@
      - required      : True pour rendre le champ obligatoire
      - multiple      : True pour autoriser plusieurs fichiers
      - help_text     : texte d'aide supplémentaire
-#}
+{% endcomment %}
 {% with drop_id="fileUpload_"|add:field_name|default:"file" %}
 <div class="file-upload-wrapper" id="{{ drop_id }}_wrapper">
   {# Input file caché (compatible formulaires Django) #}

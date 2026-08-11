@@ -1,23 +1,25 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 {% load humanize %}
-{% block title %}Opportunités — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block title %}{% trans "Opportunités" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">CRM</a></li>
-<li class="breadcrumb-item active">Opportunités</li>
+<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">{% trans "CRM" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Opportunités" %}</li>
 {% endblock %}
+
+{% block page_subtitle %}{% trans "Pipeline commercial et suivi des ventes potentielles" %}{% endblock %}
 
 {% block page_actions %}
 <a href="{% url 'crm:opportunity_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-  <i class="bi bi-download"></i> Exporter
+  <i class="bi bi-download"></i> {% trans "Exporter" %}
 </a>
 <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-  <i class="bi bi-file-earmark-plus"></i> Créer devis
+  <i class="bi bi-file-earmark-plus"></i> {% trans "Créer devis" %}
 </a>
 <a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
-  <i class="bi bi-plus-lg"></i> Nouvelle opportunité
+  <i class="bi bi-plus-lg"></i> {% trans "Nouvelle opportunité" %}
 </a>
 {% endblock %}
 
@@ -32,24 +34,6 @@
 {% endfor %}
 {% endif %}
 
-<div class="orion-page-header">
-  <div>
-    <h1 class="orion-page-title">Opportunités</h1>
-    <p class="orion-page-subtitle">Pipeline commercial et suivi des ventes potentielles</p>
-  </div>
-  <div class="orion-page-actions">
-    <a href="{% url 'crm:opportunity_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-download"></i> Exporter
-    </a>
-    <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-file-earmark-plus"></i> Créer devis
-    </a>
-    <a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
-      <i class="bi bi-plus-lg"></i> Nouvelle opportunité
-    </a>
-  </div>
-</div>
-
 <div class="row g-3 mb-4">
   <div class="col-sm-6 col-xl-3">
     <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
@@ -58,7 +42,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ total_active|default:"0" }}</div>
-        <div class="orion-kpi-label">Opportunités actives</div>
+        <div class="orion-kpi-label">{% trans "Opportunités actives" %}</div>
       </div>
     </div>
   </div>
@@ -69,7 +53,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ total_pipeline|default:0|floatformat:0|intcomma }} €</div>
-        <div class="orion-kpi-label">Montant pipeline</div>
+        <div class="orion-kpi-label">{% trans "Montant pipeline" %}</div>
       </div>
     </div>
   </div>
@@ -80,18 +64,18 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ won_this_month|default:"0" }}</div>
-        <div class="orion-kpi-label">Gagnées ce mois</div>
+        <div class="orion-kpi-label">{% trans "Gagnées ce mois" %}</div>
       </div>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
-    <div class="orion-kpi" style="--kpi-color: #7C3AED">
-      <div class="orion-kpi-icon" style="background: rgba(124,58,237,.12); color: #7C3AED">
+    <div class="orion-kpi" style="--kpi-color: #8f7042">
+      <div class="orion-kpi-icon" style="background: rgba(124,58,237,.12); color: #8f7042">
         <i class="bi bi-graph-up-arrow"></i>
       </div>
       <div>
         <div class="orion-kpi-value">{{ conversion_rate|default:"0" }}%</div>
-        <div class="orion-kpi-label">Taux de conversion</div>
+        <div class="orion-kpi-label">{% trans "Taux de conversion" %}</div>
       </div>
     </div>
   </div>
@@ -101,10 +85,10 @@
   <div class="orion-orion-orion-card-header">
     <div class="orion-tabs" style="border:none;margin:0;">
       <a href="?view=list{% if stage %}&stage={{ stage }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-tab {% if request.GET.view != 'kanban' %}active{% endif %}">
-        <i class="bi bi-list-ul"></i> Liste
+        <i class="bi bi-list-ul"></i> {% trans "Liste" %}
       </a>
       <a href="?view=kanban{% if stage %}&stage={{ stage }}{% endif %}{% if q %}&q={{ q }}{% endif %}" class="orion-tab {% if request.GET.view == 'kanban' %}active{% endif %}">
-        <i class="bi bi-kanban"></i> Kanban
+        <i class="bi bi-kanban"></i> {% trans "Kanban" %}
       </a>
     </div>
     <form method="get" class="d-flex align-items-center gap-2">
@@ -112,7 +96,7 @@
       {% if stage %}<input type="hidden" name="stage" value="{{ stage }}">{% endif %}
       <div class="position-relative">
         <i class="bi bi-search" style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--orion-muted);font-size:.8rem;pointer-events:none;"></i>
-        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Rechercher…" class="orion-search-input" style="padding-left:2rem;min-width:220px;">
+        <input type="text" name="q" value="{{ q|default:'' }}" placeholder="{% trans 'Rechercher…' %}" class="orion-search-input" style="padding-left:2rem;min-width:220px;">
       </div>
       <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
     </form>
@@ -120,14 +104,14 @@
 </div>
 
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <a href="{% url 'crm:opportunity_list' %}{% if request.GET.view == 'kanban' %}?view=kanban{% endif %}" class="orion-filter-chip {% if not stage %}active{% endif %}">Toutes</a>
-  <a href="?stage=qualification{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'qualification' %}active{% endif %}">Qualification</a>
-  <a href="?stage=need{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'need' %}active{% endif %}">Besoin</a>
-  <a href="?stage=quote{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'quote' %}active{% endif %}">Devis</a>
-  <a href="?stage=sent{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'sent' %}active{% endif %}">Envoyé</a>
-  <a href="?stage=negotiation{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'negotiation' %}active{% endif %}">Négociation</a>
-  <a href="?stage=won{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'won' %}active{% endif %}">Gagnée</a>
-  <a href="?stage=lost{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'lost' %}active{% endif %}">Perdue</a>
+  <a href="{% url 'crm:opportunity_list' %}{% if request.GET.view == 'kanban' %}?view=kanban{% endif %}" class="orion-filter-chip {% if not stage %}active{% endif %}">{% trans "Toutes" %}</a>
+  <a href="?stage=qualification{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'qualification' %}active{% endif %}">{% trans "Qualification" %}</a>
+  <a href="?stage=need{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'need' %}active{% endif %}">{% trans "Besoin" %}</a>
+  <a href="?stage=quote{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'quote' %}active{% endif %}">{% trans "Devis" %}</a>
+  <a href="?stage=sent{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'sent' %}active{% endif %}">{% trans "Envoyé" %}</a>
+  <a href="?stage=negotiation{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'negotiation' %}active{% endif %}">{% trans "Négociation" %}</a>
+  <a href="?stage=won{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'won' %}active{% endif %}">{% trans "Gagnée" %}</a>
+  <a href="?stage=lost{% if request.GET.view == 'kanban' %}&view=kanban{% endif %}" class="orion-filter-chip {% if stage == 'lost' %}active{% endif %}">{% trans "Perdue" %}</a>
 </div>
 
 {% if request.GET.view == 'kanban' %}
@@ -153,7 +137,7 @@
           <div class="mt-2 fw-semibold" style="font-size:.82rem;color:var(--orion-secondary)">{{ opp.expected_revenue|floatformat:0 }} €</div>
           {% endif %}
           {% if opp.close_date %}
-          <div style="font-size:.72rem;color:var(--orion-muted);">Clôture : {{ opp.close_date|date:"d/m/Y" }}</div>
+          <div style="font-size:.72rem;color:var(--orion-muted);">{% blocktrans with d=opp.close_date|date:"d/m/Y" %}Clôture : {{ d }}{% endblocktrans %}</div>
           {% endif %}
         </div>
         {% endif %}{% endfor %}
@@ -191,14 +175,14 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Client / Prospect</th>
-          <th>Montant estimé</th>
-          <th>Probabilité</th>
-          <th>Étape</th>
-          <th>Date clôture</th>
-          <th>Responsable</th>
-          <th class="actions">Actions</th>
+          <th>{% trans "Nom" %}</th>
+          <th>{% trans "Client / Prospect" %}</th>
+          <th>{% trans "Montant estimé" %}</th>
+          <th>{% trans "Probabilité" %}</th>
+          <th>{% trans "Étape" %}</th>
+          <th>{% trans "Date clôture" %}</th>
+          <th>{% trans "Responsable" %}</th>
+          <th class="actions">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -226,26 +210,26 @@
             </div>
           </td>
           <td>
-            {% if opp.stage == 'qualification' %}<span class="orion-badge orion-badge-secondary">Qualification</span>
-            {% elif opp.stage == 'need' %}<span class="orion-badge orion-badge-info">Besoin</span>
-            {% elif opp.stage == 'quote' %}<span class="orion-badge orion-badge-warning">Devis</span>
-            {% elif opp.stage == 'sent' %}<span class="orion-badge orion-badge-primary">Envoyé</span>
-            {% elif opp.stage == 'negotiation' %}<span class="orion-badge orion-badge-purple">Négociation</span>
-            {% elif opp.stage == 'won' %}<span class="orion-badge orion-badge-success">Gagnée</span>
-            {% elif opp.stage == 'lost' %}<span class="orion-badge orion-badge-danger">Perdue</span>
+            {% if opp.stage == 'qualification' %}<span class="orion-badge orion-badge-secondary">{% trans "Qualification" %}</span>
+            {% elif opp.stage == 'need' %}<span class="orion-badge orion-badge-info">{% trans "Besoin" %}</span>
+            {% elif opp.stage == 'quote' %}<span class="orion-badge orion-badge-warning">{% trans "Devis" %}</span>
+            {% elif opp.stage == 'sent' %}<span class="orion-badge orion-badge-primary">{% trans "Envoyé" %}</span>
+            {% elif opp.stage == 'negotiation' %}<span class="orion-badge orion-badge-purple">{% trans "Négociation" %}</span>
+            {% elif opp.stage == 'won' %}<span class="orion-badge orion-badge-success">{% trans "Gagnée" %}</span>
+            {% elif opp.stage == 'lost' %}<span class="orion-badge orion-badge-danger">{% trans "Perdue" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ opp.get_stage_display }}</span>{% endif %}
           </td>
           <td style="font-size:.82rem;color:var(--orion-muted);">{{ opp.close_date|date:"d/m/Y"|default:"—" }}</td>
           <td style="font-size:.82rem;color:var(--orion-muted);">{{ opp.salesperson.get_full_name|default:"—" }}</td>
           <td class="actions">
             <div class="d-flex align-items-center justify-content-end gap-1">
-              <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir">
+              <a href="{% url 'crm:opportunity_detail' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Voir' %}">
                 <i class="bi bi-eye"></i>
               </a>
-              <a href="{% url 'sales:quote_create' %}?opportunity={{ opp.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Créer devis">
+              <a href="{% url 'sales:quote_create' %}?opportunity={{ opp.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Créer devis' %}">
                 <i class="bi bi-file-earmark-plus"></i>
               </a>
-              <a href="{% url 'crm:opportunity_edit' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Modifier">
+              <a href="{% url 'crm:opportunity_edit' opp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Modifier' %}">
                 <i class="bi bi-pencil"></i>
               </a>
             </div>
@@ -278,13 +262,13 @@
 {% else %}
 <div class="orion-empty">
   <i class="bi bi-trophy orion-empty-icon"></i>
-  <div class="orion-empty-title">Aucune opportunité</div>
+  <div class="orion-empty-title">{% trans "Aucune opportunité" %}</div>
   <p class="orion-empty-text">
-    {% if q or stage %}Aucune opportunité ne correspond à vos critères.{% else %}Créez votre première opportunité pour suivre votre pipeline commercial.{% endif %}
+    {% if q or stage %}{% trans "Aucune opportunité ne correspond à vos critères." %}{% else %}{% trans "Créez votre première opportunité pour suivre votre pipeline commercial." %}{% endif %}
   </p>
   {% if not q and not stage %}
   <a href="{% url 'crm:opportunity_create' %}" class="orion-btn orion-orion-btn primary">
-    <i class="bi bi-plus-lg"></i> Nouvelle opportunité
+    <i class="bi bi-plus-lg"></i> {% trans "Nouvelle opportunité" %}
   </a>
   {% endif %}
 </div>

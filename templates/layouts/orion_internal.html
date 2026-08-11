@@ -1,6 +1,6 @@
-{% load static %}
+{% load static i18n %}
 <!doctype html>
-<html lang="fr" class="orion-internal" data-bs-theme="dark">
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}" class="orion-internal" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,7 +37,7 @@
         {# Bouton mobile toggle sidebar #}
         <button class="orion-sidebar-toggle d-md-none" type="button"
                 onclick="document.body.classList.toggle('orion-sidebar-open')"
-                aria-label="Ouvrir le menu" aria-controls="orionSidebar">
+                aria-label="{% trans 'Ouvrir le menu' %}" aria-controls="orionSidebar">
           <i class="bi bi-list" aria-hidden="true"></i>
         </button>
 
@@ -48,7 +48,7 @@
         <div class="orion-topbar-actions">
           {% block topbar_actions %}{% endblock %}
           {% if request.user.is_superuser %}
-          <a href="{% url 'orion_admin:dashboard' %}" class="orion-btn sm ghost" title="Super Admin">
+          <a href="{% url 'orion_admin:dashboard' %}" class="orion-btn sm ghost" title="{% trans 'Super Admin' %}">
             <i class="bi bi-shield-check" aria-hidden="true"></i>
           </a>
           {% endif %}

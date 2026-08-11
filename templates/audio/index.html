@@ -1,4 +1,5 @@
 ﻿{% extends "erp_base.html" %}
+{% load i18n %}
 {% block content %}
 <div class="row g-4">
   <div class="col-12">
@@ -6,7 +7,7 @@
       <div class="orion-orion-card-body text-center py-5">
         <i class="bi bi-grid d-block fs-1 mb-3 text-primary opacity-50"></i>
         <h4>{{ page_title }}</h4>
-        <p class="text-muted">Module en cours de développement. Utilisez la navigation pour accéder aux sous-sections.</p>
+        <p class="text-muted">{% trans 'Module en cours de développement. Utilisez la navigation pour accéder aux sous-sections.' %}</p>
       </div>
     </div>
   </div>

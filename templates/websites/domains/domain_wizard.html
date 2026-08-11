@@ -1,11 +1,12 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Assistant domaine — Étape {{ step }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans %}Assistant domaine — Étape {{ step }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">Domaines</a></li>
-<li class="breadcrumb-item active">Assistant de connexion</li>
+<li class="breadcrumb-item"><a href="{% url 'websites:domain_dashboard' %}">{% trans "Domaines" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Assistant de connexion" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -15,9 +16,9 @@
     {# Barre de progression #}
     <div class="mb-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="text-muted small">Étape {{ step }} sur 7</span>
+        <span class="text-muted small">{% blocktrans %}Étape {{ step }} sur 7{% endblocktrans %}</span>
         <a href="{% url 'websites:domain_wizard' %}?reset=1" class="text-muted small text-decoration-none">
-          <i class="bi bi-x-circle me-1"></i>Recommencer
+          <i class="bi bi-x-circle me-1"></i>{% trans "Recommencer" %}
         </a>
       </div>
       <div class="progress" style="height:4px">
@@ -26,13 +27,13 @@
       <div class="d-flex justify-content-between mt-2">
         {% for i in "1234567" %}
         <span class="small {% if forloop.counter == step %}text-primary fw-bold{% elif forloop.counter < step %}text-success{% else %}text-muted{% endif %}">
-          {% if forloop.counter == 1 %}Type
-          {% elif forloop.counter == 2 %}Domaine
-          {% elif forloop.counter == 3 %}Cible
-          {% elif forloop.counter == 4 %}DNS
-          {% elif forloop.counter == 5 %}Vérification
-          {% elif forloop.counter == 6 %}SSL
-          {% else %}Terminé{% endif %}
+          {% if forloop.counter == 1 %}{% trans "Type" %}
+          {% elif forloop.counter == 2 %}{% trans "Domaine" %}
+          {% elif forloop.counter == 3 %}{% trans "Cible" %}
+          {% elif forloop.counter == 4 %}{% trans "DNS" %}
+          {% elif forloop.counter == 5 %}{% trans "Vérification" %}
+          {% elif forloop.counter == 6 %}{% trans "SSL" %}
+          {% else %}{% trans "Terminé" %}{% endif %}
         </span>
         {% endfor %}
       </div>
@@ -43,8 +44,8 @@
 
         {# ─── Étape 1 : Type de connexion ─────────────────────────────── #}
         {% if step == 1 %}
-        <h4 class="fw-bold mb-1">Quel type de connexion souhaitez-vous ?</h4>
-        <p class="text-muted mb-4">Choisissez ce que vous souhaitez connecter à votre domaine.</p>
+        <h4 class="fw-bold mb-1">{% trans "Quel type de connexion souhaitez-vous ?" %}</h4>
+        <p class="text-muted mb-4">{% trans "Choisissez ce que vous souhaitez connecter à votre domaine." %}</p>
         <form method="post">
           {% csrf_token %}
           <div class="row g-3 mb-4">
@@ -67,12 +68,12 @@
                     <div>
                       <div class="fw-medium">{{ label }}</div>
                       <div class="text-muted small">
-                        {% if val == 'website' %}Connecter votre site vitrine
-                        {% elif val == 'shop' %}Connecter votre boutique en ligne
-                        {% elif val == 'client_portal' %}Espace client de votre entreprise
-                        {% elif val == 'erp' %}Interface Orion ERP
-                        {% elif val == 'landing_page' %}Page de destination ou promo
-                        {% else %}Blog ou articles{% endif %}
+                        {% if val == 'website' %}{% trans "Connecter votre site vitrine" %}
+                        {% elif val == 'shop' %}{% trans "Connecter votre boutique en ligne" %}
+                        {% elif val == 'client_portal' %}{% trans "Espace client de votre entreprise" %}
+                        {% elif val == 'erp' %}{% trans "Interface Orion ERP" %}
+                        {% elif val == 'landing_page' %}{% trans "Page de destination ou promo" %}
+                        {% else %}{% trans "Blog ou articles" %}{% endif %}
                       </div>
                     </div>
                   </div>
@@ -82,56 +83,56 @@
             {% endfor %}
           </div>
           <button type="submit" class="orion-btn orion-orion-btn primary">
-            Continuer <i class="bi bi-arrow-right ms-1"></i>
+            {% trans "Continuer" %} <i class="bi bi-arrow-right ms-1"></i>
           </button>
         </form>
 
         {# ─── Étape 2 : Saisie du domaine ─────────────────────────────── #}
         {% elif step == 2 %}
-        <h4 class="fw-bold mb-1">Quel est votre nom de domaine ?</h4>
-        <p class="text-muted mb-4">Saisissez le domaine que vous souhaitez connecter.</p>
+        <h4 class="fw-bold mb-1">{% trans "Quel est votre nom de domaine ?" %}</h4>
+        <p class="text-muted mb-4">{% trans "Saisissez le domaine que vous souhaitez connecter." %}</p>
         <form method="post" novalidate>
           {% csrf_token %}
           {% if form.non_field_errors %}<div class="orion-alert danger">{{ form.non_field_errors }}</div>{% endif %}
           <div class="mb-3">
-            <label class="form-label fw-medium">Domaine <span class="text-danger">*</span></label>
+            <label class="form-label fw-medium">{% trans "Domaine" %} <span class="text-danger">*</span></label>
             {{ form.domain }}
             {% if form.domain.errors %}<div class="invalid-feedback d-block">{{ form.domain.errors.as_text }}</div>{% endif %}
             <div class="form-text">
-              Ex: <code>monentreprise.fr</code> ou <code>boutique.monentreprise.fr</code>
+              {% trans "Ex:" %} <code>monentreprise.fr</code> {% trans "ou" %} <code>boutique.monentreprise.fr</code>
             </div>
           </div>
           <div class="mb-4">
-            <label class="form-label fw-medium">Type</label>
+            <label class="form-label fw-medium">{% trans "Type" %}</label>
             {{ form.domain_type }}
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn orion-orion-btn primary">Continuer <i class="bi bi-arrow-right ms-1"></i></button>
-            <a href="{% url 'websites:domain_wizard' %}?reset=1" class="orion-btn orion-btn-outline">Retour</a>
+            <button type="submit" class="orion-btn orion-orion-btn primary">{% trans "Continuer" %} <i class="bi bi-arrow-right ms-1"></i></button>
+            <a href="{% url 'websites:domain_wizard' %}?reset=1" class="orion-btn orion-btn-outline">{% trans "Retour" %}</a>
           </div>
         </form>
 
         {# ─── Étape 3 : Choix du site cible ───────────────────────────── #}
         {% elif step == 3 %}
-        <h4 class="fw-bold mb-1">À quel site voulez-vous connecter ce domaine ?</h4>
-        <p class="text-muted mb-4">Sélectionnez le site Orion ERP concerné.</p>
+        <h4 class="fw-bold mb-1">{% trans "À quel site voulez-vous connecter ce domaine ?" %}</h4>
+        <p class="text-muted mb-4">{% trans "Sélectionnez le site Orion ERP concerné." %}</p>
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="mb-4">
-            <label class="form-label fw-medium">Site web</label>
+            <label class="form-label fw-medium">{% trans "Site web" %}</label>
             {{ form.website }}
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn orion-orion-btn primary">Continuer <i class="bi bi-arrow-right ms-1"></i></button>
+            <button type="submit" class="orion-btn orion-orion-btn primary">{% trans "Continuer" %} <i class="bi bi-arrow-right ms-1"></i></button>
           </div>
         </form>
 
         {# ─── Étape 4 : Instructions DNS ───────────────────────────────── #}
         {% elif step == 4 %}
-        <h4 class="fw-bold mb-1">Configurez vos DNS</h4>
+        <h4 class="fw-bold mb-1">{% trans "Configurez vos DNS" %}</h4>
         <p class="text-muted mb-4">
-          Ajoutez ces enregistrements chez votre fournisseur DNS (OVH, Cloudflare, Gandi…).
-          La propagation peut prendre de quelques minutes à 48h.
+          {% trans "Ajoutez ces enregistrements chez votre fournisseur DNS (OVH, Cloudflare, Gandi…)." %}
+          {% trans "La propagation peut prendre de quelques minutes à 48h." %}
         </p>
 
         {% if domain %}
@@ -143,19 +144,19 @@
                 <span class="badge bg-dark mb-2">{{ rec.type }}</span>
                 <table class="table table-sm table-borderless mb-0">
                   <tr>
-                    <td class="text-muted" style="width:60px">Type</td>
+                    <td class="text-muted" style="width:60px">{% trans "Type" %}</td>
                     <td><code>{{ rec.type }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
                         onclick="copyText('{{ rec.type }}',this)"><i class="bi bi-clipboard"></i></button></td>
                   </tr>
                   <tr>
-                    <td class="text-muted">Nom</td>
+                    <td class="text-muted">{% trans "Nom" %}</td>
                     <td><code>{{ rec.name }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
                         onclick="copyText('{{ rec.name }}',this)"><i class="bi bi-clipboard"></i></button></td>
                   </tr>
                   <tr>
-                    <td class="text-muted">Valeur</td>
+                    <td class="text-muted">{% trans "Valeur" %}</td>
                     <td><code class="text-break">{{ rec.value }}</code>
                       <button class="btn btn-link orion-btn sm p-0 ms-1 text-muted"
                         onclick="copyText('{{ rec.value }}',this)"><i class="bi bi-clipboard"></i></button></td>
@@ -169,25 +170,25 @@
 
         <div class="orion-alert info mb-4">
           <i class="bi bi-clock me-2"></i>
-          <strong>La propagation DNS peut prendre jusqu'à 48h.</strong>
-          Revenez vérifier une fois vos DNS configurés.
+          <strong>{% trans "La propagation DNS peut prendre jusqu'à 48h." %}</strong>
+          {% trans "Revenez vérifier une fois vos DNS configurés." %}
         </div>
         {% endif %}
 
         <form method="post">
           {% csrf_token %}
-          <p class="text-muted small mb-3">Une fois vos DNS configurés, cliquez sur « J'ai configuré mes DNS ».</p>
+          <p class="text-muted small mb-3">{% trans "Une fois vos DNS configurés, cliquez sur « J'ai configuré mes DNS »." %}</p>
           <div class="d-flex gap-2">
             <button type="submit" class="orion-btn orion-orion-btn primary">
-              J'ai configuré mes DNS <i class="bi bi-arrow-right ms-1"></i>
+              {% trans "J'ai configuré mes DNS" %} <i class="bi bi-arrow-right ms-1"></i>
             </button>
           </div>
         </form>
 
         {# ─── Étape 5 : Vérification DNS ───────────────────────────────── #}
         {% elif step == 5 %}
-        <h4 class="fw-bold mb-1">Vérification de la configuration</h4>
-        <p class="text-muted mb-4">Nous allons vérifier que vos DNS sont bien configurés.</p>
+        <h4 class="fw-bold mb-1">{% trans "Vérification de la configuration" %}</h4>
+        <p class="text-muted mb-4">{% trans "Nous allons vérifier que vos DNS sont bien configurés." %}</p>
 
         {% if domain %}
         <div class="p-3 border rounded mb-4 bg-light">
@@ -203,13 +204,13 @@
           {% if verified %}
           <div class="orion-alert success mb-4">
             <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>DNS vérifié avec succès !</strong> Votre domaine pointe bien vers Orion ERP.
+            <strong>{% trans "DNS vérifié avec succès !" %}</strong> {% trans "Votre domaine pointe bien vers Orion ERP." %}
           </div>
           {% else %}
           <div class="orion-alert warning mb-4">
             <i class="bi bi-hourglass-split me-2"></i>
-            <strong>DNS pas encore propagés.</strong>
-            Attendez quelques minutes et réessayez. La propagation peut prendre jusqu'à 48h.
+            <strong>{% trans "DNS pas encore propagés." %}</strong>
+            {% trans "Attendez quelques minutes et réessayez. La propagation peut prendre jusqu'à 48h." %}
           </div>
           {% endif %}
         {% endif %}
@@ -218,25 +219,25 @@
           {% csrf_token %}
           <div class="d-flex gap-2">
             <button type="submit" class="orion-btn orion-orion-btn primary">
-              <i class="bi bi-arrow-clockwise me-1"></i> Vérifier maintenant
+              <i class="bi bi-arrow-clockwise me-1"></i> {% trans "Vérifier maintenant" %}
             </button>
           </div>
         </form>
 
         {# ─── Étape 6 : SSL ────────────────────────────────────────────── #}
         {% elif step == 6 %}
-        <h4 class="fw-bold mb-1">Activer le HTTPS</h4>
-        <p class="text-muted mb-4">Sécurisez votre domaine avec un certificat SSL gratuit.</p>
+        <h4 class="fw-bold mb-1">{% trans "Activer le HTTPS" %}</h4>
+        <p class="text-muted mb-4">{% trans "Sécurisez votre domaine avec un certificat SSL gratuit." %}</p>
 
         {% if ssl_instructions %}
         <div class="mb-4">
-          <p class="fw-medium mb-3">Instructions selon votre environnement serveur :</p>
+          <p class="fw-medium mb-3">{% trans "Instructions selon votre environnement serveur :" %}</p>
           {% for instr in ssl_instructions %}
           <div class="card border mb-2">
             <div class="orion-orion-card-body p-3">
               <div class="fw-medium mb-1">{{ instr.label }}</div>
               <pre class="bg-dark text-light p-2 rounded mb-1" style="font-size:.8rem;overflow-x:auto">{{ instr.cmd }}</pre>
-              {% if instr.doc %}<a href="{{ instr.doc }}" target="_blank" class="small text-muted text-decoration-none"><i class="bi bi-box-arrow-up-right me-1"></i>Documentation</a>{% endif %}
+              {% if instr.doc %}<a href="{{ instr.doc }}" target="_blank" class="small text-muted text-decoration-none"><i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Documentation" %}</a>{% endif %}
             </div>
           </div>
           {% endfor %}
@@ -247,7 +248,7 @@
           {% csrf_token %}
           <div class="d-flex gap-2">
             <button type="submit" class="orion-btn orion-orion-btn primary">
-              Terminer <i class="bi bi-arrow-right ms-1"></i>
+              {% trans "Terminer" %} <i class="bi bi-arrow-right ms-1"></i>
             </button>
           </div>
         </form>
@@ -258,22 +259,22 @@
           <div class="mb-4">
             <i class="bi bi-check-circle-fill text-success" style="font-size:4rem"></i>
           </div>
-          <h4 class="fw-bold mb-2">Votre domaine est connecté !</h4>
+          <h4 class="fw-bold mb-2">{% trans "Votre domaine est connecté !" %}</h4>
           <p class="text-muted mb-4">
-            La configuration est terminée. Votre domaine est maintenant relié à Orion ERP.
+            {% trans "La configuration est terminée. Votre domaine est maintenant relié à Orion ERP." %}
           </p>
           {% if domain %}
           <div class="alert alert-light border mb-4">
             <code>{{ domain.domain }}</code>
             {% if domain.dns_verified %}
-            <span class="orion-badge success ms-2">DNS vérifié</span>
+            <span class="orion-badge success ms-2">{% trans "DNS vérifié" %}</span>
             {% endif %}
           </div>
           {% endif %}
           <form method="post">
             {% csrf_token %}
             <button type="submit" class="orion-btn orion-orion-btn primary">
-              <i class="bi bi-arrow-right me-1"></i> Voir le détail du domaine
+              <i class="bi bi-arrow-right me-1"></i> {% trans "Voir le détail du domaine" %}
             </button>
           </form>
         </div>

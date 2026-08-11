@@ -1,0 +1,185 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:product_list' %}">Catalogue</a></li>
+<li class="breadcrumb-item active">{{ product.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h1 class="page-title">{{ product.name }}</h1>
+    {% if product.reference %}
+    <span class="text-muted small font-monospace">{% blocktrans with ref=product.reference %}Réf. {{ ref }}{% endblocktrans %}</span>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'ecommerce:product_edit' product.pk %}" class="orion-btn primary">
+      <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
+    </a>
+    <form method="post" action="{% url 'ecommerce:product_publish' product.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn {% if product.is_published %}orion-btn-outline{% else %}orion-btn-gold{% endif %}">
+        <i class="bi bi-{% if product.is_published %}eye-slash{% else %}broadcast{% endif %} me-1"></i>
+        {% if product.is_published %}{% trans "Dépublier" %}{% else %}{% trans "Publier" %}{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+
+  <div class="col-12 col-lg-8">
+
+    <!-- Métriques rapides -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="orion-kpi">
+          <div class="orion-kpi-icon" style="background:#F8F3EA;color:#C6A15B"><i class="bi bi-currency-euro"></i></div>
+          <div class="orion-kpi-value">{{ product.sale_price|floatformat:2 }}</div>
+          <div class="orion-kpi-label">{% trans "Prix HT" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="orion-kpi">
+          <div class="orion-kpi-icon" style="background:#D1FAE5;color:#059669"><i class="bi bi-boxes"></i></div>
+          <div class="orion-kpi-value">{{ product.stock_quantity|floatformat:0 }}</div>
+          <div class="orion-kpi-label">{% trans "En stock" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="orion-kpi">
+          <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-percent"></i></div>
+          <div class="orion-kpi-value">{{ product.vat_rate }}%</div>
+          <div class="orion-kpi-label">{% trans "TVA" %}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="orion-kpi">
+          <div class="orion-kpi-icon" style="{% if product.is_published %}background:#D1FAE5;color:#059669{% else %}background:#F3F4F6;color:#6B7280{% endif %}">
+            <i class="bi bi-{% if product.is_published %}check-circle{% else %}clock{% endif %}"></i>
+          </div>
+          <div class="orion-kpi-value" style="font-size:.9rem">{% if product.is_published %}{% trans "Publié" %}{% else %}{% trans "Brouillon" %}{% endif %}</div>
+          <div class="orion-kpi-label">{% trans "Statut boutique" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="erp-card mb-3">
+      <div class="orion-card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-file-text me-1 text-primary"></i>{% trans "Description" %}</h6>
+      </div>
+      <div class="orion-card-body">
+        {% if product.description %}
+        <p style="white-space:pre-wrap">{{ product.description }}</p>
+        {% else %}
+        <p class="text-muted">{% trans "Aucune description." %}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Présence sur les boutiques -->
+    <div class="erp-card mb-3">
+      <div class="orion-card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-shop me-1 text-primary"></i>{% blocktrans with count=store_products.count %}Boutiques en ligne ({{ count }}){% endblocktrans %}</h6>
+      </div>
+      {% if store_products %}
+      <div class="table-responsive">
+        <table class="orion-table">
+          <thead>
+            <tr><th>{% trans "Site" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Prix boutique" %}</th><th>{% trans "Stock" %}</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for sp in store_products %}
+            <tr>
+              <td class="fw-semibold">{{ sp.website.name }}</td>
+              <td><span class="orion-badge orion-badge-{{ sp.status }}">{{ sp.get_status_display }}</span></td>
+              <td>{{ sp.price|floatformat:2 }} €</td>
+              <td>{{ sp.stock_quantity }}</td>
+              <td>
+                <a href="{% url 'websites:store_product_edit' sp.website.pk sp.pk %}" class="orion-btn orion-btn-outline orion-btn sm orion-btn-icon">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="orion-card-body">
+        <p class="text-muted mb-0">{% trans "Ce produit n'est lié à aucune boutique en ligne." %}</p>
+        <a href="{% url 'ecommerce:product_import' %}" class="orion-btn orion-btn-outline orion-btn sm mt-2">
+          <i class="bi bi-arrow-down-circle me-1"></i>{% trans "Importer vers une boutique" %}
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div class="col-12 col-lg-4">
+
+    <!-- Image -->
+    <div class="erp-card mb-3">
+      <div class="orion-card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-image me-1 text-primary"></i>{% trans "Photo" %}</h6>
+      </div>
+      <div class="orion-card-body text-center">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+             style="width:100%;max-height:260px;object-fit:cover;border-radius:.5rem;border:1px solid var(--orion-border)">
+        {% else %}
+        <div style="width:100%;height:160px;background:var(--orion-bg-alt, #f9f9f9);border:2px dashed var(--orion-border);border-radius:.5rem;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem">
+          <i class="bi bi-image" style="font-size:2rem;color:var(--orion-secondary)"></i>
+          <span class="text-muted small">{% trans "Aucune photo" %}</span>
+        </div>
+        {% endif %}
+        <a href="{% url 'ecommerce:product_edit' product.pk %}" class="orion-btn orion-btn-outline orion-btn sm mt-2 d-block">
+          <i class="bi bi-pencil me-1"></i>{% if product.image %}{% trans "Changer la photo" %}{% else %}{% trans "Ajouter une photo" %}{% endif %}
+        </a>
+      </div>
+    </div>
+
+    <!-- Informations -->
+    <div class="erp-card mb-3">
+      <div class="orion-card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Informations" %}</h6>
+      </div>
+      <div class="orion-card-body">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><td class="text-muted">{% trans "Type" %}</td><td>{{ product.get_product_type_display }}</td></tr>
+            <tr><td class="text-muted">{% trans "Catégorie" %}</td><td>{{ product.category|default:"—" }}</td></tr>
+            <tr><td class="text-muted">{% trans "Unité" %}</td><td>{{ product.unit }}</td></tr>
+            {% if product.weight %}<tr><td class="text-muted">{% trans "Poids" %}</td><td>{{ product.weight }} kg</td></tr>{% endif %}
+            {% if product.barcode %}<tr><td class="text-muted">{% trans "Code-barres" %}</td><td class="font-monospace">{{ product.barcode }}</td></tr>{% endif %}
+            <tr><td class="text-muted">{% trans "Créé" %}</td><td>{{ product.created_at|date:"d/m/Y" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

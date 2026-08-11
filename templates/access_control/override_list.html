@@ -1,24 +1,25 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
-<li class="breadcrumb-item active">Overrides</li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">{% trans "Contrôle d'accès" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Overrides" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'access_control:override_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel override</a>
+<a href="{% url 'access_control:override_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvel override" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="erp-card">
   <div class="erp-orion-orion-card-header">
-    <h6 class="erp-card-title"><i class="bi bi-sliders me-2"></i>Overrides individuels</h6>
-    <p class="text-muted small mb-0">Les overrides ont priorité sur les permissions de rôle.</p>
+    <h6 class="erp-card-title"><i class="bi bi-sliders me-2"></i>{% trans "Overrides individuels" %}</h6>
+    <p class="text-muted small mb-0">{% trans "Les overrides ont priorité sur les permissions de rôle." %}</p>
   </div>
   <div class="erp-orion-orion-card-body">
     {% if overrides %}
     <div class="table-responsive">
       <table class="orion-table align-middle">
         <thead>
-          <tr><th>Utilisateur</th><th>Module</th><th>Action</th><th class="text-center">Effet</th><th>Raison</th><th>Par</th><th></th></tr>
+          <tr><th>{% trans "Utilisateur" %}</th><th>{% trans "Module" %}</th><th>{% trans "Action" %}</th><th class="text-center">{% trans "Effet" %}</th><th>{% trans "Raison" %}</th><th>{% trans "Par" %}</th><th></th></tr>
         </thead>
         <tbody>
           {% for ov in overrides %}
@@ -27,13 +28,13 @@
             <td>{{ ov.module.name }}</td>
             <td>{{ ov.action.name|default:"(tous)" }}</td>
             <td class="text-center">
-              {% if ov.allowed %}<span class="orion-badge success"><i class="bi bi-check me-1"></i>Autorisé</span>
-              {% else %}<span class="orion-badge danger"><i class="bi bi-x me-1"></i>Refusé</span>{% endif %}
+              {% if ov.allowed %}<span class="orion-badge success"><i class="bi bi-check me-1"></i>{% trans "Autorisé" %}</span>
+              {% else %}<span class="orion-badge danger"><i class="bi bi-x me-1"></i>{% trans "Refusé" %}</span>{% endif %}
             </td>
             <td class="small text-muted">{{ ov.reason|truncatechars:40 }}</td>
             <td class="small text-muted">{{ ov.created_by.get_full_name|default:ov.created_by.username }}</td>
             <td class="text-end">
-              <form method="post" action="{% url 'access_control:override_delete' ov.pk %}" class="d-inline" onsubmit="return confirm('Supprimer cet override ?')">
+              <form method="post" action="{% url 'access_control:override_delete' ov.pk %}" class="d-inline" onsubmit="return confirm('{% trans "Supprimer cet override ?" %}')">
                 {% csrf_token %}
                 <button type="submit" class="orion-btn sm btn-outline-danger"><i class="bi bi-trash"></i></button>
               </form>
@@ -44,7 +45,7 @@
       </table>
     </div>
     {% else %}
-    <div class="text-center py-5 text-muted">Aucun override configuré.</div>
+    <div class="text-center py-5 text-muted">{% trans "Aucun override configuré." %}</div>
     {% endif %}
   </div>
 </div>

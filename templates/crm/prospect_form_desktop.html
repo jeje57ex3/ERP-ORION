@@ -1,39 +1,41 @@
 {% extends "layouts/desktop_app.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}{{ prospect.full_name|default:"Nouveau prospect" }}{% endblock %}
+{% block title %}{% trans "Nouveau prospect" as txt_new_prospect %}{{ prospect.full_name|default:txt_new_prospect }}{% endblock %}
 
 {% block breadcrumb %}
+{% trans "Nouveau" as txt_new %}
 <span class="orion-breadcrumb-sep">›</span>
-<a href="{% url 'crm:prospect_list' %}">Prospects</a>
+<a href="{% url 'crm:prospect_list' %}">{% trans "Prospects" %}</a>
 <span class="orion-breadcrumb-sep">›</span>
-<span>{{ prospect.full_name|default:"Nouveau" }}</span>
+<span>{{ prospect.full_name|default:txt_new }}</span>
 {% endblock %}
 
 {% block content %}
+{% trans "Nouveau prospect" as txt_new_prospect %}
 <div class="orion-record-page">
 
   <div class="orion-record-header">
     <div class="orion-record-header-left">
-      <h1 class="orion-record-title">{{ prospect.full_name|default:"Nouveau prospect" }}</h1>
+      <h1 class="orion-record-title">{{ prospect.full_name|default:txt_new_prospect }}</h1>
       {% if prospect.pk %}
-      <span class="orion-status pending">Prospect</span>
+      <span class="orion-status pending">{% trans "Prospect" %}</span>
       {% endif %}
     </div>
     <div class="orion-record-toolbar">
-      <button class="orion-icon-btn" form="prospect-form" type="submit" title="Enregistrer (Ctrl+S)"><i class="bi bi-save"></i></button>
+      <button class="orion-icon-btn" form="prospect-form" type="submit" title="{% trans 'Enregistrer (Ctrl+S)' %}"><i class="bi bi-save"></i></button>
       {% if prospect.pk %}
-      <a href="{% url 'crm:prospect_confirm_delete' prospect.pk %}" class="orion-icon-btn danger" title="Supprimer" data-confirm="Supprimer ce prospect ?"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'crm:prospect_confirm_delete' prospect.pk %}" class="orion-icon-btn danger" title="{% trans 'Supprimer' %}" data-confirm="{% trans 'Supprimer ce prospect ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
-          <i class="bi bi-lightning me-1"></i>Actions
+          <i class="bi bi-lightning me-1"></i>{% trans "Actions" %}
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
-          <li><a class="dropdown-item py-1" href="{% url 'crm:prospect_convert' prospect.pk %}"><i class="bi bi-arrow-right-circle me-2 text-success"></i>Convertir en client</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'crm:opportunity_form' %}?prospect={{ prospect.pk }}"><i class="bi bi-trophy me-2 text-warning"></i>Créer opportunité</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'crm:prospect_convert' prospect.pk %}"><i class="bi bi-arrow-right-circle me-2 text-success"></i>{% trans "Convertir en client" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'crm:opportunity_form' %}?prospect={{ prospect.pk }}"><i class="bi bi-trophy me-2 text-warning"></i>{% trans "Créer opportunité" %}</a></li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item py-1" href="#" onclick="window.print();return false"><i class="bi bi-printer me-2"></i>Imprimer</a></li>
+          <li><a class="dropdown-item py-1" href="#" onclick="window.print();return false"><i class="bi bi-printer me-2"></i>{% trans "Imprimer" %}</a></li>
         </ul>
       </div>
       {% endif %}
@@ -47,56 +49,56 @@
       <div class="orion-record-panel">
         <div class="orion-record-panel-header">
           <i class="bi bi-person-plus text-warning" style="font-size:13px"></i>
-          <h2 class="orion-record-panel-title">Informations prospect</h2>
+          <h2 class="orion-record-panel-title">{% trans "Informations prospect" %}</h2>
         </div>
         <div class="orion-record-panel-body">
-          <div class="orion-form-row"><label class="required">Prénom</label>{{ form.first_name }}</div>
-          <div class="orion-form-row"><label class="required">Nom</label>{{ form.last_name }}</div>
-          <div class="orion-form-row"><label>Société</label>{{ form.company_name }}</div>
-          <div class="orion-form-row"><label>Poste</label>{{ form.job_title }}</div>
-          <div class="orion-form-row"><label>Secteur</label>{{ form.industry }}</div>
-          <div class="orion-form-row"><label>Source</label>{{ form.source }}</div>
+          <div class="orion-form-row"><label class="required">{% trans "Prénom" %}</label>{{ form.first_name }}</div>
+          <div class="orion-form-row"><label class="required">{% trans "Nom" %}</label>{{ form.last_name }}</div>
+          <div class="orion-form-row"><label>{% trans "Société" %}</label>{{ form.company_name }}</div>
+          <div class="orion-form-row"><label>{% trans "Poste" %}</label>{{ form.job_title }}</div>
+          <div class="orion-form-row"><label>{% trans "Secteur" %}</label>{{ form.industry }}</div>
+          <div class="orion-form-row"><label>{% trans "Source" %}</label>{{ form.source }}</div>
         </div>
       </div>
 
       <div class="orion-record-panel">
         <div class="orion-record-panel-header">
           <i class="bi bi-telephone text-primary" style="font-size:13px"></i>
-          <h2 class="orion-record-panel-title">Contact & Qualification</h2>
+          <h2 class="orion-record-panel-title">{% trans "Contact & Qualification" %}</h2>
         </div>
         <div class="orion-record-panel-body">
-          <div class="orion-form-row"><label>Email</label>{{ form.email }}</div>
-          <div class="orion-form-row"><label>Téléphone</label>{{ form.phone }}</div>
-          <div class="orion-form-row"><label>Mobile</label>{{ form.mobile }}</div>
-          <div class="orion-form-row"><label>Statut</label>{{ form.status }}</div>
-          <div class="orion-form-row"><label>Commercial</label>{{ form.assigned_to }}</div>
-          <div class="orion-form-row"><label>Prochaine action</label>{{ form.next_action_date }}</div>
-          <div class="orion-form-row"><label>Notes</label>{{ form.notes }}</div>
+          <div class="orion-form-row"><label>{% trans "Email" %}</label>{{ form.email }}</div>
+          <div class="orion-form-row"><label>{% trans "Téléphone" %}</label>{{ form.phone }}</div>
+          <div class="orion-form-row"><label>{% trans "Mobile" %}</label>{{ form.mobile }}</div>
+          <div class="orion-form-row"><label>{% trans "Statut" %}</label>{{ form.status }}</div>
+          <div class="orion-form-row"><label>{% trans "Commercial" %}</label>{{ form.assigned_to }}</div>
+          <div class="orion-form-row"><label>{% trans "Prochaine action" %}</label>{{ form.next_action_date }}</div>
+          <div class="orion-form-row"><label>{% trans "Notes" %}</label>{{ form.notes }}</div>
         </div>
       </div>
 
     </div>
     <div class="orion-form-actions">
-      <a href="{% url 'crm:prospect_list' %}" class="orion-btn orion-btn-outline btn-cancel">Annuler</a>
-      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>Enregistrer</button>
+      <a href="{% url 'crm:prospect_list' %}" class="orion-btn orion-btn-outline btn-cancel">{% trans "Annuler" %}</a>
+      <button type="submit" class="orion-btn orion-btn-gold"><i class="bi bi-save me-1"></i>{% trans "Enregistrer" %}</button>
     </div>
   </form>
 
   {% if prospect.pk %}
   <div class="orion-bottom-tabs">
     <div class="orion-bottom-tabs-nav">
-      <button class="orion-bottom-tab active" data-tab="tab-opps"><i class="bi bi-trophy"></i> Opportunités</button>
-      <button class="orion-bottom-tab" data-tab="tab-activities"><i class="bi bi-calendar2-check"></i> Activités</button>
-      <button class="orion-bottom-tab" data-tab="tab-hist"><i class="bi bi-clock-history"></i> Historique</button>
+      <button class="orion-bottom-tab active" data-tab="tab-opps"><i class="bi bi-trophy"></i> {% trans "Opportunités" %}</button>
+      <button class="orion-bottom-tab" data-tab="tab-activities"><i class="bi bi-calendar2-check"></i> {% trans "Activités" %}</button>
+      <button class="orion-bottom-tab" data-tab="tab-hist"><i class="bi bi-clock-history"></i> {% trans "Historique" %}</button>
     </div>
     <div class="orion-bottom-tab-content active" id="tab-opps">
-      <div class="orion-tab-empty"><i class="bi bi-trophy"></i>Aucune opportunité liée</div>
+      <div class="orion-tab-empty"><i class="bi bi-trophy"></i>{% trans "Aucune opportunité liée" %}</div>
     </div>
     <div class="orion-bottom-tab-content" id="tab-activities">
-      <div class="orion-tab-empty"><i class="bi bi-calendar2-check"></i>Aucune activité planifiée</div>
+      <div class="orion-tab-empty"><i class="bi bi-calendar2-check"></i>{% trans "Aucune activité planifiée" %}</div>
     </div>
     <div class="orion-bottom-tab-content" id="tab-hist">
-      <div class="orion-tab-empty"><i class="bi bi-clock-history"></i>Historique des actions</div>
+      <div class="orion-tab-empty"><i class="bi bi-clock-history"></i>{% trans "Historique des actions" %}</div>
     </div>
   </div>
   {% endif %}

@@ -1,6 +1,6 @@
-{# Modal de confirmation générique
+{% comment %} Modal de confirmation générique
    Usage : {% include 'components/confirm_modal.html' with modal_id="deleteX" title="Supprimer ?" message="..." form_action=url %}
-#}
+{% endcomment %}
 <div class="modal fade orion-confirm-modal" id="{{ modal_id }}" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">

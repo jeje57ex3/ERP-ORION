@@ -1,23 +1,24 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Compte de résultat</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Compte de résultat" %}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Produits et charges sur la période sélectionnée.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Produits et charges sur la période sélectionnée." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card mb-4">
   <div class="erp-orion-orion-card-body">
     <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
       <div>
-        <label class="form-label fw-semibold">Du</label>
+        <label class="form-label fw-semibold">{% trans "Du" %}</label>
         <input type="date" name="start" class="form-control" value="{{ period_start }}" required>
       </div>
       <div>
-        <label class="form-label fw-semibold">Au</label>
+        <label class="form-label fw-semibold">{% trans "Au" %}</label>
         <input type="date" name="end" class="form-control" value="{{ period_end }}" required>
       </div>
-      <button type="submit" class="orion-btn primary"><i class="bi bi-graph-up me-1"></i>Générer</button>
+      <button type="submit" class="orion-btn primary"><i class="bi bi-graph-up me-1"></i>{% trans "Générer" %}</button>
     </form>
   </div>
 </div>
@@ -27,21 +28,21 @@
   <div class="col-md-4">
     <div class="kpi-card" style="--kpi-color:#10B981">
       <div class="kpi-icon"><i class="bi bi-arrow-up-right-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ revenues|floatformat:2 }} €</div><div class="kpi-label">Produits (CA)</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ revenues|floatformat:2 }} €</div><div class="kpi-label">{% trans "Produits (CA)" %}</div></div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="kpi-card" style="--kpi-color:#EF4444">
       <div class="kpi-icon"><i class="bi bi-arrow-down-right-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ expenses|floatformat:2 }} €</div><div class="kpi-label">Charges</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ expenses|floatformat:2 }} €</div><div class="kpi-label">{% trans "Charges" %}</div></div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="kpi-card" style="--kpi-color:{% if result >= 0 %}#6366F1{% else %}#EF4444{% endif %}">
+    <div class="kpi-card" style="--kpi-color:{% if result >= 0 %}#C6A15B{% else %}#EF4444{% endif %}">
       <div class="kpi-icon"><i class="bi bi-{% if result >= 0 %}graph-up{% else %}graph-down{% endif %}"></i></div>
       <div class="kpi-body">
         <div class="kpi-value">{{ result|floatformat:2 }} €</div>
-        <div class="kpi-label">{% if result >= 0 %}Bénéfice{% else %}Perte{% endif %}</div>
+        <div class="kpi-label">{% if result >= 0 %}{% trans "Bénéfice" %}{% else %}{% trans "Perte" %}{% endif %}</div>
       </div>
     </div>
   </div>
@@ -50,15 +51,15 @@
 <div class="row g-4 mt-2">
   <div class="col-md-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title text-success"><i class="bi bi-plus-circle me-2"></i>Produits</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title text-success"><i class="bi bi-plus-circle me-2"></i>{% trans "Produits" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <div class="d-flex justify-content-between align-items-center py-2">
-          <span>Chiffre d'affaires</span>
+          <span>{% trans "Chiffre d'affaires" %}</span>
           <strong class="text-success">{{ revenues|floatformat:2 }} €</strong>
         </div>
         <hr>
         <div class="d-flex justify-content-between fw-bold py-1">
-          <span>Total Produits</span>
+          <span>{% trans "Total Produits" %}</span>
           <span class="text-success">{{ revenues|floatformat:2 }} €</span>
         </div>
       </div>
@@ -66,15 +67,15 @@
   </div>
   <div class="col-md-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title text-danger"><i class="bi bi-dash-circle me-2"></i>Charges</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title text-danger"><i class="bi bi-dash-circle me-2"></i>{% trans "Charges" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <div class="d-flex justify-content-between align-items-center py-2">
-          <span>Charges d'exploitation</span>
+          <span>{% trans "Charges d'exploitation" %}</span>
           <strong class="text-danger">{{ expenses|floatformat:2 }} €</strong>
         </div>
         <hr>
         <div class="d-flex justify-content-between fw-bold py-1">
-          <span>Total Charges</span>
+          <span>{% trans "Total Charges" %}</span>
           <span class="text-danger">{{ expenses|floatformat:2 }} €</span>
         </div>
       </div>
@@ -85,7 +86,7 @@
 <div class="erp-card mt-4">
   <div class="erp-orion-orion-card-body">
     <div class="d-flex justify-content-between align-items-center">
-      <h5 class="fw-bold mb-0">{% if result >= 0 %}Résultat net — Bénéfice{% else %}Résultat net — Perte{% endif %}</h5>
+      <h5 class="fw-bold mb-0">{% if result >= 0 %}{% trans "Résultat net — Bénéfice" %}{% else %}{% trans "Résultat net — Perte" %}{% endif %}</h5>
       <h4 class="fw-bold mb-0 {% if result >= 0 %}text-success{% else %}text-danger{% endif %}">{{ result|floatformat:2 }} €</h4>
     </div>
   </div>

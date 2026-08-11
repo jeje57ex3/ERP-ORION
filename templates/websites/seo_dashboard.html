@@ -1,28 +1,29 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
 <div class="container-fluid py-3">
 
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
       <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
-      <li class="breadcrumb-item active">SEO</li>
+      <li class="breadcrumb-item active">{% trans "SEO" %}</li>
     </ol>
   </nav>
 
   <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-      <h1 class="h4 fw-semibold mb-1">Référencement SEO</h1>
-      <p class="text-muted mb-0">Optimisez le référencement de chaque page.</p>
+      <h1 class="h4 fw-semibold mb-1">{% trans "Référencement SEO" %}</h1>
+      <p class="text-muted mb-0">{% trans "Optimisez le référencement de chaque page." %}</p>
     </div>
     <div class="d-flex gap-2">
       <a href="{% url 'websites:sitemap' website.pk %}" class="btn btn-outline-secondary orion-btn sm" target="_blank">
-        <i class="bi bi-diagram-3 me-1"></i>Sitemap XML
+        <i class="bi bi-diagram-3 me-1"></i>{% trans "Sitemap XML" %}
       </a>
       <a href="{% url 'websites:robots' website.pk %}" class="btn btn-outline-secondary orion-btn sm" target="_blank">
-        <i class="bi bi-robot me-1"></i>Robots.txt
+        <i class="bi bi-robot me-1"></i>{% trans "Robots.txt" %}
       </a>
     </div>
   </div>
@@ -30,7 +31,7 @@
   {# SEO global du site #}
   <div class="card border-0 shadow-sm mb-4">
     <div class="orion-orion-card-header bg-white border-bottom">
-      <h6 class="mb-0 fw-semibold">SEO global du site</h6>
+      <h6 class="mb-0 fw-semibold">{% trans "SEO global du site" %}</h6>
     </div>
     <div class="orion-orion-card-body">
       <div class="row g-3">
@@ -39,7 +40,7 @@
             {% if website.meta_title %}<i class="bi bi-check-circle-fill text-success mt-1"></i>
             {% else %}<i class="bi bi-x-circle-fill text-danger mt-1"></i>{% endif %}
             <div>
-              <div class="fw-medium">Meta title global</div>
+              <div class="fw-medium">{% trans "Meta title global" %}</div>
               <div class="text-muted small">{{ website.meta_title|default:"Non renseigné" }}</div>
             </div>
           </div>
@@ -49,7 +50,7 @@
             {% if website.meta_description %}<i class="bi bi-check-circle-fill text-success mt-1"></i>
             {% else %}<i class="bi bi-x-circle-fill text-danger mt-1"></i>{% endif %}
             <div>
-              <div class="fw-medium">Meta description globale</div>
+              <div class="fw-medium">{% trans "Meta description globale" %}</div>
               <div class="text-muted small">{{ website.meta_description|default:"Non renseignée" }}</div>
             </div>
           </div>
@@ -61,18 +62,18 @@
   {# Pages SEO #}
   <div class="card border-0 shadow-sm">
     <div class="orion-orion-card-header bg-white border-bottom">
-      <h6 class="mb-0 fw-semibold">SEO par page ({{ pages_seo|length }} page{{ pages_seo|length|pluralize }})</h6>
+      <h6 class="mb-0 fw-semibold">{% blocktrans with count=pages_seo|length %}SEO par page ({{ count }} pages){% endblocktrans %}</h6>
     </div>
     {% if pages_seo %}
     <div class="table-responsive">
       <table class="orion-table align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>Page</th>
-            <th>Score SEO</th>
-            <th>Aperçu Google</th>
-            <th>Indexable</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "Page" %}</th>
+            <th>{% trans "Score SEO" %}</th>
+            <th>{% trans "Aperçu Google" %}</th>
+            <th>{% trans "Indexable" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -109,12 +110,12 @@
                 {{ item.preview.description|truncatechars:80 }}
               </div>
               {% else %}
-              <span class="text-muted small">Non configuré</span>
+              <span class="text-muted small">{% trans "Non configuré" %}</span>
               {% endif %}
             </td>
             <td>
               {% if item.page.is_indexable %}
-                <span class="orion-badge success">Indexable</span>
+                <span class="orion-badge success">{% trans "Indexable" %}</span>
               {% else %}
                 <span class="orion-badge neutral">noindex</span>
               {% endif %}
@@ -122,7 +123,7 @@
             <td class="text-end">
               <a href="{% url 'websites:seo_page_edit' website.pk item.page.pk %}"
                 class="btn btn-outline-primary orion-btn sm">
-                <i class="bi bi-pencil me-1"></i>Optimiser
+                <i class="bi bi-pencil me-1"></i>{% trans "Optimiser" %}
               </a>
             </td>
           </tr>
@@ -133,8 +134,8 @@
     {% else %}
     <div class="orion-orion-card-body text-center py-5">
       <i class="bi bi-search display-4 text-muted mb-3"></i>
-      <h5 class="text-muted">Aucune page publiée</h5>
-      <p class="text-muted">Publiez des pages pour analyser leur SEO.</p>
+      <h5 class="text-muted">{% trans "Aucune page publiée" %}</h5>
+      <p class="text-muted">{% trans "Publiez des pages pour analyser leur SEO." %}</p>
     </div>
     {% endif %}
   </div>

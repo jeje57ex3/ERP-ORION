@@ -1,22 +1,23 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Entreprises — Super Admin{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Entreprises — Super Admin" %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">Super Admin</a></li>
-<li class="breadcrumb-item active">Entreprises</li>
+<li class="breadcrumb-item"><a href="{% url 'private_saas:dashboard' %}">{% trans "Super Admin" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Entreprises" %}</li>
 {% endblock %}
 {% block page_actions %}
 <a href="{% url 'private_saas:company_create' %}" class="orion-btn orion-orion-btn primary">
-  <i class="bi bi-plus-lg me-1"></i>Nouvelle entreprise
+  <i class="bi bi-plus-lg me-1"></i>{% trans "Nouvelle entreprise" %}
 </a>
 {% endblock %}
 
 {% block content %}
 <form method="get" class="d-flex gap-2 mb-4">
-  <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Rechercher une entreprise…">
-  <button type="submit" class="orion-btn orion-btn-outline">Filtrer</button>
-  {% if q %}<a href="?" class="orion-btn orion-btn-outline">Réinitialiser</a>{% endif %}
+  <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{% trans 'Rechercher une entreprise…' %}">
+  <button type="submit" class="orion-btn orion-btn-outline">{% trans "Filtrer" %}</button>
+  {% if q %}<a href="?" class="orion-btn orion-btn-outline">{% trans "Réinitialiser" %}</a>{% endif %}
 </form>
 
 <div class="orion-card">
@@ -24,8 +25,8 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Entreprise</th><th>Secteur</th><th>Statut</th>
-          <th>Modules actifs</th><th>Actions</th>
+          <th>{% trans "Entreprise" %}</th><th>{% trans "Secteur" %}</th><th>{% trans "Statut" %}</th>
+          <th>{% trans "Modules actifs" %}</th><th>{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -40,32 +41,32 @@
           <td><span class="orion-badge orion-badge-info">{{ company.sector|default:"—" }}</span></td>
           <td>
             {% if company.status == 'active' %}
-              <span class="orion-badge orion-badge-success">Actif</span>
+              <span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
             {% elif company.status == 'archived' %}
-              <span class="orion-badge orion-badge-secondary">Archivé</span>
+              <span class="orion-badge orion-badge-secondary">{% trans "Archivé" %}</span>
             {% elif company.status == 'suspended' %}
-              <span class="orion-badge orion-badge-warning">Suspendu</span>
+              <span class="orion-badge orion-badge-warning">{% trans "Suspendu" %}</span>
             {% else %}
               <span class="orion-badge orion-badge-secondary">{{ company.status }}</span>
             {% endif %}
           </td>
           <td>
             <span class="fw-medium">{{ company.modules_enabled|default:"0" }}</span>
-            <span class="text-muted small"> modules</span>
+            <span class="text-muted small"> {% trans "modules" %}</span>
           </td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{% url 'private_saas:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Détail</a>
-              <a href="{% url 'private_saas:company_modules' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Modules</a>
-              <a href="{% url 'private_saas:company_users' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Utilisateurs</a>
+              <a href="{% url 'private_saas:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Détail" %}</a>
+              <a href="{% url 'private_saas:company_modules' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Modules" %}</a>
+              <a href="{% url 'private_saas:company_users' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Utilisateurs" %}</a>
             </div>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="5" class="text-center text-muted py-4">
-            Aucune entreprise trouvée.
-            <a href="{% url 'private_saas:company_create' %}">Créer la première</a>
+            {% trans "Aucune entreprise trouvée." %}
+            <a href="{% url 'private_saas:company_create' %}">{% trans "Créer la première" %}</a>
           </td>
         </tr>
         {% endfor %}

@@ -1,0 +1,205 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:loyalty_status_list' %}">SIÈCLE STATUS</a></li>
+<li class="breadcrumb-item active">{{ account.customer_email }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<button class="orion-btn orion-btn-outline" data-bs-toggle="modal" data-bs-target="#adjustModal">
+  <i class="bi bi-sliders me-1"></i>{% trans "Ajuster les points" %}
+</button>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+<!-- Col principale -->
+<div class="col-lg-8">
+
+  <!-- Résumé compte -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0">{% trans "Compte SIÈCLE STATUS" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="d-flex align-items-center gap-4 mb-4">
+        <div class="text-center" style="min-width:120px">
+          {% if account.tier == 'gold' %}
+          <div style="width:72px;height:72px;border-radius:50%;background:#FEF9C3;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+            <i class="bi bi-star-fill" style="font-size:28px;color:#CA8A04"></i>
+          </div>
+          <span class="orion-badge" style="background:#FEF9C3;color:#713F12;font-size:11px">GOLD</span>
+          {% elif account.tier == 'silver' %}
+          <div style="width:72px;height:72px;border-radius:50%;background:#F1F5F9;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+            <i class="bi bi-star-half" style="font-size:28px;color:#64748B"></i>
+          </div>
+          <span class="orion-badge" style="background:#F1F5F9;color:#334155;font-size:11px">SILVER</span>
+          {% else %}
+          <div style="width:72px;height:72px;border-radius:50%;background:#F8FAFC;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+            <i class="bi bi-person-check" style="font-size:28px;color:#94A3B8"></i>
+          </div>
+          <span class="orion-badge" style="background:#F8FAFC;color:#94A3B8;font-size:11px">MEMBER</span>
+          {% endif %}
+        </div>
+        <div class="flex-grow-1">
+          <h5 class="mb-1">{{ account.customer_email }}</h5>
+          {% if account.customer %}
+          <p class="text-muted mb-2">{{ account.customer.get_full_name }}</p>
+          {% endif %}
+          <div class="row g-3 mt-1">
+            <div class="col-6">
+              <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em">{% trans "Points de statut" %}</div>
+              <div style="font-size:22px;font-weight:700">{{ account.lifetime_points }}</div>
+              <small class="text-muted">{% trans "Ne diminuent jamais" %}</small>
+            </div>
+            <div class="col-6">
+              <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em">{% trans "Points disponibles" %}</div>
+              <div style="font-size:22px;font-weight:700">{{ account.points_balance }}</div>
+              <small class="text-muted">{% blocktrans with val=account.available_value_eur %}= {{ val }} € utilisables{% endblocktrans %}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progression -->
+      {% if account.tier == 'classic' %}
+      <div class="mt-2">
+        <div class="d-flex justify-content-between mb-1">
+          <small class="text-muted">{% trans "Progression → Silver (500 pts)" %}</small>
+          <small class="text-muted">{{ account.lifetime_points }}/500</small>
+        </div>
+        <div style="background:#e5e7eb;border-radius:8px;height:8px">
+          <div style="background:#C6A15B;border-radius:8px;height:8px;width:{% widthratio account.lifetime_points 500 100 %}%;max-width:100%"></div>
+        </div>
+        {% widthratio account.lifetime_points -1 1 as neg_lifetime_points_silver %}
+        <small class="text-muted">{% blocktrans with remaining=500|add:neg_lifetime_points_silver %}{{ remaining }} pts restants pour atteindre Silver{% endblocktrans %}</small>
+      </div>
+      {% elif account.tier == 'silver' %}
+      <div class="mt-2">
+        <div class="d-flex justify-content-between mb-1">
+          <small class="text-muted">{% trans "Progression → Gold (950 pts)" %}</small>
+          <small class="text-muted">{{ account.lifetime_points }}/950</small>
+        </div>
+        <div style="background:#e5e7eb;border-radius:8px;height:8px">
+          <div style="background:#CA8A04;border-radius:8px;height:8px;width:{% widthratio account.lifetime_points 950 100 %}%;max-width:100%"></div>
+        </div>
+        {% widthratio account.lifetime_points -1 1 as neg_lifetime_points_gold %}
+        <small class="text-muted">{% blocktrans with remaining=950|add:neg_lifetime_points_gold %}{{ remaining }} pts restants pour atteindre Gold{% endblocktrans %}</small>
+      </div>
+      {% else %}
+      <div class="mt-2">
+        <small class="text-success"><i class="bi bi-check-circle me-1"></i>{% trans "Niveau maximum atteint" %}</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Historique transactions -->
+  <div class="orion-card">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Historique des transactions" %}</h6></div>
+    <div class="orion-card-body p-0">
+      <table class="orion-table mb-0">
+        <thead>
+          <tr><th>{% trans "Date" %}</th><th>{% trans "Type" %}</th><th>{% trans "Points" %}</th><th>{% trans "Motif" %}</th></tr>
+        </thead>
+        <tbody>
+          {% for tx in transactions %}
+          <tr>
+            <td style="font-size:12px;white-space:nowrap">{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+            <td><span class="orion-badge">{{ tx.get_transaction_type_display }}</span></td>
+            <td>
+              {% if tx.points > 0 %}<span class="text-success fw-semibold">+{{ tx.points }}</span>
+              {% elif tx.points < 0 %}<span class="text-danger fw-semibold">{{ tx.points }}</span>
+              {% else %}<span class="text-muted">0</span>{% endif %}
+            </td>
+            <td style="font-size:12px">{{ tx.reason|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center py-4 text-muted">{% trans "Aucune transaction." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Col droite -->
+<div class="col-lg-4">
+  <div class="orion-card">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Avantages du niveau" %}</h6></div>
+    <div class="orion-card-body">
+      {% if account.tier == 'gold' %}
+      <ul class="list-unstyled" style="font-size:14px">
+        <li class="mb-2"><i class="bi bi-star-fill text-warning me-2"></i>{% trans "Accès avant-première exclusif" %}</li>
+        <li class="mb-2"><i class="bi bi-gift me-2 text-primary"></i>{% trans "Bonus points sur chaque achat" %}</li>
+        <li class="mb-2"><i class="bi bi-envelope me-2 text-primary"></i>{% trans "Newsletter Gold privée" %}</li>
+        <li><i class="bi bi-trophy me-2 text-warning"></i>{% trans "Statut permanent" %}</li>
+      </ul>
+      {% elif account.tier == 'silver' %}
+      <ul class="list-unstyled" style="font-size:14px">
+        <li class="mb-2"><i class="bi bi-star-half text-secondary me-2"></i>{% trans "Accès prioritaire aux archives" %}</li>
+        <li class="mb-2"><i class="bi bi-gift me-2 text-secondary"></i>{% trans "Points bonus élevés" %}</li>
+        {% widthratio account.lifetime_points -1 1 as neg_lifetime_points_gold2 %}
+        <li><i class="bi bi-arrow-up-circle me-2 text-warning"></i>{% blocktrans with remaining=950|add:neg_lifetime_points_gold2 %}{{ remaining }} pts pour Gold{% endblocktrans %}</li>
+      </ul>
+      {% else %}
+      <ul class="list-unstyled" style="font-size:14px">
+        <li class="mb-2"><i class="bi bi-check-circle me-2 text-muted"></i>{% trans "Programme de fidélité actif" %}</li>
+        {% widthratio account.lifetime_points -1 1 as neg_lifetime_points_silver2 %}
+        <li><i class="bi bi-arrow-up-circle me-2 text-primary"></i>{% blocktrans with remaining=500|add:neg_lifetime_points_silver2 %}{{ remaining }} pts pour Silver{% endblocktrans %}</li>
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Modal ajustement points -->
+<div class="modal fade" id="adjustModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{% blocktrans with email=account.customer_email %}Ajuster les points — {{ email }}{% endblocktrans %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'ecommerce:loyalty_status_adjust' pk=account.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="orion-label">{% trans "Nombre de points" %} <small class="text-muted">({% trans "négatif pour retirer" %})</small></label>
+            <input type="number" name="points" class="orion-input" placeholder="{% trans 'ex: 50 ou -20' %}" required>
+          </div>
+          <div class="mb-3">
+            <label class="orion-label">{% trans "Motif" %} <span class="text-danger">*</span></label>
+            <input type="text" name="reason" class="orion-input" placeholder="{% trans 'Ex: Geste commercial, erreur de sync…' %}" required>
+          </div>
+          <div class="orion-alert orion-alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {% trans "Un ajustement positif augmente à la fois les points disponibles ET les points de statut. Un ajustement négatif réduit uniquement les points disponibles — les points de statut ne peuvent jamais diminuer." %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn orion-btn-ghost" data-bs-dismiss="modal">{% trans "Annuler" %}</button>
+          <button type="submit" class="orion-btn orion-btn-primary">{% trans "Enregistrer l'ajustement" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

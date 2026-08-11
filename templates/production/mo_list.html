@@ -1,44 +1,44 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Ordres de fabrication — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Ordres de fabrication" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">Production</a></li>
-<li class="breadcrumb-item active">Ordres de fabrication</li>
+<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">{% trans "Production" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Ordres de fabrication" %}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Planifiez et suivez vos ordres de fabrication.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Planifiez et suivez vos ordres de fabrication." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'production:bom_list' %}" class="orion-btn orion-btn-outline me-2"><i class="bi bi-list-ul me-1"></i>Nomenclatures</a>
-<a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvel ordre</a>
+<a href="{% url 'production:bom_list' %}" class="orion-btn orion-btn-outline me-2"><i class="bi bi-list-ul me-1"></i>{% trans "Nomenclatures" %}</a>
+<a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvel ordre" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-4">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-gear-wide-connected"></i></div>
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-gear-wide-connected"></i></div>
       <div class="orion-kpi-value">{{ total }}</div>
-      <div class="orion-kpi-label">Total ordres</div>
+      <div class="orion-kpi-label">{% trans "Total ordres" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-4">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-play-circle"></i></div>
       <div class="orion-kpi-value">{{ in_progress }}</div>
-      <div class="orion-kpi-label">En cours</div>
+      <div class="orion-kpi-label">{% trans "En cours" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-4">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-calendar-check"></i></div>
       <div class="orion-kpi-value">{{ planned }}</div>
-      <div class="orion-kpi-label">Planifiés</div>
+      <div class="orion-kpi-label">{% trans "Planifiés" %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'production:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="{% url 'production:order_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Tous" %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -50,14 +50,14 @@
       <table class="orion-table mb-0">
         <thead>
           <tr>
-            <th>N° Ordre</th>
-            <th>Produit</th>
-            <th class="text-end">Qté planifiée</th>
-            <th class="text-end">Qté produite</th>
-            <th>Début prévu</th>
-            <th>Fin prévue</th>
-            <th>Statut</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "N° Ordre" %}</th>
+            <th>{% trans "Produit" %}</th>
+            <th class="text-end">{% trans "Qté planifiée" %}</th>
+            <th class="text-end">{% trans "Qté produite" %}</th>
+            <th>{% trans "Début prévu" %}</th>
+            <th>{% trans "Fin prévue" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,8 +80,8 @@
             </td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'production:order_detail' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                <a href="{% url 'production:order_edit' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'production:order_detail' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Voir" %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'production:order_edit' o.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans "Modifier" %}"><i class="bi bi-pencil"></i></a>
               </div>
             </td>
           </tr>
@@ -89,9 +89,9 @@
           <tr><td colspan="8">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-gear-wide-connected"></i></div>
-              <div class="orion-empty-title">Aucun ordre de fabrication</div>
-              <div class="orion-empty-text">Créez un ordre pour lancer la production d'un article.</div>
-              <a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouvel ordre</a>
+              <div class="orion-empty-title">{% trans "Aucun ordre de fabrication" %}</div>
+              <div class="orion-empty-text">{% trans "Créez un ordre pour lancer la production d'un article." %}</div>
+              <a href="{% url 'production:order_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvel ordre" %}</a>
             </div>
           </td></tr>
           {% endfor %}

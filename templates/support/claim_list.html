@@ -1,15 +1,16 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Réclamations — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Réclamations" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Réclamations</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Suivez et traitez les réclamations de vos clients.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Réclamations" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Suivez et traitez les réclamations de vos clients." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle réclamation</a>
+<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle réclamation" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'support:claim_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  <a href="{% url 'support:claim_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Toutes" %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -19,7 +20,7 @@
   <div class="table-responsive">
     <table class="orion-table">
       <thead>
-        <tr><th>Numéro</th><th>Sujet</th><th>Client</th><th>Priorité</th><th>Statut</th><th>Date</th><th class="text-end">Actions</th></tr>
+        <tr><th>{% trans "Numéro" %}</th><th>{% trans "Sujet" %}</th><th>{% trans "Client" %}</th><th>{% trans "Priorité" %}</th><th>{% trans "Statut" %}</th><th>{% trans "Date" %}</th><th class="text-end">{% trans "Actions" %}</th></tr>
       </thead>
       <tbody>
         {% for claim in claims %}
@@ -28,20 +29,20 @@
           <td><div class="small fw-semibold">{{ claim.subject|truncatechars:60 }}</div></td>
           <td class="small text-muted">{{ claim.customer.name|default:"—" }}</td>
           <td>
-            {% if claim.priority == 'critical' %}<span class="orion-badge orion-badge-danger">Critique</span>
-            {% elif claim.priority == 'high' %}<span class="orion-badge orion-badge-warning">Haute</span>
+            {% if claim.priority == 'critical' %}<span class="orion-badge orion-badge-danger">{% trans "Critique" %}</span>
+            {% elif claim.priority == 'high' %}<span class="orion-badge orion-badge-warning">{% trans "Haute" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ claim.get_priority_display }}</span>{% endif %}
           </td>
           <td>
-            {% if claim.status == 'open' %}<span class="orion-badge orion-badge-danger">Ouverte</span>
-            {% elif claim.status == 'in_progress' %}<span class="orion-badge orion-badge-warning">En cours</span>
-            {% elif claim.status == 'resolved' %}<span class="orion-badge orion-badge-success">Résolue</span>
+            {% if claim.status == 'open' %}<span class="orion-badge orion-badge-danger">{% trans "Ouverte" %}</span>
+            {% elif claim.status == 'in_progress' %}<span class="orion-badge orion-badge-warning">{% trans "En cours" %}</span>
+            {% elif claim.status == 'resolved' %}<span class="orion-badge orion-badge-success">{% trans "Résolue" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ claim.get_status_display }}</span>{% endif %}
           </td>
           <td class="small text-muted">{{ claim.created_at|date:"d/m/Y" }}</td>
           <td>
             <div class="d-flex gap-1 justify-content-end">
-              <a href="{% url 'support:ticket_detail' claim.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'support:ticket_detail' claim.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
             </div>
           </td>
         </tr>
@@ -49,8 +50,8 @@
         <tr><td colspan="7">
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-emoji-smile"></i></div>
-            <div class="orion-empty-title">Aucune réclamation</div>
-            <div class="orion-empty-text">Aucune réclamation client n'a été enregistrée pour le moment.</div>
+            <div class="orion-empty-title">{% trans "Aucune réclamation" %}</div>
+            <div class="orion-empty-text">{% trans "Aucune réclamation client n'a été enregistrée pour le moment." %}</div>
           </div>
         </td></tr>
         {% endfor %}

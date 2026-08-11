@@ -1,14 +1,15 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Salariés — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Salariés" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Salariés</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Gérez les fiches salariés, contrats et informations RH.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Salariés" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Gérez les fiches salariés, contrats et informations RH." %}</p>{% endblock %}
 {% block page_actions %}
 <div class="d-flex gap-2 flex-wrap">
-  <a href="{% url 'hr:employee_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau salarié</a>
-  <button class="orion-btn orion-btn-outline" onclick="alert('Import CSV à configurer')"><i class="bi bi-upload me-1"></i>Importer</button>
-  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if department %}&department={{ department }}{% endif %}{% if contract_type %}&contract={{ contract_type }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
+  {% trans "Import CSV à configurer" as import_csv_msg %}
+  <a href="{% url 'hr:employee_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau salarié" %}</a>
+  <button class="orion-btn orion-btn-outline" onclick="alert('{{ import_csv_msg|escapejs }}')"><i class="bi bi-upload me-1"></i>{% trans "Importer" %}</button>
+  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if department %}&department={{ department }}{% endif %}{% if contract_type %}&contract={{ contract_type }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>{% trans "Exporter" %}</a>
 </div>
 {% endblock %}
 
@@ -19,28 +20,28 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-people"></i></div>
       <div class="orion-kpi-value">{{ total|default:"0" }}</div>
-      <div class="orion-kpi-label">Total salariés</div>
+      <div class="orion-kpi-label">{% trans "Total salariés" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-calendar-x"></i></div>
       <div class="orion-kpi-value">{{ absent_today|default:"0" }}</div>
-      <div class="orion-kpi-label">En congé aujourd'hui</div>
+      <div class="orion-kpi-label">{% trans "En congé aujourd'hui" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-file-earmark-text"></i></div>
       <div class="orion-kpi-value">{{ active_contracts|default:"0" }}</div>
-      <div class="orion-kpi-label">Contrats actifs</div>
+      <div class="orion-kpi-label">{% trans "Contrats actifs" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-person-plus"></i></div>
       <div class="orion-kpi-value">{{ hires_this_month|default:"0" }}</div>
-      <div class="orion-kpi-label">Embauches ce mois</div>
+      <div class="orion-kpi-label">{% trans "Embauches ce mois" %}</div>
     </div>
   </div>
 </div>
@@ -49,27 +50,27 @@
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex gap-2 flex-wrap flex-grow-1">
-      <input type="text" name="q" class="form-control form-control-sm" placeholder="Nom, poste, n° salarié..." value="{{ q }}" style="flex:1;min-width:200px">
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Nom, poste, n° salarié...' %}" value="{{ q }}" style="flex:1;min-width:200px">
       <select name="department" class="form-select form-select-sm" style="max-width:180px" onchange="this.form.submit()">
-        <option value="">Tous départements</option>
+        <option value="">{% trans "Tous départements" %}</option>
         {% for dept in departments %}
         <option value="{{ dept }}" {% if department == dept %}selected{% endif %}>{{ dept }}</option>
         {% endfor %}
       </select>
       <select name="contract" class="form-select form-select-sm" style="max-width:180px" onchange="this.form.submit()">
-        <option value="">Tous contrats</option>
+        <option value="">{% trans "Tous contrats" %}</option>
         {% for ct, label in contract_types %}
         <option value="{{ ct }}" {% if contract_type == ct %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
       <select name="active" class="form-select form-select-sm" style="max-width:140px" onchange="this.form.submit()">
-        <option value="">Tous statuts</option>
-        <option value="1" {% if active_filter == '1' %}selected{% endif %}>Actifs</option>
-        <option value="0" {% if active_filter == '0' %}selected{% endif %}>Inactifs</option>
+        <option value="">{% trans "Tous statuts" %}</option>
+        <option value="1" {% if active_filter == '1' %}selected{% endif %}>{% trans "Actifs" %}</option>
+        <option value="0" {% if active_filter == '0' %}selected{% endif %}>{% trans "Inactifs" %}</option>
       </select>
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
       {% if q or department or contract_type or active_filter %}
-      <a href="{% url 'hr:employee_list' %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-x-circle me-1"></i>Réinit.</a>
+      <a href="{% url 'hr:employee_list' %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm"><i class="bi bi-x-circle me-1"></i>{% trans "Réinit." %}</a>
       {% endif %}
     </form>
   </div>
@@ -78,14 +79,14 @@
       <table class="orion-table mb-0">
         <thead>
           <tr>
-            <th>Salarié</th>
-            <th>Poste</th>
-            <th>Département</th>
-            <th>Email</th>
-            <th>Téléphone</th>
-            <th>Contrat</th>
-            <th>Statut</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "Salarié" %}</th>
+            <th>{% trans "Poste" %}</th>
+            <th>{% trans "Département" %}</th>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Téléphone" %}</th>
+            <th>{% trans "Contrat" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -100,7 +101,7 @@
                 {% endif %}
                 <div>
                   <a href="{% url 'hr:employee_detail' emp.pk %}" class="fw-semibold text-dark text-decoration-none">{{ emp.first_name }} {{ emp.last_name }}</a>
-                  {% if emp.employee_number %}<div class="small text-muted">N° {{ emp.employee_number }}</div>{% endif %}
+                  {% if emp.employee_number %}<div class="small text-muted">{% trans "N°" %} {{ emp.employee_number }}</div>{% endif %}
                 </div>
               </div>
             </td>
@@ -119,16 +120,16 @@
             </td>
             <td>
               {% if emp.is_active %}
-                <span class="orion-badge orion-badge-success">Actif</span>
+                <span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
               {% else %}
-                <span class="orion-badge orion-badge-secondary">Inactif</span>
+                <span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>
               {% endif %}
             </td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'hr:employee_detail' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                <a href="{% url 'hr:employee_edit' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
-                <a href="{% url 'hr:employee_delete' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                <a href="{% url 'hr:employee_detail' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'hr:employee_edit' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'hr:employee_delete' emp.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
               </div>
             </td>
           </tr>
@@ -137,12 +138,12 @@
             <td colspan="8">
               <div class="orion-empty">
                 <div class="orion-empty-icon"><i class="bi bi-person-badge"></i></div>
-                <div class="orion-empty-title">Aucun salarié trouvé</div>
-                <div class="orion-empty-text">{% if q or department or contract_type %}Aucun salarié ne correspond aux filtres.{% else %}Ajoutez votre premier salarié pour commencer à gérer vos ressources humaines.{% endif %}</div>
+                <div class="orion-empty-title">{% trans "Aucun salarié trouvé" %}</div>
+                <div class="orion-empty-text">{% if q or department or contract_type %}{% trans "Aucun salarié ne correspond aux filtres." %}{% else %}{% trans "Ajoutez votre premier salarié pour commencer à gérer vos ressources humaines." %}{% endif %}</div>
                 {% if q or department or contract_type %}
-                <a href="{% url 'hr:employee_list' %}" class="orion-btn orion-btn-outline mt-3"><i class="bi bi-x-circle me-1"></i>Réinitialiser</a>
+                <a href="{% url 'hr:employee_list' %}" class="orion-btn orion-btn-outline mt-3"><i class="bi bi-x-circle me-1"></i>{% trans "Réinitialiser" %}</a>
                 {% endif %}
-                <a href="{% url 'hr:employee_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Nouveau salarié</a>
+                <a href="{% url 'hr:employee_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau salarié" %}</a>
               </div>
             </td>
           </tr>

@@ -1,13 +1,14 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">Ordres de fabrication</a></li>
-{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'production:order_detail' order.pk %}">{{ order.order_number }}</a></li><li class="breadcrumb-item active">Modifier</li>
-{% else %}<li class="breadcrumb-item active">Nouvel ordre</li>{% endif %}
+<li class="breadcrumb-item"><a href="{% url 'production:order_list' %}">{% trans "Ordres de fabrication" %}</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item"><a href="{% url 'production:order_detail' order.pk %}">{{ order.order_number }}</a></li><li class="breadcrumb-item active">{% trans "Modifier" %}</li>
+{% else %}<li class="breadcrumb-item active">{% trans "Nouvel ordre" %}</li>{% endif %}
 {% endblock %}
 
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}Modifier {{ order.order_number }}{% else %}Nouvel ordre de fabrication{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{% blocktrans with num=order.order_number %}Modifier {{ num }}{% endblocktrans %}{% else %}{% trans "Nouvel ordre de fabrication" %}{% endif %}</h1>
 </div>
 {% endblock %}
 
@@ -15,47 +16,47 @@
 <div class="row g-3">
   <div class="col-12 col-lg-8">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-gear me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-gear me-1 text-primary"></i>{% trans "Informations" %}</h6></div>
       <div class="orion-orion-card-body">
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Produit *</label>
+              <label class="form-label form-label-sm">{% trans "Produit" %} *</label>
               {{ form.product }}
             </div>
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Nomenclature</label>
+              <label class="form-label form-label-sm">{% trans "Nomenclature" %}</label>
               {{ form.bom }}
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-sm">Qté planifiée *</label>
+              <label class="form-label form-label-sm">{% trans "Qté planifiée" %} *</label>
               {{ form.quantity_planned }}
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-sm">Statut</label>
+              <label class="form-label form-label-sm">{% trans "Statut" %}</label>
               {{ form.status }}
             </div>
             <div class="col-md-4"></div>
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Début planifié</label>
+              <label class="form-label form-label-sm">{% trans "Début planifié" %}</label>
               {{ form.planned_start }}
             </div>
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Fin planifiée</label>
+              <label class="form-label form-label-sm">{% trans "Fin planifiée" %}</label>
               {{ form.planned_end }}
             </div>
             <div class="col-12">
-              <label class="form-label form-label-sm">Notes</label>
+              <label class="form-label form-label-sm">{% trans "Notes" %}</label>
               {{ form.notes }}
             </div>
           </div>
           <div class="d-flex gap-2 mt-3">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer l'ordre{% endif %}</button>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}{% trans "Enregistrer" %}{% else %}{% trans "Créer l'ordre" %}{% endif %}</button>
             {% if action == 'edit' %}
-            <a href="{% url 'production:order_detail' order.pk %}" class="btn btn-outline-secondary">Annuler</a>
+            <a href="{% url 'production:order_detail' order.pk %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
             {% else %}
-            <a href="{% url 'production:order_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <a href="{% url 'production:order_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
             {% endif %}
           </div>
         </form>

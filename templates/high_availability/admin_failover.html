@@ -1,18 +1,21 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
-    <h1>Bascule serveur</h1>
-    <p class="orion-page-subtitle">Bascule manuelle vers le serveur secondaire 1 ou secondaire 2.</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Haute disponibilité" %}</p>
+    <h1 class="page-title">{% trans "Bascule serveur" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Bascule manuelle vers le serveur secondaire 1 ou secondaire 2." %}</p>
   </div>
-  <div class="orion-page-actions">
-    <a class="orion-btn" href="{% url 'high_availability:admin_events' %}">Journal des bascules</a>
-    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">Paramètres HA</a>
+  <div class="page-header-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_events' %}">{% trans "Journal des bascules" %}</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
   {% for msg in messages %}
     <div class="orion-alert orion-alert--{{ msg.tags }}">{{ msg }}</div>
@@ -22,24 +25,27 @@
 <!-- État actuel -->
 <div class="orion-dashboard-grid" style="grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Nœud actif</span>
-    <strong class="orion-metric-value">{{ active_node.name|default:"Non défini" }}</strong>
+    <span class="orion-metric-label">{% trans "Nœud actif" %}</span>
+    {% trans "Non défini" as ha_no_active_node %}
+    <strong class="orion-metric-value">{{ active_node.name|default:ha_no_active_node }}</strong>
     {% if active_node %}
-      <small class="orion-text-muted">{{ active_node.node_id }} · Priorité {{ active_node.priority }}</small>
+      <small class="orion-text-muted">{{ active_node.node_id }} · {% blocktrans with prio=active_node.priority %}Priorité {{ prio }}{% endblocktrans %}</small>
     {% endif %}
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Cible recommandée</span>
-    <strong class="orion-metric-value">{{ best_target.name|default:"Aucune disponible" }}</strong>
+    <span class="orion-metric-label">{% trans "Cible recommandée" %}</span>
+    {% trans "Aucune disponible" as ha_no_target %}
+    <strong class="orion-metric-value">{{ best_target.name|default:ha_no_target }}</strong>
     {% if best_target %}
-      <small class="orion-text-muted">Lag : {{ best_target.replication_lag_seconds|default:"inconnu" }}s</small>
+      {% trans "inconnu" as ha_lag_unknown %}
+      <small class="orion-text-muted">{% blocktrans with lag=best_target.replication_lag_seconds|default:ha_lag_unknown %}Lag : {{ lag }}s{% endblocktrans %}</small>
     {% endif %}
   </div>
 </div>
 
 <!-- Avertissement -->
 <div class="orion-alert orion-alert--warning" style="margin-bottom:24px;">
-  <strong>⚠ Action critique</strong> — La bascule interrompt brièvement le service. Assurez-vous que le serveur cible est synchronisé avant de continuer.
+  <strong>{% trans "⚠ Action critique" %}</strong> — {% trans "La bascule interrompt brièvement le service. Assurez-vous que le serveur cible est synchronisé avant de continuer." %}
 </div>
 
 <!-- Cibles disponibles -->
@@ -53,7 +59,7 @@
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
         {% if best_target and best_target.pk == node.pk %}
-          <span class="orion-badge orion-badge--success">Recommandé</span>
+          <span class="orion-badge orion-badge--success">{% trans "Recommandé" %}</span>
         {% endif %}
         <span class="orion-status-dot orion-status-dot--{{ node.status }}"></span>
         <span>{{ node.get_status_display }}</span>
@@ -61,33 +67,34 @@
     </div>
     <div class="orion-orion-orion-card-body">
       <dl class="orion-dl orion-dl--compact">
-        <dt>Priorité</dt><dd>{{ node.priority }}</dd>
-        <dt>Retard réplication</dt><dd>{{ node.replication_lag_seconds|default:"—" }}{% if node.replication_lag_seconds %} s{% endif %}</dd>
-        <dt>Heartbeat</dt><dd>{{ node.heartbeat_age_seconds|default:"—" }}{% if node.heartbeat_age_seconds %}s{% endif %}</dd>
+        <dt>{% trans "Priorité" %}</dt><dd>{{ node.priority }}</dd>
+        <dt>{% trans "Retard réplication" %}</dt><dd>{{ node.replication_lag_seconds|default:"—" }}{% if node.replication_lag_seconds %} s{% endif %}</dd>
+        <dt>{% trans "Heartbeat" %}</dt><dd>{{ node.heartbeat_age_seconds|default:"—" }}{% if node.heartbeat_age_seconds %}s{% endif %}</dd>
         <dt>URL</dt><dd><small>{{ node.base_url|default:"—" }}</small></dd>
-        <dt>Région</dt><dd>{{ node.region|default:"—" }}</dd>
+        <dt>{% trans "Région" %}</dt><dd>{{ node.region|default:"—" }}</dd>
       </dl>
 
       {% if not node.can_be_failover_target %}
         <div class="orion-alert orion-alert--error" style="margin-top:12px; font-size:13px;">
-          Ce serveur n'est pas disponible pour une bascule (statut : {{ node.get_status_display }}).
+          {% blocktrans with status=node.get_status_display %}Ce serveur n'est pas disponible pour une bascule (statut : {{ status }}).{% endblocktrans %}
         </div>
       {% else %}
+        {% blocktrans with name=node.name asvar ha_confirm_failover %}Confirmer la bascule vers {{ name }} ?{% endblocktrans %}
         <form method="post" action="{% url 'high_availability:admin_run_failover' %}"
-              onsubmit="return confirm('Confirmer la bascule vers {{ node.name }} ?')"
+              onsubmit="return confirm('{{ ha_confirm_failover|escapejs }}')"
               style="margin-top:16px;">
           {% csrf_token %}
           <input type="hidden" name="to_node" value="{{ node.node_id }}">
           <div class="orion-form-field" style="margin-bottom:12px;">
             <label style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;">
-              Raison de la bascule
+              {% trans "Raison de la bascule" %}
             </label>
             <textarea name="reason" rows="2"
-              placeholder="Ex. : maintenance planifiée, défaillance primaire…"
+              placeholder="{% trans 'Ex. : maintenance planifiée, défaillance primaire…' %}"
               style="width:100%; resize:vertical; font-size:13px;"></textarea>
           </div>
           <button type="submit" class="orion-btn orion-btn--danger" style="width:100%;">
-            Basculer vers {{ node.name }}
+            {% blocktrans with name=node.name %}Basculer vers {{ name }}{% endblocktrans %}
           </button>
         </form>
       {% endif %}
@@ -96,7 +103,7 @@
   {% empty %}
   <div class="orion-card">
     <div class="orion-orion-orion-card-body">
-      <p class="orion-text-muted">Aucun serveur secondaire actif disponible pour la bascule.</p>
+      <p class="orion-text-muted">{% trans "Aucun serveur secondaire actif disponible pour la bascule." %}</p>
     </div>
   </div>
   {% endfor %}

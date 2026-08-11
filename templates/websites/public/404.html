@@ -1,9 +1,9 @@
-{% if site %}<!DOCTYPE html>
-<html lang="fr">
+{% load i18n %}{% if site %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Page introuvable — {{ site.name }}</title>
+  <title>{% blocktrans with name=site.name %}Page introuvable — {{ name }}{% endblocktrans %}</title>
   <meta name="robots" content="noindex">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #f8fafc; color: #1e293b;
@@ -20,20 +20,20 @@
 <body>
   <div class="card">
     <div class="num">404</div>
-    <h1>Cette page est introuvable.</h1>
-    <p>La page que vous recherchez n'existe pas ou a été déplacée.</p>
-    <a href="/" class="btn">Retour à l'accueil</a>
+    <h1>{% trans "Cette page est introuvable." %}</h1>
+    <p>{% trans "La page que vous recherchez n'existe pas ou a été déplacée." %}</p>
+    <a href="/" class="btn">{% trans "Retour à l'accueil" %}</a>
   </div>
 </body>
 </html>
 {% else %}
 <!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="UTF-8"><title>404 — Introuvable</title></head>
+<html lang="{{ LANGUAGE_CODE|default:'fr' }}">
+<head><meta charset="UTF-8"><title>{% trans "404 — Introuvable" %}</title></head>
 <body style="font-family:sans-serif;text-align:center;padding:4rem">
-  <h1>404 — Page introuvable</h1>
-  <p>La page demandée n'existe pas.</p>
-  <a href="/">Retour à l'accueil</a>
+  <h1>{% trans "404 — Page introuvable" %}</h1>
+  <p>{% trans "La page demandée n'existe pas." %}</p>
+  <a href="/">{% trans "Retour à l'accueil" %}</a>
 </body>
 </html>
 {% endif %}

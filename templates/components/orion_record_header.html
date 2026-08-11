@@ -1,4 +1,4 @@
-{#
+{% comment %}
   En-tête d'une fiche.
   Variables attendues dans le contexte (ou passées via {% include ... with %}):
     record_title        — titre principal (string)
@@ -9,7 +9,7 @@
     record_delete_msg   — message de confirmation suppression
     record_actions      — liste de dicts {url, icon, label, color} (optionnel)
     record_extra_btn    — HTML brut de boutons supplémentaires (optionnel)
-#}
+{% endcomment %}
 <div class="orion-record-header">
   <div class="orion-record-header-left">
     <h1 class="orion-record-title">{{ record_title }}</h1>

@@ -1,0 +1,44 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Module indisponible — Orion ERP" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center py-5 text-center" style="min-height:50vh;">
+  <div style="max-width:480px;">
+    <div class="mb-4" style="color:#6B7280;font-size:3rem;">
+      <i class="bi bi-lock"></i>
+    </div>
+    <p style="color:var(--orion-gold,#D6B36A);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;">
+      {% trans "Module indisponible" %}
+    </p>
+    <h1 class="h3 fw-bold mb-3" style="color:var(--orion-text,#F7F2E7);">
+      {% trans "Module non activé" %}
+    </h1>
+    <p class="mb-4" style="color:var(--orion-text-muted,#A09A8A);line-height:1.7;">
+      {% trans "Ce module n'est pas activé pour" %}
+      {% if active_company %}<strong style="color:var(--orion-text,#F7F2E7);">{{ active_company.name }}</strong>{% else %}{% trans "l'entreprise sélectionnée" %}{% endif %}.
+      {% trans "Contactez votre Super Admin pour l'activer." %}
+    </p>
+    {% if module_code %}
+    <p class="mb-4" style="font-size:.8rem;color:#6B7280;">
+      <code style="background:rgba(255,255,255,.05);padding:2px 8px;border-radius:4px;">{{ module_code }}</code>
+    </p>
+    {% endif %}
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+      <a href="javascript:history.back()"
+         class="orion-btn sm"
+         style="background:rgba(255,255,255,.06);color:var(--orion-text,#F7F2E7);border:1px solid rgba(255,255,255,.1);">
+        <i class="bi bi-arrow-left me-1"></i> {% trans "Retour" %}
+      </a>
+      {% if request.user.is_superuser %}
+      <a href="{% url 'private_saas:company_modules' pk=active_company.id %}"
+         class="orion-btn sm"
+         style="background:var(--orion-gold,#D6B36A);color:#0B0B0D;font-weight:600;">
+        <i class="bi bi-puzzle me-1"></i> {% trans "Gérer les modules" %}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

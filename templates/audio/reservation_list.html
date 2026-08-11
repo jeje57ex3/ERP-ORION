@@ -1,13 +1,14 @@
 ﻿{% extends "erp_base.html" %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Réservations matériel</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Réservations et locations de matériel audio/AV.</p>{% endblock %}
+{% load i18n %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans 'Réservations matériel' %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans 'Réservations et locations de matériel audio/AV.' %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle réservation</a>
+<a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle réservation' %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="filter-chips mb-3">
-  <a href="{% url 'audio:reservation_list' %}" class="filter-chip {% if not status %}active{% endif %}">Toutes</a>
+  <a href="{% url 'audio:reservation_list' %}" class="filter-chip {% if not status %}active{% endif %}">{% trans 'Toutes' %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -16,7 +17,7 @@
 <div class="erp-card">
   <div class="table-responsive">
     <table class="table erp-orion-table mb-0">
-      <thead><tr><th>Matériel</th><th>Événement</th><th>Client</th><th>Début</th><th>Fin</th><th class="text-end">Qté</th><th class="text-end">Total HT</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr><th>{% trans 'Matériel' %}</th><th>{% trans 'Événement' %}</th><th>{% trans 'Client' %}</th><th>{% trans 'Début' %}</th><th>{% trans 'Fin' %}</th><th class="text-end">{% trans 'Qté' %}</th><th class="text-end">{% trans 'Total HT' %}</th><th>{% trans 'Statut' %}</th><th class="text-end">{% trans 'Actions' %}</th></tr></thead>
       <tbody>
         {% for res in reservations %}
         <tr>
@@ -28,11 +29,11 @@
           <td class="text-end small">{{ res.quantity }}</td>
           <td class="text-end small fw-semibold">{{ res.total_amount }} €</td>
           <td>
-            {% if res.status == 'pending' %}<span class="badge-status badge-pending">En attente</span>
-            {% elif res.status == 'confirmed' %}<span class="badge-status badge-paid">Confirmée</span>
-            {% elif res.status == 'checked_out' %}<span class="badge-status badge-partial">Sorti</span>
-            {% elif res.status == 'returned' %}<span class="badge-status badge-sent">Rendu</span>
-            {% elif res.status == 'cancelled' %}<span class="badge-status badge-cancelled">Annulée</span>{% endif %}
+            {% if res.status == 'pending' %}<span class="badge-status badge-pending">{% trans 'En attente' %}</span>
+            {% elif res.status == 'confirmed' %}<span class="badge-status badge-paid">{% trans 'Confirmée' %}</span>
+            {% elif res.status == 'checked_out' %}<span class="badge-status badge-partial">{% trans 'Sorti' %}</span>
+            {% elif res.status == 'returned' %}<span class="badge-status badge-sent">{% trans 'Rendu' %}</span>
+            {% elif res.status == 'cancelled' %}<span class="badge-status badge-cancelled">{% trans 'Annulée' %}</span>{% endif %}
           </td>
           <td><div class="row-actions"></div></td>
         </tr>
@@ -40,9 +41,9 @@
         <tr><td colspan="9">
           <div class="empty-state">
             <i class="bi bi-calendar-check empty-icon"></i>
-            <h4>Aucune réservation</h4>
-            <p>Réservez du matériel pour un événement ou un client.</p>
-            <a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle réservation</a>
+            <h4>{% trans 'Aucune réservation' %}</h4>
+            <p>{% trans 'Réservez du matériel pour un événement ou un client.' %}</p>
+            <a href="{% url 'audio:reservation_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle réservation' %}</a>
           </div>
         </td></tr>
         {% endfor %}

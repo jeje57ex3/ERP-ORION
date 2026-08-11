@@ -1,10 +1,10 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block page_header %}
 <div class="orion-page-header">
   <div>
-    <h1 class="page-title">Notifications</h1>
+    <h1 class="page-title">{% trans "Notifications" %}</h1>
     <p class="text-muted mb-0 small">{{ page_obj.paginator.count }} notification{{ page_obj.paginator.count|pluralize }}</p>
   </div>
   <div class="page-header-actions gap-2">
@@ -12,7 +12,7 @@
     <a href="{% url 'core:notifications_read_all' %}"
        class="orion-btn orion-btn-outline"
        onclick="fetch(this.href,{method:'GET'}).then(()=>location.reload());return false;">
-      <i class="bi bi-check2-all me-1"></i>Tout marquer lu
+      <i class="bi bi-check2-all me-1"></i>{% trans "Tout marquer lu" %}
     </a>
     {% endif %}
   </div>
@@ -21,13 +21,13 @@
 <!-- Onglets de filtre -->
 <div class="orion-filter-bar mt-3">
   <a href="?filter=all" class="orion-filter-chip {% if filter_type == 'all' %}active{% endif %}">
-    Toutes
+    {% trans "Toutes" %}
   </a>
   <a href="?filter=unread" class="orion-filter-chip {% if filter_type == 'unread' %}active{% endif %}">
-    Non lues
+    {% trans "Non lues" %}
   </a>
   <a href="?filter=read" class="orion-filter-chip {% if filter_type == 'read' %}active{% endif %}">
-    Lues
+    {% trans "Lues" %}
   </a>
 </div>
 {% endblock %}
@@ -52,7 +52,7 @@
           <p class="mb-0 small text-muted mt-1">{{ notif.message }}</p>
           {% if notif.link %}
           <a href="{{ notif.link }}" class="small text-primary mt-1 d-inline-block">
-            <i class="bi bi-arrow-right me-1"></i>Voir le détail
+            <i class="bi bi-arrow-right me-1"></i>{% trans "Voir le détail" %}
           </a>
           {% endif %}
         </div>
@@ -72,7 +72,7 @@
         {% if page_obj.has_previous %}
         <li class="page-item"><a class="page-link" href="?filter={{ filter_type }}&page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left"></i></a></li>
         {% endif %}
-        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+        <li class="page-item disabled"><span class="page-link">{% blocktrans with num=page_obj.number total=page_obj.paginator.num_pages %}Page {{ num }} / {{ total }}{% endblocktrans %}</span></li>
         {% if page_obj.has_next %}
         <li class="page-item"><a class="page-link" href="?filter={{ filter_type }}&page={{ page_obj.next_page_number }}"><i class="bi bi-chevron-right"></i></a></li>
         {% endif %}
@@ -84,8 +84,8 @@
   {% else %}
   <div class="orion-empty-premium py-5">
     <div class="orion-empty-icon"><i class="bi bi-bell-slash"></i></div>
-    <h5>Aucune notification</h5>
-    <p class="text-muted">Vous êtes à jour !</p>
+    <h5>{% trans "Aucune notification" %}</h5>
+    <p class="text-muted">{% trans "Vous êtes à jour !" %}</p>
   </div>
   {% endif %}
 </div>

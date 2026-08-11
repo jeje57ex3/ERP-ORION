@@ -2,8 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Demande enregistrée — {% if company %}{{ company.name }}{% else %}Orion ERP{% endif %}</title>
   {% load static %}
+  {% load i18n %}
+  {% trans "Demande enregistrée" as cp_success_title %}
+  <title>{{ cp_success_title }} — {% if company %}{{ company.name }}{% else %}Orion ERP{% endif %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -29,37 +31,37 @@
   <div class="icon-wrap email">
     <i class="bi bi-envelope-check" style="font-size:2.2rem;color:#D4A843"></i>
   </div>
-  <h3 class="fw-bold mb-1" style="color:#1a0e05">Vérifiez votre email</h3>
+  <h3 class="fw-bold mb-1" style="color:#1a0e05">{% trans "Vérifiez votre email" %}</h3>
   <p class="text-muted" style="font-size:.9rem">
-    Un email de vérification vient d'être envoyé à
-    {% if email %}<strong>{{ email }}</strong>{% else %}votre adresse{% endif %}.
+    {% trans "Un email de vérification vient d'être envoyé à" %}
+    {% if email %}<strong>{{ email }}</strong>{% else %}{% trans "votre adresse" %}{% endif %}.
   </p>
 
   <ul class="step-list">
     <li>
       <span class="step-num">1</span>
-      <span>Consultez votre boîte mail et cliquez sur le lien de confirmation.</span>
+      <span>{% trans "Consultez votre boîte mail et cliquez sur le lien de confirmation." %}</span>
     </li>
     {% if needs_approval %}
     <li>
       <span class="step-num">2</span>
-      <span>Votre demande sera examinée par l'équipe {% if company %}{{ company.name }}{% endif %}.</span>
+      <span>{% blocktrans with company_name=company.name|default:"" %}Votre demande sera examinée par l'équipe {{ company_name }}.{% endblocktrans %}</span>
     </li>
     <li>
       <span class="step-num">3</span>
-      <span>Vous recevrez un email dès que votre espace client sera activé.</span>
+      <span>{% trans "Vous recevrez un email dès que votre espace client sera activé." %}</span>
     </li>
     {% else %}
     <li>
       <span class="step-num">2</span>
-      <span>Votre espace client sera activé automatiquement après vérification.</span>
+      <span>{% trans "Votre espace client sera activé automatiquement après vérification." %}</span>
     </li>
     {% endif %}
   </ul>
 
   <p class="text-muted" style="font-size:.78rem">
     <i class="bi bi-info-circle me-1"></i>
-    Si vous ne recevez pas l'email dans quelques minutes, vérifiez vos spams.
+    {% trans "Si vous ne recevez pas l'email dans quelques minutes, vérifiez vos spams." %}
   </p>
 
   {% elif needs_approval %}
@@ -67,24 +69,24 @@
   <div class="icon-wrap wait">
     <i class="bi bi-hourglass-split" style="font-size:2.2rem;color:#2563EB"></i>
   </div>
-  <h3 class="fw-bold mb-1" style="color:#1a0e05">Demande en attente</h3>
+  <h3 class="fw-bold mb-1" style="color:#1a0e05">{% trans "Demande en attente" %}</h3>
   <p class="text-muted" style="font-size:.9rem">
-    Votre email est confirmé. Votre demande est maintenant en attente de validation
-    par l'équipe {% if company %}{{ company.name }}{% endif %}.
+    {% blocktrans with company_name=company.name|default:"" %}Votre email est confirmé. Votre demande est maintenant en attente de validation
+    par l'équipe {{ company_name }}.{% endblocktrans %}
   </p>
 
   <ul class="step-list">
     <li>
       <span class="step-num" style="background:#22c55e">✓</span>
-      <span>Adresse email vérifiée</span>
+      <span>{% trans "Adresse email vérifiée" %}</span>
     </li>
     <li>
       <span class="step-num">2</span>
-      <span>Validation par l'équipe en cours…</span>
+      <span>{% trans "Validation par l'équipe en cours…" %}</span>
     </li>
     <li>
       <span class="step-num">3</span>
-      <span>Vous recevrez un email de confirmation dès l'activation de votre espace.</span>
+      <span>{% trans "Vous recevrez un email de confirmation dès l'activation de votre espace." %}</span>
     </li>
   </ul>
 
@@ -93,18 +95,18 @@
   <div class="icon-wrap" style="background:#dcfce7">
     <i class="bi bi-check-circle" style="font-size:2.2rem;color:#16a34a"></i>
   </div>
-  <h3 class="fw-bold mb-1" style="color:#1a0e05">Espace client créé !</h3>
+  <h3 class="fw-bold mb-1" style="color:#1a0e05">{% trans "Espace client créé !" %}</h3>
   <p class="text-muted" style="font-size:.9rem">
-    Votre espace client est maintenant actif. Vous pouvez vous connecter dès maintenant.
+    {% trans "Votre espace client est maintenant actif. Vous pouvez vous connecter dès maintenant." %}
   </p>
   <a href="{% url 'client_portal:login' %}" style="display:inline-block;background:#D4A843;color:#1a0e05;font-weight:700;border-radius:9px;padding:.7rem 2rem;text-decoration:none;margin-top:.5rem">
-    <i class="bi bi-box-arrow-in-right me-1"></i>Se connecter
+    <i class="bi bi-box-arrow-in-right me-1"></i>{% trans "Se connecter" %}
   </a>
   {% endif %}
 
   <br>
   <a href="{% url 'client_portal:login' %}" class="btn-back">
-    <i class="bi bi-arrow-left me-1"></i>Retour à la connexion
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Retour à la connexion" %}
   </a>
 </div>
 

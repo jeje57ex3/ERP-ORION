@@ -1,4 +1,5 @@
-{# Composant : barre de recherche avec formulaire GET
+{% load i18n %}
+{% comment %} Composant : barre de recherche avec formulaire GET
    Usage : {% include "components/search_bar.html" with placeholder="Rechercher un client..." value=request.GET.q %}
    Variables :
      - placeholder  : texte placeholder (défaut "Rechercher...")
@@ -7,7 +8,10 @@
      - action       : URL du formulaire (défaut URL courante)
      - size         : "sm" (défaut) ou vide pour taille normale
      - width_class  : classe CSS de largeur (défaut "")
-#}
+{% endcomment %}
+{% trans "Rechercher..." as orion_search_bar_default_placeholder %}
+{% trans "Effacer la recherche" as orion_search_bar_clear_title %}
+{% trans "Effacer" as orion_search_bar_clear_label %}
 <form
   method="get"
   action="{{ action|default:'' }}"
@@ -23,17 +27,17 @@
       name="{{ param|default:'q' }}"
       value="{{ value|default:'' }}"
       class="form-control border-start-0 shadow-none"
-      placeholder="{{ placeholder|default:'Rechercher...' }}"
+      placeholder="{{ placeholder|default:orion_search_bar_default_placeholder }}"
       autocomplete="off"
       id="searchBarInput-{{ param|default:'q' }}"
-      aria-label="{{ placeholder|default:'Rechercher...' }}"
+      aria-label="{{ placeholder|default:orion_search_bar_default_placeholder }}"
     >
     {% if value %}
     <a
       href="{{ action|default:'?' }}{% if action %}?{% else %}?{% endif %}"
       class="input-group-text bg-transparent border-start-0 text-muted text-decoration-none"
-      title="Effacer la recherche"
-      aria-label="Effacer"
+      title="{{ orion_search_bar_clear_title }}"
+      aria-label="{{ orion_search_bar_clear_label }}"
     >
       <i class="bi bi-x-lg"></i>
     </a>

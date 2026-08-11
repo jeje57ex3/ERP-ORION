@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'audio:equipment_list' %}">Parc matériel</a></li>
+<li class="breadcrumb-item"><a href="{% url 'audio:equipment_list' %}">{% trans 'Parc matériel' %}</a></li>
 <li class="breadcrumb-item active">{{ equipment.name }}</li>
 {% endblock %}
 
@@ -10,18 +11,18 @@
     <div>
       <h1 class="detail-title">{{ equipment.name }}</h1>
       <div class="detail-meta">
-        {% if equipment.status == 'available' %}<span class="badge-status badge-paid">Disponible</span>
-        {% elif equipment.status == 'rented' %}<span class="badge-status badge-partial">En location</span>
-        {% elif equipment.status == 'maintenance' %}<span class="badge-status badge-pending">Maintenance</span>
-        {% elif equipment.status == 'damaged' %}<span class="badge-status badge-overdue">Endommagé</span>
-        {% elif equipment.status == 'retired' %}<span class="badge-status badge-cancelled">Retiré</span>{% endif %}
+        {% if equipment.status == 'available' %}<span class="badge-status badge-paid">{% trans 'Disponible' %}</span>
+        {% elif equipment.status == 'rented' %}<span class="badge-status badge-partial">{% trans 'En location' %}</span>
+        {% elif equipment.status == 'maintenance' %}<span class="badge-status badge-pending">{% trans 'Maintenance' %}</span>
+        {% elif equipment.status == 'damaged' %}<span class="badge-status badge-overdue">{% trans 'Endommagé' %}</span>
+        {% elif equipment.status == 'retired' %}<span class="badge-status badge-cancelled">{% trans 'Retiré' %}</span>{% endif %}
         {% if equipment.brand %}<span>{{ equipment.brand }}{% if equipment.model %} {{ equipment.model }}{% endif %}</span>{% endif %}
-        {% if equipment.reference %}<span>Réf. {{ equipment.reference }}</span>{% endif %}
+        {% if equipment.reference %}<span>{% blocktrans with ref=equipment.reference %}Réf. {{ ref }}{% endblocktrans %}</span>{% endif %}
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'audio:equipment_edit' equipment.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'audio:equipment_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'audio:equipment_edit' equipment.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}</a>
+      <a href="{% url 'audio:equipment_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}</a>
     </div>
   </div>
 </div>
@@ -31,26 +32,26 @@
 <div class="row g-3">
   <div class="col-12 col-lg-4">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Caractéristiques</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans 'Caractéristiques' %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Marque</label><div class="value {% if not equipment.brand %}empty{% endif %}">{{ equipment.brand|default:"—" }}</div></div>
-        <div class="info-item"><label>Modèle</label><div class="value {% if not equipment.model %}empty{% endif %}">{{ equipment.model|default:"—" }}</div></div>
-        <div class="info-item"><label>N° série</label><div class="value {% if not equipment.serial_number %}empty{% endif %}">{{ equipment.serial_number|default:"—" }}</div></div>
-        <div class="info-item"><label>Quantité totale</label><div class="value">{{ equipment.quantity }}</div></div>
-        <div class="info-item"><label>Qté disponible</label><div class="value">{{ equipment.available_quantity }}</div></div>
-        <div class="info-item"><label>Prix location/jour</label><div class="value">{{ equipment.rental_price_day }} €</div></div>
-        {% if equipment.replacement_value %}<div class="info-item"><label>Valeur remplacement</label><div class="value">{{ equipment.replacement_value }} €</div></div>{% endif %}
-        {% if equipment.purchase_date %}<div class="info-item"><label>Date achat</label><div class="value">{{ equipment.purchase_date|date:"d/m/Y" }}</div></div>{% endif %}
-        {% if equipment.next_maintenance_date %}<div class="info-item"><label>Prochaine maintenance</label><div class="value">{{ equipment.next_maintenance_date|date:"d/m/Y" }}</div></div>{% endif %}
+        <div class="info-item"><label>{% trans 'Marque' %}</label><div class="value {% if not equipment.brand %}empty{% endif %}">{{ equipment.brand|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans 'Modèle' %}</label><div class="value {% if not equipment.model %}empty{% endif %}">{{ equipment.model|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans 'N° série' %}</label><div class="value {% if not equipment.serial_number %}empty{% endif %}">{{ equipment.serial_number|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans 'Quantité totale' %}</label><div class="value">{{ equipment.quantity }}</div></div>
+        <div class="info-item"><label>{% trans 'Qté disponible' %}</label><div class="value">{{ equipment.available_quantity }}</div></div>
+        <div class="info-item"><label>{% trans 'Prix location/jour' %}</label><div class="value">{{ equipment.rental_price_day }} €</div></div>
+        {% if equipment.replacement_value %}<div class="info-item"><label>{% trans 'Valeur remplacement' %}</label><div class="value">{{ equipment.replacement_value }} €</div></div>{% endif %}
+        {% if equipment.purchase_date %}<div class="info-item"><label>{% trans 'Date achat' %}</label><div class="value">{{ equipment.purchase_date|date:"d/m/Y" }}</div></div>{% endif %}
+        {% if equipment.next_maintenance_date %}<div class="info-item"><label>{% trans 'Prochaine maintenance' %}</label><div class="value">{{ equipment.next_maintenance_date|date:"d/m/Y" }}</div></div>{% endif %}
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-8">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-calendar-check me-1 text-primary"></i>Dernières réservations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-calendar-check me-1 text-primary"></i>{% trans 'Dernières réservations' %}</h6></div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
-          <thead><tr><th>Client</th><th>Début</th><th>Fin</th><th class="text-end">Total</th><th>Statut</th></tr></thead>
+          <thead><tr><th>{% trans 'Client' %}</th><th>{% trans 'Début' %}</th><th>{% trans 'Fin' %}</th><th class="text-end">{% trans 'Total' %}</th><th>{% trans 'Statut' %}</th></tr></thead>
           <tbody>
             {% for res in reservations %}
             <tr>
@@ -61,7 +62,7 @@
               <td><span class="badge-status badge-{% if res.status == 'returned' %}paid{% elif res.status == 'confirmed' %}paid{% else %}pending{% endif %}">{{ res.get_status_display }}</span></td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="text-center text-muted py-3 small">Aucune réservation.</td></tr>
+            <tr><td colspan="5" class="text-center text-muted py-3 small">{% trans 'Aucune réservation.' %}</td></tr>
             {% endfor %}
           </tbody>
         </table>

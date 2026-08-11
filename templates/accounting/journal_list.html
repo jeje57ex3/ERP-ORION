@@ -1,17 +1,17 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Journaux — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Journaux" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Journaux</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Journaux" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'accounting:journal_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau journal</a>
+<a href="{% url 'accounting:journal_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau journal" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="orion-card">
-  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journals me-2"></i>Journaux comptables</h6></div>
+  <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-journals me-2"></i>{% trans "Journaux comptables" %}</h6></div>
   <div class="orion-orion-orion-card-body">
     {% if journals %}
     <div class="row g-3">
@@ -30,8 +30,8 @@
     {% else %}
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-journals"></i></div>
-      <div class="orion-empty-title">Aucun journal</div>
-      <div class="orion-empty-text"><a href="{% url 'accounting:journal_create' %}">Créer le premier</a>.</div>
+      <div class="orion-empty-title">{% trans "Aucun journal" %}</div>
+      <div class="orion-empty-text"><a href="{% url 'accounting:journal_create' %}">{% trans "Créer le premier" %}</a>.</div>
     </div>
     {% endif %}
   </div>

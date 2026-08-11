@@ -1,45 +1,44 @@
 {% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}Avis clients — {{ site.name }}{% endblock %}
-{% block meta_description %}Les avis et témoignages de nos clients sur nos travaux.{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Avis clients" %}{% endblock %}
+{% block meta_description %}{% trans "Les avis et témoignages de nos clients sur nos travaux." %}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero">
-  <div class="btp-container">
-    <span class="btp-h-label" style="color:var(--btp-secondary)">Témoignages</span>
-    <h1>L'avis de nos clients</h1>
-    <p>La satisfaction de nos clients est notre priorité. Découvrez leurs témoignages.</p>
+<section class="site-section" style="padding-top:60px">
+  <div class="site-container">
+    <span class="site-h-label">{% trans "Témoignages" %}</span>
+    <h1 class="site-h-xxl">{% trans "L'avis de nos clients" %}</h1>
+    <p class="site-subtitle">{% trans "La satisfaction de nos clients est notre priorité. Découvrez leurs témoignages." %}</p>
   </div>
 </section>
 
 {% if avg_rating %}
-<section class="btp-section-sm btp-section-white">
-  <div class="btp-container" style="text-align:center">
-    <div style="font-size:3.5rem;font-weight:700;color:var(--btp-secondary);font-family:var(--btp-font-h)">{{ avg_rating|floatformat:1 }}/5</div>
-    <div class="btp-stars" data-rating="{{ avg_rating|floatformat:'0' }}" style="font-size:1.75rem;margin:.5rem 0"></div>
-    <p class="btp-muted">Basé sur {{ reviews|length }} avis clients</p>
+<section class="site-section-sm">
+  <div class="site-container" style="text-align:center">
+    <div style="font-size:3.5rem;font-weight:800;color:var(--site-accent);font-family:var(--site-font-h)">{{ avg_rating|floatformat:1 }}/5</div>
+    <div class="site-testimonial-stars" style="font-size:1.5rem;margin:.5rem 0">{% for i in "12345" %}<i class="bi {% if forloop.counter <= avg_rating %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</div>
+    <p class="site-muted">{% with count=reviews|length %}{% blocktrans %}Basé sur {{ count }} avis clients{% endblocktrans %}{% endwith %}</p>
   </div>
 </section>
 {% endif %}
 
-<section class="btp-section btp-section-bg">
-  <div class="btp-container">
+<section class="site-section site-section-alt">
+  <div class="site-container">
     {% if reviews %}
-    <div class="btp-reviews-grid">
+    <div class="site-grid site-grid-3">
       {% for review in reviews %}
-      <div class="btp-review-card btp-reveal">
-        <div class="btp-stars" data-rating="{{ review.rating }}"></div>
-        <p class="btp-review-text">{{ review.comment }}</p>
-        <div class="btp-reviewer">{{ review.customer_name }}</div>
-        {% if review.customer_city %}<div class="btp-reviewer-city"><i class="bi bi-geo-alt"></i> {{ review.customer_city }}</div>{% endif %}
-        {% if review.work_type %}<div style="margin-top:.5rem"><span class="btp-tag">{{ review.get_work_type_display }}</span></div>{% endif %}
+      <div class="site-testimonial-card site-reveal" style="max-width:none;text-align:left">
+        <div class="site-testimonial-stars">{% for i in "12345" %}<i class="bi {% if forloop.counter <= review.rating %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</div>
+        <p>{{ review.comment }}</p>
+        <p class="site-muted" style="margin-top:1rem;font-weight:600">{{ review.customer_name }}{% if review.customer_city %} — {{ review.customer_city }}{% endif %}</p>
+        {% if review.work_type %}<span class="site-badge" style="margin-top:.6rem">{{ review.get_work_type_display }}</span>{% endif %}
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div style="text-align:center;padding:4rem 0;color:var(--btp-muted)">
-      <i class="bi bi-chat-quote" style="font-size:3rem;display:block;margin-bottom:1rem"></i>
-      <p>Les avis de nos clients arrivent bientôt.</p>
+    <div style="text-align:center;padding:4rem 0" class="site-muted">
+      <i class="bi bi-chat-quote" style="font-size:3rem;display:block;margin-bottom:1rem" aria-hidden="true"></i>
+      <p>{% trans "Les avis de nos clients arrivent bientôt." %}</p>
     </div>
     {% endif %}
   </div>

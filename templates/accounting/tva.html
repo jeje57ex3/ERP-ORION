@@ -1,24 +1,25 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">TVA</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "TVA" %}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Simulation de déclaration TVA sur la période sélectionnée.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Simulation de déclaration TVA sur la période sélectionnée." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card mb-4">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-percent me-2"></i>Période de calcul</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-percent me-2"></i>{% trans "Période de calcul" %}</h6></div>
   <div class="erp-orion-orion-card-body">
     <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
       <div>
-        <label class="form-label">Du</label>
+        <label class="form-label">{% trans "Du" %}</label>
         <input type="date" name="start" class="form-control" value="{{ period_start }}">
       </div>
       <div>
-        <label class="form-label">Au</label>
+        <label class="form-label">{% trans "Au" %}</label>
         <input type="date" name="end" class="form-control" value="{{ period_end }}">
       </div>
-      <button type="submit" class="orion-btn primary"><i class="bi bi-calculator me-1"></i>Calculer</button>
+      <button type="submit" class="orion-btn primary"><i class="bi bi-calculator me-1"></i>{% trans "Calculer" %}</button>
     </form>
   </div>
 </div>
@@ -28,13 +29,13 @@
   <div class="col-md-4">
     <div class="kpi-card" style="--kpi-color:#EF4444">
       <div class="kpi-icon"><i class="bi bi-arrow-up-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ collected|floatformat:2 }} €</div><div class="kpi-label">TVA collectée</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ collected|floatformat:2 }} €</div><div class="kpi-label">{% trans "TVA collectée" %}</div></div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="kpi-card" style="--kpi-color:#10B981">
       <div class="kpi-icon"><i class="bi bi-arrow-down-circle"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ deductible|floatformat:2 }} €</div><div class="kpi-label">TVA déductible</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ deductible|floatformat:2 }} €</div><div class="kpi-label">{% trans "TVA déductible" %}</div></div>
     </div>
   </div>
   <div class="col-md-4">
@@ -42,7 +43,7 @@
       <div class="kpi-icon"><i class="bi bi-balance-scale"></i></div>
       <div class="kpi-body">
         <div class="kpi-value">{{ solde|floatformat:2 }} €</div>
-        <div class="kpi-label">{% if solde > 0 %}TVA à payer{% else %}Crédit de TVA{% endif %}</div>
+        <div class="kpi-label">{% if solde > 0 %}{% trans "TVA à payer" %}{% else %}{% trans "Crédit de TVA" %}{% endif %}</div>
       </div>
     </div>
   </div>
@@ -50,12 +51,12 @@
 
 {% if tax_rates %}
 <div class="erp-card">
-  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>Taux de TVA configurés</h6></div>
+  <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>{% trans "Taux de TVA configurés" %}</h6></div>
   <div class="erp-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
         <thead class="table-light">
-          <tr><th>Nom</th><th>Taux</th><th>Type</th></tr>
+          <tr><th>{% trans "Nom" %}</th><th>{% trans "Taux" %}</th><th>{% trans "Type" %}</th></tr>
         </thead>
         <tbody>
           {% for tax in tax_rates %}

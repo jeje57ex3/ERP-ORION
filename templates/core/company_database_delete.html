@@ -1,16 +1,16 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Suppression base — {{ company.name }}{% endblock %}
+{% block title %}{% blocktrans %}Suppression base — {{ company.name }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:company_list' %}">Entreprises</a></li>
-<li class="breadcrumb-item"><a href="{% url 'core:company_database' company.pk %}">Base de données</a></li>
-<li class="breadcrumb-item active text-danger">Suppression</li>
+<li class="breadcrumb-item"><a href="{% url 'core:company_list' %}">{% trans "Entreprises" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'core:company_database' company.pk %}">{% trans "Base de données" %}</a></li>
+<li class="breadcrumb-item active text-danger">{% trans "Suppression" %}</li>
 {% endblock %}
 
-{% block page_title %}<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Suppression définitive</span>{% endblock %}
+{% block page_title %}<span class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>{% trans "Suppression définitive" %}</span>{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -19,34 +19,34 @@
     <div class="orion-alert orion-alert-danger mb-4">
       <i class="bi bi-exclamation-octagon-fill fs-4"></i>
       <div>
-        <strong>Attention — Action irréversible</strong><br>
-        La suppression définitive de la base <code>{{ company.database_name }}</code> effacera toutes les données métier de <strong>{{ company.name }}</strong>.
-        Une sauvegarde sera créée automatiquement avant suppression.
+        <strong>{% trans "Attention — Action irréversible" %}</strong><br>
+        {% blocktrans with dbname=company.database_name cname=company.name %}La suppression définitive de la base <code>{{ dbname }}</code> effacera toutes les données métier de <strong>{{ cname }}</strong>.{% endblocktrans %}
+        {% trans "Une sauvegarde sera créée automatiquement avant suppression." %}
       </div>
     </div>
 
     <div class="orion-card">
       <div class="orion-orion-orion-card-header" style="background:#FEE2E2;border-bottom:1px solid #FECACA">
-        <h5 class="orion-card-title text-danger"><i class="bi bi-database-x me-2"></i>Supprimer la base {{ company.database_name }}</h5>
+        <h5 class="orion-card-title text-danger"><i class="bi bi-database-x me-2"></i>{% blocktrans with dbname=company.database_name %}Supprimer la base {{ dbname }}{% endblocktrans %}</h5>
       </div>
       <div class="orion-orion-orion-card-body">
         <div class="mb-4">
-          <p class="fw-semibold">Cette action va :</p>
+          <p class="fw-semibold">{% trans "Cette action va :" %}</p>
           <ul class="small text-muted">
-            <li>Créer une sauvegarde SQL dans <code>media/backups/databases/</code></li>
-            <li>Exécuter <code>DROP DATABASE {{ company.database_name }}</code></li>
-            <li>Marquer l'entreprise comme "Supprimée"</li>
-            <li>Supprimer l'alias Django <code>{{ company.db_alias }}</code></li>
-            <li>Enregistrer l'action dans le journal d'audit</li>
+            <li>{% trans "Créer une sauvegarde SQL dans" %} <code>media/backups/databases/</code></li>
+            <li>{% blocktrans with dbname=company.database_name %}Exécuter <code>DROP DATABASE {{ dbname }}</code>{% endblocktrans %}</li>
+            <li>{% trans 'Marquer l\'entreprise comme "Supprimée"' %}</li>
+            <li>{% trans "Supprimer l'alias Django" %} <code>{{ company.db_alias }}</code></li>
+            <li>{% trans "Enregistrer l'action dans le journal d'audit" %}</li>
           </ul>
         </div>
 
         <div class="mb-4">
           <label class="orion-form-label fw-bold" for="confirmText">
-            Pour confirmer, tapez exactement :<br>
+            {% trans "Pour confirmer, tapez exactement :" %}<br>
             <code class="user-select-all text-danger">{{ confirmation_text }}</code>
           </label>
-          <p class="text-muted small mt-1">Copiez-collez ce texte exactement dans le champ ci-dessous.</p>
+          <p class="text-muted small mt-1">{% trans "Copiez-collez ce texte exactement dans le champ ci-dessous." %}</p>
         </div>
 
         <form method="post" id="deleteForm">
@@ -56,16 +56,16 @@
             name="confirmation_text"
             class="orion-form-control font-monospace mb-4"
             rows="3"
-            placeholder="Tapez le texte de confirmation ici…"
+            placeholder="{% trans 'Tapez le texte de confirmation ici…' %}"
             style="font-size:.82rem"
           ></textarea>
 
           <div class="d-flex gap-3">
             <a href="{% url 'core:company_database' company.pk %}" class="orion-btn orion-btn-outline flex-grow-1">
-              <i class="bi bi-arrow-left"></i>Annuler
+              <i class="bi bi-arrow-left"></i>{% trans "Annuler" %}
             </a>
             <button type="submit" class="orion-btn orion-orion-btn danger flex-grow-1" id="deleteBtn" disabled>
-              <i class="bi bi-trash"></i>Supprimer définitivement
+              <i class="bi bi-trash"></i>{% trans "Supprimer définitivement" %}
             </button>
           </div>
         </form>

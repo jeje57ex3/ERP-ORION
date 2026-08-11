@@ -1,16 +1,17 @@
 {% extends "client_portal/base_client_portal.html" %}
-{% block title %}Documents — {{ project.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans %}Documents — {{ project.name }}{% endblocktrans %}{% endblock %}
 {% block nav_projects %}active{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item active">Documents</li>
+<li class="breadcrumb-item active">{% trans 'Documents' %}</li>
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h5 class="fw-bold mb-0">Documents — {{ project.name }}</h5>
+  <h5 class="fw-bold mb-0">{% blocktrans %}Documents — {{ project.name }}{% endblocktrans %}</h5>
   {% if account.can_upload %}
   <button class="orion-btn warning orion-btn sm" data-bs-toggle="collapse" data-bs-target="#upload-form">
-    <i class="bi bi-cloud-upload me-1"></i>Ajouter
+    <i class="bi bi-cloud-upload me-1"></i>{% trans 'Ajouter' %}
   </button>
   {% endif %}
 </div>
@@ -20,9 +21,9 @@
   <div class="bg-white border rounded-3 p-4">
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      <label class="form-label small fw-semibold">Fichiers à envoyer</label>
+      <label class="form-label small fw-semibold">{% trans 'Fichiers à envoyer' %}</label>
       <input type="file" name="files" class="form-control mb-3" multiple>
-      <button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-cloud-upload me-1"></i>Envoyer</button>
+      <button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-cloud-upload me-1"></i>{% trans 'Envoyer' %}</button>
     </form>
   </div>
 </div>
@@ -33,7 +34,7 @@
   <div class="table-responsive">
     <table class="orion-table mb-0">
       <thead class="table-light"><tr>
-        <th>Document</th><th>Type</th><th>Date</th><th></th>
+        <th>{% trans 'Document' %}</th><th>{% trans 'Type' %}</th><th>{% trans 'Date' %}</th><th></th>
       </tr></thead>
       <tbody>
       {% for doc in documents %}
@@ -48,7 +49,7 @@
         <td class="text-muted small">{{ doc.added_at|date:"d/m/Y" }}</td>
         <td class="text-end">
           {% if doc.client_can_download %}
-          <a href="{{ doc.file.url }}" class="orion-btn sm btn-outline-secondary" download><i class="bi bi-download me-1"></i>Télécharger</a>
+          <a href="{{ doc.file.url }}" class="orion-btn sm btn-outline-secondary" download><i class="bi bi-download me-1"></i>{% trans 'Télécharger' %}</a>
           {% endif %}
         </td>
       </tr>
@@ -60,7 +61,7 @@
 {% else %}
 <div class="bg-white border rounded-3 p-5 text-center text-muted">
   <i class="bi bi-folder-x fs-1 d-block mb-3"></i>
-  <h6>Aucun document disponible pour l'instant</h6>
+  <h6>{% trans "Aucun document disponible pour l'instant" %}</h6>
 </div>
 {% endif %}
 {% endblock %}

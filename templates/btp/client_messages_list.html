@@ -1,10 +1,11 @@
-﻿{% extends "base.html" %}`n{% load static %}
-{% block title %}Messages clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Messages clients" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0"><i class="bi bi-chat-dots me-2 text-warning"></i>Messages clients</h4>
-  {% if unread_total > 0 %}<span class="orion-badge danger fs-6">{{ unread_total }} non lu{{ unread_total|pluralize }}</span>{% endif %}
+  <h4 class="fw-bold mb-0"><i class="bi bi-chat-dots me-2 text-warning"></i>{% trans "Messages clients" %}</h4>
+  {% if unread_total > 0 %}<span class="orion-badge danger fs-6">{% blocktrans count counter=unread_total %}{{ counter }} non lu{% plural %}{{ counter }} non lus{% endblocktrans %}</span>{% endif %}
 </div>
 
 <div class="orion-card mb-3">
@@ -12,18 +13,18 @@
     <form method="get" class="row g-2 align-items-end">
       <div class="col-md-3">
         <select name="status" class="form-select form-select-sm">
-          <option value="">Tous les statuts</option>
-          <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Ouvert</option>
-          <option value="waiting_client" {% if request.GET.status == 'waiting_client' %}selected{% endif %}>En attente client</option>
-          <option value="waiting_manager" {% if request.GET.status == 'waiting_manager' %}selected{% endif %}>En attente responsable</option>
-          <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>Résolu</option>
+          <option value="">{% trans "Tous les statuts" %}</option>
+          <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>{% trans "Ouvert" %}</option>
+          <option value="waiting_client" {% if request.GET.status == 'waiting_client' %}selected{% endif %}>{% trans "En attente client" %}</option>
+          <option value="waiting_manager" {% if request.GET.status == 'waiting_manager' %}selected{% endif %}>{% trans "En attente responsable" %}</option>
+          <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>{% trans "Résolu" %}</option>
         </select>
       </div>
       <div class="col-md-3">
-        <input type="text" name="q" class="form-control form-control-sm" placeholder="Sujet ou chantier..." value="{{ request.GET.q }}">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Sujet ou chantier...' %}" value="{{ request.GET.q }}">
       </div>
       <div class="col-md-2 d-flex gap-2">
-        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">Filtrer</button>
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">{% trans "Filtrer" %}</button>
         <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
       </div>
     </form>
@@ -46,15 +47,15 @@
           </div>
           <div class="text-end">
             <div class="text-muted" style="font-size:.7rem">{{ conv.updated_at|timesince }}</div>
-            {% if conv.unread_by_manager > 0 %}<span class="orion-badge danger mt-1">{{ conv.unread_by_manager }} nouveau</span>{% endif %}
+            {% if conv.unread_by_manager > 0 %}<span class="orion-badge danger mt-1">{{ conv.unread_by_manager }} {% trans "nouveau" %}</span>{% endif %}
           </div>
         </div>
       </div>
       <div>
-        {% if conv.status == 'waiting_manager' %}<span class="orion-badge orion-badge-danger">À traiter</span>
-        {% elif conv.status == 'waiting_client' %}<span class="orion-badge orion-badge-warning">Att. client</span>
-        {% elif conv.status == 'resolved' %}<span class="orion-badge orion-badge-success">Résolu</span>
-        {% elif conv.status == 'open' %}<span class="orion-badge gold">Ouvert</span>
+        {% if conv.status == 'waiting_manager' %}<span class="orion-badge orion-badge-danger">{% trans "À traiter" %}</span>
+        {% elif conv.status == 'waiting_client' %}<span class="orion-badge orion-badge-warning">{% trans "Att. client" %}</span>
+        {% elif conv.status == 'resolved' %}<span class="orion-badge orion-badge-success">{% trans "Résolu" %}</span>
+        {% elif conv.status == 'open' %}<span class="orion-badge gold">{% trans "Ouvert" %}</span>
         {% else %}<span class="orion-badge orion-badge-secondary">{{ conv.status }}</span>{% endif %}
       </div>
     </div>
@@ -63,8 +64,9 @@
   {% else %}
   <div class="orion-empty">
     <div class="orion-empty-icon"><i class="bi bi-chat-slash"></i></div>
-    <div class="orion-empty-title">Aucune conversation</div>
+    <div class="orion-empty-title">{% trans "Aucune conversation" %}</div>
   </div>
   {% endif %}
 </div>
 {% endblock %}
+</content>

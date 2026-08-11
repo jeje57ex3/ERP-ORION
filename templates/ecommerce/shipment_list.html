@@ -1,20 +1,21 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
 {% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Expéditions</li>
+<li class="breadcrumb-item active">{% trans "Expéditions" %}</li>
 {% endblock %}
 
-{% block page_subtitle %}<p class="orion-page-subtitle">Suivez la préparation et l'acheminement de toutes vos expéditions.</p>{% endblock %}
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Suivez la préparation et l'acheminement de toutes vos expéditions." %}</p>{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'ecommerce:shipment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle expédition</a>
-<a href="{% url 'ecommerce:shipment_label' %}" class="orion-btn orion-btn-gold"><i class="bi bi-upc-scan me-1"></i>Générer étiquette</a>
-<a href="{% url 'ecommerce:shipment_export' %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
+<a href="{% url 'ecommerce:shipment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle expédition" %}</a>
+<a href="{% url 'ecommerce:shipment_label' %}" class="orion-btn orion-btn-gold"><i class="bi bi-upc-scan me-1"></i>{% trans "Générer étiquette" %}</a>
+<a href="{% url 'ecommerce:shipment_export' %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>{% trans "Exporter" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -37,25 +38,25 @@
       <div class="orion-kpi-icon" style="background:#FFFBEB;color:#F59E0B"><i class="bi bi-box-seam"></i></div>
       <div>
         <div class="orion-kpi-value">{{ to_prepare_count|default:"0" }}</div>
-        <div class="orion-kpi-label">À préparer</div>
+        <div class="orion-kpi-label">{% trans "À préparer" %}</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#6366F1">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-upc-scan"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-upc-scan"></i></div>
       <div>
         <div class="orion-kpi-value">{{ label_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Étiquettes générées</div>
+        <div class="orion-kpi-label">{% trans "Étiquettes générées" %}</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#3B82F6">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#3B82F6"><i class="bi bi-truck"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-truck"></i></div>
       <div>
         <div class="orion-kpi-value">{{ shipped_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Expédiées</div>
+        <div class="orion-kpi-label">{% trans "Expédiées" %}</div>
       </div>
     </div>
   </div>
@@ -64,7 +65,7 @@
       <div class="orion-kpi-icon" style="background:#F0FDF4;color:#16A34A"><i class="bi bi-check2-circle"></i></div>
       <div>
         <div class="orion-kpi-value">{{ delivered_month|default:"0" }}</div>
-        <div class="orion-kpi-label">Livrées ce mois</div>
+        <div class="orion-kpi-label">{% trans "Livrées ce mois" %}</div>
       </div>
     </div>
   </div>
@@ -72,14 +73,14 @@
 
 <!-- Chips statut -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'ecommerce:shipment_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Toutes</a>
-  <a href="?status=to_prepare" class="orion-filter-chip {% if status == 'to_prepare' %}active{% endif %}">À préparer</a>
-  <a href="?status=label_generated" class="orion-filter-chip {% if status == 'label_generated' %}active{% endif %}">Étiquette générée</a>
-  <a href="?status=shipped" class="orion-filter-chip {% if status == 'shipped' %}active{% endif %}">Expédiée</a>
-  <a href="?status=in_transit" class="orion-filter-chip {% if status == 'in_transit' %}active{% endif %}">En transit</a>
-  <a href="?status=delivered" class="orion-filter-chip {% if status == 'delivered' %}active{% endif %}">Livrée</a>
-  <a href="?status=delayed" class="orion-filter-chip {% if status == 'delayed' %}active{% endif %}">Retardée</a>
-  <a href="?status=lost" class="orion-filter-chip {% if status == 'lost' %}active{% endif %}">Perdue</a>
+  <a href="{% url 'ecommerce:shipment_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Toutes" %}</a>
+  <a href="?status=to_prepare" class="orion-filter-chip {% if status == 'to_prepare' %}active{% endif %}">{% trans "À préparer" %}</a>
+  <a href="?status=label_generated" class="orion-filter-chip {% if status == 'label_generated' %}active{% endif %}">{% trans "Étiquette générée" %}</a>
+  <a href="?status=shipped" class="orion-filter-chip {% if status == 'shipped' %}active{% endif %}">{% trans "Expédiée" %}</a>
+  <a href="?status=in_transit" class="orion-filter-chip {% if status == 'in_transit' %}active{% endif %}">{% trans "En transit" %}</a>
+  <a href="?status=delivered" class="orion-filter-chip {% if status == 'delivered' %}active{% endif %}">{% trans "Livrée" %}</a>
+  <a href="?status=delayed" class="orion-filter-chip {% if status == 'delayed' %}active{% endif %}">{% trans "Retardée" %}</a>
+  <a href="?status=lost" class="orion-filter-chip {% if status == 'lost' %}active{% endif %}">{% trans "Perdue" %}</a>
 </div>
 
 <!-- Barre de filtre -->
@@ -87,16 +88,16 @@
   <form method="get" class="d-flex gap-2 flex-wrap align-items-center w-100">
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     <i class="bi bi-search text-muted"></i>
-    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="Référence, commande, client…" style="max-width:260px;">
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="{% trans 'Référence, commande, client…' %}" style="max-width:260px;">
     <select name="carrier" class="orion-filter-select">
-      <option value="">Tous transporteurs</option>
+      <option value="">{% trans "Tous transporteurs" %}</option>
       {% for c in carriers %}
       <option value="{{ c.pk }}" {% if carrier == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
     </select>
-    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
     {% if q or carrier %}
-    <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>
+    <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>{% trans "Réinit." %}</a>
     {% endif %}
   </form>
 </div>
@@ -107,14 +108,14 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Référence</th>
-          <th>Commande</th>
-          <th>Client</th>
-          <th>Transporteur</th>
-          <th>N° tracking</th>
-          <th>Date expédition</th>
-          <th>Statut</th>
-          <th class="actions">Actions</th>
+          <th>{% trans "Référence" %}</th>
+          <th>{% trans "Commande" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th>{% trans "Transporteur" %}</th>
+          <th>{% trans "N° tracking" %}</th>
+          <th>{% trans "Date expédition" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th class="actions">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -141,23 +142,23 @@
           </td>
           <td class="small text-muted">{{ shipment.shipped_at|date:"d/m/Y"|default:"—" }}</td>
           <td>
-            {% if shipment.status == 'to_prepare' %}<span class="orion-badge orion-badge-warning">À préparer</span>
-            {% elif shipment.status == 'label_generated' %}<span class="orion-badge orion-badge-info">Étiquette générée</span>
-            {% elif shipment.status == 'shipped' %}<span class="orion-badge orion-badge-info">Expédiée</span>
-            {% elif shipment.status == 'in_transit' %}<span class="orion-badge orion-badge-gold">En transit</span>
-            {% elif shipment.status == 'delivered' %}<span class="orion-badge orion-badge-success">Livrée</span>
-            {% elif shipment.status == 'delayed' %}<span class="orion-badge orion-badge-danger">Retardée</span>
-            {% elif shipment.status == 'lost' %}<span class="orion-badge orion-badge-danger">Perdue</span>
+            {% if shipment.status == 'to_prepare' %}<span class="orion-badge orion-badge-warning">{% trans "À préparer" %}</span>
+            {% elif shipment.status == 'label_generated' %}<span class="orion-badge orion-badge-info">{% trans "Étiquette générée" %}</span>
+            {% elif shipment.status == 'shipped' %}<span class="orion-badge orion-badge-info">{% trans "Expédiée" %}</span>
+            {% elif shipment.status == 'in_transit' %}<span class="orion-badge orion-badge-gold">{% trans "En transit" %}</span>
+            {% elif shipment.status == 'delivered' %}<span class="orion-badge orion-badge-success">{% trans "Livrée" %}</span>
+            {% elif shipment.status == 'delayed' %}<span class="orion-badge orion-badge-danger">{% trans "Retardée" %}</span>
+            {% elif shipment.status == 'lost' %}<span class="orion-badge orion-badge-danger">{% trans "Perdue" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ shipment.get_status_display }}</span>
             {% endif %}
           </td>
           <td class="actions">
             <div class="d-flex gap-1 justify-content-end">
               {% if shipment.tracking_url %}
-              <a href="{{ shipment.tracking_url }}" target="_blank" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Tracking"><i class="bi bi-geo-alt"></i></a>
+              <a href="{{ shipment.tracking_url }}" target="_blank" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Tracking' %}"><i class="bi bi-geo-alt"></i></a>
               {% endif %}
-              <a href="{% url 'ecommerce:shipment_notify' shipment.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Notifier client"><i class="bi bi-bell"></i></a>
-              <a href="{% url 'ecommerce:shipment_dispute' shipment.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="Litige"><i class="bi bi-exclamation-triangle"></i></a>
+              <a href="{% url 'ecommerce:shipment_notify' shipment.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Notifier client' %}"><i class="bi bi-bell"></i></a>
+              <a href="{% url 'ecommerce:shipment_dispute' shipment.pk %}" class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="{% trans 'Litige' %}"><i class="bi bi-exclamation-triangle"></i></a>
             </div>
           </td>
         </tr>
@@ -166,9 +167,9 @@
           <td colspan="8">
             <div class="orion-empty">
               <i class="bi bi-truck" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
-              <h5 style="color:var(--orion-primary)">Aucune expédition</h5>
-              <p class="text-muted mb-3">Les expéditions de commandes apparaîtront ici.</p>
-              <a href="{% url 'ecommerce:shipment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle expédition</a>
+              <h5 style="color:var(--orion-primary)">{% trans "Aucune expédition" %}</h5>
+              <p class="text-muted mb-3">{% trans "Les expéditions de commandes apparaîtront ici." %}</p>
+              <a href="{% url 'ecommerce:shipment_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle expédition" %}</a>
             </div>
           </td>
         </tr>

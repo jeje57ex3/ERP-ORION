@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
 <li class="breadcrumb-item active">{{ website.name }}</li>
 {% endblock %}
 
@@ -18,19 +19,19 @@
     </div>
     <div class="detail-actions">
       {% if website.site_type == 'ecommerce' %}
-      <a href="{% url 'websites:store_dashboard' website.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-shop me-1"></i>Dashboard boutique</a>
+      <a href="{% url 'websites:store_dashboard' website.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-shop me-1"></i>{% trans "Dashboard boutique" %}</a>
       {% endif %}
       {% if website.status != 'published' %}
       <form method="post" action="{% url 'websites:website_publish' website.pk %}" class="d-inline">{% csrf_token %}
-        <button type="submit" class="btn btn-outline-success orion-btn sm"><i class="bi bi-broadcast me-1"></i>Publier</button>
+        <button type="submit" class="btn btn-outline-success orion-btn sm"><i class="bi bi-broadcast me-1"></i>{% trans "Publier" %}</button>
       </form>
       {% else %}
       <form method="post" action="{% url 'websites:website_unpublish' website.pk %}" class="d-inline">{% csrf_token %}
-        <button type="submit" class="btn btn-outline-warning orion-btn sm"><i class="bi bi-pause me-1"></i>Dépublier</button>
+        <button type="submit" class="btn btn-outline-warning orion-btn sm"><i class="bi bi-pause me-1"></i>{% trans "Dépublier" %}</button>
       </form>
       {% endif %}
-      <a href="{% url 'websites:website_edit' website.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
-      <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+      <a href="{% url 'websites:website_edit' website.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'websites:website_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
     </div>
   </div>
 </div>
@@ -41,9 +42,9 @@
 {# ── Raccourcis & URLs ────────────────────────────────────────────────────── #}
 <div class="erp-card mb-4">
   <div class="orion-orion-card-header d-flex align-items-center justify-content-between">
-    <h6 class="card-title mb-0"><i class="bi bi-link-45deg me-1 text-primary"></i>Raccourcis & URLs du site</h6>
+    <h6 class="card-title mb-0"><i class="bi bi-link-45deg me-1 text-primary"></i>{% trans "Raccourcis & URLs du site" %}</h6>
     {% if website.status == 'published' %}
-    <span class="orion-badge success">En ligne</span>
+    <span class="orion-badge success">{% trans "En ligne" %}</span>
     {% else %}
     <span class="orion-badge warning text-dark">{{ website.get_status_display }}</span>
     {% endif %}
@@ -58,13 +59,13 @@
             <i class="bi bi-globe2 {% if website.status == 'published' %}text-success{% else %}text-muted{% endif %} fs-5"></i>
           </div>
           <div class="flex-grow-1 overflow-hidden">
-            <div class="small text-muted fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase">Site public (Django)</div>
+            <div class="small text-muted fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase">{% trans "Site public (Django)" %}</div>
             <div class="d-flex align-items-center gap-1">
               <code class="small text-truncate d-block" style="font-size:.78rem;max-width:260px">
                 http://127.0.0.1:8000/sites/{{ website.public_slug }}/
               </code>
               <button class="btn btn-link orion-btn sm p-0 text-muted flex-shrink-0"
-                      title="Copier"
+                      title="{% trans 'Copier' %}"
                       onclick="navigator.clipboard.writeText('http://127.0.0.1:8000/sites/{{ website.public_slug }}/');this.innerHTML='<i class=\'bi bi-check-lg text-success\'></i>';setTimeout(()=>this.innerHTML='<i class=\'bi bi-clipboard\'></i>',2000)">
                 <i class="bi bi-clipboard"></i>
               </button>
@@ -72,7 +73,7 @@
           </div>
           {% if website.status == 'published' %}
           <a href="/sites/{{ website.public_slug }}/" target="_blank" class="orion-btn success orion-btn sm flex-shrink-0">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Ouvrir
+            <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Ouvrir" %}
           </a>
           {% endif %}
         </div>
@@ -86,18 +87,18 @@
             <i class="bi bi-shop text-primary fs-5"></i>
           </div>
           <div class="flex-grow-1 overflow-hidden">
-            <div class="small fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#2563eb">Boutique React (Vite)</div>
+            <div class="small fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#2563eb">{% trans "Boutique React (Vite)" %}</div>
             <div class="d-flex align-items-center gap-1">
               <code class="small text-truncate d-block" style="font-size:.78rem;max-width:260px;color:#1d4ed8">http://localhost:5173/</code>
               <button class="btn btn-link orion-btn sm p-0 text-muted flex-shrink-0"
-                      title="Copier"
+                      title="{% trans 'Copier' %}"
                       onclick="navigator.clipboard.writeText('http://localhost:5173/');this.innerHTML='<i class=\'bi bi-check-lg text-success\'></i>';setTimeout(()=>this.innerHTML='<i class=\'bi bi-clipboard\'></i>',2000)">
                 <i class="bi bi-clipboard"></i>
               </button>
             </div>
           </div>
           <a href="http://localhost:5173/" target="_blank" class="orion-btn primary orion-btn sm flex-shrink-0">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Ouvrir
+            <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Ouvrir" %}
           </a>
         </div>
       </div>
@@ -105,24 +106,24 @@
       {# ── Pages clés boutique ── #}
       <div class="col-12">
         <div class="d-flex flex-wrap gap-1 pt-1">
-          <span class="small text-muted me-1" style="font-size:.72rem;line-height:28px">Pages rapides :</span>
+          <span class="small text-muted me-1" style="font-size:.72rem;line-height:28px">{% trans "Pages rapides :" %}</span>
           {# Liens statiques boutique React #}
-          <a href="http://localhost:5173/" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Accueil</a>
-          <a href="http://localhost:5173/vetements" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Vêtements</a>
-          <a href="http://localhost:5173/montres" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Montres</a>
-          <a href="http://localhost:5173/maquillage" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Maquillage</a>
-          <a href="http://localhost:5173/packs" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Packs</a>
+          <a href="http://localhost:5173/" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Accueil" %}</a>
+          <a href="http://localhost:5173/vetements" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Vêtements" %}</a>
+          <a href="http://localhost:5173/montres" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Montres" %}</a>
+          <a href="http://localhost:5173/maquillage" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Maquillage" %}</a>
+          <a href="http://localhost:5173/packs" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Packs" %}</a>
           <a href="http://localhost:5173/drops" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Drops</a>
-          <a href="http://localhost:5173/communaute" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Communauté</a>
-          <a href="http://localhost:5173/montres/galerie-3d" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Galerie 3D</a>
-          <a href="http://localhost:5173/montres/comparer" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Comparateur</a>
-          <a href="http://localhost:5173/guide-taille" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Guide taille</a>
-          <a href="http://localhost:5173/maquillage/quiz" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">Quiz beauté</a>
-          <a href="http://localhost:5173/maquillage/trouver-ma-teinte" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">Trouver ma teinte</a>
-          <a href="http://localhost:5173/carte-cadeau" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">Carte cadeau</a>
-          <a href="http://localhost:5173/creer-mon-look" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">Créer mon look</a>
+          <a href="http://localhost:5173/communaute" target="_blank" class="badge text-decoration-none bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">{% trans "Communauté" %}</a>
+          <a href="http://localhost:5173/montres/galerie-3d" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">{% trans "Galerie 3D" %}</a>
+          <a href="http://localhost:5173/montres/comparer" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">{% trans "Comparateur" %}</a>
+          <a href="http://localhost:5173/guide-taille" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">{% trans "Guide taille" %}</a>
+          <a href="http://localhost:5173/maquillage/quiz" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">{% trans "Quiz beauté" %}</a>
+          <a href="http://localhost:5173/maquillage/trouver-ma-teinte" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">{% trans "Trouver ma teinte" %}</a>
+          <a href="http://localhost:5173/carte-cadeau" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">{% trans "Carte cadeau" %}</a>
+          <a href="http://localhost:5173/creer-mon-look" target="_blank" class="badge text-decoration-none bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">{% trans "Créer mon look" %}</a>
           <a href="http://localhost:5173/checkout" target="_blank" class="badge text-decoration-none bg-secondary-subtle text-secondary border border-secondary-subtle py-1 px-2">Checkout</a>
-          <a href="http://localhost:5173/compte" target="_blank" class="badge text-decoration-none bg-secondary-subtle text-secondary border border-secondary-subtle py-1 px-2">Mon compte</a>
+          <a href="http://localhost:5173/compte" target="_blank" class="badge text-decoration-none bg-secondary-subtle text-secondary border border-secondary-subtle py-1 px-2">{% trans "Mon compte" %}</a>
         </div>
       </div>
       {% endif %}
@@ -135,11 +136,11 @@
             <i class="bi bi-globe text-secondary fs-5"></i>
           </div>
           <div class="flex-grow-1 overflow-hidden">
-            <div class="small text-muted fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase">Domaine personnalisé</div>
+            <div class="small text-muted fw-semibold mb-0" style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase">{% trans "Domaine personnalisé" %}</div>
             <div class="d-flex align-items-center gap-1">
               <code class="small text-truncate d-block" style="font-size:.78rem;max-width:260px">https://{{ website.domain }}/</code>
               <button class="btn btn-link orion-btn sm p-0 text-muted flex-shrink-0"
-                      title="Copier"
+                      title="{% trans 'Copier' %}"
                       onclick="navigator.clipboard.writeText('https://{{ website.domain }}/');this.innerHTML='<i class=\'bi bi-check-lg text-success\'></i>';setTimeout(()=>this.innerHTML='<i class=\'bi bi-clipboard\'></i>',2000)">
                 <i class="bi bi-clipboard"></i>
               </button>
@@ -156,11 +157,11 @@
       {% if website.site_type != 'ecommerce' and website.status == 'published' %}
       <div class="col-12">
         <div class="d-flex flex-wrap gap-1 pt-1">
-          <span class="small text-muted me-1" style="font-size:.72rem;line-height:28px">Pages du site :</span>
-          <a href="/sites/{{ website.public_slug }}/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Accueil</a>
+          <span class="small text-muted me-1" style="font-size:.72rem;line-height:28px">{% trans "Pages du site :" %}</span>
+          <a href="/sites/{{ website.public_slug }}/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">{% trans "Accueil" %}</a>
           <a href="/sites/{{ website.public_slug }}/blog/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Blog</a>
           <a href="/sites/{{ website.public_slug }}/contact/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Contact</a>
-          <a href="/sites/{{ website.public_slug }}/devis/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">Demande de devis</a>
+          <a href="/sites/{{ website.public_slug }}/devis/" target="_blank" class="badge text-decoration-none bg-success-subtle text-success border border-success-subtle py-1 px-2">{% trans "Demande de devis" %}</a>
         </div>
       </div>
       {% endif %}
@@ -173,26 +174,26 @@
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#6366F1">
       <div class="kpi-icon"><i class="bi bi-file-earmark-text"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ pages_count }}</div><div class="kpi-label">Pages</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ pages_count }}</div><div class="kpi-label">{% trans "Pages" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#3B82F6">
       <div class="kpi-icon"><i class="bi bi-journal-text"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ posts_count }}</div><div class="kpi-label">Articles</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ posts_count }}</div><div class="kpi-label">{% trans "Articles" %}</div></div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#F59E0B">
       <div class="kpi-icon"><i class="bi bi-envelope"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ new_messages }}</div><div class="kpi-label">Nvx messages</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ new_messages }}</div><div class="kpi-label">{% trans "Nvx messages" %}</div></div>
     </div>
   </div>
   {% if website.site_type == 'ecommerce' %}
   <div class="col-6 col-md-3">
     <div class="kpi-card" style="--kpi-color:#10B981">
       <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
-      <div class="kpi-body"><div class="kpi-value">{{ store_products_count }}</div><div class="kpi-label">Produits boutique</div></div>
+      <div class="kpi-body"><div class="kpi-value">{{ store_products_count }}</div><div class="kpi-label">{% trans "Produits boutique" %}</div></div>
     </div>
   </div>
   {% endif %}
@@ -201,20 +202,20 @@
 <div class="row g-3">
   <div class="col-12 col-lg-6">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Informations" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Domaine</label><div class="value {% if not website.domain %}empty{% endif %}">{{ website.domain|default:"—" }}</div></div>
-        {% if website.subdomain %}<div class="info-item"><label>Sous-domaine</label><div class="value">{{ website.subdomain }}</div></div>{% endif %}
-        <div class="info-item"><label>Email contact</label><div class="value {% if not website.contact_email %}empty{% endif %}">{{ website.contact_email|default:"—" }}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value {% if not website.contact_phone %}empty{% endif %}">{{ website.contact_phone|default:"—" }}</div></div>
-        {% if website.site_type == 'ecommerce' %}<div class="info-item"><label>Devise</label><div class="value">{{ website.currency }}</div></div>{% endif %}
+        <div class="info-item"><label>{% trans "Domaine" %}</label><div class="value {% if not website.domain %}empty{% endif %}">{{ website.domain|default:"—" }}</div></div>
+        {% if website.subdomain %}<div class="info-item"><label>{% trans "Sous-domaine" %}</label><div class="value">{{ website.subdomain }}</div></div>{% endif %}
+        <div class="info-item"><label>{% trans "Email contact" %}</label><div class="value {% if not website.contact_email %}empty{% endif %}">{{ website.contact_email|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value {% if not website.contact_phone %}empty{% endif %}">{{ website.contact_phone|default:"—" }}</div></div>
+        {% if website.site_type == 'ecommerce' %}<div class="info-item"><label>{% trans "Devise" %}</label><div class="value">{{ website.currency }}</div></div>{% endif %}
         <div class="info-item"><label>Google Analytics</label><div class="value {% if not website.google_analytics_id %}empty{% endif %}">{{ website.google_analytics_id|default:"—" }}</div></div>
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-share me-1 text-primary"></i>Réseaux sociaux</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-share me-1 text-primary"></i>{% trans "Réseaux sociaux" %}</h6></div>
       <div class="info-grid">
         <div class="info-item"><label>Facebook</label><div class="value small {% if not website.facebook_url %}empty{% endif %}">{% if website.facebook_url %}<a href="{{ website.facebook_url }}" target="_blank">{{ website.facebook_url|truncatechars:40 }}</a>{% else %}—{% endif %}</div></div>
         <div class="info-item"><label>Instagram</label><div class="value small {% if not website.instagram_url %}empty{% endif %}">{% if website.instagram_url %}<a href="{{ website.instagram_url }}" target="_blank">{{ website.instagram_url|truncatechars:40 }}</a>{% else %}—{% endif %}</div></div>
@@ -225,17 +226,17 @@
 </div>
 
 <div class="mt-3 d-flex gap-2 flex-wrap">
-  <a href="{% url 'websites:page_list' %}?site={{ website.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>Pages ({{ pages_count }})</a>
-  <a href="{% url 'websites:blog_list' %}?site={{ website.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-journal-text me-1"></i>Articles ({{ posts_count }})</a>
-  <a href="{% url 'websites:message_list' %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-envelope me-1"></i>Messages {% if new_messages %}({{ new_messages }} nouveau{{ new_messages|pluralize }}){% endif %}</a>
-  <a href="{% url 'websites:domain_dashboard' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-globe2 me-1"></i>Domaines</a>
+  <a href="{% url 'websites:page_list' %}?site={{ website.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>{% trans "Pages" %} ({{ pages_count }})</a>
+  <a href="{% url 'websites:blog_list' %}?site={{ website.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-journal-text me-1"></i>{% trans "Articles" %} ({{ posts_count }})</a>
+  <a href="{% url 'websites:message_list' %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-envelope me-1"></i>{% trans "Messages" %} {% if new_messages %}({{ new_messages }} {% trans "nouveau" %}{{ new_messages|pluralize }}){% endif %}</a>
+  <a href="{% url 'websites:domain_dashboard' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-globe2 me-1"></i>{% trans "Domaines" %}</a>
   {% if website.site_type == 'ecommerce' %}
-  <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-box-seam me-1"></i>Produits ({{ store_products_count }})</a>
-  <a href="{% url 'websites:store_order_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-cart me-1"></i>Commandes ({{ store_orders_count }})</a>
-  <a href="{% url 'websites:store_category_list' website.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-tags me-1"></i>Catégories</a>
+  <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-box-seam me-1"></i>{% trans "Produits" %} ({{ store_products_count }})</a>
+  <a href="{% url 'websites:store_order_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-cart me-1"></i>{% trans "Commandes" %} ({{ store_orders_count }})</a>
+  <a href="{% url 'websites:store_category_list' website.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-tags me-1"></i>{% trans "Catégories" %}</a>
   {% endif %}
   <form method="post" action="{% url 'websites:website_duplicate' website.pk %}" class="d-inline">{% csrf_token %}
-    <button type="submit" class="btn btn-outline-secondary orion-btn sm" onclick="return confirm('Dupliquer ce site ?')"><i class="bi bi-copy me-1"></i>Dupliquer</button>
+    <button type="submit" class="btn btn-outline-secondary orion-btn sm" onclick="return confirm('{% trans "Dupliquer ce site ?" %}')"><i class="bi bi-copy me-1"></i>{% trans "Dupliquer" %}</button>
   </form>
 </div>
 {% endblock %}

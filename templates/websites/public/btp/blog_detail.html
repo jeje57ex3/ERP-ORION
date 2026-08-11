@@ -1,56 +1,55 @@
-﻿{% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}{{ post.title }} — {{ site.name }}{% endblock %}
+{% extends "websites/public/btp/base.html" %}
+{% load static i18n %}
+{% block title %}{{ post.title }}{% endblock %}
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|truncatewords:25 }}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero" style="padding:48px 0 40px">
-  <div class="btp-container">
-    <div class="btp-breadcrumb" style="color:#C9B89A;margin-bottom:1rem">
-      <a href="{% url 'public_websites:btp_home' site.public_slug %}" style="color:var(--btp-secondary)"><i class="bi bi-house"></i></a>
-      <span class="btp-breadcrumb-sep">/</span>
-      <a href="{% url 'public_websites:btp_blog' site.public_slug %}" style="color:var(--btp-secondary)">Blog</a>
-      <span class="btp-breadcrumb-sep">/</span>
+<section class="site-section" style="padding:56px 0 40px">
+  <div class="site-container">
+    {% trans "Fil d'Ariane" as breadcrumb_label %}
+    <nav aria-label="{{ breadcrumb_label }}" style="color:var(--site-muted);margin-bottom:1rem;font-size:.85rem">
+      <a href="{% url 'public_websites:btp_home' site.public_slug %}" style="color:var(--site-primary)"><i class="bi bi-house" aria-hidden="true"></i></a>
+      <span aria-hidden="true">/</span>
+      <a href="{% url 'public_websites:btp_blog' site.public_slug %}" style="color:var(--site-primary)">{% trans "Blog" %}</a>
+      <span aria-hidden="true">/</span>
       <span>{{ post.title|truncatechars:40 }}</span>
-    </div>
-    {% if post.category %}<span class="btp-h-label" style="color:var(--btp-secondary)">{{ post.category.name }}</span>{% endif %}
-    <h1 style="max-width:720px">{{ post.title }}</h1>
-    <p style="color:#C9B89A;margin-top:.75rem;font-size:.9rem">
-      <i class="bi bi-calendar3"></i> {{ post.published_at|date:"d F Y" }}
-      {% if post.reading_time %}&nbsp;&nbsp;<i class="bi bi-clock"></i> {{ post.reading_time }} min de lecture{% endif %}
+    </nav>
+    {% if post.category %}<span class="site-h-label">{{ post.category.name }}</span>{% endif %}
+    <h1 class="site-h-xxl" style="max-width:720px">{{ post.title }}</h1>
+    <p class="site-muted" style="margin-top:.75rem;font-size:.9rem">
+      <i class="bi bi-calendar3" aria-hidden="true"></i> {{ post.published_at|date:"d F Y" }}
+      {% if post.reading_time %}&nbsp;&nbsp;<i class="bi bi-clock" aria-hidden="true"></i> {% blocktrans with minutes=post.reading_time %}{{ minutes }} min de lecture{% endblocktrans %}{% endif %}
     </p>
   </div>
 </section>
 
 {% if post.cover_image %}
-<div style="background:var(--btp-bg);padding:0;overflow:hidden;max-height:420px">
-  <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" style="width:100%;max-height:420px;object-fit:cover">
+<div style="max-height:420px;overflow:hidden">
+  <img src="{{ post.cover_image.url }}" alt="{{ post.title }}" loading="lazy" style="width:100%;max-height:420px;object-fit:cover">
 </div>
 {% endif %}
 
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-container-sm">
-      <div class="btp-blog-content" style="font-size:1.02rem;line-height:1.8;color:var(--btp-text)">
-        {{ post.content|safe }}
-      </div>
-
-      {% if related_posts %}
-      <div class="btp-divider"></div>
-      <h3 style="margin-bottom:1.25rem">Articles similaires</h3>
-      <div class="btp-blog-grid" style="grid-template-columns:repeat(3,1fr)">
-        {% for related in related_posts %}
-        <article class="btp-blog-card">
-          {% if related.cover_image %}<img src="{{ related.cover_image.url }}" alt="{{ related.title }}" class="btp-blog-img">{% endif %}
-          <div class="btp-blog-body">
-            <h3><a href="{% url 'public_websites:btp_blog_detail' site.public_slug related.slug %}" style="color:inherit;text-decoration:none">{{ related.title }}</a></h3>
-            <div class="btp-blog-date"><i class="bi bi-calendar3"></i> {{ related.published_at|date:"d/m/Y" }}</div>
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-      {% endif %}
+<section class="site-section site-section-alt">
+  <div class="site-container-sm">
+    <div style="font-size:1.02rem;line-height:1.8">
+      {{ post.content|safe }}
     </div>
+
+    {% if related_posts %}
+    <hr style="border-color:var(--site-border);margin:3rem 0">
+    <h3 style="margin-bottom:1.25rem">{% trans "Articles similaires" %}</h3>
+    <div class="site-grid site-grid-3">
+      {% for related in related_posts %}
+      <article class="site-card" style="padding:0;overflow:hidden">
+        {% if related.cover_image %}<img src="{{ related.cover_image.url }}" alt="{{ related.title }}" loading="lazy" style="aspect-ratio:16/9;object-fit:cover;width:100%">{% endif %}
+        <div style="padding:1.2rem">
+          <h3><a href="{% url 'public_websites:btp_blog_detail' site.public_slug related.slug %}" style="color:inherit">{{ related.title }}</a></h3>
+          <p class="site-muted" style="margin-top:.6rem;font-size:.82rem"><i class="bi bi-calendar3" aria-hidden="true"></i> {{ related.published_at|date:"d/m/Y" }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 </section>
 

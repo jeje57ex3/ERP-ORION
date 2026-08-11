@@ -1,7 +1,7 @@
-{# Composant : modal de confirmation Orion
+{% comment %} Composant : modal de confirmation Orion
    Variables : modal_id, modal_title, modal_message, modal_action_url, modal_action_label,
                modal_type (danger|warning), modal_icon, csrf_token
-#}
+{% endcomment %}
 <div id="{{ modal_id|default:'orionConfirmModal' }}" class="orion-confirm-backdrop"
      style="display:none" role="dialog" aria-modal="true"
      aria-labelledby="{{ modal_id|default:'orionConfirmModal' }}-title">

@@ -1,0 +1,127 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:index' %}">{% trans 'Sites web' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Cartes cadeaux' %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'websites:gift_card_create' %}" class="orion-btn primary">
+  <i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle carte cadeau' %}
+</a>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">{% for m in messages %}<div class="orion-alert {{ m.tags }} alert-dismissible fade show">{{ m }}<button class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}</div>
+{% endif %}
+
+<!-- KPI -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#D1FAE5;color:#059669"><i class="bi bi-gift"></i></div>
+      <div class="orion-kpi-value">{{ total_active }}</div>
+      <div class="orion-kpi-label">{% trans 'Actives' %}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+    <i class="bi bi-search text-muted"></i>
+    {% trans 'Code ou email…' as gc_search_placeholder %}
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="{{ gc_search_placeholder }}" style="max-width:220px">
+    <select name="status" class="orion-filter-select">
+      <option value="">{% trans 'Tous les statuts' %}</option>
+      {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans 'Filtrer' %}</button>
+    {% if q or status %}<a href="{% url 'websites:gift_card_list' %}" class="orion-btn orion-btn-outline orion-btn sm"><i class="bi bi-x"></i> {% trans 'Réinit.' %}</a>{% endif %}
+  </form>
+</div>
+
+<div class="orion-card">
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>{% trans 'Code' %}</th>
+          <th>{% trans 'Destinataire' %}</th>
+          <th class="text-end">{% trans 'Montant initial' %}</th>
+          <th class="text-end">{% trans 'Solde restant' %}</th>
+          <th>{% trans 'Statut' %}</th>
+          <th>{% trans 'Expiration' %}</th>
+          <th class="actions">{% trans 'Actions' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for gc in gift_cards %}
+        <tr>
+          <td class="fw-semibold font-monospace">{{ gc.code }}</td>
+          <td>
+            {{ gc.assigned_to_email|default:"—" }}
+            {% if gc.purchased_by_email and gc.purchased_by_email != gc.assigned_to_email %}
+            <div class="text-muted small">{% blocktrans with email=gc.purchased_by_email %}Acheté par : {{ email }}{% endblocktrans %}</div>
+            {% endif %}
+          </td>
+          <td class="text-end">{{ gc.initial_amount|floatformat:2 }} €</td>
+          <td class="text-end fw-semibold {% if gc.remaining_amount <= 0 %}text-danger{% elif gc.remaining_amount < gc.initial_amount %}text-warning{% else %}text-success{% endif %}">
+            {{ gc.remaining_amount|floatformat:2 }} €
+          </td>
+          <td>
+            {% if gc.status == 'active' %}
+            <span class="orion-badge orion-badge-success">{% trans 'Active' %}</span>
+            {% elif gc.status == 'used' %}
+            <span class="orion-badge orion-badge-secondary">{% trans 'Utilisée' %}</span>
+            {% elif gc.status == 'partial' %}
+            <span class="orion-badge orion-badge-warning">{% trans 'Partielle' %}</span>
+            {% elif gc.status == 'expired' %}
+            <span class="orion-badge orion-badge-danger">{% trans 'Expirée' %}</span>
+            {% else %}
+            <span class="orion-badge orion-badge-danger">{% trans 'Annulée' %}</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">{{ gc.expires_at|date:"d/m/Y"|default:"—" }}</td>
+          <td class="actions">
+            <div class="d-flex gap-1 justify-content-end">
+              {% trans 'Voir' as gc_view_title %}
+              <a href="{% url 'websites:gift_card_detail' gc.pk %}" class="orion-btn orion-btn-outline orion-btn sm orion-btn-icon" title="{{ gc_view_title }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if gc.status == 'active' %}
+              <form method="post" action="{% url 'websites:gift_card_cancel' gc.pk %}" class="d-inline">
+                {% csrf_token %}
+                {% trans 'Annuler cette carte cadeau ?' as gc_cancel_confirm %}
+                <button type="submit" class="orion-btn orion-btn-outline orion-btn sm orion-btn-icon" title="{% trans 'Annuler' %}"
+                        onclick="return confirm('{{ gc_cancel_confirm }}')">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="orion-empty">
+              <i class="bi bi-gift" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
+              <h5>{% trans 'Aucune carte cadeau' %}</h5>
+              <p class="text-muted">{% trans 'Créez votre première carte cadeau.' %}</p>
+              <a href="{% url 'websites:gift_card_create' %}" class="orion-btn primary">{% trans 'Créer une carte cadeau' %}</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

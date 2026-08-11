@@ -1,12 +1,14 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Canaux de vente — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans "Canaux de vente" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Canaux de vente</li>
+<li class="breadcrumb-item active">{% trans "Canaux de vente" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'ecommerce:sales_channel_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau canal</a>
+<a href="{% url 'ecommerce:sales_channel_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau canal" %}</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3 mb-4">
@@ -24,7 +26,7 @@
         <div class="small text-muted mb-3">
           {% if ch.url %}<div><i class="bi bi-globe me-1"></i>{{ ch.url|truncatechars:40 }}</div>{% endif %}
           <div><i class="bi bi-currency-exchange me-1"></i>{{ ch.currency }} — {{ ch.language }}</div>
-          {% if ch.last_sync %}<div><i class="bi bi-arrow-repeat me-1"></i>Sync : {{ ch.last_sync|date:"d/m/Y H:i" }}</div>{% endif %}
+          {% if ch.last_sync %}<div><i class="bi bi-arrow-repeat me-1"></i>{% trans "Sync :" %} {{ ch.last_sync|date:"d/m/Y H:i" }}</div>{% endif %}
         </div>
         <div class="d-flex gap-1 justify-content-end">
           <a href="{% url 'ecommerce:sales_channel_edit' ch.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil"></i></a>
@@ -37,8 +39,8 @@
   <div class="col-12">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-diagram-3"></i></div>
-      <div class="orion-empty-title">Aucun canal de vente configuré.</div>
-      <a href="{% url 'ecommerce:sales_channel_create' %}" class="orion-btn orion-orion-btn primary mt-2">Ajouter un canal</a>
+      <div class="orion-empty-title">{% trans "Aucun canal de vente configuré." %}</div>
+      <a href="{% url 'ecommerce:sales_channel_create' %}" class="orion-btn orion-orion-btn primary mt-2">{% trans "Ajouter un canal" %}</a>
     </div>
   </div>
   {% endfor %}

@@ -15,7 +15,7 @@
 
 /* ─── Sidebar ──────────────────────────────────────────────── */
 .erp-sidebar {
-  background: var(--orion-primary) !important;
+  background: var(--sidebar-bg, var(--orion-primary)) !important;
   border-right: 1px solid var(--orion-divider) !important;
 }
 

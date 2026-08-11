@@ -1,123 +1,82 @@
-﻿{% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}Contact — {{ site.name }}{% endblock %}
-{% block meta_description %}Contactez notre équipe pour toute question ou demande de devis.{% endblock %}
+{% extends "websites/public/btp/base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Contact" %}{% endblock %}
+{% block meta_description %}{% trans "Contactez notre équipe pour toute question ou demande de devis." %}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero">
-  <div class="btp-container">
-    <span class="btp-h-label" style="color:var(--btp-secondary)">Contact</span>
-    <h1>Parlons de votre projet</h1>
-    <p>Notre équipe vous répond sous 24h. Pour les urgences, appelez-nous directement.</p>
+<section class="site-section" style="padding-top:60px">
+  <div class="site-container">
+    <span class="site-h-label">{% trans "Contact" %}</span>
+    <h1 class="site-h-xxl">{% trans "Parlons de votre projet" %}</h1>
+    <p class="site-subtitle">{% trans "Notre équipe vous répond sous 24h. Pour les urgences, appelez-nous directement." %}</p>
   </div>
 </section>
 
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-contact-grid">
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-grid" style="grid-template-columns:1.4fr 1fr;gap:2.5rem">
 
-      <!-- Formulaire -->
       <div>
         {% if success %}
-        <div class="btp-alert btp-alert-success" style="margin-bottom:1.5rem">
-          <i class="bi bi-check-circle-fill"></i>
-          <div><strong>Message envoyé !</strong><br>Nous vous répondrons dans les meilleurs délais.</div>
+        <div class="site-card" style="border-left:4px solid var(--site-success);margin-bottom:1.5rem">
+          <i class="bi bi-check-circle-fill" style="color:var(--site-success);font-size:1.4rem" aria-hidden="true"></i>
+          <strong style="display:block;margin-top:.5rem">{% trans "Message envoyé !" %}</strong>
+          <p class="site-muted">{% trans "Nous vous répondrons dans les meilleurs délais." %}</p>
         </div>
         {% endif %}
         {% if error %}
-        <div class="btp-alert btp-alert-error" style="margin-bottom:1.5rem">
-          <i class="bi bi-exclamation-circle-fill"></i>
-          <div>{{ error }}</div>
+        <div class="site-card" style="border-left:4px solid var(--site-danger);margin-bottom:1.5rem">
+          <i class="bi bi-exclamation-circle-fill" style="color:var(--site-danger)" aria-hidden="true"></i> {{ error }}
         </div>
         {% endif %}
 
-        <form method="post" class="btp-form">
+        <form method="post" class="site-form-card" data-validate novalidate>
           {% csrf_token %}
-          <input type="text" name="website_url_field" style="display:none" tabindex="-1" autocomplete="off">
+          <input type="text" name="website_url_field" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
 
-          <div class="btp-form-row">
-            <div class="btp-form-group">
-              <label class="btp-label">Prénom</label>
-              <input type="text" name="first_name" class="btp-input" placeholder="Prénom">
-            </div>
-            <div class="btp-form-group">
-              <label class="btp-label">Nom <span class="req">*</span></label>
-              <input type="text" name="name" class="btp-input" required placeholder="Votre nom">
-            </div>
+          <div class="site-field-row">
+            <div class="site-field"><label for="c-first">{% trans "Prénom" %}</label><input type="text" id="c-first" name="first_name" placeholder="{% trans "Prénom" %}"></div>
+            <div class="site-field"><label for="c-name">{% trans "Nom" %}</label><input type="text" id="c-name" name="name" required placeholder="{% trans "Votre nom" %}"></div>
           </div>
-          <div class="btp-form-row">
-            <div class="btp-form-group">
-              <label class="btp-label">Email <span class="req">*</span></label>
-              <input type="email" name="email" class="btp-input" required placeholder="votre@email.com">
-            </div>
-            <div class="btp-form-group">
-              <label class="btp-label">Téléphone</label>
-              <input type="tel" name="phone" class="btp-input" placeholder="06 xx xx xx xx">
-            </div>
+          <div class="site-field-row">
+            <div class="site-field"><label for="c-email">Email</label><input type="email" id="c-email" name="email" required placeholder="votre@email.com"></div>
+            <div class="site-field"><label for="c-phone">{% trans "Téléphone" %}</label><input type="tel" id="c-phone" name="phone" placeholder="06 xx xx xx xx"></div>
           </div>
-          <div class="btp-form-group">
-            <label class="btp-label">Sujet <span class="req">*</span></label>
-            <input type="text" name="subject" class="btp-input" required placeholder="Objet de votre message">
-          </div>
-          <div class="btp-form-group">
-            <label class="btp-label">Message <span class="req">*</span></label>
-            <textarea name="message" class="btp-textarea" required placeholder="Décrivez votre demande..." style="min-height:150px"></textarea>
-          </div>
-          <button type="submit" class="btp-btn btp-orion-btn primary btp-btn-lg">
-            <i class="bi bi-send-fill"></i>Envoyer mon message
-          </button>
+          <div class="site-field"><label for="c-subject">{% trans "Sujet" %}</label><input type="text" id="c-subject" name="subject" required placeholder="{% trans "Objet de votre message" %}"></div>
+          <div class="site-field"><label for="c-message">{% trans "Message" %}</label><textarea id="c-message" name="message" required placeholder="{% trans "Décrivez votre demande..." %}" style="min-height:150px"></textarea></div>
+          <button type="submit" class="site-btn site-btn-primary site-btn-lg"><span class="site-btn-label"><i class="bi bi-send-fill" aria-hidden="true"></i>{% trans "Envoyer mon message" %}</span></button>
         </form>
       </div>
 
-      <!-- Infos contact -->
-      <div class="btp-contact-info-card">
-        <h3 style="margin-bottom:1.25rem;font-size:1.1rem">Nos coordonnées</h3>
+      <div class="site-card" style="height:fit-content">
+        <h3 style="margin-bottom:1.25rem;font-size:1.1rem">{% trans "Nos coordonnées" %}</h3>
 
         {% if site.contact_phone %}
-        <div class="btp-contact-info-item">
-          <div class="btp-contact-info-icon"><i class="bi bi-telephone-fill"></i></div>
-          <div>
-            <div class="btp-contact-info-label">Téléphone</div>
-            <a href="tel:{{ site.contact_phone }}" class="btp-contact-info-value" style="color:var(--btp-primary)">{{ site.contact_phone }}</a>
-          </div>
+        <div style="display:flex;gap:.8rem;align-items:flex-start;margin-bottom:1.1rem">
+          <div class="site-card-icon" style="width:40px;height:40px;font-size:1rem;margin-bottom:0"><i class="bi bi-telephone-fill" aria-hidden="true"></i></div>
+          <div><div class="site-muted" style="font-size:.8rem">{% trans "Téléphone" %}</div><a href="tel:{{ site.contact_phone }}" style="color:var(--site-primary);font-weight:600">{{ site.contact_phone }}</a></div>
         </div>
         {% endif %}
-
         {% if site.contact_email %}
-        <div class="btp-contact-info-item">
-          <div class="btp-contact-info-icon"><i class="bi bi-envelope-fill"></i></div>
-          <div>
-            <div class="btp-contact-info-label">Email</div>
-            <a href="mailto:{{ site.contact_email }}" class="btp-contact-info-value" style="color:var(--btp-primary)">{{ site.contact_email }}</a>
-          </div>
+        <div style="display:flex;gap:.8rem;align-items:flex-start;margin-bottom:1.1rem">
+          <div class="site-card-icon" style="width:40px;height:40px;font-size:1rem;margin-bottom:0"><i class="bi bi-envelope-fill" aria-hidden="true"></i></div>
+          <div><div class="site-muted" style="font-size:.8rem">Email</div><a href="mailto:{{ site.contact_email }}" style="color:var(--site-primary);font-weight:600">{{ site.contact_email }}</a></div>
         </div>
         {% endif %}
-
         {% if site.address %}
-        <div class="btp-contact-info-item">
-          <div class="btp-contact-info-icon"><i class="bi bi-geo-alt-fill"></i></div>
-          <div>
-            <div class="btp-contact-info-label">Adresse</div>
-            <div class="btp-contact-info-value">{{ site.address|linebreaksbr }}</div>
-          </div>
+        <div style="display:flex;gap:.8rem;align-items:flex-start;margin-bottom:1.1rem">
+          <div class="site-card-icon" style="width:40px;height:40px;font-size:1rem;margin-bottom:0"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></div>
+          <div><div class="site-muted" style="font-size:.8rem">{% trans "Adresse" %}</div><div>{{ site.address|linebreaksbr }}</div></div>
         </div>
         {% endif %}
-
-        <div class="btp-contact-info-item">
-          <div class="btp-contact-info-icon"><i class="bi bi-clock-fill"></i></div>
-          <div>
-            <div class="btp-contact-info-label">Délai de réponse</div>
-            <div class="btp-contact-info-value">Sous 24h ouvrées</div>
-          </div>
+        <div style="display:flex;gap:.8rem;align-items:flex-start">
+          <div class="site-card-icon" style="width:40px;height:40px;font-size:1rem;margin-bottom:0"><i class="bi bi-clock-fill" aria-hidden="true"></i></div>
+          <div><div class="site-muted" style="font-size:.8rem">{% trans "Délai de réponse" %}</div><div>{% trans "Sous 24h ouvrées" %}</div></div>
         </div>
 
         <div style="margin-top:1.5rem">
-          <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-orion-btn primary" style="width:100%;justify-content:center">
-            <i class="bi bi-pencil-square"></i>Demander un devis guidé
-          </a>
-          <a href="{% url 'public_websites:btp_emergency' site.public_slug %}" class="btp-btn btp-btn-outline" style="width:100%;justify-content:center;margin-top:.75rem">
-            <i class="bi bi-lightning-fill"></i>Signaler une urgence
-          </a>
+          <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-primary site-btn-block"><span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans "Demander un devis guidé" %}</span></a>
+          <a href="{% url 'public_websites:btp_emergency' site.public_slug %}" class="site-btn site-btn-outline site-btn-block" style="margin-top:.75rem"><span class="site-btn-label"><i class="bi bi-lightning-fill" aria-hidden="true"></i>{% trans "Signaler une urgence" %}</span></a>
         </div>
       </div>
     </div>

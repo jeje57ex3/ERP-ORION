@@ -12,9 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    allowedHosts: ['lunea.elysiums.fr', 'localhost', '127.0.0.1'],
     proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/static': { target: 'http://localhost:8000', changeOrigin: true },
+      '/api': { target: 'http://localhost:9000', changeOrigin: true },
+      '/static': { target: 'http://localhost:9000', changeOrigin: true },
     },
   },
   build: {

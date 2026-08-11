@@ -1,4 +1,5 @@
 {% extends "websites/public/base.html" %}
+{% load i18n %}
 
 {% block seo_title %}{% if page.meta_title %}{{ page.meta_title }}{% else %}{{ page.title }} — {{ site.name }}{% endif %}{% endblock %}
 {% block seo_description %}{% if page.meta_description %}{{ page.meta_description }}{% endif %}{% endblock %}
@@ -73,7 +74,7 @@
 {% else %}
 <div class="ws-section" style="background:#fff;text-align:center;padding:4rem 0">
   <div class="ws-container">
-    <p style="color:#6b7280">Cette page est en cours de rédaction.</p>
+    <p style="color:#6b7280">{% trans "Cette page est en cours de rédaction." %}</p>
   </div>
 </div>
 {% endif %}

@@ -1,23 +1,25 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 {% load humanize %}
-{% block title %}Prospects — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block title %}{% trans "Prospects" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">CRM</a></li>
-<li class="breadcrumb-item active">Prospects</li>
+<li class="breadcrumb-item"><a href="{% url 'crm:index' %}">{% trans "CRM" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Prospects" %}</li>
 {% endblock %}
+
+{% block page_subtitle %}{% trans "Suivi et qualification de vos contacts commerciaux" %}{% endblock %}
 
 {% block page_actions %}
 <a href="{% url 'crm:prospect_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-  <i class="bi bi-download"></i> Exporter
+  <i class="bi bi-download"></i> {% trans "Exporter" %}
 </a>
 <a href="{% url 'crm:prospect_convert_bulk' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-  <i class="bi bi-person-check"></i> Convertir en client
+  <i class="bi bi-person-check"></i> {% trans "Convertir en client" %}
 </a>
 <a href="{% url 'crm:prospect_create' %}" class="orion-btn orion-orion-btn primary">
-  <i class="bi bi-plus-lg"></i> Nouveau prospect
+  <i class="bi bi-plus-lg"></i> {% trans "Nouveau prospect" %}
 </a>
 {% endblock %}
 
@@ -32,24 +34,6 @@
 {% endfor %}
 {% endif %}
 
-<div class="orion-page-header">
-  <div>
-    <h1 class="orion-page-title">Prospects</h1>
-    <p class="orion-page-subtitle">Suivi et qualification de vos contacts commerciaux</p>
-  </div>
-  <div class="orion-page-actions">
-    <a href="{% url 'crm:prospect_export' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-download"></i> Exporter
-    </a>
-    <a href="{% url 'crm:prospect_convert_bulk' %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-person-check"></i> Convertir en client
-    </a>
-    <a href="{% url 'crm:prospect_create' %}" class="orion-btn orion-orion-btn primary">
-      <i class="bi bi-plus-lg"></i> Nouveau prospect
-    </a>
-  </div>
-</div>
-
 <div class="row g-3 mb-4">
   <div class="col-sm-6 col-xl-3">
     <div class="orion-kpi" style="--kpi-color: var(--orion-info)">
@@ -58,7 +42,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ total|default:"0" }}</div>
-        <div class="orion-kpi-label">Total prospects</div>
+        <div class="orion-kpi-label">{% trans "Total prospects" %}</div>
       </div>
     </div>
   </div>
@@ -69,7 +53,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ qualified|default:"0" }}</div>
-        <div class="orion-kpi-label">Qualifiés</div>
+        <div class="orion-kpi-label">{% trans "Qualifiés" %}</div>
       </div>
     </div>
   </div>
@@ -80,7 +64,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ overdue_followups|default:"0" }}</div>
-        <div class="orion-kpi-label">À relancer aujourd'hui</div>
+        <div class="orion-kpi-label">{% trans "À relancer aujourd'hui" %}</div>
       </div>
     </div>
   </div>
@@ -91,7 +75,7 @@
       </div>
       <div>
         <div class="orion-kpi-value">{{ converted_this_month|default:"0" }}</div>
-        <div class="orion-kpi-label">Convertis ce mois</div>
+        <div class="orion-kpi-label">{% trans "Convertis ce mois" %}</div>
       </div>
     </div>
   </div>
@@ -102,49 +86,49 @@
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     <div class="position-relative" style="flex:1; min-width:200px; max-width:320px">
       <i class="bi bi-search" style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--orion-muted);font-size:.8rem;pointer-events:none;"></i>
-      <input type="text" name="q" value="{{ q|default:'' }}" placeholder="Rechercher un prospect…" class="orion-search-input" style="padding-left:2rem;width:100%;">
+      <input type="text" name="q" value="{{ q|default:'' }}" placeholder="{% trans 'Rechercher un prospect…' %}" class="orion-search-input" style="padding-left:2rem;width:100%;">
     </div>
     <select name="source" class="orion-filter-select">
-      <option value="">Toutes les sources</option>
-      <option value="website">Site web</option>
-      <option value="referral">Recommandation</option>
-      <option value="cold_call">Démarchage</option>
-      <option value="event">Événement</option>
-      <option value="other">Autre</option>
+      <option value="">{% trans "Toutes les sources" %}</option>
+      <option value="website">{% trans "Site web" %}</option>
+      <option value="referral">{% trans "Recommandation" %}</option>
+      <option value="cold_call">{% trans "Démarchage" %}</option>
+      <option value="event">{% trans "Événement" %}</option>
+      <option value="other">{% trans "Autre" %}</option>
     </select>
     <select name="responsible" class="orion-filter-select">
-      <option value="">Tous les responsables</option>
+      <option value="">{% trans "Tous les responsables" %}</option>
     </select>
     <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
-      <i class="bi bi-funnel"></i> Filtrer
+      <i class="bi bi-funnel"></i> {% trans "Filtrer" %}
     </button>
     {% if q %}
     <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-orion-btn sm" style="color:var(--orion-danger);border-color:var(--orion-danger);background:transparent;">
-      <i class="bi bi-x"></i> Réinitialiser
+      <i class="bi bi-x"></i> {% trans "Réinitialiser" %}
     </a>
     {% endif %}
   </form>
 </div>
 
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <a href="{% url 'crm:prospect_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="{% url 'crm:prospect_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Tous" %}</a>
   <a href="?status=new" class="orion-filter-chip {% if status == 'new' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-info)"></span> Nouveau
+    <span class="orion-badge-dot" style="background:var(--orion-info)"></span> {% trans "Nouveau" %}
   </a>
   <a href="?status=contacted" class="orion-filter-chip {% if status == 'contacted' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-secondary)"></span> Contacté
+    <span class="orion-badge-dot" style="background:var(--orion-secondary)"></span> {% trans "Contacté" %}
   </a>
   <a href="?status=follow_up" class="orion-filter-chip {% if status == 'follow_up' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-warning)"></span> À relancer
+    <span class="orion-badge-dot" style="background:var(--orion-warning)"></span> {% trans "À relancer" %}
   </a>
   <a href="?status=qualified" class="orion-filter-chip {% if status == 'qualified' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-primary)"></span> Qualifié
+    <span class="orion-badge-dot" style="background:var(--orion-primary)"></span> {% trans "Qualifié" %}
   </a>
   <a href="?status=converted" class="orion-filter-chip {% if status == 'converted' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-success)"></span> Converti
+    <span class="orion-badge-dot" style="background:var(--orion-success)"></span> {% trans "Converti" %}
   </a>
   <a href="?status=lost" class="orion-filter-chip {% if status == 'lost' %}active{% endif %}">
-    <span class="orion-badge-dot" style="background:var(--orion-danger)"></span> Perdu
+    <span class="orion-badge-dot" style="background:var(--orion-danger)"></span> {% trans "Perdu" %}
   </a>
 </div>
 
@@ -154,15 +138,15 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Société</th>
-          <th>Source</th>
-          <th>Email</th>
-          <th>Téléphone</th>
-          <th>Statut</th>
-          <th>Prochaine relance</th>
-          <th>Responsable</th>
-          <th class="actions">Actions</th>
+          <th>{% trans "Nom" %}</th>
+          <th>{% trans "Société" %}</th>
+          <th>{% trans "Source" %}</th>
+          <th>{% trans "Email" %}</th>
+          <th>{% trans "Téléphone" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Prochaine relance" %}</th>
+          <th>{% trans "Responsable" %}</th>
+          <th class="actions">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -185,12 +169,12 @@
           </td>
           <td style="color:var(--orion-muted);font-size:.82rem;">{{ p.phone|default:"—" }}</td>
           <td>
-            {% if p.status == 'new' %}<span class="orion-badge orion-badge-info">Nouveau</span>
-            {% elif p.status == 'contacted' %}<span class="orion-badge orion-badge-secondary">Contacté</span>
-            {% elif p.status == 'follow_up' %}<span class="orion-badge orion-badge-warning">À relancer</span>
-            {% elif p.status == 'qualified' %}<span class="orion-badge orion-badge-primary">Qualifié</span>
-            {% elif p.status == 'converted' %}<span class="orion-badge orion-badge-success">Converti</span>
-            {% elif p.status == 'lost' %}<span class="orion-badge orion-badge-danger">Perdu</span>
+            {% if p.status == 'new' %}<span class="orion-badge orion-badge-info">{% trans "Nouveau" %}</span>
+            {% elif p.status == 'contacted' %}<span class="orion-badge orion-badge-secondary">{% trans "Contacté" %}</span>
+            {% elif p.status == 'follow_up' %}<span class="orion-badge orion-badge-warning">{% trans "À relancer" %}</span>
+            {% elif p.status == 'qualified' %}<span class="orion-badge orion-badge-primary">{% trans "Qualifié" %}</span>
+            {% elif p.status == 'converted' %}<span class="orion-badge orion-badge-success">{% trans "Converti" %}</span>
+            {% elif p.status == 'lost' %}<span class="orion-badge orion-badge-danger">{% trans "Perdu" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ p.get_status_display }}</span>{% endif %}
           </td>
           <td>
@@ -203,13 +187,13 @@
           <td style="color:var(--orion-muted);font-size:.82rem;">{{ p.responsible.get_full_name|default:"—" }}</td>
           <td class="actions">
             <div class="d-flex align-items-center justify-content-end gap-1">
-              <a href="{% url 'crm:prospect_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir">
+              <a href="{% url 'crm:prospect_detail' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Voir' %}">
                 <i class="bi bi-eye"></i>
               </a>
-              <a href="{% url 'crm:prospect_convert' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Convertir en client" style="color:var(--orion-success);border-color:var(--orion-success)">
+              <a href="{% url 'crm:prospect_convert' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Convertir en client' %}" style="color:var(--orion-success);border-color:var(--orion-success)">
                 <i class="bi bi-person-check"></i>
               </a>
-              <a href="{% url 'crm:prospect_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Modifier">
+              <a href="{% url 'crm:prospect_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Modifier' %}">
                 <i class="bi bi-pencil"></i>
               </a>
             </div>
@@ -242,13 +226,13 @@
 {% else %}
 <div class="orion-empty">
   <i class="bi bi-person-plus orion-empty-icon"></i>
-  <div class="orion-empty-title">Aucun prospect</div>
+  <div class="orion-empty-title">{% trans "Aucun prospect" %}</div>
   <p class="orion-empty-text">
-    {% if q or status %}Aucun prospect ne correspond à vos critères.{% else %}Commencez à suivre vos contacts commerciaux avant leur conversion en clients.{% endif %}
+    {% if q or status %}{% trans "Aucun prospect ne correspond à vos critères." %}{% else %}{% trans "Commencez à suivre vos contacts commerciaux avant leur conversion en clients." %}{% endif %}
   </p>
   {% if not q and not status %}
   <a href="{% url 'crm:prospect_create' %}" class="orion-btn orion-orion-btn primary">
-    <i class="bi bi-plus-lg"></i> Nouveau prospect
+    <i class="bi bi-plus-lg"></i> {% trans "Nouveau prospect" %}
   </a>
   {% endif %}
 </div>

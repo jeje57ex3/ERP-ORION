@@ -1,14 +1,15 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
 <div class="container-fluid py-3">
 
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans 'Sites web' %}</a></li>
       <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
-      <li class="breadcrumb-item active">Checklist publication</li>
+      <li class="breadcrumb-item active">{% trans 'Checklist publication' %}</li>
     </ol>
   </nav>
 
@@ -27,14 +28,14 @@
               </div>
               <div>
                 <div class="fw-semibold">{{ website.name }}</div>
-                <div class="text-muted small">Statut : {{ website.get_status_display }}</div>
+                <div class="text-muted small">{% blocktrans with status=website.get_status_display %}Statut : {{ status }}{% endblocktrans %}</div>
               </div>
             </div>
             <div class="text-end">
               <div class="display-6 fw-bold {% if check.ok_count == check.total_count %}text-success{% elif check.ok_count >= check.total_count|add:'-2' %}text-warning{% else %}text-danger{% endif %}">
                 {{ check.ok_count }}/{{ check.total_count }}
               </div>
-              <div class="text-muted small">critères OK</div>
+              <div class="text-muted small">{% trans 'critères OK' %}</div>
             </div>
           </div>
         </div>
@@ -44,7 +45,7 @@
       {% widthratio check.ok_count check.total_count 100 as pct %}
       <div class="mb-4">
         <div class="d-flex justify-content-between mb-1">
-          <small class="fw-medium">Progression</small>
+          <small class="fw-medium">{% trans 'Progression' %}</small>
           <small class="text-muted">{{ pct }}%</small>
         </div>
         <div class="progress" style="height:12px">
@@ -56,7 +57,7 @@
       {# Checklist #}
       <div class="card border-0 shadow-sm mb-4">
         <div class="orion-orion-card-header bg-white border-bottom">
-          <h6 class="mb-0 fw-semibold">Checklist de publication</h6>
+          <h6 class="mb-0 fw-semibold">{% trans 'Checklist de publication' %}</h6>
         </div>
         <div class="list-group list-group-flush">
           {% for item in check.checklist %}
@@ -74,9 +75,9 @@
               <div class="d-flex align-items-center gap-2">
                 <span class="fw-medium">{{ item.label }}</span>
                 {% if item.critical and not item.ok %}
-                  <span class="orion-badge danger">Bloquant</span>
+                  <span class="orion-badge danger">{% trans 'Bloquant' %}</span>
                 {% elif not item.critical and not item.ok %}
-                  <span class="orion-badge warning text-dark">Recommandé</span>
+                  <span class="orion-badge warning text-dark">{% trans 'Recommandé' %}</span>
                 {% endif %}
               </div>
               {% if not item.ok and item.advice %}
@@ -86,7 +87,7 @@
             {% if not item.ok %}
             <div>
               <a href="{% url 'websites:website_detail' website.pk %}" class="btn btn-outline-secondary orion-btn sm">
-                <i class="bi bi-pencil me-1"></i>Corriger
+                <i class="bi bi-pencil me-1"></i>{% trans 'Corriger' %}
               </a>
             </div>
             {% endif %}
@@ -101,7 +102,7 @@
           <div class="d-flex gap-3 flex-wrap align-items-center justify-content-between">
             <div>
               <a href="{% url 'websites:website_preview' website.pk %}" class="btn btn-outline-secondary" target="_blank">
-                <i class="bi bi-eye me-1"></i> Prévisualiser
+                <i class="bi bi-eye me-1"></i> {% trans 'Prévisualiser' %}
               </a>
             </div>
             <div class="d-flex gap-2">
@@ -110,20 +111,21 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="unpublish">
                 <button type="submit" class="orion-btn warning">
-                  <i class="bi bi-eye-slash me-1"></i> Dépublier le site
+                  <i class="bi bi-eye-slash me-1"></i> {% trans 'Dépublier le site' %}
                 </button>
               </form>
               {% else %}
+              {% trans 'Certains critères bloquants ne sont pas remplis. Publier quand même ?' as confirm_publish_incomplete %}
               <form method="post"
                 {% if not check.ready %}
-                  onsubmit="return confirm('Certains critères bloquants ne sont pas remplis. Publier quand même ?')"
+                  onsubmit="return confirm('{{ confirm_publish_incomplete }}')"
                 {% endif %}>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="publish">
                 <button type="submit"
                   class="btn {% if check.ready %}orion-btn success{% else %}btn-outline-success{% endif %}">
                   <i class="bi bi-globe me-1"></i>
-                  {% if check.ready %}Publier le site{% else %}Publier (incomplet){% endif %}
+                  {% if check.ready %}{% trans 'Publier le site' %}{% else %}{% trans 'Publier (incomplet)' %}{% endif %}
                 </button>
               </form>
               {% endif %}
@@ -133,7 +135,7 @@
           {% if check.critical_blocking %}
           <div class="orion-alert danger mt-3 mb-0">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            <strong>Critères bloquants non remplis :</strong>
+            <strong>{% trans 'Critères bloquants non remplis :' %}</strong>
             <ul class="mb-0 mt-1">
               {% for b in check.critical_blocking %}
               <li>{{ b.label }}</li>
@@ -143,7 +145,7 @@
           {% elif check.ready %}
           <div class="orion-alert success mt-3 mb-0">
             <i class="bi bi-check-circle me-2"></i>
-            <strong>Site prêt à publier !</strong> Tous les critères essentiels sont remplis.
+            <strong>{% trans 'Site prêt à publier !' %}</strong> {% trans 'Tous les critères essentiels sont remplis.' %}
           </div>
           {% endif %}
         </div>

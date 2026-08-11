@@ -1,7 +1,8 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accounting:fixed_asset_list' %}">Immobilisations</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:fixed_asset_list' %}">{% trans "Immobilisations" %}</a></li>
 <li class="breadcrumb-item active">{{ asset.name }}</li>
 {% endblock %}
 
@@ -9,25 +10,25 @@
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-building me-2"></i>Fiche immobilisation</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-building me-2"></i>{% trans "Fiche immobilisation" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <dl class="row small mb-0">
-          <dt class="col-6">N° immobilisation</dt><dd class="col-6"><code>{{ asset.asset_number }}</code></dd>
-          <dt class="col-6">Désignation</dt><dd class="col-6 fw-semibold">{{ asset.name }}</dd>
-          <dt class="col-6">Date d'achat</dt><dd class="col-6">{{ asset.purchase_date|date:"d/m/Y" }}</dd>
-          <dt class="col-6">Valeur d'achat</dt><dd class="col-6">{{ asset.purchase_value|floatformat:2 }} €</dd>
-          <dt class="col-6">Valeur résiduelle</dt><dd class="col-6">{{ asset.residual_value|floatformat:2 }} €</dd>
-          <dt class="col-6">Méthode amort.</dt><dd class="col-6">{{ asset.get_depreciation_method_display }}</dd>
-          <dt class="col-6">Durée</dt><dd class="col-6">{{ asset.duration_months }} mois</dd>
+          <dt class="col-6">{% trans "N° immobilisation" %}</dt><dd class="col-6"><code>{{ asset.asset_number }}</code></dd>
+          <dt class="col-6">{% trans "Désignation" %}</dt><dd class="col-6 fw-semibold">{{ asset.name }}</dd>
+          <dt class="col-6">{% trans "Date d'achat" %}</dt><dd class="col-6">{{ asset.purchase_date|date:"d/m/Y" }}</dd>
+          <dt class="col-6">{% trans "Valeur d'achat" %}</dt><dd class="col-6">{{ asset.purchase_value|floatformat:2 }} €</dd>
+          <dt class="col-6">{% trans "Valeur résiduelle" %}</dt><dd class="col-6">{{ asset.residual_value|floatformat:2 }} €</dd>
+          <dt class="col-6">{% trans "Méthode amort." %}</dt><dd class="col-6">{{ asset.get_depreciation_method_display }}</dd>
+          <dt class="col-6">{% trans "Durée" %}</dt><dd class="col-6">{% blocktrans with duration=asset.duration_months %}{{ duration }} mois{% endblocktrans %}</dd>
           <hr>
-          <dt class="col-6">Amort. cumulé</dt><dd class="col-6 text-warning fw-bold">{{ asset.accumulated_depreciation|floatformat:2 }} €</dd>
-          <dt class="col-6">VNC</dt><dd class="col-6 text-primary fw-bold">{{ asset.net_book_value|floatformat:2 }} €</dd>
-          <dt class="col-6">Dotation annuelle</dt><dd class="col-6">{{ asset.annual_depreciation|floatformat:2 }} €</dd>
-          <dt class="col-6">Statut</dt>
+          <dt class="col-6">{% trans "Amort. cumulé" %}</dt><dd class="col-6 text-warning fw-bold">{{ asset.accumulated_depreciation|floatformat:2 }} €</dd>
+          <dt class="col-6">{% trans "VNC" %}</dt><dd class="col-6 text-primary fw-bold">{{ asset.net_book_value|floatformat:2 }} €</dd>
+          <dt class="col-6">{% trans "Dotation annuelle" %}</dt><dd class="col-6">{{ asset.annual_depreciation|floatformat:2 }} €</dd>
+          <dt class="col-6">{% trans "Statut" %}</dt>
           <dd class="col-6">
-            {% if asset.status == 'active' %}<span class="orion-badge success">Actif</span>
-            {% elif asset.status == 'disposed' %}<span class="orion-badge neutral">Cédé</span>
-            {% elif asset.status == 'fully_depreciated' %}<span class="badge bg-dark">Amorti</span>{% endif %}
+            {% if asset.status == 'active' %}<span class="orion-badge success">{% trans "Actif" %}</span>
+            {% elif asset.status == 'disposed' %}<span class="orion-badge neutral">{% trans "Cédé" %}</span>
+            {% elif asset.status == 'fully_depreciated' %}<span class="badge bg-dark">{% trans "Amorti" %}</span>{% endif %}
           </dd>
         </dl>
       </div>
@@ -36,13 +37,13 @@
 
   <div class="col-lg-8">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>Plan d'amortissement</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-table me-2"></i>{% trans "Plan d'amortissement" %}</h6></div>
       <div class="erp-orion-orion-card-body p-0">
         {% if lines %}
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
             <thead class="table-light">
-              <tr><th>Période</th><th>Date dotation</th><th class="text-end">Dotation</th><th class="text-center">Statut</th></tr>
+              <tr><th>{% trans "Période" %}</th><th>{% trans "Date dotation" %}</th><th class="text-end">{% trans "Dotation" %}</th><th class="text-center">{% trans "Statut" %}</th></tr>
             </thead>
             <tbody>
               {% for line in lines %}
@@ -51,8 +52,8 @@
                 <td class="small">{{ line.depreciation_date|date:"d/m/Y" }}</td>
                 <td class="text-end fw-semibold">{{ line.amount|floatformat:2 }} €</td>
                 <td class="text-center">
-                  {% if line.status == 'posted' %}<span class="orion-badge success">Comptabilisée</span>
-                  {% else %}<span class="orion-badge neutral">Planifiée</span>{% endif %}
+                  {% if line.status == 'posted' %}<span class="orion-badge success">{% trans "Comptabilisée" %}</span>
+                  {% else %}<span class="orion-badge neutral">{% trans "Planifiée" %}</span>{% endif %}
                 </td>
               </tr>
               {% endfor %}
@@ -60,7 +61,7 @@
           </table>
         </div>
         {% else %}
-        <div class="text-center py-4 text-muted">Aucune ligne d'amortissement.</div>
+        <div class="text-center py-4 text-muted">{% trans "Aucune ligne d'amortissement." %}</div>
         {% endif %}
       </div>
     </div>

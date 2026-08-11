@@ -1,16 +1,19 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block title %}Paramètres boutique — Orion ERP{% endblock %}
+{% block title %}{% trans "Paramètres boutique" %} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Sites web</p>
-    <h1 class="orion-page-title">Paramètres boutique</h1>
-    <p class="orion-page-subtitle">Gérez les paramètres de chaque site e-commerce.</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Sites web" %}</p>
+    <h1 class="page-title">{% trans "Paramètres boutique" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Gérez les paramètres de chaque site e-commerce." %}</p>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
 {% for msg in messages %}
 <div class="orion-alert {% if msg.tags == 'error' %}danger{% else %}success{% endif %} mb-3">{{ msg }}</div>
@@ -20,7 +23,7 @@
 {% if not settings_list %}
 <div class="orion-card" style="text-align:center;padding:48px">
   <i class="bi bi-shop d-block mb-3" style="font-size:36px;opacity:.25"></i>
-  <p style="color:var(--orion-muted);font-size:14px">Aucun paramètre boutique configuré.</p>
+  <p style="color:var(--orion-muted);font-size:14px">{% trans "Aucun paramètre boutique configuré." %}</p>
   <code style="font-size:12px;color:var(--orion-muted)">python manage.py seed_website_shop_settings</code>
 </div>
 {% else %}
@@ -38,10 +41,10 @@
         <div style="font-size:11.5px;color:var(--orion-muted)">{{ s.brand_key }} · {{ s.company.name }}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-        {% if s.is_site_enabled %}<span class="orion-badge success" style="font-size:10px">Site actif</span>
-        {% else %}<span class="orion-badge neutral" style="font-size:10px">Site off</span>{% endif %}
-        {% if s.is_shop_enabled %}<span class="orion-badge success" style="font-size:10px">Shop actif</span>
-        {% else %}<span class="orion-badge neutral" style="font-size:10px">Shop off</span>{% endif %}
+        {% if s.is_site_enabled %}<span class="orion-badge success" style="font-size:10px">{% trans "Site actif" %}</span>
+        {% else %}<span class="orion-badge neutral" style="font-size:10px">{% trans "Site off" %}</span>{% endif %}
+        {% if s.is_shop_enabled %}<span class="orion-badge success" style="font-size:10px">{% trans "Shop actif" %}</span>
+        {% else %}<span class="orion-badge neutral" style="font-size:10px">{% trans "Shop off" %}</span>{% endif %}
       </div>
     </div>
 
@@ -59,40 +62,40 @@
 
     <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px">
       <a href="{% url 'website_shop_settings:general' s.pk %}" class="orion-btn small">
-        <i class="bi bi-sliders me-1"></i>Général
+        <i class="bi bi-sliders me-1"></i>{% trans "Général" %}
       </a>
       <a href="{% url 'website_shop_settings:payments' s.pk %}" class="orion-btn small">
-        <i class="bi bi-credit-card me-1"></i>Paiements
+        <i class="bi bi-credit-card me-1"></i>{% trans "Paiements" %}
       </a>
       <a href="{% url 'website_shop_settings:checkout' s.pk %}" class="orion-btn small">
-        <i class="bi bi-cart-check me-1"></i>Checkout
+        <i class="bi bi-cart-check me-1"></i>{% trans "Checkout" %}
       </a>
       <a href="{% url 'website_shop_settings:shipping' s.pk %}" class="orion-btn small">
-        <i class="bi bi-truck me-1"></i>Livraison
+        <i class="bi bi-truck me-1"></i>{% trans "Livraison" %}
       </a>
       <a href="{% url 'website_shop_settings:taxes' s.pk %}" class="orion-btn small">
-        <i class="bi bi-percent me-1"></i>Taxes
+        <i class="bi bi-percent me-1"></i>{% trans "Taxes" %}
       </a>
       <a href="{% url 'website_shop_settings:emails' s.pk %}" class="orion-btn small">
-        <i class="bi bi-envelope me-1"></i>Emails
+        <i class="bi bi-envelope me-1"></i>{% trans "Emails" %}
       </a>
       <a href="{% url 'website_shop_settings:legal' s.pk %}" class="orion-btn small">
-        <i class="bi bi-file-earmark-text me-1"></i>Légal
+        <i class="bi bi-file-earmark-text me-1"></i>{% trans "Légal" %}
       </a>
       <a href="{% url 'website_shop_settings:seo' s.pk %}" class="orion-btn small">
-        <i class="bi bi-search me-1"></i>SEO
+        <i class="bi bi-search me-1"></i>{% trans "SEO" %}
       </a>
       <a href="{% url 'website_shop_settings:cookies' s.pk %}" class="orion-btn small">
-        <i class="bi bi-shield-check me-1"></i>Cookies
+        <i class="bi bi-shield-check me-1"></i>{% trans "Cookies" %}
       </a>
       <a href="{% url 'website_shop_settings:stock' s.pk %}" class="orion-btn small">
-        <i class="bi bi-box-seam me-1"></i>Stock
+        <i class="bi bi-box-seam me-1"></i>{% trans "Stock" %}
       </a>
       <a href="{% url 'website_shop_settings:maintenance' s.pk %}" class="orion-btn small">
-        <i class="bi bi-tools me-1"></i>Maintenance
+        <i class="bi bi-tools me-1"></i>{% trans "Maintenance" %}
       </a>
       <a href="{% url 'website_shop_settings:security' s.pk %}" class="orion-btn small">
-        <i class="bi bi-lock me-1"></i>Sécurité
+        <i class="bi bi-lock me-1"></i>{% trans "Sécurité" %}
       </a>
     </div>
   </div>

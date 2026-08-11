@@ -1,65 +1,66 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
-<li class="breadcrumb-item"><a href="{% url 'access_control:override_list' %}">Overrides</a></li>
-<li class="breadcrumb-item active">Nouvel override</li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">{% trans "Contrôle d'accès" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:override_list' %}">{% trans "Overrides" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Nouvel override" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-6">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-sliders me-2"></i>Nouvel override de permission</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-sliders me-2"></i>{% trans "Nouvel override de permission" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <form method="post" action="{% url 'access_control:override_create' %}">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Utilisateur <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Utilisateur" %} <span class="text-danger">*</span></label>
             <select name="user_id" class="form-select" required>
-              <option value="">-- Sélectionner --</option>
+              <option value="">-- {% trans "Sélectionner" %} --</option>
               {% for access in users %}
               <option value="{{ access.user.pk }}">{{ access.user.get_full_name|default:access.user.username }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Module <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Module" %} <span class="text-danger">*</span></label>
             <select name="module_code" class="form-select" required>
-              <option value="">-- Sélectionner --</option>
+              <option value="">-- {% trans "Sélectionner" %} --</option>
               {% for mod in modules %}
               <option value="{{ mod.code }}">{{ mod.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Action (laisser vide = module entier)</label>
+            <label class="form-label">{% trans "Action (laisser vide = module entier)" %}</label>
             <select name="action_code" class="form-select">
-              <option value="">-- Toutes les actions --</option>
+              <option value="">-- {% trans "Toutes les actions" %} --</option>
               {% for act in actions %}
               <option value="{{ act.code }}">{{ act.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Effet <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold">{% trans "Effet" %} <span class="text-danger">*</span></label>
             <div class="d-flex gap-3">
               <div class="form-check">
                 <input type="radio" name="allowed" value="1" class="form-check-input" id="allowYes" checked>
-                <label class="form-check-label text-success fw-semibold" for="allowYes">Autoriser</label>
+                <label class="form-check-label text-success fw-semibold" for="allowYes">{% trans "Autoriser" %}</label>
               </div>
               <div class="form-check">
                 <input type="radio" name="allowed" value="0" class="form-check-input" id="allowNo">
-                <label class="form-check-label text-danger fw-semibold" for="allowNo">Refuser</label>
+                <label class="form-check-label text-danger fw-semibold" for="allowNo">{% trans "Refuser" %}</label>
               </div>
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Raison / justification</label>
-            <textarea name="reason" class="form-control" rows="2" placeholder="Optionnel, pour audit"></textarea>
+            <label class="form-label">{% trans "Raison / justification" %}</label>
+            <textarea name="reason" class="form-control" rows="2" placeholder="{% trans 'Optionnel, pour audit' %}"></textarea>
           </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>Créer</button>
-            <a href="{% url 'access_control:override_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-lg me-1"></i>{% trans "Créer" %}</button>
+            <a href="{% url 'access_control:override_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
           </div>
         </form>
       </div>

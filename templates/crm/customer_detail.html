@@ -1,6 +1,7 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'crm:customer_list' %}">Clients</a></li>
+<li class="breadcrumb-item"><a href="{% url 'crm:customer_list' %}">{% trans "Clients" %}</a></li>
 <li class="breadcrumb-item active">{{ customer.name }}</li>
 {% endblock %}
 
@@ -9,7 +10,7 @@
   <div class="detail-header-top">
     <div>
       <div class="d-flex align-items-center gap-2 mb-1">
-        <div class="company-avatar-lg" style="background:color-mix(in srgb,#2563EB 12%,white);color:#2563EB;font-size:1.4rem">
+        <div class="company-avatar-lg" style="background:color-mix(in srgb,#C6A15B 12%,white);color:#C6A15B;font-size:1.4rem">
           <i class="bi bi-{% if customer.customer_type == 'company' %}building{% else %}person{% endif %}"></i>
         </div>
         <div>
@@ -18,9 +19,9 @@
             {% if customer.code %}<span><i class="bi bi-tag me-1"></i>{{ customer.code }}</span>{% endif %}
             {% if customer.city %}<span><i class="bi bi-geo-alt me-1"></i>{{ customer.city }}</span>{% endif %}
             {% if customer.is_active %}
-              <span class="badge-status badge-won"><i class="bi bi-check-circle me-1"></i>Actif</span>
+              <span class="badge-status badge-won"><i class="bi bi-check-circle me-1"></i>{% trans "Actif" %}</span>
             {% else %}
-              <span class="badge-status badge-inactive">Inactif</span>
+              <span class="badge-status badge-inactive">{% trans "Inactif" %}</span>
             {% endif %}
           </div>
         </div>
@@ -28,16 +29,16 @@
     </div>
     <div class="detail-actions">
       <a href="{% url 'customer_360:view' customer.pk %}" class="btn btn-outline-primary orion-btn sm">
-        <i class="bi bi-person-vcard me-1"></i>Vue 360°
+        <i class="bi bi-person-vcard me-1"></i>{% trans "Vue 360°" %}
       </a>
       <a href="{% url 'crm:customer_edit' customer.pk %}" class="btn btn-outline-secondary orion-btn sm">
-        <i class="bi bi-pencil me-1"></i>Modifier
+        <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
       </a>
       <a href="{% url 'crm:customer_delete' customer.pk %}" class="btn btn-outline-danger orion-btn sm">
-        <i class="bi bi-trash me-1"></i>Supprimer
+        <i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}
       </a>
       <a href="{% url 'crm:customer_list' %}" class="btn btn-outline-secondary orion-btn sm">
-        <i class="bi bi-arrow-left me-1"></i>Retour
+        <i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}
       </a>
     </div>
   </div>
@@ -49,20 +50,20 @@
 <div class="erp-card mb-3">
   <div class="erp-tabs px-3 pt-2">
     <a href="?tab=info" class="erp-tab {% if active_tab == 'info' %}active{% endif %}">
-      <i class="bi bi-person-lines-fill me-1"></i>Informations
+      <i class="bi bi-person-lines-fill me-1"></i>{% trans "Informations" %}
     </a>
     <a href="?tab=contacts" class="erp-tab {% if active_tab == 'contacts' %}active{% endif %}">
-      <i class="bi bi-people me-1"></i>Contacts
+      <i class="bi bi-people me-1"></i>{% trans "Contacts" %}
       {% if contacts.count %}<span class="tab-count">{{ contacts.count }}</span>{% endif %}
     </a>
     <a href="?tab=quotes" class="erp-tab {% if active_tab == 'quotes' %}active{% endif %}">
-      <i class="bi bi-file-text me-1"></i>Devis
+      <i class="bi bi-file-text me-1"></i>{% trans "Devis" %}
     </a>
     <a href="?tab=invoices" class="erp-tab {% if active_tab == 'invoices' %}active{% endif %}">
-      <i class="bi bi-receipt me-1"></i>Factures
+      <i class="bi bi-receipt me-1"></i>{% trans "Factures" %}
     </a>
     <a href="?tab=history" class="erp-tab {% if active_tab == 'history' %}active{% endif %}">
-      <i class="bi bi-clock-history me-1"></i>Historique
+      <i class="bi bi-clock-history me-1"></i>{% trans "Historique" %}
     </a>
   </div>
 </div>
@@ -72,36 +73,67 @@
 <div class="row g-3">
   <div class="col-12 col-lg-8">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-person me-1 text-primary"></i>Coordonnées</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-person me-1 text-primary"></i>{% trans "Coordonnées" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>Raison sociale</label><div class="value">{{ customer.name }}</div></div>
-        <div class="info-item"><label>Type</label><div class="value">{{ customer.get_customer_type_display }}</div></div>
-        <div class="info-item"><label>Contact principal</label><div class="value {% if not customer.contact_name %}empty{% endif %}">{{ customer.contact_name|default:"—" }}</div></div>
-        <div class="info-item"><label>Email</label><div class="value">{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}—{% endif %}</div></div>
-        <div class="info-item"><label>Téléphone</label><div class="value">{{ customer.phone|default:"—" }}</div></div>
-        <div class="info-item"><label>Mobile</label><div class="value">{{ customer.mobile|default:"—" }}</div></div>
-        <div class="info-item"><label>Adresse</label><div class="value">{{ customer.address|default:"—" }}</div></div>
-        <div class="info-item"><label>Ville / CP</label><div class="value">{{ customer.city|default:"—" }}{% if customer.zip_code %} {{ customer.zip_code }}{% endif %}</div></div>
-        <div class="info-item"><label>Pays</label><div class="value">{{ customer.country }}</div></div>
-        <div class="info-item"><label>Site web</label><div class="value">{% if customer.website %}<a href="{{ customer.website }}" target="_blank">{{ customer.website }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Raison sociale" %}</label><div class="value">{{ customer.name }}</div></div>
+        <div class="info-item"><label>{% trans "Type" %}</label><div class="value">{{ customer.get_customer_type_display }}</div></div>
+        <div class="info-item"><label>{% trans "Contact principal" %}</label><div class="value {% if not customer.contact_name %}empty{% endif %}">{{ customer.contact_name|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Email" %}</label><div class="value">{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}—{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Téléphone" %}</label><div class="value">{{ customer.phone|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Mobile" %}</label><div class="value">{{ customer.mobile|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Adresse" %}</label><div class="value">{{ customer.address|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Ville / CP" %}</label><div class="value">{{ customer.city|default:"—" }}{% if customer.zip_code %} {{ customer.zip_code }}{% endif %}</div></div>
+        <div class="info-item"><label>{% trans "Pays" %}</label><div class="value">{{ customer.country }}</div></div>
+        <div class="info-item"><label>{% trans "Site web" %}</label><div class="value">{% if customer.website %}<a href="{{ customer.website }}" target="_blank">{{ customer.website }}</a>{% else %}—{% endif %}</div></div>
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-4">
     <div class="erp-card mb-3">
-      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-briefcase me-1 text-primary"></i>Informations commerciales</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-briefcase me-1 text-primary"></i>{% trans "Informations commerciales" %}</h6></div>
       <div class="info-grid">
-        <div class="info-item"><label>SIRET</label><div class="value">{{ customer.siret|default:"—" }}</div></div>
-        <div class="info-item"><label>N° TVA</label><div class="value">{{ customer.vat_number|default:"—" }}</div></div>
-        <div class="info-item"><label>Délai paiement</label><div class="value">{{ customer.payment_terms }} jours</div></div>
-        <div class="info-item"><label>Remise</label><div class="value">{{ customer.discount_rate }} %</div></div>
-        {% if customer.credit_limit %}<div class="info-item"><label>Limite crédit</label><div class="value">{{ customer.credit_limit|floatformat:2 }} €</div></div>{% endif %}
-        <div class="info-item"><label>Commercial</label><div class="value {% if not customer.salesperson %}empty{% endif %}">{{ customer.salesperson.get_full_name|default:"Non assigné" }}</div></div>
+        <div class="info-item"><label>{% trans "SIRET" %}</label><div class="value">{{ customer.siret|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "N° TVA" %}</label><div class="value">{{ customer.vat_number|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "Délai paiement" %}</label><div class="value">{{ customer.payment_terms }} {% trans "jours" %}</div></div>
+        <div class="info-item"><label>{% trans "Remise" %}</label><div class="value">{{ customer.discount_rate }} %</div></div>
+        {% if customer.credit_limit %}<div class="info-item"><label>{% trans "Limite crédit" %}</label><div class="value">{{ customer.credit_limit|floatformat:2 }} €</div></div>{% endif %}
+        <div class="info-item"><label>{% trans "Commercial" %}</label><div class="value {% if not customer.salesperson %}empty{% endif %}">{% trans "Non assigné" as txt_unassigned %}{{ customer.salesperson.get_full_name|default:txt_unassigned }}</div></div>
       </div>
     </div>
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-box-arrow-in-right me-1 text-primary"></i>{% trans "Espace client" %}</h6></div>
+      <div class="p-3">
+        {% if portal_account %}
+          <div class="d-flex align-items-center gap-2 mb-2">
+            {% if portal_account.is_active %}
+            <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>{% trans "Compte actif" %}</span>
+            {% else %}
+            <span class="orion-badge secondary">{% trans "Compte inactif" %}</span>
+            {% endif %}
+            {% if not portal_account.is_email_verified %}
+            <span class="orion-badge warning text-dark"><i class="bi bi-clock me-1"></i>{% trans "En attente d'activation" %}</span>
+            {% endif %}
+          </div>
+          <p class="small text-muted mb-0">{{ portal_account.email }}</p>
+        {% elif not customer.email %}
+          <p class="small text-muted mb-0">{% trans "Ajoutez d'abord un email au client pour pouvoir créer son accès à l'espace client." %}</p>
+        {% elif is_hr_admin %}
+          <p class="small text-muted mb-3">{% trans "Ce client n'a pas encore d'accès à l'espace client." %}</p>
+          <form method="post" action="{% url 'portals:customer_portal_account_create' customer.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn primary orion-btn sm">
+              <i class="bi bi-person-plus me-1"></i>{% trans "Créer un compte espace client" %}
+            </button>
+          </form>
+        {% else %}
+          <p class="small text-muted mb-0">{% trans "Ce client n'a pas encore d'accès à l'espace client." %}</p>
+        {% endif %}
+      </div>
+    </div>
+
     {% if customer.notes %}
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-journal-text me-1 text-primary"></i>Notes</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-journal-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
       <div class="p-3 small text-muted">{{ customer.notes|linebreaks }}</div>
     </div>
     {% endif %}
@@ -111,12 +143,12 @@
 {% elif active_tab == 'contacts' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-people me-1"></i>Contacts</h6>
-    <a href="{% url 'crm:contact_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Ajouter</a>
+    <h6 class="card-title mb-0"><i class="bi bi-people me-1"></i>{% trans "Contacts" %}</h6>
+    <a href="{% url 'crm:contact_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>{% trans "Ajouter" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>Nom</th><th>Poste</th><th>Email</th><th>Téléphone</th><th>Principal</th></tr></thead>
+      <thead><tr><th>{% trans "Nom" %}</th><th>{% trans "Poste" %}</th><th>{% trans "Email" %}</th><th>{% trans "Téléphone" %}</th><th>{% trans "Principal" %}</th></tr></thead>
       <tbody>
         {% for contact in contacts %}
         <tr>
@@ -124,10 +156,10 @@
           <td class="text-muted small">{{ contact.job_title|default:"—" }}</td>
           <td>{% if contact.email %}<a href="mailto:{{ contact.email }}" class="small">{{ contact.email }}</a>{% else %}—{% endif %}</td>
           <td class="small text-muted">{{ contact.phone|default:"—" }}</td>
-          <td>{% if contact.is_primary %}<span class="badge-status badge-won">Principal</span>{% endif %}</td>
+          <td>{% if contact.is_primary %}<span class="badge-status badge-won">{% trans "Principal" %}</span>{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucun contact</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Aucun contact" %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -137,12 +169,12 @@
 {% elif active_tab == 'quotes' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-file-text me-1"></i>Devis</h6>
-    <a href="{% url 'sales:quote_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Nouveau devis</a>
+    <h6 class="card-title mb-0"><i class="bi bi-file-text me-1"></i>{% trans "Devis" %}</h6>
+    <a href="{% url 'sales:quote_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>{% trans "Nouveau devis" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>Numéro</th><th>Date</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
+      <thead><tr><th>{% trans "Numéro" %}</th><th>{% trans "Date" %}</th><th>{% trans "Objet" %}</th><th>{% trans "Total TTC" %}</th><th>{% trans "Statut" %}</th></tr></thead>
       <tbody>
         {% for q in quotes %}
         <tr>
@@ -153,7 +185,7 @@
           <td><span class="badge-status badge-{{ q.status }}">{{ q.get_status_display }}</span></td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucun devis</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Aucun devis" %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -163,12 +195,12 @@
 {% elif active_tab == 'invoices' %}
 <div class="erp-card">
   <div class="orion-orion-card-header d-flex justify-content-between align-items-center">
-    <h6 class="card-title mb-0"><i class="bi bi-receipt me-1"></i>Factures</h6>
-    <a href="{% url 'sales:invoice_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>Nouvelle facture</a>
+    <h6 class="card-title mb-0"><i class="bi bi-receipt me-1"></i>{% trans "Factures" %}</h6>
+    <a href="{% url 'sales:invoice_create' %}?customer={{ customer.pk }}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus me-1"></i>{% trans "Nouvelle facture" %}</a>
   </div>
   <div class="table-responsive">
     <table class="table erp-table mb-0">
-      <thead><tr><th>Numéro</th><th>Date</th><th>Échéance</th><th>Total TTC</th><th>Statut</th></tr></thead>
+      <thead><tr><th>{% trans "Numéro" %}</th><th>{% trans "Date" %}</th><th>{% trans "Échéance" %}</th><th>{% trans "Total TTC" %}</th><th>{% trans "Statut" %}</th></tr></thead>
       <tbody>
         {% for inv in invoices %}
         <tr>
@@ -179,7 +211,7 @@
           <td><span class="badge-status badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucune facture</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Aucune facture" %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -188,7 +220,7 @@
 
 {% elif active_tab == 'history' %}
 <div class="erp-card">
-  <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-clock-history me-1"></i>Historique des activités</h6></div>
+  <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-clock-history me-1"></i>{% trans "Historique des activités" %}</h6></div>
   <div class="p-3">
     {% if activities %}
     <div class="timeline">
@@ -208,7 +240,7 @@
     {% else %}
     <div class="text-center text-muted py-4">
       <i class="bi bi-clock-history fs-3 d-block mb-2 opacity-25"></i>
-      Aucune activité enregistrée
+      {% trans "Aucune activité enregistrée" %}
     </div>
     {% endif %}
   </div>

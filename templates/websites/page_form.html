@@ -1,13 +1,14 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:page_list' %}">Pages web</a></li>
-{% if action == 'edit' %}<li class="breadcrumb-item active">Modifier « {{ page.title }} »</li>
-{% else %}<li class="breadcrumb-item active">Nouvelle page</li>{% endif %}
+<li class="breadcrumb-item"><a href="{% url 'websites:page_list' %}">{% trans "Pages web" %}</a></li>
+{% if action == 'edit' %}<li class="breadcrumb-item active">{% blocktrans with title=page.title %}Modifier « {{ title }} »{% endblocktrans %}</li>
+{% else %}<li class="breadcrumb-item active">{% trans "Nouvelle page" %}</li>{% endif %}
 {% endblock %}
 
 {% block page_header %}
 <div class="page-header">
-  <h1 class="page-title">{% if action == 'edit' %}Modifier « {{ page.title }} »{% else %}Nouvelle page web{% endif %}</h1>
+  <h1 class="page-title">{% if action == 'edit' %}{% blocktrans with title=page.title %}Modifier « {{ title }} »{% endblocktrans %}{% else %}{% trans "Nouvelle page web" %}{% endif %}</h1>
 </div>
 {% endblock %}
 
@@ -17,35 +18,35 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Informations</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Informations" %}</h6></div>
         <div class="orion-orion-card-body">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Site *</label>
+              <label class="form-label form-label-sm">{% trans "Site" %} *</label>
               {{ form.website }}
             </div>
             <div class="col-md-6">
-              <label class="form-label form-label-sm">Type de page</label>
+              <label class="form-label form-label-sm">{% trans "Type de page" %}</label>
               {{ form.page_type }}
             </div>
             <div class="col-md-8">
-              <label class="form-label form-label-sm">Titre *</label>
+              <label class="form-label form-label-sm">{% trans "Titre" %} *</label>
               {{ form.title }}
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-sm">Slug</label>
+              <label class="form-label form-label-sm">{% trans "Slug" %}</label>
               {{ form.slug }}
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-sm">Statut</label>
+              <label class="form-label form-label-sm">{% trans "Statut" %}</label>
               {{ form.status }}
             </div>
             <div class="col-md-2">
-              <label class="form-label form-label-sm">Ordre</label>
+              <label class="form-label form-label-sm">{% trans "Ordre" %}</label>
               {{ form.order }}
             </div>
             <div class="col-12">
-              <label class="form-label form-label-sm">Contenu</label>
+              <label class="form-label form-label-sm">{% trans "Contenu" %}</label>
               {{ form.content }}
             </div>
           </div>
@@ -54,22 +55,22 @@
       <div class="erp-card">
         <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-search me-1 text-primary"></i>SEO</h6></div>
         <div class="orion-orion-card-body">
-          <div class="mb-3"><label class="form-label form-label-sm">Meta title</label>{{ form.meta_title }}</div>
-          <div><label class="form-label form-label-sm">Meta description</label>{{ form.meta_description }}</div>
+          <div class="mb-3"><label class="form-label form-label-sm">{% trans "Meta title" %}</label>{{ form.meta_title }}</div>
+          <div><label class="form-label form-label-sm">{% trans "Meta description" %}</label>{{ form.meta_description }}</div>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-4">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>Options</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-toggle-on me-1 text-primary"></i>{% trans "Options" %}</h6></div>
         <div class="orion-orion-card-body">
-          <div class="form-check mb-2">{{ form.is_homepage }}<label class="form-check-label small ms-1">Page d'accueil</label></div>
-          <div class="form-check">{{ form.show_in_menu }}<label class="form-check-label small ms-1">Afficher dans le menu</label></div>
+          <div class="form-check mb-2">{{ form.is_homepage }}<label class="form-check-label small ms-1">{% trans "Page d'accueil" %}</label></div>
+          <div class="form-check">{{ form.show_in_menu }}<label class="form-check-label small ms-1">{% trans "Afficher dans le menu" %}</label></div>
         </div>
       </div>
       <div class="d-grid gap-2">
-        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer la page{% endif %}</button>
-        <a href="{% url 'websites:page_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'edit' %}{% trans "Enregistrer" %}{% else %}{% trans "Créer la page" %}{% endif %}</button>
+        <a href="{% url 'websites:page_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </div>
   </div>

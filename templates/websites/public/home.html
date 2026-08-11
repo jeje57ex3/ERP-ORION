@@ -1,4 +1,5 @@
 ﻿{% extends "websites/public/base.html" %}
+{% load i18n %}
 
 {% block content %}
 
@@ -69,7 +70,7 @@
             <h3 class="h5 fw-bold mb-2">{{ service.title }}</h3>
             <p class="text-muted small mb-3">{{ service.description|truncatechars:120 }}</p>
             {% if service.price %}
-            <div class="text-site-primary fw-bold">À partir de {{ service.price }} €</div>
+            <div class="text-site-primary fw-bold">{% blocktrans with price=service.price %}À partir de {{ price }} €{% endblocktrans %}</div>
             {% endif %}
           </div>
         </div>
@@ -234,7 +235,7 @@
           <div class="bg-white p-4 rounded-3 shadow-sm">
             <p class="text-center mb-3">
               <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site">
-                <i class="bi bi-envelope me-2"></i>Nous contacter
+                <i class="bi bi-envelope me-2"></i>{% trans "Nous contacter" %}
               </a>
             </p>
           </div>
@@ -288,8 +289,8 @@
   <div class="container text-center">
     <h1 class="display-4 fw-bold mb-4" style="color:var(--site-secondary);">{{ site.name }}</h1>
     <p class="lead text-muted mb-5">{{ site.meta_description }}</p>
-    <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site me-3">Nous contacter</a>
-    <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site-outline">Demande de devis</a>
+    <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site me-3">{% trans "Nous contacter" %}</a>
+    <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site-outline">{% trans "Demande de devis" %}</a>
   </div>
 </section>
 {% endfor %}

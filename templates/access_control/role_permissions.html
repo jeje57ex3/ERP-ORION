@@ -1,10 +1,11 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">Contrôle d'accès</a></li>
-<li class="breadcrumb-item"><a href="{% url 'access_control:role_list' %}">Rôles</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:dashboard' %}">{% trans "Contrôle d'accès" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'access_control:role_list' %}">{% trans "Rôles" %}</a></li>
 <li class="breadcrumb-item active">{{ role.name }}</li>
 {% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Matrice des permissions par module et action.</p>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Matrice des permissions par module et action." %}</p>{% endblock %}
 
 {% block content %}
 <div class="erp-card">
@@ -14,22 +15,22 @@
       <form method="post" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="action_type" value="full_access">
-        <button type="submit" class="orion-btn sm orion-btn success" onclick="return confirm('Accorder tous les accès ?')">
-          <i class="bi bi-check2-all me-1"></i>Accès complet
+        <button type="submit" class="orion-btn sm orion-btn success" onclick="return confirm('{% trans "Accorder tous les accès ?" %}')">
+          <i class="bi bi-check2-all me-1"></i>{% trans "Accès complet" %}
         </button>
       </form>
       <form method="post" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="action_type" value="readonly">
         <button type="submit" class="orion-btn sm btn-info">
-          <i class="bi bi-eye me-1"></i>Lecture seule
+          <i class="bi bi-eye me-1"></i>{% trans "Lecture seule" %}
         </button>
       </form>
       <form method="post" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="action_type" value="clear">
-        <button type="submit" class="orion-btn sm btn-outline-danger" onclick="return confirm('Supprimer toutes les permissions ?')">
-          <i class="bi bi-x-circle me-1"></i>Tout effacer
+        <button type="submit" class="orion-btn sm btn-outline-danger" onclick="return confirm('{% trans "Supprimer toutes les permissions ?" %}')">
+          <i class="bi bi-x-circle me-1"></i>{% trans "Tout effacer" %}
         </button>
       </form>
     </div>
@@ -43,7 +44,7 @@
         <table class="table table-bordered table-sm align-middle" style="min-width:700px">
           <thead class="table-dark">
             <tr>
-              <th style="min-width:160px">Module</th>
+              <th style="min-width:160px">{% trans "Module" %}</th>
               {% for action in actions %}
               <th class="text-center" style="min-width:80px">
                 <small>{{ action.name }}</small>
@@ -56,7 +57,7 @@
             <tr>
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <i class="bi {{ module.icon|default:'bi-grid' }}" style="color:{{ module.color|default:'#6366F1' }}"></i>
+                  <i class="bi {{ module.icon|default:'bi-grid' }}" style="color:{{ module.color|default:'#C6A15B' }}"></i>
                   <span class="fw-semibold small">{{ module.name }}</span>
                 </div>
               </td>
@@ -74,8 +75,8 @@
         </table>
       </div>
       <div class="mt-3 d-flex gap-2">
-        <button type="submit" class="orion-btn primary"><i class="bi bi-floppy me-1"></i>Enregistrer</button>
-        <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-secondary">Retour</a>
+        <button type="submit" class="orion-btn primary"><i class="bi bi-floppy me-1"></i>{% trans "Enregistrer" %}</button>
+        <a href="{% url 'access_control:role_list' %}" class="btn btn-outline-secondary">{% trans "Retour" %}</a>
       </div>
     </form>
   </div>

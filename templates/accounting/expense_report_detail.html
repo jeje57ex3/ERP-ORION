@@ -1,7 +1,8 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accounting:expense_report_list' %}">Notes de frais</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:expense_report_list' %}">{% trans "Notes de frais" %}</a></li>
 <li class="breadcrumb-item active">{{ report.title }}</li>
 {% endblock %}
 {% block page_actions %}
@@ -9,18 +10,18 @@
 <form method="post" class="d-inline">
   {% csrf_token %}
   <input type="hidden" name="action" value="validate">
-  <button type="submit" class="orion-btn success"><i class="bi bi-check-circle me-1"></i>Valider</button>
+  <button type="submit" class="orion-btn success"><i class="bi bi-check-circle me-1"></i>{% trans "Valider" %}</button>
 </form>
 <form method="post" class="d-inline ms-1">
   {% csrf_token %}
   <input type="hidden" name="action" value="refuse">
-  <button type="submit" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Refuser</button>
+  <button type="submit" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>{% trans "Refuser" %}</button>
 </form>
 {% elif report.status == 'validated' %}
 <form method="post" class="d-inline">
   {% csrf_token %}
   <input type="hidden" name="action" value="mark_paid">
-  <button type="submit" class="orion-btn primary"><i class="bi bi-cash me-1"></i>Marquer remboursée</button>
+  <button type="submit" class="orion-btn primary"><i class="bi bi-cash me-1"></i>{% trans "Marquer remboursée" %}</button>
 </form>
 {% endif %}
 {% endblock %}
@@ -29,26 +30,26 @@
 <div class="row g-4">
   <div class="col-lg-4">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-info-circle me-2"></i>Informations</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-info-circle me-2"></i>{% trans "Informations" %}</h6></div>
       <div class="erp-orion-orion-card-body">
         <dl class="row small mb-0">
           {% if report.employee %}
-          <dt class="col-5">Salarié</dt><dd class="col-7 fw-semibold">{{ report.employee.first_name }} {{ report.employee.last_name }}</dd>
+          <dt class="col-5">{% trans "Salarié" %}</dt><dd class="col-7 fw-semibold">{{ report.employee.first_name }} {{ report.employee.last_name }}</dd>
           {% endif %}
-          <dt class="col-5">Titre</dt><dd class="col-7">{{ report.title }}</dd>
-          <dt class="col-5">Période</dt><dd class="col-7">{{ report.period_start|date:"d/m/Y" }} → {{ report.period_end|date:"d/m/Y" }}</dd>
-          <dt class="col-5">Total TTC</dt><dd class="col-7 fw-bold text-primary">{{ report.total_amount|floatformat:2 }} €</dd>
-          <dt class="col-5">Statut</dt>
+          <dt class="col-5">{% trans "Titre" %}</dt><dd class="col-7">{{ report.title }}</dd>
+          <dt class="col-5">{% trans "Période" %}</dt><dd class="col-7">{{ report.period_start|date:"d/m/Y" }} → {{ report.period_end|date:"d/m/Y" }}</dd>
+          <dt class="col-5">{% trans "Total TTC" %}</dt><dd class="col-7 fw-bold text-primary">{{ report.total_amount|floatformat:2 }} €</dd>
+          <dt class="col-5">{% trans "Statut" %}</dt>
           <dd class="col-7">
-            {% if report.status == 'submitted' %}<span class="orion-badge warning text-dark">Soumise</span>
-            {% elif report.status == 'validated' %}<span class="orion-badge success">Validée</span>
-            {% elif report.status == 'refused' %}<span class="orion-badge danger">Refusée</span>
-            {% elif report.status == 'paid' %}<span class="orion-badge gold">Remboursée</span>
+            {% if report.status == 'submitted' %}<span class="orion-badge warning text-dark">{% trans "Soumise" %}</span>
+            {% elif report.status == 'validated' %}<span class="orion-badge success">{% trans "Validée" %}</span>
+            {% elif report.status == 'refused' %}<span class="orion-badge danger">{% trans "Refusée" %}</span>
+            {% elif report.status == 'paid' %}<span class="orion-badge gold">{% trans "Remboursée" %}</span>
             {% else %}<span class="orion-badge neutral">{{ report.status }}</span>{% endif %}
           </dd>
-          {% if report.submitted_at %}<dt class="col-5">Soumise le</dt><dd class="col-7">{{ report.submitted_at|date:"d/m/Y" }}</dd>{% endif %}
-          {% if report.paid_at %}<dt class="col-5">Remboursée le</dt><dd class="col-7">{{ report.paid_at|date:"d/m/Y" }}</dd>{% endif %}
-          {% if report.validated_by %}<dt class="col-5">Validée par</dt><dd class="col-7">{{ report.validated_by.get_full_name|default:report.validated_by.username }}</dd>{% endif %}
+          {% if report.submitted_at %}<dt class="col-5">{% trans "Soumise le" %}</dt><dd class="col-7">{{ report.submitted_at|date:"d/m/Y" }}</dd>{% endif %}
+          {% if report.paid_at %}<dt class="col-5">{% trans "Remboursée le" %}</dt><dd class="col-7">{{ report.paid_at|date:"d/m/Y" }}</dd>{% endif %}
+          {% if report.validated_by %}<dt class="col-5">{% trans "Validée par" %}</dt><dd class="col-7">{{ report.validated_by.get_full_name|default:report.validated_by.username }}</dd>{% endif %}
         </dl>
       </div>
     </div>
@@ -56,13 +57,13 @@
 
   <div class="col-lg-8">
     <div class="erp-card">
-      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-receipt me-2"></i>Lignes de dépenses</h6></div>
+      <div class="erp-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-receipt me-2"></i>{% trans "Lignes de dépenses" %}</h6></div>
       <div class="erp-orion-orion-card-body p-0">
         {% if lines %}
         <div class="table-responsive">
           <table class="orion-table align-middle mb-0">
             <thead class="table-light">
-              <tr><th>Date</th><th>Catégorie</th><th>Description</th><th class="text-end">HT</th><th class="text-end">TVA %</th><th class="text-end">TTC</th></tr>
+              <tr><th>{% trans "Date" %}</th><th>{% trans "Catégorie" %}</th><th>{% trans "Description" %}</th><th class="text-end">{% trans "HT" %}</th><th class="text-end">{% trans "TVA %" %}</th><th class="text-end">{% trans "TTC" %}</th></tr>
             </thead>
             <tbody>
               {% for line in lines %}
@@ -78,14 +79,14 @@
             </tbody>
             <tfoot class="table-light fw-bold">
               <tr>
-                <td colspan="5" class="text-end">Total</td>
+                <td colspan="5" class="text-end">{% trans "Total" %}</td>
                 <td class="text-end">{{ report.total_amount|floatformat:2 }} €</td>
               </tr>
             </tfoot>
           </table>
         </div>
         {% else %}
-        <div class="text-center py-4 text-muted">Aucune ligne.</div>
+        <div class="text-center py-4 text-muted">{% trans "Aucune ligne." %}</div>
         {% endif %}
       </div>
     </div>

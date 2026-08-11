@@ -1,15 +1,16 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block content %}
 <div class="container-fluid py-2">
 
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans 'Sites web' %}</a></li>
       <li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'websites:page_list' %}?site={{ website.pk }}">Pages</a></li>
-      <li class="breadcrumb-item active">Builder : {{ page.title }}</li>
+      <li class="breadcrumb-item"><a href="{% url 'websites:page_list' %}?site={{ website.pk }}">{% trans 'Pages' %}</a></li>
+      <li class="breadcrumb-item active">{% blocktrans with title=page.title %}Builder : {{ title }}{% endblocktrans %}</li>
     </ol>
   </nav>
 
@@ -22,14 +23,14 @@
     </div>
     <div class="d-flex gap-2">
       <a href="{% url 'websites:website_preview' website.pk %}" class="btn btn-outline-secondary orion-btn sm" target="_blank">
-        <i class="bi bi-eye me-1"></i>Prévisualiser
+        <i class="bi bi-eye me-1"></i>{% trans 'Prévisualiser' %}
       </a>
       {% if page.status != 'published' %}
       <form method="post" class="d-inline">
         {% csrf_token %}
         <input type="hidden" name="action" value="publish_page">
         <button type="submit" class="orion-btn success orion-btn sm">
-          <i class="bi bi-globe me-1"></i>Publier la page
+          <i class="bi bi-globe me-1"></i>{% trans 'Publier la page' %}
         </button>
       </form>
       {% endif %}
@@ -42,7 +43,7 @@
     <div class="col-lg-3">
       <div class="card border-0 shadow-sm sticky-top" style="top:70px">
         <div class="orion-orion-card-header bg-white border-bottom">
-          <h6 class="mb-0 fw-semibold"><i class="bi bi-grid-3x3-gap me-2"></i>Ajouter une section</h6>
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-grid-3x3-gap me-2"></i>{% trans 'Ajouter une section' %}</h6>
         </div>
         <div class="orion-orion-card-body p-2">
           <form method="post" id="addSectionForm">
@@ -71,8 +72,8 @@
       <div class="card border-0 border-dashed text-center py-5" style="border:2px dashed #dee2e6!important">
         <div class="py-4">
           <i class="bi bi-layout-text-sidebar display-4 text-muted mb-3"></i>
-          <h5 class="text-muted">Page vide</h5>
-          <p class="text-muted">Ajoutez des sections depuis le panneau de gauche pour construire votre page.</p>
+          <h5 class="text-muted">{% trans 'Page vide' %}</h5>
+          <p class="text-muted">{% trans 'Ajoutez des sections depuis le panneau de gauche pour construire votre page.' %}</p>
         </div>
       </div>
       {% endif %}
@@ -85,7 +86,7 @@
             <span class="orion-badge gold">{{ section.get_section_type_display }}</span>
             {% if section.title %}<span class="fw-medium text-truncate" style="max-width:200px">{{ section.title }}</span>{% endif %}
             {% if not section.is_visible %}
-              <span class="orion-badge neutral"><i class="bi bi-eye-slash"></i> Masquée</span>
+              <span class="orion-badge neutral"><i class="bi bi-eye-slash"></i> {% trans 'Masquée' %}</span>
             {% endif %}
           </div>
           <div class="d-flex gap-1">
@@ -94,7 +95,8 @@
               {% csrf_token %}
               <input type="hidden" name="action" value="move_up">
               <input type="hidden" name="section_id" value="{{ section.pk }}">
-              <button type="submit" class="btn btn-light orion-btn sm" title="Monter">
+              {% trans 'Monter' as move_up_title %}
+              <button type="submit" class="btn btn-light orion-btn sm" title="{{ move_up_title }}">
                 <i class="bi bi-arrow-up"></i>
               </button>
             </form>
@@ -103,7 +105,8 @@
               {% csrf_token %}
               <input type="hidden" name="action" value="move_down">
               <input type="hidden" name="section_id" value="{{ section.pk }}">
-              <button type="submit" class="btn btn-light orion-btn sm" title="Descendre">
+              {% trans 'Descendre' as move_down_title %}
+              <button type="submit" class="btn btn-light orion-btn sm" title="{{ move_down_title }}">
                 <i class="bi bi-arrow-down"></i>
               </button>
             </form>
@@ -112,18 +115,20 @@
               {% csrf_token %}
               <input type="hidden" name="action" value="toggle_visibility">
               <input type="hidden" name="section_id" value="{{ section.pk }}">
-              <button type="submit" class="btn btn-light orion-btn sm" title="{% if section.is_visible %}Masquer{% else %}Afficher{% endif %}">
+              {% trans 'Masquer' as hide_title %}{% trans 'Afficher' as show_title %}
+              <button type="submit" class="btn btn-light orion-btn sm" title="{% if section.is_visible %}{{ hide_title }}{% else %}{{ show_title }}{% endif %}">
                 <i class="bi {% if section.is_visible %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
               </button>
             </form>
             {# Modifier #}
             <button class="btn btn-outline-primary orion-btn sm" type="button"
               data-bs-toggle="collapse" data-bs-target="#editSection{{ section.pk }}">
-              <i class="bi bi-pencil me-1"></i>Modifier
+              <i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}
             </button>
             {# Supprimer #}
+            {% trans 'Supprimer cette section ?' as confirm_delete_section %}
             <form method="post" class="d-inline"
-              onsubmit="return confirm('Supprimer cette section ?')">
+              onsubmit="return confirm('{{ confirm_delete_section }}')">
               {% csrf_token %}
               <input type="hidden" name="action" value="delete_section">
               <input type="hidden" name="section_id" value="{{ section.pk }}">
@@ -137,20 +142,25 @@
         {# Aperçu section #}
         <div class="orion-orion-card-body py-3 px-4"
           {% if section.bg_color %}style="background:{{ section.bg_color }};color:{{ section.text_color|default:'inherit' }}"{% endif %}>
+          {% trans 'Titre hero' as default_hero_title %}
+          {% trans 'Sous-titre' as default_subtitle %}
+          {% trans 'Section texte' as default_text_title %}
+          {% trans 'Contenu de la section...' as default_section_content %}
+          {% trans "Appel à l'action" as default_cta_title %}
           {% if section.section_type == 'hero' %}
             <div class="text-center py-3">
-              <h2 class="fw-bold">{{ section.title|default:"Titre hero" }}</h2>
-              <p class="text-muted">{{ section.subtitle|default:"Sous-titre" }}</p>
+              <h2 class="fw-bold">{{ section.title|default:default_hero_title }}</h2>
+              <p class="text-muted">{{ section.subtitle|default:default_subtitle }}</p>
               {% if section.button_text %}
                 <span class="orion-btn primary orion-btn sm">{{ section.button_text }}</span>
               {% endif %}
             </div>
           {% elif section.section_type == 'text' %}
-            <h5>{{ section.title|default:"Section texte" }}</h5>
-            <p class="text-muted mb-0">{{ section.content|truncatechars:150|default:"Contenu de la section..." }}</p>
+            <h5>{{ section.title|default:default_text_title }}</h5>
+            <p class="text-muted mb-0">{{ section.content|truncatechars:150|default:default_section_content }}</p>
           {% elif section.section_type == 'cta' %}
             <div class="text-center py-2 bg-primary bg-opacity-10 rounded">
-              <h5 class="text-primary">{{ section.title|default:"Appel à l'action" }}</h5>
+              <h5 class="text-primary">{{ section.title|default:default_cta_title }}</h5>
               {% if section.button_text %}
                 <span class="orion-btn primary orion-btn sm mt-1">{{ section.button_text }}</span>
               {% endif %}
@@ -172,42 +182,46 @@
               <input type="hidden" name="section_id" value="{{ section.pk }}">
               <div class="row g-2">
                 <div class="col-md-6">
-                  <label class="form-label small fw-medium">Titre</label>
+                  <label class="form-label small fw-medium">{% trans 'Titre' %}</label>
+                  {% trans 'Titre de la section' as section_title_placeholder %}
                   <input type="text" name="title" class="form-control form-control-sm"
-                    value="{{ section.title }}" placeholder="Titre de la section">
+                    value="{{ section.title }}" placeholder="{{ section_title_placeholder }}">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label small fw-medium">Sous-titre</label>
+                  <label class="form-label small fw-medium">{% trans 'Sous-titre' %}</label>
+                  {% trans 'Sous-titre' as subtitle_placeholder %}
                   <input type="text" name="subtitle" class="form-control form-control-sm"
-                    value="{{ section.subtitle }}" placeholder="Sous-titre">
+                    value="{{ section.subtitle }}" placeholder="{{ subtitle_placeholder }}">
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-medium">Contenu</label>
+                  <label class="form-label small fw-medium">{% trans 'Contenu' %}</label>
+                  {% trans 'Contenu HTML ou texte...' as content_placeholder %}
                   <textarea name="content" class="form-control form-control-sm" rows="3"
-                    placeholder="Contenu HTML ou texte...">{{ section.content }}</textarea>
+                    placeholder="{{ content_placeholder }}">{{ section.content }}</textarea>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label small fw-medium">Texte bouton</label>
+                  <label class="form-label small fw-medium">{% trans 'Texte bouton' %}</label>
+                  {% trans 'ex: Demander un devis' as button_text_placeholder %}
                   <input type="text" name="button_text" class="form-control form-control-sm"
-                    value="{{ section.button_text }}" placeholder="ex: Demander un devis">
+                    value="{{ section.button_text }}" placeholder="{{ button_text_placeholder }}">
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label small fw-medium">Lien bouton</label>
+                  <label class="form-label small fw-medium">{% trans 'Lien bouton' %}</label>
                   <input type="text" name="button_link" class="form-control form-control-sm"
                     value="{{ section.button_link }}" placeholder="/contact/">
                 </div>
                 <div class="col-md-2">
-                  <label class="form-label small fw-medium">Fond</label>
+                  <label class="form-label small fw-medium">{% trans 'Fond' %}</label>
                   <input type="color" name="bg_color" class="form-control form-control-sm form-control-color"
                     value="{{ section.bg_color|default:'#ffffff' }}">
                 </div>
                 <div class="col-12 d-flex gap-2 justify-content-end">
                   <button type="button" class="orion-orion-btn sm"
                     data-bs-toggle="collapse" data-bs-target="#editSection{{ section.pk }}">
-                    Annuler
+                    {% trans 'Annuler' %}
                   </button>
                   <button type="submit" class="orion-btn primary orion-btn sm">
-                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                    <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}
                   </button>
                 </div>
               </div>

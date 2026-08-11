@@ -1,8 +1,9 @@
 {% extends "store/base_store.html" %}
-{% block title %}Panier — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Panier" %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
-  <h1 class="fw-bold mb-4"><i class="bi bi-cart3 me-2"></i>Mon panier</h1>
+  <h1 class="fw-bold mb-4"><i class="bi bi-cart3 me-2"></i>{% trans "Mon panier" %}</h1>
 
   {% if items %}
   <div class="row g-4">
@@ -19,7 +20,7 @@
           <!-- Infos -->
           <div class="flex-grow-1">
             <div class="fw-semibold">{{ item.product.name }}</div>
-            <div class="text-muted small">{{ item.unit_price|floatformat:2 }}€ / unité</div>
+            <div class="text-muted small">{{ item.unit_price|floatformat:2 }}€ / {% trans "unité" %}</div>
           </div>
           <!-- Quantité -->
           <form method="post" action="{% url 'store:cart_update' %}" class="d-flex align-items-center gap-2">
@@ -44,53 +45,53 @@
       </div>
 
       <div class="mt-3 d-flex gap-2">
-        <a href="{% url 'store:store_home' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Continuer mes achats</a>
+        <a href="{% url 'store:store_home' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Continuer mes achats" %}</a>
       </div>
     </div>
 
     <div class="col-12 col-lg-4">
       <!-- Résumé -->
       <div class="border rounded-3 p-4">
-        <h5 class="fw-bold mb-4">Récapitulatif</h5>
+        <h5 class="fw-bold mb-4">{% trans "Récapitulatif" %}</h5>
 
         <!-- Code promo -->
         <form method="post" action="{% url 'store:cart_apply_coupon' %}" class="mb-4">
           {% csrf_token %}
-          <label class="form-label small fw-semibold">Code promo</label>
+          <label class="form-label small fw-semibold">{% trans "Code promo" %}</label>
           <div class="input-group">
             <input type="text" name="coupon_code" class="form-control" placeholder="CODE" {% if cart.coupon_code %}value="{{ cart.coupon_code }}"{% endif %}>
-            <button type="submit" class="btn btn-outline-secondary">Appliquer</button>
+            <button type="submit" class="btn btn-outline-secondary">{% trans "Appliquer" %}</button>
           </div>
-          {% if cart.coupon_code %}<div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>Code « {{ cart.coupon_code }} » appliqué</div>{% endif %}
+          {% if cart.coupon_code %}<div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>{% blocktrans with code=cart.coupon_code %}Code « {{ code }} » appliqué{% endblocktrans %}</div>{% endif %}
         </form>
 
         <!-- Totaux -->
         <div class="d-flex justify-content-between mb-2">
-          <span class="text-muted">Sous-total</span>
+          <span class="text-muted">{% trans "Sous-total" %}</span>
           <span class="fw-semibold">{{ cart.subtotal|floatformat:2 }}€</span>
         </div>
         {% if cart.discount_amount %}
         <div class="d-flex justify-content-between mb-2 text-success">
-          <span>Remise</span>
+          <span>{% trans "Remise" %}</span>
           <span>-{{ cart.discount_amount|floatformat:2 }}€</span>
         </div>
         {% endif %}
         <div class="d-flex justify-content-between mb-2 text-muted small">
-          <span>Livraison</span>
-          <span>Calculée à l'étape suivante</span>
+          <span>{% trans "Livraison" %}</span>
+          <span>{% trans "Calculée à l'étape suivante" %}</span>
         </div>
         <hr>
         <div class="d-flex justify-content-between mb-4">
-          <span class="fw-bold fs-5">Total</span>
+          <span class="fw-bold fs-5">{% trans "Total" %}</span>
           <span class="fw-bold fs-5 text-primary">{{ cart.total|floatformat:2 }}€</span>
         </div>
         <a href="{% url 'store:checkout' %}" class="btn btn-store-primary w-100 btn-lg">
-          <i class="bi bi-lock me-2"></i>Passer commande
+          <i class="bi bi-lock me-2"></i>{% trans "Passer commande" %}
         </a>
         <div class="text-center mt-3">
           <div class="d-flex justify-content-center gap-2 text-muted small">
-            <span><i class="bi bi-shield-check me-1"></i>Paiement sécurisé</span>
-            <span><i class="bi bi-truck me-1"></i>Livraison rapide</span>
+            <span><i class="bi bi-shield-check me-1"></i>{% trans "Paiement sécurisé" %}</span>
+            <span><i class="bi bi-truck me-1"></i>{% trans "Livraison rapide" %}</span>
           </div>
         </div>
       </div>
@@ -99,9 +100,9 @@
   {% else %}
   <div class="text-center py-5">
     <i class="bi bi-cart3 text-muted" style="font-size:5rem"></i>
-    <h4 class="mt-3">Votre panier est vide</h4>
-    <p class="text-muted">Ajoutez des produits depuis notre boutique.</p>
-    <a href="{% url 'store:store_home' %}" class="btn btn-store-primary mt-3">Découvrir la boutique</a>
+    <h4 class="mt-3">{% trans "Votre panier est vide" %}</h4>
+    <p class="text-muted">{% trans "Ajoutez des produits depuis notre boutique." %}</p>
+    <a href="{% url 'store:store_home' %}" class="btn btn-store-primary mt-3">{% trans "Découvrir la boutique" %}</a>
   </div>
   {% endif %}
 </div>

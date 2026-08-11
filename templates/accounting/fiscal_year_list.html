@@ -1,34 +1,34 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Exercices comptables — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Exercices comptables" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">Comptabilité</a></li>
-<li class="breadcrumb-item active">Exercices comptables</li>
+<li class="breadcrumb-item"><a href="{% url 'accounting:dashboard' %}">{% trans "Comptabilité" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Exercices comptables" %}</li>
 {% endblock %}
 
 {% block content %}
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-calendar-range me-2"></i>Nouvel exercice</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-calendar-range me-2"></i>{% trans "Nouvel exercice" %}</h6></div>
       <div class="orion-orion-orion-card-body">
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold">Nom <span class="text-danger">*</span></label>
-            <input type="text" name="name" class="form-control" required placeholder="ex. Exercice 2025">
+            <label class="form-label fw-semibold">{% trans "Nom" %} <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="{% trans "ex. Exercice 2025" %}">
           </div>
           <div class="row g-3 mb-3">
             <div class="col-6">
-              <label class="form-label fw-semibold">Début <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% trans "Début" %} <span class="text-danger">*</span></label>
               <input type="date" name="start_date" class="form-control" required>
             </div>
             <div class="col-6">
-              <label class="form-label fw-semibold">Fin <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold">{% trans "Fin" %} <span class="text-danger">*</span></label>
               <input type="date" name="end_date" class="form-control" required>
             </div>
           </div>
-          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Créer</button>
+          <button type="submit" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Créer" %}</button>
         </form>
       </div>
     </div>
@@ -36,13 +36,13 @@
 
   <div class="col-lg-7">
     <div class="orion-card">
-      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-calendar3 me-2"></i>Exercices</h6></div>
+      <div class="orion-orion-orion-card-header"><h6 class="erp-card-title"><i class="bi bi-calendar3 me-2"></i>{% trans "Exercices" %}</h6></div>
       <div class="orion-orion-orion-card-body p-0">
         {% if fiscal_years %}
         <div class="table-responsive">
           <table class="orion-table">
             <thead>
-              <tr><th>Nom</th><th>Période</th><th>Statut</th><th></th></tr>
+              <tr><th>{% trans "Nom" %}</th><th>{% trans "Période" %}</th><th>{% trans "Statut" %}</th><th></th></tr>
             </thead>
             <tbody>
               {% for fy in fiscal_years %}
@@ -50,13 +50,13 @@
                 <td class="fw-semibold">{{ fy.name }}</td>
                 <td class="text-muted small">{{ fy.start_date|date:"d/m/Y" }} → {{ fy.end_date|date:"d/m/Y" }}</td>
                 <td>
-                  {% if fy.is_closed %}<span class="orion-badge neutral">Clôturé</span>
-                  {% elif fy.status == 'open' %}<span class="orion-badge success">Ouvert</span>
+                  {% if fy.is_closed %}<span class="orion-badge neutral">{% trans "Clôturé" %}</span>
+                  {% elif fy.status == 'open' %}<span class="orion-badge success">{% trans "Ouvert" %}</span>
                   {% else %}<span class="orion-badge warning text-dark">{{ fy.status }}</span>{% endif %}
                 </td>
                 <td class="text-end">
                   <a href="{% url 'accounting:period_list' fy.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">
-                    <i class="bi bi-calendar-week me-1"></i>Périodes
+                    <i class="bi bi-calendar-week me-1"></i>{% trans "Périodes" %}
                   </a>
                 </td>
               </tr>
@@ -66,7 +66,7 @@
         </div>
         {% else %}
         <div class="orion-empty">
-          <div class="orion-empty-title">Aucun exercice.</div>
+          <div class="orion-empty-title">{% trans "Aucun exercice." %}</div>
         </div>
         {% endif %}
       </div>

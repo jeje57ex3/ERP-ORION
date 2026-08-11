@@ -1,24 +1,27 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
 {% load humanize %}
+{% load i18n %}
 
 {% block title %}{{ page_title }} — {{ shop_settings.site_name }} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header" style="margin-bottom:20px">
-  <div>
-    <p class="orion-page-eyebrow">
-      Sites web · Paramètres boutique ·
+{% block page_header %}
+<div class="page-header" style="margin-bottom:20px">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">
+      {% trans "Sites web · Paramètres boutique ·" %}
       {% if shop_settings.brand_key == "siecle" %}<strong>SIÈCLE</strong>{% else %}<strong>LUNEA</strong>{% endif %}
     </p>
-    <h1 class="orion-page-title">{{ page_title }}</h1>
+    <h1 class="page-title">{{ page_title }}</h1>
   </div>
-  <div class="orion-page-actions">
+  <div class="page-header-actions">
     <a href="{% url 'website_shop_settings:dashboard' %}" class="orion-btn">
-      <i class="bi bi-arrow-left me-1"></i>Tous les sites
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Tous les sites" %}
     </a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
 {% for msg in messages %}
 <div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>

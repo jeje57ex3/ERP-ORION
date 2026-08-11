@@ -1,12 +1,13 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Marketplaces — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Marketplaces" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Marketplaces</li>
+<li class="breadcrumb-item active">{% trans "Marketplaces" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter</a>
+<a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter" %}</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3">
@@ -22,13 +23,13 @@
           <span class="orion-badge orion-badge-{% if acc.status == 'active' %}success{% elif acc.status == 'suspended' %}warning{% else %}secondary{% endif %}">{{ acc.get_status_display }}</span>
         </div>
         <div class="small text-muted mb-2">
-          {% if acc.seller_id %}<div>ID vendeur : {{ acc.seller_id }}</div>{% endif %}
-          <div>Commission : {{ acc.commission_rate }}%</div>
-          <div>{{ acc.listing_count }} listing{{ acc.listing_count|pluralize }}</div>
-          {% if acc.last_sync %}<div>Sync : {{ acc.last_sync|date:"d/m/Y H:i" }}</div>{% endif %}
+          {% if acc.seller_id %}<div>{% blocktrans with sid=acc.seller_id %}ID vendeur : {{ sid }}{% endblocktrans %}</div>{% endif %}
+          <div>{% blocktrans with rate=acc.commission_rate %}Commission : {{ rate }}%{% endblocktrans %}</div>
+          <div>{% blocktrans count counter=acc.listing_count %}{{ counter }} listing{% plural %}{{ counter }} listings{% endblocktrans %}</div>
+          {% if acc.last_sync %}<div>{% blocktrans with sync_date=acc.last_sync|date:"d/m/Y H:i" %}Sync : {{ sync_date }}{% endblocktrans %}</div>{% endif %}
         </div>
         <div class="d-flex gap-1 justify-content-end mt-3">
-          <a href="{% url 'ecommerce:marketplace_edit' acc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil me-1"></i>Configurer</a>
+          <a href="{% url 'ecommerce:marketplace_edit' acc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Configurer" %}</a>
           <a href="{% url 'ecommerce:marketplace_listing_create' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-plus me-1"></i>Listing</a>
         </div>
       </div>
@@ -38,9 +39,9 @@
   <div class="col-12">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-shop"></i></div>
-      <div class="orion-empty-title">Aucun compte marketplace connecté.</div>
-      <div class="orion-empty-text">Connectez Amazon, Cdiscount, Fnac, ManoMano ou eBay.</div>
-      <a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary mt-2">Ajouter une marketplace</a>
+      <div class="orion-empty-title">{% trans "Aucun compte marketplace connecté." %}</div>
+      <div class="orion-empty-text">{% trans "Connectez Amazon, Cdiscount, Fnac, ManoMano ou eBay." %}</div>
+      <a href="{% url 'ecommerce:marketplace_create' %}" class="orion-btn orion-orion-btn primary mt-2">{% trans "Ajouter une marketplace" %}</a>
     </div>
   </div>
   {% endfor %}

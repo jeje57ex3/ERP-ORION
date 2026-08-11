@@ -1,11 +1,12 @@
-{# Composant : Drawer Panel (panneau latéral glissant)
+{% load i18n %}
+{% comment %} Composant : Drawer Panel (panneau latéral glissant)
    Usage :
      {% include "components/drawer_panel.html" with drawer_id="customerDrawer" drawer_title="Détail client" %}
      Ouverture JS : OrionDrawer.open('customerDrawer')
      Fermeture JS : OrionDrawer.close('customerDrawer')
      Ou bouton :   data-drawer-open="customerDrawer"
    Variables : drawer_id (requis), drawer_title, drawer_footer_html
-#}
+{% endcomment %}
 {% with id=drawer_id|default:"orionDrawer" %}
 
 <!-- Overlay -->
@@ -14,11 +15,13 @@
 <!-- Drawer -->
 <div class="orion-drawer" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}Title">
   <div class="orion-drawer-header">
+    {% trans "Détail" as orion_drawer_default_title %}
     <h5 class="orion-drawer-title" id="{{ id }}Title">
       {% if drawer_icon %}<i class="bi {{ drawer_icon }} me-2"></i>{% endif %}
-      {{ drawer_title|default:"Détail" }}
+      {{ drawer_title|default:orion_drawer_default_title }}
     </h5>
-    <button class="orion-drawer-close" onclick="OrionDrawer.close('{{ id }}')" aria-label="Fermer">
+    {% trans "Fermer" as orion_drawer_close_label %}
+    <button class="orion-drawer-close" onclick="OrionDrawer.close('{{ id }}')" aria-label="{{ orion_drawer_close_label }}">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
@@ -37,7 +40,7 @@
   {% if drawer_footer_html or show_footer %}
   <div class="orion-drawer-footer">
     {{ drawer_footer_html }}
-    <button class="orion-btn orion-btn-outline" onclick="OrionDrawer.close('{{ id }}')">Fermer</button>
+    <button class="orion-btn orion-btn-outline" onclick="OrionDrawer.close('{{ id }}')">{% trans "Fermer" %}</button>
   </div>
   {% endif %}
 </div>

@@ -1,14 +1,15 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'crm:customer_list' %}">Clients</a></li>
-<li class="breadcrumb-item active">{% if action == 'create' %}Nouveau client{% else %}Modifier{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'crm:customer_list' %}">{% trans "Clients" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'create' %}{% trans "Nouveau client" %}{% else %}{% trans "Modifier" %}{% endif %}</li>
 {% endblock %}
 {% block page_subtitle %}
-<p class="page-subtitle">{% if action == 'create' %}Renseignez les informations du nouveau client.{% else %}Modifiez les informations du client.{% endif %}</p>
+<p class="page-subtitle">{% if action == 'create' %}{% trans "Renseignez les informations du nouveau client." %}{% else %}{% trans "Modifiez les informations du client." %}{% endif %}</p>
 {% endblock %}
 {% block page_actions %}
 <a href="{% if customer %}{% url 'crm:customer_detail' customer.pk %}{% else %}{% url 'crm:customer_list' %}{% endif %}" class="btn btn-outline-secondary orion-btn sm">
-  <i class="bi bi-x-circle me-1"></i>Annuler
+  <i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}
 </a>
 {% endblock %}
 
@@ -21,32 +22,32 @@
     <div class="col-12 col-lg-8">
       <!-- Identité -->
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-person me-1 text-primary"></i>Identité</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-person me-1 text-primary"></i>{% trans "Identité" %}</h6></div>
         <div class="p-3">
           <div class="form-section">
             <div class="row g-3">
               <div class="col-md-4">
-                <label class="form-label">Type *</label>
+                <label class="form-label">{% trans "Type" %} *</label>
                 {{ form.customer_type }}
               </div>
               <div class="col-md-4">
-                <label class="form-label">Code client</label>
+                <label class="form-label">{% trans "Code client" %}</label>
                 {{ form.code }}
               </div>
             </div>
           </div>
           <div class="row g-3">
             <div class="col-12">
-              <label class="form-label">Nom / Raison sociale *</label>
+              <label class="form-label">{% trans "Nom / Raison sociale" %} *</label>
               {{ form.name }}
               {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors }}</div>{% endif %}
             </div>
             <div class="col-md-6">
-              <label class="form-label">Nom du contact principal</label>
+              <label class="form-label">{% trans "Nom du contact principal" %}</label>
               {{ form.contact_name }}
             </div>
             <div class="col-md-6">
-              <label class="form-label">Commercial responsable</label>
+              <label class="form-label">{% trans "Commercial responsable" %}</label>
               {{ form.salesperson }}
             </div>
           </div>
@@ -55,39 +56,39 @@
 
       <!-- Contact -->
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-telephone me-1 text-primary"></i>Coordonnées</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-telephone me-1 text-primary"></i>{% trans "Coordonnées" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">Email</label>
+              <label class="form-label">{% trans "Email" %}</label>
               {{ form.email }}
             </div>
             <div class="col-md-6">
-              <label class="form-label">Téléphone</label>
+              <label class="form-label">{% trans "Téléphone" %}</label>
               {{ form.phone }}
             </div>
             <div class="col-md-6">
-              <label class="form-label">Mobile</label>
+              <label class="form-label">{% trans "Mobile" %}</label>
               {{ form.mobile }}
             </div>
             <div class="col-md-6">
-              <label class="form-label">Site web</label>
+              <label class="form-label">{% trans "Site web" %}</label>
               {{ form.website }}
             </div>
             <div class="col-12">
-              <label class="form-label">Adresse</label>
+              <label class="form-label">{% trans "Adresse" %}</label>
               {{ form.address }}
             </div>
             <div class="col-md-5">
-              <label class="form-label">Ville</label>
+              <label class="form-label">{% trans "Ville" %}</label>
               {{ form.city }}
             </div>
             <div class="col-md-3">
-              <label class="form-label">Code postal</label>
+              <label class="form-label">{% trans "Code postal" %}</label>
               {{ form.zip_code }}
             </div>
             <div class="col-md-4">
-              <label class="form-label">Pays</label>
+              <label class="form-label">{% trans "Pays" %}</label>
               {{ form.country }}
             </div>
           </div>
@@ -96,15 +97,15 @@
 
       <!-- Informations légales -->
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-building me-1 text-primary"></i>Informations légales</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-building me-1 text-primary"></i>{% trans "Informations légales" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">SIRET</label>
+              <label class="form-label">{% trans "SIRET" %}</label>
               {{ form.siret }}
             </div>
             <div class="col-md-6">
-              <label class="form-label">N° TVA intracommunautaire</label>
+              <label class="form-label">{% trans "N° TVA intracommunautaire" %}</label>
               {{ form.vat_number }}
             </div>
           </div>
@@ -113,7 +114,7 @@
 
       <!-- Notes -->
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-journal-text me-1 text-primary"></i>Notes internes</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-journal-text me-1 text-primary"></i>{% trans "Notes internes" %}</h6></div>
         <div class="p-3">
           {{ form.notes }}
         </div>
@@ -123,29 +124,29 @@
     <!-- Colonne latérale -->
     <div class="col-12 col-lg-4">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-cash me-1 text-primary"></i>Conditions commerciales</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-cash me-1 text-primary"></i>{% trans "Conditions commerciales" %}</h6></div>
         <div class="p-3">
           <div class="mb-3">
-            <label class="form-label">Délai de paiement (jours)</label>
+            <label class="form-label">{% trans "Délai de paiement (jours)" %}</label>
             {{ form.payment_terms }}
           </div>
           <div class="mb-3">
-            <label class="form-label">Remise globale (%)</label>
+            <label class="form-label">{% trans "Remise globale (%)" %}</label>
             {{ form.discount_rate }}
           </div>
           <div class="mb-3">
-            <label class="form-label">Limite de crédit (€)</label>
+            <label class="form-label">{% trans "Limite de crédit (€)" %}</label>
             {{ form.credit_limit }}
           </div>
         </div>
       </div>
 
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-sliders me-1 text-primary"></i>Statut</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-sliders me-1 text-primary"></i>{% trans "Statut" %}</h6></div>
         <div class="p-3">
           <div class="form-check form-switch">
             {{ form.is_active }}
-            <label class="form-check-label">Client actif</label>
+            <label class="form-check-label">{% trans "Client actif" %}</label>
           </div>
         </div>
       </div>
@@ -156,10 +157,10 @@
   <!-- Actions -->
   <div class="d-flex gap-2 justify-content-end mt-3">
     <a href="{% if customer %}{% url 'crm:customer_detail' customer.pk %}{% else %}{% url 'crm:customer_list' %}{% endif %}" class="btn btn-outline-secondary">
-      <i class="bi bi-x-circle me-1"></i>Annuler
+      <i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}
     </a>
     <button type="submit" class="orion-btn primary">
-      <i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}Créer le client{% else %}Enregistrer{% endif %}
+      <i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}{% trans "Créer le client" %}{% else %}{% trans "Enregistrer" %}{% endif %}
     </button>
   </div>
 </form>

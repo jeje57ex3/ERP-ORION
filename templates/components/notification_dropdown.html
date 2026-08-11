@@ -1,17 +1,19 @@
-{# Composant : dropdown notifications pour la navbar
+{% load i18n %}
+{% comment %} Composant : dropdown notifications pour la navbar
    Usage : {% include "components/notification_dropdown.html" %}
    Contexte attendu (injecté par context_processors.py) :
      - unread_notifications : queryset des notifications non lues
      - unread_count         : nombre de notifications non lues
    Polling AJAX toutes les 60s vers /notifications/count/ pour mettre à jour le badge.
-#}
+{% endcomment %}
+{% trans "Notifications" as orion_notif_dropdown_label %}
 <div class="dropdown" id="notificationDropdown">
   {# Bouton cloche #}
   <button
     class="navbar-icon-btn position-relative"
     type="button"
     data-bs-toggle="dropdown"
-    aria-label="Notifications"
+    aria-label="{{ orion_notif_dropdown_label }}"
     aria-expanded="false"
     id="notifDropdownToggle"
   >
@@ -28,14 +30,15 @@
     {# Header #}
     <div class="notif-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
       <span class="fw-semibold">
-        <i class="bi bi-bell me-1 text-primary"></i>Notifications
+        <i class="bi bi-bell me-1 text-primary"></i>{% trans "Notifications" %}
         {% if unread_count > 0 %}
         <span class="orion-badge danger ms-1" id="notifHeaderCount">{{ unread_count }}</span>
         {% endif %}
       </span>
       {% if unread_count > 0 %}
-      <a href="{% url 'core:notifications_read_all' %}" class="btn btn-link orion-btn sm p-0 text-muted small text-decoration-none" title="Marquer tout comme lu">
-        <i class="bi bi-check2-all me-1"></i>Tout lire
+      {% trans "Marquer tout comme lu" as orion_notif_mark_all_title %}
+      <a href="{% url 'core:notifications_read_all' %}" class="btn btn-link orion-btn sm p-0 text-muted small text-decoration-none" title="{{ orion_notif_mark_all_title }}">
+        <i class="bi bi-check2-all me-1"></i>{% trans "Tout lire" %}
       </a>
       {% endif %}
     </div>
@@ -60,7 +63,7 @@
             {% endif %}
             <div class="notif-time text-muted" style="font-size:.7rem;">
               <i class="bi bi-clock me-1"></i>
-              il y a {{ notif.created_at|timesince }}
+              {% blocktrans with elapsed=notif.created_at|timesince %}il y a {{ elapsed }}{% endblocktrans %}
             </div>
           </div>
           {# Point non-lu #}
@@ -74,7 +77,7 @@
       {% else %}
         <div class="text-muted text-center py-5 px-3">
           <i class="bi bi-bell-slash d-block fs-2 mb-2 opacity-25"></i>
-          <small>Aucune notification</small>
+          <small>{% trans "Aucune notification" %}</small>
         </div>
       {% endif %}
     </div>
@@ -82,7 +85,7 @@
     {# Footer #}
     <div class="notif-footer border-top px-3 py-2 text-center">
       <a href="{% url 'core:notifications' %}" class="small text-muted text-decoration-none">
-        <i class="bi bi-list-ul me-1"></i>Voir toutes les notifications
+        <i class="bi bi-list-ul me-1"></i>{% trans "Voir toutes les notifications" %}
       </a>
     </div>
   </div>

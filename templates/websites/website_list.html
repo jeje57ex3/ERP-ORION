@@ -1,14 +1,15 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Sites web — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with company_name=request.current_company.name|default:"Orion ERP" %}Sites web — {{ company_name }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Sites web</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Créez et gérez les sites vitrines, boutiques en ligne et pages publiques de vos entreprises.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Sites web" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Créez et gérez les sites vitrines, boutiques en ligne et pages publiques de vos entreprises." %}</p>{% endblock %}
 {% block page_actions %}
 <div class="d-flex gap-2 flex-wrap">
-  <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline"><i class="bi bi-globe2 me-1"></i>Gérer les domaines</a>
-  <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>Site vitrine</a>
-  <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>Boutique en ligne</a>
+  <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline"><i class="bi bi-globe2 me-1"></i>{% trans "Gérer les domaines" %}</a>
+  <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>{% trans "Site vitrine" %}</a>
+  <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>{% trans "Boutique en ligne" %}</a>
 </div>
 {% endblock %}
 
@@ -18,27 +19,27 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#F3E8FF;color:#9333EA"><i class="bi bi-globe"></i></div>
       <div class="orion-kpi-value">{{ total }}</div>
-      <div class="orion-kpi-label">Sites créés</div>
+      <div class="orion-kpi-label">{% trans "Sites créés" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-broadcast"></i></div>
       <div class="orion-kpi-value">{{ published_count }}</div>
-      <div class="orion-kpi-label">Publiés</div>
+      <div class="orion-kpi-label">{% trans "Publiés" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-shop"></i></div>
       <div class="orion-kpi-value">{{ ecommerce_count }}</div>
-      <div class="orion-kpi-label">Boutiques</div>
+      <div class="orion-kpi-label">{% trans "Boutiques" %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="?" class="orion-filter-chip {% if not site_type and not status %}active{% endif %}">Tous</a>
+  <a href="?" class="orion-filter-chip {% if not site_type and not status %}active{% endif %}">{% trans "Tous" %}</a>
   {% for val, label in site_type_choices %}
   <a href="?type={{ val }}" class="orion-filter-chip {% if site_type == val %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -62,13 +63,13 @@
         </div>
         {% if site.domain %}<p class="small text-muted mb-1"><i class="bi bi-globe me-1"></i>{{ site.domain }}</p>{% endif %}
         {% if site.language %}<p class="small text-muted mb-1"><i class="bi bi-translate me-1"></i>{{ site.get_language_display }}</p>{% endif %}
-        <p class="small text-muted mb-0">Modifié {{ site.updated_at|date:"d/m/Y" }}</p>
+        <p class="small text-muted mb-0">{% blocktrans with updated=site.updated_at|date:"d/m/Y" %}Modifié {{ updated }}{% endblocktrans %}</p>
       </div>
       {# ── Raccourcis URL ─────────────────────────────────────────────────── #}
       {% if site.status == 'published' %}
       <div class="px-3 pb-2">
         <div class="d-flex flex-column gap-1">
-          <div class="small text-muted" style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:2px">Accès rapide</div>
+          <div class="small text-muted" style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:2px">{% trans "Accès rapide" %}</div>
           <a href="/sites/{{ site.public_slug }}/" target="_blank"
              class="d-flex align-items-center gap-2 text-decoration-none rounded px-2 py-1"
              style="background:#f8f9fa;font-size:.78rem;color:#374151;transition:background .15s"
@@ -101,7 +102,7 @@
 
       <div class="orion-orion-orion-card-header border-top">
         <div class="d-flex gap-2 flex-wrap w-100">
-          <a href="{% url 'websites:website_detail' site.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-fill"><i class="bi bi-eye me-1"></i>Gérer</a>
+          <a href="{% url 'websites:website_detail' site.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm flex-fill"><i class="bi bi-eye me-1"></i>{% trans "Gérer" %}</a>
           {% if site.site_type == 'ecommerce' %}
           <a href="{% url 'websites:store_dashboard' site.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-shop"></i></a>
           {% endif %}
@@ -110,15 +111,15 @@
         <div class="d-flex gap-2 mt-2 w-100">
           {% if site.status != 'published' %}
           <form method="post" action="{% url 'websites:website_publish' site.pk %}" class="flex-fill">{% csrf_token %}
-            <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm w-100"><i class="bi bi-broadcast me-1"></i>Publier</button>
+            <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm w-100"><i class="bi bi-broadcast me-1"></i>{% trans "Publier" %}</button>
           </form>
           {% else %}
           <form method="post" action="{% url 'websites:website_unpublish' site.pk %}" class="flex-fill">{% csrf_token %}
-            <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm w-100"><i class="bi bi-pause me-1"></i>Dépublier</button>
+            <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm w-100"><i class="bi bi-pause me-1"></i>{% trans "Dépublier" %}</button>
           </form>
           {% endif %}
           <form method="post" action="{% url 'websites:website_duplicate' site.pk %}">{% csrf_token %}
-            <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Dupliquer"><i class="bi bi-copy"></i></button>
+            <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Dupliquer' %}"><i class="bi bi-copy"></i></button>
           </form>
         </div>
       </div>
@@ -131,11 +132,11 @@
   <div class="orion-orion-orion-card-body">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-globe"></i></div>
-      <div class="orion-empty-title">Aucun site web n'a encore été créé</div>
-      <div class="orion-empty-text">Créez un site vitrine ou une boutique en ligne pour développer votre présence en ligne.</div>
+      <div class="orion-empty-title">{% trans "Aucun site web n'a encore été créé" %}</div>
+      <div class="orion-empty-text">{% trans "Créez un site vitrine ou une boutique en ligne pour développer votre présence en ligne." %}</div>
       <div class="d-flex gap-2 justify-content-center mt-3">
-        <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>Créer un site vitrine</a>
-        <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>Créer une boutique en ligne</a>
+        <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>{% trans "Créer un site vitrine" %}</a>
+        <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>{% trans "Créer une boutique en ligne" %}</a>
       </div>
     </div>
   </div>

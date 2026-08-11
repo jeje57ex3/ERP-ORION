@@ -1,0 +1,59 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sélectionner une entreprise — Orion ERP" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center py-5 text-center" style="min-height:50vh;">
+  <div style="max-width:480px;">
+    <div class="mb-4" style="color:var(--orion-gold,#D6B36A);font-size:3rem;">
+      <i class="bi bi-building"></i>
+    </div>
+    <p style="color:var(--orion-gold,#D6B36A);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;">
+      Orion ERP
+    </p>
+    <h1 class="h3 fw-bold mb-3" style="color:var(--orion-text,#F7F2E7);">
+      {% trans "Sélectionnez une entreprise" %}
+    </h1>
+    <p class="mb-4" style="color:var(--orion-text-muted,#A09A8A);line-height:1.7;">
+      {% trans "Les modules ERP — commandes, clients, produits, boutique, IA, PDCA — sont disponibles uniquement après sélection d'une entreprise." %}
+    </p>
+
+    {% if available_companies %}
+    <div class="card border-0 p-4 mb-3" style="background:var(--orion-surface,#17171B);border-radius:12px;">
+      <form method="post" action="{% url 'private_saas:select_active_company' %}">
+        {% csrf_token %}
+        <label for="company_id" class="form-label fw-semibold mb-2" style="color:var(--orion-text,#F7F2E7);">
+          {% trans "Choisir une entreprise" %}
+        </label>
+        <div class="d-flex gap-2">
+          <select name="company_id" id="company_id" class="form-select" required>
+            <option value="">{% trans "— Sélectionner —" %}</option>
+            {% for company in available_companies %}
+              <option value="{{ company.id }}">{{ company.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn flex-shrink-0" style="background:var(--orion-gold,#D6B36A);color:#0B0B0D;font-weight:600;">
+            {% trans "OK" %}
+          </button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="alert" style="background:rgba(214,179,106,.08);border:1px solid rgba(214,179,106,.2);color:var(--orion-text-muted,#A09A8A);border-radius:8px;">
+      {% trans "Aucune entreprise accessible. Contactez votre administrateur." %}
+    </div>
+    {% endif %}
+
+    {% if request.user.is_superuser %}
+    <p class="mt-3" style="font-size:.85rem;color:var(--orion-text-muted,#A09A8A);">
+      <i class="bi bi-shield-lock me-1"></i>
+      {% trans "Super Admin : les pages système restent accessibles via" %}
+      <a href="{% url 'private_saas:dashboard' %}" style="color:var(--orion-gold,#D6B36A);">
+        /orion-admin/
+      </a>
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

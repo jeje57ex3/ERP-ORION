@@ -1,6 +1,6 @@
-{# Composant badge statut
+{% comment %} Composant badge statut
    Variables : status, label, color_class (success|warning|danger|info|secondary|purple|gold)
-#}
+{% endcomment %}
 <span class="orion-badge orion-badge-{{ color_class|default:'secondary' }}">
   <span class="orion-badge-dot bg-{{ color_class|default:'secondary' }}"></span>
   {{ label }}

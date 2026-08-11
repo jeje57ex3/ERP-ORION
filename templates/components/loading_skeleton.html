@@ -1,7 +1,7 @@
-{# Composant : Skeleton de chargement
+{% comment %} Composant : Skeleton de chargement
    Variables : rows (int, défaut 5), cols (int, défaut 4), show_header (bool), card (bool)
    Usage : {% include "components/loading_skeleton.html" with rows=6 cols=4 %}
-#}
+{% endcomment %}
 {% with rows_count=rows|default:5 cols_count=cols|default:4 %}
 {% if card|default:True %}
 <div class="orion-card">

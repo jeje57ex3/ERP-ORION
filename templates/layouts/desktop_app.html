@@ -1,5 +1,6 @@
 {% load static %}
 {% load humanize %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr" data-bs-theme="light" id="htmlRoot">
 <head>
@@ -71,7 +72,7 @@
           <span class="flex-1 text-truncate">{{ current_company.name|truncatechars:18 }}</span>
           {% else %}
           <i class="bi bi-building" style="font-size:12px"></i>
-          <span class="flex-1">Sélectionner...</span>
+          <span class="flex-1">{% trans "Sélectionner..." %}</span>
           {% endif %}
           <i class="bi bi-chevron-expand ms-auto" style="font-size:10px;opacity:.5"></i>
         </button>
@@ -88,7 +89,7 @@
           {% endfor %}
           {% if request.user.is_superuser %}
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:12px"><i class="bi bi-plus-circle me-2"></i>Nouvelle</a></li>
+          <li><a class="dropdown-item" href="{% url 'core:company_create' %}" style="font-size:12px"><i class="bi bi-plus-circle me-2"></i>{% trans "Nouvelle" %}</a></li>
           {% endif %}
         </ul>
       </div>
@@ -134,7 +135,7 @@
     {% if request.user.is_superuser %}
     <a class="orion-sidebar-item" href="{% url 'admin:index' %}">
       <i class="bi bi-shield-check orion-sidebar-icon" style="color:#6B7280"></i>
-      <span class="orion-sidebar-label">Administration</span>
+      <span class="orion-sidebar-label">{% trans "Administration" %}</span>
     </a>
     {% endif %}
 
@@ -155,10 +156,10 @@
       <div class="orion-sidebar-footer-role">{{ request.user.profile.get_role_display }}</div>
     </div>
     <div class="orion-sidebar-footer-actions">
-      <button class="orion-sidebar-footer-btn" id="orionSidebarToggle" title="Mode compact">
+      <button class="orion-sidebar-footer-btn" id="orionSidebarToggle" title="{% trans 'Mode compact' %}">
         <i class="bi bi-layout-sidebar"></i>
       </button>
-      <a href="{% url 'accounts:logout' %}" class="orion-sidebar-footer-btn" title="Déconnexion">
+      <a href="{% url 'accounts:logout' %}" class="orion-sidebar-footer-btn" title="{% trans 'Déconnexion' %}">
         <i class="bi bi-box-arrow-right"></i>
       </a>
     </div>
@@ -180,27 +181,27 @@
     <div class="orion-topbar-left">
 
       <!-- Menu mobile -->
-      <button class="orion-icon-btn d-lg-none" id="orionMobileMenuBtn" aria-label="Menu">
+      <button class="orion-icon-btn d-lg-none" id="orionMobileMenuBtn" aria-label="{% trans 'Menu' %}">
         <i class="bi bi-list" style="font-size:18px"></i>
       </button>
 
       <!-- Retour / avancer -->
-      <button class="orion-icon-btn d-none d-md-flex" onclick="history.back()" title="Retour (Alt+←)">
+      <button class="orion-icon-btn d-none d-md-flex" onclick="history.back()" title="{% trans 'Retour (Alt+←)' %}">
         <i class="bi bi-arrow-left"></i>
       </button>
-      <button class="orion-icon-btn d-none d-md-flex" onclick="history.forward()" title="Suivant">
+      <button class="orion-icon-btn d-none d-md-flex" onclick="history.forward()" title="{% trans 'Suivant' %}">
         <i class="bi bi-arrow-right"></i>
       </button>
-      <button class="orion-icon-btn d-none d-md-flex" onclick="location.reload()" title="Actualiser">
+      <button class="orion-icon-btn d-none d-md-flex" onclick="location.reload()" title="{% trans 'Actualiser' %}">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
 
       <!-- Recherche mini -->
       <div class="orion-search-mini" role="button"
            data-bs-toggle="modal" data-bs-target="#globalSearchModal"
-           title="Recherche globale (Ctrl+K)">
+           title="{% trans 'Recherche globale (Ctrl+K)' %}">
         <i class="bi bi-search"></i>
-        <input type="text" placeholder="Rechercher…" readonly tabindex="-1" style="pointer-events:none">
+        <input type="text" placeholder="{% trans 'Rechercher…' %}" readonly tabindex="-1" style="pointer-events:none">
         <kbd>Ctrl+K</kbd>
       </div>
 
@@ -221,56 +222,60 @@
 
       <!-- Indicateur non sauvegardé -->
       <span id="orionDirtyIndicator" style="display:none;font-size:11px;color:var(--orion-warning);align-items:center;gap:4px">
-        <i class="bi bi-circle-fill" style="font-size:6px"></i> Non enregistré
+        <i class="bi bi-circle-fill" style="font-size:6px"></i> {% trans "Non enregistré" %}
       </span>
 
       <!-- Créer rapide -->
       <div class="dropdown d-none d-lg-block">
-        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Créer (bouton +)">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="{% trans 'Créer (bouton +)' %}">
           <i class="bi bi-plus-circle"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="min-width:210px;font-size:12.5px">
-          <li class="dropdown-header" style="font-size:10.5px">CRÉER</li>
-          <li><a class="dropdown-item py-1" href="{% url 'crm:customer_create' %}"><i class="bi bi-person me-2 text-primary"></i>Client</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'sales:quote_create' %}"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>Devis</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'sales:invoice_create' %}"><i class="bi bi-receipt me-2 text-success"></i>Facture</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'btp:project_create' %}"><i class="bi bi-building-gear me-2 text-info"></i>Chantier</a></li>
+          <li class="dropdown-header" style="font-size:10.5px">{% trans "CRÉER" %}</li>
+          <li><a class="dropdown-item py-1" href="{% url 'crm:customer_create' %}"><i class="bi bi-person me-2 text-primary"></i>{% trans "Client" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'sales:quote_create' %}"><i class="bi bi-file-earmark-plus me-2 text-warning"></i>{% trans "Devis" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'sales:invoice_create' %}"><i class="bi bi-receipt me-2 text-success"></i>{% trans "Facture" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'btp:project_create' %}"><i class="bi bi-building-gear me-2 text-info"></i>{% trans "Chantier" %}</a></li>
           <li><hr class="dropdown-divider my-1"></li>
           <li><a class="dropdown-item py-1 text-muted" href="#" onclick="OrionCommandPalette&&OrionCommandPalette.open();return false">
-            <i class="bi bi-command me-2"></i>Toutes les commandes <kbd class="ms-1" style="font-size:10px">Ctrl+K</kbd></a></li>
+            <i class="bi bi-command me-2"></i>{% trans "Toutes les commandes" %} <kbd class="ms-1" style="font-size:10px">Ctrl+K</kbd></a></li>
         </ul>
       </div>
 
       <!-- Densité interface -->
       <div class="dropdown d-none d-lg-block">
-        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Densité interface" id="orionCompactToggle">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="{% trans 'Densité interface' %}" id="orionCompactToggle">
           <i class="bi bi-layout-three-columns"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="min-width:160px;font-size:12.5px">
-          <li class="dropdown-header" style="font-size:10.5px">DENSITÉ</li>
-          <li><button class="dropdown-item py-1" data-density="comfort"><i class="bi bi-border-outer me-2"></i>Confort</button></li>
-          <li><button class="dropdown-item py-1" data-density="standard"><i class="bi bi-border-middle me-2"></i>Standard</button></li>
-          <li><button class="dropdown-item py-1" data-density="compact"><i class="bi bi-border-inner me-2"></i>Compact</button></li>
-          <li><button class="dropdown-item py-1" data-density="dense"><i class="bi bi-layout-text-sidebar me-2"></i>Dense ERP</button></li>
+          <li class="dropdown-header" style="font-size:10.5px">{% trans "DENSITÉ" %}</li>
+          <li><button class="dropdown-item py-1" data-density="comfort"><i class="bi bi-border-outer me-2"></i>{% trans "Confort" %}</button></li>
+          <li><button class="dropdown-item py-1" data-density="standard"><i class="bi bi-border-middle me-2"></i>{% trans "Standard" %}</button></li>
+          <li><button class="dropdown-item py-1" data-density="compact"><i class="bi bi-border-inner me-2"></i>{% trans "Compact" %}</button></li>
+          <li><button class="dropdown-item py-1" data-density="dense"><i class="bi bi-layout-text-sidebar me-2"></i>{% trans "Dense ERP" %}</button></li>
         </ul>
       </div>
 
       <!-- Thème -->
-      <button class="orion-icon-btn" id="orionThemeToggle" title="Thème">
+      <button class="orion-icon-btn" id="orionThemeToggle" title="{% trans 'Thème' %}">
         <i class="bi bi-moon-stars" id="orionThemeIcon"></i>
       </button>
 
       <!-- Notifications -->
       <div class="dropdown orion-notif-btn">
-        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="Notifications">
+        <button class="orion-icon-btn" data-bs-toggle="dropdown" title="{% trans 'Notifications' %}">
           <i class="bi bi-bell"></i>
           {% if unread_count > 0 %}<span class="orion-notif-badge">{{ unread_count }}</span>{% endif %}
         </button>
         <div class="dropdown-menu dropdown-menu-end" style="min-width:280px;max-height:400px;overflow-y:auto">
           <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
-            <span class="fw-600" style="font-size:13px">Notifications</span>
+            <span class="fw-600" style="font-size:13px">{% trans "Notifications" %}</span>
             {% if unread_count > 0 %}
-            <a href="{% url 'notifications:mark_all_read' %}" style="font-size:11.5px" class="text-muted">Tout lire</a>
+            <form method="post" action="{% url 'notifications:mark_all_read' %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" style="font-size:11.5px;background:none;border:none;padding:0;cursor:pointer" class="text-muted">{% trans "Tout lire" %}</button>
+            </form>
             {% endif %}
           </div>
           {% if unread_notifications %}
@@ -288,11 +293,11 @@
             {% endfor %}
           {% else %}
           <div class="text-center py-4 text-muted" style="font-size:12px">
-            <i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-25"></i>Aucune notification
+            <i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-25"></i>{% trans "Aucune notification" %}
           </div>
           {% endif %}
           <a class="dropdown-item text-center py-2 text-muted border-top" href="{% url 'notifications:list' %}" style="font-size:12px">
-            Voir toutes
+            {% trans "Voir toutes" %}
           </a>
         </div>
       </div>
@@ -315,13 +320,13 @@
             <span class="text-muted" style="font-size:10.5px">{{ request.user.email }}</span>
           </li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item py-1" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>Mon profil</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>{% trans "Mon profil" %}</a></li>
           {% if request.user.is_superuser %}
-          <li><a class="dropdown-item py-1" href="{% url 'core:company_list' %}"><i class="bi bi-building me-2"></i>Entreprises</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'admin:index' %}"><i class="bi bi-shield-check me-2"></i>Administration</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'core:company_list' %}"><i class="bi bi-building me-2"></i>{% trans "Entreprises" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'admin:index' %}"><i class="bi bi-shield-check me-2"></i>{% trans "Administration" %}</a></li>
           {% endif %}
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item py-1 text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+          <li><a class="dropdown-item py-1 text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-right me-2"></i>{% trans "Déconnexion" %}</a></li>
         </ul>
       </div>
 
@@ -372,13 +377,13 @@
       <div class="modal-header border-0 pb-0 pt-3">
         <div class="input-group">
           <span class="input-group-text bg-transparent border-0 ps-3"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="globalSearchModalInput" class="form-control border-0 shadow-none" placeholder="Rechercher clients, devis, factures, chantiers…" autocomplete="off" style="font-size:15px">
+          <input type="text" id="globalSearchModalInput" class="form-control border-0 shadow-none" placeholder="{% trans 'Rechercher clients, devis, factures, chantiers…' %}" autocomplete="off" style="font-size:15px">
           <button class="orion-btn sm btn-outline-secondary me-2" data-bs-dismiss="modal"><kbd>Esc</kbd></button>
         </div>
       </div>
       <div class="modal-body pt-0" id="globalSearchModalResults">
         <div class="text-center text-muted py-5" id="globalSearchEmpty" style="font-size:13px">
-          <i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>Tapez pour rechercher…
+          <i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>{% trans "Tapez pour rechercher…" %}
         </div>
       </div>
     </div>
@@ -427,7 +432,7 @@
       .then(function(r){return r.ok?r.json():null;})
       .then(function(data){
         if(!data||!data.results||!data.results.length){
-          results.innerHTML='<div class="text-center py-4 text-muted" style="font-size:12.5px"><i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>Aucun résultat</div>';return;
+          results.innerHTML='<div class="text-center py-4 text-muted" style="font-size:12.5px"><i class="bi bi-search d-block fs-2 mb-2 opacity-25"></i>{% trans "Aucun résultat" %}</div>';return;
         }
         var html='',byType={};
         data.results.forEach(function(r){if(!byType[r.label])byType[r.label]=[];byType[r.label].push(r);});
@@ -440,7 +445,7 @@
           });
         });
         results.innerHTML=html;
-      }).catch(function(){results.innerHTML='<div class="text-center py-3 text-muted" style="font-size:12px"><i class="bi bi-wifi-off me-1"></i>Erreur réseau</div>';});
+      }).catch(function(){results.innerHTML='<div class="text-center py-3 text-muted" style="font-size:12px"><i class="bi bi-wifi-off me-1"></i>{% trans "Erreur réseau" %}</div>';});
     },280);
   });
   modal.addEventListener('shown.bs.modal',function(){input.focus();input.value='';results.innerHTML='';results.appendChild(empty);});

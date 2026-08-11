@@ -1,10 +1,10 @@
-{# Composant breadcrumb réutilisable
+{% comment %} Composant breadcrumb réutilisable
    Usage : {% include "components/breadcrumb.html" with items=breadcrumb_items %}
    items = liste de dicts :
      - {'label': 'CRM', 'url': '/crm/'}         → lien cliquable
      - {'label': 'Jean Dupont'}                  → dernier élément (pas de lien)
    Si le premier item n'a pas de 'url', une icône home est affichée à la place du label.
-#}
+{% endcomment %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-0">
     {% for item in items %}

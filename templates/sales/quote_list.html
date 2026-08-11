@@ -1,47 +1,48 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Devis — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Devis" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Devis</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Créez, envoyez et suivez vos propositions commerciales.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Devis" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Créez, envoyez et suivez vos propositions commerciales." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau devis</a>
+<a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau devis" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-file-text"></i></div>
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B"><i class="bi bi-file-text"></i></div>
       <div class="orion-kpi-value">{{ quotes.count }}</div>
-      <div class="orion-kpi-label">Total devis</div>
+      <div class="orion-kpi-label">{% trans "Total devis" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#F3F4F6;color:#6B7280"><i class="bi bi-file-earmark-text"></i></div>
       <div class="orion-kpi-value">{{ count_draft }}</div>
-      <div class="orion-kpi-label">Brouillons</div>
+      <div class="orion-kpi-label">{% trans "Brouillons" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-send"></i></div>
       <div class="orion-kpi-value">{{ count_sent }}</div>
-      <div class="orion-kpi-label">Envoyés</div>
+      <div class="orion-kpi-label">{% trans "Envoyés" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-currency-euro"></i></div>
       <div class="orion-kpi-value">{{ total_ht|floatformat:0 }} €</div>
-      <div class="orion-kpi-label">Total HT</div>
+      <div class="orion-kpi-label">{% trans "Total HT" %}</div>
     </div>
   </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'sales:quote_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
+  <a href="{% url 'sales:quote_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Tous" %}</a>
   {% for s, label in status_choices %}
   <a href="?status={{ s }}" class="orion-filter-chip {% if status == s %}active{% endif %}">{{ label }}</a>
   {% endfor %}
@@ -51,7 +52,7 @@
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex gap-2 flex-grow-1">
       {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-      <input type="text" name="q" class="form-control form-control-sm" placeholder="Numéro, client, objet..." value="{{ q }}" style="flex:1">
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Numéro, client, objet...' %}" value="{{ q }}" style="flex:1">
       <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-search"></i></button>
       {% if q %}<a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-circle"></i></a>{% endif %}
     </form>
@@ -61,15 +62,15 @@
       <table class="orion-table mb-0">
         <thead>
           <tr>
-            <th>N° Devis</th>
-            <th>Client</th>
-            <th>Objet</th>
-            <th>Date</th>
-            <th>Validité</th>
-            <th>Total HT</th>
-            <th>Total TTC</th>
-            <th>Statut</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans "N° Devis" %}</th>
+            <th>{% trans "Client" %}</th>
+            <th>{% trans "Objet" %}</th>
+            <th>{% trans "Date" %}</th>
+            <th>{% trans "Validité" %}</th>
+            <th>{% trans "Total HT" %}</th>
+            <th>{% trans "Total TTC" %}</th>
+            <th>{% trans "Statut" %}</th>
+            <th class="text-end">{% trans "Actions" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -91,10 +92,10 @@
             </td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'sales:quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                {% if q.status == 'draft' %}<a href="{% url 'sales:quote_send' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Envoyer"><i class="bi bi-send"></i></a>{% endif %}
-                <a href="{% url 'sales:quote_edit' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
-                <a href="{% url 'sales:quote_delete' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                <a href="{% url 'sales:quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                {% if q.status == 'draft' %}<a href="{% url 'sales:quote_send' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Envoyer' %}"><i class="bi bi-send"></i></a>{% endif %}
+                <a href="{% url 'sales:quote_edit' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'sales:quote_delete' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
               </div>
             </td>
           </tr>
@@ -102,9 +103,9 @@
           <tr><td colspan="9">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-file-text"></i></div>
-              <div class="orion-empty-title">Aucun devis pour le moment</div>
-              <div class="orion-empty-text">Créez votre premier devis pour commencer à gérer vos propositions commerciales.</div>
-              <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Créer un devis</a>
+              <div class="orion-empty-title">{% trans "Aucun devis pour le moment" %}</div>
+              <div class="orion-empty-text">{% trans "Créez votre premier devis pour commencer à gérer vos propositions commerciales." %}</div>
+              <a href="{% url 'sales:quote_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Créer un devis" %}</a>
             </div>
           </td></tr>
           {% endfor %}

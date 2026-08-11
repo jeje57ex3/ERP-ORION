@@ -1,30 +1,31 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block content %}
+{% blocktrans asvar preview_title with wname=website.name %}Prévisualisation {{ wname }}{% endblocktrans %}
 <div class="d-flex flex-column" style="height:calc(100vh - 56px)">
   {# Barre de contrôle #}
   <div class="bg-dark text-white px-3 py-2 d-flex align-items-center gap-3">
     <a href="{% url 'websites:website_detail' website.pk %}" class="orion-btn sm btn-outline-light">
-      <i class="bi bi-arrow-left me-1"></i>Retour édition
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour édition" %}
     </a>
     <div class="d-flex gap-1">
       <button class="orion-btn sm orion-btn active" id="btnDesktop" onclick="setDevice('desktop',this)">
-        <i class="bi bi-laptop me-1"></i>Desktop
+        <i class="bi bi-laptop me-1"></i>{% trans "Desktop" %}
       </button>
       <button class="orion-btn sm orion-btn" id="btnTablet" onclick="setDevice('tablet',this)">
-        <i class="bi bi-tablet me-1"></i>Tablette
+        <i class="bi bi-tablet me-1"></i>{% trans "Tablette" %}
       </button>
       <button class="orion-btn sm orion-btn" id="btnMobile" onclick="setDevice('mobile',this)">
-        <i class="bi bi-phone me-1"></i>Mobile
+        <i class="bi bi-phone me-1"></i>{% trans "Mobile" %}
       </button>
     </div>
     <div class="text-white-50 small ms-2" id="deviceSize">1280px</div>
     <div class="ms-auto d-flex align-items-center gap-2">
       {% if website.status == 'published' %}
-      <span class="orion-badge success"><i class="bi bi-globe me-1"></i>Publié</span>
+      <span class="orion-badge success"><i class="bi bi-globe me-1"></i>{% trans "Publié" %}</span>
       {% else %}
-      <span class="orion-badge neutral">Brouillon</span>
+      <span class="orion-badge neutral">{% trans "Brouillon" %}</span>
       {% endif %}
       <span class="text-white-50 small">{{ website.name }}</span>
     </div>
@@ -36,7 +37,7 @@
       <iframe id="previewFrame"
         src="{% url 'websites:website_detail' website.pk %}"
         style="width:100%;height:calc(100vh - 130px);border:none"
-        title="Prévisualisation {{ website.name }}">
+        title="{{ preview_title }}">
       </iframe>
     </div>
   </div>

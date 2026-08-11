@@ -1,37 +1,38 @@
 {% extends "store/base_store.html" %}
-{% block title %}Commande — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Commande" %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row g-4">
     <div class="col-12 col-lg-7">
-      <h1 class="fw-bold mb-4"><i class="bi bi-bag-check me-2"></i>Finaliser ma commande</h1>
+      <h1 class="fw-bold mb-4"><i class="bi bi-bag-check me-2"></i>{% trans "Finaliser ma commande" %}</h1>
 
       <form method="post" id="checkout-form">
         {% csrf_token %}
 
         <!-- Étape 1 : Informations client -->
         <div class="border rounded-3 p-4 mb-3">
-          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">1</span>Informations client</h5>
+          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">1</span>{% trans "Informations client" %}</h5>
           {% if user.is_authenticated %}
           <div class="alert alert-light border small py-2">
-            <i class="bi bi-person-check me-1"></i>Connecté en tant que <strong>{{ user.get_full_name|default:user.email }}</strong>
+            <i class="bi bi-person-check me-1"></i>{% blocktrans with name=user.get_full_name|default:user.email %}Connecté en tant que <strong>{{ name }}</strong>{% endblocktrans %}
           </div>
           {% else %}
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Prénom *</label>
+              <label class="form-label small fw-semibold">{% trans "Prénom" %} *</label>
               <input type="text" name="first_name" class="form-control" required value="{{ form.first_name.value|default:'' }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Nom *</label>
+              <label class="form-label small fw-semibold">{% trans "Nom" %} *</label>
               <input type="text" name="last_name" class="form-control" required value="{{ form.last_name.value|default:'' }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Email *</label>
+              <label class="form-label small fw-semibold">{% trans "Email" %} *</label>
               <input type="email" name="email" class="form-control" required value="{{ form.email.value|default:'' }}">
             </div>
             <div class="col-md-6">
-              <label class="form-label small fw-semibold">Téléphone</label>
+              <label class="form-label small fw-semibold">{% trans "Téléphone" %}</label>
               <input type="tel" name="phone" class="form-control" value="{{ form.phone.value|default:'' }}">
             </div>
           </div>
@@ -40,27 +41,27 @@
 
         <!-- Étape 2 : Adresse de livraison -->
         <div class="border rounded-3 p-4 mb-3">
-          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">2</span>Adresse de livraison</h5>
+          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">2</span>{% trans "Adresse de livraison" %}</h5>
           <div class="row g-3">
             <div class="col-12">
-              <label class="form-label small fw-semibold">Rue *</label>
+              <label class="form-label small fw-semibold">{% trans "Rue" %} *</label>
               <input type="text" name="shipping_address" class="form-control" required placeholder="12 rue de la Paix" value="{{ form.shipping_address.value|default:'' }}">
             </div>
             <div class="col-md-4">
-              <label class="form-label small fw-semibold">Code postal *</label>
+              <label class="form-label small fw-semibold">{% trans "Code postal" %} *</label>
               <input type="text" name="shipping_zip" class="form-control" required placeholder="75001" value="{{ form.shipping_zip.value|default:'' }}">
             </div>
             <div class="col-md-8">
-              <label class="form-label small fw-semibold">Ville *</label>
+              <label class="form-label small fw-semibold">{% trans "Ville" %} *</label>
               <input type="text" name="shipping_city" class="form-control" required placeholder="Paris" value="{{ form.shipping_city.value|default:'' }}">
             </div>
             <div class="col-12">
-              <label class="form-label small fw-semibold">Pays</label>
+              <label class="form-label small fw-semibold">{% trans "Pays" %}</label>
               <select name="shipping_country" class="form-select">
-                <option value="FR" selected>France</option>
-                <option value="BE">Belgique</option>
-                <option value="CH">Suisse</option>
-                <option value="LU">Luxembourg</option>
+                <option value="FR" selected>{% trans "France" %}</option>
+                <option value="BE">{% trans "Belgique" %}</option>
+                <option value="CH">{% trans "Suisse" %}</option>
+                <option value="LU">{% trans "Luxembourg" %}</option>
               </select>
             </div>
           </div>
@@ -68,26 +69,26 @@
 
         <!-- Étape 3 : Mode de livraison -->
         <div class="border rounded-3 p-4 mb-3">
-          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">3</span>Mode de livraison</h5>
+          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">3</span>{% trans "Mode de livraison" %}</h5>
           {% for method in shipping_methods %}
           <label class="d-flex align-items-center gap-3 p-3 border rounded-2 mb-2 shipping-option" style="cursor:pointer">
             <input type="radio" name="shipping_method" value="{{ method.pk }}" class="form-check-input" {% if forloop.first %}checked{% endif %}>
             <div class="flex-grow-1">
               <div class="fw-semibold">{{ method.name }}</div>
-              <div class="small text-muted">{{ method.carrier.name }} — {{ method.estimated_days }} jour{{ method.estimated_days|pluralize }} ouvré{{ method.estimated_days|pluralize }}</div>
+              <div class="small text-muted">{% blocktrans with carrier=method.carrier.name days=method.estimated_days %}{{ carrier }} — {{ days }} jour{{ days|pluralize }} ouvré{{ days|pluralize }}{% endblocktrans %}</div>
             </div>
             <span class="fw-bold text-primary">
-              {% if method.price == 0 %}Gratuit{% else %}{{ method.price|floatformat:2 }}€{% endif %}
+              {% if method.price == 0 %}{% trans "Gratuit" %}{% else %}{{ method.price|floatformat:2 }}€{% endif %}
             </span>
           </label>
           {% empty %}
-          <div class="text-muted small"><i class="bi bi-info-circle me-1"></i>Aucun mode de livraison disponible. <a href="mailto:{{ website.company.email }}">Contactez-nous.</a></div>
+          <div class="text-muted small"><i class="bi bi-info-circle me-1"></i>{% trans "Aucun mode de livraison disponible." %} <a href="mailto:{{ website.company.email }}">{% trans "Contactez-nous." %}</a></div>
           {% endfor %}
         </div>
 
         <!-- Étape 4 : Paiement -->
         <div class="border rounded-3 p-4 mb-4">
-          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">4</span>Paiement</h5>
+          <h5 class="fw-bold mb-3"><span class="badge bg-dark me-2">4</span>{% trans "Paiement" %}</h5>
           {% for provider in payment_providers %}
           <label class="d-flex align-items-center gap-3 p-3 border rounded-2 mb-2" style="cursor:pointer">
             <input type="radio" name="payment_provider" value="{{ provider.pk }}" class="form-check-input" {% if forloop.first %}checked{% endif %}>
@@ -98,26 +99,26 @@
             <i class="bi bi-shield-check text-success"></i>
           </label>
           {% empty %}
-          <div class="text-muted small"><i class="bi bi-info-circle me-1"></i>Paiement par virement bancaire ou à la réception.</div>
+          <div class="text-muted small"><i class="bi bi-info-circle me-1"></i>{% trans "Paiement par virement bancaire ou à la réception." %}</div>
           <input type="hidden" name="payment_provider" value="">
           {% endfor %}
 
           <div class="alert alert-light border small mt-3 mb-0">
-            <i class="bi bi-lock me-1 text-success"></i>Paiement 100% sécurisé — vos données sont protégées.
+            <i class="bi bi-lock me-1 text-success"></i>{% trans "Paiement 100% sécurisé — vos données sont protégées." %}
           </div>
         </div>
 
         <button type="submit" class="btn btn-store-primary btn-lg w-100 py-3">
-          <i class="bi bi-bag-check me-2"></i>Confirmer la commande
+          <i class="bi bi-bag-check me-2"></i>{% trans "Confirmer la commande" %}
         </button>
-        <p class="text-center text-muted small mt-3">En confirmant, vous acceptez nos <a href="#">conditions générales de vente</a>.</p>
+        <p class="text-center text-muted small mt-3">{% trans "En confirmant, vous acceptez nos" %} <a href="#">{% trans "conditions générales de vente" %}</a>.</p>
       </form>
     </div>
 
     <!-- Récapitulatif commande -->
     <div class="col-12 col-lg-5">
       <div class="border rounded-3 p-4 sticky-top" style="top:80px">
-        <h5 class="fw-bold mb-3">Votre commande</h5>
+        <h5 class="fw-bold mb-3">{% trans "Votre commande" %}</h5>
         {% for item in items %}
         <div class="d-flex align-items-center gap-2 mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
           <div style="width:48px;height:48px;background:#f3f4f6;border-radius:6px;overflow:hidden;flex-shrink:0">
@@ -133,22 +134,22 @@
 
         <hr>
         <div class="d-flex justify-content-between mb-1 small">
-          <span class="text-muted">Sous-total</span>
+          <span class="text-muted">{% trans "Sous-total" %}</span>
           <span>{{ cart.subtotal|floatformat:2 }}€</span>
         </div>
         {% if cart.discount_amount %}
         <div class="d-flex justify-content-between mb-1 small text-success">
-          <span>Remise</span>
+          <span>{% trans "Remise" %}</span>
           <span>-{{ cart.discount_amount|floatformat:2 }}€</span>
         </div>
         {% endif %}
         <div class="d-flex justify-content-between mb-1 small">
-          <span class="text-muted">Livraison</span>
+          <span class="text-muted">{% trans "Livraison" %}</span>
           <span id="shipping-price-display">—</span>
         </div>
         <hr>
         <div class="d-flex justify-content-between fw-bold">
-          <span>Total TTC</span>
+          <span>{% trans "Total TTC" %}</span>
           <span class="text-primary fs-5" id="total-display">{{ cart.total|floatformat:2 }}€</span>
         </div>
       </div>

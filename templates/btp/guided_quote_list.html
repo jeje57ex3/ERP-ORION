@@ -1,9 +1,10 @@
-﻿{% extends "base.html" %}`n{% load static %}
-{% block title %}Demandes guidées — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Demandes guidées" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Demandes guidées</h4>
+  <h4 class="fw-bold mb-0"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>{% trans "Demandes guidées" %}</h4>
 </div>
 
 <div class="row g-3 mb-4">
@@ -11,28 +12,28 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#F3F4F6;color:#374151"><i class="bi bi-list-ul"></i></div>
       <div class="orion-kpi-value">{{ stats.total }}</div>
-      <div class="orion-kpi-label">Total demandes</div>
+      <div class="orion-kpi-label">{% trans "Total demandes" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF3C7;color:#D97706"><i class="bi bi-star"></i></div>
       <div class="orion-kpi-value">{{ stats.new }}</div>
-      <div class="orion-kpi-label">Nouvelles</div>
+      <div class="orion-kpi-label">{% trans "Nouvelles" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#DBEAFE;color:#2563EB"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="orion-kpi-icon" style="background:#F8F3EA;color:#C6A15B"><i class="bi bi-arrow-repeat"></i></div>
       <div class="orion-kpi-value">{{ stats.in_progress }}</div>
-      <div class="orion-kpi-label">En cours</div>
+      <div class="orion-kpi-label">{% trans "En cours" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
       <div class="orion-kpi-value">{{ stats.converted }}</div>
-      <div class="orion-kpi-label">Convertis</div>
+      <div class="orion-kpi-label">{% trans "Convertis" %}</div>
     </div>
   </div>
 </div>
@@ -42,29 +43,29 @@
     <form method="get" class="row g-2 align-items-end">
       <div class="col-md-3">
         <select name="status" class="form-select form-select-sm">
-          <option value="">Tous les statuts</option>
-          <option value="new" {% if request.GET.status == 'new' %}selected{% endif %}>Nouveau</option>
-          <option value="contacted" {% if request.GET.status == 'contacted' %}selected{% endif %}>Contacté</option>
-          <option value="visit_scheduled" {% if request.GET.status == 'visit_scheduled' %}selected{% endif %}>Visite planifiée</option>
-          <option value="quote_sent" {% if request.GET.status == 'quote_sent' %}selected{% endif %}>Devis envoyé</option>
-          <option value="converted" {% if request.GET.status == 'converted' %}selected{% endif %}>Converti</option>
-          <option value="lost" {% if request.GET.status == 'lost' %}selected{% endif %}>Perdu</option>
+          <option value="">{% trans "Tous les statuts" %}</option>
+          <option value="new" {% if request.GET.status == 'new' %}selected{% endif %}>{% trans "Nouveau" %}</option>
+          <option value="contacted" {% if request.GET.status == 'contacted' %}selected{% endif %}>{% trans "Contacté" %}</option>
+          <option value="visit_scheduled" {% if request.GET.status == 'visit_scheduled' %}selected{% endif %}>{% trans "Visite planifiée" %}</option>
+          <option value="quote_sent" {% if request.GET.status == 'quote_sent' %}selected{% endif %}>{% trans "Devis envoyé" %}</option>
+          <option value="converted" {% if request.GET.status == 'converted' %}selected{% endif %}>{% trans "Converti" %}</option>
+          <option value="lost" {% if request.GET.status == 'lost' %}selected{% endif %}>{% trans "Perdu" %}</option>
         </select>
       </div>
       <div class="col-md-3">
         <select name="type" class="form-select form-select-sm">
-          <option value="">Tous les types</option>
-          <option value="depannage" {% if request.GET.type == 'depannage' %}selected{% endif %}>Dépannage</option>
-          <option value="travaux" {% if request.GET.type == 'travaux' %}selected{% endif %}>Travaux</option>
-          <option value="renovation" {% if request.GET.type == 'renovation' %}selected{% endif %}>Rénovation</option>
-          <option value="mise_normes" {% if request.GET.type == 'mise_normes' %}selected{% endif %}>Mise aux normes</option>
+          <option value="">{% trans "Tous les types" %}</option>
+          <option value="depannage" {% if request.GET.type == 'depannage' %}selected{% endif %}>{% trans "Dépannage" %}</option>
+          <option value="travaux" {% if request.GET.type == 'travaux' %}selected{% endif %}>{% trans "Travaux" %}</option>
+          <option value="renovation" {% if request.GET.type == 'renovation' %}selected{% endif %}>{% trans "Rénovation" %}</option>
+          <option value="mise_normes" {% if request.GET.type == 'mise_normes' %}selected{% endif %}>{% trans "Mise aux normes" %}</option>
         </select>
       </div>
       <div class="col-md-3">
-        <input type="text" name="q" class="form-control form-control-sm" placeholder="Nom, téléphone, email..." value="{{ request.GET.q }}">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Nom, téléphone, email...' %}" value="{{ request.GET.q }}">
       </div>
       <div class="col-md-3 d-flex gap-2">
-        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
         <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
       </div>
     </form>
@@ -77,13 +78,13 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Référence</th>
-          <th>Type</th>
-          <th>Contact</th>
-          <th>Adresse</th>
-          <th>Estimation</th>
-          <th>Statut</th>
-          <th>Date</th>
+          <th>{% trans "Référence" %}</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Contact" %}</th>
+          <th>{% trans "Adresse" %}</th>
+          <th>{% trans "Estimation" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Date" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -92,10 +93,10 @@
       <tr>
         <td><span class="fw-mono small">{{ q.reference|default:"—" }}</span></td>
         <td>
-          {% if q.request_type == 'depannage' %}<span class="orion-badge orion-badge-danger">Dépannage</span>
-          {% elif q.request_type == 'travaux' %}<span class="orion-badge gold">Travaux</span>
-          {% elif q.request_type == 'renovation' %}<span class="orion-badge info text-dark">Rénovation</span>
-          {% elif q.request_type == 'mise_normes' %}<span class="orion-badge orion-badge-secondary">Mise aux normes</span>
+          {% if q.request_type == 'depannage' %}<span class="orion-badge orion-badge-danger">{% trans "Dépannage" %}</span>
+          {% elif q.request_type == 'travaux' %}<span class="orion-badge gold">{% trans "Travaux" %}</span>
+          {% elif q.request_type == 'renovation' %}<span class="orion-badge info text-dark">{% trans "Rénovation" %}</span>
+          {% elif q.request_type == 'mise_normes' %}<span class="orion-badge orion-badge-secondary">{% trans "Mise aux normes" %}</span>
           {% else %}<span class="badge bg-light text-muted border">{{ q.request_type }}</span>{% endif %}
         </td>
         <td>
@@ -109,16 +110,16 @@
           {% else %}<span class="text-muted">—</span>{% endif %}
         </td>
         <td>
-          {% if q.status == 'new' %}<span class="orion-badge orion-badge-warning">Nouveau</span>
-          {% elif q.status == 'contacted' %}<span class="orion-badge info text-dark">Contacté</span>
-          {% elif q.status == 'visit_scheduled' %}<span class="orion-badge gold">Visite planifiée</span>
-          {% elif q.status == 'quote_sent' %}<span class="orion-badge orion-badge-secondary">Devis envoyé</span>
-          {% elif q.status == 'converted' %}<span class="orion-badge orion-badge-success">Converti</span>
-          {% elif q.status == 'lost' %}<span class="orion-badge orion-badge-danger">Perdu</span>
+          {% if q.status == 'new' %}<span class="orion-badge orion-badge-warning">{% trans "Nouveau" %}</span>
+          {% elif q.status == 'contacted' %}<span class="orion-badge info text-dark">{% trans "Contacté" %}</span>
+          {% elif q.status == 'visit_scheduled' %}<span class="orion-badge gold">{% trans "Visite planifiée" %}</span>
+          {% elif q.status == 'quote_sent' %}<span class="orion-badge orion-badge-secondary">{% trans "Devis envoyé" %}</span>
+          {% elif q.status == 'converted' %}<span class="orion-badge orion-badge-success">{% trans "Converti" %}</span>
+          {% elif q.status == 'lost' %}<span class="orion-badge orion-badge-danger">{% trans "Perdu" %}</span>
           {% else %}<span class="badge bg-light text-muted border">{{ q.status }}</span>{% endif %}
         </td>
         <td class="small text-muted">{{ q.created_at|date:"d/m/Y" }}</td>
-        <td><a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">Voir</a></td>
+        <td><a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Voir" %}</a></td>
       </tr>
       {% endfor %}
       </tbody>
@@ -128,7 +129,7 @@
   <div class="p-3 border-top d-flex justify-content-center">
     <nav><ul class="pagination pagination-sm mb-0">
       {% if quotes.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ quotes.previous_page_number }}&{{ request.GET.urlencode }}">‹</a></li>{% endif %}
-      <li class="page-item disabled"><a class="page-link">Page {{ quotes.number }}/{{ quotes.paginator.num_pages }}</a></li>
+      <li class="page-item disabled"><a class="page-link">{% blocktrans with num=quotes.number pages=quotes.paginator.num_pages %}Page {{ num }}/{{ pages }}{% endblocktrans %}</a></li>
       {% if quotes.has_next %}<li class="page-item"><a class="page-link" href="?page={{ quotes.next_page_number }}&{{ request.GET.urlencode }}">›</a></li>{% endif %}
     </ul></nav>
   </div>
@@ -136,8 +137,9 @@
   {% else %}
   <div class="orion-empty">
     <div class="orion-empty-icon"><i class="bi bi-inbox"></i></div>
-    <div class="orion-empty-title">Aucune demande</div>
+    <div class="orion-empty-title">{% trans "Aucune demande" %}</div>
   </div>
   {% endif %}
 </div>
 {% endblock %}
+</content>

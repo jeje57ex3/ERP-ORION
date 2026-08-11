@@ -1,21 +1,24 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
 {% load humanize %}
+{% load i18n %}
 
-{% block title %}Journaux mise à jour #{{ update_run.id }} — Orion ERP{% endblock %}
+{% block title %}{% blocktrans %}Journaux mise à jour #{{ update_run.id }}{% endblocktrans %} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Mises à jour</p>
-    <h1 class="orion-page-title">Journaux — Mise à jour #{{ update_run.id }}</h1>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Mises à jour" %}</p>
+    <h1 class="page-title">{% blocktrans %}Journaux — Mise à jour #{{ update_run.id }}{% endblocktrans %}</h1>
   </div>
-  <div class="orion-page-actions">
+  <div class="page-header-actions">
     <a href="{% url 'system_updates:update_detail' update_run.id %}" class="orion-btn">
-      <i class="bi bi-arrow-left me-1"></i>Retour au détail
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour au détail" %}
     </a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 <div class="orion-card">
   {% for log in logs %}
   <div style="border-bottom:1px solid var(--orion-border-light);padding:14px 20px;
@@ -49,7 +52,7 @@
   </div>
   {% empty %}
   <div style="text-align:center;color:var(--orion-muted);padding:48px">
-    Aucun journal disponible.
+    {% trans "Aucun journal disponible." %}
   </div>
   {% endfor %}
 </div>

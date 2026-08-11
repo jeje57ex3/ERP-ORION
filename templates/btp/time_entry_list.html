@@ -1,9 +1,11 @@
-﻿{% extends "base.html" %}`n{% load static %}
-{% block title %}Heures visibles clients — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans "Heures visibles clients" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0"><i class="bi bi-clock me-2 text-warning"></i>Heures visibles clients</h4>
+  <h4 class="fw-bold mb-0"><i class="bi bi-clock me-2 text-warning"></i>{% trans "Heures visibles clients" %}</h4>
 </div>
 
 <div class="orion-card mb-3">
@@ -11,20 +13,20 @@
     <form method="get" class="row g-2 align-items-end">
       <div class="col-md-3">
         <select name="project" class="form-select form-select-sm">
-          <option value="">Tous les chantiers</option>
+          <option value="">{% trans "Tous les chantiers" %}</option>
           {% for p in projects %}<option value="{{ p.pk }}" {% if request.GET.project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-md-3">
         <select name="status" class="form-select form-select-sm">
-          <option value="">Tous les statuts</option>
-          <option value="client_visible" {% if request.GET.status == 'client_visible' %}selected{% endif %}>Visible client</option>
-          <option value="disputed" {% if request.GET.status == 'disputed' %}selected{% endif %}>Contesté</option>
-          <option value="validated" {% if request.GET.status == 'validated' %}selected{% endif %}>Validé</option>
+          <option value="">{% trans "Tous les statuts" %}</option>
+          <option value="client_visible" {% if request.GET.status == 'client_visible' %}selected{% endif %}>{% trans "Visible client" %}</option>
+          <option value="disputed" {% if request.GET.status == 'disputed' %}selected{% endif %}>{% trans "Contesté" %}</option>
+          <option value="validated" {% if request.GET.status == 'validated' %}selected{% endif %}>{% trans "Validé" %}</option>
         </select>
       </div>
       <div class="col-md-2 d-flex gap-2">
-        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">Filtrer</button>
+        <button type="submit" class="orion-btn orion-orion-btn primary orion-orion-btn sm flex-grow-1">{% trans "Filtrer" %}</button>
         <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">✕</a>
       </div>
     </form>
@@ -37,13 +39,13 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Chantier</th>
-          <th>Intervenant</th>
-          <th>Date</th>
-          <th>Heures</th>
-          <th>Description</th>
-          <th>Statut</th>
-          <th>Visible client</th>
+          <th>{% trans "Chantier" %}</th>
+          <th>{% trans "Intervenant" %}</th>
+          <th>{% trans "Date" %}</th>
+          <th>{% trans "Heures" %}</th>
+          <th>{% trans "Description" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Visible client" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -56,10 +58,10 @@
         <td class="small fw-bold">{{ entry.hours|floatformat:1 }}h</td>
         <td class="small text-muted">{{ entry.task_description|default:"—"|truncatechars:40 }}</td>
         <td>
-          {% if entry.status == 'client_visible' %}<span class="orion-badge orion-badge-success">Visible</span>
-          {% elif entry.status == 'disputed' %}<span class="orion-badge orion-badge-danger">Contesté</span>
-          {% elif entry.status == 'validated' %}<span class="orion-badge gold">Validé</span>
-          {% elif entry.status == 'invoiced' %}<span class="orion-badge orion-badge-secondary">Facturé</span>
+          {% if entry.status == 'client_visible' %}<span class="orion-badge orion-badge-success">{% trans "Visible" %}</span>
+          {% elif entry.status == 'disputed' %}<span class="orion-badge orion-badge-danger">{% trans "Contesté" %}</span>
+          {% elif entry.status == 'validated' %}<span class="orion-badge gold">{% trans "Validé" %}</span>
+          {% elif entry.status == 'invoiced' %}<span class="orion-badge orion-badge-secondary">{% trans "Facturé" %}</span>
           {% else %}<span class="badge bg-light text-muted border">{{ entry.status }}</span>{% endif %}
         </td>
         <td>
@@ -72,7 +74,7 @@
         </td>
         <td>
           {% if entry.status == 'disputed' and entry.client_comment %}
-          <button class="orion-btn orion-orion-btn danger orion-orion-btn sm" data-bs-toggle="popover" data-bs-content="{{ entry.client_comment }}" title="Contestation client"><i class="bi bi-exclamation-circle"></i></button>
+          <button class="orion-btn orion-orion-btn danger orion-orion-btn sm" data-bs-toggle="popover" data-bs-content="{{ entry.client_comment }}" title="{% trans 'Contestation client' %}"><i class="bi bi-exclamation-circle"></i></button>
           {% endif %}
         </td>
       </tr>
@@ -83,7 +85,7 @@
   {% else %}
   <div class="orion-empty">
     <div class="orion-empty-icon"><i class="bi bi-clock-history"></i></div>
-    <div class="orion-empty-title">Aucune entrée de temps</div>
+    <div class="orion-empty-title">{% trans "Aucune entrée de temps" %}</div>
   </div>
   {% endif %}
 </div>

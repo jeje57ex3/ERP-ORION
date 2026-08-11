@@ -1,52 +1,53 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'audio:technician_list' %}">Techniciens</a></li>
-<li class="breadcrumb-item active">Nouveau technicien</li>
+<li class="breadcrumb-item"><a href="{% url 'audio:technician_list' %}">{% trans 'Techniciens' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Nouveau technicien' %}</li>
 {% endblock %}
 
 {% block page_header %}
-<div class="page-header"><h1 class="page-title">Nouveau technicien</h1></div>
+<div class="page-header"><h1 class="page-title">{% trans 'Nouveau technicien' %}</h1></div>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-6">
     <div class="erp-card">
-      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person-badge me-1 text-primary"></i>Informations</h6></div>
+      <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person-badge me-1 text-primary"></i>{% trans 'Informations' %}</h6></div>
       <div class="orion-orion-card-body">
         <form method="post" novalidate>
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label form-label-sm">Nom *</label>
+            <label class="form-label form-label-sm">{% trans 'Nom *' %}</label>
             {{ form.name }}
           </div>
           <div class="mb-3">
-            <label class="form-label form-label-sm">Spécialités</label>
+            <label class="form-label form-label-sm">{% trans 'Spécialités' %}</label>
             {{ form.specialties }}
           </div>
           <div class="row g-3 mb-3">
             <div class="col-6">
-              <label class="form-label form-label-sm">Téléphone</label>
+              <label class="form-label form-label-sm">{% trans 'Téléphone' %}</label>
               {{ form.phone }}
             </div>
             <div class="col-6">
-              <label class="form-label form-label-sm">Email</label>
+              <label class="form-label form-label-sm">{% trans 'Email' %}</label>
               {{ form.email }}
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label form-label-sm">Tarif journée HT</label>
+            <label class="form-label form-label-sm">{% trans 'Tarif journée HT' %}</label>
             {{ form.day_rate }}
           </div>
           <div class="mb-3">
-            <div class="form-check">{{ form.is_employee }}<label class="form-check-label small ms-1">Salarié (décoché = freelance)</label></div>
+            <div class="form-check">{{ form.is_employee }}<label class="form-check-label small ms-1">{% trans 'Salarié (décoché = freelance)' %}</label></div>
           </div>
           <div class="mb-3">
-            <div class="form-check">{{ form.is_active }}<label class="form-check-label small ms-1">Actif</label></div>
+            <div class="form-check">{{ form.is_active }}<label class="form-check-label small ms-1">{% trans 'Actif' %}</label></div>
           </div>
           <div class="d-grid gap-2">
-            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>Ajouter le technicien</button>
-            <a href="{% url 'audio:technician_list' %}" class="btn btn-outline-secondary">Annuler</a>
+            <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans 'Ajouter le technicien' %}</button>
+            <a href="{% url 'audio:technician_list' %}" class="btn btn-outline-secondary">{% trans 'Annuler' %}</a>
           </div>
         </form>
       </div>

@@ -1,3 +1,4 @@
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -18,30 +19,30 @@
         <div style="width:64px;height:64px;background:#dbeafe;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem">⏳</div>
       </div>
       <h2 style="margin:0 0 12px;color:#1a0e05;font-size:1.2rem;font-weight:700;text-align:center">
-        Demande en attente de validation
+        {% trans 'Demande en attente de validation' %}
       </h2>
       <p style="margin:0 0 16px;color:#374151;font-size:.92rem;line-height:1.6">
-        Bonjour <strong>{{ first_name }}</strong>,
+        {% blocktrans %}Bonjour <strong>{{ first_name }}</strong>,{% endblocktrans %}
       </p>
       <p style="margin:0 0 24px;color:#374151;font-size:.92rem;line-height:1.6">
-        Votre adresse email a bien été confirmée. Votre demande de création d'espace client
-        chez <strong>{{ company.name }}</strong> est maintenant en cours d'examen par notre équipe.
+        {% blocktrans %}Votre adresse email a bien été confirmée. Votre demande de création d'espace client
+        chez <strong>{{ company.name }}</strong> est maintenant en cours d'examen par notre équipe.{% endblocktrans %}
       </p>
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:16px;margin-bottom:24px">
         <p style="margin:0;color:#0369a1;font-size:.85rem;line-height:1.5">
-          Vous recevrez un email de confirmation dès que votre espace client sera activé.
-          En attendant, vous n'avez rien d'autre à faire.
+          {% blocktrans %}Vous recevrez un email de confirmation dès que votre espace client sera activé.
+          En attendant, vous n'avez rien d'autre à faire.{% endblocktrans %}
         </p>
       </div>
       <p style="margin:0;color:#9ca3af;font-size:.8rem;line-height:1.5">
-        Une question ? Contactez directement {{ company.name }}.
+        {% blocktrans %}Une question ? Contactez directement {{ company.name }}.{% endblocktrans %}
       </p>
     </td>
   </tr>
 
   <tr>
     <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #f3f4f6">
-      <p style="margin:0;color:#9ca3af;font-size:.75rem">{{ company.name }} — Portail client</p>
+      <p style="margin:0;color:#9ca3af;font-size:.75rem">{% blocktrans %}{{ company.name }} — Portail client{% endblocktrans %}</p>
     </td>
   </tr>
 

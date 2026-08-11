@@ -1,12 +1,12 @@
-﻿{% extends "erp_base.html" %}`n{% load static %}
-{% block title %}Fournisseurs de paiement — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+﻿{% extends "erp_base.html" %}`n{% load static i18n %}
+{% block title %}{% trans "Fournisseurs de paiement" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'ecommerce:payment_list' %}">Paiements</a></li>
-<li class="breadcrumb-item active">Fournisseurs de paiement</li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:payment_list' %}">{% trans "Paiements" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Fournisseurs de paiement" %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% url 'ecommerce:payment_provider_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Ajouter</a>
+<a href="{% url 'ecommerce:payment_provider_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter" %}</a>
 {% endblock %}
 {% block content %}
 <div class="row g-3">
@@ -20,12 +20,12 @@
             <div class="text-muted small">{{ p.get_provider_type_display }}</div>
           </div>
           <div>
-            {% if p.is_active %}<span class="orion-badge orion-badge-success">Actif</span>{% else %}<span class="orion-badge orion-badge-secondary">Inactif</span>{% endif %}
-            {% if p.test_mode %}<span class="orion-badge orion-badge-warning ms-1">Test</span>{% endif %}
+            {% if p.is_active %}<span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>{% else %}<span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>{% endif %}
+            {% if p.test_mode %}<span class="orion-badge orion-badge-warning ms-1">{% trans "Test" %}</span>{% endif %}
           </div>
         </div>
         <div class="d-flex gap-1 justify-content-end mt-3">
-          <a href="{% url 'ecommerce:payment_provider_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil me-1"></i>Configurer</a>
+          <a href="{% url 'ecommerce:payment_provider_edit' p.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Configurer" %}</a>
         </div>
       </div>
     </div>
@@ -34,8 +34,8 @@
   <div class="col-12">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-credit-card"></i></div>
-      <div class="orion-empty-title">Aucun fournisseur de paiement configuré.</div>
-      <a href="{% url 'ecommerce:payment_provider_create' %}" class="orion-btn orion-orion-btn primary mt-2">Ajouter Stripe, PayPal...</a>
+      <div class="orion-empty-title">{% trans "Aucun fournisseur de paiement configuré." %}</div>
+      <a href="{% url 'ecommerce:payment_provider_create' %}" class="orion-btn orion-orion-btn primary mt-2">{% trans "Ajouter Stripe, PayPal..." %}</a>
     </div>
   </div>
   {% endfor %}

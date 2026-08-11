@@ -1,29 +1,32 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
 {% load humanize %}
+{% load i18n %}
 
-{% block title %}Mises à jour système — Orion ERP{% endblock %}
+{% block title %}{% trans "Mises à jour système" %} — Orion ERP{% endblock %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Système</p>
-    <h1 class="orion-page-title">Mises à jour</h1>
-    <p class="orion-page-subtitle">
-      Vérification, installation, journaux et rollback des mises à jour Orion ERP.
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Système" %}</p>
+    <h1 class="page-title">{% trans "Mises à jour" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">
+      {% trans "Vérification, installation, journaux et rollback des mises à jour Orion ERP." %}
     </p>
   </div>
-  <div class="orion-page-actions">
+  <div class="page-header-actions">
     <a href="{% url 'system_updates:check' %}" class="orion-btn">
-      <i class="bi bi-arrow-repeat me-1"></i>Vérifier les mises à jour
+      <i class="bi bi-arrow-repeat me-1"></i>{% trans "Vérifier les mises à jour" %}
     </a>
     {% if latest_check.status == "update_available" and not running %}
     <a href="{% url 'system_updates:confirm' %}" class="orion-btn primary">
-      <i class="bi bi-cloud-download me-1"></i>Lancer la mise à jour
+      <i class="bi bi-cloud-download me-1"></i>{% trans "Lancer la mise à jour" %}
     </a>
     {% endif %}
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 {% if messages %}
 {% for msg in messages %}
 <div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">
@@ -35,43 +38,43 @@
 {% if running %}
 <div class="orion-alert warning mb-3">
   <i class="bi bi-hourglass-split me-2"></i>
-  Une mise à jour est actuellement en cours. Ne redémarrez pas le serveur.
+  {% trans "Une mise à jour est actuellement en cours. Ne redémarrez pas le serveur." %}
 </div>
 {% endif %}
 
 <div class="orion-dashboard-grid" style="grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Statut</span>
+    <span class="orion-metric-label">{% trans "Statut" %}</span>
     <strong class="orion-metric-value">
       {% if latest_check %}
         {% if latest_check.status == "update_available" %}
-          <span style="color:var(--orion-warning)">Mise à jour disponible</span>
+          <span style="color:var(--orion-warning)">{% trans "Mise à jour disponible" %}</span>
         {% elif latest_check.status == "up_to_date" %}
-          <span style="color:var(--orion-success)">À jour</span>
+          <span style="color:var(--orion-success)">{% trans "À jour" %}</span>
         {% elif latest_check.status == "failed" %}
-          <span style="color:var(--orion-danger)">Erreur</span>
+          <span style="color:var(--orion-danger)">{% trans "Erreur" %}</span>
         {% else %}
           {{ latest_check.get_status_display }}
         {% endif %}
       {% else %}
-        <span style="color:var(--orion-muted)">Non vérifié</span>
+        <span style="color:var(--orion-muted)">{% trans "Non vérifié" %}</span>
       {% endif %}
     </strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Commit actuel</span>
+    <span class="orion-metric-label">{% trans "Commit actuel" %}</span>
     <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
       {{ latest_check.current_commit|slice:":8"|default:"—" }}
     </strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Commit distant</span>
+    <span class="orion-metric-label">{% trans "Commit distant" %}</span>
     <strong class="orion-metric-value" style="font-family:monospace;font-size:13px">
       {{ latest_check.remote_commit|slice:":8"|default:"—" }}
     </strong>
   </div>
   <div class="orion-metric-card">
-    <span class="orion-metric-label">Commits de retard</span>
+    <span class="orion-metric-label">{% trans "Commits de retard" %}</span>
     <strong class="orion-metric-value">{{ latest_check.commits_behind|default:"0" }}</strong>
   </div>
 </div>
@@ -79,7 +82,7 @@
 {% if latest_check.changelog %}
 <div class="orion-card mb-4">
   <div class="orion-orion-orion-card-header">
-    <h2 style="font-size:15px;font-weight:600;margin:0">Changelog disponible</h2>
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Changelog disponible" %}</h2>
   </div>
   <pre style="font-size:12.5px;line-height:1.6;padding:16px;background:var(--orion-surface-alt);border-radius:8px;margin:0;overflow-x:auto;white-space:pre-wrap">{{ latest_check.changelog }}</pre>
 </div>
@@ -87,7 +90,7 @@
 
 <div class="orion-card mb-4">
   <div class="orion-orion-orion-card-header">
-    <h2 style="font-size:15px;font-weight:600;margin:0">Paramètres</h2>
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Paramètres" %}</h2>
   </div>
   <form method="post" style="padding:16px">
     {% csrf_token %}
@@ -105,25 +108,25 @@
       {% endfor %}
     </div>
     <div style="margin-top:16px">
-      <button type="submit" class="orion-btn primary">Enregistrer les paramètres</button>
+      <button type="submit" class="orion-btn primary">{% trans "Enregistrer les paramètres" %}</button>
     </div>
   </form>
 </div>
 
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
-    <h2 style="font-size:15px;font-weight:600;margin:0">Historique des mises à jour</h2>
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Historique des mises à jour" %}</h2>
   </div>
   <table class="orion-table">
     <thead>
       <tr>
         <th>ID</th>
-        <th>Statut</th>
-        <th>De</th>
-        <th>Vers</th>
-        <th>Démarré par</th>
-        <th>Début</th>
-        <th>Fin</th>
+        <th>{% trans "Statut" %}</th>
+        <th>{% trans "De" %}</th>
+        <th>{% trans "Vers" %}</th>
+        <th>{% trans "Démarré par" %}</th>
+        <th>{% trans "Début" %}</th>
+        <th>{% trans "Fin" %}</th>
         <th></th>
       </tr>
     </thead>
@@ -133,13 +136,13 @@
         <td><span style="font-family:monospace">#{{ run.id }}</span></td>
         <td>
           {% if run.status == "success" %}
-            <span class="orion-badge success">Succès</span>
+            <span class="orion-badge success">{% trans "Succès" %}</span>
           {% elif run.status == "failed" %}
-            <span class="orion-badge danger">Échec</span>
+            <span class="orion-badge danger">{% trans "Échec" %}</span>
           {% elif run.status == "running" %}
-            <span class="orion-badge warning">En cours</span>
+            <span class="orion-badge warning">{% trans "En cours" %}</span>
           {% elif run.status == "rolled_back" %}
-            <span class="orion-badge neutral">Rollback</span>
+            <span class="orion-badge neutral">{% trans "Rollback" %}</span>
           {% else %}
             <span class="orion-badge neutral">{{ run.get_status_display }}</span>
           {% endif %}
@@ -150,13 +153,13 @@
         <td>{{ run.started_at|naturaltime }}</td>
         <td>{{ run.finished_at|naturaltime|default:"—" }}</td>
         <td>
-          <a class="orion-btn small" href="{% url 'system_updates:update_detail' run.id %}">Voir</a>
+          <a class="orion-btn small" href="{% url 'system_updates:update_detail' run.id %}">{% trans "Voir" %}</a>
         </td>
       </tr>
       {% empty %}
       <tr>
         <td colspan="8" style="text-align:center;color:var(--orion-muted);padding:32px">
-          Aucune mise à jour enregistrée.
+          {% trans "Aucune mise à jour enregistrée." %}
         </td>
       </tr>
       {% endfor %}

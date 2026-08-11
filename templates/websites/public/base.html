@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="{{ site.language|default:'fr' }}">
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:site.language|default:'fr' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -221,10 +221,29 @@
             {% endif %}
             {% endfor %}
 
+            <!-- Sélecteur de langue -->
+            {% if website_languages %}
+            <li class="nav-item dropdown ms-lg-1">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% trans 'Changer de langue' %}">
+                <i class="bi bi-translate"></i>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                {% for lang in website_languages %}
+                <li>
+                  <a class="dropdown-item {% if lang.is_current %}active{% endif %}"
+                     href="{% url 'public_websites:set_site_language' %}?lang={{ lang.code }}&amp;next={{ request.path|urlencode }}">
+                    {% if lang.flag_icon %}<span aria-hidden="true">{{ lang.flag_icon }}</span> {% endif %}{{ lang.native_name }}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
+            </li>
+            {% endif %}
+
             <!-- CTA devis -->
             <li class="nav-item ms-lg-2">
               <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
-                <i class="bi bi-envelope me-1"></i>Demander un devis
+                <i class="bi bi-envelope me-1"></i>{% trans "Demander un devis" %}
               </a>
             </li>
           </ul>
@@ -266,7 +285,7 @@
         <!-- Colonne 2 : Liens footer -->
         <div class="col-12 col-md-4">
           {% if footer_links %}
-          <div class="footer-title">Navigation</div>
+          <div class="footer-title">{% trans "Navigation" %}</div>
           <ul class="list-unstyled">
             {% for link in footer_links %}
             <li class="mb-1">
@@ -279,13 +298,13 @@
 
         <!-- Colonne 3 : Contact -->
         <div class="col-12 col-md-4">
-          <div class="footer-title">Contactez-nous</div>
+          <div class="footer-title">{% trans "Contactez-nous" %}</div>
           <a href="{% url 'public_websites:contact' site.public_slug %}" class="btn-site-outline" style="color: var(--site-accent); border-color: var(--site-accent); font-size:0.85rem; padding:0.5rem 1.25rem;">
-            <i class="bi bi-envelope me-1"></i>Nous contacter
+            <i class="bi bi-envelope me-1"></i>{% trans "Nous contacter" %}
           </a>
           <br><br>
           <a href="{% url 'public_websites:quote_request' site.public_slug %}" class="btn-site" style="font-size:0.85rem; padding:0.5rem 1.25rem;">
-            <i class="bi bi-file-text me-1"></i>Demande de devis
+            <i class="bi bi-file-text me-1"></i>{% trans "Demande de devis" %}
           </a>
         </div>
       </div>
@@ -293,13 +312,14 @@
       <hr class="footer-divider my-4">
 
       <div class="d-flex flex-wrap justify-content-between align-items-center footer-bottom">
-        <span>© {% now "Y" %} {{ site.company.name }}. Tous droits réservés.</span>
+        {% now "Y" as current_year %}
+        <span>{% blocktrans with year=current_year name=site.company.name %}© {{ year }} {{ name }}. Tous droits réservés.{% endblocktrans %}</span>
         <span class="d-flex align-items-center gap-3">
-          {% if site.company.siret %}<span>SIRET : {{ site.company.siret }}</span>{% endif %}
+          {% if site.company.siret %}<span>{% trans "SIRET :" %} {{ site.company.siret }}</span>{% endif %}
           {% if site.show_powered_by_orion %}
           {% load static %}
           <a href="#" class="orion-powered-badge">
-            Propulsé par
+            {% trans "Propulsé par" %}
             <img src="{% static brand_logo_white_path|default:'img/brand/orion-logo-white.svg' %}" alt="Orion ERP">
           </a>
           {% endif %}

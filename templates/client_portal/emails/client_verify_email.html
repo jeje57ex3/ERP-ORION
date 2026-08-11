@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load i18n %}<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
@@ -10,7 +10,7 @@
   <tr>
     <td style="background:#1C120A;padding:32px 40px;text-align:center">
       <h1 style="margin:0;color:#D4A843;font-size:1.5rem;font-weight:700">{{ company.name }}</h1>
-      <p style="margin:6px 0 0;color:#d1c4b3;font-size:.85rem">Espace client</p>
+      <p style="margin:6px 0 0;color:#d1c4b3;font-size:.85rem">{% trans "Espace client" %}</p>
     </td>
   </tr>
 
@@ -18,14 +18,14 @@
   <tr>
     <td style="padding:40px">
       <h2 style="margin:0 0 12px;color:#1a0e05;font-size:1.2rem;font-weight:700">
-        Confirmez votre adresse email
+        {% trans "Confirmez votre adresse email" %}
       </h2>
       <p style="margin:0 0 8px;color:#374151;font-size:.92rem;line-height:1.6">
-        Bonjour <strong>{{ first_name }}</strong>,
+        {% blocktrans with first=first_name %}Bonjour <strong>{{ first }}</strong>,{% endblocktrans %}
       </p>
       <p style="margin:0 0 24px;color:#374151;font-size:.92rem;line-height:1.6">
-        Merci d'avoir demandé la création de votre espace client chez <strong>{{ company.name }}</strong>.
-        Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et finaliser votre inscription.
+        {% blocktrans with cname=company.name %}Merci d'avoir demandé la création de votre espace client chez <strong>{{ cname }}</strong>.
+        Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et finaliser votre inscription.{% endblocktrans %}
       </p>
 
       <table width="100%" cellpadding="0" cellspacing="0">
@@ -33,22 +33,22 @@
           <td align="center" style="padding:8px 0 32px">
             <a href="{{ verification_url }}"
                style="display:inline-block;background:#D4A843;color:#1a0e05;font-weight:700;text-decoration:none;border-radius:9px;padding:14px 36px;font-size:1rem">
-              Confirmer mon email
+              {% trans "Confirmer mon email" %}
             </a>
           </td>
         </tr>
       </table>
 
       <p style="margin:0 0 8px;color:#6b7280;font-size:.8rem;line-height:1.5">
-        Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+        {% trans "Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :" %}
       </p>
       <p style="margin:0 0 24px;word-break:break-all">
         <a href="{{ verification_url }}" style="color:#D4A843;font-size:.78rem">{{ verification_url }}</a>
       </p>
 
       <p style="margin:0;color:#9ca3af;font-size:.78rem;line-height:1.5;border-top:1px solid #f3f4f6;padding-top:16px">
-        Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
-        Aucun compte ne sera créé sans votre confirmation.
+        {% blocktrans %}Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
+        Aucun compte ne sera créé sans votre confirmation.{% endblocktrans %}
       </p>
     </td>
   </tr>
@@ -57,7 +57,7 @@
   <tr>
     <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #f3f4f6">
       <p style="margin:0;color:#9ca3af;font-size:.75rem">
-        {{ company.name }} — Portail client sécurisé
+        {{ company.name }} — {% trans "Portail client sécurisé" %}
       </p>
     </td>
   </tr>

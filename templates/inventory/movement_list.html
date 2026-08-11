@@ -1,15 +1,15 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Mouvements de stock — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Mouvements de stock" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Mouvements de stock</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Historique des entrées, sorties, transferts et inventaires.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Mouvements de stock" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Historique des entrées, sorties, transferts et inventaires." %}</p>{% endblock %}
 {% block page_actions %}
 <div class="d-flex gap-2 flex-wrap">
-  <a href="{% url 'inventory:movement_create' %}?type=in" class="orion-btn orion-orion-btn primary"><i class="bi bi-box-arrow-in-down me-1"></i>Entrée stock</a>
-  <a href="{% url 'inventory:movement_create' %}?type=out" class="orion-btn orion-orion-btn danger"><i class="bi bi-box-arrow-up me-1"></i>Sortie stock</a>
-  <a href="{% url 'inventory:movement_create' %}?type=transfer" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-left-right me-1"></i>Transfert</a>
-  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>Exporter</a>
+  <a href="{% url 'inventory:movement_create' %}?type=in" class="orion-btn orion-orion-btn primary"><i class="bi bi-box-arrow-in-down me-1"></i>{% trans "Entrée stock" %}</a>
+  <a href="{% url 'inventory:movement_create' %}?type=out" class="orion-btn orion-orion-btn danger"><i class="bi bi-box-arrow-up me-1"></i>{% trans "Sortie stock" %}</a>
+  <a href="{% url 'inventory:movement_create' %}?type=transfer" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-left-right me-1"></i>{% trans "Transfert" %}</a>
+  <a href="?export=csv{% if q %}&q={{ q }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}" class="orion-btn orion-btn-outline"><i class="bi bi-download me-1"></i>{% trans "Exporter" %}</a>
 </div>
 {% endblock %}
 
@@ -20,40 +20,40 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-box-arrow-in-down"></i></div>
       <div class="orion-kpi-value">{{ entries_month|default:"0" }}</div>
-      <div class="orion-kpi-label">Entrées ce mois</div>
+      <div class="orion-kpi-label">{% trans "Entrées ce mois" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEE2E2;color:#DC2626"><i class="bi bi-box-arrow-up"></i></div>
       <div class="orion-kpi-value">{{ exits_month|default:"0" }}</div>
-      <div class="orion-kpi-label">Sorties ce mois</div>
+      <div class="orion-kpi-label">{% trans "Sorties ce mois" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-arrow-left-right"></i></div>
       <div class="orion-kpi-value">{{ transfers_month|default:"0" }}</div>
-      <div class="orion-kpi-label">Transferts</div>
+      <div class="orion-kpi-label">{% trans "Transferts" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9EC;color:#C6A15B"><i class="bi bi-clipboard-check"></i></div>
       <div class="orion-kpi-value">{{ corrections_month|default:"0" }}</div>
-      <div class="orion-kpi-label">Corrections</div>
+      <div class="orion-kpi-label">{% trans "Corrections" %}</div>
     </div>
   </div>
 </div>
 
 <!-- Chips type -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'inventory:movement_list' %}" class="orion-filter-chip {% if not movement_type %}active{% endif %}">Tous</a>
-  <a href="?type=in{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'in' %}active{% endif %}"><i class="bi bi-box-arrow-in-down me-1 text-success"></i>Entrée</a>
-  <a href="?type=out{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'out' %}active{% endif %}"><i class="bi bi-box-arrow-up me-1 text-danger"></i>Sortie</a>
-  <a href="?type=transfer{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'transfer' %}active{% endif %}">Transfert</a>
-  <a href="?type=inventory{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'inventory' %}active{% endif %}">Inventaire</a>
-  <a href="?type=return{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'return' %}active{% endif %}">Retour</a>
+  <a href="{% url 'inventory:movement_list' %}" class="orion-filter-chip {% if not movement_type %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="?type=in{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'in' %}active{% endif %}"><i class="bi bi-box-arrow-in-down me-1 text-success"></i>{% trans "Entrée" %}</a>
+  <a href="?type=out{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'out' %}active{% endif %}"><i class="bi bi-box-arrow-up me-1 text-danger"></i>{% trans "Sortie" %}</a>
+  <a href="?type=transfer{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'transfer' %}active{% endif %}">{% trans "Transfert" %}</a>
+  <a href="?type=inventory{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'inventory' %}active{% endif %}">{% trans "Inventaire" %}</a>
+  <a href="?type=return{% if q %}&q={{ q }}{% endif %}" class="orion-filter-chip {% if movement_type == 'return' %}active{% endif %}">{% trans "Retour" %}</a>
 </div>
 
 <!-- Tableau -->
@@ -61,10 +61,10 @@
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex gap-2 flex-wrap flex-grow-1">
       {% if movement_type %}<input type="hidden" name="type" value="{{ movement_type }}">{% endif %}
-      <input type="text" name="q" class="form-control form-control-sm" placeholder="Produit, référence..." value="{{ q }}" style="flex:1;min-width:200px">
-      <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:160px" value="{{ date_from }}" title="Date début">
-      <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:160px" value="{{ date_to }}" title="Date fin">
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+      <input type="text" name="q" class="form-control form-control-sm" placeholder="{% trans 'Produit, référence...' %}" value="{{ q }}" style="flex:1;min-width:200px">
+      <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:160px" value="{{ date_from }}" title="{% trans 'Date début' %}">
+      <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:160px" value="{{ date_to }}" title="{% trans 'Date fin' %}">
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
       {% if q or date_from or date_to %}
       <a href="?{% if movement_type %}type={{ movement_type }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger"><i class="bi bi-x-circle"></i></a>
       {% endif %}
@@ -75,15 +75,15 @@
       <table class="orion-table mb-0">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Référence</th>
-            <th>Produit</th>
-            <th>Type</th>
-            <th class="text-end">Quantité</th>
-            <th>Entrepôt source</th>
-            <th>Entrepôt dest.</th>
-            <th>Responsable</th>
-            <th>Notes</th>
+            <th>{% trans "Date" %}</th>
+            <th>{% trans "Référence" %}</th>
+            <th>{% trans "Produit" %}</th>
+            <th>{% trans "Type" %}</th>
+            <th class="text-end">{% trans "Quantité" %}</th>
+            <th>{% trans "Entrepôt source" %}</th>
+            <th>{% trans "Entrepôt dest." %}</th>
+            <th>{% trans "Responsable" %}</th>
+            <th>{% trans "Notes" %}</th>
           </tr>
         </thead>
         <tbody>
@@ -96,15 +96,15 @@
             </td>
             <td>
               {% if mv.movement_type == 'in' %}
-                <span class="orion-badge orion-badge-success"><i class="bi bi-box-arrow-in-down me-1"></i>Entrée</span>
+                <span class="orion-badge orion-badge-success"><i class="bi bi-box-arrow-in-down me-1"></i>{% trans "Entrée" %}</span>
               {% elif mv.movement_type == 'out' %}
-                <span class="orion-badge orion-badge-danger"><i class="bi bi-box-arrow-up me-1"></i>Sortie</span>
+                <span class="orion-badge orion-badge-danger"><i class="bi bi-box-arrow-up me-1"></i>{% trans "Sortie" %}</span>
               {% elif mv.movement_type == 'transfer' %}
-                <span class="orion-badge orion-badge-warning">Transfert</span>
+                <span class="orion-badge orion-badge-warning">{% trans "Transfert" %}</span>
               {% elif mv.movement_type == 'inventory' %}
-                <span class="orion-badge orion-badge-info">Inventaire</span>
+                <span class="orion-badge orion-badge-info">{% trans "Inventaire" %}</span>
               {% elif mv.movement_type == 'return' %}
-                <span class="orion-badge orion-badge-warning">Retour</span>
+                <span class="orion-badge orion-badge-warning">{% trans "Retour" %}</span>
               {% else %}
                 <span class="orion-badge orion-badge-secondary">{{ mv.get_movement_type_display }}</span>
               {% endif %}
@@ -123,9 +123,9 @@
             <td colspan="9">
               <div class="orion-empty">
                 <div class="orion-empty-icon"><i class="bi bi-arrow-left-right"></i></div>
-                <div class="orion-empty-title">Aucun mouvement de stock</div>
-                <div class="orion-empty-text">{% if q or movement_type %}Aucun mouvement ne correspond à la recherche.{% else %}Enregistrez des entrées, sorties ou transferts de stock pour vos produits.{% endif %}</div>
-                <a href="{% url 'inventory:movement_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>Saisir un mouvement</a>
+                <div class="orion-empty-title">{% trans "Aucun mouvement de stock" %}</div>
+                <div class="orion-empty-text">{% if q or movement_type %}{% trans "Aucun mouvement ne correspond à la recherche." %}{% else %}{% trans "Enregistrez des entrées, sorties ou transferts de stock pour vos produits." %}{% endif %}</div>
+                <a href="{% url 'inventory:movement_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-plus-circle me-1"></i>{% trans "Saisir un mouvement" %}</a>
               </div>
             </td>
           </tr>

@@ -1,31 +1,31 @@
 {% extends "erp_base.html" %}
-{% load static %}
-{% block title %}Documents — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Documents" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">Documents</li>{% endblock %}
-{% block page_subtitle %}<p class="page-subtitle">Centralisez vos contrats, factures, plans, documents RH et archives.</p>{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Documents" %}</li>{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% trans "Centralisez vos contrats, factures, plans, documents RH et archives." %}</p>{% endblock %}
 {% block page_actions %}
-<a href="{% url 'documents:document_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-upload me-1"></i>Nouveau document</a>
+<a href="{% url 'documents:document_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-upload me-1"></i>{% trans "Nouveau document" %}</a>
 {% endblock %}
 
 {% block content %}
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
     <form method="get" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width:220px;">
+      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="{% trans 'Rechercher...' %}" style="max-width:220px;">
       <select name="type" class="form-select form-select-sm" style="max-width:180px;">
-        <option value="">Tous les types</option>
+        <option value="">{% trans "Tous les types" %}</option>
         {% for t, label in type_choices %}<option value="{{ t }}" {% if doc_type == t %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
-      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
-      {% if search or doc_type %}<a href="{% url 'documents:document_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>{% endif %}
+      <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
+      {% if search or doc_type %}<a href="{% url 'documents:document_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>{% trans "Réinit." %}</a>{% endif %}
     </form>
   </div>
   <div class="orion-orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="orion-table mb-0">
         <thead>
-          <tr><th>Titre</th><th>Type</th><th>Catégorie</th><th>Version</th><th>Ajouté par</th><th>Date</th><th class="text-end">Actions</th></tr>
+          <tr><th>{% trans "Titre" %}</th><th>{% trans "Type" %}</th><th>{% trans "Catégorie" %}</th><th>{% trans "Version" %}</th><th>{% trans "Ajouté par" %}</th><th>{% trans "Date" %}</th><th class="text-end">{% trans "Actions" %}</th></tr>
         </thead>
         <tbody>
           {% for doc in documents %}
@@ -34,7 +34,7 @@
               <div class="d-flex align-items-center gap-2">
                 <i class="bi {% if doc.document_type == 'contract' %}bi-file-earmark-text{% elif doc.document_type == 'invoice' %}bi-receipt{% elif doc.document_type == 'plan' %}bi-diagram-3{% elif doc.document_type == 'photo' %}bi-image{% else %}bi-file-earmark{% endif %} text-primary"></i>
                 <a href="{% url 'documents:document_detail' doc.pk %}" class="fw-semibold text-dark text-decoration-none small">{{ doc.title }}</a>
-                {% if doc.is_confidential %}<span class="orion-badge orion-badge-danger" style="font-size:9px;">Confidentiel</span>{% endif %}
+                {% if doc.is_confidential %}<span class="orion-badge orion-badge-danger" style="font-size:9px;">{% trans "Confidentiel" %}</span>{% endif %}
               </div>
             </td>
             <td class="small text-muted">{{ doc.get_document_type_display }}</td>
@@ -44,10 +44,10 @@
             <td class="small text-muted">{{ doc.created_at|date:"d/m/Y" }}</td>
             <td>
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'documents:document_detail' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Voir"><i class="bi bi-eye"></i></a>
-                {% if doc.file %}<a href="{{ doc.file.url }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Télécharger" download><i class="bi bi-download"></i></a>{% endif %}
-                <a href="{% url 'documents:document_edit' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier"><i class="bi bi-pencil"></i></a>
-                <a href="{% url 'documents:document_delete' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="Supprimer"><i class="bi bi-trash"></i></a>
+                <a href="{% url 'documents:document_detail' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                {% if doc.file %}<a href="{{ doc.file.url }}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Télécharger' %}" download><i class="bi bi-download"></i></a>{% endif %}
+                <a href="{% url 'documents:document_edit' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'documents:document_delete' doc.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
               </div>
             </td>
           </tr>
@@ -55,9 +55,9 @@
           <tr><td colspan="7">
             <div class="orion-empty">
               <div class="orion-empty-icon"><i class="bi bi-folder2-open"></i></div>
-              <div class="orion-empty-title">Aucun document</div>
-              <div class="orion-empty-text">Centralisez vos documents, contrats et archives en les téléversant ici.</div>
-              <a href="{% url 'documents:document_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-upload me-1"></i>Ajouter un document</a>
+              <div class="orion-empty-title">{% trans "Aucun document" %}</div>
+              <div class="orion-empty-text">{% trans "Centralisez vos documents, contrats et archives en les téléversant ici." %}</div>
+              <a href="{% url 'documents:document_create' %}" class="orion-btn orion-orion-btn primary mt-3"><i class="bi bi-upload me-1"></i>{% trans "Ajouter un document" %}</a>
             </div>
           </td></tr>
           {% endfor %}

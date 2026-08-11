@@ -1,12 +1,25 @@
-{% load static %}
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="{{ theme.mode|default:'light' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ page_title|default:site.name }}{% endblock %} — {{ site.name }}</title>
   <meta name="description" content="{% block meta_description %}{{ site.meta_description }}{% endblock %}">
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
   {% if not page.is_indexable %}<meta name="robots" content="noindex, nofollow">{% endif %}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ site.name }}">
+  <meta property="og:title" content="{% block og_title %}{{ page_title|default:site.name }}{% endblock %}">
+  <meta property="og:description" content="{{ site.meta_description }}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  {% if site.logo %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ site.logo.url }}">{% endif %}
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title|default:site.name }}">
+  <meta name="twitter:description" content="{{ site.meta_description }}">
 
   {% if site.favicon %}
     <link rel="icon" href="{{ site.favicon.url }}">
@@ -14,38 +27,67 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'img/brand/orion-icon.svg' %}">
   {% endif %}
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-  <!-- Bootstrap Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- BTP Site CSS -->
-  <link href="{% static 'css/sites/btp-site.css' %}" rel="stylesheet">
+  <link href="{% static 'css/sites/orion-site-theme.css' %}?v=lang3" rel="stylesheet">
 
-  {% if site.theme and site.theme.custom_css %}
-  <style>{{ site.theme.custom_css }}</style>
-  {% endif %}
+  <style>
+    :root {
+      {% if theme.primary_color %}--site-primary: {{ theme.primary_color }};{% endif %}
+      {% if theme.accent_color %}--site-accent: {{ theme.accent_color }};{% endif %}
+    }
+  </style>
+  {% if theme.custom_css %}<style>{{ theme.custom_css }}</style>{% endif %}
 
   {% if site.google_analytics_id %}
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics_id }}"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','{{ site.google_analytics_id }}');</script>
   {% endif %}
 
+  <!-- JSON-LD GeneralContractor -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "GeneralContractor",
+    "name": "{{ site.company.name|escapejs }}",
+    "url": "{{ request.scheme }}://{{ request.get_host }}",
+    {% if site.contact_phone %}"telephone": "{{ site.contact_phone|escapejs }}",{% endif %}
+    {% if site.contact_email %}"email": "{{ site.contact_email|escapejs }}",{% endif %}
+    {% if site.address %}"address": {"@type": "PostalAddress", "streetAddress": "{{ site.address|escapejs }}"},{% endif %}
+    "image": "{% if site.logo %}{{ request.scheme }}://{{ request.get_host }}{{ site.logo.url }}{% endif %}"
+  }
+  </script>
+
+  <script>
+    (function(){
+      var t = localStorage.getItem('site-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
   {% block extra_css %}{% endblock %}
 </head>
-<body class="btp-site">
+<body class="orion-site btp-brand">
+<a href="#site-main" class="site-skip-link">{% trans "Aller au contenu principal" %}</a>
 
 {% include "websites/public/btp/components/header.html" %}
 
-<main>
+<main id="site-main">
   {% block content %}{% endblock %}
 </main>
 
 {% include "websites/public/btp/components/footer.html" %}
 
-<!-- BTP Site JS -->
-<script src="{% static 'js/sites/btp-site.js' %}"></script>
+{% trans "Aperçu image" as site_lightbox_label %}
+{% trans "Fermer" as site_lightbox_close %}
+<div class="site-lightbox" id="siteLightbox" role="dialog" aria-modal="true" aria-label="{{ site_lightbox_label }}">
+  <button class="site-lightbox-close" aria-label="{{ site_lightbox_close }}"><i class="bi bi-x-lg"></i></button>
+  <img src="" alt="">
+</div>
+
+<script src="{% static 'js/sites/orion-site.js' %}?v=lang2"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

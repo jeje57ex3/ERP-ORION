@@ -1,10 +1,11 @@
 {% extends "erp_base.html" %}
+{% load i18n %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'purchases:supplier_invoice_list' %}">Factures fournisseurs</a></li>
-<li class="breadcrumb-item active">{% if action == 'create' %}Saisir une facture{% else %}Modifier{% endif %}</li>
+<li class="breadcrumb-item"><a href="{% url 'purchases:supplier_invoice_list' %}">{% trans "Factures fournisseurs" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'create' %}{% trans "Saisir une facture" %}{% else %}{% trans "Modifier" %}{% endif %}</li>
 {% endblock %}
 {% block page_actions %}
-<a href="{% if invoice %}{% url 'purchases:supplier_invoice_detail' invoice.pk %}{% else %}{% url 'purchases:supplier_invoice_list' %}{% endif %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>Annuler</a>
+<a href="{% if invoice %}{% url 'purchases:supplier_invoice_detail' invoice.pk %}{% else %}{% url 'purchases:supplier_invoice_list' %}{% endif %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -13,44 +14,44 @@
   <div class="row g-3">
     <div class="col-12 col-lg-8">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-file-earmark-text me-1 text-primary"></i>Informations facture</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans "Informations facture" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
-            <div class="col-12"><label class="form-label">Fournisseur *</label>{{ form.supplier }}{% if form.supplier.errors %}<div class="invalid-feedback d-block">{{ form.supplier.errors }}</div>{% endif %}</div>
-            <div class="col-md-6"><label class="form-label">Commande achat liée</label>{{ form.purchase_order }}</div>
-            <div class="col-md-6"><label class="form-label">Référence fournisseur</label>{{ form.supplier_ref }}</div>
-            <div class="col-md-6"><label class="form-label">Date d'émission *</label>{{ form.issue_date }}</div>
-            <div class="col-md-6"><label class="form-label">Date d'échéance</label>{{ form.due_date }}</div>
+            <div class="col-12"><label class="form-label">{% trans "Fournisseur" %} *</label>{{ form.supplier }}{% if form.supplier.errors %}<div class="invalid-feedback d-block">{{ form.supplier.errors }}</div>{% endif %}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Commande achat liée" %}</label>{{ form.purchase_order }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Référence fournisseur" %}</label>{{ form.supplier_ref }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Date d'émission" %} *</label>{{ form.issue_date }}</div>
+            <div class="col-md-6"><label class="form-label">{% trans "Date d'échéance" %}</label>{{ form.due_date }}</div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-calculator me-1 text-primary"></i>Montants</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-calculator me-1 text-primary"></i>{% trans "Montants" %}</h6></div>
         <div class="p-3">
           <div class="row g-3">
-            <div class="col-md-4"><label class="form-label">Total HT</label>{{ form.total_ht }}</div>
-            <div class="col-md-4"><label class="form-label">TVA</label>{{ form.total_tva }}</div>
-            <div class="col-md-4"><label class="form-label">Total TTC</label>{{ form.total_ttc }}</div>
+            <div class="col-md-4"><label class="form-label">{% trans "Total HT" %}</label>{{ form.total_ht }}</div>
+            <div class="col-md-4"><label class="form-label">{% trans "TVA" %}</label>{{ form.total_tva }}</div>
+            <div class="col-md-4"><label class="form-label">{% trans "Total TTC" %}</label>{{ form.total_ttc }}</div>
           </div>
         </div>
       </div>
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-chat-text me-1 text-primary"></i>Notes</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
         <div class="p-3">{{ form.notes }}</div>
       </div>
     </div>
     <div class="col-12 col-lg-4">
       <div class="erp-card mb-3">
-        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-sliders me-1 text-primary"></i>Statut</h6></div>
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-sliders me-1 text-primary"></i>{% trans "Statut" %}</h6></div>
         <div class="p-3">
-          <div><label class="form-label">Statut</label>{{ form.status }}</div>
+          <div><label class="form-label">{% trans "Statut" %}</label>{{ form.status }}</div>
         </div>
       </div>
     </div>
   </div>
   <div class="d-flex gap-2 justify-content-end mt-3">
-    <a href="{% if invoice %}{% url 'purchases:supplier_invoice_detail' invoice.pk %}{% else %}{% url 'purchases:supplier_invoice_list' %}{% endif %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Annuler</a>
-    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}Enregistrer{% else %}Sauvegarder{% endif %}</button>
+    <a href="{% if invoice %}{% url 'purchases:supplier_invoice_detail' invoice.pk %}{% else %}{% url 'purchases:supplier_invoice_list' %}{% endif %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% if action == 'create' %}{% trans "Enregistrer" %}{% else %}{% trans "Sauvegarder" %}{% endif %}</button>
   </div>
 </form>
 {% endblock %}

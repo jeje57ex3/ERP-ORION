@@ -1,23 +1,23 @@
 {% extends "erp_base.html" %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Entreprises — Orion ERP{% endblock %}
+{% block title %}{% trans "Entreprises — Orion ERP" %}{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Entreprises</li>
+<li class="breadcrumb-item active">{% trans "Entreprises" %}</li>
 {% endblock %}
 
-{% block page_title %}Entreprises{% endblock %}
-{% block page_subtitle %}Gérez vos espaces de travail et bases de données par entreprise.{% endblock %}
+{% block page_title %}{% trans "Entreprises" %}{% endblock %}
+{% block page_subtitle %}{% trans "Gérez vos espaces de travail et bases de données par entreprise." %}{% endblock %}
 
 {% block page_actions %}
 {% if request.user.is_superuser %}
 <a href="{% url 'core:company_create' %}" class="orion-btn orion-orion-btn primary">
-  <i class="bi bi-plus-lg"></i>Nouvelle entreprise
+  <i class="bi bi-plus-lg"></i>{% trans "Nouvelle entreprise" %}
 </a>
 {% endif %}
 {% endblock %}
@@ -36,11 +36,11 @@
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
-      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#3B82F6">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:#C6A15B">
         <i class="bi bi-building"></i>
       </div>
       <div class="orion-kpi-value">{{ total_companies|default:companies|length }}</div>
-      <div class="orion-kpi-label">Total entreprises</div>
+      <div class="orion-kpi-label">{% trans "Total entreprises" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -49,7 +49,7 @@
         <i class="bi bi-check-circle"></i>
       </div>
       <div class="orion-kpi-value">{{ active_count|default:'—' }}</div>
-      <div class="orion-kpi-label">Actives</div>
+      <div class="orion-kpi-label">{% trans "Actives" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -58,7 +58,7 @@
         <i class="bi bi-database-check"></i>
       </div>
       <div class="orion-kpi-value">{{ db_count|default:'—' }}</div>
-      <div class="orion-kpi-label">Bases dédiées</div>
+      <div class="orion-kpi-label">{% trans "Bases dédiées" %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
@@ -67,7 +67,7 @@
         <i class="bi bi-people"></i>
       </div>
       <div class="orion-kpi-value">{{ total_users|default:'—' }}</div>
-      <div class="orion-kpi-label">Utilisateurs</div>
+      <div class="orion-kpi-label">{% trans "Utilisateurs" %}</div>
     </div>
   </div>
 </div>
@@ -79,28 +79,28 @@
       <div class="position-relative flex-grow-1">
         <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--orion-muted);pointer-events:none"></i>
         <input type="search" name="q" value="{{ q|default:'' }}"
-               placeholder="Rechercher une entreprise…"
+               placeholder="{% trans 'Rechercher une entreprise…' %}"
                class="orion-search-input ps-4">
       </div>
       <select name="status" class="orion-form-select" style="width:auto;min-width:160px">
-        <option value="">Tous les statuts</option>
-        <option value="active" {% if status == 'active' %}selected{% endif %}>Actives</option>
-        <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspendues</option>
-        <option value="archived" {% if status == 'archived' %}selected{% endif %}>Archivées</option>
+        <option value="">{% trans "Tous les statuts" %}</option>
+        <option value="active" {% if status == 'active' %}selected{% endif %}>{% trans "Actives" %}</option>
+        <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>{% trans "Suspendues" %}</option>
+        <option value="archived" {% if status == 'archived' %}selected{% endif %}>{% trans "Archivées" %}</option>
       </select>
       <select name="sector" class="orion-form-select" style="width:auto;min-width:160px">
-        <option value="">Tous les secteurs</option>
+        <option value="">{% trans "Tous les secteurs" %}</option>
         <option value="btp" {% if sector == 'btp' %}selected{% endif %}>BTP</option>
-        <option value="commerce" {% if sector == 'commerce' %}selected{% endif %}>Commerce</option>
-        <option value="services" {% if sector == 'services' %}selected{% endif %}>Services</option>
-        <option value="industrie" {% if sector == 'industrie' %}selected{% endif %}>Industrie</option>
+        <option value="commerce" {% if sector == 'commerce' %}selected{% endif %}>{% trans "Commerce" %}</option>
+        <option value="services" {% if sector == 'services' %}selected{% endif %}>{% trans "Services" %}</option>
+        <option value="industrie" {% if sector == 'industrie' %}selected{% endif %}>{% trans "Industrie" %}</option>
       </select>
       <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
-        <i class="bi bi-funnel"></i>Filtrer
+        <i class="bi bi-funnel"></i>{% trans "Filtrer" %}
       </button>
       {% if q or status or sector %}
       <a href="{% url 'core:company_list' %}" class="orion-btn orion-btn-outline orion-orion-btn sm text-danger">
-        <i class="bi bi-x-lg"></i>Réinitialiser
+        <i class="bi bi-x-lg"></i>{% trans "Réinitialiser" %}
       </a>
       {% endif %}
     </form>
@@ -111,20 +111,20 @@
 {% if companies %}
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">
-    <h5 class="orion-card-title"><i class="bi bi-building me-2"></i>Liste des entreprises</h5>
+    <h5 class="orion-card-title"><i class="bi bi-building me-2"></i>{% trans "Liste des entreprises" %}</h5>
     <span class="orion-badge orion-badge-secondary">{{ companies|length }} entreprise{{ companies|length|pluralize }}</span>
   </div>
   <div class="table-responsive">
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Entreprise</th>
-          <th>Secteur</th>
-          <th>Contact</th>
-          <th>Statut</th>
-          <th>Base de données</th>
-          <th>Utilisateurs</th>
-          <th class="text-end">Actions</th>
+          <th>{% trans "Entreprise" %}</th>
+          <th>{% trans "Secteur" %}</th>
+          <th>{% trans "Contact" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Base de données" %}</th>
+          <th>{% trans "Utilisateurs" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -164,11 +164,11 @@
           <td>
             {% if company.database_created %}
             <div class="d-flex flex-column gap-1">
-              <span class="orion-badge orion-badge-success"><i class="bi bi-database-check me-1"></i>Base dédiée</span>
+              <span class="orion-badge orion-badge-success"><i class="bi bi-database-check me-1"></i>{% trans "Base dédiée" %}</span>
               <span class="small font-monospace text-muted" style="font-size:.72rem">{{ company.database_name }}</span>
             </div>
             {% else %}
-            <span class="orion-badge orion-badge-secondary"><i class="bi bi-database me-1"></i>Base centrale</span>
+            <span class="orion-badge orion-badge-secondary"><i class="bi bi-database me-1"></i>{% trans "Base centrale" %}</span>
             {% endif %}
           </td>
           <td>
@@ -177,16 +177,16 @@
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end flex-wrap">
               <a href="{% url 'core:switch_company' company.pk %}" class="orion-btn orion-orion-btn primary orion-orion-btn sm">
-                <i class="bi bi-box-arrow-in-right"></i>Accéder
+                <i class="bi bi-box-arrow-in-right"></i>{% trans "Accéder" %}
               </a>
-              <a href="{% url 'core:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Détail">
+              <a href="{% url 'core:company_detail' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Détail' %}">
                 <i class="bi bi-info-circle"></i>
               </a>
               {% if request.user.is_superuser %}
-              <a href="{% url 'core:company_database' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Base de données">
+              <a href="{% url 'core:company_database' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Base de données' %}">
                 <i class="bi bi-database"></i>
               </a>
-              <a href="{% url 'core:company_edit' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="Modifier">
+              <a href="{% url 'core:company_edit' company.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm" title="{% trans 'Modifier' %}">
                 <i class="bi bi-pencil"></i>
               </a>
               {% endif %}
@@ -204,18 +204,18 @@
   <div class="orion-orion-orion-card-body">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-building"></i></div>
-      <div class="orion-empty-title">Aucune entreprise{% if q %} pour "{{ q }}"{% endif %}</div>
+      <div class="orion-empty-title">{% if q %}{% blocktrans %}Aucune entreprise pour "{{ q }}"{% endblocktrans %}{% else %}{% trans "Aucune entreprise" %}{% endif %}</div>
       <div class="orion-empty-text">
         {% if q or status or sector %}
-        Aucune entreprise ne correspond à ces filtres.
-        <a href="{% url 'core:company_list' %}" class="d-block mt-2">Voir toutes les entreprises</a>
+        {% trans "Aucune entreprise ne correspond à ces filtres." %}
+        <a href="{% url 'core:company_list' %}" class="d-block mt-2">{% trans "Voir toutes les entreprises" %}</a>
         {% else %}
-        Créez votre première entreprise pour commencer.
+        {% trans "Créez votre première entreprise pour commencer." %}
         {% endif %}
       </div>
       {% if request.user.is_superuser and not q and not status and not sector %}
       <a href="{% url 'core:company_create' %}" class="orion-btn orion-orion-btn primary mt-3">
-        <i class="bi bi-plus-lg"></i>Créer la première entreprise
+        <i class="bi bi-plus-lg"></i>{% trans "Créer la première entreprise" %}
       </a>
       {% endif %}
     </div>

@@ -1,13 +1,14 @@
 {% extends "client_portal/base_client_portal.html" %}
-{% block title %}Planning — {{ project.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=project.name %}Planning — {{ name }}{% endblocktrans %}{% endblock %}
 {% block nav_projects %}active{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'client_portal:project_list' %}">Chantiers</a></li>
+<li class="breadcrumb-item"><a href="{% url 'client_portal:project_list' %}">{% trans "Chantiers" %}</a></li>
 <li class="breadcrumb-item"><a href="{% url 'client_portal:project_detail' project.pk %}">{{ project.name }}</a></li>
-<li class="breadcrumb-item active">Planning</li>
+<li class="breadcrumb-item active">{% trans "Planning" %}</li>
 {% endblock %}
 {% block content %}
-<h4 class="fw-bold mb-4">Planning — {{ project.name }}</h4>
+<h4 class="fw-bold mb-4">{% blocktrans with name=project.name %}Planning — {{ name }}{% endblocktrans %}</h4>
 
 {% if steps %}
 <div class="bg-white border rounded-3 overflow-hidden">
@@ -22,28 +23,28 @@
       <div class="fw-semibold">{{ step.name }}</div>
       {% if step.client_comment %}<div class="text-muted small mt-1">{{ step.client_comment }}</div>{% endif %}
       <div class="d-flex gap-3 mt-1 small text-muted">
-        {% if step.planned_date %}<span><i class="bi bi-calendar me-1"></i>Prévu : {{ step.planned_date|date:"d/m/Y" }}</span>{% endif %}
-        {% if step.actual_date %}<span><i class="bi bi-check-circle me-1"></i>Réalisé : {{ step.actual_date|date:"d/m/Y" }}</span>{% endif %}
+        {% if step.planned_date %}<span><i class="bi bi-calendar me-1"></i>{% blocktrans with d=step.planned_date|date:"d/m/Y" %}Prévu : {{ d }}{% endblocktrans %}</span>{% endif %}
+        {% if step.actual_date %}<span><i class="bi bi-check-circle me-1"></i>{% blocktrans with d=step.actual_date|date:"d/m/Y" %}Réalisé : {{ d }}{% endblocktrans %}</span>{% endif %}
       </div>
     </div>
     <div class="text-end" style="min-width:120px">
-      {% if step.status == 'done' %}<span class="badge badge-status-done">Terminée</span>
+      {% if step.status == 'done' %}<span class="badge badge-status-done">{% trans "Terminée" %}</span>
       {% elif step.status == 'in_progress' %}
-        <span class="badge badge-status-progress">En cours ({{ step.progress_percent }}%)</span>
+        <span class="badge badge-status-progress">{% blocktrans with p=step.progress_percent %}En cours ({{ p }}%){% endblocktrans %}</span>
       {% elif step.status == 'waiting_client' %}
-        <span class="badge badge-status-waiting">En attente de vous</span>
+        <span class="badge badge-status-waiting">{% trans "En attente de vous" %}</span>
       {% elif step.status == 'delayed' %}
-        <span class="orion-badge danger">Retardée</span>
-      {% else %}<span class="badge bg-light text-muted border">À venir</span>{% endif %}
+        <span class="orion-badge danger">{% trans "Retardée" %}</span>
+      {% else %}<span class="badge bg-light text-muted border">{% trans "À venir" %}</span>{% endif %}
 
       {% if step.client_can_validate and not step.validated_by_client %}
       <form method="post" class="mt-2">
         {% csrf_token %}
         <input type="hidden" name="validate_step" value="{{ step.pk }}">
-        <button type="submit" class="orion-btn sm orion-btn success">✓ Valider cette étape</button>
+        <button type="submit" class="orion-btn sm orion-btn success">✓ {% trans "Valider cette étape" %}</button>
       </form>
       {% elif step.validated_by_client %}
-      <div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>Validé par vous</div>
+      <div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>{% trans "Validé par vous" %}</div>
       {% endif %}
     </div>
   </div>
@@ -52,7 +53,7 @@
 {% else %}
 <div class="bg-white border rounded-3 p-5 text-center text-muted">
   <i class="bi bi-calendar-x fs-1 d-block mb-3"></i>
-  <h6>Aucune étape de planning disponible</h6>
+  <h6>{% trans "Aucune étape de planning disponible" %}</h6>
 </div>
 {% endif %}
 {% endblock %}

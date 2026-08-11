@@ -1,20 +1,21 @@
 {% extends "erp_base.html" %}
 {% load static %}
-{% block title %}Domaines — {{ request.current_company.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktrans with company=request.current_company.name %}Domaines — {{ company }}{% endblocktrans %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">Sites web</a></li>
-<li class="breadcrumb-item active">Domaines</li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans 'Sites web' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Domaines' %}</li>
 {% endblock %}
 
 {% block page_actions %}
 <div class="d-flex gap-2">
   <a href="{% url 'websites:domain_wizard' %}" class="orion-btn orion-btn-outline">
-    <i class="bi bi-magic me-1"></i> Assistant
+    <i class="bi bi-magic me-1"></i> {% trans 'Assistant' %}
   </a>
   <a href="{% url 'websites:domain_create' %}" class="orion-btn orion-orion-btn primary">
-    <i class="bi bi-plus-circle me-1"></i> Ajouter un domaine
+    <i class="bi bi-plus-circle me-1"></i> {% trans 'Ajouter un domaine' %}
   </a>
 </div>
 {% endblock %}
@@ -27,28 +28,28 @@
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="bi bi-globe"></i></div>
       <div class="orion-kpi-value">{{ total }}</div>
-      <div class="orion-kpi-label">Domaines</div>
+      <div class="orion-kpi-label">{% trans 'Domaines' %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
       <div class="orion-kpi-value">{{ active_count }}</div>
-      <div class="orion-kpi-label">Actifs</div>
+      <div class="orion-kpi-label">{% trans 'Actifs' %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#FEF9C3;color:#CA8A04"><i class="bi bi-hourglass"></i></div>
       <div class="orion-kpi-value">{{ pending_dns }}</div>
-      <div class="orion-kpi-label">En attente DNS</div>
+      <div class="orion-kpi-label">{% trans 'En attente DNS' %}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="orion-kpi">
       <div class="orion-kpi-icon" style="background:#F0FDF4;color:#15803D"><i class="bi bi-shield-lock"></i></div>
       <div class="orion-kpi-value">{{ ssl_active_count }}</div>
-      <div class="orion-kpi-label">SSL actifs</div>
+      <div class="orion-kpi-label">{% trans 'SSL actifs' %}</div>
     </div>
   </div>
 </div>
@@ -56,18 +57,18 @@
 {% if expiring_ssl %}
 <div class="orion-alert warning mb-4">
   <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>{{ expiring_ssl }} certificat{{ expiring_ssl|pluralize }} SSL</strong> expire{{ expiring_ssl|pluralize:"nt" }} dans moins de 30 jours.
+  {% blocktrans with n=expiring_ssl s=expiring_ssl|pluralize s_nt=expiring_ssl|pluralize:"nt" %}<strong>{{ n }} certificat{{ s }} SSL</strong> expire{{ s_nt }} dans moins de 30 jours.{% endblocktrans %}
 </div>
 {% endif %}
 
 {# Filtres #}
 <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-  <a href="{% url 'websites:domain_dashboard' %}" class="orion-filter-chip {% if not status_filter and not target_filter %}active{% endif %}">Tous</a>
-  <a href="?status=active" class="orion-filter-chip {% if status_filter == 'active' %}active{% endif %}">Actifs</a>
-  <a href="?status=pending" class="orion-filter-chip {% if status_filter == 'pending' %}active{% endif %}">À configurer</a>
-  <a href="?status=dns_pending" class="orion-filter-chip {% if status_filter == 'dns_pending' %}active{% endif %}">En attente DNS</a>
-  <a href="?status=error" class="orion-filter-chip {% if status_filter == 'error' %}active{% endif %}">Erreurs</a>
-  <span class="text-muted small ms-auto">{{ total }} domaine{{ total|pluralize }}</span>
+  <a href="{% url 'websites:domain_dashboard' %}" class="orion-filter-chip {% if not status_filter and not target_filter %}active{% endif %}">{% trans 'Tous' %}</a>
+  <a href="?status=active" class="orion-filter-chip {% if status_filter == 'active' %}active{% endif %}">{% trans 'Actifs' %}</a>
+  <a href="?status=pending" class="orion-filter-chip {% if status_filter == 'pending' %}active{% endif %}">{% trans 'À configurer' %}</a>
+  <a href="?status=dns_pending" class="orion-filter-chip {% if status_filter == 'dns_pending' %}active{% endif %}">{% trans 'En attente DNS' %}</a>
+  <a href="?status=error" class="orion-filter-chip {% if status_filter == 'error' %}active{% endif %}">{% trans 'Erreurs' %}</a>
+  <span class="text-muted small ms-auto">{% blocktrans with n=total s=total|pluralize %}{{ n }} domaine{{ s }}{% endblocktrans %}</span>
 </div>
 
 {% if domains %}
@@ -77,13 +78,13 @@
       <table class="orion-table align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>Domaine</th>
-            <th>Cible</th>
-            <th>Site relié</th>
+            <th>{% trans 'Domaine' %}</th>
+            <th>{% trans 'Cible' %}</th>
+            <th>{% trans 'Site relié' %}</th>
             <th>DNS</th>
             <th>SSL</th>
-            <th>Dernier check</th>
-            <th class="text-end">Actions</th>
+            <th>{% trans 'Dernier check' %}</th>
+            <th class="text-end">{% trans 'Actions' %}</th>
           </tr>
         </thead>
         <tbody>
@@ -92,7 +93,8 @@
             <td>
               <div class="d-flex align-items-center gap-2">
                 {% if d.is_primary %}
-                  <i class="bi bi-star-fill text-warning" title="Domaine principal"></i>
+                  {% trans 'Domaine principal' as primary_domain_title %}
+                  <i class="bi bi-star-fill text-warning" title="{{ primary_domain_title }}"></i>
                 {% else %}
                   <i class="bi bi-globe text-muted"></i>
                 {% endif %}
@@ -100,7 +102,7 @@
                   <a href="{% url 'websites:domain_detail' d.pk %}" class="fw-medium text-decoration-none">
                     {{ d.domain }}
                   </a>
-                  {% if d.is_primary %}<span class="orion-badge gold ms-1">Principal</span>{% endif %}
+                  {% if d.is_primary %}<span class="orion-badge gold ms-1">{% trans 'Principal' %}</span>{% endif %}
                   {% if d.last_error %}
                     <br><small class="text-danger">{{ d.last_error|truncatechars:55 }}</small>
                   {% endif %}
@@ -110,12 +112,12 @@
             <td>
               {% with tt=d.target_type %}
               <span class="orion-badge neutral">
-                {% if tt == 'shop' %}<i class="bi bi-shop me-1"></i>Boutique
-                {% elif tt == 'client_portal' %}<i class="bi bi-person-badge me-1"></i>Portail client
+                {% if tt == 'shop' %}<i class="bi bi-shop me-1"></i>{% trans 'Boutique' %}
+                {% elif tt == 'client_portal' %}<i class="bi bi-person-badge me-1"></i>{% trans 'Portail client' %}
                 {% elif tt == 'erp' %}<i class="bi bi-server me-1"></i>ERP
-                {% elif tt == 'landing_page' %}<i class="bi bi-layout-text-sidebar me-1"></i>Landing
-                {% elif tt == 'blog' %}<i class="bi bi-journal-text me-1"></i>Blog
-                {% else %}<i class="bi bi-window me-1"></i>Site web{% endif %}
+                {% elif tt == 'landing_page' %}<i class="bi bi-layout-text-sidebar me-1"></i>{% trans 'Landing' %}
+                {% elif tt == 'blog' %}<i class="bi bi-journal-text me-1"></i>{% trans 'Blog' %}
+                {% else %}<i class="bi bi-window me-1"></i>{% trans 'Site web' %}{% endif %}
               </span>
               {% endwith %}
             </td>
@@ -130,26 +132,26 @@
             </td>
             <td>
               {% if d.dns_verified %}
-                <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>Vérifié</span>
+                <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>{% trans 'Vérifié' %}</span>
               {% elif d.status == 'active' %}
-                <span class="orion-badge success">Actif</span>
+                <span class="orion-badge success">{% trans 'Actif' %}</span>
               {% elif d.status == 'dns_pending' %}
-                <span class="orion-badge warning text-dark"><i class="bi bi-hourglass me-1"></i>En attente</span>
+                <span class="orion-badge warning text-dark"><i class="bi bi-hourglass me-1"></i>{% trans 'En attente' %}</span>
               {% elif d.status == 'error' %}
-                <span class="orion-badge danger">Erreur</span>
+                <span class="orion-badge danger">{% trans 'Erreur' %}</span>
               {% elif d.status == 'disabled' %}
-                <span class="orion-badge neutral">Désactivé</span>
+                <span class="orion-badge neutral">{% trans 'Désactivé' %}</span>
               {% else %}
                 <span class="badge bg-light text-dark">{{ d.get_status_display }}</span>
               {% endif %}
             </td>
             <td>
               {% if d.ssl_status == 'active' %}
-                <span class="orion-badge success"><i class="bi bi-lock-fill me-1"></i>Actif</span>
+                <span class="orion-badge success"><i class="bi bi-lock-fill me-1"></i>{% trans 'Actif' %}</span>
               {% elif d.ssl_status == 'pending' %}
-                <span class="orion-badge warning text-dark">En attente</span>
+                <span class="orion-badge warning text-dark">{% trans 'En attente' %}</span>
               {% elif d.ssl_status == 'expired' %}
-                <span class="orion-badge danger"><i class="bi bi-lock me-1"></i>Expiré</span>
+                <span class="orion-badge danger"><i class="bi bi-lock me-1"></i>{% trans 'Expiré' %}</span>
               {% else %}
                 <span class="text-muted small">—</span>
               {% endif %}
@@ -158,21 +160,24 @@
               {% if d.last_checked_at %}
                 <small class="text-muted">{{ d.last_checked_at|date:"d/m/Y H:i" }}</small>
               {% else %}
-                <small class="text-muted">Jamais</small>
+                <small class="text-muted">{% trans 'Jamais' %}</small>
               {% endif %}
             </td>
             <td class="text-end">
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{% url 'websites:domain_detail' d.pk %}" class="btn btn-outline-secondary orion-btn sm" title="Voir">
+                {% trans 'Voir' as d_view_title %}
+                <a href="{% url 'websites:domain_detail' d.pk %}" class="btn btn-outline-secondary orion-btn sm" title="{{ d_view_title }}">
                   <i class="bi bi-eye"></i>
                 </a>
                 <form method="post" action="{% url 'websites:domain_verify' d.pk %}" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-outline-primary orion-btn sm" title="Vérifier DNS">
+                  {% trans 'Vérifier DNS' as d_verify_title %}
+                  <button type="submit" class="btn btn-outline-primary orion-btn sm" title="{{ d_verify_title }}">
                     <i class="bi bi-arrow-clockwise"></i>
                   </button>
                 </form>
-                <a href="{% url 'websites:domain_dns_instructions' d.pk %}" class="btn btn-outline-info orion-btn sm" title="Instructions DNS">
+                {% trans 'Instructions DNS' as d_instr_title %}
+                <a href="{% url 'websites:domain_dns_instructions' d.pk %}" class="btn btn-outline-info orion-btn sm" title="{{ d_instr_title }}">
                   <i class="bi bi-terminal"></i>
                 </a>
               </div>
@@ -187,13 +192,13 @@
 {% else %}
 <div class="orion-empty text-center py-5">
   <i class="bi bi-globe display-4 text-muted mb-3"></i>
-  <h5 class="text-muted">Aucun domaine configuré</h5>
-  <p class="text-muted">Connectez votre premier nom de domaine avec l'assistant.</p>
+  <h5 class="text-muted">{% trans 'Aucun domaine configuré' %}</h5>
+  <p class="text-muted">{% trans "Connectez votre premier nom de domaine avec l'assistant." %}</p>
   <a href="{% url 'websites:domain_wizard' %}" class="orion-btn orion-orion-btn primary me-2">
-    <i class="bi bi-magic me-1"></i> Utiliser l'assistant
+    <i class="bi bi-magic me-1"></i> {% trans "Utiliser l'assistant" %}
   </a>
   <a href="{% url 'websites:domain_create' %}" class="orion-btn orion-btn-outline">
-    <i class="bi bi-plus-circle me-1"></i> Ajouter manuellement
+    <i class="bi bi-plus-circle me-1"></i> {% trans 'Ajouter manuellement' %}
   </a>
 </div>
 {% endif %}

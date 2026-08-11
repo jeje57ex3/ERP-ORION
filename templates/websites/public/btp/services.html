@@ -1,96 +1,74 @@
 {% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}Nos services — {{ site.name }}{% endblock %}
-{% block meta_description %}Découvrez tous nos services : électricité, plomberie, maçonnerie, peinture, menuiserie et bien plus. Devis gratuit.{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Nos services" %}{% endblock %}
+{% block meta_description %}{% trans "Découvrez tous nos services : électricité, plomberie, maçonnerie, peinture, menuiserie et bien plus. Devis gratuit." %}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero">
-  <div class="btp-container">
-    <span class="btp-h-label" style="color:var(--btp-secondary)">Savoir-faire</span>
-    <h1>Nos services BTP</h1>
-    <p>Des professionnels qualifiés pour tous vos travaux, de la rénovation à la construction neuve.</p>
+<section class="site-section" style="padding-top:60px">
+  <div class="site-container">
+    <span class="site-h-label">{% trans "Savoir-faire" %}</span>
+    <h1 class="site-h-xxl">{% trans "Nos services BTP" %}</h1>
+    <p class="site-subtitle">{% trans "Des professionnels qualifiés pour tous vos travaux, de la rénovation à la construction neuve." %}</p>
   </div>
 </section>
 
-<!-- Services -->
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    {% if featured_services %}
-    <div class="btp-cards-grid">
-      {% for service in featured_services %}
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi {{ service.icon|default:'bi-tools' }}"></i></div>
-        <h3>{{ service.title }}</h3>
-        <p>{{ service.description }}</p>
-        {% if service.price %}<p style="font-weight:600;color:var(--btp-secondary);margin-top:.5rem">À partir de {{ service.price|floatformat:"0" }} €</p>{% endif %}
-        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-btn-outline btp-orion-btn sm" style="margin-top:1rem">
-          <i class="bi bi-pencil-square"></i>Demander un devis
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <!-- Services par défaut -->
-    <div class="btp-cards-grid">
-      {% for item in default_services %}
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi {{ item.icon }}"></i></div>
-        <h3>{{ item.name }}</h3>
-        <p>{{ item.desc }}</p>
-        <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-btn-outline btp-orion-btn sm" style="margin-top:1rem">
-          <i class="bi bi-pencil-square"></i>Demander un devis
-        </a>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </div>
-</section>
-
-<!-- Avantages -->
-<section class="btp-section btp-section-bg">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Nos garanties</span>
-      <h2>Pourquoi choisir notre entreprise ?</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem">
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi bi-award-fill"></i></div>
-        <h3>Artisans qualifiés</h3>
-        <p>Tous nos techniciens sont certifiés et expérimentés dans leur domaine.</p>
-      </div>
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi bi-clock-fill"></i></div>
-        <h3>Réactivité</h3>
-        <p>Réponse sous 48h et interventions planifiées selon votre disponibilité.</p>
-      </div>
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi bi-file-earmark-check"></i></div>
-        <h3>Devis transparent</h3>
-        <p>Un devis détaillé et sans surprise, adapté à votre budget.</p>
-      </div>
-      <div class="btp-service-card btp-reveal">
-        <div class="btp-service-icon"><i class="bi bi-shield-check"></i></div>
-        <h3>Garantie travaux</h3>
-        <p>Nos travaux sont couverts par une garantie décennale et une assurance responsabilité civile.</p>
-      </div>
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-grid site-grid-3">
+      {% if featured_services %}
+        {% for service in featured_services %}
+        <div class="site-card site-reveal">
+          <div class="site-card-icon"><i class="bi {{ service.icon|default:'bi-tools' }}" aria-hidden="true"></i></div>
+          <h3>{{ service.title }}</h3>
+          <p>{{ service.description }}</p>
+          {% if service.price %}<p class="site-card-price">{% blocktrans with price=service.price|floatformat:"0" %}À partir de {{ price }} €{% endblocktrans %}</p>{% endif %}
+          <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-outline site-btn-sm" style="margin-top:1rem">
+            <span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans "Demander un devis" %}</span>
+          </a>
+        </div>
+        {% endfor %}
+      {% else %}
+        {% for item in default_services %}
+        <div class="site-card site-reveal">
+          <div class="site-card-icon"><i class="bi {{ item.icon }}" aria-hidden="true"></i></div>
+          <h3>{{ item.name }}</h3>
+          <p>{{ item.desc }}</p>
+          <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-outline site-btn-sm" style="margin-top:1rem">
+            <span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans "Demander un devis" %}</span>
+          </a>
+        </div>
+        {% endfor %}
+      {% endif %}
     </div>
   </div>
 </section>
 
-<!-- Processus -->
-<section class="btp-section btp-section-white">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Étapes</span>
-      <h2>Comment se déroule une prise en charge ?</h2>
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Nos garanties" %}</span>
+      <h2 class="site-h-xxl">{% trans "Pourquoi choisir notre entreprise ?" %}</h2>
     </div>
-    <div class="btp-process-grid">
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">1</div><h4>Contact</h4><p>Décrivez votre besoin via le devis guidé ou par téléphone.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">2</div><h4>Devis</h4><p>Nous analysons votre demande et vous envoyons un devis détaillé.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">3</div><h4>Intervention</h4><p>Notre équipe intervient à la date convenue.</p></div>
-      <div class="btp-process-step btp-reveal"><div class="btp-process-num">4</div><h4>Réception</h4><p>Vous validez les travaux et suivez tout depuis votre espace client.</p></div>
+    <div class="site-grid site-grid-2">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-award-fill" aria-hidden="true"></i></div><h3>{% trans "Artisans qualifiés" %}</h3><p>{% trans "Tous nos techniciens sont certifiés et expérimentés dans leur domaine." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-clock-fill" aria-hidden="true"></i></div><h3>{% trans "Réactivité" %}</h3><p>{% trans "Réponse sous 48h et interventions planifiées selon votre disponibilité." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></div><h3>{% trans "Devis transparent" %}</h3><p>{% trans "Un devis détaillé et sans surprise, adapté à votre budget." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></div><h3>{% trans "Garantie travaux" %}</h3><p>{% trans "Nos travaux sont couverts par une garantie décennale et une assurance responsabilité civile." %}</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Étapes" %}</span>
+      <h2 class="site-h-xxl">{% trans "Comment se déroule une prise en charge ?" %}</h2>
+    </div>
+    <div class="site-grid site-grid-4">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-1-circle-fill" aria-hidden="true"></i></div><h4>{% trans "Contact" %}</h4><p>{% trans "Décrivez votre besoin via le devis guidé ou par téléphone." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-2-circle-fill" aria-hidden="true"></i></div><h4>{% trans "Devis" %}</h4><p>{% trans "Nous analysons votre demande et vous envoyons un devis détaillé." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-3-circle-fill" aria-hidden="true"></i></div><h4>{% trans "Intervention" %}</h4><p>{% trans "Notre équipe intervient à la date convenue." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-4-circle-fill" aria-hidden="true"></i></div><h4>{% trans "Réception" %}</h4><p>{% trans "Vous validez les travaux et suivez tout depuis votre espace client." %}</p></div>
     </div>
   </div>
 </section>

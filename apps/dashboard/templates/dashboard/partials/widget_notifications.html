@@ -7,7 +7,7 @@
 <div>
   {% for notif in data.notifications %}
   <div class="widget-item">
-    <div class="widget-item-icon" style="background:#ede9fe;color:#7C3AED"><i class="bi bi-bell"></i></div>
+    <div class="widget-item-icon" style="background:#F8F3EA;color:#8f7042"><i class="bi bi-bell"></i></div>
     <div class="widget-item-body">
       <div class="widget-item-title">{{ notif.title|default:notif.message|truncatechars:45 }}</div>
       <div class="widget-item-sub">{{ notif.created_at|timesince }} ago</div>

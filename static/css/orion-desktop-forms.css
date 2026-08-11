@@ -4,10 +4,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Topbar (navbar) ───────────────────────────────────────────── */
-.orion-topbar,
-.erp-navbar {
+.orion-topbar {
   height: var(--od-topbar-h, 44px);
-  background: #FFFFFF;
+  background: var(--navbar-bg, #FFFFFF);
   border-bottom: 1px solid var(--od-border-light, #EBE0CC);
   display: flex;
   align-items: center;

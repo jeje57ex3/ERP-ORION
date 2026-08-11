@@ -1,18 +1,19 @@
-{% extends "base.html" %}
-{% block title %}Supprimer le tarif{% endblock %}
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Supprimer le tarif" %}{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-12 col-md-6">
     <div class="bg-white border rounded-3 p-4 text-center">
       <i class="bi bi-trash3 fs-1 text-danger mb-3 d-block"></i>
-      <h5 class="fw-bold">Supprimer ce tarif ?</h5>
-      <p class="text-muted">La prestation <strong>{{ item.name }}</strong> sera supprimée définitivement. Cette action ne peut pas être annulée.</p>
+      <h5 class="fw-bold">{% trans "Supprimer ce tarif ?" %}</h5>
+      <p class="text-muted">{% blocktrans with name=item.name %}La prestation <strong>{{ name }}</strong> sera supprimée définitivement. Cette action ne peut pas être annulée.{% endblocktrans %}</p>
       <div class="d-flex gap-2 justify-content-center mt-4">
         <form method="post">
           {% csrf_token %}
-          <button type="submit" class="orion-btn danger fw-bold">Supprimer</button>
+          <button type="submit" class="orion-btn danger fw-bold">{% trans "Supprimer" %}</button>
         </form>
-        <a href="{% url 'btp:price_library_list' %}" class="btn btn-outline-secondary">Annuler</a>
+        <a href="{% url 'btp:price_library_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
       </div>
     </div>
   </div>

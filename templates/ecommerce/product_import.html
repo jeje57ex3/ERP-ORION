@@ -1,0 +1,38 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:product_list' %}">{% trans "Catalogue" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Importer vers une boutique" %}</li>
+{% endblock %}
+{% block content %}
+<div class="erp-card" style="max-width:600px">
+  <div class="orion-card-header">
+    <h6 class="card-title mb-0"><i class="bi bi-arrow-down-circle me-1 text-primary"></i>{% trans "Choisir la boutique cible" %}</h6>
+  </div>
+  <div class="orion-card-body">
+    {% if websites %}
+    <p class="text-muted mb-3">{% trans "Sélectionnez la boutique vers laquelle importer les produits ERP en brouillon :" %}</p>
+    <div class="d-flex flex-column gap-2">
+      {% for website in websites %}
+      <form method="post" action="{% url 'websites:store_product_import_erp' website.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn orion-btn-outline w-100 text-start">
+          <i class="bi bi-shop me-2"></i>{{ website.name }}
+          <span class="text-muted small ms-2">{{ website.domain }}</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+      <i class="bi bi-shop" style="font-size:2rem;color:var(--orion-secondary)"></i>
+      <p class="mt-2 text-muted">{% trans "Aucune boutique e-commerce trouvée pour cette entreprise." %}</p>
+      <a href="{% url 'websites:website_create_store' %}" class="orion-btn primary">
+        {% trans "Créer une boutique" %}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

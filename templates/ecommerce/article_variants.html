@@ -1,0 +1,190 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+
+{% block extra_css %}{{ block.super }}
+<style>
+.variant-row { background: var(--orion-surface, #fff); border: 1px solid var(--orion-border, #e5e7eb); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.variant-row:has(input[name$="-DELETE"]:checked) { opacity: .4; }
+.color-preview { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ccc; display: inline-block; vertical-align: middle; }
+.formset-management { display: none; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:article_list' %}">{% trans "Articles SIÈCLE." %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:article_detail' pk=article.pk %}">{{ article.name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Variantes" %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'ecommerce:article_detail' pk=article.pk %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour à l'article" %}</a>
+<button type="submit" form="variant-formset" class="orion-btn orion-btn-primary"><i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer toutes les variantes" %}</button>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+<div class="col-lg-8">
+
+  <!-- Infos article -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-body">
+      <div class="d-flex align-items-center gap-3">
+        <div>
+          <div class="fw-semibold">{{ article.name }}</div>
+          <div class="text-muted" style="font-size:13px">{% trans "SKU" %} : {{ article.sku|default:"—" }} &nbsp;·&nbsp; {% trans "Prix de base" %} : {{ article.price }} €</div>
+        </div>
+        <div class="ms-auto">
+          {% if article.status == 'published' %}<span class="orion-badge orion-badge-success">{% trans "Publié" %}</span>
+          {% else %}<span class="orion-badge">{{ article.get_status_display }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formset variantes -->
+  <form id="variant-formset" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div id="formset-container">
+      {% for form in formset %}
+      <div class="variant-row" id="variant-{{ forloop.counter0 }}">
+        {% if form.instance.pk %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="fw-semibold text-muted" style="font-size:12px">{% blocktrans with num=forloop.counter %}VARIANTE #{{ num }}{% endblocktrans %}</span>
+          <div class="form-check form-check-inline mb-0">
+            {{ form.DELETE }}
+            <label class="form-check-label text-danger" for="{{ form.DELETE.id_for_label }}">{% trans "Supprimer" %}</label>
+          </div>
+        </div>
+        {% else %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="fw-semibold" style="font-size:12px;color:#C6A15B">{% trans "NOUVELLE VARIANTE" %}</span>
+        </div>
+        {% endif %}
+
+        <!-- Ligne 1 : Nom, SKU, Taille, Couleur -->
+        <div class="row g-2 mb-2">
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Nom" %} <small class="text-muted">({% trans "auto si vide" %})</small></label>
+            {{ form.name }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "SKU variante" %}</label>
+            {{ form.sku }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Taille" %}</label>
+            {{ form.size }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Matière" %}</label>
+            {{ form.material }}
+          </div>
+        </div>
+
+        <!-- Ligne 2 : Couleur + picker -->
+        <div class="row g-2 mb-2">
+          <div class="col-md-4">
+            <label class="orion-label">{% trans "Couleur" %}</label>
+            {{ form.color }}
+          </div>
+          <div class="col-md-2">
+            <label class="orion-label">{% trans "Code couleur" %}</label>
+            {{ form.color_hex }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Prix spécifique" %}</label>
+            {{ form.price_override }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{% trans "Prix barré" %}</label>
+            {{ form.compare_at_price_override }}
+          </div>
+        </div>
+
+        <!-- Ligne 3 : Stock + flags -->
+        <div class="row g-2 mb-2">
+          <div class="col-md-2">
+            <label class="orion-label">{% trans "Stock" %}</label>
+            {{ form.stock_quantity }}
+          </div>
+          <div class="col-md-2">
+            <label class="orion-label">{% trans "Ordre" %}</label>
+            {{ form.display_order }}
+          </div>
+          <div class="col-md-2 d-flex flex-column justify-content-end">
+            <div class="form-check mb-1">{{ form.track_stock }}<label class="form-check-label ms-1 small" for="{{ form.track_stock.id_for_label }}">{% trans "Suivre stock" %}</label></div>
+          </div>
+          <div class="col-md-2 d-flex flex-column justify-content-end">
+            <div class="form-check mb-1">{{ form.is_active }}<label class="form-check-label ms-1 small" for="{{ form.is_active.id_for_label }}">{% trans "Active" %}</label></div>
+          </div>
+          <div class="col-md-2 d-flex flex-column justify-content-end">
+            <div class="form-check mb-1">{{ form.is_default }}<label class="form-check-label ms-1 small" for="{{ form.is_default.id_for_label }}">{% trans "Par défaut" %}</label></div>
+          </div>
+          <div class="col-md-2">
+            <label class="orion-label">{% trans "Image variante" %}</label>
+            {{ form.image }}
+            {% if form.instance.image %}<div class="mt-1"><img src="{{ form.instance.image.url }}" style="height:32px;border-radius:4px"></div>{% endif %}
+          </div>
+        </div>
+
+        <!-- Erreurs -->
+        {% if form.errors %}
+        <div class="alert alert-danger py-2 mt-2" style="font-size:13px">
+          {% for field, errors in form.errors.items %}
+            {% for e in errors %}<div>{{ field }} : {{ e }}</div>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div><!-- /formset-container -->
+
+    <!-- Bouton Enregistrer bas de page -->
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="orion-btn orion-btn-primary"><i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}</button>
+      <a href="{% url 'ecommerce:article_detail' pk=article.pk %}" class="orion-btn orion-btn-ghost">{% trans "Annuler" %}</a>
+    </div>
+  </form>
+
+</div>
+
+<!-- Colonne droite : aide -->
+<div class="col-lg-4">
+  <div class="orion-card mb-3">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Guide variantes" %}</h6></div>
+    <div class="orion-card-body" style="font-size:13px">
+      <ul class="ps-3 mb-0" style="line-height:1.8">
+        <li>{% blocktrans %}Laissez le <strong>Nom</strong> vide : il sera généré automatiquement à partir de la Couleur et de la Taille (ex : <em>Noir / M</em>).{% endblocktrans %}</li>
+        <li>{% blocktrans %}Le <strong>Prix spécifique</strong> surcharge le prix de base de l'article uniquement pour cette variante.{% endblocktrans %}</li>
+        <li>{% blocktrans %}Cochez <strong>Par défaut</strong> pour pré-sélectionner cette variante sur la fiche produit.{% endblocktrans %}</li>
+        <li>{% blocktrans %}Décochez <strong>Suivre stock</strong> pour une variante à disponibilité illimitée.{% endblocktrans %}</li>
+        <li>{% blocktrans %}Cochez <strong>Supprimer</strong> sur une ligne existante pour l'effacer au prochain enregistrement.{% endblocktrans %}</li>
+      </ul>
+    </div>
+  </div>
+
+  {% if article.has_variants %}
+  <div class="orion-card">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Résumé stock" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="d-flex justify-content-between mb-1"><span class="text-muted">{% trans "Variantes actives" %}</span><strong>{{ article.active_variants.count }}</strong></div>
+      <div class="d-flex justify-content-between"><span class="text-muted">{% trans "Stock total" %}</span><strong>{{ article.total_variant_stock }}</strong></div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

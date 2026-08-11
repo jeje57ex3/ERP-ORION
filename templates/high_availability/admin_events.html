@@ -1,31 +1,34 @@
-{% extends "layouts/erp_shell.html" %}
+{% extends "erp_base.html" %}
+{% load i18n %}
 
-{% block content %}
-<div class="orion-page-header">
-  <div>
-    <p class="orion-page-eyebrow">Super Admin · Haute disponibilité</p>
-    <h1>Journal HA</h1>
-    <p class="orion-page-subtitle">Historique des bascules et événements haute disponibilité (100 derniers).</p>
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Super Admin · Haute disponibilité" %}</p>
+    <h1 class="page-title">{% trans "Journal HA" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Historique des bascules et événements haute disponibilité (100 derniers)." %}</p>
   </div>
-  <div class="orion-page-actions">
-    <a class="orion-btn" href="{% url 'high_availability:admin_failover' %}">← Bascule</a>
+  <div class="page-header-actions">
+    <a class="orion-btn" href="{% url 'high_availability:admin_failover' %}">← {% trans "Bascule" %}</a>
   </div>
 </div>
+{% endblock %}
 
+{% block content %}
 <div class="orion-card">
   <div class="orion-orion-orion-card-body" style="padding:0;">
     <table class="orion-table">
       <thead>
         <tr>
           <th>#</th>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Statut</th>
-          <th>Depuis</th>
-          <th>Vers</th>
-          <th>Déclenché par</th>
-          <th>Durée</th>
-          <th>Raison</th>
+          <th>{% trans "Date" %}</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Depuis" %}</th>
+          <th>{% trans "Vers" %}</th>
+          <th>{% trans "Déclenché par" %}</th>
+          <th>{% trans "Durée" %}</th>
+          <th>{% trans "Raison" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -41,7 +44,8 @@
           </td>
           <td>{{ event.from_node.name|default:"—" }}</td>
           <td>{{ event.to_node.name|default:"—" }}</td>
-          <td>{{ event.started_by.username|default:"Automatique" }}</td>
+          {% trans "Automatique" as ha_event_auto %}
+          <td>{{ event.started_by.username|default:ha_event_auto }}</td>
           <td>
             {% if event.finished_at %}
               {{ event.finished_at|timeuntil:event.started_at }}
@@ -53,7 +57,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="9" class="orion-table-empty">Aucun événement enregistré.</td>
+          <td colspan="9" class="orion-table-empty">{% trans "Aucun événement enregistré." %}</td>
         </tr>
         {% endfor %}
       </tbody>

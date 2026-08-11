@@ -1,0 +1,31 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans 'Sites web' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:website_detail' website.pk %}">{{ website.name }}</a></li>
+<li class="breadcrumb-item active">{% trans 'Supprimer' %}</li>
+{% endblock %}
+{% block page_header %}<div class="page-header"><h1 class="page-title">{% trans 'Supprimer le site' %}</h1></div>{% endblock %}
+{% block content %}
+<div class="delete-confirm-card">
+  <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle-fill text-danger"></i></div>
+  <h5>{% blocktrans with name=website.name %}Supprimer « {{ name }} » ?{% endblocktrans %}</h5>
+  <p class="text-muted mb-1">
+    {% blocktrans %}Cette action est <strong>irréversible</strong>. Le site et toutes ses données associées seront définitivement supprimés :{% endblocktrans %}
+  </p>
+  <ul class="text-muted text-start small mb-3" style="max-width:400px;margin:0 auto">
+    <li>{% trans 'Pages et contenu' %}</li>
+    <li>{% trans 'Articles de blog' %}</li>
+    <li>{% trans 'Messages et demandes de devis reçus' %}</li>
+    {% if website.site_type == 'ecommerce' %}
+    <li>{% trans 'Produits et catégories de la boutique' %}</li>
+    <li>{% trans 'Paramètres e-commerce' %}</li>
+    {% endif %}
+  </ul>
+  <form method="post" class="d-flex gap-2 justify-content-center mt-3">
+    {% csrf_token %}
+    <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>{% trans 'Supprimer définitivement' %}</button>
+    <a href="{% url 'websites:website_detail' website.pk %}" class="orion-btn outline">{% trans 'Annuler' %}</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,12 +1,13 @@
 {% extends "store/base_store.html" %}
-{% block title %}Recherche{% if q %} : {{ q }}{% endif %} — {{ website.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Recherche" %}{% if q %} : {{ q }}{% endif %} — {{ website.name }}{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="row mb-4">
     <div class="col-12 col-md-6">
       <form method="get">
         <div class="input-group input-group-lg">
-          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Rechercher un produit...">
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{% trans 'Rechercher un produit...' %}">
           <button type="submit" class="btn btn-store-primary"><i class="bi bi-search"></i></button>
         </div>
       </form>
@@ -14,7 +15,7 @@
   </div>
 
   {% if q %}
-  <h2 class="h4 fw-bold mb-4">{{ products|length }} résultat{{ products|length|pluralize }} pour « {{ q }} »</h2>
+  <h2 class="h4 fw-bold mb-4">{% blocktrans with count=products|length query=q %}{{ count }} résultat{{ count|pluralize }} pour « {{ query }} »{% endblocktrans %}</h2>
   {% endif %}
 
   {% if products %}
@@ -39,7 +40,7 @@
             <input type="hidden" name="product_id" value="{{ product.pk }}">
             <input type="hidden" name="quantity" value="1">
             <button type="submit" class="btn btn-store-primary btn-sm w-100" {% if not product.in_stock %}disabled{% endif %}>
-              {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>Ajouter{% else %}Rupture{% endif %}
+              {% if product.in_stock %}<i class="bi bi-cart-plus me-1"></i>{% trans "Ajouter" %}{% else %}{% trans "Rupture" %}{% endif %}
             </button>
           </form>
         </div>
@@ -50,14 +51,14 @@
   {% elif q %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-search fs-1 mb-3 d-block"></i>
-    <h5>Aucun résultat pour « {{ q }} »</h5>
-    <p>Essayez d'autres mots-clés ou <a href="{% url 'store:store_home' %}">retournez à l'accueil</a>.</p>
+    <h5>{% blocktrans with query=q %}Aucun résultat pour « {{ query }} »{% endblocktrans %}</h5>
+    <p>{% trans "Essayez d'autres mots-clés ou" %} <a href="{% url 'store:store_home' %}">{% trans "retournez à l'accueil" %}</a>.</p>
   </div>
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-search fs-1 mb-3 d-block"></i>
-    <h5>Que recherchez-vous ?</h5>
-    <p>Tapez un mot-clé dans la barre de recherche ci-dessus.</p>
+    <h5>{% trans "Que recherchez-vous ?" %}</h5>
+    <p>{% trans "Tapez un mot-clé dans la barre de recherche ci-dessus." %}</p>
   </div>
   {% endif %}
 </div>

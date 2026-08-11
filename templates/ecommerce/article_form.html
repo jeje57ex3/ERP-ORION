@@ -1,0 +1,327 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:article_list' %}">{% trans "Articles SIÈCLE." %}</a></li>
+<li class="breadcrumb-item active">{% if article %}{% trans "Modifier" %}{% else %}{% trans "Nouvel article" %}{% endif %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="orion-page-subtitle">{% if article %}{% trans "Modification de l'article — toutes les modifications sont synchronisées vers la boutique." %}{% else %}{% trans "Créer un nouvel article SIÈCLE. — il sera en brouillon jusqu'à publication explicite." %}{% endif %}</p>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" class="row g-4">
+{% csrf_token %}
+
+<!-- Col principale -->
+<div class="col-lg-8">
+
+  <!-- Identité -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Identité" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Nom de l'article" %} <span class="text-danger">*</span></label>
+        <input type="text" name="name" value="{{ article.name|default:'' }}" class="orion-input" required placeholder="{% trans 'Ex: Lunette Chrome — Archive 001' %}">
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="orion-label">SKU</label>
+          <input type="text" name="sku" value="{{ article.sku|default:'' }}" class="orion-input" placeholder="SIECLE-001-CHROME">
+        </div>
+        <div class="col-md-6">
+          <label class="orion-label">{% trans "Archive associée" %}</label>
+          <input type="text" name="archive_ref" value="{{ article.archive_ref|default:'' }}" class="orion-input" placeholder="001">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Textes" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Description courte" %}</label>
+        <input type="text" name="short_description" value="{{ article.short_description|default:'' }}" class="orion-input" placeholder="{% trans 'Accroche affichée sur la carte boutique (max 160 car.)' %}">
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Description complète" %}</label>
+        <textarea name="description" class="orion-input" rows="8" placeholder="{% trans 'Description HTML ou texte brut…' %}">{{ article.description|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu éditorial SIÈCLE -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-journal-text me-1 text-primary"></i>{% trans "Contenu éditorial SIÈCLE" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <p class="text-muted small mb-3">{% trans "Ces textes enrichissent la page produit publique et la rendent premium." %}</p>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Titre histoire" %}</label>
+        <input type="text" name="story_title" value="{{ article.story_title|default:'' }}" class="orion-input" placeholder="{% trans 'Une pièce pensée pour traverser le temps.' %}">
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Histoire de l'objet" %}</label>
+        <textarea name="story_content" class="orion-input" rows="5" placeholder="{% trans "Décrivez l'objet, son histoire, ses origines…" %}">{{ article.story_content|default:'' }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Pourquoi SIÈCLE l'a sélectionné" %}</label>
+        <textarea name="selection_reason" class="orion-input" rows="4" placeholder="{% trans "SIÈCLE l'a sélectionné pour son équilibre…" %}">{{ article.selection_reason|default:'' }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Usage recommandé" %}</label>
+        <textarea name="usage_note" class="orion-input" rows="3" placeholder="{% trans 'Dans le quotidien, cet objet…' %}">{{ article.usage_note|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Détails physiques -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-rulers me-1"></i>{% trans "Détails de l'objet" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="orion-label">{% trans "Matières" %}</label>
+          <input type="text" name="materials" value="{{ article.materials|default:'' }}" class="orion-input" placeholder="{% trans 'Métal brossé, cuir naturel…' %}">
+        </div>
+        <div class="col-md-6">
+          <label class="orion-label">{% trans "Dimensions" %}</label>
+          <input type="text" name="dimensions" value="{{ article.dimensions|default:'' }}" class="orion-input" placeholder="45 × 20 cm">
+        </div>
+        <div class="col-md-6">
+          <label class="orion-label">{% trans "Poids affiché" %}</label>
+          <input type="text" name="weight" value="{{ article.weight|default:'' }}" class="orion-input" placeholder="450 g">
+        </div>
+        <div class="col-md-6">
+          <label class="orion-label">{% trans "Origine" %}</label>
+          <input type="text" name="origin_country" value="{{ article.origin_country|default:'' }}" class="orion-input" placeholder="{% trans 'France, Italie…' %}">
+        </div>
+        <div class="col-md-12">
+          <label class="orion-label">{% trans "État" %}</label>
+          <input type="text" name="condition" value="{{ article.condition|default:'' }}" class="orion-input" placeholder="{% trans 'Neuf, Très bon état, Vintage…' %}">
+        </div>
+      </div>
+      <div class="mt-3">
+        <label class="orion-label">{% trans "Conseils d'entretien" %}</label>
+        <textarea name="care_instructions" class="orion-input" rows="3" placeholder="{% trans 'Nettoyage à sec recommandé…' %}">{{ article.care_instructions|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Livraison & garanties -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-truck me-1"></i>{% trans "Livraison & garanties" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Note livraison" %}</label>
+        <textarea name="shipping_note" class="orion-input" rows="2" placeholder="{% trans 'Expédition soignée sous 48h…' %}">{{ article.shipping_note|default:'' }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Note retours" %}</label>
+        <textarea name="return_note" class="orion-input" rows="2" placeholder="{% trans 'Retour possible sous 14 jours…' %}">{{ article.return_note|default:'' }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Garantie" %}</label>
+        <textarea name="guarantee_note" class="orion-input" rows="2" placeholder="{% trans 'Chaque objet est vérifié avant expédition…' %}">{{ article.guarantee_note|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Données flexibles -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-list-check me-1"></i>{% trans "Données avancées (JSON)" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Points forts" %}</label>
+        <textarea name="product_highlights_json" class="orion-input font-monospace" rows="3" placeholder='["Sélection SIÈCLE", "Design intemporel", "Pièce rare"]'>{{ product_highlights_json|default:'[]' }}</textarea>
+        <small class="text-muted">{% trans "Liste JSON de chaînes de caractères." %}</small>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Détails techniques" %}</label>
+        <textarea name="technical_details_json" class="orion-input font-monospace" rows="4" placeholder='{"Matière": "Laiton", "Hauteur": "45 cm"}'>{{ technical_details_json|default:'{}' }}</textarea>
+        <small class="text-muted">{% trans "Objet JSON clé/valeur." %}</small>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "FAQ produit" %}</label>
+        <textarea name="faq_items_json" class="orion-input font-monospace" rows="5" placeholder='[{"question": "Livraison ?", "answer": "Expédition sous 48h."}]'>{{ faq_items_json|default:'[]' }}</textarea>
+        <small class="text-muted">{% trans "Liste JSON d'objets {question, answer}." %}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tarif & stock -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Tarif et stock" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="orion-label">{% trans "Prix (€)" %} <span class="text-danger">*</span></label>
+          <input type="number" name="price" value="{{ article.price|default:'0' }}" class="orion-input" step="0.01" min="0" required>
+        </div>
+        <div class="col-md-4">
+          <label class="orion-label">{% trans "Prix barré (€)" %}</label>
+          <input type="number" name="compare_at_price" value="{{ article.compare_at_price|default:'' }}" class="orion-input" step="0.01" min="0" placeholder="{% trans 'Optionnel' %}">
+        </div>
+        <div class="col-md-4">
+          <label class="orion-label">{% trans "Stock global" %}</label>
+          <input type="number" name="stock_quantity" value="{{ article.stock_quantity|default:'0' }}" class="orion-input" min="0">
+        </div>
+      </div>
+      <div class="mt-3">
+        <label class="orion-label">{% trans "Tailles disponibles (JSON)" %}</label>
+        <input type="text" name="available_sizes_json" id="sizes_json" value="{{ sizes_json|default:'[]' }}" class="orion-input" placeholder='["XS","S","M","L","XL"]'>
+        <small class="text-muted">{% trans "Format JSON array — laissez" %} <code>[]</code> {% trans "si pas de tailles." %}</small>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Col droite -->
+<div class="col-lg-4">
+
+  <!-- Catégorie -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-tag me-1 text-primary"></i>{% trans "Catégorie" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="mb-2">
+        <label class="orion-label">{% trans "Catégorie boutique" %}</label>
+        <select name="category_id" class="orion-select">
+          <option value="">{% trans "— Aucune catégorie —" %}</option>
+          {% for cat in categories %}
+          <option value="{{ cat.pk }}" {% if article.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+        {% if not categories %}
+        <small class="text-muted d-block mt-1">{% trans "Aucune catégorie créée." %} <a href="{% url 'ecommerce:sync_log_list' %}">{% trans "Créer des catégories" %}</a> {% trans "d'abord." %}</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Statut & publication -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans "Statut" %}</h6></div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Statut de publication" %}</label>
+        <select name="status" class="orion-select">
+          {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if article.status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Ordre d'affichage" %}</label>
+        <input type="number" name="display_order" value="{{ article.display_order|default:'0' }}" class="orion-input" min="0">
+        <small class="text-muted">{% trans "Plus petit = affiché en premier." %}</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accès Gold -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-star-fill me-1" style="color:#CA8A04"></i>{% trans "Avant-première Gold" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="mb-3">
+        <label class="orion-label">{% trans "Type d'accès" %}</label>
+        <select name="early_access_type" class="orion-select" id="early_access_type" onchange="toggleEarlyAccess(this.value)">
+          {% for val, label in early_access_choices %}
+          <option value="{{ val }}" {% if article.early_access_type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="early_access_fields" style="{% if article.early_access_type != 'gold_early_access' %}display:none{% endif %}">
+        <div class="mb-3">
+          <label class="orion-label">{% trans "Ouverture Gold" %}</label>
+          <input type="datetime-local" name="gold_access_start" value="{{ article.gold_access_start|date:'Y-m-d\TH:i'|default:'' }}" class="orion-input">
+        </div>
+        <div class="mb-3">
+          <label class="orion-label">{% trans "Ouverture publique" %}</label>
+          <input type="datetime-local" name="public_access_start" value="{{ article.public_access_start|date:'Y-m-d\TH:i'|default:'' }}" class="orion-input">
+          <small class="text-muted">{% trans "Laissez vide = immédiatement public après la phase Gold." %}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges et rareté -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h6 class="mb-0"><i class="bi bi-star me-1 text-warning"></i>{% trans "Badges" %}</h6>
+    </div>
+    <div class="orion-card-body">
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" name="is_siecle_selection" id="is_siecle_selection" {% if article.is_siecle_selection %}checked{% endif %}>
+        <label class="form-check-label" for="is_siecle_selection">{% trans "Sélection SIÈCLE" %}</label>
+      </div>
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" name="is_new_arrival" id="is_new_arrival" {% if article.is_new_arrival %}checked{% endif %}>
+        <label class="form-check-label" for="is_new_arrival">{% trans "Nouveauté" %}</label>
+      </div>
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" name="is_limited_edition" id="is_limited_edition" {% if article.is_limited_edition %}checked{% endif %}>
+        <label class="form-check-label" for="is_limited_edition">{% trans "Édition limitée" %}</label>
+      </div>
+      <div class="mb-0 mt-2">
+        <label class="orion-label small">{% trans "Quantité édition limitée" %}</label>
+        <input type="number" name="edition_quantity" value="{{ article.edition_quantity|default:'' }}" class="orion-input" min="1" placeholder="{% trans 'Optionnel' %}">
+      </div>
+    </div>
+  </div>
+
+  {% if article and article.website.slug == 'siecle' %}
+  <div class="mb-3">
+    <a href="https://siecle.elysiums.fr/objects/{{ article.slug }}/" target="_blank" rel="noopener" class="orion-btn orion-btn-outline w-100">
+      <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Voir sur SIÈCLE" %}
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div class="d-grid gap-2">
+    <button type="submit" class="orion-btn orion-btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{% if article %}{% trans "Enregistrer" %}{% else %}{% trans "Créer l'article" %}{% endif %}
+    </button>
+    {% if article %}
+    <a href="{% url 'ecommerce:article_detail' pk=article.pk %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+    {% else %}
+    <a href="{% url 'ecommerce:article_list' %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+    {% endif %}
+  </div>
+
+</div>
+</form>
+
+<script>
+function toggleEarlyAccess(val) {
+  document.getElementById('early_access_fields').style.display = (val === 'gold_early_access') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

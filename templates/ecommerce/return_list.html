@@ -1,21 +1,22 @@
 {% extends "erp_base.html" %}
 {% load static %}
+{% load i18n %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
 {% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'ecommerce:index' %}">E-commerce</a></li>
-<li class="breadcrumb-item active">Retours clients</li>
+<li class="breadcrumb-item active">{% trans "Retours clients" %}</li>
 {% endblock %}
 
-{% block page_subtitle %}<p class="orion-page-subtitle">Gérez les demandes de retour, réceptions et remboursements.</p>{% endblock %}
+{% block page_subtitle %}<p class="orion-page-subtitle">{% trans "Gérez les demandes de retour, réceptions et remboursements." %}</p>{% endblock %}
 
 {% block page_actions %}
-<a href="{% url 'ecommerce:return_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau retour</a>
-<a href="{% url 'ecommerce:return_accept_bulk' %}" class="orion-btn orion-btn-gold"><i class="bi bi-check-circle me-1"></i>Accepter</a>
-<a href="{% url 'ecommerce:return_refund_bulk' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-counterclockwise me-1"></i>Rembourser</a>
-<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-btn-outline"><i class="bi bi-life-preserver me-1"></i>Créer ticket</a>
+<a href="{% url 'ecommerce:return_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau retour" %}</a>
+<a href="{% url 'ecommerce:return_accept_bulk' %}" class="orion-btn orion-btn-gold"><i class="bi bi-check-circle me-1"></i>{% trans "Accepter" %}</a>
+<a href="{% url 'ecommerce:return_refund_bulk' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Rembourser" %}</a>
+<a href="{% url 'support:ticket_create' %}" class="orion-btn orion-btn-outline"><i class="bi bi-life-preserver me-1"></i>{% trans "Créer ticket" %}</a>
 {% endblock %}
 
 {% block content %}
@@ -38,7 +39,7 @@
       <div class="orion-kpi-icon" style="background:#FFFBEB;color:#F59E0B"><i class="bi bi-arrow-return-left"></i></div>
       <div>
         <div class="orion-kpi-value">{{ pending_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Retours en cours</div>
+        <div class="orion-kpi-label">{% trans "Retours en cours" %}</div>
       </div>
     </div>
   </div>
@@ -47,16 +48,16 @@
       <div class="orion-kpi-icon" style="background:#F0FDF4;color:#16A34A"><i class="bi bi-check-circle"></i></div>
       <div>
         <div class="orion-kpi-value">{{ accepted_month|default:"0" }}</div>
-        <div class="orion-kpi-label">Acceptés ce mois</div>
+        <div class="orion-kpi-label">{% trans "Acceptés ce mois" %}</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#6366F1">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#6366F1"><i class="bi bi-credit-card"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#C6A15B">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-credit-card"></i></div>
       <div>
         <div class="orion-kpi-value">{{ refunded_count|default:"0" }}</div>
-        <div class="orion-kpi-label">Remboursements effectués</div>
+        <div class="orion-kpi-label">{% trans "Remboursements effectués" %}</div>
       </div>
     </div>
   </div>
@@ -65,7 +66,7 @@
       <div class="orion-kpi-icon" style="background:#FEF2F2;color:#DC2626"><i class="bi bi-currency-euro"></i></div>
       <div>
         <div class="orion-kpi-value">{{ total_refunded|floatformat:0|default:"0" }} €</div>
-        <div class="orion-kpi-label">Montant remboursé</div>
+        <div class="orion-kpi-label">{% trans "Montant remboursé" %}</div>
       </div>
     </div>
   </div>
@@ -73,13 +74,13 @@
 
 <!-- Chips statut -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <a href="{% url 'ecommerce:return_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">Tous</a>
-  <a href="?status=pending" class="orion-filter-chip {% if status == 'pending' %}active{% endif %}">En attente</a>
-  <a href="?status=accepted" class="orion-filter-chip {% if status == 'accepted' %}active{% endif %}">Accepté</a>
-  <a href="?status=refused" class="orion-filter-chip {% if status == 'refused' %}active{% endif %}">Refusé</a>
-  <a href="?status=received" class="orion-filter-chip {% if status == 'received' %}active{% endif %}">Réceptionné</a>
-  <a href="?status=refunded" class="orion-filter-chip {% if status == 'refunded' %}active{% endif %}">Remboursé</a>
-  <a href="?status=exchanged" class="orion-filter-chip {% if status == 'exchanged' %}active{% endif %}">Échangé</a>
+  <a href="{% url 'ecommerce:return_list' %}" class="orion-filter-chip {% if not status %}active{% endif %}">{% trans "Tous" %}</a>
+  <a href="?status=pending" class="orion-filter-chip {% if status == 'pending' %}active{% endif %}">{% trans "En attente" %}</a>
+  <a href="?status=accepted" class="orion-filter-chip {% if status == 'accepted' %}active{% endif %}">{% trans "Accepté" %}</a>
+  <a href="?status=refused" class="orion-filter-chip {% if status == 'refused' %}active{% endif %}">{% trans "Refusé" %}</a>
+  <a href="?status=received" class="orion-filter-chip {% if status == 'received' %}active{% endif %}">{% trans "Réceptionné" %}</a>
+  <a href="?status=refunded" class="orion-filter-chip {% if status == 'refunded' %}active{% endif %}">{% trans "Remboursé" %}</a>
+  <a href="?status=exchanged" class="orion-filter-chip {% if status == 'exchanged' %}active{% endif %}">{% trans "Échangé" %}</a>
 </div>
 
 <!-- Barre de filtre -->
@@ -87,10 +88,10 @@
   <form method="get" class="d-flex gap-2 flex-wrap align-items-center w-100">
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
     <i class="bi bi-search text-muted"></i>
-    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="Référence, client, commande…" style="max-width:280px;">
-    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+    <input type="text" name="q" value="{{ q }}" class="orion-search-input" placeholder="{% trans 'Référence, client, commande…' %}" style="max-width:280px;">
+    <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}</button>
     {% if q %}
-    <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>Réinit.</a>
+    <a href="?{% if status %}status={{ status }}{% endif %}" class="orion-btn orion-btn-outline orion-orion-btn sm"><i class="bi bi-x me-1"></i>{% trans "Réinit." %}</a>
     {% endif %}
   </form>
 </div>
@@ -101,14 +102,14 @@
     <table class="orion-table">
       <thead>
         <tr>
-          <th>Référence</th>
-          <th>Commande originale</th>
-          <th>Client</th>
-          <th>Produits</th>
-          <th>Motif</th>
-          <th>Statut</th>
-          <th>Date demande</th>
-          <th class="actions">Actions</th>
+          <th>{% trans "Référence" %}</th>
+          <th>{% trans "Commande originale" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th>{% trans "Produits" %}</th>
+          <th>{% trans "Motif" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th>{% trans "Date demande" %}</th>
+          <th class="actions">{% trans "Actions" %}</th>
         </tr>
       </thead>
       <tbody>
@@ -138,30 +139,30 @@
           </td>
           <td class="small text-muted">{{ ret.reason|default:"—" }}</td>
           <td>
-            {% if ret.status == 'pending' %}<span class="orion-badge orion-badge-warning">En attente</span>
-            {% elif ret.status == 'accepted' %}<span class="orion-badge orion-badge-success">Accepté</span>
-            {% elif ret.status == 'refused' %}<span class="orion-badge orion-badge-danger">Refusé</span>
-            {% elif ret.status == 'received' %}<span class="orion-badge orion-badge-info">Réceptionné</span>
-            {% elif ret.status == 'refunded' %}<span class="orion-badge orion-badge-purple">Remboursé</span>
-            {% elif ret.status == 'exchanged' %}<span class="orion-badge orion-badge-gold">Échangé</span>
+            {% if ret.status == 'pending' %}<span class="orion-badge orion-badge-warning">{% trans "En attente" %}</span>
+            {% elif ret.status == 'accepted' %}<span class="orion-badge orion-badge-success">{% trans "Accepté" %}</span>
+            {% elif ret.status == 'refused' %}<span class="orion-badge orion-badge-danger">{% trans "Refusé" %}</span>
+            {% elif ret.status == 'received' %}<span class="orion-badge orion-badge-info">{% trans "Réceptionné" %}</span>
+            {% elif ret.status == 'refunded' %}<span class="orion-badge orion-badge-purple">{% trans "Remboursé" %}</span>
+            {% elif ret.status == 'exchanged' %}<span class="orion-badge orion-badge-gold">{% trans "Échangé" %}</span>
             {% else %}<span class="orion-badge orion-badge-secondary">{{ ret.get_status_display }}</span>
             {% endif %}
           </td>
           <td class="small text-muted">{{ ret.created_at|date:"d/m/Y" }}</td>
           <td class="actions">
             <div class="d-flex gap-1 justify-content-end">
-              <a href="{% url 'ecommerce:return_detail' ret.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Voir"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'ecommerce:return_detail' ret.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
               {% if ret.status == 'pending' %}
               <form method="post" action="{% url 'ecommerce:return_accept' ret.pk %}" class="d-inline">{% csrf_token %}
-                <button class="orion-btn orion-btn-gold orion-orion-btn sm orion-btn-icon" title="Accepter"><i class="bi bi-check-circle"></i></button>
+                <button class="orion-btn orion-btn-gold orion-orion-btn sm orion-btn-icon" title="{% trans 'Accepter' %}"><i class="bi bi-check-circle"></i></button>
               </form>
               {% endif %}
               {% if ret.status == 'received' %}
               <form method="post" action="{% url 'ecommerce:return_refund' ret.pk %}" class="d-inline">{% csrf_token %}
-                <button class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="Rembourser"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="orion-btn orion-orion-btn danger orion-orion-btn sm orion-btn-icon" title="{% trans 'Rembourser' %}"><i class="bi bi-arrow-counterclockwise"></i></button>
               </form>
               {% endif %}
-              <a href="{% url 'support:ticket_create' %}?return={{ ret.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="Créer ticket"><i class="bi bi-life-preserver"></i></a>
+              <a href="{% url 'support:ticket_create' %}?return={{ ret.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm orion-btn-icon" title="{% trans 'Créer ticket' %}"><i class="bi bi-life-preserver"></i></a>
             </div>
           </td>
         </tr>
@@ -170,9 +171,9 @@
           <td colspan="8">
             <div class="orion-empty">
               <i class="bi bi-arrow-return-left" style="font-size:3rem;color:var(--orion-secondary);display:block;margin-bottom:1rem"></i>
-              <h5 style="color:var(--orion-primary)">Aucun retour client</h5>
-              <p class="text-muted mb-3">Les demandes de retour apparaîtront ici.</p>
-              <a href="{% url 'ecommerce:return_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouveau retour</a>
+              <h5 style="color:var(--orion-primary)">{% trans "Aucun retour client" %}</h5>
+              <p class="text-muted mb-3">{% trans "Les demandes de retour apparaîtront ici." %}</p>
+              <a href="{% url 'ecommerce:return_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau retour" %}</a>
             </div>
           </td>
         </tr>

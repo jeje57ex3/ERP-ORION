@@ -1,137 +1,80 @@
 {% extends "websites/public/btp/base.html" %}
-{% load static %}
-{% block title %}Espace client - {{ site.name }}{% endblock %}
-{% block meta_description %}Accedez a votre espace client securise pour suivre vos devis, factures, chantiers et documents.{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Espace client" %}{% endblock %}
+{% block meta_description %}{% trans "Accédez à votre espace client sécurisé pour suivre vos devis, factures, chantiers et documents." %}{% endblock %}
 
 {% block content %}
-<section class="btp-page-hero">
-  <div class="btp-container">
-    <span class="btp-h-label" style="color:var(--btp-secondary)"><i class="bi bi-person-lock"></i> Espace client</span>
-    <h1>Accedez a votre espace client</h1>
-    <p>Suivez vos demandes, devis, factures, documents et chantiers depuis un espace securise.</p>
+<section class="site-section" style="padding-top:60px">
+  <div class="site-container">
+    <span class="site-h-label"><i class="bi bi-person-lock" aria-hidden="true"></i> {% trans "Espace client" %}</span>
+    <h1 class="site-h-xxl">{% trans "Accédez à votre espace client" %}</h1>
+    <p class="site-subtitle">{% trans "Suivez vos demandes, devis, factures, documents et chantiers depuis un espace sécurisé." %}</p>
   </div>
 </section>
 
-<!-- Boutons principaux -->
-<section class="btp-section-sm btp-section-white">
-  <div class="btp-container" style="text-align:center">
-    <div class="btp-btn-group" style="justify-content:center;margin-bottom:2rem">
-      <a href="{% url 'client_portal:login' %}" class="btp-btn btp-btn-dark btp-btn-lg">
-        <i class="bi bi-box-arrow-in-right"></i>Se connecter
-      </a>
-      <a href="#request-access" class="btp-btn btp-btn-outline btp-btn-lg">
-        <i class="bi bi-key"></i>Demander un acces
-      </a>
-      <a href="{% url 'guided_quote:wizard_start' %}" class="btp-btn btp-orion-btn primary btp-btn-lg">
-        <i class="bi bi-pencil-square"></i>Creer une demande
-      </a>
+<section class="site-section-sm">
+  <div class="site-container" style="text-align:center">
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem">
+      <a href="{% url 'client_portal:login' %}" class="site-btn site-btn-primary site-btn-lg"><span class="site-btn-label"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>{% trans "Se connecter" %}</span></a>
+      <a href="#request-access" class="site-btn site-btn-outline site-btn-lg"><span class="site-btn-label"><i class="bi bi-key" aria-hidden="true"></i>{% trans "Demander un accès" %}</span></a>
+      <a href="{% url 'guided_quote:wizard_start' %}" class="site-btn site-btn-accent site-btn-lg"><span class="site-btn-label"><i class="bi bi-pencil-square" aria-hidden="true"></i>{% trans "Créer une demande" %}</span></a>
     </div>
   </div>
 </section>
 
-<!-- Fonctionnalites espace client -->
-<section class="btp-section btp-section-bg">
-  <div class="btp-container">
-    <div class="btp-section-header btp-reveal">
-      <span class="btp-h-label">Votre espace</span>
-      <h2>Tout ce que vous pouvez faire depuis votre espace client</h2>
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Votre espace" %}</span>
+      <h2 class="site-h-xxl">{% trans "Tout ce que vous pouvez faire depuis votre espace client" %}</h2>
     </div>
-    <div class="btp-access-grid">
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-clipboard-check"></i></div>
-        <h4>Suivre mes demandes</h4>
-        <p>Consultez l'etat de vos demandes de devis et travaux.</p>
-      </div>
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-file-earmark-text"></i></div>
-        <h4>Consulter mes devis</h4>
-        <p>Accedez a vos devis, signez-les et suivez leur statut.</p>
-      </div>
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-receipt"></i></div>
-        <h4>Voir mes factures</h4>
-        <p>Telechargez vos factures et suivez les paiements.</p>
-      </div>
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-building-gear"></i></div>
-        <h4>Suivre mes chantiers</h4>
-        <p>Photos, planning, avancement - tout en temps reel.</p>
-      </div>
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-folder2-open"></i></div>
-        <h4>Telecharger mes documents</h4>
-        <p>Plans, PV de reception, garanties, attestations.</p>
-      </div>
-      <div class="btp-access-card btp-reveal">
-        <div class="btp-access-icon"><i class="bi bi-chat-dots"></i></div>
-        <h4>Echanger avec l'equipe</h4>
-        <p>Messagerie securisee directement avec votre responsable de chantier.</p>
-      </div>
+    <div class="site-grid site-grid-3">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-clipboard-check" aria-hidden="true"></i></div><h4>{% trans "Suivre mes demandes" %}</h4><p>{% trans "Consultez l'état de vos demandes de devis et travaux." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></div><h4>{% trans "Consulter mes devis" %}</h4><p>{% trans "Accédez à vos devis, signez-les et suivez leur statut." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-receipt" aria-hidden="true"></i></div><h4>{% trans "Voir mes factures" %}</h4><p>{% trans "Téléchargez vos factures et suivez les paiements." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-building-gear" aria-hidden="true"></i></div><h4>{% trans "Suivre mes chantiers" %}</h4><p>{% trans "Photos, planning, avancement — tout en temps réel." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-folder2-open" aria-hidden="true"></i></div><h4>{% trans "Télécharger mes documents" %}</h4><p>{% trans "Plans, PV de réception, garanties, attestations." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-chat-dots" aria-hidden="true"></i></div><h4>{% trans "Échanger avec l'équipe" %}</h4><p>{% trans "Messagerie sécurisée directement avec votre responsable de chantier." %}</p></div>
     </div>
   </div>
 </section>
 
-<!-- Demande acces -->
-<section class="btp-section btp-section-white" id="request-access">
-  <div class="btp-container">
-    <div class="btp-container-sm">
-      <div class="btp-section-header">
-        <span class="btp-h-label">Acces securise</span>
-        <h2>Demander un acces a mon espace client</h2>
-        <p>Vous avez effectue des travaux avec nous ? Demandez votre acces en remplissant ce formulaire.</p>
-      </div>
-
-      {% if access_success %}
-      <div class="btp-alert btp-alert-success" style="margin-bottom:1.5rem">
-        <i class="bi bi-check-circle-fill"></i>
-        <div><strong>Demande envoyee !</strong><br>Notre equipe vous contactera sous 24h pour creer votre acces.</div>
-      </div>
-      {% endif %}
-
-      <form method="post" class="btp-form">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="access_request">
-        <input type="text" name="website_url_field" style="display:none" tabindex="-1" autocomplete="off">
-
-        <div class="btp-form-row">
-          <div class="btp-form-group">
-            <label class="btp-label">Prenom <span class="req">*</span></label>
-            <input type="text" name="first_name" class="btp-input" required placeholder="Prenom">
-          </div>
-          <div class="btp-form-group">
-            <label class="btp-label">Nom <span class="req">*</span></label>
-            <input type="text" name="last_name" class="btp-input" required placeholder="Nom">
-          </div>
-        </div>
-        <div class="btp-form-row">
-          <div class="btp-form-group">
-            <label class="btp-label">Email <span class="req">*</span></label>
-            <input type="email" name="email" class="btp-input" required placeholder="votre@email.com">
-          </div>
-          <div class="btp-form-group">
-            <label class="btp-label">Telephone</label>
-            <input type="tel" name="phone" class="btp-input" placeholder="06 xx xx xx xx">
-          </div>
-        </div>
-        <div class="btp-form-row">
-          <div class="btp-form-group">
-            <label class="btp-label">Societe</label>
-            <input type="text" name="company_name" class="btp-input" placeholder="Nom de votre societe (optionnel)">
-          </div>
-          <div class="btp-form-group">
-            <label class="btp-label">N° devis ou facture</label>
-            <input type="text" name="reference" class="btp-input" placeholder="Ex : DEV-2024-001">
-          </div>
-        </div>
-        <div class="btp-form-group">
-          <label class="btp-label">Message</label>
-          <textarea name="message" class="btp-textarea" placeholder="Precisez votre demande, les travaux effectues..."></textarea>
-        </div>
-        <button type="submit" class="btp-btn btp-orion-btn primary btp-btn-lg">
-          <i class="bi bi-key-fill"></i>Envoyer ma demande d'acces
-        </button>
-      </form>
+<section class="site-section" id="request-access">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Accès sécurisé" %}</span>
+      <h2 class="site-h-xxl">{% trans "Demander un accès à mon espace client" %}</h2>
+      <p>{% trans "Vous avez effectué des travaux avec nous ? Demandez votre accès en remplissant ce formulaire." %}</p>
     </div>
+
+    {% if access_success %}
+    <div class="site-card" style="border-left:4px solid var(--site-success);margin-bottom:1.5rem">
+      <i class="bi bi-check-circle-fill" style="color:var(--site-success);font-size:1.4rem" aria-hidden="true"></i>
+      <strong style="display:block;margin-top:.5rem">{% trans "Demande envoyée !" %}</strong>
+      <p class="site-muted">{% trans "Notre équipe vous contactera sous 24h pour créer votre accès." %}</p>
+    </div>
+    {% else %}
+    <form method="post" class="site-form-card" data-validate novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="form_type" value="access_request">
+      <input type="text" name="website_url_field" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
+
+      <div class="site-field-row">
+        <div class="site-field"><label for="ca-first">{% trans "Prénom" %}</label><input type="text" id="ca-first" name="first_name" required placeholder="{% trans "Prénom" %}"></div>
+        <div class="site-field"><label for="ca-last">{% trans "Nom" %}</label><input type="text" id="ca-last" name="last_name" required placeholder="{% trans "Nom" %}"></div>
+      </div>
+      <div class="site-field-row">
+        <div class="site-field"><label for="ca-email">Email</label><input type="email" id="ca-email" name="email" required placeholder="votre@email.com"></div>
+        <div class="site-field"><label for="ca-phone">{% trans "Téléphone" %}</label><input type="tel" id="ca-phone" name="phone" placeholder="06 xx xx xx xx"></div>
+      </div>
+      <div class="site-field-row">
+        <div class="site-field"><label for="ca-company">{% trans "Société" %}</label><input type="text" id="ca-company" name="company_name" placeholder="{% trans "Nom de votre société (optionnel)" %}"></div>
+        <div class="site-field"><label for="ca-ref">{% trans "N° devis ou facture" %}</label><input type="text" id="ca-ref" name="reference" placeholder="Ex : DEV-2024-001"></div>
+      </div>
+      <div class="site-field"><label for="ca-msg">{% trans "Message" %}</label><textarea id="ca-msg" name="message" placeholder="{% trans "Précisez votre demande, les travaux effectués..." %}"></textarea></div>
+      <button type="submit" class="site-btn site-btn-primary site-btn-lg"><span class="site-btn-label"><i class="bi bi-key-fill" aria-hidden="true"></i>{% trans "Envoyer ma demande d'accès" %}</span></button>
+    </form>
+    {% endif %}
   </div>
 </section>
 {% endblock %}
