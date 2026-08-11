@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.core.maintenance import enable_maintenance_mode, disable_maintenance_mode
-from apps.system_updates.git_service import get_current_commit, run_command
+from apps.system_updates.git_service import build_pull_command, get_current_commit, run_command
 from apps.system_updates.health_checks import run_post_update_health_checks
 from apps.system_updates.models import SystemUpdateRun, SystemUpdateStepLog
 from apps.system_updates.selectors import get_update_settings
@@ -53,7 +53,7 @@ def log_step(update_run, step_code, step_name, level='info', message='',
     )
 
 
-def run_shell_step(update_run, step_code, step_name, command, cwd=None, timeout=1200):
+def run_shell_step(update_run, step_code, step_name, command, cwd=None, timeout=1200, log_command=None):
     started = monotonic()
     result = run_command(command, cwd=cwd, timeout=timeout)
     log_step(
@@ -61,7 +61,7 @@ def run_shell_step(update_run, step_code, step_name, command, cwd=None, timeout=
         step_code=step_code,
         step_name=step_name,
         level='success' if result['ok'] else 'error',
-        command=command,
+        command=log_command if log_command is not None else command,
         output=result['stdout'],
         error_output=result['stderr'],
         started_time=started,
@@ -106,8 +106,9 @@ def run_system_update(started_by=None):
             run_shell_step(update_run, 'backup', 'Sauvegarde avant mise à jour',
                            backup_cmd, cwd=backend_path, timeout=3600)
 
+        pull_command, pull_display = build_pull_command(remote, branch)
         run_shell_step(update_run, 'git_pull', 'Récupération du code',
-                       f'git pull {remote} {branch}', cwd=project_root, timeout=1200)
+                       pull_command, cwd=project_root, timeout=1200, log_command=pull_display)
 
         python_bin = shlex.quote(sys.executable)
 

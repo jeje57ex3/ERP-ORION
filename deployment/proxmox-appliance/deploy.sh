@@ -28,6 +28,7 @@
 #   --siecle-domain DOMAIN    Domaine boutique SIÈCLE — def: aucun
 #   --lunea-domain DOMAIN     Domaine boutique LUNEA — def: aucun
 #   --cf-token TOKEN          Token Cloudflare Tunnel — def: aucun (tunnel désactivé)
+#   --github-token TOKEN      Jeton d'accès GitHub (dépôt privé) — def: aucun (dépôt public)
 #   --as-template             Convertit la VM en template après import (pas de démarrage)
 #   --rebuild                 Reconstruit l'image même si build/OrionERP.qcow2 existe déjà
 #   --skip-build               Réutilise le build/ existant sans reconstruire (échoue s'il est absent)
@@ -54,6 +55,7 @@ ORION_DOMAIN=""
 SIECLE_DOMAIN=""
 LUNEA_DOMAIN=""
 CF_TOKEN=""
+GITHUB_TOKEN=""
 AS_TEMPLATE=0
 START_VM=1
 REBUILD=0
@@ -86,6 +88,7 @@ while [ $# -gt 0 ]; do
     --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
     --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
     --cf-token) CF_TOKEN="$2"; shift 2 ;;
+    --github-token) GITHUB_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; START_VM=0; shift ;;
     --rebuild) REBUILD=1; shift ;;
     --skip-build) SKIP_BUILD=1; shift ;;
@@ -280,6 +283,15 @@ run_wizard() {
   LUNEA_DOMAIN="$(ask_optional "Domaine LUNEA" "$LUNEA_DOMAIN")"
   CF_TOKEN="$(ask_secret "Cloudflare Tunnel Token")"
 
+  # ── Dépôt Git privé (optionnel) ──────────────────────────────────────────
+  # Nécessaire uniquement si le dépôt ORION_GIT_REPO_URL est privé — sinon le
+  # git clone de Stage A échoue avant même que Django n'existe. Un jeton
+  # d'accès personnel GitHub (scope 'repo' en lecture) suffit. Peut aussi être
+  # configuré/mis à jour après coup depuis l'ERP (Réglages > Mises à jour).
+  echo ""
+  echo "--- Dépôt Git privé (optionnel — laisser vide si le dépôt est public) ---"
+  GITHUB_TOKEN="$(ask_secret "Jeton d'accès GitHub (scope 'repo' lecture)")"
+
   # ── Comportement final ───────────────────────────────────────────────────
   echo ""
   echo "--- Finalisation ---"
@@ -309,6 +321,7 @@ run_wizard() {
   echo " Clé SSH             : ${SSHKEY:-aucune}"
   echo " Domaines            : $([ -n "$LOGIN_DOMAIN$ORION_DOMAIN$SIECLE_DOMAIN$LUNEA_DOMAIN" ] && echo "login=${LOGIN_DOMAIN:-—} orion=${ORION_DOMAIN:-—} siecle=${SIECLE_DOMAIN:-—} lunea=${LUNEA_DOMAIN:-—}" || echo "aucun (accès par IP)")"
   echo " Cloudflare Tunnel   : $([ -n "$CF_TOKEN" ] && echo "token fourni" || echo "non configuré")"
+  echo " Dépôt Git privé     : $([ -n "$GITHUB_TOKEN" ] && echo "jeton fourni" || echo "non configuré (dépôt public)")"
   echo " Action finale       : $final_choice"
   echo "======================================================"
   if ! ask_yesno 'Confirmer et lancer le déploiement ?' o; then
@@ -389,6 +402,7 @@ fi
 [ -n "$SIECLE_DOMAIN" ] && IMPORT_ARGS+=(--siecle-domain "$SIECLE_DOMAIN")
 [ -n "$LUNEA_DOMAIN" ] && IMPORT_ARGS+=(--lunea-domain "$LUNEA_DOMAIN")
 [ -n "$CF_TOKEN" ] && IMPORT_ARGS+=(--cf-token "$CF_TOKEN")
+[ -n "$GITHUB_TOKEN" ] && IMPORT_ARGS+=(--github-token "$GITHUB_TOKEN")
 if [ "$AS_TEMPLATE" -eq 1 ]; then
   IMPORT_ARGS+=(--as-template)
 elif [ "$START_VM" -eq 1 ]; then

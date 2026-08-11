@@ -52,6 +52,7 @@ ORION_DOMAIN=""
 SIECLE_DOMAIN=""
 LUNEA_DOMAIN=""
 CF_TOKEN=""
+GITHUB_TOKEN=""
 AS_TEMPLATE=0
 START_VM=0
 
@@ -98,6 +99,7 @@ while [ $# -gt 0 ]; do
     --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
     --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
     --cf-token) CF_TOKEN="$2"; shift 2 ;;
+    --github-token) GITHUB_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; shift ;;
     --start) START_VM=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -184,7 +186,7 @@ if [ -f "$USERDATA_FILE" ] && [ -f "$NETWORK_FILE" ]; then
       "$SNIPPETS_DIR/$USERDATA_SNIPPET" "$SNIPPETS_DIR/$USERDATA_SNIPPET" \
       "LOGIN_DOMAIN=$LOGIN_DOMAIN" "ORION_DOMAIN=$ORION_DOMAIN" \
       "SIECLE_DOMAIN=$SIECLE_DOMAIN" "LUNEA_DOMAIN=$LUNEA_DOMAIN" \
-      "CF_TUNNEL_TOKEN=$CF_TOKEN"
+      "CF_TUNNEL_TOKEN=$CF_TOKEN" "GITHUB_TOKEN=$GITHUB_TOKEN"
   else
     echo "  ATTENTION: $RENDER_PY introuvable — domaines/token Cloudflare non appliqués." >&2
   fi
