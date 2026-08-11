@@ -85,6 +85,10 @@ echo ""
 echo "--- Fichiers compagnons (import_proxmox.sh) ---"
 cp "$APPLIANCE_DIR/scripts/import_proxmox.sh" "$BUILD_DIR/import_proxmox.sh"
 chmod +x "$BUILD_DIR/import_proxmox.sh"
+# _render.py : nécessaire à import_proxmox.sh pour la 2e passe de rendu
+# (domaines + token Cloudflare, connus seulement au moment du déploiement
+# per-VM, pas au moment de ce build partagé/mis en cache).
+cp "$APPLIANCE_DIR/lib/_render.py" "$BUILD_DIR/_render.py"
 
 rm -rf "$WORK_DIR"
 

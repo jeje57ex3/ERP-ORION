@@ -8,9 +8,18 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.conf.urls.i18n import set_language
 from apps.private_saas.views import company_switcher
+from apps.core.setup_views import setup_wizard
 
 
 def home_redirect(request):
+    website = getattr(request, 'website', None)
+    if website is not None:
+        slug = website.public_slug
+        if website.site_type == 'btp':
+            return redirect('public_websites:btp_home', site_slug=slug)
+        if website.site_type == 'electricite':
+            return redirect('public_websites:electricite_home', site_slug=slug)
+        return redirect('public_websites:home', site_slug=slug)
     if request.user.is_authenticated:
         return redirect('core:dashboard')
     return redirect('accounts:login')
@@ -18,6 +27,7 @@ def home_redirect(request):
 
 urlpatterns = [
     path('', home_redirect, name='home'),
+    path('setup/', setup_wizard, name='setup'),
     path('admin/', admin.site.urls),
     path('orion-admin/', include('apps.private_saas.urls', namespace='private_saas')),
     path('switch-company/', company_switcher, name='switch_company'),

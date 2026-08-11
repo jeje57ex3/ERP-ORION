@@ -300,17 +300,21 @@ démarrage (ou `--as-template` pour convertir en template au lieu de démarrer).
 > Le stockage snippets doit autoriser le contenu **Snippets**
 > (Datacenter → Stockage → *storage* → Contenu, ou `pvesm set local --content ...,snippets`).
 
-### 2 — Premier démarrage (assistant interactif)
+### 2 — Premier démarrage (aucune étape interactive)
 
-1. Ouvrir la **console noVNC** de la VM dans Proxmox.
-2. Attendre la fin du provisioning automatique (Stage A, ~2-5 min).
-3. L'assistant apparaît automatiquement sur la console (Stage B) et demande :
-   entreprise, nom ERP, domaines (Login/Orion/SIÈCLE/LUNEA), email et mot de
-   passe administrateur, fuseau horaire, token Cloudflare Tunnel (optionnel).
-4. À la fin : `.env` écrit, base migrée, frontends construits, les 4 services
-   et la supervision (`orion-health.timer`) démarrent automatiquement.
-
-Aucune configuration manuelle au-delà de ces questions.
+1. Domaines et token Cloudflare (optionnels) se saisissent **avant** la
+   création de la VM, dans l'assistant de `deploy.sh` (ou via
+   `--login-domain`/`--orion-domain`/`--siecle-domain`/`--lunea-domain`/`--cf-token`
+   en mode non-interactif).
+2. Le provisioning (Stage A, ~3-8 min) est entièrement automatique : `.env`
+   écrit, base migrée, nginx configuré avec les vrais domaines, frontends
+   construits, les services applicatifs et la supervision
+   (`orion-health.timer`) démarrent seuls. Rien à surveiller sur la console.
+3. Une fois terminé, **ouvrir un navigateur** sur le domaine Login (ou l'IP
+   de la VM) : l'assistant web de premier accès (`/setup/`) s'affiche
+   automatiquement — entreprise, email et mot de passe administrateur,
+   fuseau horaire. Une seule fois, comme la plupart des logiciels
+   auto-hébergés (Nextcloud, WordPress...).
 
 ### 3 — Exploitation
 

@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Orion ERP Appliance — Stage A / 02
-# Récupère le code source (git clone) et installe les dépendances.
-# Ne construit PAS encore les frontends SIÈCLE/LUNEA : leur build Vite embarque
-# des URLs d'API qui dépendent des domaines saisis dans l'assistant de premier
-# démarrage (Stage B) — voir first-boot-wizard.sh.
+# Récupère le code source (git clone), installe les dépendances Python/Node,
+# et génère backend/.env avec les domaines connus depuis deploy-info.env
+# (fournis au déploiement, voir deploy.sh) et des secrets générés à la volée.
+# Ne démarre pas encore les services (orion-db-stack, backend...) : les
+# unités systemd ne sont installées qu'à l'étape 03 — voir 03-systemd-units.sh
+# pour la suite (démarrage DB, migrations, collectstatic, build des
+# frontends, démarrage des services applicatifs).
+# Le compte administrateur, lui, se crée via le navigateur (/setup/) — plus
+# de wizard console.
 
 set -euo pipefail
 exec >> /var/log/orion-provision.log 2>&1
@@ -56,6 +61,83 @@ done
 
 # ─── docker-compose (MySQL + Redis) ────────────────────────────────────────────
 cp /opt/orion-appliance/docker/docker-compose.yml "$ORION_HOME/docker/docker-compose.yml"
+
+# ─── Fichier .env (secrets générés + domaines de ce déploiement) ──────────────
+echo "[02] Génération de $ORION_HOME/backend/.env..."
+VENV_PY="$ORION_HOME/backend/.venv/bin/python"
+ENV_FILE="$ORION_HOME/backend/.env"
+
+SECRET_KEY="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(50))')"
+FERNET_KEY="$("$VENV_PY" -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+DB_PASSWORD="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(24))')"
+DB_ROOT_PASSWORD="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(24))')"
+HA_SECRET="$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(32))')"
+
+# deploy-info.env est déjà sourcé dans l'environnement par le runcmd qui a
+# lancé ce script (LOGIN_DOMAIN/ORION_DOMAIN/SIECLE_DOMAIN/LUNEA_DOMAIN),
+# chacun potentiellement vide si laissé de côté au déploiement.
+ALLOWED_HOSTS="localhost,127.0.0.1"
+CSRF_ORIGINS=""
+CORS_ORIGINS=""
+for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}"; do
+  [ -n "$d" ] && { ALLOWED_HOSTS="$ALLOWED_HOSTS,$d"; CSRF_ORIGINS="${CSRF_ORIGINS:+$CSRF_ORIGINS,}https://$d"; }
+done
+for d in "${SIECLE_DOMAIN:-}" "${LUNEA_DOMAIN:-}"; do
+  [ -n "$d" ] && { ALLOWED_HOSTS="$ALLOWED_HOSTS,$d"; CSRF_ORIGINS="${CSRF_ORIGINS:+$CSRF_ORIGINS,}https://$d"; CORS_ORIGINS="${CORS_ORIGINS:+$CORS_ORIGINS,}https://$d"; }
+done
+
+cat > "$ENV_FILE" <<EOF
+# Généré par 02-deploy-orion.sh — $(date -u +%FT%TZ)
+DJANGO_SETTINGS_MODULE=erp_btp.settings.production
+SECRET_KEY=$SECRET_KEY
+DEBUG=False
+# Désactivé par défaut : l'assistant de premier accès (/setup/) doit rester
+# joignable en HTTP nu tant que TLS (certbot ou Cloudflare Tunnel) n'est pas
+# en place. À repasser à True une fois HTTPS confirmé (voir PROXMOX.md).
+SECURE_SSL_REDIRECT=False
+
+ALLOWED_HOSTS=$ALLOWED_HOSTS
+CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS
+CORS_ALLOWED_ORIGINS=$CORS_ORIGINS
+
+DB_ENGINE=django.db.backends.mysql
+DB_NAME=orion_core
+DB_USER=orion
+DB_PASSWORD=$DB_PASSWORD
+DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+DB_HOST=127.0.0.1
+DB_PORT=3306
+
+REDIS_URL=redis://127.0.0.1:6379/0
+CACHE_URL=redis://127.0.0.1:6379/1
+
+ORION_SECRET_ENCRYPTION_KEY=$FERNET_KEY
+ORION_HA_SECRET=$HA_SECRET
+ORION_ENV=production
+ORION_GIT_REMOTE=origin
+ORION_GIT_BRANCH=$ORION_GIT_BRANCH
+
+SIECLE_STORE_DOMAIN=${SIECLE_DOMAIN:-}
+LUNEA_STORE_DOMAIN=${LUNEA_DOMAIN:-}
+SIECLE_STORE_URL=${SIECLE_DOMAIN:+https://$SIECLE_DOMAIN}
+LUNEA_STORE_URL=${LUNEA_DOMAIN:+https://$LUNEA_DOMAIN}
+
+ORION_LOGIN_DOMAIN=${LOGIN_DOMAIN:-}
+ORION_FRONTEND_DOMAIN=${ORION_DOMAIN:-}
+
+MEDIA_ROOT=media/
+STATIC_ROOT=staticfiles/
+BACKUP_DIR=/opt/orion/backups/
+LOG_DIR=/opt/orion/logs/
+EOF
+chmod 600 "$ENV_FILE"
+
+# docker compose résout les ${VARS} de docker-compose.yml via un .env situé
+# dans son propre dossier de travail (distinct de env_file: qui n'alimente
+# que les conteneurs) — un lien symbolique suffit, même contenu que
+# backend/.env (démarrage réel du stack : voir 03-systemd-units.sh, une fois
+# les unités installées).
+ln -sfn "$ENV_FILE" "$ORION_HOME/docker/.env"
 
 chown -R orion:orion "$ORION_HOME"
 

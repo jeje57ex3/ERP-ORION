@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-erp-btp-dev-key-change-in-production')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',')
 
 # ─── Applications ──────────────────────────────────────────────────────────────
 DJANGO_APPS = [
@@ -118,6 +119,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'apps.core.middleware.SetupRequiredMiddleware',
     'apps.core.middleware.MaintenanceModeMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -133,6 +135,7 @@ MIDDLEWARE = [
     'apps.translations.middleware.OrionLanguageMiddleware',
     'apps.websites.middleware.WebsiteResolverMiddleware',
     'apps.high_availability.middleware.HAActiveNodeWriteProtectionMiddleware',
+    'apps.core.middleware.NoCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'erp_btp.urls'
@@ -147,6 +150,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.erp_context',

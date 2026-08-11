@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans 'Premier accès' %}{% endblock %}
+
+{% block extra_css %}
+<style>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.login-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.45);
+}
+.login-brand { text-align: center; margin-bottom: 1.5rem; }
+.login-logo-img {
+  max-width: 210px;
+  max-height: 70px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 14px;
+}
+.login-logo-fallback {
+  display: none;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2B1808 55%, #C6A15B 100%);
+}
+.login-title { font-size: 1.4rem; font-weight: 700; margin: 0; color: #2B2118; }
+.login-subtitle { color: #7A6A58; font-size: 0.88rem; margin-top: 5px; }
+.form-label { font-weight: 500; color: #374151; }
+.form-control, .form-select {
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 0.625rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+.btn-login {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 0.625rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+.btn-login:hover { transform: translateY(-1px); }
+.login-footer { text-align: center; margin-top: 1.5rem; color: #9CA3AF; font-size: 0.8rem; }
+.orion-alert.danger { border-radius: 0.625rem; }
+.section-divider {
+  border: none; border-top: 1px solid #E5E7EB; margin: 1.5rem 0 1rem;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="login-brand">
+      {% trans 'Orion ERP' as default_brand_name %}
+      <img src="{% static 'img/brand/orion-logo.svg' %}"
+           alt="{{ default_brand_name }}"
+           class="login-logo-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="login-logo-fallback"></div>
+      <h1 class="login-title">{% trans 'Bienvenue' %}</h1>
+      <p class="login-subtitle">{% trans "Configurez votre entreprise et votre compte administrateur pour démarrer." %}</p>
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="orion-alert danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.company_name.id_for_label }}">
+          <i class="bi bi-building me-1"></i>{{ form.company_name.label }}
+        </label>
+        {{ form.company_name }}
+        {% if form.company_name.errors %}
+        <div class="invalid-feedback d-block">{{ form.company_name.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.admin_email.id_for_label }}">
+          <i class="bi bi-person me-1"></i>{{ form.admin_email.label }}
+        </label>
+        {{ form.admin_email }}
+        {% if form.admin_email.errors %}
+        <div class="invalid-feedback d-block">{{ form.admin_email.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.admin_password.id_for_label }}">
+          <i class="bi bi-lock me-1"></i>{{ form.admin_password.label }}
+        </label>
+        {{ form.admin_password }}
+        {% if form.admin_password.errors %}
+        <div class="invalid-feedback d-block">{{ form.admin_password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.admin_password_confirm.id_for_label }}">
+          <i class="bi bi-lock-fill me-1"></i>{{ form.admin_password_confirm.label }}
+        </label>
+        {{ form.admin_password_confirm }}
+        {% if form.admin_password_confirm.errors %}
+        <div class="invalid-feedback d-block">{{ form.admin_password_confirm.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.timezone.id_for_label }}">
+          <i class="bi bi-globe me-1"></i>{{ form.timezone.label }}
+        </label>
+        {{ form.timezone }}
+        {% if form.timezone.errors %}
+        <div class="invalid-feedback d-block">{{ form.timezone.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn-login">
+        <i class="bi bi-rocket-takeoff me-2"></i>{% trans 'Démarrer' %}
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p class="mb-0">{% trans 'Cette étape ne se déroule qu’une seule fois.' %}</p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

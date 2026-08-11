@@ -23,6 +23,11 @@
 #   --memory MB              RAM en Mo (def: 8192)
 #   --cores N                vCPU (def: 4)
 #   --sshkey PATH             Clé publique SSH à injecter (def: aucune)
+#   --login-domain DOMAIN     Domaine ERP/admin (ex: login.exemple.fr) — def: aucun (accès par IP)
+#   --orion-domain DOMAIN     Domaine vitrine (ex: orion.exemple.fr) — def: aucun
+#   --siecle-domain DOMAIN    Domaine boutique SIÈCLE — def: aucun
+#   --lunea-domain DOMAIN     Domaine boutique LUNEA — def: aucun
+#   --cf-token TOKEN          Token Cloudflare Tunnel — def: aucun (tunnel désactivé)
 #   --as-template             Convertit la VM en template après import (pas de démarrage)
 #   --rebuild                 Reconstruit l'image même si build/OrionERP.qcow2 existe déjà
 #   --skip-build               Réutilise le build/ existant sans reconstruire (échoue s'il est absent)
@@ -44,6 +49,11 @@ DNS=""
 MEMORY=8192
 CORES=4
 SSHKEY=""
+LOGIN_DOMAIN=""
+ORION_DOMAIN=""
+SIECLE_DOMAIN=""
+LUNEA_DOMAIN=""
+CF_TOKEN=""
 AS_TEMPLATE=0
 START_VM=1
 REBUILD=0
@@ -71,6 +81,11 @@ while [ $# -gt 0 ]; do
     --memory) MEMORY="$2"; shift 2 ;;
     --cores) CORES="$2"; shift 2 ;;
     --sshkey) SSHKEY="$2"; shift 2 ;;
+    --login-domain) LOGIN_DOMAIN="$2"; shift 2 ;;
+    --orion-domain) ORION_DOMAIN="$2"; shift 2 ;;
+    --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
+    --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
+    --cf-token) CF_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; START_VM=0; shift ;;
     --rebuild) REBUILD=1; shift ;;
     --skip-build) SKIP_BUILD=1; shift ;;
@@ -119,6 +134,19 @@ ask_yesno() {
   read -r -p "$prompt [$([ "$default" = o ] && echo O/n || echo o/N)] : " var
   var="${var:-$default}"
   [[ "$var" =~ ^[oOyY] ]]
+}
+
+# Comme ask(), mais un champ vide est accepté tel quel (pas de boucle "requis").
+ask_optional() {
+  local prompt="$1" default="${2:-}" var
+  read -r -p "$prompt${default:+ [$default]} (laisser vide pour ignorer) : " var
+  echo "${var:-$default}"
+}
+
+ask_secret() {
+  local prompt="$1" var
+  read -r -s -p "$prompt (laisser vide pour ignorer) : " var; echo
+  echo "$var"
 }
 
 # choose_from_list PROMPT DEFAULT_INDEX item1 item2 ... -> imprime l'item choisi sur stdout
@@ -238,6 +266,20 @@ run_wizard() {
     SSHKEY="$(ask 'Chemin de la clé publique (.pub)')"
   fi
 
+  # ── Domaines & Cloudflare ────────────────────────────────────────────────
+  # Récupérés ici (shell fiable du host Proxmox) plutôt que par un wizard
+  # interactif sur la console série de la VM — Stage A configure nginx et
+  # démarre les services avec les vrais domaines dès le premier boot, sans
+  # étape bloquante côté VM. Seule la création du compte administrateur se
+  # fait ensuite, via le navigateur (assistant web /setup/).
+  echo ""
+  echo "--- Domaines & Cloudflare (optionnel — laisser vide pour accès par IP) ---"
+  LOGIN_DOMAIN="$(ask_optional "Domaine Login (ERP / admin)" "$LOGIN_DOMAIN")"
+  ORION_DOMAIN="$(ask_optional "Domaine Orion (vitrine)" "$ORION_DOMAIN")"
+  SIECLE_DOMAIN="$(ask_optional "Domaine SIÈCLE" "$SIECLE_DOMAIN")"
+  LUNEA_DOMAIN="$(ask_optional "Domaine LUNEA" "$LUNEA_DOMAIN")"
+  CF_TOKEN="$(ask_secret "Cloudflare Tunnel Token")"
+
   # ── Comportement final ───────────────────────────────────────────────────
   echo ""
   echo "--- Finalisation ---"
@@ -265,6 +307,8 @@ run_wizard() {
   echo " Réseau              : $BRIDGE — $([ -n "$STATIC_IP" ] && echo "IP statique $STATIC_IP (gw $GATEWAY, dns $DNS)" || echo "DHCP")"
   echo " Ressources          : ${MEMORY} Mo RAM / ${CORES} vCPU"
   echo " Clé SSH             : ${SSHKEY:-aucune}"
+  echo " Domaines            : $([ -n "$LOGIN_DOMAIN$ORION_DOMAIN$SIECLE_DOMAIN$LUNEA_DOMAIN" ] && echo "login=${LOGIN_DOMAIN:-—} orion=${ORION_DOMAIN:-—} siecle=${SIECLE_DOMAIN:-—} lunea=${LUNEA_DOMAIN:-—}" || echo "aucun (accès par IP)")"
+  echo " Cloudflare Tunnel   : $([ -n "$CF_TOKEN" ] && echo "token fourni" || echo "non configuré")"
   echo " Action finale       : $final_choice"
   echo "======================================================"
   if ! ask_yesno 'Confirmer et lancer le déploiement ?' o; then
@@ -340,6 +384,11 @@ if [ -n "$STATIC_IP" ]; then
   IMPORT_ARGS+=(--ip "$STATIC_IP" --gateway "$GATEWAY")
   [ -n "$DNS" ] && IMPORT_ARGS+=(--dns "$DNS")
 fi
+[ -n "$LOGIN_DOMAIN" ] && IMPORT_ARGS+=(--login-domain "$LOGIN_DOMAIN")
+[ -n "$ORION_DOMAIN" ] && IMPORT_ARGS+=(--orion-domain "$ORION_DOMAIN")
+[ -n "$SIECLE_DOMAIN" ] && IMPORT_ARGS+=(--siecle-domain "$SIECLE_DOMAIN")
+[ -n "$LUNEA_DOMAIN" ] && IMPORT_ARGS+=(--lunea-domain "$LUNEA_DOMAIN")
+[ -n "$CF_TOKEN" ] && IMPORT_ARGS+=(--cf-token "$CF_TOKEN")
 if [ "$AS_TEMPLATE" -eq 1 ]; then
   IMPORT_ARGS+=(--as-template)
 elif [ "$START_VM" -eq 1 ]; then

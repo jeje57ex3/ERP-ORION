@@ -60,7 +60,7 @@ out = {
         "docker-ce", "docker-compose-plugin", "git", "python3.12", "nodejs20",
         "nginx", "certbot", "cloudflared", "fail2ban", "ufw", "qemu-guest-agent",
     ],
-    "first_boot": "assistant interactif sur la console (tty1) — voir PROXMOX.md",
+    "first_boot": "aucune étape interactive — ouvrir /setup/ dans un navigateur pour créer le compte administrateur (voir PROXMOX.md)",
     "files": {
         "disk": "OrionERP.qcow2",
         "ova": "OrionERP.ova",
