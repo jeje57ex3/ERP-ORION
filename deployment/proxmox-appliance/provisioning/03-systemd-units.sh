@@ -48,7 +48,25 @@ fi
 # ─── Migrations + fichiers statiques ───────────────────────────────────────────
 echo "[03] Migrations Django..."
 set -a; . "$ENV_FILE"; set +a
-sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput
+
+# Même une fois "healthy", MySQL (image officielle) peut encore redémarrer
+# une dernière fois en interne juste après avoir répondu au ping — la toute
+# première tentative de connexion peut donc tomber sur cette micro-coupure
+# ("Lost connection to MySQL server during query"). On réessaie plutôt que
+# d'essayer d'affiner encore le timing du healthcheck.
+MIGRATE_OK=0
+for attempt in 1 2 3 4 5; do
+  if sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput; then
+    MIGRATE_OK=1
+    break
+  fi
+  echo "[03] migrate a échoué (tentative $attempt/5) — nouvelle tentative dans 10s..." >&2
+  sleep 10
+done
+if [ "$MIGRATE_OK" -ne 1 ]; then
+  echo "[03] ERREUR: migrate a échoué après 5 tentatives." >&2
+  exit 1
+fi
 
 echo "[03] Collecte des fichiers statiques..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
