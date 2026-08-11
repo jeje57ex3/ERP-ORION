@@ -1,0 +1,60 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">{% trans "Sauvegardes" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Importer depuis une autre instance" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card border-danger">
+      <div class="card-header bg-danger bg-opacity-10 border-danger">
+        <h5 class="mb-0 text-danger">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% trans "Importer depuis une autre instance" %}
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-danger">
+          <h6 class="alert-heading"><i class="bi bi-shield-exclamation me-2"></i>{% trans "Attention — Action irréversible" %}</h6>
+          <p class="mb-0">
+            {% blocktrans %}
+            L'import REMPLACE entièrement la base de données et les fichiers
+            médias actuels par le contenu de l'archive. Toutes les sociétés,
+            utilisateurs et données de cette instance seront écrasés.
+            <strong>Une sauvegarde de sécurité de l'état actuel est créée
+            automatiquement juste avant</strong> — restaurable depuis la
+            liste des sauvegardes en cas de problème.
+            {% endblocktrans %}
+          </p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+            {{ form.file }}
+            {% if form.file.errors %}<div class="text-danger small mt-1">{{ form.file.errors }}</div>{% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="{{ form.confirm_text.id_for_label }}">{{ form.confirm_text.label }}</label>
+            {{ form.confirm_text }}
+            {% if form.confirm_text.errors %}<div class="text-danger small mt-1">{{ form.confirm_text.errors }}</div>{% endif %}
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-btn-danger">
+              <i class="bi bi-box-arrow-in-down me-2"></i>{% trans "Importer et remplacer" %}
+            </button>
+            <a href="{% url 'backups:dashboard' %}" class="orion-btn orion-btn-ghost">{% trans "Annuler" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

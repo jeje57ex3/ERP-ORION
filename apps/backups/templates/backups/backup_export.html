@@ -1,0 +1,44 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">{% trans "Sauvegardes" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Exporter vers une autre instance" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-box-arrow-up me-2"></i>{% trans "Exporter vers une autre instance" %}</h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <p class="mb-0">
+            {% blocktrans %}
+            Génère une archive unique (.zip) contenant la base de données et
+            tous les fichiers médias — à télécharger ici, puis à uploader
+            sur une autre instance Orion ERP via « Importer depuis une
+            autre instance ».
+            {% endblocktrans %}
+          </p>
+        </div>
+        <p class="text-muted small">
+          {% trans "Selon la taille des médias, la génération peut prendre quelques dizaines de secondes." %}
+        </p>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-box-arrow-up me-2"></i>{% trans "Générer l'export" %}
+            </button>
+            <a href="{% url 'backups:dashboard' %}" class="orion-btn orion-btn-ghost">{% trans "Annuler" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -17,7 +17,7 @@ ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
 ExecStart=/opt/orion/backend/.venv/bin/gunicorn erp_btp.wsgi:application \
     --bind 127.0.0.1:9000 \
     --workers 3 \
-    --timeout 120 \
+    --timeout 600 \
     --access-logfile /opt/orion/logs/gunicorn-backend-access.log \
     --error-logfile /opt/orion/logs/gunicorn-backend-error.log
 Restart=on-failure
