@@ -56,7 +56,11 @@ runcmd:
   - [ touch, /opt/orion/.awaiting-setup ]
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, orion-first-boot.service ]
-  - [ systemctl, start, orion-first-boot.service ]
+  # --no-block : orion-first-boot.service est interactif (attend une saisie
+  # humaine sur la console) et doit d'abord arrêter serial-getty@ttyS0.service
+  # (Conflicts=) — un `systemctl start` bloquant ici gèlerait le runcmd (donc
+  # tout le boot) en attendant indéfiniment cette transaction.
+  - [ systemctl, --no-block, start, orion-first-boot.service ]
   - [ bash, -c, "echo 'Orion ERP Appliance — provisioning Stage A terminé.' > /etc/motd" ]
 
 final_message: "Orion ERP Appliance prête — l'assistant de premier démarrage se lance sur la console série (ttyS0)."
