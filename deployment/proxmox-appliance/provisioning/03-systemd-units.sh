@@ -22,38 +22,41 @@ cp "$PAYLOAD_DIR"/systemd/*.service "$PAYLOAD_DIR"/systemd/*.timer /etc/systemd/
 systemctl daemon-reload
 
 # ─── Infrastructure MySQL / Redis ──────────────────────────────────────────────
+set -a; . "$ENV_FILE"; set +a
+
 echo "[03] Démarrage MySQL / Redis..."
 systemctl enable --now orion-db-stack.service
 "$PAYLOAD_DIR/scripts/wait_for_port.sh" 127.0.0.1 6379 60
 
-# Le port 3306 peut répondre pendant l'initialisation interne de l'image
-# MySQL (bootstrap de la base/des identifiants) avant que le VRAI serveur ne
-# démarre — un simple test de port peut donc réussir juste avant que MySQL
-# ne se redémarre en interne, coupant la connexion de migrate en plein vol
-# ("Lost connection to MySQL server during query"). On attend plutôt le
-# statut "healthy" du conteneur (healthcheck docker-compose.yml, qui teste
-# une vraie authentification avec les identifiants réels).
-echo "[03] Attente de MySQL (healthcheck du conteneur)..."
-DB_HEALTHY=0
-DB_STATUS="starting"
+# L'image MySQL officielle démarre un serveur TEMPORAIRE pour le bootstrap
+# (création base/utilisateur) qui n'écoute QUE sur le socket Unix local, pas
+# sur le port 3306 (confirmé dans les logs du conteneur : "port: 0"). Le
+# healthcheck docker-compose.yml utilise `-h localhost`, donc mysqladmin s'y
+# connecte via CE socket et peut répondre "healthy" alors que le port 3306
+# (celui que Django utilise réellement, DB_HOST=127.0.0.1) ne sera prêt que
+# quelques secondes plus tard, une fois le VRAI serveur démarré. On teste
+# donc ici exactement le même chemin que Django : une vraie connexion TCP.
+echo "[03] Attente de MySQL sur le port TCP 3306 (pas juste le socket local)..."
+DB_READY=0
 for i in $(seq 1 60); do
-  DB_STATUS="$(docker inspect --format='{{.State.Health.Status}}' orion-db 2>/dev/null || echo "starting")"
-  if [ "$DB_STATUS" = "healthy" ]; then DB_HEALTHY=1; break; fi
+  if docker exec orion-db mysqladmin ping -h 127.0.0.1 -P 3306 \
+      -u"${DB_USER:-orion}" -p"${DB_PASSWORD:-}" --silent >/dev/null 2>&1; then
+    DB_READY=1
+    break
+  fi
   sleep 3
 done
-if [ "$DB_HEALTHY" -ne 1 ]; then
-  echo "ATTENTION: orion-db pas 'healthy' après ~180s (statut: $DB_STATUS) — on continue quand même." >&2
+if [ "$DB_READY" -ne 1 ]; then
+  echo "ATTENTION: MySQL ne répond pas sur le port 3306 après ~180s — on continue quand même." >&2
 fi
 
 # ─── Migrations + fichiers statiques ───────────────────────────────────────────
 echo "[03] Migrations Django..."
-set -a; . "$ENV_FILE"; set +a
 
-# Même une fois "healthy", MySQL (image officielle) peut encore redémarrer
-# une dernière fois en interne juste après avoir répondu au ping — la toute
-# première tentative de connexion peut donc tomber sur cette micro-coupure
-# ("Lost connection to MySQL server during query"). On réessaie plutôt que
-# d'essayer d'affiner encore le timing du healthcheck.
+# Filet de sécurité supplémentaire : même le test TCP ci-dessus pourrait dans
+# de rares cas taper une micro-coupure ("Lost connection to MySQL server
+# during query"). On réessaie plutôt que d'essayer d'affiner encore le
+# timing.
 MIGRATE_OK=0
 for attempt in 1 2 3 4 5; do
   if sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput; then
