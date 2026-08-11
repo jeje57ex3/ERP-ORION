@@ -1,0 +1,62 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item"><a href="{% url 'backups:detail' job.pk %}">{{ job.name|truncatechars:30 }}</a></li>
+<li class="breadcrumb-item active">Restaurer</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card border-warning">
+      <div class="card-header bg-warning bg-opacity-10 border-warning">
+        <h5 class="mb-0 text-warning">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Restauration de sauvegarde
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-danger">
+          <h6 class="alert-heading"><i class="bi bi-shield-exclamation me-2"></i>Attention — Action irréversible</h6>
+          <p class="mb-0">
+            La restauration remplacera toutes les données actuelles par celles de la sauvegarde sélectionnée.
+            <strong>Une sauvegarde de sécurité sera automatiquement créée avant la restauration.</strong>
+          </p>
+        </div>
+
+        <dl class="row mb-4">
+          <dt class="col-sm-5">Sauvegarde</dt>
+          <dd class="col-sm-7"><strong>{{ job.name }}</strong></dd>
+          <dt class="col-sm-5">Date</dt>
+          <dd class="col-sm-7">{{ job.created_at|date:"d/m/Y H:i" }}</dd>
+          <dt class="col-sm-5">Taille</dt>
+          <dd class="col-sm-7">{{ job.file_size_display }}</dd>
+          <dt class="col-sm-5">Entreprise</dt>
+          <dd class="col-sm-7">{{ job.company.name|default:"Base centrale" }}</dd>
+        </dl>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-check mb-4">
+            {{ form.confirm }}
+            <label class="form-check-label" for="{{ form.confirm.id_for_label }}">
+              {{ form.confirm.label }}
+            </label>
+          </div>
+          {% if form.confirm.errors %}
+          <div class="text-danger small mb-3">{{ form.confirm.errors }}</div>
+          {% endif %}
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-btn-warning">
+              <i class="bi bi-arrow-counterclockwise me-2"></i>Confirmer la restauration
+            </button>
+            <a href="{% url 'backups:detail' job.pk %}" class="orion-btn orion-btn-ghost">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

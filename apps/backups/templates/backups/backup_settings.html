@@ -1,0 +1,65 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item active">Paramètres</li>
+{% endblock %}
+
+{% block page_subtitle %}Configuration du système de sauvegarde Orion ERP{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">État du système</h5></div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-6">Total sauvegardes</dt>
+          <dd class="col-sm-6">{{ stats.total }}</dd>
+          <dt class="col-sm-6">Réussies</dt>
+          <dd class="col-sm-6 text-success">{{ stats.success }}</dd>
+          <dt class="col-sm-6">Échouées</dt>
+          <dd class="col-sm-6 {% if stats.failed %}text-danger{% endif %}">{{ stats.failed }}</dd>
+          <dt class="col-sm-6">Dernière réussie</dt>
+          <dd class="col-sm-6">
+            {% if stats.last_success %}
+            {{ stats.last_success.finished_at|date:"d/m/Y H:i" }}
+            {% else %}Aucune{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Actions rapides</h5></div>
+      <div class="card-body d-grid gap-2">
+        <a href="{% url 'backups:create' %}" class="orion-btn orion-btn-primary">
+          <i class="bi bi-cloud-arrow-down me-2"></i>Créer une sauvegarde maintenant
+        </a>
+        <a href="{% url 'backups:schedule_create' %}" class="orion-btn orion-btn-outline">
+          <i class="bi bi-calendar-plus me-2"></i>Planifier une sauvegarde
+        </a>
+        <a href="{% url 'backups:list' %}" class="orion-btn orion-btn-ghost">
+          <i class="bi bi-list me-2"></i>Voir toutes les sauvegardes
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Informations de sécurité</h5></div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Seul le super admin peut restaurer une sauvegarde complète.</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Un admin entreprise peut sauvegarder uniquement son entreprise.</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Les fichiers de sauvegarde ne sont pas accessibles publiquement.</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Une sauvegarde pré-restauration est créée automatiquement avant toute restauration.</li>
+          <li><i class="bi bi-check-circle text-success me-2"></i>Toutes les restaurations sont loguées avec horodatage et utilisateur.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

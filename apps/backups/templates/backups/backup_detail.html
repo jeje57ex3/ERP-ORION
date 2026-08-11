@@ -1,0 +1,142 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item"><a href="{% url 'backups:list' %}">Liste</a></li>
+<li class="breadcrumb-item active">#{{ job.pk }}</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if job.status == 'success' %}
+<a href="{% url 'backups:download' job.pk %}" class="orion-btn orion-btn-outline">
+  <i class="bi bi-download"></i> Télécharger
+</a>
+{% if request.user.is_superuser %}
+<a href="{% url 'backups:restore' job.pk %}" class="orion-btn orion-btn-warning">
+  <i class="bi bi-arrow-counterclockwise"></i> Restaurer
+</a>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}Créé le {{ job.created_at|date:"d/m/Y H:i" }}{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for message in messages %}
+<div class="orion-alert orion-alert-{{ message.tags|default:'info' }} mb-3" role="alert">
+  <i class="bi bi-info-circle"></i> <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Détails de la sauvegarde</h5></div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-4">Statut</dt>
+          <dd class="col-sm-8">
+            <span class="badge bg-{{ job.status_color }} fs-6">
+              <i class="{{ job.status_icon }} me-1"></i>{{ job.get_status_display }}
+            </span>
+          </dd>
+          <dt class="col-sm-4">Type</dt>
+          <dd class="col-sm-8">{{ job.get_backup_type_display }}</dd>
+          <dt class="col-sm-4">Périmètre</dt>
+          <dd class="col-sm-8">{{ job.get_scope_display }}</dd>
+          <dt class="col-sm-4">Entreprise</dt>
+          <dd class="col-sm-8">{{ job.company.name|default:"Base centrale" }}</dd>
+          <dt class="col-sm-4">Taille</dt>
+          <dd class="col-sm-8">{{ job.file_size_display }}</dd>
+          <dt class="col-sm-4">Durée</dt>
+          <dd class="col-sm-8">{{ job.duration_display }}</dd>
+          <dt class="col-sm-4">Début</dt>
+          <dd class="col-sm-8">{{ job.started_at|date:"d/m/Y H:i:s"|default:"—" }}</dd>
+          <dt class="col-sm-4">Fin</dt>
+          <dd class="col-sm-8">{{ job.finished_at|date:"d/m/Y H:i:s"|default:"—" }}</dd>
+          <dt class="col-sm-4">Créé par</dt>
+          <dd class="col-sm-8">{{ job.created_by.get_full_name|default:job.created_by.username|default:"Système" }}</dd>
+          {% if job.file_path %}
+          <dt class="col-sm-4">Fichier</dt>
+          <dd class="col-sm-8"><code class="text-break">{{ job.file_path }}</code></dd>
+          {% endif %}
+          {% if job.checksum %}
+          <dt class="col-sm-4">Checksum SHA-256</dt>
+          <dd class="col-sm-8"><code class="text-muted small">{{ job.checksum }}</code></dd>
+          {% endif %}
+          {% if job.error_message %}
+          <dt class="col-sm-4">Erreur</dt>
+          <dd class="col-sm-8">
+            <div class="alert alert-danger mb-0 py-2"><code>{{ job.error_message }}</code></div>
+          </dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if restore_logs %}
+    <div class="card erp-card mt-4">
+      <div class="card-header"><h5 class="mb-0">Historique des restaurations</h5></div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr><th>Statut</th><th>Restauré par</th><th>Date</th><th>Erreur</th></tr>
+          </thead>
+          <tbody>
+            {% for log in restore_logs %}
+            <tr>
+              <td><span class="badge bg-{% if log.status == 'success' %}success{% elif log.status == 'failed' %}danger{% else %}warning{% endif %}">{{ log.get_status_display }}</span></td>
+              <td>{{ log.restored_by.username|default:"—" }}</td>
+              <td>{{ log.started_at|date:"d/m/Y H:i" }}</td>
+              <td class="text-danger small">{{ log.error_message|truncatechars:80 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Intégrité -->
+    <div class="card erp-card mb-4">
+      <div class="card-header"><h5 class="mb-0">Intégrité</h5></div>
+      <div class="card-body text-center">
+        {% if integrity_ok %}
+        <i class="bi bi-shield-check text-success fs-1 d-block mb-2"></i>
+        <span class="text-success fw-semibold">Fichier intact</span>
+        {% else %}
+        <i class="bi bi-shield-x text-danger fs-1 d-block mb-2"></i>
+        <span class="text-danger fw-semibold">{{ integrity_msg }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">Actions</h5></div>
+      <div class="card-body d-grid gap-2">
+        {% if job.status == 'success' %}
+        <a href="{% url 'backups:download' job.pk %}" class="orion-btn orion-btn-outline">
+          <i class="bi bi-download me-2"></i>Télécharger
+        </a>
+        {% if request.user.is_superuser %}
+        <a href="{% url 'backups:restore' job.pk %}" class="orion-btn orion-btn-warning">
+          <i class="bi bi-arrow-counterclockwise me-2"></i>Restaurer
+        </a>
+        {% endif %}
+        {% endif %}
+        {% if request.user.is_staff %}
+        <a href="{% url 'backups:delete' job.pk %}" class="orion-btn orion-btn-ghost text-danger">
+          <i class="bi bi-trash me-2"></i>Supprimer
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
