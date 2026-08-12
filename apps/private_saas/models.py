@@ -10,7 +10,7 @@ ALL_MODULE_CODES = [
     'dashboard', 'crm', 'sales', 'accounting', 'purchases', 'inventory',
     'btp', 'ecommerce', 'commerce', 'production', 'hr', 'documents',
     'websites', 'client_portal', 'messages', 'reporting', 'notifications',
-    'automation', 'domains', 'domain_diagnostics',
+    'automation', 'domains', 'domain_diagnostics', 'backups_module',
 ]
 
 MODULE_LABELS = {
@@ -34,6 +34,7 @@ MODULE_LABELS = {
     'automation':    'Automatisation',
     'domains':       'Domaines',
     'domain_diagnostics': 'Diagnostic domaines & Cloudflare',
+    'backups_module':     'Sauvegardes',
 }
 
 MODULE_NAV_IDS = {
@@ -57,6 +58,7 @@ MODULE_NAV_IDS = {
     'messages':      [],
     'domains':       [],
     'domain_diagnostics': [],
+    'backups_module':     [],
 }
 
 DEFAULT_MODULES_BY_TYPE = {
