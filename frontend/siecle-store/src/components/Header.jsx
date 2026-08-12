@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { to: '/maison-siecle', label: 'MAISON' },
   { to: '/vetements',     label: 'VÊTEMENTS' },
   { to: '/montres',       label: 'MONTRES' },
-  { to: MAKEUP_SITE_URL,  label: 'MAQUILLAGE', newTab: true },
+  { to: MAKEUP_SITE_URL,  label: 'LUNEA', newTab: true },
   { to: '/packs',         label: 'PACKS' },
   { to: '/drops',         label: 'DROPS' },
   { to: '/communaute',    label: 'COMMUNAUTÉ' },
@@ -37,9 +37,9 @@ export default function Header() {
       height: 'var(--header-h)',
       display: 'flex', alignItems: 'center',
       padding: '0 24px',
-      background: scrolled ? 'rgba(0,0,0,0.96)' : 'transparent',
+      background: scrolled ? 'rgba(9,9,9,0.96)' : 'transparent',
       backdropFilter: scrolled ? 'blur(12px)' : 'none',
-      borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+      borderBottom: scrolled ? '1px solid var(--siecle-border)' : '1px solid transparent',
       transition: 'all 0.3s ease',
     },
     inner: {
@@ -47,16 +47,16 @@ export default function Header() {
       width: '100%', maxWidth: 1440, margin: '0 auto',
     },
     logo: {
-      fontFamily: 'Montserrat, sans-serif',
-      fontSize: 22, fontWeight: 900, letterSpacing: '0.18em',
-      color: '#fff',
+      fontFamily: 'var(--font-heading)',
+      fontSize: 22, fontWeight: 700, letterSpacing: '0.18em',
+      color: 'var(--siecle-white)',
     },
     nav: {
       display: 'flex', gap: 32, alignItems: 'center',
     },
     navLink: (active) => ({
-      fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
-      color: active ? 'var(--siecle-beige)' : '#fff',
+      fontSize: 11, fontWeight: 600, letterSpacing: '0.14em',
+      color: active ? 'var(--siecle-beige)' : 'var(--siecle-white)',
       transition: 'color 0.2s',
     }),
     right: {
@@ -64,20 +64,20 @@ export default function Header() {
     },
     cartBtn: {
       position: 'relative', cursor: 'pointer', background: 'none', border: 'none',
-      color: '#fff', fontSize: 18, padding: 4,
+      color: 'var(--siecle-white)', fontSize: 18, padding: 4,
     },
     cartBadge: {
       position: 'absolute', top: -4, right: -4,
       width: 16, height: 16, borderRadius: '50%',
-      background: 'var(--siecle-beige)', color: '#000',
-      fontSize: 10, fontWeight: 800,
+      background: 'var(--siecle-beige)', color: 'var(--siecle-black)',
+      fontSize: 10, fontWeight: 700,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     },
     hamburger: {
       display: 'none', flexDirection: 'column', gap: 5, cursor: 'pointer',
       background: 'none', border: 'none', padding: 4,
     },
-    bar: { width: 22, height: 1.5, background: '#fff', transition: 'all 0.2s' },
+    bar: { width: 22, height: 1.5, background: 'var(--siecle-white)', transition: 'all 0.2s' },
   }
 
   return (
@@ -94,14 +94,14 @@ export default function Header() {
                 ? <a key={to} href={to} target="_blank" rel="noopener noreferrer"
                     style={s.navLink(false)}
                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--siecle-beige)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--siecle-white)' }}
                   >
                     {label}
                   </a>
                 : <NavLink key={to} to={to}
                     style={({ isActive }) => s.navLink(isActive)}
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--siecle-beige)'}
-                    onMouseLeave={e => { if (!e.currentTarget.closest('a')?.classList?.contains('active')) e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { if (!e.currentTarget.closest('a')?.classList?.contains('active')) e.currentTarget.style.color = 'var(--siecle-white)' }}
                   >
                     {label}
                   </NavLink>
@@ -110,8 +110,8 @@ export default function Header() {
 
           {/* Right icons */}
           <div style={s.right}>
-            <button onClick={() => setSearchOpen(true)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: 4 }} aria-label="Rechercher">🔍</button>
-            <Link to="/compte" style={{ color: '#fff', fontSize: 18, textDecoration: 'none' }} aria-label="Compte">👤</Link>
+            <button onClick={() => setSearchOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--siecle-white)', fontSize: 18, cursor: 'pointer', padding: 4 }} aria-label="Rechercher">🔍</button>
+            <Link to="/compte" style={{ color: 'var(--siecle-white)', fontSize: 18, textDecoration: 'none' }} aria-label="Compte">👤</Link>
             <button style={s.cartBtn} onClick={() => setIsOpen(true)} aria-label="Panier">
               🛒
               {count > 0 && <span style={s.cartBadge}>{count}</span>}
@@ -139,7 +139,7 @@ export default function Header() {
             exit={{ opacity: 0, x: '100%' }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             style={{
-              position: 'fixed', inset: 0, background: '#000',
+              position: 'fixed', inset: 0, background: 'var(--siecle-black)',
               zIndex: 999, display: 'flex', flexDirection: 'column',
               justifyContent: 'center', padding: '0 32px',
               gap: 32,
@@ -147,7 +147,7 @@ export default function Header() {
           >
             <button
               onClick={() => setMenuOpen(false)}
-              style={{ position: 'absolute', top: 20, right: 24, background: 'none', border: 'none', color: '#fff', fontSize: 24 }}
+              style={{ position: 'absolute', top: 20, right: 24, background: 'none', border: 'none', color: 'var(--siecle-white)', fontSize: 24 }}
             >×</button>
             {NAV_LINKS.map(({ to, label, newTab }, i) => (
               <motion.div
@@ -157,11 +157,11 @@ export default function Header() {
               >
                 {newTab
                   ? <a href={to} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}
-                      style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 32, fontWeight: 900, letterSpacing: '0.06em', color: 'var(--siecle-beige)', textTransform: 'uppercase' }}>
+                      style={{ fontFamily: 'var(--font-heading)', fontSize: 32, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--siecle-beige)', textTransform: 'uppercase' }}>
                       {label} ↗
                     </a>
                   : <Link to={to} onClick={() => setMenuOpen(false)}
-                      style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 32, fontWeight: 900, letterSpacing: '0.06em', color: '#fff', textTransform: 'uppercase' }}>
+                      style={{ fontFamily: 'var(--font-heading)', fontSize: 32, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--siecle-white)', textTransform: 'uppercase' }}>
                       {label}
                     </Link>
                 }

@@ -77,14 +77,14 @@ export default function Shop() {
         )}
 
         {/* Page header */}
-        <div style={{ marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ marginBottom: 40, paddingBottom: 32, borderBottom: '1px solid rgba(241,237,229,0.06)' }}>
           <p style={{ color: 'var(--siecle-beige)', fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', marginBottom: 8 }}>
             SIÈCLE
           </p>
           <h1 style={{
-            fontFamily: 'Montserrat, sans-serif',
+            fontFamily: 'var(--font-heading)',
             fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900,
-            letterSpacing: '0.04em', color: '#fff',
+            letterSpacing: '0.04em', color: 'var(--siecle-white)',
           }}>
             {category ? category.toUpperCase() : 'BOUTIQUE'}
           </h1>
@@ -100,7 +100,7 @@ export default function Shop() {
           <aside style={{ width: 200, flexShrink: 0 }} className="siecle-shop-sidebar">
             {/* Categories */}
             <div style={{ marginBottom: 36 }}>
-              <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>
+              <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(241,237,229,0.4)', marginBottom: 16 }}>
                 CATÉGORIES
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -145,9 +145,9 @@ export default function Shop() {
                 defaultValue={search}
                 onChange={e => setParam('q', e.target.value)}
                 style={{
-                  padding: '10px 16px', background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff', fontSize: 13, width: 220,
+                  padding: '10px 16px', background: 'rgba(241,237,229,0.05)',
+                  border: '1px solid rgba(241,237,229,0.1)', borderRadius: 'var(--radius-input)',
+                  color: 'var(--siecle-white)', fontSize: 13, width: 220,
                   outline: 'none',
                 }}
               />
@@ -156,9 +156,9 @@ export default function Shop() {
                 value={sort}
                 onChange={e => setParam('sort', e.target.value)}
                 style={{
-                  padding: '10px 16px', background: '#111',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff', fontSize: 12, cursor: 'pointer',
+                  padding: '10px 16px', background: 'var(--siecle-dark)',
+                  border: '1px solid rgba(241,237,229,0.1)', borderRadius: 'var(--radius-input)',
+                  color: 'var(--siecle-white)', fontSize: 12, cursor: 'pointer',
                   outline: 'none',
                 }}
               >

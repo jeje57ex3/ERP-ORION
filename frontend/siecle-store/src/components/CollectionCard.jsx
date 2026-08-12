@@ -50,8 +50,8 @@ export default function CollectionCard({ collection, index = 0 }) {
             }}>
               <span style={{
                 fontSize: 64, opacity: 0.08,
-                fontFamily: 'Montserrat, sans-serif', fontWeight: 900,
-                letterSpacing: '0.05em', color: '#fff',
+                fontFamily: 'var(--font-heading)', fontWeight: 900,
+                letterSpacing: '0.05em', color: 'var(--siecle-white)',
               }}>
                 {collection.name?.toUpperCase()}
               </span>
@@ -61,7 +61,7 @@ export default function CollectionCard({ collection, index = 0 }) {
           {/* Overlay gradient */}
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)',
+            background: 'linear-gradient(to top, rgba(9,9,9,0.7) 0%, transparent 50%)',
             transition: 'opacity 0.3s',
             opacity: hovered ? 1 : 0.6,
           }} />
@@ -74,9 +74,9 @@ export default function CollectionCard({ collection, index = 0 }) {
               COLLECTION
             </p>
             <p style={{
-              fontFamily: 'Montserrat, sans-serif',
+              fontFamily: 'var(--font-heading)',
               fontSize: 22, fontWeight: 900,
-              letterSpacing: '0.06em', color: '#fff',
+              letterSpacing: '0.06em', color: 'var(--siecle-white)',
               textTransform: 'uppercase',
               marginBottom: 8,
             }}>

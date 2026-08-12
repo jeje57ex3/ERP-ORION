@@ -5,19 +5,20 @@
 }
 
 :root {
-  --siecle-black:     #000000;
-  --siecle-white:     #FFFFFF;
+  --siecle-black:     #090909;
+  --siecle-white:     #f1ede5;
   --siecle-dark:      #111111;
   --siecle-dark-soft: #1A1A1A;
   --siecle-gray:      #2A2A2A;
-  --siecle-muted:     #B8B8B8;
+  --siecle-muted:     rgba(241,237,229,0.45);
   --siecle-silver:    #C0C0C0;
-  --siecle-beige:     #D8C7A3;
-  --siecle-border:    rgba(255,255,255,0.10);
-  --siecle-border-hover: rgba(255,255,255,0.25);
-  --font-sans:        'Inter', 'Montserrat', Arial, sans-serif;
-  --font-heading:     'Montserrat', 'Inter', Arial, sans-serif;
-  --radius:           2px;
+  --siecle-beige:     #d7ff43;
+  --siecle-border:    rgba(241,237,229,0.10);
+  --siecle-border-hover: rgba(241,237,229,0.25);
+  --font-sans:        'Work Sans', Arial, sans-serif;
+  --font-heading:     'Work Sans', Arial, sans-serif;
+  --radius:           0px;
+  --radius-input:     8px;
   --transition:       0.25s ease;
   --header-h:         64px;
 }

@@ -21,7 +21,7 @@ export default function CartSidebar() {
             onClick={() => setIsOpen(false)}
             style={{
               position: 'fixed', inset: 0,
-              background: 'rgba(0,0,0,0.7)',
+              background: 'rgba(9,9,9,0.7)',
               zIndex: 1100,
             }}
           />
@@ -37,7 +37,7 @@ export default function CartSidebar() {
               position: 'fixed', top: 0, right: 0, bottom: 0,
               width: 400, maxWidth: '100vw',
               background: '#0D0D0D',
-              borderLeft: '1px solid rgba(255,255,255,0.08)',
+              borderLeft: '1px solid rgba(241,237,229,0.08)',
               zIndex: 1101,
               display: 'flex', flexDirection: 'column',
             }}
@@ -45,7 +45,7 @@ export default function CartSidebar() {
             {/* Header */}
             <div style={{
               padding: '20px 24px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid rgba(241,237,229,0.06)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div>
@@ -73,8 +73,8 @@ export default function CartSidebar() {
                     onClick={() => setIsOpen(false)}
                     style={{
                       marginTop: 20, padding: '12px 24px',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      background: 'none', color: '#fff', cursor: 'pointer',
+                      border: '1px solid rgba(241,237,229,0.15)',
+                      background: 'none', color: 'var(--siecle-white)', cursor: 'pointer',
                       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
                     }}
                   >
@@ -87,7 +87,7 @@ export default function CartSidebar() {
                     <div key={`${item.id}-${item.size || ''}`} style={{
                       display: 'flex', gap: 14,
                       paddingBottom: 20,
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      borderBottom: '1px solid rgba(241,237,229,0.05)',
                     }}>
                       {/* Thumbnail */}
                       <div style={{
@@ -103,7 +103,7 @@ export default function CartSidebar() {
 
                       {/* Details */}
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--siecle-white)', marginBottom: 4 }}>
                           {item.name}
                         </p>
                         {item.size && !item.isCustomWatch && (
@@ -132,17 +132,17 @@ export default function CartSidebar() {
                               onClick={() => updateQty(item.id, item.size, item.qty - 1)}
                               style={{
                                 width: 28, height: 28, background: '#1A1A1A',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#fff', cursor: 'pointer', fontSize: 14,
+                                border: '1px solid rgba(241,237,229,0.1)',
+                                color: 'var(--siecle-white)', cursor: 'pointer', fontSize: 14,
                               }}
                             >−</button>
                             <span style={{
                               width: 36, textAlign: 'center',
-                              fontSize: 13, color: '#fff',
+                              fontSize: 13, color: 'var(--siecle-white)',
                               background: '#111', height: 28, lineHeight: '28px',
                               display: 'inline-block',
-                              borderTop: '1px solid rgba(255,255,255,0.1)',
-                              borderBottom: '1px solid rgba(255,255,255,0.1)',
+                              borderTop: '1px solid rgba(241,237,229,0.1)',
+                              borderBottom: '1px solid rgba(241,237,229,0.1)',
                             }}>
                               {item.qty}
                             </span>
@@ -150,8 +150,8 @@ export default function CartSidebar() {
                               onClick={() => updateQty(item.id, item.size, item.qty + 1)}
                               style={{
                                 width: 28, height: 28, background: '#1A1A1A',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#fff', cursor: 'pointer', fontSize: 14,
+                                border: '1px solid rgba(241,237,229,0.1)',
+                                color: 'var(--siecle-white)', cursor: 'pointer', fontSize: 14,
                               }}
                             >+</button>
                           </div>
@@ -177,11 +177,11 @@ export default function CartSidebar() {
             {items.length > 0 && (
               <div style={{
                 padding: '20px 24px',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
+                borderTop: '1px solid rgba(241,237,229,0.06)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ color: 'var(--siecle-muted)', fontSize: 12 }}>Sous-total</span>
-                  <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{fmt(total)}</span>
+                  <span style={{ color: 'var(--siecle-white)', fontSize: 14, fontWeight: 700 }}>{fmt(total)}</span>
                 </div>
                 <p style={{ color: 'var(--siecle-muted)', fontSize: 11, marginBottom: 20 }}>
                   Livraison calculée au checkout
@@ -189,7 +189,7 @@ export default function CartSidebar() {
                 <Link to="/cart" onClick={() => setIsOpen(false)}
                   style={{
                     display: 'block', width: '100%', padding: '14px 0',
-                    background: 'var(--siecle-beige)', color: '#000',
+                    background: 'var(--siecle-beige)', color: 'var(--siecle-black)',
                     textAlign: 'center', fontWeight: 800,
                     fontSize: 12, letterSpacing: '0.14em',
                     marginBottom: 10,
