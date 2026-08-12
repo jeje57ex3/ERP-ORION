@@ -230,6 +230,7 @@
   <a href="{% url 'websites:blog_list' %}?site={{ website.pk }}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-journal-text me-1"></i>{% trans "Articles" %} ({{ posts_count }})</a>
   <a href="{% url 'websites:message_list' %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-envelope me-1"></i>{% trans "Messages" %} {% if new_messages %}({{ new_messages }} {% trans "nouveau" %}{{ new_messages|pluralize }}){% endif %}</a>
   <a href="{% url 'websites:domain_dashboard' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-globe2 me-1"></i>{% trans "Domaines" %}</a>
+  <a href="{% url 'websites:cloudflare_dashboard' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-cloud me-1"></i>{% trans "Cloudflare" %}</a>
   {% if website.site_type == 'ecommerce' %}
   <a href="{% url 'websites:store_product_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-box-seam me-1"></i>{% trans "Produits" %} ({{ store_products_count }})</a>
   <a href="{% url 'websites:store_order_list' website.pk %}" class="btn btn-outline-success orion-btn sm"><i class="bi bi-cart me-1"></i>{% trans "Commandes" %} ({{ store_orders_count }})</a>

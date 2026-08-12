@@ -8,6 +8,8 @@
 {% block page_actions %}
 <div class="d-flex gap-2 flex-wrap">
   <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline"><i class="bi bi-globe2 me-1"></i>{% trans "Gérer les domaines" %}</a>
+  <a href="{% url 'websites:cloudflare_dashboard' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cloud me-1"></i>{% trans "Cloudflare" %}</a>
+  <a href="{% url 'websites:tunnel_list' %}" class="orion-btn orion-btn-outline"><i class="bi bi-hdd-network me-1"></i>{% trans "Tunnels" %}</a>
   <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>{% trans "Site vitrine" %}</a>
   <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>{% trans "Boutique en ligne" %}</a>
 </div>
