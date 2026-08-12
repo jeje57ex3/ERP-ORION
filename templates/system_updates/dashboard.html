@@ -22,6 +22,12 @@
       <i class="bi bi-cloud-download me-1"></i>{% trans "Lancer la mise à jour" %}
     </a>
     {% endif %}
+    <a href="{% url 'system_updates:server_reboot' %}" class="orion-btn">
+      <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Redémarrer le serveur" %}
+    </a>
+    <a href="{% url 'system_updates:server_shutdown' %}" class="orion-btn danger">
+      <i class="bi bi-power me-1"></i>{% trans "Éteindre le serveur" %}
+    </a>
   </div>
 </div>
 {% endblock %}
@@ -112,6 +118,48 @@
     </div>
   </form>
 </div>
+
+{% if recent_server_actions %}
+<div class="orion-card mb-4">
+  <div class="orion-orion-orion-card-header d-flex align-items-center justify-content-between">
+    <h2 style="font-size:15px;font-weight:600;margin:0">{% trans "Actions serveur récentes" %}</h2>
+    <form method="post" action="{% url 'system_updates:server_action_cancel' %}">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn small" title="{% trans "Annuler un redémarrage/extinction programmé" %}">
+        <i class="bi bi-x-circle me-1"></i>{% trans "Annuler action programmée" %}
+      </button>
+    </form>
+  </div>
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>{% trans "Action" %}</th>
+        <th>{% trans "Statut" %}</th>
+        <th>{% trans "Message" %}</th>
+        <th>{% trans "Par" %}</th>
+        <th>{% trans "Quand" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in recent_server_actions %}
+      <tr>
+        <td>{{ a.get_action_display }}</td>
+        <td>
+          {% if a.status == "success" %}
+            <span class="orion-badge success">{% trans "Succès" %}</span>
+          {% else %}
+            <span class="orion-badge danger">{% trans "Échec" %}</span>
+          {% endif %}
+        </td>
+        <td class="small text-muted">{{ a.message|default:"—" }}</td>
+        <td>{{ a.executed_by|default:"—" }}</td>
+        <td>{{ a.executed_at|naturaltime }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 
 <div class="orion-card">
   <div class="orion-orion-orion-card-header">

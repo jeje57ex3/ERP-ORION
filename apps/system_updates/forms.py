@@ -59,3 +59,20 @@ class ConfirmRollbackForm(forms.Form):
         required=True,
         label='Je confirme vouloir lancer un rollback.',
     )
+
+
+class ServerActionConfirmForm(forms.Form):
+    confirm_text = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+    )
+
+    def __init__(self, *args, expected_text='', **kwargs):
+        self.expected_text = expected_text
+        super().__init__(*args, **kwargs)
+        self.fields['confirm_text'].label = f'Tapez {expected_text} pour confirmer'
+
+    def clean_confirm_text(self):
+        value = self.cleaned_data['confirm_text'].strip().upper()
+        if value != self.expected_text:
+            raise forms.ValidationError(f'Tapez exactement {self.expected_text} pour confirmer.')
+        return value

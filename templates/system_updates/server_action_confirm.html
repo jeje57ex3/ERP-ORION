@@ -1,0 +1,61 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header" style="border-color:var(--orion-danger)">
+        <h2 style="font-size:15px;font-weight:600;margin:0;color:var(--orion-danger)">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ page_title }}
+        </h2>
+      </div>
+      <div style="padding:16px">
+        <div class="orion-alert danger mb-3">
+          {% if action == 'reboot' %}
+            {% blocktrans %}
+            Le serveur va redémarrer dans 1 minute. Toutes les sessions
+            actives seront coupées. Orion ERP redevient accessible une fois
+            le redémarrage terminé (généralement 1 à 2 minutes).
+            {% endblocktrans %}
+          {% else %}
+            {% blocktrans %}
+            Le serveur va s'éteindre complètement dans 1 minute. Contrairement
+            au redémarrage, il ne se rallumera pas tout seul — il faudra le
+            redémarrer manuellement depuis l'interface Proxmox (ou l'hôte
+            physique). Assurez-vous d'avoir un accès à Proxmox avant de
+            continuer.
+            {% endblocktrans %}
+          {% endif %}
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label style="font-size:12.5px;font-weight:600;color:var(--orion-text);display:block;margin-bottom:4px">
+              {{ form.confirm_text.label }}
+            </label>
+            {{ form.confirm_text }}
+            {% if form.confirm_text.errors %}
+            <div style="font-size:11.5px;color:var(--orion-danger)">{{ form.confirm_text.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn danger">
+              {% if action == 'reboot' %}
+                <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Confirmer le redémarrage" %}
+              {% else %}
+                <i class="bi bi-power me-1"></i>{% trans "Confirmer l'extinction" %}
+              {% endif %}
+            </button>
+            <a href="{% url 'system_updates:dashboard' %}" class="orion-btn">{% trans "Annuler" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
