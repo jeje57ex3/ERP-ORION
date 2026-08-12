@@ -1,0 +1,120 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Erreur {{ error.uid }}{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé · Erreurs{% endblock %}
+{% block page_subtitle %}{{ error.error_type }}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:error_list' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Liste
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-3">
+  <!-- Colonne principale -->
+  <div class="col-md-8">
+
+    <!-- Identité -->
+    <div class="orion-card mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="orion-badge {{ error.severity_color }} fs-6">{{ error.get_severity_display }}</span>
+        <span class="orion-badge neutral">{{ error.get_status_display }}</span>
+        <code class="small text-muted ms-auto">{{ error.uid }}</code>
+      </div>
+      <dl class="row mb-0">
+        <dt class="col-sm-3 small text-muted">Module</dt>     <dd class="col-sm-9"><code>{{ error.module }}</code></dd>
+        <dt class="col-sm-3 small text-muted">Type</dt>       <dd class="col-sm-9">{{ error.error_type }}</dd>
+        <dt class="col-sm-3 small text-muted">Environnement</dt><dd class="col-sm-9">{{ error.environment }}</dd>
+        {% if error.api_route %}
+        <dt class="col-sm-3 small text-muted">Route</dt>      <dd class="col-sm-9"><code>{{ error.http_method }} {{ error.api_route }}</code></dd>
+        {% endif %}
+        {% if error.response_code %}
+        <dt class="col-sm-3 small text-muted">Code HTTP</dt>  <dd class="col-sm-9"><code>{{ error.response_code }}</code></dd>
+        {% endif %}
+        <dt class="col-sm-3 small text-muted">Occurrences</dt><dd class="col-sm-9 fw-600">{{ error.occurrence_count|intcomma }}</dd>
+        <dt class="col-sm-3 small text-muted">Première vue</dt><dd class="col-sm-9">{{ error.first_seen|date:"d/m/Y H:i" }}</dd>
+        <dt class="col-sm-3 small text-muted">Dernière vue</dt><dd class="col-sm-9">{{ error.last_seen|date:"d/m/Y H:i" }}</dd>
+        {% if error.correlation_id %}
+        <dt class="col-sm-3 small text-muted">Corrélation</dt><dd class="col-sm-9"><code>{{ error.correlation_id }}</code></dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Messages -->
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-2">Message utilisateur</h6>
+      <p class="mb-3">{{ error.user_message }}</p>
+      <h6 class="fw-600 mb-2">Message technique</h6>
+      <pre class="bg-body-secondary p-3 rounded small" style="white-space:pre-wrap;word-break:break-word">{% if can_sensitive %}{{ error.technical_message }}{% else %}{{ error.safe_technical_message }}{% endif %}</pre>
+      {% if not can_sensitive %}
+      <small class="text-muted"><i class="bi bi-eye-slash me-1"></i>Certaines informations sont masquées. Requiert la permission « Données sensibles ».</small>
+      {% endif %}
+    </div>
+
+    <!-- Erreurs similaires -->
+    {% if similar %}
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-2">Erreurs similaires</h6>
+      {% for s in similar %}
+      <div class="d-flex align-items-center gap-2 py-1">
+        <span class="orion-badge {{ s.severity_color }} small">{{ s.get_severity_display }}</span>
+        <a href="{% url 'system_health:error_detail' s.pk %}" class="small text-truncate">{{ s.error_type }}</a>
+        <small class="text-muted ms-auto">{{ s.occurrence_count }}×</small>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Commentaires -->
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Commentaires</h6>
+      {% for c in error.comments.all %}
+      <div class="mb-3 pb-3 border-bottom">
+        <div class="d-flex gap-2 align-items-center mb-1">
+          <span class="fw-500 small">{{ c.author.get_full_name|default:c.author.username }}</span>
+          <span class="text-muted small">· {{ c.created_at|date:"d/m H:i" }}</span>
+        </div>
+        <p class="mb-0 small">{{ c.content }}</p>
+      </div>
+      {% empty %}
+      <p class="text-muted small">Aucun commentaire.</p>
+      {% endfor %}
+      <form method="post">
+        {% csrf_token %}
+        {{ comment_form.content }}
+        <button type="submit" name="comment" class="orion-btn btn-sm mt-2">Commenter</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Colonne droite : triage -->
+  <div class="col-md-4">
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Triage</h6>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in triage_form %}
+        <div class="mb-3">
+          <label class="form-label small fw-500">{{ field.label }}</label>
+          {{ field }}
+        </div>
+        {% endfor %}
+        <button type="submit" name="triage" class="orion-btn w-100">Enregistrer</button>
+      </form>
+    </div>
+
+    {% if error.incident %}
+    <div class="orion-card">
+      <h6 class="fw-600 mb-2">Incident lié</h6>
+      <a href="{% url 'system_health:incident_detail' error.incident.pk %}" class="orion-btn btn-sm">
+        <i class="bi bi-lightning me-1"></i>{{ error.incident.title }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

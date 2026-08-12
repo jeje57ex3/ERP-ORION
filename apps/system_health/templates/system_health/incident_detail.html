@@ -1,0 +1,138 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Incident — {{ incident.title }}{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé · Incidents{% endblock %}
+{% block page_subtitle %}{{ incident.get_severity_display }} · {{ incident.get_status_display }}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:incident_list' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Liste
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Chronologie + contenu -->
+  <div class="col-md-8">
+
+    <div class="orion-card mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="orion-badge {{ incident.severity_color }} fs-6">{{ incident.get_severity_display }}</span>
+        <span class="orion-badge neutral">{{ incident.get_status_display }}</span>
+        {% if can_manage %}
+        <form method="post" class="ms-auto d-flex gap-2">
+          {% csrf_token %}
+          {{ status_form }}
+          <button type="submit" name="status_change" class="orion-btn btn-sm">Changer statut</button>
+        </form>
+        {% endif %}
+      </div>
+      <h5>{{ incident.title }}</h5>
+      <p>{{ incident.description }}</p>
+
+      <dl class="row mb-0">
+        <dt class="col-sm-3 small text-muted">Début</dt>         <dd class="col-sm-9 small">{{ incident.started_at|date:"d/m/Y H:i" }}</dd>
+        <dt class="col-sm-3 small text-muted">Détection</dt>     <dd class="col-sm-9 small">{{ incident.detected_at|date:"d/m/Y H:i" }}</dd>
+        {% if incident.resolved_at %}
+        <dt class="col-sm-3 small text-muted">Résolution</dt>    <dd class="col-sm-9 small">{{ incident.resolved_at|date:"d/m/Y H:i" }}</dd>
+        {% endif %}
+        <dt class="col-sm-3 small text-muted">Durée</dt>         <dd class="col-sm-9 small">{{ incident.duration }}</dd>
+        <dt class="col-sm-3 small text-muted">Responsable</dt>   <dd class="col-sm-9 small">{{ incident.assigned_to.get_full_name|default:"—" }}</dd>
+        {% if incident.affected_services %}
+        <dt class="col-sm-3 small text-muted">Services</dt>      <dd class="col-sm-9 small">{{ incident.affected_services|join:", " }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    {% if incident.root_cause or incident.fix_applied or incident.prevention_plan %}
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Analyse</h6>
+      {% if incident.root_cause %}<h6 class="small fw-500 text-muted">Cause racine</h6><p>{{ incident.root_cause }}</p>{% endif %}
+      {% if incident.immediate_actions %}<h6 class="small fw-500 text-muted">Actions immédiates</h6><p>{{ incident.immediate_actions }}</p>{% endif %}
+      {% if incident.fix_applied %}<h6 class="small fw-500 text-muted">Correctif appliqué</h6><p>{{ incident.fix_applied }}</p>{% endif %}
+      {% if incident.consequences %}<h6 class="small fw-500 text-muted">Conséquences</h6><p>{{ incident.consequences }}</p>{% endif %}
+      {% if incident.prevention_plan %}<h6 class="small fw-500 text-muted">Plan de prévention</h6><p>{{ incident.prevention_plan }}</p>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Chronologie -->
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Chronologie</h6>
+      <div class="timeline">
+        {% for entry in incident.timeline.all %}
+        <div class="d-flex gap-3 mb-3">
+          <div class="text-center" style="min-width:40px">
+            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width:32px;height:32px;font-size:.7rem">
+              {{ entry.timestamp|date:"H:i" }}
+            </div>
+            <div class="border-start ms-4" style="height:100%;min-height:20px"></div>
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex gap-2 align-items-center">
+              <span class="orion-badge neutral small">{{ entry.get_event_type_display }}</span>
+              <small class="text-muted">{{ entry.timestamp|date:"d/m/Y" }} · {{ entry.author.get_full_name|default:entry.author.username|default:"Système" }}</small>
+            </div>
+            <p class="mb-0 mt-1 small">{{ entry.description }}</p>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted small">Aucune entrée.</p>
+        {% endfor %}
+      </div>
+      {% if can_manage %}
+      <form method="post" class="mt-3 pt-3 border-top">
+        {% csrf_token %}
+        {{ timeline_form }}
+        <button type="submit" name="timeline_add" class="orion-btn btn-sm mt-2">Ajouter une entrée</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Rapport post-incident -->
+    {% if pir %}
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Rapport post-incident</h6>
+      <dl class="row">
+        <dt class="col-sm-3 small text-muted">Ce qui s'est passé</dt><dd class="col-sm-9 small">{{ pir.what_happened }}</dd>
+        <dt class="col-sm-3 small text-muted">Pourquoi</dt><dd class="col-sm-9 small">{{ pir.why_it_happened }}</dd>
+        <dt class="col-sm-3 small text-muted">Non détecté plus tôt</dt><dd class="col-sm-9 small">{{ pir.why_not_detected_earlier }}</dd>
+        <dt class="col-sm-3 small text-muted">Comment corrigé</dt><dd class="col-sm-9 small">{{ pir.how_fixed }}</dd>
+        <dt class="col-sm-3 small text-muted">Prévention</dt><dd class="col-sm-9 small">{{ pir.how_to_prevent }}</dd>
+      </dl>
+    </div>
+    {% elif pir_form and can_manage %}
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-3">Créer le rapport post-incident</h6>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in pir_form %}
+        <div class="mb-3">
+          <label class="form-label small fw-500">{{ field.label }}</label>{{ field }}
+        </div>
+        {% endfor %}
+        <button type="submit" name="pir_submit" class="orion-btn">Enregistrer le rapport</button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Panneau latéral : erreurs liées -->
+  <div class="col-md-4">
+    <div class="orion-card">
+      <h6 class="fw-600 mb-3">Erreurs liées</h6>
+      {% for err in incident.errors.all %}
+      <div class="mb-2 pb-2 border-bottom">
+        <div class="d-flex gap-1 align-items-center">
+          <span class="orion-badge {{ err.severity_color }} small">{{ err.get_severity_display }}</span>
+          <a href="{% url 'system_health:error_detail' err.pk %}" class="small text-truncate">{{ err.error_type }}</a>
+        </div>
+        <small class="text-muted">{{ err.occurrence_count }}× · {{ err.last_seen|date:"d/m H:i" }}</small>
+      </div>
+      {% empty %}
+      <p class="text-muted small">Aucune erreur liée.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -118,6 +118,9 @@ LOCAL_APPS = [
 
     # ── Diagnostic Domaines & Cloudflare ──────────────────────────────────────
     'apps.domain_diagnostics.apps.DomainDiagnosticsConfig',
+
+    # ── Santé du système ───────────────────────────────────────────────────────
+    'apps.system_health.apps.SystemHealthConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

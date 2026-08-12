@@ -1,0 +1,89 @@
+{% extends "erp_base.html" %}
+
+{% block title %}{{ risk.uid }} — {{ risk.title }}{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé · Risques{% endblock %}
+{% block page_subtitle %}{{ risk.get_category_display }} · {{ risk.criticality_label }}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:risk_list' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Liste
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="orion-card mb-3">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="orion-badge {{ risk.criticality_color }} fs-6">{{ risk.criticality_label }} ({{ risk.criticality_score }})</span>
+        <span class="orion-badge neutral">{{ risk.get_status_display }}</span>
+        <code class="ms-auto small text-muted">{{ risk.uid }}</code>
+      </div>
+      <p>{{ risk.description }}</p>
+      <dl class="row mb-0">
+        <dt class="col-sm-4 small text-muted">Catégorie</dt>       <dd class="col-sm-8">{{ risk.get_category_display }}</dd>
+        <dt class="col-sm-4 small text-muted">Module concerné</dt> <dd class="col-sm-8">{{ risk.affected_module|default:"—" }}</dd>
+        <dt class="col-sm-4 small text-muted">Données concernées</dt><dd class="col-sm-8">{{ risk.affected_data|default:"—" }}</dd>
+        <dt class="col-sm-4 small text-muted">Probabilité</dt>     <dd class="col-sm-8">{{ risk.get_probability_display }} ({{ risk.probability }}) — {{ risk.probability_justification }}</dd>
+        <dt class="col-sm-4 small text-muted">Impact</dt>          <dd class="col-sm-8">{{ risk.get_impact_display }} ({{ risk.impact }}) — {{ risk.impact_justification }}</dd>
+        <dt class="col-sm-4 small text-muted">Origine</dt>         <dd class="col-sm-8">{{ risk.get_origin_display }}</dd>
+        <dt class="col-sm-4 small text-muted">Détecté le</dt>      <dd class="col-sm-8">{{ risk.detected_at|date:"d/m/Y" }}</dd>
+        <dt class="col-sm-4 small text-muted">Responsable</dt>     <dd class="col-sm-8">{{ risk.owner.get_full_name|default:"—" }}</dd>
+        <dt class="col-sm-4 small text-muted">Date cible</dt>      <dd class="col-sm-8">{{ risk.target_date|date:"d/m/Y"|default:"—" }}</dd>
+        <dt class="col-sm-4 small text-muted">Dernière réévaluation</dt><dd class="col-sm-8">{{ risk.last_review|date:"d/m/Y"|default:"—" }}</dd>
+      </dl>
+    </div>
+
+    {% if risk.existing_measures or risk.corrective_actions %}
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-2">Mesures</h6>
+      {% if risk.existing_measures %}<h6 class="small fw-500 text-muted">Mesures existantes</h6><p>{{ risk.existing_measures }}</p>{% endif %}
+      {% if risk.corrective_actions %}<h6 class="small fw-500 text-muted">Actions correctives</h6><p>{{ risk.corrective_actions }}</p>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if can_edit and form %}
+    <div class="orion-card">
+      <h6 class="fw-600 mb-3">Modifier</h6>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label small fw-500">{{ field.label }}</label>
+          {{ field }}
+        </div>
+        {% endfor %}
+        <button type="submit" class="orion-btn">Enregistrer</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <!-- Matrice 5x5 simplifiée -->
+    <div class="orion-card mb-3">
+      <h6 class="fw-600 mb-2">Position dans la matrice</h6>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px">
+        {% for i in "54321" %}{% for j in "12345" %}
+        {% with row=i col=j %}
+        <div style="height:28px;background:{% if row == risk.impact and col == risk.probability %}#0d6efd{% elif row|add:0 >= 4 and col|add:0 >= 4 %}rgba(220,53,69,.3){% elif row|add:0 >= 3 and col|add:0 >= 3 %}rgba(255,193,7,.3){% else %}rgba(25,135,84,.15){% endif %};border-radius:3px"></div>
+        {% endwith %}
+        {% endfor %}{% endfor %}
+      </div>
+      <div class="d-flex justify-content-between mt-1">
+        <small class="text-muted">Rare</small>
+        <small class="text-muted">Probabilité →</small>
+        <small class="text-muted">Quasi-certain</small>
+      </div>
+    </div>
+
+    {% if risk.linked_incident %}
+    <div class="orion-card">
+      <h6 class="fw-600 mb-2">Incident lié</h6>
+      <a href="{% url 'system_health:incident_detail' risk.linked_incident.pk %}" class="orion-btn btn-sm">
+        <i class="bi bi-lightning me-1"></i>{{ risk.linked_incident.title }}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
