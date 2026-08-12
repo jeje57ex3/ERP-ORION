@@ -1,0 +1,137 @@
+{% extends "erp_base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">{{ page_title }}</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'domain_diagnostics:cloudflare_settings' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-gear"></i> Cloudflare
+    </a>
+    <a href="{% url 'domain_diagnostics:target_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> Ajouter un domaine
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if open_count %}
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span><strong>{{ open_count }}</strong> problème{{ open_count|pluralize }} ouvert{{ open_count|pluralize }} —
+      <a href="{% url 'domain_diagnostics:issue_list' %}">Voir les problèmes</a></span>
+  </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="card text-bg-{{ open_count|yesno:'warning,success' }} h-100">
+      <div class="card-body">
+        <div class="fs-2 fw-bold">{{ open_count }}</div>
+        <div class="small">Problème{{ open_count|pluralize }} ouvert{{ open_count|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="fs-2 fw-bold">{{ targets|length }}</div>
+        <div class="small">Domaine{{ targets|length|pluralize }} surveillé{{ targets|length|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="fs-2 fw-bold">{{ repairs|length }}</div>
+        <div class="small">Correction{{ repairs|length|pluralize }} récente{{ repairs|length|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Domaines surveillés</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Domaine</th>
+          <th>Marque</th>
+          <th>Dernier statut</th>
+          <th>Dernier scan</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for target in targets %}
+          <tr>
+            <td>
+              <code>{{ target.domain }}</code>
+              {% if target.website %}<span class="text-muted small ms-1">→ {{ target.website.name }}</span>{% endif %}
+            </td>
+            <td>{{ target.brand_key|default:'—' }}</td>
+            <td>
+              {% if target.last_status == 'ok' %}
+                <span class="badge bg-success">OK</span>
+              {% elif target.last_status == 'warning' %}
+                <span class="badge bg-warning text-dark">Avertissement</span>
+              {% elif target.last_status == 'error' %}
+                <span class="badge bg-danger">Erreur</span>
+              {% else %}
+                <span class="text-muted small">Jamais scanné</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ target.last_scan_at|date:"d/m/Y H:i"|default:'—' }}</td>
+            <td class="text-end">
+              <a href="{% url 'domain_diagnostics:run_scan' target.pk %}" class="btn btn-sm btn-outline-primary"
+                 onclick="return confirm('Lancer le diagnostic pour {{ target.domain }} ?')">
+                <i class="bi bi-arrow-clockwise"></i> Scanner
+              </a>
+              <a href="{% url 'domain_diagnostics:target_update' target.pk %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Aucun domaine configuré.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if repairs %}
+  <div class="card">
+    <div class="card-header fw-semibold">Dernières corrections</div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr><th>Code</th><th>Domaine</th><th>Statut</th><th>Par</th><th>Le</th></tr>
+        </thead>
+        <tbody>
+          {% for r in repairs %}
+            <tr>
+              <td><code class="small">{{ r.repair_code }}</code></td>
+              <td class="small">{{ r.target.domain|default:'—' }}</td>
+              <td>
+                {% if r.status == 'success' %}<span class="badge bg-success">OK</span>
+                {% else %}<span class="badge bg-danger">Échec</span>{% endif %}
+              </td>
+              <td class="small">{{ r.executed_by|default:'—' }}</td>
+              <td class="small text-muted">{{ r.executed_at|date:"d/m H:i" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
