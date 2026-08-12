@@ -28,6 +28,12 @@ def set_active_company(request, company):
     request.current_company = company
     if company is not None:
         request.session['current_company_id'] = company.pk
+        try:
+            profile = request.user.profile
+            profile.current_company = company
+            profile.save(update_fields=['current_company'])
+        except Exception:
+            pass
     else:
         request.session.pop('current_company_id', None)
 

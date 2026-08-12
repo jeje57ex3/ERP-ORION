@@ -329,6 +329,12 @@ def company_switcher(request):
         try:
             company = companies.get(pk=company_id)
             request.session['current_company_id'] = company.pk
+            try:
+                profile = request.user.profile
+                profile.current_company = company
+                profile.save(update_fields=['current_company'])
+            except Exception:
+                pass
             messages.success(request, f'Entreprise active : {company.name}')
         except Company.DoesNotExist:
             messages.error(request, 'Entreprise introuvable.')

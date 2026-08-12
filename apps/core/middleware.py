@@ -97,7 +97,23 @@ class CompanyMiddleware:
             except Exception:
                 request.session.pop('current_company_id', None)
 
-        # Fallback : première entreprise disponible
+        # Fallback : dernière entreprise mémorisée sur le profil (persiste
+        # au-delà de la session — évite de retomber au hasard sur la
+        # première entreprise par ordre alphabétique à chaque nouvelle
+        # session, ex. après une purge des sessions côté serveur).
+        if not request.current_company:
+            try:
+                profile_company = request.user.profile.current_company
+                if profile_company and profile_company.is_active and (
+                    request.user.is_superuser
+                    or request.user.profile.companies.filter(pk=profile_company.pk).exists()
+                ):
+                    request.current_company = profile_company
+                    request.session['current_company_id'] = profile_company.pk
+            except Exception:
+                pass
+
+        # Fallback ultime : première entreprise disponible
         if not request.current_company:
             try:
                 if request.user.is_superuser:
@@ -108,6 +124,17 @@ class CompanyMiddleware:
                 if company:
                     request.current_company = company
                     request.session['current_company_id'] = company.pk
+            except Exception:
+                pass
+
+        # Mémorise le choix résolu sur le profil pour qu'il reste sticky
+        # même si la session est perdue/purgée.
+        if request.current_company:
+            try:
+                profile = request.user.profile
+                if profile.current_company_id != request.current_company.pk:
+                    profile.current_company = request.current_company
+                    profile.save(update_fields=['current_company'])
             except Exception:
                 pass
 
