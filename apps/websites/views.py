@@ -76,6 +76,7 @@ def website_list(request):
     published_count = Website.objects.filter(company=company, status='published').count()
     ecommerce_count = Website.objects.filter(company=company, site_type='ecommerce').count()
     return render(request, 'websites/website_list.html', {
+        'page_title': 'Sites web',
         'websites': qs,
         'site_type': site_type,
         'status': status,
