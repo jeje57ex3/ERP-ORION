@@ -34,7 +34,7 @@ export default function InstagramCommunity() {
             COMMUNAUTÉ
           </p>
           <h2 style={{
-            fontFamily: '"Playfair Display", "Cormorant Garamond", Georgia, serif',
+            fontFamily: 'var(--font-heading)',
             fontSize: 'clamp(32px, 5vw, 56px)',
             fontWeight: 500, color: '#f7f1e8',
             letterSpacing: '-0.02em', lineHeight: 1.05,
@@ -64,12 +64,12 @@ export default function InstagramCommunity() {
             >
               {/* Hover overlay */}
               <div className="makeup-instagram-overlay">
-                <span style={{ color: '#fff' }}>
+                <span style={{ color: 'var(--siecle-white)' }}>
                   <InstagramIcon />
                 </span>
                 <span style={{
                   fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-                  color: 'rgba(255,255,255,0.9)',
+                  color: 'rgba(241,237,229,0.9)',
                 }}>
                   Voir sur Instagram
                 </span>

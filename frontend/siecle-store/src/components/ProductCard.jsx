@@ -26,7 +26,7 @@ export default function ProductCard({ product, index = 0 }) {
       {/* Image wrapper */}
       <div style={{
         position: 'relative', overflow: 'hidden',
-        aspectRatio: '3/4', background: '#111',
+        aspectRatio: '3/4', background: 'var(--siecle-dark)',
         marginBottom: 16,
       }}>
         {img ? (
@@ -55,7 +55,7 @@ export default function ProductCard({ product, index = 0 }) {
           <div style={{
             width: '100%', height: '100%', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
-            color: 'rgba(255,255,255,0.15)', fontSize: 12, letterSpacing: '0.1em',
+            color: 'var(--siecle-border-hover)', fontSize: 12, letterSpacing: '0.1em',
           }}>
             SIÈCLE
           </div>
@@ -65,22 +65,22 @@ export default function ProductCard({ product, index = 0 }) {
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {product.is_popular && (
             <span style={{
-              background: 'var(--siecle-beige)', color: '#000',
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+              background: 'var(--siecle-beige)', color: 'var(--siecle-black)',
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               padding: '3px 8px',
             }}>POPULAIRE</span>
           )}
           {product.is_new && (
             <span style={{
-              background: '#fff', color: '#000',
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+              background: 'var(--siecle-white)', color: 'var(--siecle-black)',
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               padding: '3px 8px',
             }}>NOUVEAU</span>
           )}
           {product.stock_quantity === 0 && (
             <span style={{
-              background: 'rgba(0,0,0,0.7)', color: 'rgba(255,255,255,0.5)',
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+              background: 'rgba(9,9,9,0.7)', color: 'var(--siecle-muted)',
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
               padding: '3px 8px',
             }}>ÉPUISÉ</span>
           )}
@@ -100,8 +100,8 @@ export default function ProductCard({ product, index = 0 }) {
               onClick={(e) => { e.preventDefault(); addItem(product) }}
               style={{
                 width: '100%', padding: '10px 0',
-                background: '#fff', color: '#000',
-                fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
+                background: 'var(--siecle-white)', color: 'var(--siecle-black)',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                 border: 'none', cursor: 'pointer',
               }}
             >
@@ -110,8 +110,8 @@ export default function ProductCard({ product, index = 0 }) {
           ) : (
             <Link to={`/product/${product.slug}`} style={{
               display: 'block', width: '100%', padding: '10px 0',
-              background: '#fff', color: '#000', textAlign: 'center',
-              fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
+              background: 'var(--siecle-white)', color: 'var(--siecle-black)', textAlign: 'center',
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
             }}>
               {product.sizes?.length > 0 ? 'CHOISIR LA TAILLE' : 'VOIR LE PRODUIT'}
             </Link>
@@ -124,7 +124,7 @@ export default function ProductCard({ product, index = 0 }) {
         <p style={{ color: 'var(--siecle-muted)', fontSize: 10, letterSpacing: '0.12em', marginBottom: 4 }}>
           {product.category || ''}
         </p>
-        <p style={{ color: '#fff', fontSize: 14, fontWeight: 500, marginBottom: 4, lineHeight: 1.3 }}>
+        <p style={{ color: 'var(--siecle-white)', fontSize: 14, fontWeight: 500, marginBottom: 4, lineHeight: 1.3 }}>
           {product.name}
         </p>
         <p style={{ color: 'var(--siecle-beige)', fontSize: 14, fontWeight: 700 }}>

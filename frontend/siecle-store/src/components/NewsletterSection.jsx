@@ -49,7 +49,7 @@ export default function NewsletterSection() {
         </p>
 
         <h2 style={{
-          fontFamily: '"Playfair Display", "Cormorant Garamond", Georgia, serif',
+          fontFamily: 'var(--font-heading)',
           fontSize: 'clamp(32px, 5vw, 52px)',
           fontWeight: 500, lineHeight: 1.08,
           color: '#090807', letterSpacing: '-0.02em',
@@ -97,7 +97,7 @@ export default function NewsletterSection() {
                 style={{
                   flex: 1,
                   padding: '16px 20px',
-                  background: '#fff',
+                  background: 'var(--siecle-white)',
                   border: `1px solid ${status === 'error' ? '#c0392b' : '#ddd0be'}`,
                   borderRight: 'none',
                   fontSize: 14, color: '#090807',

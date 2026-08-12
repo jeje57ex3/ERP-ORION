@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
-export default function EditorialSection({ eyebrow, title, text, btnLabel, btnLink, reverse = false, accent = 'var(--siecle-beige)', children }) {
+export default function EditorialSection({ index, eyebrow, title, quote, text, btnLabel, btnLink, reverse = false, accent = 'var(--siecle-beige)', children }) {
   return (
-    <section style={{ padding: '100px 24px', background: '#000' }}>
+    <section style={{ padding: '100px 24px', background: 'var(--siecle-black)' }}>
       <div style={{
         maxWidth: 1200, margin: '0 auto',
         display: 'grid',
@@ -20,21 +20,36 @@ export default function EditorialSection({ eyebrow, title, text, btnLabel, btnLi
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
+          {index && (
+            <p style={{ color: 'var(--siecle-muted)', fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', marginBottom: 12 }}>
+              {index}
+            </p>
+          )}
           {eyebrow && (
-            <p style={{ color: accent, fontSize: 9, fontWeight: 800, letterSpacing: '0.25em', marginBottom: 16 }}>
+            <p style={{ color: accent, fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', marginBottom: 16 }}>
               {eyebrow}
             </p>
           )}
           <h2 style={{
-            fontFamily: 'Montserrat, sans-serif',
-            fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 900,
-            letterSpacing: '0.02em', color: '#fff',
+            fontFamily: 'var(--font-heading)',
+            fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 700,
+            letterSpacing: '0.02em', color: 'var(--siecle-white)',
             lineHeight: 1.08, marginBottom: 20,
           }}>
             {title}
           </h2>
+          {quote && (
+            <blockquote style={{
+              margin: '0 0 24px', padding: '0 0 0 18px',
+              borderLeft: `2px solid ${accent}`,
+              color: 'var(--siecle-white)', fontSize: 17, fontStyle: 'italic',
+              lineHeight: 1.5, maxWidth: 420,
+            }}>
+              {quote}
+            </blockquote>
+          )}
           {text && (
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.85, marginBottom: 32, maxWidth: 420 }}>
+            <p style={{ color: 'var(--siecle-muted)', fontSize: 14, lineHeight: 1.85, marginBottom: 32, maxWidth: 420 }}>
               {text}
             </p>
           )}

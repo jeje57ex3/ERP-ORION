@@ -65,7 +65,7 @@ export default function ProductDetail() {
             </>
           )}
           <span>/</span>
-          <span style={{ color: '#fff' }}>{product.name}</span>
+          <span style={{ color: 'var(--siecle-white)' }}>{product.name}</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'start' }}
@@ -74,7 +74,7 @@ export default function ProductDetail() {
           {/* Left: image/viewer */}
           <div>
             {/* Main image */}
-            <div style={{ position: 'relative', aspectRatio: '3/4', background: '#111', overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ position: 'relative', aspectRatio: '3/4', background: 'var(--siecle-dark)', overflow: 'hidden', marginBottom: 12 }}>
               {show3d && product.model_3d_url ? (
                 <Product3DViewer
                   modelUrl={product.model_3d_url}
@@ -92,7 +92,7 @@ export default function ProductDetail() {
                 />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 48, color: 'rgba(255,255,255,0.1)', fontFamily: 'Montserrat, sans-serif', fontWeight: 900 }}>
+                  <span style={{ fontSize: 48, color: 'rgba(241,237,229,0.1)', fontFamily: 'var(--font-heading)', fontWeight: 900 }}>
                     SIÈCLE
                   </span>
                 </div>
@@ -104,9 +104,9 @@ export default function ProductDetail() {
                   onClick={() => setShow3d(v => !v)}
                   style={{
                     position: 'absolute', bottom: 12, right: 12,
-                    padding: '8px 14px', background: 'rgba(0,0,0,0.7)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    color: '#fff', cursor: 'pointer', fontSize: 10,
+                    padding: '8px 14px', background: 'rgba(9,9,9,0.7)',
+                    border: '1px solid rgba(241,237,229,0.2)',
+                    color: 'var(--siecle-white)', cursor: 'pointer', fontSize: 10,
                     fontWeight: 700, letterSpacing: '0.1em',
                   }}
                 >
@@ -147,9 +147,9 @@ export default function ProductDetail() {
             {/* Name */}
             <motion.h1 variants={fadeUp} initial="hidden" animate="visible" custom={1}
               style={{
-                fontFamily: 'Montserrat, sans-serif',
+                fontFamily: 'var(--font-heading)',
                 fontSize: 'clamp(24px, 3.5vw, 38px)', fontWeight: 900,
-                letterSpacing: '0.02em', color: '#fff', marginBottom: 8, lineHeight: 1.1,
+                letterSpacing: '0.02em', color: 'var(--siecle-white)', marginBottom: 8, lineHeight: 1.1,
               }}
             >
               {product.name}
@@ -176,7 +176,7 @@ export default function ProductDetail() {
               <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={4}
                 style={{ marginBottom: 24 }}
               >
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(241,237,229,0.6)', marginBottom: 12 }}>
                   TAILLE {size && `— ${size}`}
                 </p>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -186,9 +186,9 @@ export default function ProductDetail() {
                       onClick={() => setSize(s)}
                       style={{
                         width: 44, height: 44,
-                        border: size === s ? '1px solid var(--siecle-beige)' : '1px solid rgba(255,255,255,0.2)',
+                        border: size === s ? '1px solid var(--siecle-beige)' : '1px solid rgba(241,237,229,0.2)',
                         background: size === s ? 'var(--siecle-beige)' : 'transparent',
-                        color: size === s ? '#000' : '#fff',
+                        color: size === s ? 'var(--siecle-black)' : 'var(--siecle-white)',
                         fontSize: 12, fontWeight: 700, cursor: 'pointer',
                         transition: 'all 0.15s',
                       }}
@@ -223,8 +223,8 @@ export default function ProductDetail() {
                 disabled={product.stock_quantity === 0}
                 style={{
                   flex: 1, minWidth: 200, padding: '16px 24px',
-                  background: added ? '#4CAF50' : product.stock_quantity === 0 ? '#333' : 'var(--siecle-beige)',
-                  color: added ? '#fff' : '#000',
+                  background: added ? '#4CAF50' : product.stock_quantity === 0 ? 'var(--siecle-gray)' : 'var(--siecle-beige)',
+                  color: added ? 'var(--siecle-white)' : 'var(--siecle-black)',
                   border: 'none', cursor: product.stock_quantity === 0 ? 'not-allowed' : 'pointer',
                   fontSize: 12, fontWeight: 800, letterSpacing: '0.14em',
                   transition: 'background 0.3s, color 0.3s',
@@ -237,7 +237,7 @@ export default function ProductDetail() {
             {/* Meta */}
             {product.sku && (
               <motion.p variants={fadeUp} initial="hidden" animate="visible" custom={7}
-                style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, marginTop: 24, letterSpacing: '0.08em' }}
+                style={{ color: 'rgba(241,237,229,0.2)', fontSize: 11, marginTop: 24, letterSpacing: '0.08em' }}
               >
                 REF: {product.sku}
               </motion.p>
@@ -253,8 +253,8 @@ export default function ProductDetail() {
                 VOUS AIMEREZ AUSSI
               </p>
               <h2 style={{
-                fontFamily: 'Montserrat, sans-serif',
-                fontSize: 28, fontWeight: 900, letterSpacing: '0.04em', color: '#fff',
+                fontFamily: 'var(--font-heading)',
+                fontSize: 28, fontWeight: 900, letterSpacing: '0.04em', color: 'var(--siecle-white)',
               }}>
                 PRODUITS SIMILAIRES
               </h2>

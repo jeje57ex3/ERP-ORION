@@ -44,7 +44,7 @@ export default function Footer() {
     <>
     <footer style={{
       background: '#0A0A0A',
-      borderTop: '1px solid rgba(255,255,255,0.06)',
+      borderTop: '1px solid rgba(241,237,229,0.06)',
       padding: '64px 24px 32px',
     }}>
       <div style={{ maxWidth: 1440, margin: '0 auto' }}>
@@ -58,9 +58,9 @@ export default function Footer() {
           {/* Brand col */}
           <div>
             <div style={{
-              fontFamily: 'Montserrat, sans-serif',
+              fontFamily: 'var(--font-heading)',
               fontSize: 24, fontWeight: 900,
-              letterSpacing: '0.18em', color: '#fff',
+              letterSpacing: '0.18em', color: 'var(--siecle-white)',
               marginBottom: 16,
             }}>
               SIÈCLE
@@ -86,7 +86,7 @@ export default function Footer() {
                       color: 'var(--siecle-muted)', fontSize: 13,
                       transition: 'color 0.2s',
                     }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--siecle-white)'}
                       onMouseLeave={e => e.currentTarget.style.color = 'var(--siecle-muted)'}
                     >
                       {l.label}
@@ -100,7 +100,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div style={{
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(241,237,229,0.06)',
           paddingTop: 24,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexWrap: 'wrap', gap: 16,
@@ -114,7 +114,7 @@ export default function Footer() {
                 color: 'var(--siecle-muted)', fontSize: 12, cursor: 'pointer',
                 transition: 'color 0.2s',
               }}
-                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--siecle-white)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--siecle-muted)'}
               >
                 {sn}

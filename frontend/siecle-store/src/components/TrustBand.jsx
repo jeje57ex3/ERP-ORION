@@ -7,17 +7,8 @@ const ITEMS = [
         <path d="M5 12h14M12 5l7 7-7 7"/>
       </svg>
     ),
-    label: 'Livraison offerte',
-    sub: 'Dès 50€ d\'achat',
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-      </svg>
-    ),
-    label: 'Cruelty-free',
-    sub: 'Certifié & vegan',
+    label: 'Livraison Europe',
+    sub: 'Offerte dès 50€',
   },
   {
     icon: (
@@ -25,8 +16,17 @@ const ITEMS = [
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
       </svg>
     ),
-    label: 'Qualité premium',
-    sub: 'Ingrédients sélectionnés',
+    label: 'Maison indépendante',
+    sub: 'Production limitée',
+  },
+  {
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+    ),
+    label: 'Service client',
+    sub: 'Réponse sous 24h',
   },
   {
     icon: (
@@ -47,9 +47,9 @@ export default function TrustBand() {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       style={{
-        background: '#090807',
-        borderTop: '1px solid rgba(201,164,92,0.2)',
-        borderBottom: '1px solid rgba(201,164,92,0.2)',
+        background: 'var(--siecle-black)',
+        borderTop: '1px solid var(--siecle-border)',
+        borderBottom: '1px solid var(--siecle-border)',
         padding: '0',
       }}
     >
@@ -70,15 +70,15 @@ export default function TrustBand() {
             style={{
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '22px 24px',
-              borderRight: i < 3 ? '1px solid rgba(201,164,92,0.1)' : 'none',
+              borderRight: i < 3 ? '1px solid var(--siecle-border)' : 'none',
             }}
           >
-            <span style={{ color: '#c9a45c', flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ color: 'var(--siecle-beige)', flexShrink: 0 }}>{item.icon}</span>
             <div>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#f7f1e8', margin: 0, letterSpacing: '0.04em' }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--siecle-white)', margin: 0, letterSpacing: '0.04em' }}>
                 {item.label}
               </p>
-              <p style={{ fontSize: 11, color: 'rgba(247,241,232,0.4)', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 11, color: 'var(--siecle-muted)', margin: '2px 0 0' }}>
                 {item.sub}
               </p>
             </div>
@@ -89,7 +89,7 @@ export default function TrustBand() {
       <style>{`
         @media (max-width: 768px) {
           .trust-band-grid { grid-template-columns: 1fr 1fr !important; }
-          .trust-band-grid > div { border-right: none !important; border-bottom: 1px solid rgba(201,164,92,0.1); }
+          .trust-band-grid > div { border-right: none !important; border-bottom: 1px solid var(--siecle-border); }
         }
         @media (max-width: 480px) {
           .trust-band-grid { grid-template-columns: 1fr !important; }
