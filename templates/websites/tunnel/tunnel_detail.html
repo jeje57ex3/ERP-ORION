@@ -1,0 +1,255 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% blocktrans with tunnel_name=tunnel.name %}{{ tunnel_name }} — Tunnel Cloudflare{% endblocktrans %}{% endblock %}
+{% block extra_css %}
+{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:tunnel_list' %}">{% trans "Tunnels" %}</a></li>
+<li class="breadcrumb-item active">{{ tunnel.name }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex flex-wrap gap-2">
+  <a href="{% url 'websites:tunnel_download_config' tunnel.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-download me-1"></i>config.yml
+  </a>
+  <a href="{% url 'websites:tunnel_edit' tunnel.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
+  </a>
+  <a href="{% url 'websites:ingress_create' tunnel.pk %}" class="orion-btn orion-orion-btn primary">
+    <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une règle" %}
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# Statut cloudflared #}
+{% if cf_status.running %}
+<div class="orion-alert success mb-4">
+  <i class="bi bi-broadcast me-2"></i>
+  <strong>{% trans "cloudflared actif" %}</strong> — {% trans "PID(s) :" %} {{ cf_status.pids|join:", " }}
+</div>
+{% else %}
+<div class="orion-alert warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>{% trans "cloudflared n'est pas en cours d'exécution." %}</strong>
+  {% trans "Lancez" %} <code>cloudflared tunnel --config "{{ tunnel.config_file|default:'config.yml' }}" run</code>
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+  {# ── Colonne gauche — Règles d'ingress ─────────────────────────────────── #}
+  <div class="col-lg-8">
+
+    <div class="orion-card mb-4">
+      <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0"><i class="bi bi-signpost-split me-2 text-warning"></i>{% trans "Règles d'ingress" %}</h6>
+        <a href="{% url 'websites:ingress_create' tunnel.pk %}" class="orion-btn orion-orion-btn primary sm">
+          <i class="bi bi-plus me-1"></i>{% trans "Ajouter" %}
+        </a>
+      </div>
+      <div class="orion-orion-card-body p-0">
+        {% if rules %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0" style="font-size:.85rem">
+            <thead>
+              <tr style="border-bottom:1px solid var(--orion-border)">
+                <th class="ps-3 py-2">#</th>
+                <th>{% trans "Hostname" %}</th>
+                <th>{% trans "Service local" %}</th>
+                <th>{% trans "Site" %}</th>
+                <th>{% trans "DNS" %}</th>
+                <th>{% trans "État" %}</th>
+                <th class="pe-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rule in rules %}
+              <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+                <td class="ps-3 py-2 text-muted">{{ rule.order }}</td>
+                <td class="py-2 font-monospace fw-semibold" style="font-size:.8rem">{{ rule.hostname }}</td>
+                <td class="py-2">
+                  {% if rule.is_localhost_service %}
+                  <form method="post" action="{% url 'websites:ingress_update_port' tunnel.pk rule.pk %}" class="d-flex align-items-center gap-1" title="{% trans 'Changer le port' %}">
+                    {% csrf_token %}
+                    <code class="font-monospace text-muted" style="font-size:.76rem;white-space:nowrap">localhost:</code>
+                    <input type="number" name="port" value="{{ rule.local_port }}" min="1" max="65535"
+                           class="form-control form-control-sm font-monospace"
+                           style="width:68px;font-size:.78rem;padding:2px 5px;background:transparent;border-color:var(--orion-border);color:inherit"
+                           title="{% trans 'Port local' %}">
+                    <button type="submit" class="orion-btn orion-btn-outline sm" title="{% trans 'Appliquer le port' %}" style="padding:2px 7px;font-size:.76rem">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+                  {% else %}
+                  <span class="font-monospace text-muted" style="font-size:.78rem">{{ rule.service }}</span>
+                  {% endif %}
+                </td>
+                <td class="py-2">
+                  {% if rule.website %}<span class="orion-badge orion-badge-info" style="font-size:.7rem">{{ rule.website.name }}</span>
+                  {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+                <td class="py-2">
+                  {% if rule.dns_synced %}
+                  <span class="orion-badge orion-badge-success" title="{% blocktrans with synced_at=rule.dns_synced_at|date:'d/m/Y H:i' %}Synchronisé le {{ synced_at }}{% endblocktrans %}"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Sync" %}</span>
+                  {% else %}
+                  <form method="post" action="{% url 'websites:ingress_sync_dns' tunnel.pk rule.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="orion-btn orion-btn-outline sm" style="font-size:.7rem;padding:2px 8px" title="{% trans 'Synchroniser le CNAME Cloudflare' %}">
+                      <i class="bi bi-cloud-upload me-1"></i>{% trans "Sync DNS" %}
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+                <td class="py-2">
+                  {% if rule.is_active %}<span class="orion-badge orion-badge-success" style="font-size:.7rem">{% trans "Actif" %}</span>
+                  {% else %}<span class="orion-badge orion-badge-secondary" style="font-size:.7rem">{% trans "Inactif" %}</span>{% endif %}
+                </td>
+                <td class="pe-3 py-2">
+                  <div class="d-flex gap-1">
+                    <a href="{% url 'websites:ingress_edit' tunnel.pk rule.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                    <form method="post" action="{% url 'websites:ingress_delete' tunnel.pk rule.pk %}" onsubmit="return confirm('{% trans "Supprimer cette règle ?" %}')">
+                      {% csrf_token %}
+                      <button type="submit" class="orion-btn orion-btn-outline sm" title="{% trans 'Supprimer' %}" style="color:var(--orion-danger)"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+              {# Catch-all implicite #}
+              <tr style="opacity:.45;border-top:1px dashed var(--orion-border)">
+                <td class="ps-3 py-2 text-muted">—</td>
+                <td class="py-2 font-monospace" style="font-size:.8rem">* (catch-all)</td>
+                <td class="py-2 font-monospace text-muted" style="font-size:.78rem">http_status:404</td>
+                <td colspan="4"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-signpost-split mb-2" style="font-size:2rem;opacity:.3;display:block"></i>
+          {% trans "Aucune règle d'ingress configurée." %}<br>
+          <a href="{% url 'websites:ingress_create' tunnel.pk %}" class="orion-btn orion-orion-btn primary sm mt-3">
+            <i class="bi bi-plus me-1"></i>{% trans "Ajouter une règle" %}
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Prévisualisation config.yml #}
+    <div class="orion-card">
+      <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0"><i class="bi bi-file-code me-2 text-info"></i>{% trans "Prévisualisation config.yml" %}</h6>
+        <div class="d-flex gap-2">
+          {% if tunnel.config_file %}
+          <form method="post" action="{% url 'websites:tunnel_write_config' tunnel.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn orion-btn-outline sm"><i class="bi bi-floppy me-1"></i>{% trans "Écrire sur disque" %}</button>
+          </form>
+          {% endif %}
+          <a href="{% url 'websites:tunnel_download_config' tunnel.pk %}" class="orion-btn orion-btn-outline sm"><i class="bi bi-download me-1"></i>{% trans "Télécharger" %}</a>
+        </div>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <pre style="background:rgba(0,0,0,.35);border-radius:12px;padding:16px;font-size:.8rem;color:#a8d8ea;overflow-x:auto;margin:0"><code>{{ config_preview }}</code></pre>
+        {% if tunnel.config_file %}
+        <p class="small text-muted mt-2 mb-0"><i class="bi bi-folder me-1"></i>{% trans "Destination :" %} <code>{{ tunnel.config_file }}</code></p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Colonne droite — Infos tunnel ─────────────────────────────────────── #}
+  <div class="col-lg-4">
+
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header p-3 border-bottom">
+        <h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2 text-warning"></i>{% trans "Informations tunnel" %}</h6>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">{% trans "Nom" %}</dt>
+          <dd class="col-7 fw-semibold mb-2">{{ tunnel.name }}</dd>
+
+          <dt class="col-5 text-muted">{% trans "État" %}</dt>
+          <dd class="col-7 mb-2">
+            {% if tunnel.is_active %}<span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
+            {% else %}<span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>{% endif %}
+          </dd>
+
+          {% if tunnel.tunnel_id %}
+          <dt class="col-5 text-muted">Tunnel ID</dt>
+          <dd class="col-7 mb-2 font-monospace" style="font-size:.75rem;word-break:break-all">{{ tunnel.tunnel_id }}</dd>
+          {% endif %}
+
+          {% if tunnel.cloudflare_account %}
+          <dt class="col-5 text-muted">{% trans "Compte CF" %}</dt>
+          <dd class="col-7 mb-2">{{ tunnel.cloudflare_account.label }}</dd>
+          {% endif %}
+
+          {% if tunnel.credentials_file %}
+          <dt class="col-5 text-muted">Credentials</dt>
+          <dd class="col-7 mb-2 font-monospace" style="font-size:.7rem;word-break:break-all">{{ tunnel.credentials_file }}</dd>
+          {% endif %}
+
+          {% if tunnel.config_file %}
+          <dt class="col-5 text-muted">Config</dt>
+          <dd class="col-7 mb-2 font-monospace" style="font-size:.7rem;word-break:break-all">{{ tunnel.config_file }}</dd>
+          {% endif %}
+
+          <dt class="col-5 text-muted">{% trans "Créé le" %}</dt>
+          <dd class="col-7 mb-0">{{ tunnel.created_at|date:"d/m/Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Commande de lancement #}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header p-3 border-bottom">
+        <h6 class="fw-bold mb-0"><i class="bi bi-terminal me-2 text-info"></i>{% trans "Démarrage" %}</h6>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <p class="small text-muted mb-2">{% trans "Commande pour lancer le tunnel :" %}</p>
+        <pre style="background:rgba(0,0,0,.35);border-radius:10px;padding:12px;font-size:.76rem;color:#a8d8ea;overflow-x:auto;margin:0"><code>cloudflared tunnel{% if tunnel.config_file %} --config "{{ tunnel.config_file }}"{% endif %} run{% if tunnel.tunnel_id %} {{ tunnel.tunnel_id }}{% endif %}</code></pre>
+      </div>
+    </div>
+
+    {% if tunnel.notes %}
+    <div class="orion-card">
+      <div class="orion-orion-card-header p-3 border-bottom">
+        <h6 class="fw-bold mb-0"><i class="bi bi-sticky me-2"></i>{% trans "Notes" %}</h6>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <p class="small mb-0" style="white-space:pre-wrap">{{ tunnel.notes }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Zone danger #}
+    <div class="orion-card mt-3" style="border-color:rgba(220,38,38,.3)">
+      <div class="orion-orion-card-header p-3 border-bottom" style="border-color:rgba(220,38,38,.2)">
+        <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-trash me-2"></i>{% trans "Zone dangereuse" %}</h6>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <p class="small text-muted mb-2">{% trans "Supprimer ce tunnel et toutes ses règles d'ingress." %}</p>
+        <form method="post" action="{% url 'websites:tunnel_delete' tunnel.pk %}" onsubmit="return confirm('{% blocktrans with tunnel_name=tunnel.name rule_count=rules|length %}Supprimer définitivement le tunnel « {{ tunnel_name }} » et ses {{ rule_count }} règles ?{% endblocktrans %}')">
+          {% csrf_token %}
+          <button type="submit" class="orion-btn sm w-100" style="background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.3)">
+            <i class="bi bi-trash me-1"></i>{% trans "Supprimer le tunnel" %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

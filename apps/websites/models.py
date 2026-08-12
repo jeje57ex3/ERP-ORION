@@ -1740,4 +1740,6 @@ from .models_domains import (
     DomainRedirect,
     DomainConnectionLog,
     CloudflareAccount,
+    CloudflareTunnel,
+    TunnelIngressRule,
 )

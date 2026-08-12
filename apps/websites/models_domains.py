@@ -229,3 +229,101 @@ class CloudflareAccount(models.Model):
         except Exception:
             pass
         return []
+
+
+class CloudflareTunnel(models.Model):
+    """
+    Tunnel Cloudflare (cloudflared) — restaurée après suppression accidentelle
+    (classe retirée de ce fichier sans migration ni nettoyage des vues
+    apps/websites/views_cloudflare.py et views_tunnel.py, alors que la table
+    websites_cloudflaretunnel existait toujours en base avec des données
+    réelles). Champs identiques à la migration d'origine
+    (0013_cloudflare_tunnel, jamais commitée sur git).
+    """
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='cloudflare_tunnels',
+        verbose_name='Entreprise',
+    )
+    cloudflare_account = models.ForeignKey(
+        CloudflareAccount,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='tunnels',
+        verbose_name='Compte Cloudflare',
+    )
+    tunnel_id = models.CharField(
+        'ID Tunnel', max_length=100, blank=True,
+        help_text='UUID du tunnel (ex: f4aa00aa-1df4-41f9-b676-946933560b2f)',
+    )
+    name = models.CharField('Nom', max_length=100)
+    credentials_file = models.CharField(
+        'Fichier credentials', max_length=500, blank=True,
+        help_text='Chemin vers le .json de credentials cloudflared',
+    )
+    config_file = models.CharField(
+        'Fichier config.yml', max_length=500, blank=True,
+        help_text='Chemin vers config.yml (ex: C:\\Users\\jessy\\.cloudflared\\config.yml)',
+    )
+    is_active = models.BooleanField('Actif', default=True)
+    notes = models.TextField('Notes', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'websites'
+        verbose_name = 'Tunnel Cloudflare'
+        verbose_name_plural = 'Tunnels Cloudflare'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.name} ({self.tunnel_id[:8]})' if self.tunnel_id else self.name
+
+
+class TunnelIngressRule(models.Model):
+    """Règle d'ingress d'un tunnel Cloudflare — restaurée, voir CloudflareTunnel."""
+
+    tunnel = models.ForeignKey(
+        CloudflareTunnel,
+        on_delete=models.CASCADE,
+        related_name='ingress_rules',
+        verbose_name='Tunnel',
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='tunnel_rules',
+        verbose_name='Site associé',
+    )
+    hostname = models.CharField(
+        'Hostname', max_length=253,
+        help_text='Ex: login.elysiums.fr (sans https://)',
+    )
+    service = models.CharField(
+        'Service local', max_length=200,
+        help_text='Ex: http://localhost:8000',
+    )
+    order = models.PositiveSmallIntegerField('Ordre', default=0)
+    is_active = models.BooleanField('Actif', default=True)
+    dns_synced = models.BooleanField('DNS synchronisé', default=False)
+    dns_synced_at = models.DateTimeField('DNS sync à', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'websites'
+        verbose_name = "Règle d'ingress"
+        verbose_name_plural = "Règles d'ingress"
+        ordering = ['order', 'hostname']
+
+    def __str__(self):
+        return f'{self.hostname} → {self.service}'
+
+    @property
+    def local_port(self):
+        """Port extrait de service si c'est un localhost (ex: http://localhost:9000 -> 9000),
+        sinon None — utilisé par TunnelIngressRuleForm comme raccourci de saisie."""
+        import re
+        match = re.match(r'^https?://localhost:(\d+)/?$', self.service or '')
+        return int(match.group(1)) if match else None
