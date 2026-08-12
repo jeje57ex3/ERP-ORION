@@ -112,6 +112,12 @@ def run_system_update(started_by=None):
 
         python_bin = shlex.quote(sys.executable)
 
+        requirements_path = Path(backend_path) / 'requirements.txt'
+        if requirements_path.exists():
+            run_shell_step(update_run, 'pip_install', 'Installation des dépendances Python',
+                           f'{python_bin} -m pip install -r {shlex.quote(str(requirements_path))}',
+                           cwd=backend_path, timeout=1200)
+
         if update_settings.run_migrations:
             run_shell_step(update_run, 'migrations', 'Migrations Django',
                            f'{python_bin} manage.py migrate', cwd=backend_path, timeout=1800)
