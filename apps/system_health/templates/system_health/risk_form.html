@@ -1,0 +1,29 @@
+{% extends "erp_base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé · Risques{% endblock %}
+{% block page_subtitle %}{{ title }}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:risk_list' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Annuler
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card" style="max-width:800px">
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="mb-3">
+      <label class="form-label small fw-500">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="d-flex gap-2">
+      <button type="submit" class="orion-btn">Enregistrer</button>
+      <a href="{% url 'system_health:risk_list' %}" class="orion-btn">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Disques & stockage — Santé système{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_subtitle %}Espace disque utilisé et disponible par volume monté sur le serveur.{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:dashboard' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.disk-bar { height: 10px; border-radius: 6px; background: var(--orion-bg-subtle); overflow: hidden; }
+.disk-bar-fill { height: 100%; border-radius: 6px; transition: width .4s ease; }
+.disk-bar-fill.ok       { background: #198754; }
+.disk-bar-fill.warning  { background: #ffc107; }
+.disk-bar-fill.critical { background: #dc3545; }
+.disk-card { border-left: 4px solid transparent; }
+.disk-card.ok       { border-left-color: #198754; }
+.disk-card.warning  { border-left-color: #ffc107; }
+.disk-card.critical { border-left-color: #dc3545; }
+.disk-percent { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Résumé global -->
+<div class="orion-card mb-3" id="disk-summary">
+  <div class="d-flex align-items-center flex-wrap gap-4">
+    <div>
+      <div class="disk-percent" id="summary-percent">{{ disks.percent }}%</div>
+      <div class="text-muted small">Occupation globale</div>
+    </div>
+    <div class="disk-bar flex-grow-1" style="min-width:200px">
+      <div class="disk-bar-fill {{ disks.status }}" id="summary-bar" style="width:{{ disks.percent }}%"></div>
+    </div>
+    <div class="d-flex gap-4">
+      <div class="text-center">
+        <div class="fw-600" id="summary-used">{{ disks.used_gb }} Go</div>
+        <div class="text-muted small">Utilisé</div>
+      </div>
+      <div class="text-center">
+        <div class="fw-600" id="summary-free">{{ disks.free_gb }} Go</div>
+        <div class="text-muted small">Libre</div>
+      </div>
+      <div class="text-center">
+        <div class="fw-600" id="summary-total">{{ disks.total_gb }} Go</div>
+        <div class="text-muted small">Capacité totale</div>
+      </div>
+      <div class="text-center">
+        <div class="fw-600" id="summary-count">{{ disks.count }}</div>
+        <div class="text-muted small">Volume{{ disks.count|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Détail par volume -->
+<div class="row g-3" id="disk-grid">
+  {% for d in disks.partitions %}
+  <div class="col-md-6 col-lg-4">
+    <div class="orion-card h-100 disk-card {{ d.status }}">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <div class="fw-600 text-truncate" title="{{ d.device }}">{{ d.device }}</div>
+          <div class="text-muted small text-truncate" title="{{ d.mountpoint }}">{{ d.mountpoint }} · {{ d.fstype }}</div>
+        </div>
+        <span class="orion-badge {% if d.status == 'ok' %}success{% elif d.status == 'warning' %}warning{% else %}danger{% endif %}">
+          {{ d.percent }}%
+        </span>
+      </div>
+      <div class="disk-bar mb-2">
+        <div class="disk-bar-fill {{ d.status }}" style="width:{{ d.percent }}%"></div>
+      </div>
+      <div class="d-flex justify-content-between small text-muted">
+        <span>{{ d.used_gb }} Go utilisés</span>
+        <span>{{ d.free_gb }} Go libres</span>
+        <span>{{ d.total_gb }} Go total</span>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="orion-card text-center py-5 text-muted">
+      <i class="bi bi-hdd fs-3 d-block mb-2"></i>
+      Aucun volume disque détecté (ou <code>psutil</code> indisponible sur ce serveur).
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function statusClass(pct) {
+  if (pct >= 90) return 'critical';
+  if (pct >= 80) return 'warning';
+  return 'ok';
+}
+function refreshDisks() {
+  fetch('{% url "system_health:disk_api" %}')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('summary-percent').textContent = d.percent + '%';
+      const bar = document.getElementById('summary-bar');
+      bar.style.width = d.percent + '%';
+      bar.className = 'disk-bar-fill ' + d.status;
+      document.getElementById('summary-used').textContent  = d.used_gb + ' Go';
+      document.getElementById('summary-free').textContent  = d.free_gb + ' Go';
+      document.getElementById('summary-total').textContent = d.total_gb + ' Go';
+      document.getElementById('summary-count').textContent = d.count;
+    })
+    .catch(() => {});
+}
+setInterval(refreshDisks, 30000);
+</script>
+{% endblock %}

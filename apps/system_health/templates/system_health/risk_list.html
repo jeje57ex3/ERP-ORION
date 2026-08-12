@@ -1,0 +1,93 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Registre des risques{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_subtitle %}Matrice de gestion des risques — Probabilité × Impact.{% endblock %}
+{% block page_actions %}
+{% if can_edit %}
+<a href="{% url 'system_health:risk_create' %}" class="orion-btn">
+  <i class="bi bi-plus me-1"></i>Nouveau risque
+</a>
+{% endif %}
+{% if can_export %}
+<a href="?{{ request.GET.urlencode }}&export=csv" class="orion-btn">
+  <i class="bi bi-download me-1"></i>CSV
+</a>
+{% endif %}
+<a href="{% url 'system_health:dashboard' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block content %}
+
+<form method="get" class="orion-card mb-3 d-flex gap-2 align-items-end flex-wrap">
+  <div>
+    <label class="form-label small">Catégorie</label>
+    <select name="category" class="orion-input">
+      <option value="">Toutes</option>
+      {% for code, label in categories %}
+      <option value="{{ code }}" {% if filters.category == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label small">Statut</label>
+    <select name="status" class="orion-input">
+      <option value="">Tous</option>
+      {% for code, label in statuses %}
+      <option value="{{ code }}" {% if filters.status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label small">Criticité</label>
+    <select name="level" class="orion-input">
+      <option value="">Toutes</option>
+      <option value="critical"  {% if filters.level == 'critical'  %}selected{% endif %}>Critique</option>
+      <option value="high"      {% if filters.level == 'high'      %}selected{% endif %}>Élevé</option>
+      <option value="important" {% if filters.level == 'important' %}selected{% endif %}>Important</option>
+      <option value="moderate"  {% if filters.level == 'moderate'  %}selected{% endif %}>Modéré</option>
+      <option value="low"       {% if filters.level == 'low'       %}selected{% endif %}>Faible</option>
+    </select>
+  </div>
+  <button type="submit" class="orion-btn">Filtrer</button>
+</form>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Réf</th>
+        <th>Titre</th>
+        <th>Catégorie</th>
+        <th>P × I</th>
+        <th>Criticité</th>
+        <th>Statut</th>
+        <th>Responsable</th>
+        <th>Cible</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for risk in risks %}
+      <tr>
+        <td class="font-monospace small text-muted">{{ risk.uid }}</td>
+        <td class="fw-500">{{ risk.title }}</td>
+        <td class="small">{{ risk.get_category_display }}</td>
+        <td class="text-center font-monospace">{{ risk.probability }}×{{ risk.impact }}</td>
+        <td><span class="orion-badge {{ risk.criticality_color }}">{{ risk.criticality_label }} ({{ risk.criticality_score }})</span></td>
+        <td><span class="orion-badge neutral">{{ risk.get_status_display }}</span></td>
+        <td class="small text-muted">{{ risk.owner.get_full_name|default:"—" }}</td>
+        <td class="small text-muted">{{ risk.target_date|date:"d/m/Y"|default:"—" }}</td>
+        <td><a href="{% url 'system_health:risk_detail' risk.pk %}" class="orion-btn btn-sm">Détail</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" class="text-center text-muted py-4">Aucun risque enregistré.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

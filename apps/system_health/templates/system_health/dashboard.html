@@ -1,0 +1,221 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Santé du système{% endblock %}
+{% block page_eyebrow %}Super Admin · Supervision{% endblock %}
+{% block page_subtitle %}État en temps réel de la stabilité, sécurité et performances de l'ERP Orion.{% endblock %}
+
+{% block page_actions %}
+{% if can_view_technical %}
+<a href="{% url 'system_health:sensor_dashboard' %}" class="orion-btn">
+  <i class="bi bi-activity me-1"></i>Capteurs
+</a>
+<a href="{% url 'system_health:disk_dashboard' %}" class="orion-btn">
+  <i class="bi bi-hdd me-1"></i>Disques
+</a>
+{% endif %}
+{% if can_view_risks %}
+<a href="{% url 'system_health:risk_list' %}" class="orion-btn">
+  <i class="bi bi-shield-exclamation me-1"></i>Risques
+</a>
+{% endif %}
+<a href="{% url 'system_health:incident_list' %}" class="orion-btn">
+  <i class="bi bi-lightning me-1"></i>Incidents
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.health-score-ring { width:90px; height:90px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; }
+.health-score-ring.healthy  { background:rgba(25,135,84,.15); color:#198754; border:3px solid #198754; }
+.health-score-ring.degraded { background:rgba(13,110,253,.1); color:#0d6efd; border:3px solid #0d6efd; }
+.health-score-ring.unstable { background:rgba(255,193,7,.15); color:#b38600; border:3px solid #ffc107; }
+.health-score-ring.critical { background:rgba(220,53,69,.15); color:#dc3545; border:3px solid #dc3545; }
+.sensor-mini { font-size:.78rem; }
+.blink-alert { animation: blink 1.2s step-start infinite; }
+@keyframes blink { 50% { opacity:.3; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Bandeau état global -->
+<div class="orion-card mb-3" id="health-banner">
+  <div class="d-flex align-items-center gap-4">
+    <div class="health-score-ring {{ health.status }}" id="score-ring">
+      <span id="score-value">{{ health.score }}</span>
+    </div>
+    <div>
+      <div class="fw-600 fs-5" id="status-label">
+        {% if health.status == 'healthy' %}Système sain
+        {% elif health.status == 'degraded' %}Performances dégradées
+        {% elif health.status == 'unstable' %}Instable
+        {% elif health.status == 'critical' %}État critique{% else %}Inconnu{% endif %}
+      </div>
+      <small class="text-muted" id="last-updated">Mis à jour il y a quelques secondes</small>
+      {% if health.critical %}
+      <div class="mt-1">
+        {% for c in health.critical %}
+        <span class="orion-badge danger blink-alert">{{ c }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <a href="{% url 'system_health:incident_create' %}" class="orion-btn btn-sm" {% if not can_manage_incidents %}style="display:none"{% endif %}>
+        <i class="bi bi-lightning-fill me-1"></i>Déclarer un incident
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- KPIs row -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="orion-card h-100 text-center">
+      <div class="fs-3 fw-700 text-danger" id="kpi-errors">{{ recent_errors|length }}</div>
+      <div class="text-muted small">Erreurs ouvertes</div>
+      {% if can_view_errors %}
+      <a href="{% url 'system_health:error_list' %}?status=new" class="orion-btn btn-sm mt-2">Voir</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="orion-card h-100 text-center">
+      <div class="fs-3 fw-700 {% if open_incidents %}text-warning{% else %}text-success{% endif %}" id="kpi-incidents">{{ open_incidents|length }}</div>
+      <div class="text-muted small">Incidents actifs</div>
+      <a href="{% url 'system_health:incident_list' %}?status=open" class="orion-btn btn-sm mt-2">Voir</a>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="orion-card h-100 text-center">
+      <div class="fs-3 fw-700 text-info">{{ critical_risks|length }}</div>
+      <div class="text-muted small">Risques actifs</div>
+      {% if can_view_risks %}
+      <a href="{% url 'system_health:risk_list' %}" class="orion-btn btn-sm mt-2">Voir</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="orion-card h-100 text-center">
+      <div class="fs-3 fw-700 text-muted">{{ errors_24h }}</div>
+      <div class="text-muted small">Erreurs (24h)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Breakdown par catégorie -->
+<div class="orion-card mb-3">
+  <h6 class="fw-600 mb-3">Santé par catégorie</h6>
+  <div class="row g-2">
+    {% for cat, score in health.breakdown.items %}
+    <div class="col-md-2 col-4">
+      <div class="text-center p-2 rounded" style="background:var(--orion-bg-subtle)">
+        {% if score >= 90 %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+        {% elif score >= 70 %}<i class="bi bi-dash-circle-fill text-primary fs-5"></i>
+        {% elif score >= 40 %}<i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+        {% else %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>{% endif %}
+        <div class="small fw-500 mt-1">{{ cat|capfirst }}</div>
+        <div class="text-muted" style="font-size:.75rem">{{ score }}/100</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if can_view_technical %}
+<!-- Stockage -->
+<div class="orion-card mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="fw-600 mb-0"><i class="bi bi-hdd me-1"></i>Stockage</h6>
+    <a href="{% url 'system_health:disk_dashboard' %}" class="orion-btn btn-sm">Voir le détail par volume</a>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <div class="fw-700" style="min-width:56px">{{ disks.percent }}%</div>
+    <div style="height:8px;border-radius:5px;background:var(--orion-bg-subtle);overflow:hidden;flex-grow:1">
+      <div style="height:100%;border-radius:5px;width:{{ disks.percent }}%;
+        background:{% if disks.status == 'critical' %}#dc3545{% elif disks.status == 'warning' %}#ffc107{% else %}#198754{% endif %};"></div>
+    </div>
+    <div class="text-muted small text-nowrap">{{ disks.used_gb }} / {{ disks.total_gb }} Go sur {{ disks.count }} volume{{ disks.count|pluralize }}</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Deux colonnes : erreurs récentes + incidents actifs -->
+<div class="row g-3">
+  {% if can_view_errors %}
+  <div class="col-md-6">
+    <div class="orion-card h-100">
+      <h6 class="fw-600 mb-3"><i class="bi bi-bug me-1"></i>Erreurs récentes</h6>
+      {% if recent_errors %}
+      <div class="list-group list-group-flush">
+        {% for err in recent_errors %}
+        <a href="{% url 'system_health:error_detail' err.pk %}" class="list-group-item list-group-item-action px-0 py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="orion-badge {{ err.severity_color }}">{{ err.get_severity_display }}</span>
+            <span class="flex-grow-1 text-truncate small">{{ err.error_type }}</span>
+            <small class="text-muted">{{ err.last_seen|timesince }} ago</small>
+          </div>
+          <div class="small text-muted text-truncate">{{ err.module }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      <a href="{% url 'system_health:error_list' %}" class="orion-btn btn-sm mt-3">Toutes les erreurs</a>
+      {% else %}
+      <p class="text-muted text-center py-3"><i class="bi bi-check-circle fs-4 text-success d-block mb-2"></i>Aucune erreur ouverte</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="col-md-6">
+    <div class="orion-card h-100">
+      <h6 class="fw-600 mb-3"><i class="bi bi-lightning me-1"></i>Incidents actifs</h6>
+      {% if open_incidents %}
+      <div class="list-group list-group-flush">
+        {% for inc in open_incidents %}
+        <a href="{% url 'system_health:incident_detail' inc.pk %}" class="list-group-item list-group-item-action px-0 py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="orion-badge {{ inc.severity_color }}">{{ inc.get_severity_display }}</span>
+            <span class="flex-grow-1 text-truncate small fw-500">{{ inc.title }}</span>
+          </div>
+          <div class="small text-muted">{{ inc.get_status_display }} · Depuis {{ inc.started_at|timesince }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted text-center py-3"><i class="bi bi-check-circle fs-4 text-success d-block mb-2"></i>Aucun incident actif</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX polling toutes les 30 secondes
+const STATUS_LABELS = {
+  healthy: 'Système sain', degraded: 'Performances dégradées',
+  unstable: 'Instable', critical: 'État critique', unknown: 'Inconnu'
+};
+const STATUS_CLASSES = {
+  healthy: 'text-success', degraded: 'text-primary',
+  unstable: 'text-warning', critical: 'text-danger', unknown: 'text-muted'
+};
+function refreshDashboard() {
+  fetch('{% url "system_health:dashboard_api" %}')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('score-value').textContent = d.score;
+      document.getElementById('score-ring').className = 'health-score-ring ' + d.status;
+      document.getElementById('status-label').textContent = STATUS_LABELS[d.status] || d.status;
+      document.getElementById('last-updated').textContent = 'Mis à jour à ' + new Date(d.timestamp).toLocaleTimeString('fr-FR');
+      document.getElementById('kpi-errors').textContent = d.open_errors;
+      document.getElementById('kpi-incidents').textContent = d.open_incidents;
+    })
+    .catch(() => {});
+}
+setInterval(refreshDashboard, 30000);
+</script>
+{% endblock %}

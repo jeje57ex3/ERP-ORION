@@ -126,6 +126,9 @@ urlpatterns = [
     # ── Diagnostic Domaines & Cloudflare ──────────────────────────────────────
     path('diagnostic-domaines/', include('apps.domain_diagnostics.urls', namespace='domain_diagnostics')),
 
+    # ── Santé du système ───────────────────────────────────────────────────────
+    path('', include('apps.system_health.urls', namespace='system_health')),
+
     # Sites web publics (doit être en dernier)
     path('sites/', include('apps.websites.public_urls', namespace='public_websites')),
 ]

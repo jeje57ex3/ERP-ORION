@@ -1,0 +1,49 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Seuils d'alerte{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_subtitle %}Configuration des seuils par capteur.{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:threshold_create' %}" class="orion-btn">
+  <i class="bi bi-plus me-1"></i>Nouveau seuil
+</a>
+<a href="{% url 'system_health:dashboard' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Capteur</th>
+        <th>Comparaison</th>
+        <th>Seuil attention</th>
+        <th>Seuil critique</th>
+        <th>Actif</th>
+        <th>Silencieux</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in thresholds %}
+      <tr>
+        <td class="font-monospace small">{{ t.sensor_type }}</td>
+        <td class="text-center">{{ t.comparison }}</td>
+        <td class="text-center font-monospace">{{ t.warning_threshold|default:"—" }}</td>
+        <td class="text-center font-monospace">{{ t.critical_threshold|default:"—" }}</td>
+        <td class="text-center">
+          {% if t.enabled %}<span class="orion-badge success">Actif</span>
+          {% else %}<span class="orion-badge neutral">Désactivé</span>{% endif %}
+        </td>
+        <td class="small text-muted">{{ t.silence_until|date:"d/m H:i"|default:"—" }}</td>
+        <td><a href="{% url 'system_health:threshold_edit' t.pk %}" class="orion-btn btn-sm">Modifier</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center text-muted py-4">Aucun seuil configuré.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

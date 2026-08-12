@@ -1,0 +1,145 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Capteurs — Santé système{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_subtitle %}Métriques temps-réel collectées toutes les 5 minutes.{% endblock %}
+{% block page_actions %}
+<a href="{% url 'system_health:disk_dashboard' %}" class="orion-btn">
+  <i class="bi bi-hdd me-1"></i>Disques
+</a>
+<a href="{% url 'system_health:dashboard' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Retour
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.sensor-card { transition: border-color .3s; }
+.sensor-card.ok       { border-left: 4px solid #198754; }
+.sensor-card.warning  { border-left: 4px solid #ffc107; }
+.sensor-card.critical { border-left: 4px solid #dc3545; }
+.sensor-card.error,
+.sensor-card.unknown  { border-left: 4px solid #6c757d; }
+.sensor-value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sparkline { height: 36px; width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div id="sensors-grid" class="row g-3">
+  <div class="col-12 text-center py-5 text-muted" id="loading">
+    <i class="bi bi-arrow-repeat spin fs-3"></i><br>Chargement des capteurs…
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SENSOR_LABELS = {
+  cpu_usage: 'CPU', memory_usage: 'Mémoire', disk_usage: 'Disque (%)',
+  disk_free_gb: 'Disque libre', load_average: 'Charge', open_files: 'Fichiers ouverts',
+  avg_response_ms: 'Temps réponse moy.', max_response_ms: 'Temps réponse max',
+  requests_per_min: 'Req/min', error_rate_pct: 'Taux erreur', slow_requests_1h: 'Req. lentes/h',
+  active_sessions: 'Sessions', db_available: 'DB disponible', db_connections: 'Connexions DB',
+  db_slow_queries_1h: 'Requêtes lentes DB', db_size_gb: 'Taille DB', db_pending_migrations: 'Migrations en attente',
+  backup_age_hours: 'Âge backup (h)', backup_size_mb: 'Taille backup', backup_test_age_days: 'Test restore',
+  queue_pending: 'File en attente', queue_failed_1h: 'Tâches échouées', queue_workers: 'Workers',
+  failed_logins_1h: 'Connexions échouées', locked_accounts: 'Comptes verrouillés',
+  open_errors: 'Erreurs ouvertes', open_incidents: 'Incidents ouverts',
+};
+const SENSOR_UNITS = {
+  cpu_usage: '%', memory_usage: '%', disk_usage: '%', disk_free_gb: ' Go',
+  avg_response_ms: ' ms', max_response_ms: ' ms', error_rate_pct: '%',
+  backup_age_hours: ' h', backup_size_mb: ' Mo', db_size_gb: ' Go',
+  load_average: '', requests_per_min: '/min',
+};
+
+const CATEGORIES = {
+  'Serveur':       ['cpu_usage','memory_usage','disk_usage','disk_free_gb','load_average','open_files'],
+  'Application':   ['avg_response_ms','max_response_ms','requests_per_min','error_rate_pct','slow_requests_1h','active_sessions'],
+  'Base de données':['db_available','db_connections','db_slow_queries_1h','db_size_gb','db_pending_migrations'],
+  'Sauvegardes':   ['backup_age_hours','backup_size_mb','backup_test_age_days'],
+  'File Celery':   ['queue_workers','queue_pending','queue_failed_1h'],
+  'Sécurité':      ['failed_logins_1h','locked_accounts','open_errors','open_incidents'],
+};
+
+const STATUS_BADGE = {
+  ok: 'success', warning: 'warning', critical: 'danger', error: 'secondary', unknown: 'secondary'
+};
+
+function renderValue(type, value) {
+  if (value === null || value === undefined) return '–';
+  if (type === 'db_available' || type === 'app_available') return value ? 'Oui' : 'Non';
+  const unit = SENSOR_UNITS[type] || '';
+  const num = parseFloat(value);
+  return (Number.isInteger(num) ? num : num.toFixed(1)) + unit;
+}
+
+function buildGrid(data) {
+  const grid = document.getElementById('sensors-grid');
+  document.getElementById('loading')?.remove();
+  grid.innerHTML = '';
+
+  for (const [cat, keys] of Object.entries(CATEGORIES)) {
+    const present = keys.filter(k => data[k]);
+    if (!present.length) continue;
+
+    const catCol = document.createElement('div');
+    catCol.className = 'col-12';
+    catCol.innerHTML = `<h6 class="fw-600 text-muted text-uppercase" style="font-size:.72rem;letter-spacing:.08em">${cat}</h6>`;
+    grid.appendChild(catCol);
+
+    const row = document.createElement('div');
+    row.className = 'col-12';
+    const inner = document.createElement('div');
+    inner.className = 'row g-2';
+
+    for (const key of present) {
+      const r = data[key];
+      const col = document.createElement('div');
+      col.className = 'col-md-2 col-sm-4 col-6';
+      col.innerHTML = `
+        <div class="orion-card p-2 sensor-card ${r.status}" id="sc-${key}">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <small class="text-muted fw-500" style="font-size:.72rem">${SENSOR_LABELS[key]||key}</small>
+            <span class="badge bg-${STATUS_BADGE[r.status]||'secondary'}" style="font-size:.65rem">${r.status_label||r.status}</span>
+          </div>
+          <div class="sensor-value" id="sv-${key}">${renderValue(key, r.value)}</div>
+          <small class="text-muted" id="st-${key}">${r.collected_at ? new Date(r.collected_at).toLocaleTimeString('fr-FR') : ''}</small>
+        </div>`;
+      inner.appendChild(col);
+    }
+    row.appendChild(inner);
+    grid.appendChild(row);
+  }
+}
+
+function updateGrid(data) {
+  for (const [key, r] of Object.entries(data)) {
+    const card = document.getElementById('sc-' + key);
+    if (!card) return;
+    card.className = 'orion-card p-2 sensor-card ' + r.status;
+    const sv = document.getElementById('sv-' + key);
+    if (sv) sv.textContent = renderValue(key, r.value);
+    const st = document.getElementById('st-' + key);
+    if (st && r.collected_at) st.textContent = new Date(r.collected_at).toLocaleTimeString('fr-FR');
+  }
+}
+
+let initialized = false;
+function poll() {
+  fetch('{% url "system_health:sensor_api" %}')
+    .then(r => r.json())
+    .then(d => {
+      if (!initialized) { buildGrid(d.readings); initialized = true; }
+      else { updateGrid(d.readings); }
+    })
+    .catch(() => {});
+}
+
+poll();
+setInterval(poll, 30000);
+</script>
+{% endblock %}
