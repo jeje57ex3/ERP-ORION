@@ -58,6 +58,12 @@ urlpatterns = [
     # Module gestion domaines — dashboard global multi-sites
     path('domaines/', include('apps.websites.urls_domains')),
 
+    # ─── Cloudflare (comptes) ─────────────────────────────────────────────────
+    path('cloudflare/', include('apps.websites.urls_cloudflare')),
+
+    # ─── Tunnels Cloudflare ───────────────────────────────────────────────────
+    path('tunnels/', include('apps.websites.urls_tunnel')),
+
     #─── Médiathèque ──────────────────────────────────────────────────────────
     path('sites/<int:pk>/medias/', views.media_library, name='media_library'),
 

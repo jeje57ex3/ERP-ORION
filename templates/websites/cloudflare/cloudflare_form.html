@@ -1,0 +1,213 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% if action == 'edit' %}{% blocktrans with account_label=account.label %}Modifier — {{ account_label }}{% endblocktrans %}{% else %}{% trans "Connecter Cloudflare" %}{% endif %}{% endblock %}
+{% block extra_css %}
+{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:cloudflare_dashboard' %}">{% trans "Cloudflare" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{% trans "Modifier" %}{% else %}{% trans "Connecter" %}{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 justify-content-center">
+<div class="col-12 col-lg-7">
+
+{% if action == 'connect' %}
+{# ── Guide étape par étape ────────────────────────────────────────────────── #}
+<div class="orion-card mb-4">
+  <div class="orion-orion-card-header p-3 border-bottom">
+    <h6 class="fw-bold mb-0"><i class="bi bi-journal-text me-2 text-info"></i>{% trans "Comment obtenir votre token API Cloudflare ?" %}</h6>
+  </div>
+  <div class="orion-orion-card-body p-4">
+    <ol class="list-unstyled mb-0" style="counter-reset:step">
+      {% for step in steps %}{% endfor %}
+      <li class="d-flex gap-3 mb-4" style="counter-increment:step">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(234,88,12,.2);color:#f97316;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+        <div>
+          <div class="fw-semibold mb-1">{% trans "Connectez-vous à Cloudflare" %}</div>
+          <p class="small text-muted mb-1">{% trans "Rendez-vous sur votre tableau de bord Cloudflare et cliquez sur votre profil en haut à droite." %}</p>
+        </div>
+      </li>
+      <li class="d-flex gap-3 mb-4">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(234,88,12,.2);color:#f97316;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+        <div>
+          <div class="fw-semibold mb-1">{% trans "Allez dans « Mon profil » → « Tokens API »" %}</div>
+          <p class="small text-muted mb-0">{% trans "Section :" %} <strong>{% trans "Profil → Tokens API → Créer un token" %}</strong></p>
+        </div>
+      </li>
+      <li class="d-flex gap-3 mb-4">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(234,88,12,.2);color:#f97316;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+        <div>
+          <div class="fw-semibold mb-1">{% trans "Choisissez « Créer un token personnalisé »" %}</div>
+          <p class="small text-muted mb-2">{% trans "Ajoutez ces permissions :" %}</p>
+          <ul class="small text-muted mb-0" style="padding-left:1rem">
+            <li><strong>Zone — DNS — Edit</strong></li>
+            <li><strong>Zone — Zone — Read</strong></li>
+            <li>Account — Argo Tunnel — Edit <em>({% trans "pour les tunnels" %})</em></li>
+          </ul>
+        </div>
+      </li>
+      <li class="d-flex gap-3">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(234,88,12,.2);color:#f97316;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+        <div>
+          <div class="fw-semibold mb-1">{% trans "Copiez le token généré" %}</div>
+          <p class="small text-muted mb-0">{% trans "Le token n'est affiché qu'une seule fois. Collez-le dans le champ ci-dessous." %}</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+{% endif %}
+
+{# ── Formulaire ───────────────────────────────────────────────────────────── #}
+<div class="orion-card">
+  <div class="orion-orion-card-header p-3 border-bottom">
+    <h6 class="fw-bold mb-0">
+      <i class="bi bi-cloud me-2 text-warning"></i>
+      {% if action == 'edit' %}{% trans "Modifier le compte Cloudflare" %}{% else %}{% trans "Connexion Cloudflare" %}{% endif %}
+    </h6>
+  </div>
+  <div class="orion-orion-card-body p-4">
+    <form method="post" novalidate id="cfForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="orion-alert danger mb-3">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {# Libellé #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Libellé" %} <span class="text-danger">*</span></label>
+        {{ form.label }}
+        {% if form.label.errors %}<div class="small text-danger mt-1">{{ form.label.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Nom interne pour identifier ce compte (ex: Principal, Elysiums)" %}</div>
+      </div>
+
+      {# Token API — avec bouton de test live #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Token API Cloudflare" %} <span class="text-danger">*</span></label>
+        <div class="input-group">
+          {{ form.api_token }}
+          <button type="button" class="btn btn-outline-secondary" id="cfTestBtn" title="{% trans 'Tester le token' %}">
+            <i class="bi bi-wifi" id="cfTestIcon"></i>
+          </button>
+        </div>
+        {% if form.api_token.errors %}<div class="small text-danger mt-1">{{ form.api_token.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Token créé sur dash.cloudflare.com → Profil → Tokens API" %}</div>
+        {# Zone résultat test #}
+        <div id="cfTestResult" class="mt-2" style="display:none"></div>
+      </div>
+
+      {# Account ID — optionnel, auto-rempli après test #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "ID Compte Cloudflare" %}</label>
+        {{ form.account_id }}
+        {% if form.account_id.errors %}<div class="small text-danger mt-1">{{ form.account_id.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Récupéré automatiquement lors du test. Visible dans la barre latérale de dash.cloudflare.com." %}</div>
+      </div>
+
+      {# Email — optionnel #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Email du compte" %}</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="small text-danger mt-1">{{ form.email.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Optionnel — email associé à votre compte Cloudflare" %}</div>
+      </div>
+
+      {# Actif #}
+      <div class="mb-4 d-flex align-items-center gap-2">
+        {{ form.is_active }}
+        <label class="form-check-label fw-semibold small mb-0">{% trans "Compte actif (utilisé par défaut pour les tunnels et la synchronisation DNS)" %}</label>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'websites:cloudflare_dashboard' %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+        <button type="submit" class="orion-btn orion-orion-btn primary">
+          <i class="bi bi-{% if action == 'edit' %}check-circle{% else %}plug{% endif %} me-1"></i>
+          {% if action == 'edit' %}{% trans "Enregistrer" %}{% else %}{% trans "Connecter" %}{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById('cfTestBtn');
+  const icon = document.getElementById('cfTestIcon');
+  const resultBox = document.getElementById('cfTestResult');
+
+  if (!btn) return;
+
+  btn.addEventListener('click', async function () {
+    const tokenInput = document.querySelector('[name="api_token"]');
+    const token = tokenInput ? tokenInput.value.trim() : '';
+    if (!token) {
+      showResult(false, '{% trans "Saisissez un token avant de tester." %}');
+      return;
+    }
+
+    btn.disabled = true;
+    icon.className = 'bi bi-arrow-repeat spin';
+    resultBox.style.display = 'none';
+
+    try {
+      const resp = await fetch('{% url "websites:cloudflare_api_test_token" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ token }),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        // Auto-remplir account_id
+        const accInput = document.querySelector('[name="account_id"]');
+        if (accInput && data.account_id && !accInput.value) {
+          accInput.value = data.account_id;
+        }
+        const zonesHtml = data.zones && data.zones.length
+          ? '<ul class="mb-0 mt-2" style="font-size:.78rem;padding-left:1rem">' +
+            data.zones.map(z => `<li><strong>${z.name}</strong> — ${z.status}</li>`).join('') +
+            '</ul>'
+          : '';
+        showResult(true,
+          `{% trans "Connexion réussie" %}${data.account_name ? ' — <strong>' + data.account_name + '</strong>' : ''}<br>` +
+          `<span style="font-size:.78rem">${data.zones_count} {% trans "zone(s) accessible(s)" %}</span>` +
+          zonesHtml
+        );
+      } else {
+        showResult(false, data.error || '{% trans "Token invalide" %}');
+      }
+    } catch (e) {
+      showResult(false, '{% trans "Erreur réseau —" %} ' + e.message);
+    } finally {
+      btn.disabled = false;
+      icon.className = 'bi bi-wifi';
+    }
+  });
+
+  function showResult(success, html) {
+    resultBox.style.display = 'block';
+    resultBox.className = success
+      ? 'orion-alert success mt-2 p-2'
+      : 'orion-alert danger mt-2 p-2';
+    resultBox.innerHTML = '<i class="bi bi-' + (success ? 'check-circle-fill' : 'x-circle-fill') + ' me-2"></i>' + html;
+  }
+})();
+</script>
+
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin .7s linear infinite; }
+</style>
+
+{% endblock %}

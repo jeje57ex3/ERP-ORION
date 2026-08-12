@@ -1,0 +1,144 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% blocktrans with company=request.current_company.name %}Tunnels Cloudflare — {{ company }}{% endblocktrans %}{% endblock %}
+{% block extra_css %}
+{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans 'Sites web' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Tunnels Cloudflare' %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">{% trans "Gérez vos tunnels Cloudflare et les règles d'ingress qui exposent vos services locaux." %}</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{% url 'websites:domain_dashboard' %}" class="orion-btn orion-btn-outline"><i class="bi bi-globe2 me-1"></i>{% trans 'Domaines' %}</a>
+  <a href="{% url 'websites:tunnel_import' %}" class="orion-btn orion-btn-outline"><i class="bi bi-cloud-download me-1"></i>{% trans 'Importer' %}</a>
+  <a href="{% url 'websites:tunnel_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouveau tunnel' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# KPIs #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FFF7ED;color:#EA580C"><i class="bi bi-diagram-3"></i></div>
+      <div class="orion-kpi-value">{{ total }}</div>
+      <div class="orion-kpi-label">{% trans 'Tunnels' %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-check-circle"></i></div>
+      <div class="orion-kpi-value">{{ active_count }}</div>
+      <div class="orion-kpi-label">{% trans 'Actifs' %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      {% if cf_status.running %}
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-broadcast"></i></div>
+      <div class="orion-kpi-value" style="color:#16A34A">{% trans 'ON' %}</div>
+      {% else %}
+      <div class="orion-kpi-icon" style="background:#FEF2F2;color:#DC2626"><i class="bi bi-broadcast"></i></div>
+      <div class="orion-kpi-value" style="color:#DC2626">{% trans 'OFF' %}</div>
+      {% endif %}
+      <div class="orion-kpi-label">cloudflared</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#EFF6FF;color:var(--orion-info)"><i class="bi bi-cpu"></i></div>
+      <div class="orion-kpi-value">{% if cf_status.pids %}{{ cf_status.pids|length }}{% else %}0{% endif %}</div>
+      <div class="orion-kpi-label">{% trans 'Process(es)' %}</div>
+    </div>
+  </div>
+</div>
+
+{# Bannière cloudflared #}
+{% if not cf_status.running %}
+<div class="orion-alert warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>{% trans "cloudflared n'est pas en cours d'exécution." %}</strong>
+  {% blocktrans %}Lancez <code>cloudflared tunnel --config &lt;config.yml&gt; run</code> pour activer le tunnel.{% endblocktrans %}
+</div>
+{% else %}
+<div class="orion-alert success mb-4">
+  <i class="bi bi-broadcast me-2"></i>
+  <strong>{% trans 'cloudflared est actif' %}</strong> — {% blocktrans with pids=cf_status.pids|join:", " %}PID(s) : {{ pids }}{% endblocktrans %}
+</div>
+{% endif %}
+
+{# Liste des tunnels #}
+{% if tunnels %}
+<div class="row g-3">
+  {% for tunnel in tunnels %}
+  <div class="col-12 col-lg-6">
+    <div class="orion-card h-100">
+      <div class="orion-orion-card-body p-3">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-1 text-warning"></i>{{ tunnel.name }}</h6>
+            {% if tunnel.tunnel_id %}
+            <div class="small text-muted font-monospace">{{ tunnel.tunnel_id }}</div>
+            {% endif %}
+          </div>
+          {% if tunnel.is_active %}
+          <span class="orion-badge orion-badge-success">{% trans 'Actif' %}</span>
+          {% else %}
+          <span class="orion-badge orion-badge-secondary">{% trans 'Inactif' %}</span>
+          {% endif %}
+        </div>
+
+        {# Règles d'ingress résumées #}
+        {% with rules=tunnel.ingress_rules.all %}
+        {% if rules %}
+        <div class="mt-2">
+          <div class="small text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600">{% blocktrans with count=rules.count %}Règles d'ingress ({{ count }}){% endblocktrans %}</div>
+          {% for rule in rules|slice:":4" %}
+          <div class="d-flex align-items-center gap-2 small mb-1">
+            {% if rule.is_active %}<i class="bi bi-arrow-right-circle-fill text-success" style="font-size:.75rem;flex-shrink:0"></i>
+            {% else %}<i class="bi bi-dash-circle text-muted" style="font-size:.75rem;flex-shrink:0"></i>{% endif %}
+            <span class="font-monospace text-truncate" style="font-size:.78rem">{{ rule.hostname }}</span>
+            <span class="text-muted" style="font-size:.72rem;flex-shrink:0">→ {{ rule.service }}</span>
+          </div>
+          {% endfor %}
+          {% if rules.count > 4 %}
+          {% with remaining=rules.count|add:"-4" %}<div class="small text-muted">{% blocktrans %}+ {{ remaining }} règle(s) supplémentaire(s){% endblocktrans %}</div>{% endwith %}
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="small text-muted mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>{% trans "Aucune règle d'ingress configurée" %}</p>
+        {% endif %}
+        {% endwith %}
+      </div>
+      <div class="orion-orion-card-header border-top p-3 pt-2">
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{% url 'websites:tunnel_detail' tunnel.pk %}" class="orion-btn orion-btn-outline sm flex-fill"><i class="bi bi-eye me-1"></i>{% trans 'Gérer' %}</a>
+          <a href="{% url 'websites:tunnel_edit' tunnel.pk %}" class="orion-btn orion-btn-outline sm"><i class="bi bi-pencil"></i></a>
+          {% trans 'Télécharger config.yml' as dl_config_title %}
+          <a href="{% url 'websites:tunnel_download_config' tunnel.pk %}" class="orion-btn orion-btn-outline sm" title="{{ dl_config_title }}"><i class="bi bi-download"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-orion-card-body text-center py-5">
+    <div class="orion-empty-icon mb-3"><i class="bi bi-diagram-3" style="font-size:2.5rem;opacity:.4"></i></div>
+    <div class="orion-empty-title mb-1">{% trans 'Aucun tunnel configuré' %}</div>
+    <p class="text-muted small mb-3">{% trans 'Créez votre premier tunnel Cloudflare pour exposer vos services locaux via un domaine public.' %}</p>
+    <a href="{% url 'websites:tunnel_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Créer un tunnel' %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

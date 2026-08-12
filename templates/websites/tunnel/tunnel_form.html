@@ -1,0 +1,118 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% if action == 'edit' %}{% blocktrans with name=tunnel.name %}Modifier — {{ name }}{% endblocktrans %}{% else %}{% trans "Nouveau tunnel" %}{% endif %}{% endblock %}
+{% block extra_css %}
+{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:website_list' %}">{% trans "Sites web" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'websites:tunnel_list' %}">{% trans "Tunnels" %}</a></li>
+{% if action == 'edit' %}
+<li class="breadcrumb-item"><a href="{% url 'websites:tunnel_detail' tunnel.pk %}">{{ tunnel.name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Modifier" %}</li>
+{% else %}
+<li class="breadcrumb-item active">{% trans "Nouveau tunnel" %}</li>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-lg-8">
+
+<div class="orion-card">
+  <div class="orion-orion-card-header p-3 border-bottom">
+    <h6 class="fw-bold mb-0">
+      <i class="bi bi-diagram-3 me-2 text-warning"></i>
+      {% if action == 'edit' %}{% trans "Modifier le tunnel" %}{% else %}{% trans "Créer un tunnel Cloudflare" %}{% endif %}
+    </h6>
+  </div>
+  <div class="orion-orion-card-body p-4">
+
+    {# Info box #}
+    {% if action == 'create' %}
+    <div class="orion-alert info mb-4">
+      <i class="bi bi-info-circle-fill me-2"></i>
+      {% blocktrans %}Un <strong>Named Tunnel</strong> Cloudflare permet d'exposer vos services locaux (Django, Vite…)
+      vers vos domaines publics sans ouvrir de port sur votre réseau.
+      Créez le tunnel avec <code>cloudflared tunnel create &lt;nom&gt;</code> pour obtenir l'ID et le fichier credentials.{% endblocktrans %}
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="orion-alert danger mb-3">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {# Nom #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Nom du tunnel" %} <span class="text-danger">*</span></label>
+        {{ form.name }}
+        {% if form.name.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.name.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Nom interne (ex: Tunnel principal Orion)" %}</div>
+      </div>
+
+      {# Tunnel ID #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "ID Tunnel Cloudflare" %}</label>
+        {{ form.tunnel_id }}
+        {% if form.tunnel_id.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.tunnel_id.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% blocktrans %}UUID obtenu via <code>cloudflared tunnel list</code>{% endblocktrans %}</div>
+      </div>
+
+      {# Compte Cloudflare #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Compte Cloudflare" %}</label>
+        {{ form.cloudflare_account }}
+        {% if form.cloudflare_account.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.cloudflare_account.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% trans "Requis pour la synchronisation DNS automatique" %}</div>
+      </div>
+
+      {# Credentials file #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Fichier credentials (.json)" %}</label>
+        {{ form.credentials_file }}
+        {% if form.credentials_file.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.credentials_file.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% blocktrans %}Chemin complet vers le .json généré par cloudflared{% endblocktrans %}</div>
+      </div>
+
+      {# Config file #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">{% trans "Chemin config.yml" %}</label>
+        {{ form.config_file }}
+        {% if form.config_file.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.config_file.errors|join:", " }}</div>{% endif %}
+        <div class="form-text small text-muted">{% blocktrans %}Chemin où écrire le config.yml généré (ex: <code>C:\Users\jessy\.cloudflared\config.yml</code>){% endblocktrans %}</div>
+      </div>
+
+      {# État #}
+      <div class="mb-3 d-flex align-items-center gap-2">
+        {{ form.is_active }}
+        <label class="form-check-label fw-semibold small mb-0">{% trans "Tunnel actif" %}</label>
+      </div>
+
+      {# Notes #}
+      <div class="mb-4">
+        <label class="form-label fw-semibold small">{% trans "Notes" %}</label>
+        {{ form.notes }}
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        {% if action == 'edit' %}
+        <a href="{% url 'websites:tunnel_detail' tunnel.pk %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+        {% else %}
+        <a href="{% url 'websites:tunnel_list' %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+        {% endif %}
+        <button type="submit" class="orion-btn orion-orion-btn primary">
+          <i class="bi bi-check-circle me-1"></i>
+          {% if action == 'edit' %}{% trans "Enregistrer" %}{% else %}{% trans "Créer le tunnel" %}{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+{% endblock %}
