@@ -203,3 +203,36 @@ class SystemRollbackRun(models.Model):
 
     def __str__(self):
         return f'Rollback #{self.id} → {self.rollback_to_commit[:8]} — {self.status}'
+
+
+class ServerActionLog(models.Model):
+    ACTION_CHOICES = [
+        ('reboot',   'Redémarrage'),
+        ('shutdown', 'Extinction'),
+        ('cancel',   'Annulation'),
+    ]
+    STATUS_CHOICES = [
+        ('success', 'Succès'),
+        ('failed',  'Échec'),
+    ]
+
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    message = models.TextField(blank=True)
+
+    executed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    executed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'system_updates'
+        ordering = ['-executed_at']
+        verbose_name = 'Action serveur'
+        verbose_name_plural = 'Actions serveur'
+
+    def __str__(self):
+        return f'{self.get_action_display()} — {self.get_status_display()} ({self.executed_at:%d/%m/%Y %H:%M})'

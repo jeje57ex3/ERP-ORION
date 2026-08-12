@@ -1,20 +1,29 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.system_updates.forms import (
     ConfirmRollbackForm,
     ConfirmUpdateForm,
+    ServerActionConfirmForm,
     SystemUpdateSettingsForm,
 )
-from apps.system_updates.models import SystemUpdateRun
+from apps.system_updates.models import ServerActionLog, SystemUpdateRun
 from apps.system_updates.permissions import super_admin_required
 from apps.system_updates.rollback import rollback_update
 from apps.system_updates.selectors import (
     get_latest_update_check,
     get_latest_update_run,
+    get_recent_server_actions,
     get_recent_update_runs,
     get_update_settings,
     has_update_running,
+)
+from apps.system_updates.server_actions import (
+    ServerActionError,
+    cancel_scheduled_action,
+    schedule_reboot,
+    schedule_shutdown,
 )
 from apps.system_updates.services import check_for_updates
 from apps.system_updates.update_runner import run_system_update
@@ -41,6 +50,7 @@ def updates_dashboard(request):
         'latest_check': get_latest_update_check(),
         'latest_run': get_latest_update_run(),
         'recent_runs': get_recent_update_runs(),
+        'recent_server_actions': get_recent_server_actions(),
         'running': has_update_running(),
     })
 
@@ -123,3 +133,74 @@ def rollback_confirm_view(request, pk):
         'form': form,
         'update_run': update_run,
     })
+
+
+@super_admin_required
+def server_reboot_confirm(request):
+    if request.method == 'POST':
+        form = ServerActionConfirmForm(request.POST, expected_text='REDEMARRER')
+        if form.is_valid():
+            try:
+                schedule_reboot()
+                ServerActionLog.objects.create(
+                    action='reboot', status='success', executed_by=request.user,
+                    message='Redémarrage programmé dans 1 minute.',
+                )
+                messages.success(request, 'Redémarrage programmé — le serveur va redémarrer dans 1 minute.')
+            except ServerActionError as exc:
+                ServerActionLog.objects.create(
+                    action='reboot', status='failed', executed_by=request.user, message=str(exc),
+                )
+                messages.error(request, f'Redémarrage impossible : {exc}')
+            return redirect('system_updates:dashboard')
+    else:
+        form = ServerActionConfirmForm(expected_text='REDEMARRER')
+
+    return render(request, 'system_updates/server_action_confirm.html', {
+        'form': form,
+        'action': 'reboot',
+        'page_title': 'Redémarrer le serveur',
+    })
+
+
+@super_admin_required
+def server_shutdown_confirm(request):
+    if request.method == 'POST':
+        form = ServerActionConfirmForm(request.POST, expected_text='ETEINDRE')
+        if form.is_valid():
+            try:
+                schedule_shutdown()
+                ServerActionLog.objects.create(
+                    action='shutdown', status='success', executed_by=request.user,
+                    message='Extinction programmée dans 1 minute.',
+                )
+                messages.success(request, "Extinction programmée — le serveur va s'éteindre dans 1 minute.")
+            except ServerActionError as exc:
+                ServerActionLog.objects.create(
+                    action='shutdown', status='failed', executed_by=request.user, message=str(exc),
+                )
+                messages.error(request, f'Extinction impossible : {exc}')
+            return redirect('system_updates:dashboard')
+    else:
+        form = ServerActionConfirmForm(expected_text='ETEINDRE')
+
+    return render(request, 'system_updates/server_action_confirm.html', {
+        'form': form,
+        'action': 'shutdown',
+        'page_title': 'Éteindre le serveur',
+    })
+
+
+@super_admin_required
+@require_POST
+def server_action_cancel(request):
+    try:
+        cancel_scheduled_action()
+        ServerActionLog.objects.create(
+            action='cancel', status='success', executed_by=request.user,
+            message='Redémarrage/extinction programmé annulé.',
+        )
+        messages.success(request, 'Redémarrage/extinction programmé annulé.')
+    except ServerActionError as exc:
+        messages.error(request, f'Annulation impossible : {exc}')
+    return redirect('system_updates:dashboard')

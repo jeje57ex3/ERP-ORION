@@ -1,4 +1,5 @@
 from apps.system_updates.models import (
+    ServerActionLog,
     SystemUpdateCheck,
     SystemUpdateRun,
     SystemUpdateSettings,
@@ -23,3 +24,7 @@ def get_recent_update_runs(limit=20):
 
 def has_update_running():
     return SystemUpdateRun.objects.filter(status='running').exists()
+
+
+def get_recent_server_actions(limit=10):
+    return ServerActionLog.objects.select_related('executed_by')[:limit]
