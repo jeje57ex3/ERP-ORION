@@ -1,0 +1,56 @@
+{% extends "erp_base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h1 class="h3">{{ page_title }}</h1>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card" style="max-width:640px">
+  <div class="card-body">
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+      <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+      <span>Cette action va modifier la configuration de <strong>{{ issue.target.domain }}</strong> via l'API Cloudflare.</span>
+    </div>
+
+    <dl class="row">
+      <dt class="col-sm-4">Domaine</dt>
+      <dd class="col-sm-8"><code>{{ issue.target.domain }}</code></dd>
+
+      <dt class="col-sm-4">Problème</dt>
+      <dd class="col-sm-8">{{ issue.title }}</dd>
+
+      <dt class="col-sm-4">Description</dt>
+      <dd class="col-sm-8">{{ issue.description|default:'—' }}</dd>
+
+      <dt class="col-sm-4">Code de correction</dt>
+      <dd class="col-sm-8"><code>{{ issue.repair_code }}</code></dd>
+
+      <dt class="col-sm-4">Sévérité</dt>
+      <dd class="col-sm-8">
+        {% if issue.severity == 'critical' %}<span class="badge bg-danger">Critique</span>
+        {% elif issue.severity == 'warning' %}<span class="badge bg-warning text-dark">Avertissement</span>
+        {% else %}<span class="badge bg-info">Info</span>{% endif %}
+      </dd>
+    </dl>
+
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-warning">
+          <i class="bi bi-wrench me-1"></i>Confirmer la correction
+        </button>
+        <a href="{% url 'domain_diagnostics:issue_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

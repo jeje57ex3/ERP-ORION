@@ -115,6 +115,9 @@ LOCAL_APPS = [
 
     # ── Dashboard Widgets ─────────────────────────────────────────────────────
     'apps.dashboard_widgets.apps.DashboardWidgetsConfig',
+
+    # ── Diagnostic Domaines & Cloudflare ──────────────────────────────────────
+    'apps.domain_diagnostics.apps.DomainDiagnosticsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

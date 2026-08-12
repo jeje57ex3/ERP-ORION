@@ -1,0 +1,97 @@
+{% extends "erp_base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">{{ page_title }}</h1>
+  <a href="{% url 'domain_diagnostics:run_scan' run.target.pk %}" class="btn btn-outline-primary btn-sm"
+     onclick="return confirm('Relancer le scan ?')">
+    <i class="bi bi-arrow-clockwise"></i> Rescanner
+  </a>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Domaine</dt>
+      <dd class="col-sm-9"><code>{{ run.target.domain }}</code></dd>
+      <dt class="col-sm-3">Statut</dt>
+      <dd class="col-sm-9">
+        {% if run.status == 'ok' %}
+          <span class="badge bg-success fs-6">✓ OK</span>
+        {% elif run.status == 'warning' %}
+          <span class="badge bg-warning text-dark fs-6">⚠ Avertissement</span>
+        {% else %}
+          <span class="badge bg-danger fs-6">✗ Erreur</span>
+        {% endif %}
+      </dd>
+      <dt class="col-sm-3">Résumé</dt>
+      <dd class="col-sm-9">{{ run.summary }}</dd>
+      <dt class="col-sm-3">Scanné le</dt>
+      <dd class="col-sm-9">{{ run.started_at|date:"d/m/Y à H:i:s" }}</dd>
+    </dl>
+  </div>
+</div>
+
+{% if issues %}
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Problèmes détectés ({{ issues|length }})</div>
+    <div class="list-group list-group-flush">
+      {% for issue in issues %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">
+                {% if issue.severity == 'critical' %}<span class="badge bg-danger me-1">Critique</span>
+                {% elif issue.severity == 'warning' %}<span class="badge bg-warning text-dark me-1">Avertissement</span>
+                {% else %}<span class="badge bg-info me-1">Info</span>{% endif %}
+                {{ issue.title }}
+              </div>
+              {% if issue.description %}
+                <p class="text-muted small mb-1 mt-1">{{ issue.description }}</p>
+              {% endif %}
+              <code class="small text-muted">{{ issue.issue_type }}</code>
+            </div>
+            {% if issue.can_auto_repair and issue.status == 'open' %}
+              <a href="{% url 'domain_diagnostics:repair_issue' issue.pk %}" class="btn btn-sm btn-warning ms-3">
+                <i class="bi bi-wrench"></i> Corriger
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-success"><i class="bi bi-check-circle-fill me-2"></i>Aucun problème détecté.</div>
+{% endif %}
+
+{% if run.raw_results %}
+  <div class="card">
+    <div class="card-header fw-semibold">
+      <button class="btn btn-link p-0 fw-semibold" data-bs-toggle="collapse" data-bs-target="#rawResults">
+        Résultats bruts <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+    <div id="rawResults" class="collapse">
+      <div class="card-body">
+        <pre class="bg-light p-3 rounded small" style="overflow-x:auto;max-height:400px">{{ run.raw_results|default:'' }}</pre>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="mt-3">
+  <a href="{% url 'domain_diagnostics:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+    ← Retour au tableau de bord
+  </a>
+</div>
+{% endblock %}

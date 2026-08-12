@@ -1,0 +1,84 @@
+{% extends "erp_base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3">{{ page_title }}</h1>
+  <a href="{% url 'domain_diagnostics:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Tableau de bord</a>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card mb-4" style="max-width:640px">
+  <div class="card-header fw-semibold">Zone Cloudflare</div>
+  <div class="card-body">
+    <div class="alert alert-info d-flex gap-2 align-items-start mb-3">
+      <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+      <div>
+        Le token Cloudflare est stocké dans la variable d'environnement <code>ORION_CLOUDFLARE_API_TOKEN</code>.
+        Ne saisissez ici qu'un <strong>indice</strong> (ex : les 4 derniers caractères) pour mémo — jamais le token complet.
+      </div>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="{{ form.zone_name.id_for_label }}">Nom de zone (domaine racine)</label>
+        {{ form.zone_name }}
+        {% if form.zone_name.errors %}<div class="text-danger small mt-1">{{ form.zone_name.errors }}</div>{% endif %}
+        <div class="form-text">Ex : elysiums.fr</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="{{ form.zone_id.id_for_label }}">Zone ID Cloudflare</label>
+        {{ form.zone_id }}
+        {% if form.zone_id.errors %}<div class="text-danger small mt-1">{{ form.zone_id.errors }}</div>{% endif %}
+        <div class="form-text">Rempli automatiquement lors du premier scan si vide.</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="{{ form.api_token_hint.id_for_label }}">Indice token API</label>
+        {{ form.api_token_hint }}
+        {% if form.api_token_hint.errors %}<div class="text-danger small mt-1">{{ form.api_token_hint.errors }}</div>{% endif %}
+        <div class="form-text">Mémo uniquement — jamais le token complet.</div>
+      </div>
+
+      <div class="mb-4 form-check">
+        {{ form.is_active }}
+        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Zone active</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+{% if config %}
+  <div class="card" style="max-width:640px">
+    <div class="card-header fw-semibold">Informations</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Zone</dt>
+        <dd class="col-sm-8">{{ config.zone_name }}</dd>
+        <dt class="col-sm-4">Zone ID</dt>
+        <dd class="col-sm-8"><code>{{ config.zone_id|default:'Non résolu' }}</code></dd>
+        <dt class="col-sm-4">Créée le</dt>
+        <dd class="col-sm-8">{{ config.created_at|date:"d/m/Y H:i" }}</dd>
+        <dt class="col-sm-4">Modifiée le</dt>
+        <dd class="col-sm-8">{{ config.updated_at|date:"d/m/Y H:i" }}</dd>
+      </dl>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

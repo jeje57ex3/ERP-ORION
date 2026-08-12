@@ -1,0 +1,99 @@
+{% extends "erp_base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <h1 class="h3">{{ page_title }}</h1>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card" style="max-width:760px">
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-semibold" for="{{ form.domain.id_for_label }}">Domaine</label>
+          {{ form.domain }}
+          {% if form.domain.errors %}<div class="text-danger small mt-1">{{ form.domain.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" for="{{ form.brand_key.id_for_label }}">Marque (brand_key)</label>
+          {{ form.brand_key }}
+          {% if form.brand_key.errors %}<div class="text-danger small mt-1">{{ form.brand_key.errors }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.website.id_for_label }}">Site Orion lié</label>
+          {{ form.website }}
+          {% if form.website.errors %}<div class="text-danger small mt-1">{{ form.website.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.cloudflare_zone.id_for_label }}">Zone Cloudflare</label>
+          {{ form.cloudflare_zone }}
+          {% if form.cloudflare_zone.errors %}<div class="text-danger small mt-1">{{ form.cloudflare_zone.errors }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.target_type.id_for_label }}">Type de cible</label>
+          {{ form.target_type }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.expected_record_type.id_for_label }}">Type de record DNS attendu</label>
+          {{ form.expected_record_type }}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.expected_origin_ip.id_for_label }}">IP d'origine attendue</label>
+          {{ form.expected_origin_ip }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" for="{{ form.expected_record_content.id_for_label }}">Contenu DNS attendu</label>
+          {{ form.expected_record_content }}
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" for="{{ form.expected_proxy.id_for_label }}">Proxy Cloudflare</label>
+          {{ form.expected_proxy }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" for="{{ form.expected_ssl_mode.id_for_label }}">Mode SSL attendu</label>
+          {{ form.expected_ssl_mode }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" for="{{ form.expected_https_status.id_for_label }}">Code HTTP attendu</label>
+          {{ form.expected_https_status }}
+        </div>
+
+        <div class="col-12 d-flex gap-4">
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Actif</label>
+          </div>
+          <div class="form-check">
+            {{ form.auto_repair_enabled }}
+            <label class="form-check-label" for="{{ form.auto_repair_enabled.id_for_label }}">Corrections automatiques</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <a href="{% url 'domain_diagnostics:dashboard' %}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
