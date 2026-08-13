@@ -38,6 +38,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0006_notification_related_names'),
+        # create_private_company() -> seed_company_modules() écrit dans
+        # CompanyModule (private_saas) : sans cette dépendance explicite,
+        # une base neuve peut appliquer cette migration avant que la table
+        # existe (ordre topologique non garanti entre apps indépendantes).
+        ('private_saas', '0001_initial'),
     ]
 
     operations = [
