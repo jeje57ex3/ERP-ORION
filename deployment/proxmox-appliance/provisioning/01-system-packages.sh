@@ -25,6 +25,18 @@ apt-get install -y --no-install-recommends \
   default-mysql-client
 
 echo "[01] QEMU Guest Agent..."
+# L'unité systemd du paquet ne redémarre pas automatiquement l'agent s'il
+# plante (observé en pratique après des commandes qm guest exec longues/
+# lourdes en sortie) — sans ça, la VM devient injoignable via qm guest exec
+# jusqu'à un redémarrage manuel de la VM. Override en drop-in (pas le fichier
+# du paquet, qui serait écrasé à la prochaine mise à jour apt).
+mkdir -p /etc/systemd/system/qemu-guest-agent.service.d
+cat > /etc/systemd/system/qemu-guest-agent.service.d/override.conf <<'EOF'
+[Service]
+Restart=always
+RestartSec=3
+EOF
+systemctl daemon-reload
 systemctl enable --now qemu-guest-agent
 
 # ─── Docker Engine + Compose plugin (dépôt officiel Docker) ────────────────────
