@@ -175,21 +175,36 @@ if [ -f "$USERDATA_FILE" ] && [ -f "$NETWORK_FILE" ]; then
   cp "$USERDATA_FILE" "$SNIPPETS_DIR/$USERDATA_SNIPPET"
   cp "$NETWORK_FILE" "$SNIPPETS_DIR/$NETWORK_SNIPPET"
 
-  # 2e passe de rendu : domaines + token Cloudflare, propres à CETTE VM et
-  # inconnus au moment du build (mis en cache, partagé entre déploiements).
-  # Opère in-place sur la copie snippet déjà scopée par VMID, jamais sur
-  # $USERDATA_FILE (le fichier source de build/, réutilisé tel quel par les
-  # prochains déploiements).
+  # Bloc ssh_authorized_keys pour l'utilisateur 'orion' : injecté ici plutôt
+  # que via `qm set --sshkeys` (voir plus bas) — ce dernier n'a AUCUN effet
+  # quand --cicustom est utilisé : Proxmox ne fusionne pas les deux
+  # mécanismes, la VM démarrait donc sans clé du tout malgré --sshkey fourni,
+  # laissant qm guest exec comme SEUL accès (et sans repli possible s'il plante).
+  SSH_KEYS_BLOCK_FILE=$(mktemp)
+  if [ -n "$SSHKEY" ] && [ -f "$SSHKEY" ]; then
+    { echo "ssh_authorized_keys:"; echo "      - $(cat "$SSHKEY")"; } > "$SSH_KEYS_BLOCK_FILE"
+  else
+    [ -n "$SSHKEY" ] && echo "  ATTENTION: clé SSH '$SSHKEY' introuvable — VM sans accès SSH (qm guest exec uniquement)." >&2
+    echo "# Aucune clé SSH fournie (--sshkey) — accès uniquement via qm guest exec/console." > "$SSH_KEYS_BLOCK_FILE"
+  fi
+
+  # 2e passe de rendu : domaines + token Cloudflare + clé SSH, propres à
+  # CETTE VM et inconnus au moment du build (mis en cache, partagé entre
+  # déploiements). Opère in-place sur la copie snippet déjà scopée par VMID,
+  # jamais sur $USERDATA_FILE (le fichier source de build/, réutilisé tel
+  # quel par les prochains déploiements).
   RENDER_PY="$SCRIPT_DIR/_render.py"
   if [ -f "$RENDER_PY" ]; then
     python3 "$RENDER_PY" \
       "$SNIPPETS_DIR/$USERDATA_SNIPPET" "$SNIPPETS_DIR/$USERDATA_SNIPPET" \
       "LOGIN_DOMAIN=$LOGIN_DOMAIN" "ORION_DOMAIN=$ORION_DOMAIN" \
       "SIECLE_DOMAIN=$SIECLE_DOMAIN" "LUNEA_DOMAIN=$LUNEA_DOMAIN" \
-      "CF_TUNNEL_TOKEN=$CF_TOKEN" "GITHUB_TOKEN=$GITHUB_TOKEN"
+      "CF_TUNNEL_TOKEN=$CF_TOKEN" "GITHUB_TOKEN=$GITHUB_TOKEN" \
+      "ORION_SSH_KEYS_BLOCK=@$SSH_KEYS_BLOCK_FILE"
   else
-    echo "  ATTENTION: $RENDER_PY introuvable — domaines/token Cloudflare non appliqués." >&2
+    echo "  ATTENTION: $RENDER_PY introuvable — domaines/token Cloudflare/clé SSH non appliqués." >&2
   fi
+  rm -f "$SSH_KEYS_BLOCK_FILE"
 
   qm set "$VMID" --cicustom "user=${SNIPPETS_STORAGE}:snippets/${USERDATA_SNIPPET},network=${SNIPPETS_STORAGE}:snippets/${NETWORK_SNIPPET}"
   echo "  -> cloud-init personnalisé activé (stockage '${SNIPPETS_STORAGE}' doit autoriser le contenu 'snippets')."
@@ -205,7 +220,6 @@ if [ -n "$STATIC_IP" ]; then
 else
   qm set "$VMID" --ipconfig0 ip=dhcp
 fi
-[ -n "$SSHKEY" ] && qm set "$VMID" --sshkeys "$SSHKEY"
 
 echo "[6/6] Finalisation (redimensionnement à ${DISK_SIZE})..."
 qm resize "$VMID" scsi0 "$DISK_SIZE" || echo "  (déjà à la taille cible, ou redimensionnement ignoré)"

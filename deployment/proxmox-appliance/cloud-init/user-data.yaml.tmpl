@@ -22,8 +22,7 @@ users:
     shell: /bin/bash
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     lock_passwd: true
-    # Clé(s) publique(s) SSH : injectées par Proxmox via --sshkeys au moment de
-    # l'import (voir import_proxmox.sh / PROXMOX.md), ou à ajouter ici avant build.
+    __ORION_SSH_KEYS_BLOCK__
 
 write_files:
   - path: /opt/orion-appliance/payload.tar.gz
