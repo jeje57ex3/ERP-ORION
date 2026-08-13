@@ -5,6 +5,11 @@ Sépare Néostructura, Siècle et Lunea en entreprises distinctes.
   exclusivement le site Siècle — pas besoin de la recréer).
 - Crée "Néostructura" et "Lunea" si elles n'existent pas encore.
 
+Corrige spécifiquement l'installation existante qui portait déjà cette
+entreprise technique "siecle" — ne s'applique PAS sur une appliance neuve
+(aucune entreprise ne doit exister avant l'assistant /setup/, qui bascule
+définitivement vers la connexion dès que Company.objects.exists() est vrai).
+
 Idempotent : peut être rejouée sans effet si les entreprises existent déjà
 (comparaison insensible à la casse), pour rester sûre à exécuter sur des
 bases dans des états différents (dev/prod).
@@ -18,7 +23,12 @@ def seed_companies(apps, schema_editor):
     Company = apps.get_model('core', 'Company')
 
     siecle = Company.objects.filter(name__iexact='siecle').first()
-    if siecle and siecle.name != 'Siècle':
+    if not siecle:
+        # Pas d'installation historique à corriger ici (ex. appliance
+        # neuve) — ne rien créer, sous peine de bloquer l'assistant /setup/.
+        return
+
+    if siecle.name != 'Siècle':
         siecle.name = 'Siècle'
         siecle.sector = 'watch'
         siecle.save(update_fields=['name', 'sector'])
