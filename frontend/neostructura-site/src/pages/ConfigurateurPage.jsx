@@ -3,15 +3,18 @@ import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
 import StepIndicator from '../components/configurator/StepIndicator'
 import StepMetiers from '../components/configurator/StepMetiers'
+import StepMaterials from '../components/configurator/StepMaterials'
 import StepIntervention from '../components/configurator/StepIntervention'
 import StepBuilding from '../components/configurator/StepBuilding'
 import StepContact from '../components/configurator/StepContact'
 import StepResult from '../components/configurator/StepResult'
-import { submitConfigurator } from '../api/configurator'
+import { submitConfigurator, fetchConfiguratorOptions } from '../api/configurator'
 
 export default function ConfigurateurPage() {
   const [step, setStep] = useState(1)
   const [metiers, setMetiers] = useState([])
+  const [materials, setMaterials] = useState({})
+  const [qualityLevel, setQualityLevel] = useState('standard')
   const [intervention, setIntervention] = useState('')
   const [urgency, setUrgency] = useState('normal')
   const [building, setBuilding] = useState({})
@@ -20,19 +23,28 @@ export default function ConfigurateurPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
+  const [options, setOptions] = useState(null)
+  const [optionsLoading, setOptionsLoading] = useState(true)
 
-  const next = () => setStep(s => Math.min(s + 1, 4))
+  const next = () => setStep(s => Math.min(s + 1, 5))
   const back = () => setStep(s => Math.max(s - 1, 1))
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [step, result])
 
+  useEffect(() => {
+    fetchConfiguratorOptions()
+      .then(setOptions)
+      .catch(() => {})
+      .finally(() => setOptionsLoading(false))
+  }, [])
+
   const handleSubmit = async () => {
     setSubmitting(true)
     setError('')
     try {
-      const data = await submitConfigurator({ metiers, intervention, urgency, building, contact, notes })
+      const data = await submitConfigurator({ metiers, materials, quality_level: qualityLevel, intervention, urgency, building, contact, notes })
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -62,12 +74,19 @@ export default function ConfigurateurPage() {
             ) : step === 1 ? (
               <StepMetiers value={metiers} onChange={setMetiers} onNext={next} />
             ) : step === 2 ? (
+              <StepMaterials
+                metiers={metiers} materials={materials} onChange={setMaterials}
+                qualityLevel={qualityLevel} onChangeQuality={setQualityLevel}
+                options={options} loading={optionsLoading}
+                onNext={next} onBack={back}
+              />
+            ) : step === 3 ? (
               <StepIntervention
                 intervention={intervention} urgency={urgency}
                 onChangeIntervention={setIntervention} onChangeUrgency={setUrgency}
                 onNext={next} onBack={back}
               />
-            ) : step === 3 ? (
+            ) : step === 4 ? (
               <StepBuilding building={building} onChange={setBuilding} onNext={next} onBack={back} />
             ) : (
               <StepContact

@@ -7,11 +7,11 @@ request.current_company, jamais résolu pour un visiteur anonyme), cette API
 résout l'entreprise explicitement par slug — NÉOSTRUCTURA est actuellement
 la seule entreprise servie par ce configurateur.
 
-Le moteur de chiffrage est volontairement simple (une ligne représentative
-par métier sélectionné + main-d'œuvre + déplacement + majoration urgence) :
-une V1 fonctionnelle branchée sur de vraies données ERP (ElectricityPriceLibrary),
-pas le moteur multi-produits/multi-gammes détaillé du cahier des charges
-complet (à construire dans une itération ultérieure).
+Le moteur de chiffrage reste volontairement simple (des lignes tarifées
+piochées dans ElectricityPriceLibrary + main-d'œuvre + déplacement +
+majoration urgence + gamme) : une V1 fonctionnelle branchée sur de vraies
+données ERP, pas le moteur multi-produits/multi-fournisseurs détaillé du
+cahier des charges complet (à construire dans une itération ultérieure).
 """
 import json
 from decimal import Decimal
@@ -23,7 +23,6 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.core.models import Company
 from apps.crm.models import Customer, Opportunity, Prospect
-from apps.websites.public_views import _get_ip
 from .models import GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem, ElectricityPriceLibrary
 
 
@@ -44,16 +43,26 @@ INTERVENTIONS = [
     {'value': 'autre',              'label': "Ajout d'équipements"},
 ]
 
-# Un métier -> les codes ElectricityPriceLibrary représentatifs (voir
-# apps/btp/management/commands/seed_neostructura_pricing.py).
-METIER_ITEM_CODES = {
-    'electricite':  ['ELEC-INST'],
-    'domotique':    ['DOM-MOD'],
-    'etancheite':   ['ETAN-TOIT'],
-    'informatique': ['IT-RES'],
-    'renovation':   ['RENO-COMPL'],
-    'maintenance':  ['MAINT-CONTRAT'],
+# Un métier -> les codes ElectricityPriceLibrary sélectionnables comme
+# "matériel / équipement" dans le configurateur (voir
+# apps/btp/management/commands/seed_neostructura_pricing.py). Le premier
+# code de chaque liste sert de poste par défaut si le visiteur n'a rien
+# précisé dans l'étape matériel (compatibilité + rapidité).
+METIER_MATERIAL_CODES = {
+    'electricite':  ['ELEC-INST', 'ELEC-TAB', 'ELEC-PRISE', 'ELEC-LUM', 'ELEC-NORM'],
+    'domotique':    ['DOM-MOD', 'DOM-SEC', 'DOM-HUB'],
+    'etancheite':   ['ETAN-TOIT', 'ETAN-REPAR', 'ETAN-ISOL'],
+    'informatique': ['IT-RES', 'IT-WIFI', 'IT-BAIE', 'IT-CAM'],
+    'renovation':   ['RENO-COMPL', 'RENO-SDB', 'RENO-CUISINE'],
+    'maintenance':  ['MAINT-CONTRAT', 'MAINT-PONCT'],
 }
+
+QUALITY_LEVELS = [
+    {'value': 'standard', 'label': 'Standard', 'desc': 'Matériel fiable, bon rapport qualité/prix', 'multiplier': 1.0},
+    {'value': 'premium',  'label': 'Premium',  'desc': 'Marques reconnues, finitions soignées', 'multiplier': 1.25},
+    {'value': 'luxe',     'label': 'Luxe / Haut de gamme', 'desc': 'Matériel haut de gamme, sur-mesure', 'multiplier': 1.6},
+]
+QUALITY_MULTIPLIERS = {q['value']: q['multiplier'] for q in QUALITY_LEVELS}
 
 
 def _get_neostructura_company():
@@ -62,35 +71,104 @@ def _get_neostructura_company():
 
 @require_GET
 def configurator_options(request):
-    """Options statiques du configurateur (métiers, types d'intervention)."""
-    return JsonResponse({'metiers': METIERS, 'interventions': INTERVENTIONS})
+    """Options du configurateur : métiers, interventions, catalogue matériel par métier, gammes."""
+    company = _get_neostructura_company()
+    all_codes = [c for codes in METIER_MATERIAL_CODES.values() for c in codes]
+    price_items = {}
+    if company is not None:
+        price_items = {
+            p.code: p for p in ElectricityPriceLibrary.objects.filter(
+                company=company, code__in=all_codes, is_active=True,
+            )
+        }
+
+    materials = {}
+    for slug, codes in METIER_MATERIAL_CODES.items():
+        materials[slug] = [
+            {
+                'code': code,
+                'name': price_items[code].name,
+                'unit': price_items[code].unit,
+                'unit_label': price_items[code].get_unit_display(),
+                'price_min': float(price_items[code].price_min),
+                'price_avg': float(price_items[code].price_avg),
+                'price_max': float(price_items[code].price_max),
+            }
+            for code in codes if code in price_items
+        ]
+
+    return JsonResponse({
+        'metiers': METIERS,
+        'interventions': INTERVENTIONS,
+        'materials': materials,
+        'quality_levels': QUALITY_LEVELS,
+    })
 
 
-def _build_estimate(company, quote_request, metiers, surface_m2):
-    """Calcule un pré-devis à partir des métiers sélectionnés. Voir docstring module."""
+def _valid_qty(raw_qty):
+    try:
+        return float(raw_qty) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _clamp_qty(unit, raw_qty, surface_m2):
+    if unit == 'forfait':
+        return 1
+    try:
+        qty = float(raw_qty)
+    except (TypeError, ValueError):
+        qty = float(surface_m2) if (unit == 'm2' and surface_m2) else 1
+    if unit == 'm2':
+        return max(1.0, min(qty, 1000.0))
+    return max(1, min(round(qty), 100))
+
+
+def _build_estimate(company, quote_request, metiers, surface_m2, materials, quality_level):
+    """Calcule un pré-devis détaillé à partir des métiers, du matériel choisi et
+    de la gamme. Voir docstring module."""
+    multiplier = QUALITY_MULTIPLIERS.get(quality_level, 1.0)
     items = []
     total_min = total_avg = total_max = 0.0
     duration_hours = 0.0
 
-    codes = ['DEPL', 'MO']
-    for m in metiers:
-        codes += METIER_ITEM_CODES.get(m, [])
-
+    all_material_codes = {c for m in metiers for c in METIER_MATERIAL_CODES.get(m, [])}
+    codes = ['DEPL', 'MO'] + sorted(all_material_codes)
     price_items = {
         p.code: p for p in ElectricityPriceLibrary.objects.filter(company=company, code__in=codes, is_active=True)
     }
 
-    for code in codes:
+    def add_item(price_item, qty, apply_gamme):
+        nonlocal total_min, total_avg, total_max, duration_hours
+        mult = multiplier if apply_gamme else 1.0
+        pmin, pavg, pmax = float(price_item.price_min) * mult, float(price_item.price_avg) * mult, float(price_item.price_max) * mult
+        items.append({'item': price_item, 'qty': qty, 'unit_price_avg': pavg})
+        total_min += pmin * qty
+        total_avg += pavg * qty
+        total_max += pmax * qty
+        duration_hours += float(price_item.duration_hours) * qty
+
+    for code in ('DEPL', 'MO'):
         p = price_items.get(code)
-        if not p:
+        if p:
+            add_item(p, 1, apply_gamme=False)
+
+    for m in metiers:
+        metier_codes = METIER_MATERIAL_CODES.get(m, [])
+        chosen = [c for c in metier_codes if _valid_qty(materials.get(c))]
+        if not chosen:
+            fallback_code = metier_codes[0] if metier_codes else None
+            p = price_items.get(fallback_code) if fallback_code else None
+            if p:
+                qty = float(surface_m2) if (p.unit == 'm2' and surface_m2) else 1
+                add_item(p, qty, apply_gamme=True)
             continue
-        # Les postes tarifés au m² sont mis à l'échelle par la surface renseignée.
-        qty = float(surface_m2) if (p.unit == 'm2' and surface_m2) else 1
-        items.append({'item': p, 'qty': qty})
-        total_min += float(p.price_min) * qty
-        total_avg += float(p.price_avg) * qty
-        total_max += float(p.price_max) * qty
-        duration_hours += float(p.duration_hours) * qty
+        for code in chosen:
+            p = price_items.get(code)
+            if not p:
+                continue
+            qty = _clamp_qty(p.unit, materials.get(code), surface_m2)
+            add_item(p, qty, apply_gamme=True)
 
     if quote_request.urgency == 'urgent':
         surcharge = round(total_avg * 0.25, 2)
@@ -118,7 +196,7 @@ def _build_estimate(company, quote_request, metiers, surface_m2):
         GuidedQuoteEstimateItem.objects.create(
             estimate=estimate, price_item=it['item'], description=it['item'].name,
             quantity=Decimal(str(it['qty'])), unit=it['item'].unit,
-            unit_price_avg=it['item'].price_avg, order=order,
+            unit_price_avg=Decimal(str(round(it['unit_price_avg'], 2))), order=order,
         )
     return estimate
 
@@ -177,11 +255,19 @@ def configurator_submit(request):
     if data.get('website_url_field'):
         return JsonResponse({'error': 'Requête refusée.'}, status=400)
 
-    metiers = [m for m in (data.get('metiers') or []) if m in METIER_ITEM_CODES]
+    metiers = [m for m in (data.get('metiers') or []) if m in METIER_MATERIAL_CODES]
     intervention = data.get('intervention') or 'autre'
     if intervention not in {c['value'] for c in INTERVENTIONS}:
         intervention = 'autre'
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
+    quality_level = data.get('quality_level') if data.get('quality_level') in QUALITY_MULTIPLIERS else 'standard'
+
+    allowed_material_codes = {c for m in metiers for c in METIER_MATERIAL_CODES.get(m, [])}
+    raw_materials = data.get('materials') or {}
+    materials = {
+        code: qty for code, qty in raw_materials.items()
+        if code in allowed_material_codes and _valid_qty(qty)
+    }
 
     contact = data.get('contact') or {}
     for field in ('first_name', 'last_name', 'email'):
@@ -202,6 +288,7 @@ def configurator_submit(request):
         company=company,
         request_type=intervention,
         urgency=urgency,
+        quality_level=quality_level,
         client_first_name=contact.get('first_name', '').strip()[:100],
         client_last_name=contact.get('last_name', '').strip()[:100],
         client_email=contact.get('email', '').strip()[:254],
@@ -212,12 +299,12 @@ def configurator_submit(request):
         property_type=building.get('property_type', '') if building.get('property_type') in
             {'apartment', 'house', 'commercial', 'office', 'workshop', 'building', 'other'} else '',
         surface=str(surface_raw or ''),
-        answers={'metiers': metiers, 'surface_m2': surface_m2},
+        answers={'metiers': metiers, 'surface_m2': surface_m2, 'materials': materials, 'quality_level': quality_level},
         client_notes=(data.get('notes') or '').strip(),
     )
 
     try:
-        estimate = _build_estimate(company, quote_request, metiers, surface_m2)
+        estimate = _build_estimate(company, quote_request, metiers, surface_m2, materials, quality_level)
     except ValidationError:
         estimate = None
 
@@ -233,5 +320,15 @@ def configurator_submit(request):
             'total_ttc': float(estimate.total_ttc),
             'duration_min_days': float(estimate.duration_min_days),
             'duration_max_days': float(estimate.duration_max_days),
+            'items': [
+                {
+                    'description': it.description,
+                    'quantity': float(it.quantity),
+                    'unit': it.unit,
+                    'unit_price_avg': float(it.unit_price_avg),
+                    'total_avg': float(it.total_avg),
+                }
+                for it in estimate.items.all()
+            ],
         } if estimate else None,
     })

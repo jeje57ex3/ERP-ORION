@@ -31,6 +31,25 @@ export default function StepResult({ result }) {
               </div>
             </div>
 
+            {estimate.items?.length > 0 && (
+              <div style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--border)', textAlign: 'left' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+                  Détail des postes
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {estimate.items.map((it, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                      <span style={{ color: 'var(--text)' }}>
+                        {it.description}
+                        {it.quantity > 1 && <span style={{ color: 'var(--text-muted)' }}> × {it.quantity}</span>}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmt(it.total_avg)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, lineHeight: 1.6 }}>
               Le montant définitif sera confirmé après étude technique. Notre équipe vous
               recontacte très prochainement.

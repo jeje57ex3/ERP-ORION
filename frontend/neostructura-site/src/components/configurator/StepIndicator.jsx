@@ -1,4 +1,4 @@
-const LABELS = ['Métiers', 'Intervention', 'Bâtiment', 'Coordonnées']
+const LABELS = ['Métiers', 'Matériel', 'Intervention', 'Bâtiment', 'Coordonnées']
 
 export default function StepIndicator({ step }) {
   return (
