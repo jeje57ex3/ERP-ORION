@@ -1,0 +1,26 @@
+import { Routes, Route } from 'react-router-dom'
+import Header from './components/Header'
+import Footer from './components/Footer'
+import HomePage from './pages/HomePage'
+import MetiersPage from './pages/MetiersPage'
+import RealisationsPage from './pages/RealisationsPage'
+import ContactPage from './pages/ContactPage'
+import NotFoundPage from './pages/NotFoundPage'
+
+export default function App() {
+  return (
+    <div style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100vh' }}>
+      <Header />
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/nos-metiers" element={<MetiersPage />} />
+          <Route path="/realisations" element={<RealisationsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  )
+}

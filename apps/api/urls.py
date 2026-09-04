@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from apps.websites import api_neostructura
 from apps.ecommerce.api.siecle_api import (
     ProductListView, ProductDetailView, CollectionListView,
     CartValidateView, CreateCheckoutSessionView, StripeWebhookView,
@@ -83,4 +84,7 @@ urlpatterns = [
     path('siecle/community/posts/',                  CommunityPostsView.as_view(),      name='siecle_community_posts'),
     path('siecle/customer/watch-configurations/',    WatchConfigurationsView.as_view(), name='siecle_watch_configs'),
     path('siecle/watches/certificate/<str:watch_id>/', WatchCertificateView.as_view(), name='siecle_watch_certificate'),
+
+    # ── NÉOSTRUCTURA (site vitrine) ────────────────────────────────────────────
+    path('neostructura/contact/', api_neostructura.contact, name='neostructura_contact'),
 ]
