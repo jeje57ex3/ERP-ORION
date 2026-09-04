@@ -65,6 +65,47 @@
             <label class="form-label fw-semibold">{% trans "Description (optionnel)" %}</label>
             <textarea name="description" class="form-control" rows="2">{{ item.description|default:'' }}</textarea>
           </div>
+          <div class="col-12">
+            <div class="form-check">
+              <input type="checkbox" name="is_active" id="id_is_active" class="form-check-input" {% if not item or item.is_active %}checked{% endif %}>
+              <label class="form-check-label small" for="id_is_active">{% trans "Actif (visible dans les pré-devis et le configurateur public)" %}</label>
+            </div>
+          </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+          <div class="col-12">
+            <div class="fw-semibold small text-muted text-uppercase" style="letter-spacing:.04em">{% trans "Configurateur public NÉOSTRUCTURA" %}</div>
+            <div class="text-muted" style="font-size:.75rem">{% trans "Renseignez un métier pour que ce poste apparaisse comme choix de matériel sur le site public. Donnez le même « Famille de produit » à plusieurs postes pour proposer plusieurs gammes (standard/premium/luxe) du même équipement." %}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">{% trans "Métier" %}</label>
+            <select name="metier" class="form-select">
+              {% for value, label in metier_choices %}
+              <option value="{{ value }}" {% if item.metier == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">{% trans "Gamme" %}</label>
+            <select name="quality_level" class="form-select">
+              {% for value, label in quality_level_choices %}
+              <option value="{{ value }}" {% if item.quality_level == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">{% trans "Famille de produit" %}</label>
+            <input type="text" name="product_family" class="form-control" value="{{ item.product_family|default:'' }}" placeholder="{% trans 'ex: Prise / interrupteur' %}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">{% trans "Marque" %}</label>
+            <input type="text" name="brand" class="form-control" value="{{ item.brand|default:'' }}" placeholder="{% trans 'ex: Legrand, Schneider Electric...' %}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">{% trans "Référence produit" %}</label>
+            <input type="text" name="reference" class="form-control" value="{{ item.reference|default:'' }}">
+          </div>
+
           <div class="col-12 d-flex gap-2 pt-2">
             <button type="submit" class="orion-btn warning fw-bold"><i class="bi bi-check-lg me-1"></i>{% if item %}{% trans "Enregistrer" %}{% else %}{% trans "Ajouter" %}{% endif %}</button>
             <a href="{% url 'btp:price_library_list' %}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>

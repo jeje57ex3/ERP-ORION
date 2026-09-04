@@ -42,6 +42,7 @@
         <tr>
           <th>{% trans "Prestation" %}</th>
           <th>{% trans "Catégorie" %}</th>
+          <th>{% trans "Configurateur public" %}</th>
           <th>{% trans "Prix min HT" %}</th>
           <th>{% trans "Prix moyen HT" %}</th>
           <th>{% trans "Prix max HT" %}</th>
@@ -58,6 +59,16 @@
           {% if item.description %}<div class="text-muted" style="font-size:.7rem">{{ item.description|truncatechars:50 }}</div>{% endif %}
         </td>
         <td><span class="badge bg-light text-dark border small">{{ item.get_category_display }}</span></td>
+        <td>
+          {% if item.metier %}
+          <span class="orion-badge orion-badge-success small">{{ item.get_metier_display }}</span>
+          <div class="text-muted" style="font-size:.68rem">
+            {{ item.get_quality_level_display }}{% if item.product_family %} · {{ item.product_family }}{% endif %}
+          </div>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
         <td class="small">{{ item.price_min|floatformat:2 }} €</td>
         <td class="small fw-semibold">{{ item.price_avg|floatformat:2 }} €</td>
         <td class="small">{{ item.price_max|floatformat:2 }} €</td>

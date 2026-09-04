@@ -205,6 +205,11 @@ def price_library_create(request):
         item.price_max = request.POST.get('price_max', 0) or 0
         item.duration_hours = request.POST.get('duration_hours', 0) or 0
         item.complexity = request.POST.get('complexity', 'medium')
+        item.metier = request.POST.get('metier', '')
+        item.product_family = request.POST.get('product_family', '').strip()
+        item.quality_level = request.POST.get('quality_level', 'standard')
+        item.brand = request.POST.get('brand', '').strip()
+        item.reference = request.POST.get('reference', '').strip()
         item.save()
         messages.success(request, f'Poste « {item.name} » créé.')
         return redirect('btp:price_library_list')
@@ -212,6 +217,8 @@ def price_library_create(request):
         'category_choices': ElectricityPriceLibrary.CATEGORY_CHOICES,
         'unit_choices': ElectricityPriceLibrary.UNIT_CHOICES,
         'complexity_choices': ElectricityPriceLibrary.COMPLEXITY_CHOICES,
+        'metier_choices': ElectricityPriceLibrary.METIER_CHOICES,
+        'quality_level_choices': ElectricityPriceLibrary.QUALITY_LEVEL_CHOICES,
         'action': 'create',
     })
 
@@ -231,6 +238,11 @@ def price_library_edit(request, pk):
         item.price_max = request.POST.get('price_max', item.price_max) or 0
         item.duration_hours = request.POST.get('duration_hours', item.duration_hours) or 0
         item.complexity = request.POST.get('complexity', item.complexity)
+        item.metier = request.POST.get('metier', item.metier)
+        item.product_family = request.POST.get('product_family', '').strip()
+        item.quality_level = request.POST.get('quality_level', item.quality_level)
+        item.brand = request.POST.get('brand', '').strip()
+        item.reference = request.POST.get('reference', '').strip()
         item.is_active = request.POST.get('is_active') == 'on'
         item.save()
         messages.success(request, 'Poste mis à jour.')
@@ -240,6 +252,8 @@ def price_library_edit(request, pk):
         'category_choices': ElectricityPriceLibrary.CATEGORY_CHOICES,
         'unit_choices': ElectricityPriceLibrary.UNIT_CHOICES,
         'complexity_choices': ElectricityPriceLibrary.COMPLEXITY_CHOICES,
+        'metier_choices': ElectricityPriceLibrary.METIER_CHOICES,
+        'quality_level_choices': ElectricityPriceLibrary.QUALITY_LEVEL_CHOICES,
         'action': 'edit',
     })
 

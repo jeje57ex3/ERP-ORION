@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { METIERS } from '../../data/metiers'
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR') + ' €'
+const GAMME_LABELS = { standard: 'Standard', premium: 'Premium', luxe: 'Luxe' }
 
-function QtyControl({ item, qty, onSet }) {
-  if (item.unit === 'forfait') {
+function QtyControl({ option, qty, onSet }) {
+  if (option.unit === 'forfait') {
     const checked = qty > 0
     return (
       <button
@@ -28,7 +30,7 @@ function QtyControl({ item, qty, onSet }) {
     )
   }
 
-  if (item.unit === 'm2') {
+  if (option.unit === 'm2') {
     return (
       <input
         type="number" min="0" step="1" placeholder="m²"
@@ -57,8 +59,58 @@ function QtyControl({ item, qty, onSet }) {
   )
 }
 
+function FamilyRow({ family, materials, onChange, defaultGamme }) {
+  const hasMultipleGammes = family.options.length > 1
+  const initialOption = family.options.find(o => o.quality_level === defaultGamme) || family.options[0]
+  const [activeCode, setActiveCode] = useState(initialOption.code)
+  const active = family.options.find(o => o.code === activeCode) || initialOption
+  const qty = materials[active.code] || 0
+
+  const selectGamme = (code) => {
+    if (code === activeCode) return
+    const carriedQty = materials[activeCode] || 0
+    const updated = { ...materials, [activeCode]: 0, [code]: carriedQty }
+    onChange(updated)
+    setActiveCode(code)
+  }
+
+  const setQty = (newQty) => onChange({ ...materials, [active.code]: newQty })
+
+  return (
+    <div className="neo-card" style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{family.family}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {active.brand && <span>{active.brand}{active.reference ? ` — ${active.reference}` : ''} · </span>}
+            {fmt(active.price_avg)} / {active.unit_label.toLowerCase()}
+          </div>
+        </div>
+        <QtyControl option={active} qty={qty} onSet={setQty} />
+      </div>
+
+      {hasMultipleGammes && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          {family.options.map(opt => (
+            <button
+              key={opt.code} type="button" onClick={() => selectGamme(opt.code)}
+              style={{
+                padding: '5px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600,
+                border: `1px solid ${opt.code === activeCode ? 'var(--accent)' : 'var(--border)'}`,
+                background: opt.code === activeCode ? 'var(--accent)' : 'transparent',
+                color: opt.code === activeCode ? 'var(--accent-contrast)' : 'var(--text-muted)',
+              }}
+            >
+              {GAMME_LABELS[opt.quality_level] || opt.quality_level}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function StepMaterials({ metiers, materials, onChange, qualityLevel, onChangeQuality, options, loading, onNext, onBack }) {
-  const setQty = (code, qty) => onChange({ ...materials, [code]: qty })
   const catalog = options?.materials || {}
   const qualityLevels = options?.quality_levels || []
 
@@ -66,9 +118,27 @@ export default function StepMaterials({ metiers, materials, onChange, qualityLev
     <div>
       <h2 style={{ fontSize: 24, marginBottom: 8 }}>Choisissez votre matériel.</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 32 }}>
-        Précisez les équipements souhaités — optionnel, notre équipe peut aussi
-        évaluer ce point lors du diagnostic.
+        Précisez les équipements et la gamme souhaités — optionnel, notre équipe
+        peut aussi évaluer ce point lors du diagnostic.
       </p>
+
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}>
+        Gamme par défaut
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }} id="neo-cfg-gamme-grid">
+        {qualityLevels.map(q => (
+          <button
+            key={q.value} type="button" onClick={() => onChangeQuality(q.value)}
+            className="neo-card" style={{
+              padding: '12px 14px', textAlign: 'center', fontSize: 13, fontWeight: 600,
+              borderColor: qualityLevel === q.value ? 'var(--accent)' : 'var(--border)',
+              background: qualityLevel === q.value ? 'var(--bg-subtle)' : 'var(--bg-elevated)',
+            }}
+          >
+            {q.label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Chargement du catalogue…</p>
@@ -76,8 +146,8 @@ export default function StepMaterials({ metiers, materials, onChange, qualityLev
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginBottom: 36 }}>
           {metiers.map(slug => {
             const metier = METIERS.find(m => m.slug === slug)
-            const items = catalog[slug] || []
-            if (!items.length) return null
+            const families = catalog[slug] || []
+            if (!families.length) return null
             return (
               <div key={slug}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -85,19 +155,11 @@ export default function StepMaterials({ metiers, materials, onChange, qualityLev
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{metier?.name || slug}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {items.map(item => (
-                    <div
-                      key={item.code} className="neo-card"
-                      style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{item.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                          à partir de {fmt(item.price_min)} / {item.unit_label.toLowerCase()}
-                        </div>
-                      </div>
-                      <QtyControl item={item} qty={materials[item.code] || 0} onSet={(qty) => setQty(item.code, qty)} />
-                    </div>
+                  {families.map(family => (
+                    <FamilyRow
+                      key={family.family} family={family} materials={materials}
+                      onChange={onChange} defaultGamme={qualityLevel}
+                    />
                   ))}
                 </div>
               </div>
@@ -106,26 +168,7 @@ export default function StepMaterials({ metiers, materials, onChange, qualityLev
         </div>
       )}
 
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}>
-        Gamme souhaitée
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }} id="neo-cfg-gamme-grid">
-        {qualityLevels.map(q => (
-          <button
-            key={q.value} type="button" onClick={() => onChangeQuality(q.value)}
-            className="neo-card" style={{
-              padding: 16, textAlign: 'left',
-              borderColor: qualityLevel === q.value ? 'var(--accent)' : 'var(--border)',
-              background: qualityLevel === q.value ? 'var(--bg-subtle)' : 'var(--bg-elevated)',
-            }}
-          >
-            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{q.label}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{q.desc}</div>
-          </button>
-        ))}
-      </div>
-
-      <div style={{ marginTop: 40, display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
         <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>Retour</button>
         <button type="button" className="neo-btn neo-btn-primary neo-btn-lg" onClick={onNext}>Continuer</button>
       </div>

@@ -7,11 +7,14 @@ request.current_company, jamais résolu pour un visiteur anonyme), cette API
 résout l'entreprise explicitement par slug — NÉOSTRUCTURA est actuellement
 la seule entreprise servie par ce configurateur.
 
-Le moteur de chiffrage reste volontairement simple (des lignes tarifées
-piochées dans ElectricityPriceLibrary + main-d'œuvre + déplacement +
-majoration urgence + gamme) : une V1 fonctionnelle branchée sur de vraies
-données ERP, pas le moteur multi-produits/multi-fournisseurs détaillé du
-cahier des charges complet (à construire dans une itération ultérieure).
+Le catalogue "matériel" (étape 2 du configurateur) est lu dynamiquement dans
+ElectricityPriceLibrary (champ `metier`, filtré par is_active) — il n'est
+donc PAS codé en dur ici : un utilisateur ERP ajoute un nouveau produit ou
+une nouvelle gamme (standard/premium/luxe) depuis Bâtiment > Bibliothèque
+de prix, et il apparaît immédiatement dans le configurateur public, sans
+déploiement. Plusieurs postes partageant le même `product_family` sont
+proposés comme des gammes du même équipement (le visiteur choisit le
+produit précis, avec son vrai prix — pas de majoration forfaitaire).
 """
 import json
 from decimal import Decimal
@@ -34,6 +37,7 @@ METIERS = [
     {'slug': 'renovation',    'label': 'Rénovation'},
     {'slug': 'maintenance',   'label': 'Maintenance'},
 ]
+METIER_SLUGS = {m['slug'] for m in METIERS}
 
 INTERVENTIONS = [
     {'value': 'installation_neuve', 'label': 'Installation neuve'},
@@ -43,59 +47,52 @@ INTERVENTIONS = [
     {'value': 'autre',              'label': "Ajout d'équipements"},
 ]
 
-# Un métier -> les codes ElectricityPriceLibrary sélectionnables comme
-# "matériel / équipement" dans le configurateur (voir
-# apps/btp/management/commands/seed_neostructura_pricing.py). Le premier
-# code de chaque liste sert de poste par défaut si le visiteur n'a rien
-# précisé dans l'étape matériel (compatibilité + rapidité).
-METIER_MATERIAL_CODES = {
-    'electricite':  ['ELEC-INST', 'ELEC-TAB', 'ELEC-PRISE', 'ELEC-LUM', 'ELEC-NORM'],
-    'domotique':    ['DOM-MOD', 'DOM-SEC', 'DOM-HUB'],
-    'etancheite':   ['ETAN-TOIT', 'ETAN-REPAR', 'ETAN-ISOL'],
-    'informatique': ['IT-RES', 'IT-WIFI', 'IT-BAIE', 'IT-CAM'],
-    'renovation':   ['RENO-COMPL', 'RENO-SDB', 'RENO-CUISINE'],
-    'maintenance':  ['MAINT-CONTRAT', 'MAINT-PONCT'],
-}
-
 QUALITY_LEVELS = [
-    {'value': 'standard', 'label': 'Standard', 'desc': 'Matériel fiable, bon rapport qualité/prix', 'multiplier': 1.0},
-    {'value': 'premium',  'label': 'Premium',  'desc': 'Marques reconnues, finitions soignées', 'multiplier': 1.25},
-    {'value': 'luxe',     'label': 'Luxe / Haut de gamme', 'desc': 'Matériel haut de gamme, sur-mesure', 'multiplier': 1.6},
+    {'value': 'standard', 'label': 'Standard'},
+    {'value': 'premium', 'label': 'Premium'},
+    {'value': 'luxe', 'label': 'Luxe / Haut de gamme'},
 ]
-QUALITY_MULTIPLIERS = {q['value']: q['multiplier'] for q in QUALITY_LEVELS}
 
 
 def _get_neostructura_company():
     return Company.objects.filter(slug='neostructura').first()
 
 
+def _material_catalog(company):
+    """{metier_slug: [{family, options: [...]}]} construit depuis la bibliothèque
+    de prix ERP — un même `product_family` regroupe plusieurs gammes."""
+    items = ElectricityPriceLibrary.objects.filter(
+        company=company, is_active=True, metier__in=METIER_SLUGS,
+    ).order_by('metier', 'product_family', 'name', 'quality_level')
+
+    catalog = {m['slug']: {} for m in METIERS}
+    for it in items:
+        family_key = it.product_family or it.name
+        bucket = catalog[it.metier].setdefault(family_key, [])
+        bucket.append({
+            'code': it.code,
+            'name': it.name,
+            'unit': it.unit,
+            'unit_label': it.get_unit_display(),
+            'quality_level': it.quality_level,
+            'brand': it.brand,
+            'reference': it.reference,
+            'price_min': float(it.price_min),
+            'price_avg': float(it.price_avg),
+            'price_max': float(it.price_max),
+        })
+
+    return {
+        slug: [{'family': family, 'options': options} for family, options in families.items()]
+        for slug, families in catalog.items()
+    }
+
+
 @require_GET
 def configurator_options(request):
-    """Options du configurateur : métiers, interventions, catalogue matériel par métier, gammes."""
+    """Options du configurateur : métiers, interventions, catalogue matériel (ERP), gammes."""
     company = _get_neostructura_company()
-    all_codes = [c for codes in METIER_MATERIAL_CODES.values() for c in codes]
-    price_items = {}
-    if company is not None:
-        price_items = {
-            p.code: p for p in ElectricityPriceLibrary.objects.filter(
-                company=company, code__in=all_codes, is_active=True,
-            )
-        }
-
-    materials = {}
-    for slug, codes in METIER_MATERIAL_CODES.items():
-        materials[slug] = [
-            {
-                'code': code,
-                'name': price_items[code].name,
-                'unit': price_items[code].unit,
-                'unit_label': price_items[code].get_unit_display(),
-                'price_min': float(price_items[code].price_min),
-                'price_avg': float(price_items[code].price_avg),
-                'price_max': float(price_items[code].price_max),
-            }
-            for code in codes if code in price_items
-        ]
+    materials = _material_catalog(company) if company is not None else {m['slug']: [] for m in METIERS}
 
     return JsonResponse({
         'metiers': METIERS,
@@ -124,51 +121,54 @@ def _clamp_qty(unit, raw_qty, surface_m2):
     return max(1, min(round(qty), 100))
 
 
-def _build_estimate(company, quote_request, metiers, surface_m2, materials, quality_level):
-    """Calcule un pré-devis détaillé à partir des métiers, du matériel choisi et
-    de la gamme. Voir docstring module."""
-    multiplier = QUALITY_MULTIPLIERS.get(quality_level, 1.0)
+def _build_estimate(company, quote_request, metiers, surface_m2, materials):
+    """Calcule un pré-devis détaillé à partir des métiers et du matériel/gamme
+    choisis — chaque produit porte son propre prix réel (ERP), il n'y a plus
+    de majoration forfaitaire de gamme appliquée en aval. Voir docstring module."""
+    catalog = _material_catalog(company)
     items = []
     total_min = total_avg = total_max = 0.0
     duration_hours = 0.0
 
-    all_material_codes = {c for m in metiers for c in METIER_MATERIAL_CODES.get(m, [])}
-    codes = ['DEPL', 'MO'] + sorted(all_material_codes)
+    all_codes = {opt['code'] for m in metiers for family in catalog.get(m, []) for opt in family['options']}
     price_items = {
-        p.code: p for p in ElectricityPriceLibrary.objects.filter(company=company, code__in=codes, is_active=True)
+        p.code: p for p in ElectricityPriceLibrary.objects.filter(
+            company=company, code__in=list(all_codes) + ['DEPL', 'MO'], is_active=True,
+        )
     }
 
-    def add_item(price_item, qty, apply_gamme):
+    def add_item(price_item, qty):
         nonlocal total_min, total_avg, total_max, duration_hours
-        mult = multiplier if apply_gamme else 1.0
-        pmin, pavg, pmax = float(price_item.price_min) * mult, float(price_item.price_avg) * mult, float(price_item.price_max) * mult
-        items.append({'item': price_item, 'qty': qty, 'unit_price_avg': pavg})
-        total_min += pmin * qty
-        total_avg += pavg * qty
-        total_max += pmax * qty
+        items.append({'item': price_item, 'qty': qty, 'unit_price_avg': float(price_item.price_avg)})
+        total_min += float(price_item.price_min) * qty
+        total_avg += float(price_item.price_avg) * qty
+        total_max += float(price_item.price_max) * qty
         duration_hours += float(price_item.duration_hours) * qty
 
     for code in ('DEPL', 'MO'):
         p = price_items.get(code)
         if p:
-            add_item(p, 1, apply_gamme=False)
+            add_item(p, 1)
 
     for m in metiers:
-        metier_codes = METIER_MATERIAL_CODES.get(m, [])
-        chosen = [c for c in metier_codes if _valid_qty(materials.get(c))]
-        if not chosen:
-            fallback_code = metier_codes[0] if metier_codes else None
-            p = price_items.get(fallback_code) if fallback_code else None
+        families = catalog.get(m, [])
+        any_chosen = False
+        for family in families:
+            for opt in family['options']:
+                if _valid_qty(materials.get(opt['code'])):
+                    p = price_items.get(opt['code'])
+                    if not p:
+                        continue
+                    qty = _clamp_qty(opt['unit'], materials.get(opt['code']), surface_m2)
+                    add_item(p, qty)
+                    any_chosen = True
+        if not any_chosen and families:
+            # Rien de précisé pour ce métier : poste par défaut (1er de la 1re famille).
+            fallback = families[0]['options'][0]
+            p = price_items.get(fallback['code'])
             if p:
                 qty = float(surface_m2) if (p.unit == 'm2' and surface_m2) else 1
-                add_item(p, qty, apply_gamme=True)
-            continue
-        for code in chosen:
-            p = price_items.get(code)
-            if not p:
-                continue
-            qty = _clamp_qty(p.unit, materials.get(code), surface_m2)
-            add_item(p, qty, apply_gamme=True)
+                add_item(p, qty)
 
     if quote_request.urgency == 'urgent':
         surcharge = round(total_avg * 0.25, 2)
@@ -255,14 +255,17 @@ def configurator_submit(request):
     if data.get('website_url_field'):
         return JsonResponse({'error': 'Requête refusée.'}, status=400)
 
-    metiers = [m for m in (data.get('metiers') or []) if m in METIER_MATERIAL_CODES]
+    metiers = [m for m in (data.get('metiers') or []) if m in METIER_SLUGS]
     intervention = data.get('intervention') or 'autre'
     if intervention not in {c['value'] for c in INTERVENTIONS}:
         intervention = 'autre'
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
-    quality_level = data.get('quality_level') if data.get('quality_level') in QUALITY_MULTIPLIERS else 'standard'
+    quality_level = data.get('quality_level') if data.get('quality_level') in {q['value'] for q in QUALITY_LEVELS} else 'standard'
 
-    allowed_material_codes = {c for m in metiers for c in METIER_MATERIAL_CODES.get(m, [])}
+    catalog = _material_catalog(company)
+    allowed_material_codes = {
+        opt['code'] for m in metiers for family in catalog.get(m, []) for opt in family['options']
+    }
     raw_materials = data.get('materials') or {}
     materials = {
         code: qty for code, qty in raw_materials.items()
@@ -304,7 +307,7 @@ def configurator_submit(request):
     )
 
     try:
-        estimate = _build_estimate(company, quote_request, metiers, surface_m2, materials, quality_level)
+        estimate = _build_estimate(company, quote_request, metiers, surface_m2, materials)
     except ValidationError:
         estimate = None
 

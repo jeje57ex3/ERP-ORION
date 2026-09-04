@@ -255,6 +255,15 @@ class ElectricityPriceLibrary(models.Model):
         ('forfait', 'Forfait'), ('point', 'Point'), ('circuit', 'Circuit'),
     ]
     COMPLEXITY_CHOICES = [('simple', 'Simple'), ('medium', 'Intermédiaire'), ('complex', 'Complexe')]
+    METIER_CHOICES = [
+        ('', 'Interne uniquement (main-d\'œuvre, déplacement...)'),
+        ('electricite', 'Électricité générale'), ('domotique', 'Domotique'),
+        ('etancheite', 'Étanchéité'), ('informatique', 'Informatique & Réseaux'),
+        ('renovation', 'Rénovation'), ('maintenance', 'Maintenance'),
+    ]
+    QUALITY_LEVEL_CHOICES = [
+        ('standard', 'Standard'), ('premium', 'Premium'), ('luxe', 'Luxe / Haut de gamme'),
+    ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='electricity_price_library')
     code = models.CharField('Code', max_length=30, blank=True)
@@ -270,6 +279,19 @@ class ElectricityPriceLibrary(models.Model):
     is_active = models.BooleanField('Actif', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # ── Catalogue produit (configurateurs publics multi-métiers, ex: NÉOSTRUCTURA) ──
+    metier = models.CharField(
+        'Métier (configurateur public)', max_length=20, choices=METIER_CHOICES, blank=True, default='',
+    )
+    product_family = models.CharField(
+        'Famille de produit', max_length=100, blank=True, default='',
+        help_text='Regroupe plusieurs gammes du même équipement (ex: "Prise / interrupteur") '
+                   'dans le configurateur public. Laisser vide si ce poste n\'a qu\'une seule gamme.',
+    )
+    quality_level = models.CharField('Gamme', max_length=10, choices=QUALITY_LEVEL_CHOICES, default='standard')
+    brand = models.CharField('Marque', max_length=100, blank=True, default='')
+    reference = models.CharField('Référence produit', max_length=100, blank=True, default='')
+
     class Meta:
         verbose_name = 'Poste tarif électricité'
         verbose_name_plural = 'Bibliothèque prix électricité'
@@ -277,6 +299,10 @@ class ElectricityPriceLibrary(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.get_unit_display()})'
+
+    @property
+    def family_label(self):
+        return self.product_family or self.name
 
 
 # ─── DEMANDE GUIDÉE ───────────────────────────────────────────────────────────
