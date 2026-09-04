@@ -140,6 +140,22 @@ if ($luneaUp) {
 }
 
 # ────────────────────────────────────────────────────────────
+# 5bis. NÉOSTRUCTURA Site — port 5175 (ns.elysiums.fr)
+# ────────────────────────────────────────────────────────────
+Write-Step "NÉOSTRUCTURA Site — Vite (port 5175)..."
+
+$neostructuraUp = (Test-Port 5175)
+if ($neostructuraUp) {
+    Write-Warn "Port 5175 déjà occupé — NÉOSTRUCTURA probablement déjà lancé"
+} else {
+    $neostructuraDir = Join-Path $ROOT "frontend\neostructura-site"
+    Start-Process "cmd.exe" `
+        -ArgumentList "/k","cd /d `"$neostructuraDir`" && npm run dev" `
+        -WindowStyle Normal
+    Write-Ok "NÉOSTRUCTURA Site lancé → http://localhost:5175"
+}
+
+# ────────────────────────────────────────────────────────────
 # 6. Cloudflare Tunnel — orion.elysiums.fr → localhost:5172
 # ────────────────────────────────────────────────────────────
 Write-Step "Cloudflare Tunnel (orion.elysiums.fr → port 5172)..."
@@ -172,6 +188,7 @@ Write-Host "  ERP Login  http://localhost:9000  -> https://login.elysiums.fr" -F
 Write-Host "  ERP Orion  http://localhost:5172  -> https://orion.elysiums.fr" -ForegroundColor White
 Write-Host "  SIECLE     http://localhost:5173  -> https://siecle.elysiums.fr" -ForegroundColor White
 Write-Host "  LUNEA      http://localhost:5174  -> https://lunea.elysiums.fr" -ForegroundColor White
+Write-Host "  NEOSTRUCTURA http://localhost:5175  -> https://ns.elysiums.fr" -ForegroundColor White
 Write-Host "============================================`n" -ForegroundColor DarkGray
 
 $open = Read-Host "Ouvrir les URLs dans le navigateur ? [O/n]"
@@ -182,4 +199,6 @@ if ($open -ne 'n' -and $open -ne 'N') {
     Start-Process "http://localhost:5173"
     Start-Sleep -Milliseconds 500
     Start-Process "http://localhost:5174"
+    Start-Sleep -Milliseconds 500
+    Start-Process "http://localhost:5175"
 }
