@@ -1,0 +1,11 @@
+{% load i18n %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'btp:site_manager_dashboard' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'dashboard' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-speedometer2 me-1"></i>{% trans "Tableau de bord" %}</a>
+  <a href="{% url 'btp:project_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'projects' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-building me-1"></i>{% trans "Chantiers" %}</a>
+  <a href="{% url 'btp:quote_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'quotes' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-file-text me-1"></i>{% trans "Devis" %}</a>
+  <a href="{% url 'btp:guided_quote_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'guided_quotes' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-inbox me-1"></i>{% trans "Demandes guidées" %}</a>
+  <a href="{% url 'btp:price_library_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'price_library' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-tags me-1"></i>{% trans "Bibliothèque de prix" %}</a>
+  <a href="{% url 'btp:timesheet_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'timesheets' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-clock-history me-1"></i>{% trans "Pointage" %}</a>
+  <a href="{% url 'btp:reservations_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'reservations' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-exclamation-triangle me-1"></i>{% trans "Réserves" %}</a>
+  <a href="{% url 'btp:client_messages_list' %}" class="orion-btn orion-btn-sm {% if active_subnav == 'client_messages' %}orion-btn-primary{% else %}orion-btn-outline{% endif %}"><i class="bi bi-chat-dots me-1"></i>{% trans "Messages clients" %}</a>
+</div>
