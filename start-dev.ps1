@@ -147,10 +147,14 @@ Write-Step "Cloudflare Tunnel (orion.elysiums.fr → port 5172)..."
 $cfExe    = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
 $cfConfig = "$env:USERPROFILE\.cloudflared\config.yml"
 
+$cloudflaredRunning = Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue
+
 if (-not (Test-Path $cfExe)) {
     Write-Fail "cloudflared.exe introuvable à $cfExe"
 } elseif (-not (Test-Path $cfConfig)) {
     Write-Fail "config.yml introuvable à $cfConfig"
+} elseif ($cloudflaredRunning) {
+    Write-Warn "cloudflared déjà en cours d'exécution (PID $($cloudflaredRunning.Id -join ', ')) — pas relancé"
 } else {
     Start-Process $cfExe `
         -ArgumentList "tunnel","--config",$cfConfig,"run" `
