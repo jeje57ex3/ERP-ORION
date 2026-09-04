@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.core.models import Company
-from apps.crm.models import Customer
+from apps.crm.models import Customer, Prospect
 
 
 class BTPProject(models.Model):
@@ -299,6 +299,9 @@ class GuidedQuoteRequest(models.Model):
         ('apartment', 'Appartement'), ('house', 'Maison'), ('commercial', 'Local commercial'),
         ('office', 'Bureau'), ('workshop', 'Atelier'), ('building', 'Immeuble'), ('other', 'Autre'),
     ]
+    QUALITY_LEVEL_CHOICES = [
+        ('standard', 'Standard'), ('premium', 'Premium'), ('luxe', 'Luxe'),
+    ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='guided_quote_requests')
     reference = models.CharField('Référence', max_length=30, blank=True)
@@ -324,8 +327,9 @@ class GuidedQuoteRequest(models.Model):
     # Bien
     property_type = models.CharField('Type de bien', max_length=20, choices=PROPERTY_TYPE_CHOICES, blank=True)
     surface = models.CharField('Surface', max_length=30, blank=True)
+    quality_level = models.CharField('Niveau de gamme', max_length=10, choices=QUALITY_LEVEL_CHOICES, default='standard')
 
-    # Réponses formulaire (JSON flexible)
+    # Réponses formulaire (JSON flexible — pièces, équipements, plan, etc.)
     answers = models.JSONField('Réponses', default=dict, blank=True)
 
     # Notes
@@ -336,6 +340,7 @@ class GuidedQuoteRequest(models.Model):
     btp_project = models.ForeignKey(BTPProject, on_delete=models.SET_NULL, null=True, blank=True, related_name='guided_requests')
     btp_quote = models.ForeignKey(BTPQuote, on_delete=models.SET_NULL, null=True, blank=True, related_name='guided_requests')
     crm_customer_id = models.PositiveIntegerField('ID client CRM', null=True, blank=True)
+    crm_prospect = models.ForeignKey(Prospect, on_delete=models.SET_NULL, null=True, blank=True, related_name='guided_quote_requests')
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_guided_requests')
 
     # Créneaux souhaités

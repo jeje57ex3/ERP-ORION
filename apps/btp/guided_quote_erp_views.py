@@ -115,6 +115,22 @@ def guided_quote_detail(request, pk):
                     pass
         elif action == 'create_quote':
             from .models import BTPQuote
+            # crm_customer_id n'est renseigné que si un Customer a déjà été
+            # créé (ex: via le configurateur public) — sinon on le crée ici,
+            # sans quoi BTPQuote.customer (FK obligatoire) ferait échouer la création.
+            if not quote_request.crm_customer_id:
+                from apps.crm.models import Customer
+                customer = Customer.objects.create(
+                    company=company, customer_type='individual',
+                    name=quote_request.client_full_name or quote_request.client_email,
+                    contact_name=quote_request.client_full_name,
+                    email=quote_request.client_email, phone=quote_request.client_phone,
+                    address=quote_request.address, city=quote_request.city,
+                    zip_code=quote_request.zip_code,
+                    notes=f'Créé automatiquement depuis la demande guidée {quote_request.reference}',
+                )
+                quote_request.crm_customer_id = customer.pk
+                quote_request.save(update_fields=['crm_customer_id'])
             # Créer un brouillon de devis BTP
             quote = BTPQuote.objects.create(
                 company=company,
