@@ -90,8 +90,8 @@ export default function MetiersPage() {
                 </div>
               </div>
 
-              <Link to="/contact" className="neo-btn neo-btn-primary">
-                Demander un devis — {m.name}
+              <Link to="/configurateur" className="neo-btn neo-btn-primary">
+                Configurer mon projet — {m.name}
               </Link>
             </Reveal>
           ))}

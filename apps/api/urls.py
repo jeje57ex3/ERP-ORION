@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from apps.websites import api_neostructura
+from apps.btp import public_configurator_api as neo_configurator
 from apps.ecommerce.api.siecle_api import (
     ProductListView, ProductDetailView, CollectionListView,
     CartValidateView, CreateCheckoutSessionView, StripeWebhookView,
@@ -87,4 +88,6 @@ urlpatterns = [
 
     # ── NÉOSTRUCTURA (site vitrine) ────────────────────────────────────────────
     path('neostructura/contact/', api_neostructura.contact, name='neostructura_contact'),
+    path('neostructura/configurateur/options/', neo_configurator.configurator_options, name='neostructura_configurator_options'),
+    path('neostructura/configurateur/soumettre/', neo_configurator.configurator_submit, name='neostructura_configurator_submit'),
 ]

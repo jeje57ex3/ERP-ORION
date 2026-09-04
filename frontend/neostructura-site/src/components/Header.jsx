@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme'
 const NAV_LINKS = [
   { to: '/', label: 'Accueil', end: true },
   { to: '/nos-metiers', label: 'Nos métiers' },
+  { to: '/configurateur', label: 'Configurateur' },
   { to: '/realisations', label: 'Réalisations' },
   { to: '/contact', label: 'Contact' },
 ]
@@ -75,7 +76,7 @@ export default function Header() {
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          <Link to="/contact" className="neo-btn neo-btn-primary neo-nav-cta">
+          <Link to="/configurateur" className="neo-btn neo-btn-primary neo-nav-cta">
             Démarrer mon projet
           </Link>
           <button

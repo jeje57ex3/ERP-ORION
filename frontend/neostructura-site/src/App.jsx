@@ -4,6 +4,7 @@ import Footer from './components/Footer'
 import HomePage from './pages/HomePage'
 import MetiersPage from './pages/MetiersPage'
 import RealisationsPage from './pages/RealisationsPage'
+import ConfigurateurPage from './pages/ConfigurateurPage'
 import ContactPage from './pages/ContactPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/nos-metiers" element={<MetiersPage />} />
           <Route path="/realisations" element={<RealisationsPage />} />
+          <Route path="/configurateur" element={<ConfigurateurPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

@@ -54,8 +54,8 @@ export default function HomePage() {
               livraison finale.
             </p>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <Link to="/contact" className="neo-btn neo-btn-primary neo-btn-lg">
-                Démarrer mon projet
+              <Link to="/configurateur" className="neo-btn neo-btn-primary neo-btn-lg">
+                Configurer mon projet
               </Link>
               <Link to="/realisations" className="neo-btn neo-btn-outline neo-btn-lg">
                 Découvrir nos réalisations
