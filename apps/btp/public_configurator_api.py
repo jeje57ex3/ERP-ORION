@@ -14,6 +14,7 @@ pas le moteur multi-produits/multi-gammes détaillé du cahier des charges
 complet (à construire dans une itération ultérieure).
 """
 import json
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -21,6 +22,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.core.models import Company
+from apps.crm.models import Customer, Opportunity, Prospect
 from apps.websites.public_views import _get_ip
 from .models import GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem, ElectricityPriceLibrary
 
@@ -115,9 +117,48 @@ def _build_estimate(company, quote_request, metiers, surface_m2):
     for order, it in enumerate(items):
         GuidedQuoteEstimateItem.objects.create(
             estimate=estimate, price_item=it['item'], description=it['item'].name,
-            quantity=it['qty'], unit=it['item'].unit, unit_price_avg=it['item'].price_avg, order=order,
+            quantity=Decimal(str(it['qty'])), unit=it['item'].unit,
+            unit_price_avg=it['item'].price_avg, order=order,
         )
     return estimate
+
+
+def _create_crm_lead(company, quote_request):
+    """Crée Customer (requis par BTPQuote) + Prospect/Opportunity (suivi commercial).
+
+    Reprend le pattern déjà établi dans
+    apps.websites.electricite_wizard_views._create_crm_lead_from_guided_quote —
+    volontairement non bloquant (une erreur CRM ne doit jamais faire échouer
+    la soumission publique du configurateur).
+    """
+    try:
+        customer = Customer.objects.create(
+            company=company, customer_type='individual',
+            name=quote_request.client_full_name or quote_request.client_email,
+            contact_name=quote_request.client_full_name,
+            email=quote_request.client_email, phone=quote_request.client_phone,
+            address=quote_request.address, city=quote_request.city, zip_code=quote_request.zip_code,
+            notes=f'Créé automatiquement depuis le configurateur — {quote_request.reference}',
+        )
+        quote_request.crm_customer_id = customer.pk
+
+        prospect = Prospect.objects.create(
+            company=company, name=quote_request.client_full_name,
+            contact_name=quote_request.client_full_name,
+            email=quote_request.client_email, phone=quote_request.client_phone,
+            city=quote_request.city, status='qualified', source='website_neostructura',
+            notes=f'Demande {quote_request.get_request_type_display()} — {quote_request.client_notes}',
+        )
+        quote_request.crm_prospect = prospect
+
+        Opportunity.objects.create(
+            company=company, name=f'{quote_request.get_request_type_display()} — {quote_request.reference}',
+            prospect=prospect, stage='prospecting', probability=20,
+            notes=quote_request.client_notes,
+        )
+        quote_request.save(update_fields=['crm_customer_id', 'crm_prospect'])
+    except Exception:
+        pass
 
 
 @csrf_exempt
@@ -179,6 +220,8 @@ def configurator_submit(request):
         estimate = _build_estimate(company, quote_request, metiers, surface_m2)
     except ValidationError:
         estimate = None
+
+    _create_crm_lead(company, quote_request)
 
     return JsonResponse({
         'success': True,
