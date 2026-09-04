@@ -76,6 +76,13 @@ export default function Header() {
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
+          <Link to="/espace-client" aria-label="Espace client" style={{
+            width: 38, height: 38, borderRadius: '50%',
+            border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+          }}>
+            👤
+          </Link>
           <Link to="/configurateur" className="neo-btn neo-btn-primary neo-nav-cta">
             Démarrer mon projet
           </Link>

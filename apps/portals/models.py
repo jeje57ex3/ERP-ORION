@@ -288,3 +288,23 @@ class ClientPortalActivity(models.Model):
 
     def __str__(self):
         return f'[{self.get_action_display()}] {self.email} — {self.created_at:%d/%m/%Y %H:%M}'
+
+
+class ClientPortalToken(models.Model):
+    """Token d'authentification simple pour l'espace client React (site public
+    NÉOSTRUCTURA) — même principe que SiecleCustomerToken
+    (apps.websites.models), utilisé plutôt qu'une session Django car le
+    frontend tourne sur un port séparé en développement."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='portal_token')
+    key = models.CharField('Token', max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.email} — {self.key[:8]}…'
+
+    @classmethod
+    def generate(cls, user):
+        token, _ = cls.objects.get_or_create(user=user)
+        token.key = secrets.token_hex(32)
+        token.save()
+        return token.key

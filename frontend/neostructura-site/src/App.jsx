@@ -6,6 +6,8 @@ import MetiersPage from './pages/MetiersPage'
 import RealisationsPage from './pages/RealisationsPage'
 import ConfigurateurPage from './pages/ConfigurateurPage'
 import ContactPage from './pages/ContactPage'
+import EspaceClientLoginPage from './pages/EspaceClientLoginPage'
+import EspaceClientDashboardPage from './pages/EspaceClientDashboardPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -19,6 +21,8 @@ export default function App() {
           <Route path="/realisations" element={<RealisationsPage />} />
           <Route path="/configurateur" element={<ConfigurateurPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/espace-client/connexion" element={<EspaceClientLoginPage />} />
+          <Route path="/espace-client" element={<EspaceClientDashboardPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
