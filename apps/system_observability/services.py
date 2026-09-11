@@ -286,6 +286,112 @@ def check_external_api(company):
         )
 
 
+def check_migrations(company):
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+    try:
+        executor = MigrationExecutor(connection)
+        pending = len(executor.migration_plan(executor.loader.graph.leaf_nodes()))
+    except Exception as exc:
+        return record_health_check(company, 'migrations', 'unknown', message=f'Lecture des migrations impossible : {exc}')
+    status = 'ok' if pending == 0 else ('warning' if pending < 10 else 'critical')
+    return record_health_check(
+        company, 'migrations', status,
+        message='Aucune migration en attente.' if pending == 0 else f'{pending} migration(s) en attente.',
+        metadata={'pending': pending},
+    )
+
+
+def check_backup(company):
+    from django.db.models import Q
+    from apps.backups.models import BackupJob
+    try:
+        last = (
+            BackupJob.objects.filter(status='success')
+            .filter(Q(company=company) | Q(scope__in=['all_companies', 'full_system']))
+            .order_by('-finished_at').first()
+        )
+    except Exception as exc:
+        return record_health_check(company, 'backup', 'unknown', message=f'Lecture des sauvegardes impossible : {exc}')
+    if not last or not last.finished_at:
+        return record_health_check(company, 'backup', 'warning', message='Aucune sauvegarde réussie enregistrée.')
+    age_hours = round((timezone.now() - last.finished_at).total_seconds() / 3600, 1)
+    status = 'critical' if age_hours > 48 else ('warning' if age_hours > 26 else 'ok')
+    return record_health_check(
+        company, 'backup', status,
+        message=f'Dernière sauvegarde il y a {age_hours}h ({last.get_scope_display()}).',
+        metadata={'age_hours': age_hours},
+    )
+
+
+def _company_domain(company):
+    """Domaine public actif de l'entreprise, utilisé par les checks site web/SSL."""
+    try:
+        from apps.websites.models import WebsiteDomain
+        d = (
+            WebsiteDomain.objects.filter(company=company, status='active')
+            .exclude(full_domain='').first()
+        )
+        return d.full_domain if d else None
+    except Exception:
+        return None
+
+
+def check_website(company):
+    domain = _company_domain(company)
+    if not domain:
+        return record_health_check(
+            company, 'website', 'unknown',
+            message='Aucun domaine public actif configuré pour cette entreprise.',
+        )
+    import requests
+    start = time.perf_counter()
+    try:
+        resp = requests.get(f'https://{domain}/', timeout=6, allow_redirects=True)
+        elapsed_ms = round((time.perf_counter() - start) * 1000)
+        status = 'ok' if resp.status_code < 400 else ('warning' if resp.status_code < 500 else 'critical')
+        return record_health_check(
+            company, 'website', status,
+            message=f'https://{domain}/ -> HTTP {resp.status_code}.', response_time_ms=elapsed_ms,
+        )
+    except requests.RequestException as exc:
+        elapsed_ms = round((time.perf_counter() - start) * 1000)
+        return record_health_check(
+            company, 'website', 'critical',
+            message=f'{domain} injoignable : {exc}', response_time_ms=elapsed_ms,
+        )
+
+
+def check_ssl(company):
+    domain = _company_domain(company)
+    if not domain:
+        return record_health_check(
+            company, 'ssl', 'unknown',
+            message='Aucun domaine public actif configuré pour cette entreprise.',
+        )
+    import ssl
+    import socket
+    from datetime import datetime, timezone as dt_timezone
+    try:
+        ctx = ssl.create_default_context()
+        with socket.create_connection((domain, 443), timeout=6) as sock:
+            with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
+                cert = ssock.getpeercert()
+        expires = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z').replace(tzinfo=dt_timezone.utc)
+        days_left = (expires - datetime.now(dt_timezone.utc)).days
+        status = 'critical' if days_left < 7 else ('warning' if days_left < 21 else 'ok')
+        return record_health_check(
+            company, 'ssl', status,
+            message=f'Certificat {domain} : expire dans {days_left} jour(s) ({expires:%d/%m/%Y}).',
+            metadata={'days_left': days_left},
+        )
+    except Exception as exc:
+        return record_health_check(
+            company, 'ssl', 'critical',
+            message=f'Vérification SSL impossible pour {domain} : {exc}',
+        )
+
+
 CHECK_FUNCTIONS = [
     ('database', check_database),
     ('cache', check_cache),
@@ -296,6 +402,10 @@ CHECK_FUNCTIONS = [
     ('email', check_email),
     ('queue', check_queue),
     ('external_api', check_external_api),
+    ('migrations', check_migrations),
+    ('backup', check_backup),
+    ('website', check_website),
+    ('ssl', check_ssl),
 ]
 
 

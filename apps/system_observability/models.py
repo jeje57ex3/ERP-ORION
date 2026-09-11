@@ -8,7 +8,9 @@ CHECK_TYPE_CHOICES = [
     ('storage', 'Stockage'), ('email', 'E-mail'),
     ('external_api', 'API externe'), ('queue', 'File de tâches'),
     ('disk_space', 'Espace disque'), ('memory', 'Mémoire'),
-    ('cpu', 'CPU'), ('custom', 'Personnalisé'),
+    ('cpu', 'CPU'), ('backup', 'Sauvegardes'),
+    ('website', 'Site web'), ('ssl', 'Certificat SSL'),
+    ('migrations', 'Migrations'), ('custom', 'Personnalisé'),
 ]
 
 HEALTH_STATUS_CHOICES = [
