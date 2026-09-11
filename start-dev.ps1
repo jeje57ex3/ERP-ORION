@@ -212,8 +212,14 @@ function Test-CeleryProcess($match) {
 if (Test-CeleryProcess 'celery.*worker') {
     Write-Warn "Celery worker déjà en cours d'exécution — pas relancé"
 } else {
+    # --pool=threads (pas "solo") : "prefork" n'existe pas sous Windows, et
+    # "solo" traite une tâche à la fois sans pouvoir répondre aux control
+    # ping pendant ce temps — faisait remonter le check "File de tâches"
+    # en faux critique dès qu'une tâche un peu longue (collect_all_sensors,
+    # ~30s) tournait, y compris via son propre appel à ping() depuis
+    # collect_all_checks. threads permet plusieurs tâches/pings en parallèle.
     Start-Process $python `
-        -ArgumentList "-m","celery","-A","erp_btp","worker","--pool=solo","--loglevel=info" `
+        -ArgumentList "-m","celery","-A","erp_btp","worker","--pool=threads","--concurrency=4","--loglevel=info" `
         -WorkingDirectory $ROOT -WindowStyle Normal `
         -RedirectStandardOutput (Join-Path $ROOT "logs\celery_worker.log") `
         -RedirectStandardError  (Join-Path $ROOT "logs\celery_worker.err.log")
