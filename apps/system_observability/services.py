@@ -303,12 +303,19 @@ def check_migrations(company):
 
 
 def check_backup(company):
+    """Réutilise apps.backups (module "Sauvegardes" de l'entreprise), pas
+    apps.backup_center (Centre sauvegardes Super Admin — vide, non utilisé).
+    En plus des sauvegardes explicitement rattachées à l'entreprise, une
+    sauvegarde 'core_database' compte aussi comme valable pour toutes les
+    entreprises : une seule base MySQL partagée sert tout le SaaS ici, il
+    n'y a pas de base séparée par entreprise."""
     from django.db.models import Q
     from apps.backups.models import BackupJob
+    global_scopes = ['all_companies', 'full_system', 'core_database']
     try:
         last = (
             BackupJob.objects.filter(status='success')
-            .filter(Q(company=company) | Q(scope__in=['all_companies', 'full_system']))
+            .filter(Q(company=company) | Q(scope__in=global_scopes))
             .order_by('-finished_at').first()
         )
     except Exception as exc:
