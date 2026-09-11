@@ -1,3 +1,13 @@
+# pymysql doit être installé comme shim MySQLdb avant tout chargement de
+# backend Django — nécessaire ici (et pas seulement dans manage.py) car les
+# entrées Celery (`celery -A erp_btp worker`/`beat`) importent ce paquet
+# directement, sans jamais passer par manage.py.
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 from .celery import app as celery_app
 
 __all__ = ('celery_app',)

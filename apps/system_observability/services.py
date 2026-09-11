@@ -252,12 +252,38 @@ def check_queue(company):
 
 
 def check_external_api(company):
-    """Aucune intégration externe générique n'est câblée pour l'instant —
-    honnête plutôt qu'un faux positif : marque le check comme non applicable."""
-    return record_health_check(
-        company, 'external_api', 'unknown',
-        message='Aucune API externe configurée pour cette entreprise.',
-    )
+    """Vérifie le token API Cloudflare (apps.domain_diagnostics), seule
+    intégration externe câblée dans l'ERP pour l'instant. Reste honnête
+    ('unknown', pas 'critical') si le token n'est simplement pas configuré —
+    ce n'est pas une panne, juste une intégration non activée."""
+    try:
+        from apps.domain_diagnostics.cloudflare import CloudflareClient, CloudflareAPIError
+    except ImportError:
+        return record_health_check(
+            company, 'external_api', 'unknown',
+            message='Intégration Cloudflare indisponible sur cette instance.',
+        )
+
+    try:
+        client = CloudflareClient()
+    except CloudflareAPIError as exc:
+        return record_health_check(company, 'external_api', 'unknown', message=str(exc))
+
+    start = time.perf_counter()
+    try:
+        result = client.verify_token() or {}
+        elapsed_ms = round((time.perf_counter() - start) * 1000)
+        token_status = result.get('status', 'active')
+        return record_health_check(
+            company, 'external_api', 'ok' if token_status == 'active' else 'warning',
+            message=f'Token API Cloudflare : {token_status}.', response_time_ms=elapsed_ms,
+        )
+    except CloudflareAPIError as exc:
+        elapsed_ms = round((time.perf_counter() - start) * 1000)
+        return record_health_check(
+            company, 'external_api', 'critical',
+            message=f'Vérification Cloudflare échouée : {exc}', response_time_ms=elapsed_ms,
+        )
 
 
 CHECK_FUNCTIONS = [

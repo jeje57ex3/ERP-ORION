@@ -62,6 +62,24 @@ if ($mysqlRunning) {
 }
 
 # ────────────────────────────────────────────────────────────
+# 1bis. Redis (broker Celery / cache) — port 6379
+# ────────────────────────────────────────────────────────────
+Write-Step "Redis (port 6379)..."
+
+$redisExe = "C:\Redis\redis-server.exe"
+$redisConf = "C:\Redis\redis-orion.conf"
+
+if (Test-Port 6379) {
+    Write-Ok "Redis déjà en cours d'exécution (port 6379)"
+} elseif (Test-Path $redisExe) {
+    Start-Process $redisExe -ArgumentList $redisConf -WorkingDirectory "C:\Redis" -WindowStyle Hidden
+    Start-Sleep -Seconds 2
+    if (Test-Port 6379) { Write-Ok "Redis démarré" } else { Write-Fail "Redis n'a pas démarré" }
+} else {
+    Write-Fail "redis-server.exe introuvable à $redisExe"
+}
+
+# ────────────────────────────────────────────────────────────
 # 2. Django ERP — port 9000 (login.elysiums.fr)
 # ────────────────────────────────────────────────────────────
 Write-Step "Django ERP (port 9000 — login.elysiums.fr)..."
@@ -176,6 +194,41 @@ if (-not (Test-Path $cfExe)) {
         -ArgumentList "tunnel","--config",$cfConfig,"run" `
         -WindowStyle Minimized
     Write-Ok "Tunnel lance -> https://orion.elysiums.fr"
+}
+
+# ────────────────────────────────────────────────────────────
+# 6bis. Celery worker + beat (tâches planifiées : capteurs santé,
+# checks observabilité, OpsV2...)
+# ────────────────────────────────────────────────────────────
+Write-Step "Celery worker + beat..."
+
+function Test-CeleryProcess($match) {
+    try {
+        return [bool](Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction Stop |
+            Where-Object { $_.CommandLine -match $match })
+    } catch { return $false }
+}
+
+if (Test-CeleryProcess 'celery.*worker') {
+    Write-Warn "Celery worker déjà en cours d'exécution — pas relancé"
+} else {
+    Start-Process $python `
+        -ArgumentList "-m","celery","-A","erp_btp","worker","--pool=solo","--loglevel=info" `
+        -WorkingDirectory $ROOT -WindowStyle Normal `
+        -RedirectStandardOutput (Join-Path $ROOT "logs\celery_worker.log") `
+        -RedirectStandardError  (Join-Path $ROOT "logs\celery_worker.err.log")
+    Write-Ok "Celery worker lancé (log: logs\celery_worker.log)"
+}
+
+if (Test-CeleryProcess 'celery.*beat') {
+    Write-Warn "Celery beat déjà en cours d'exécution — pas relancé"
+} else {
+    Start-Process $python `
+        -ArgumentList "-m","celery","-A","erp_btp","beat","--loglevel=info" `
+        -WorkingDirectory $ROOT -WindowStyle Normal `
+        -RedirectStandardOutput (Join-Path $ROOT "logs\celery_beat.log") `
+        -RedirectStandardError  (Join-Path $ROOT "logs\celery_beat.err.log")
+    Write-Ok "Celery beat lancé (log: logs\celery_beat.log)"
 }
 
 # ────────────────────────────────────────────────────────────
