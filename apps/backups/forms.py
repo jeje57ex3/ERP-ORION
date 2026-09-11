@@ -32,6 +32,15 @@ class BackupDestinationForm(forms.ModelForm):
             'is_default':       forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pré-coche "par défaut" quand aucune destination par défaut n'existe
+        # encore — source de confusion sinon : la destination est créée,
+        # active, mais les sauvegardes continuent d'aller en local tant que
+        # rien n'est explicitement marqué par défaut.
+        if not self.instance.pk and not BackupDestination.objects.filter(is_default=True).exists():
+            self.fields['is_default'].initial = True
+
     def clean(self):
         cleaned = super().clean()
         dtype = cleaned.get('destination_type')

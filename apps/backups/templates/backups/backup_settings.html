@@ -63,6 +63,14 @@
           prochaines sauvegardes sur un autre disque ou un partage réseau
           SMB/CIFS.
         </p>
+        {% if destinations and not has_default_destination %}
+        <div class="alert alert-warning py-2 px-3 small mb-3">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Aucune destination n'est marquée « par défaut » — les sauvegardes
+          continuent d'être stockées en local uniquement. Modifiez une
+          destination ci-dessous et cochez « Destination par défaut ».
+        </div>
+        {% endif %}
         {% if destinations %}
         <div class="table-responsive">
           <table class="table align-middle mb-0">

@@ -261,6 +261,7 @@ def backup_settings(request):
         'page_title': 'Paramètres de sauvegarde',
         'stats':      stats,
         'destinations': destinations,
+        'has_default_destination': destinations.filter(is_active=True, is_default=True).exists(),
     })
 
 
