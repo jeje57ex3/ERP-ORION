@@ -60,14 +60,50 @@ def get_backup_storage_path(company=None, scope='database') -> Path:
 
 
 def calculate_checksum(file_path: str) -> str:
-    sha256 = hashlib.sha256()
     try:
         with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(8192), b''):
-                sha256.update(chunk)
-        return sha256.hexdigest()
+            return calculate_checksum_fileobj(f)
     except Exception:
         return ''
+
+
+def calculate_checksum_fileobj(file_obj) -> str:
+    sha256 = hashlib.sha256()
+    for chunk in iter(lambda: file_obj.read(8192), b''):
+        sha256.update(chunk)
+    return sha256.hexdigest()
+
+
+def _finalize_job(job, local_path, t0, success, error=''):
+    """Calcule taille/checksum sur le fichier local, l'envoie vers la
+    destination par défaut si une est configurée, puis enregistre le
+    BackupJob. Un transfert échoué ne fait pas échouer la sauvegarde :
+    le fichier local valide est conservé et l'erreur est notée."""
+    from . import storage as backup_storage
+
+    if success and os.path.exists(local_path):
+        size = os.path.getsize(local_path)
+        checksum = calculate_checksum(local_path)
+        destination = backup_storage.get_default_destination()
+        try:
+            final_path = backup_storage.publish(local_path, destination)
+            job.destination = destination
+            job.file_path = final_path
+        except Exception as exc:
+            job.destination = None
+            job.file_path = local_path
+            job.error_message = f"Sauvegarde locale OK, transfert vers la destination échoué : {exc}"
+        job.status = 'success'
+        job.file_size = size
+        job.checksum = checksum
+    else:
+        job.status = 'failed'
+        job.error_message = error or job.error_message
+
+    job.finished_at = timezone.now()
+    job.duration_seconds = time.time() - t0
+    job.save()
+    return job
 
 
 def _get_db_config():
@@ -142,25 +178,9 @@ def create_database_backup(company=None, scope='company_database', created_by=No
     t0 = time.time()
     try:
         success, err = _run_mysqldump(db_name, file_path)
-        if success and os.path.exists(file_path):
-            size = os.path.getsize(file_path)
-            checksum = calculate_checksum(file_path)
-            job.status = 'success'
-            job.file_path = file_path
-            job.file_size = size
-            job.checksum = checksum
-        else:
-            job.status = 'failed'
-            job.error_message = err
     except Exception as e:
-        job.status = 'failed'
-        job.error_message = str(e)
-    finally:
-        job.finished_at = timezone.now()
-        job.duration_seconds = time.time() - t0
-        job.save()
-
-    return job
+        success, err = False, str(e)
+    return _finalize_job(job, file_path, t0, success, err)
 
 
 def create_media_backup(company=None, created_by=None):
@@ -190,20 +210,10 @@ def create_media_backup(company=None, created_by=None):
                 for f in media_root.rglob('*'):
                     if f.is_file():
                         zf.write(f, f.relative_to(media_root.parent))
-        size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
-        job.status = 'success'
-        job.file_path = file_path
-        job.file_size = size
-        job.checksum = calculate_checksum(file_path)
+        success, err = True, ''
     except Exception as e:
-        job.status = 'failed'
-        job.error_message = str(e)
-    finally:
-        job.finished_at = timezone.now()
-        job.duration_seconds = time.time() - t0
-        job.save()
-
-    return job
+        success, err = False, str(e)
+    return _finalize_job(job, file_path, t0, success, err)
 
 
 def create_full_backup(company=None, created_by=None):
@@ -218,11 +228,17 @@ def create_full_backup(company=None, created_by=None):
 
 
 def verify_backup_integrity(backup) -> tuple[bool, str]:
-    """Vérifie que le fichier existe et que le checksum correspond."""
-    if not backup.file_path or not os.path.exists(backup.file_path):
+    """Vérifie que le fichier existe et que le checksum correspond — que la
+    sauvegarde soit locale ou sur une destination externe (apps.backups.storage)."""
+    from . import storage as backup_storage
+    if not backup.file_path or not backup_storage.path_exists(backup):
         return False, 'Fichier introuvable'
     if backup.checksum:
-        current = calculate_checksum(backup.file_path)
+        try:
+            with backup_storage.open_read(backup) as f:
+                current = calculate_checksum_fileobj(f)
+        except Exception as exc:
+            return False, f'Lecture impossible : {exc}'
         if current != backup.checksum:
             return False, f'Checksum incorrect (attendu: {backup.checksum[:8]}…, actuel: {current[:8]}…)'
     return True, 'OK'
@@ -248,8 +264,10 @@ def restore_backup(backup, restored_by=None):
         restored_by=restored_by,
     )
 
+    from . import storage as backup_storage
+    tmp_local_path = None
     try:
-        if not backup.file_path or not os.path.exists(backup.file_path):
+        if not backup.file_path or not backup_storage.path_exists(backup):
             raise FileNotFoundError(f'Fichier de sauvegarde introuvable : {backup.file_path}')
 
         cfg = _get_db_config()
@@ -263,7 +281,20 @@ def restore_backup(backup, restored_by=None):
             cmd.append(f'-p{cfg["password"]}')
         cmd.append(db_name)
 
-        with open(backup.file_path, 'r', encoding='utf-8') as f:
+        # mysql (subprocess) a besoin d'un vrai fichier local — pour une
+        # sauvegarde stockée sur un partage SMB, on la rapatrie d'abord dans
+        # un fichier temporaire.
+        if backup.destination_id and backup.destination.destination_type == 'smb':
+            import tempfile
+            fd, tmp_local_path = tempfile.mkstemp(suffix='.sql')
+            os.close(fd)
+            with backup_storage.open_read(backup) as src, open(tmp_local_path, 'wb') as dst:
+                shutil.copyfileobj(src, dst)
+            local_sql_path = tmp_local_path
+        else:
+            local_sql_path = backup.file_path
+
+        with open(local_sql_path, 'r', encoding='utf-8') as f:
             result = subprocess.run(cmd, stdin=f, stderr=subprocess.PIPE, timeout=300)
 
         if result.returncode != 0:
@@ -274,6 +305,8 @@ def restore_backup(backup, restored_by=None):
         log.status = 'failed'
         log.error_message = str(e)
     finally:
+        if tmp_local_path and os.path.exists(tmp_local_path):
+            os.remove(tmp_local_path)
         log.finished_at = timezone.now()
         log.save()
 

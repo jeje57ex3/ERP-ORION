@@ -16,4 +16,8 @@ urlpatterns = [
     path('planification/',       views.backup_schedules,    name='schedules'),
     path('planification/creer/', views.schedule_create,     name='schedule_create'),
     path('parametres/',          views.backup_settings,     name='settings'),
+    path('destinations/nouvelle/',      views.destination_create, name='destination_create'),
+    path('destinations/<int:pk>/modifier/', views.destination_edit,   name='destination_edit'),
+    path('destinations/<int:pk>/supprimer/', views.destination_delete, name='destination_delete'),
+    path('destinations/<int:pk>/tester/',   views.destination_test,   name='destination_test'),
 ]

@@ -8,9 +8,13 @@ from django.contrib import messages
 from django.http import FileResponse, Http404
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.views.decorators.http import require_POST
 
-from .models import BackupJob, BackupSchedule, BackupRestoreLog
-from .forms import BackupCreateForm, BackupScheduleForm, RestoreConfirmForm, BackupImportForm
+from .models import BackupJob, BackupSchedule, BackupRestoreLog, BackupDestination
+from .forms import (
+    BackupCreateForm, BackupScheduleForm, RestoreConfirmForm, BackupImportForm,
+    BackupDestinationForm,
+)
 from .services import (
     create_database_backup, create_media_backup, create_full_backup,
     verify_backup_integrity, restore_backup, get_backup_stats,
@@ -146,11 +150,12 @@ def restore_backup_view(request, pk):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def backup_download(request, pk):
+    from . import storage as backup_storage
     job = get_object_or_404(BackupJob, pk=pk, status='success')
-    if not job.file_path or not os.path.exists(job.file_path):
+    if not job.file_path or not backup_storage.path_exists(job):
         raise Http404('Fichier de sauvegarde introuvable.')
     return FileResponse(
-        open(job.file_path, 'rb'),
+        backup_storage.open_read(job),
         as_attachment=True,
         filename=os.path.basename(job.file_path),
     )
@@ -251,22 +256,93 @@ def schedule_create(request):
 @user_passes_test(_is_staff)
 def backup_settings(request):
     stats = get_backup_stats()
+    destinations = BackupDestination.objects.all()
     return render(request, 'backups/backup_settings.html', {
         'page_title': 'Paramètres de sauvegarde',
         'stats':      stats,
+        'destinations': destinations,
     })
 
 
 @login_required
 @user_passes_test(_is_staff)
+def destination_create(request):
+    if request.method == 'POST':
+        form = BackupDestinationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Destination de sauvegarde créée.')
+            return redirect('backups:settings')
+    else:
+        form = BackupDestinationForm()
+    return render(request, 'backups/destination_form.html', {
+        'page_title': 'Nouvelle destination de sauvegarde',
+        'form': form,
+        'action': 'create',
+    })
+
+
+@login_required
+@user_passes_test(_is_staff)
+def destination_edit(request, pk):
+    destination = get_object_or_404(BackupDestination, pk=pk)
+    if request.method == 'POST':
+        form = BackupDestinationForm(request.POST, instance=destination)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Destination mise à jour.')
+            return redirect('backups:settings')
+    else:
+        form = BackupDestinationForm(instance=destination)
+    return render(request, 'backups/destination_form.html', {
+        'page_title': f'Modifier : {destination.name}',
+        'form': form,
+        'destination': destination,
+        'action': 'edit',
+    })
+
+
+@login_required
+@user_passes_test(_is_staff)
+def destination_delete(request, pk):
+    destination = get_object_or_404(BackupDestination, pk=pk)
+    if request.method == 'POST':
+        name = destination.name
+        destination.delete()
+        messages.success(request, f'Destination « {name} » supprimée.')
+        return redirect('backups:settings')
+    return render(request, 'backups/destination_confirm_delete.html', {
+        'page_title': 'Supprimer la destination',
+        'destination': destination,
+    })
+
+
+@login_required
+@user_passes_test(_is_staff)
+@require_POST
+def destination_test(request, pk):
+    from . import storage as backup_storage
+    from django.utils import timezone as tz
+    destination = get_object_or_404(BackupDestination, pk=pk)
+    ok, message = backup_storage.test_destination(destination)
+    destination.last_test_at = tz.now()
+    destination.last_test_ok = ok
+    destination.last_test_message = message[:500]
+    destination.save(update_fields=['last_test_at', 'last_test_ok', 'last_test_message'])
+    if ok:
+        messages.success(request, f'Test réussi : {message}')
+    else:
+        messages.error(request, f'Test échoué : {message}')
+    return redirect('backups:settings')
+
+
+@login_required
+@user_passes_test(_is_staff)
 def backup_delete(request, pk):
+    from . import storage as backup_storage
     job = get_object_or_404(BackupJob, pk=pk)
     if request.method == 'POST':
-        if job.file_path and os.path.exists(job.file_path):
-            try:
-                os.remove(job.file_path)
-            except OSError:
-                pass
+        backup_storage.delete_file(job)
         job.delete()
         messages.success(request, 'Sauvegarde supprimée.')
         return redirect('backups:list')

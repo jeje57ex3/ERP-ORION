@@ -2,7 +2,53 @@
 apps/backups/forms.py — Formulaires sauvegardes
 """
 from django import forms
-from .models import BackupJob, BackupSchedule
+from .models import BackupJob, BackupSchedule, BackupDestination
+
+
+class BackupDestinationForm(forms.ModelForm):
+    smb_password = forms.CharField(
+        label='Mot de passe', required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
+        help_text='Laisser vide pour conserver le mot de passe déjà enregistré.',
+    )
+
+    class Meta:
+        model = BackupDestination
+        fields = [
+            'name', 'destination_type', 'local_path',
+            'smb_server', 'smb_share', 'smb_path', 'smb_username', 'smb_domain',
+            'is_active', 'is_default',
+        ]
+        widgets = {
+            'name':             forms.TextInput(attrs={'class': 'form-control'}),
+            'destination_type': forms.Select(attrs={'class': 'form-select'}),
+            'local_path':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': r'E:\Sauvegardes'}),
+            'smb_server':       forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'nas.local ou 192.168.1.10'}),
+            'smb_share':        forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'sauvegardes'}),
+            'smb_path':         forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'orion (optionnel)'}),
+            'smb_username':     forms.TextInput(attrs={'class': 'form-control'}),
+            'smb_domain':       forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active':        forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_default':       forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        dtype = cleaned.get('destination_type')
+        if dtype == 'local' and not cleaned.get('local_path'):
+            self.add_error('local_path', 'Chemin requis pour une destination locale.')
+        if dtype == 'smb' and not (cleaned.get('smb_server') and cleaned.get('smb_share')):
+            self.add_error('smb_server', 'Serveur et partage requis pour une destination SMB.')
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get('smb_password')
+        if password:
+            instance.smb_password = password
+        if commit:
+            instance.save()
+        return instance
 
 
 class BackupCreateForm(forms.Form):
