@@ -5,7 +5,7 @@ domotique, étanchéité, informatique, rénovation, maintenance), nécessaire a
 configurateur du site public. Idempotent (get_or_create par company+code).
 
 Chaque poste est tagué `metier` pour apparaître dans l'étape "Matériel" du
-configurateur public — voir apps/btp/public_configurator_api.py. Plusieurs
+configurateur public — voir apps/configurator/public_api.py. Plusieurs
 postes peuvent partager le même `product_family` pour représenter plusieurs
 gammes (standard/premium/luxe) d'un même équipement : le visiteur choisit
 alors le produit précis, avec son vrai prix, au lieu d'une majoration

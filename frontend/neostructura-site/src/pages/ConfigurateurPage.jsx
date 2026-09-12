@@ -1,50 +1,113 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
 import StepIndicator from '../components/configurator/StepIndicator'
-import StepMetiers from '../components/configurator/StepMetiers'
-import StepMaterials from '../components/configurator/StepMaterials'
-import StepIntervention from '../components/configurator/StepIntervention'
-import StepBuilding from '../components/configurator/StepBuilding'
+import StepDomain from '../components/configurator/StepDomain'
+import StepService from '../components/configurator/StepService'
+import StepQuestions from '../components/configurator/StepQuestions'
 import StepContact from '../components/configurator/StepContact'
 import StepResult from '../components/configurator/StepResult'
-import { submitConfigurator, fetchConfiguratorOptions } from '../api/configurator'
+import {
+  fetchDomains, fetchServices, fetchQuestions, estimateLive, submitConfigurator,
+} from '../api/configurator'
+
+function isAnswered(q, answers) {
+  const v = answers[q.identifier]
+  if (!q.required) return true
+  if (Array.isArray(v)) return v.length > 0
+  return v !== undefined && v !== '' && v !== null
+}
 
 export default function ConfigurateurPage() {
   const [step, setStep] = useState(1)
-  const [metiers, setMetiers] = useState([])
-  const [materials, setMaterials] = useState({})
-  const [qualityLevel, setQualityLevel] = useState('standard')
-  const [intervention, setIntervention] = useState('')
+
+  const [domains, setDomains] = useState([])
+  const [domainsLoading, setDomainsLoading] = useState(true)
+  const [domainCode, setDomainCode] = useState('')
+
+  const [services, setServices] = useState([])
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const [serviceCode, setServiceCode] = useState('')
+
+  const [questions, setQuestions] = useState([])
+  const [questionsLoading, setQuestionsLoading] = useState(false)
+  const [answers, setAnswers] = useState({})
   const [urgency, setUrgency] = useState('normal')
-  const [building, setBuilding] = useState({})
+
+  const [liveEstimate, setLiveEstimate] = useState(null)
+  const [estimateLoading, setEstimateLoading] = useState(false)
+
   const [contact, setContact] = useState({})
+  const [building, setBuilding] = useState({})
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
-  const [options, setOptions] = useState(null)
-  const [optionsLoading, setOptionsLoading] = useState(true)
 
-  const next = () => setStep(s => Math.min(s + 1, 5))
+  const debounceRef = useRef(null)
+
+  const next = () => setStep(s => Math.min(s + 1, 4))
   const back = () => setStep(s => Math.max(s - 1, 1))
 
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [step, result])
+
+  // Étape 1 : domaines
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [step, result])
+    fetchDomains().then(setDomains).catch(() => {}).finally(() => setDomainsLoading(false))
+  }, [])
+
+  const selectDomain = (code) => {
+    setDomainCode(code)
+    setServiceCode('')
+    setServicesLoading(true)
+    fetchServices(code).then(setServices).catch(() => {}).finally(() => setServicesLoading(false))
+    next()
+  }
+
+  const selectService = (code) => {
+    setServiceCode(code)
+    setAnswers({})
+    setLiveEstimate(null)
+    setQuestionsLoading(true)
+    fetchQuestions(code, {}).then(setQuestions).catch(() => {}).finally(() => setQuestionsLoading(false))
+    next()
+  }
+
+  // Réponses -> re-résout les questions visibles (parcours adaptatif) et,
+  // une fois les questions obligatoires renseignées, l'estimation live.
+  const setAnswer = (identifier, value) => {
+    setAnswers(prev => ({ ...prev, [identifier]: value }))
+  }
 
   useEffect(() => {
-    fetchConfiguratorOptions()
-      .then(setOptions)
-      .catch(() => {})
-      .finally(() => setOptionsLoading(false))
-  }, [])
+    if (step !== 3 || !serviceCode) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchQuestions(serviceCode, answers).then(setQuestions).catch(() => {})
+    }, 350)
+    return () => clearTimeout(debounceRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, serviceCode, step])
+
+  useEffect(() => {
+    if (step !== 3 || !serviceCode || questions.length === 0) return
+    if (!questions.every(q => isAnswered(q, answers))) { setLiveEstimate(null); return }
+    const handle = setTimeout(() => {
+      setEstimateLoading(true)
+      estimateLive({ service_code: serviceCode, answers, urgency })
+        .then(setLiveEstimate).catch(() => {}).finally(() => setEstimateLoading(false))
+    }, 400)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, questions, urgency, serviceCode, step])
 
   const handleSubmit = async () => {
     setSubmitting(true)
     setError('')
     try {
-      const data = await submitConfigurator({ metiers, materials, quality_level: qualityLevel, intervention, urgency, building, contact, notes })
+      const data = await submitConfigurator({
+        service_code: serviceCode, urgency, answers, contact, building, notes,
+      })
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -52,6 +115,9 @@ export default function ConfigurateurPage() {
       setSubmitting(false)
     }
   }
+
+  const domain = domains.find(d => d.code === domainCode)
+  const service = services.find(s => s.code === serviceCode)
 
   return (
     <>
@@ -72,26 +138,24 @@ export default function ConfigurateurPage() {
             {result ? (
               <StepResult result={result} />
             ) : step === 1 ? (
-              <StepMetiers value={metiers} onChange={setMetiers} onNext={next} />
+              <StepDomain domains={domains} loading={domainsLoading} value={domainCode} onSelect={selectDomain} />
             ) : step === 2 ? (
-              <StepMaterials
-                metiers={metiers} materials={materials} onChange={setMaterials}
-                qualityLevel={qualityLevel} onChangeQuality={setQualityLevel}
-                options={options} loading={optionsLoading}
-                onNext={next} onBack={back}
+              <StepService
+                domain={domain} services={services} loading={servicesLoading}
+                value={serviceCode} onSelect={selectService} onBack={back}
               />
             ) : step === 3 ? (
-              <StepIntervention
-                intervention={intervention} urgency={urgency}
-                onChangeIntervention={setIntervention} onChangeUrgency={setUrgency}
+              <StepQuestions
+                service={service} questions={questions} loadingQuestions={questionsLoading}
+                answers={answers} onAnswerChange={setAnswer}
+                urgency={urgency} onUrgencyChange={setUrgency}
+                liveEstimate={liveEstimate} estimateLoading={estimateLoading}
                 onNext={next} onBack={back}
               />
-            ) : step === 4 ? (
-              <StepBuilding building={building} onChange={setBuilding} onNext={next} onBack={back} />
             ) : (
               <StepContact
-                contact={contact} notes={notes}
-                onChangeContact={setContact} onChangeNotes={setNotes}
+                contact={contact} building={building} notes={notes}
+                onChangeContact={setContact} onChangeBuilding={setBuilding} onChangeNotes={setNotes}
                 onSubmit={handleSubmit} onBack={back}
                 submitting={submitting} error={error}
               />

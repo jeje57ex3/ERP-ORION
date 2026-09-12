@@ -55,6 +55,7 @@ LOCAL_APPS = [
     'apps.workflow',
     'apps.portals',
     'apps.btp',
+    'apps.configurator',
     'apps.ecommerce',
     'apps.commerce',
     'apps.production',

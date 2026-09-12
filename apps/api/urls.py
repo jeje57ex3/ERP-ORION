@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from apps.websites import api_neostructura
-from apps.btp import public_configurator_api as neo_configurator
+from apps.configurator import public_api as neo_configurator
 from apps.portals import client_api as neo_portal
 from apps.ecommerce.api.siecle_api import (
     ProductListView, ProductDetailView, CollectionListView,
@@ -89,8 +89,12 @@ urlpatterns = [
 
     # ── NÉOSTRUCTURA (site vitrine) ────────────────────────────────────────────
     path('neostructura/contact/', api_neostructura.contact, name='neostructura_contact'),
-    path('neostructura/configurateur/options/', neo_configurator.configurator_options, name='neostructura_configurator_options'),
-    path('neostructura/configurateur/soumettre/', neo_configurator.configurator_submit, name='neostructura_configurator_submit'),
+    path('neostructura/configurateur/domaines/', neo_configurator.list_domains, name='neostructura_configurator_domains'),
+    path('neostructura/configurateur/domaines/<slug:domain_code>/services/', neo_configurator.list_services, name='neostructura_configurator_services'),
+    path('neostructura/configurateur/services/<slug:service_code>/questions/', neo_configurator.service_questions, name='neostructura_configurator_questions'),
+    path('neostructura/configurateur/estimer/', neo_configurator.estimate, name='neostructura_configurator_estimate'),
+    path('neostructura/configurateur/soumettre/', neo_configurator.submit, name='neostructura_configurator_submit'),
+    path('neostructura/configurateur/<str:reference>/photos/', neo_configurator.upload_photo, name='neostructura_configurator_upload_photo'),
     path('neostructura/portail/connexion/', neo_portal.portal_login, name='neostructura_portal_login'),
     path('neostructura/portail/deconnexion/', neo_portal.portal_logout, name='neostructura_portal_logout'),
     path('neostructura/portail/moi/', neo_portal.portal_me, name='neostructura_portal_me'),

@@ -4,15 +4,16 @@ const inputStyle = {
   background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14, resize: 'vertical',
 }
 
-export default function StepContact({ contact, notes, onChangeContact, onChangeNotes, onSubmit, onBack, submitting, error }) {
+export default function StepContact({ contact, building, notes, onChangeContact, onChangeBuilding, onChangeNotes, onSubmit, onBack, submitting, error }) {
   const set = (field) => (e) => onChangeContact({ ...contact, [field]: e.target.value })
+  const setBuilding = (field) => (e) => onChangeBuilding({ ...building, [field]: e.target.value })
   const valid = contact.first_name && contact.last_name && contact.email
 
   return (
     <div>
       <h2 style={{ fontSize: 24, marginBottom: 8 }}>Vos coordonnées.</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 32 }}>
-        Pour vous transmettre votre estimation et vous recontacter.
+        Pour vous transmettre votre estimation et organiser l'intervention.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} id="neo-cfg-contact-row1">
@@ -38,6 +39,22 @@ export default function StepContact({ contact, notes, onChangeContact, onChangeN
       </div>
 
       <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>Adresse d'intervention</label>
+        <input type="text" value={building.address || ''} onChange={setBuilding('address')} style={inputStyle} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} id="neo-cfg-contact-row3">
+        <div>
+          <label style={labelStyle}>Code postal</label>
+          <input type="text" value={building.zip_code || ''} onChange={setBuilding('zip_code')} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Ville</label>
+          <input type="text" value={building.city || ''} onChange={setBuilding('city')} style={inputStyle} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>Message (optionnel)</label>
         <textarea rows={4} value={notes || ''} onChange={(e) => onChangeNotes(e.target.value)} style={inputStyle} />
       </div>
@@ -51,13 +68,13 @@ export default function StepContact({ contact, notes, onChangeContact, onChangeN
           disabled={!valid || submitting} onClick={onSubmit}
           style={{ opacity: (!valid || submitting) ? 0.6 : 1 }}
         >
-          {submitting ? 'Calcul en cours…' : 'Obtenir mon estimation'}
+          {submitting ? 'Envoi en cours…' : 'Envoyer ma demande'}
         </button>
       </div>
 
       <style>{`
         @media (max-width: 640px) {
-          #neo-cfg-contact-row1, #neo-cfg-contact-row2 { grid-template-columns: 1fr !important; }
+          #neo-cfg-contact-row1, #neo-cfg-contact-row2, #neo-cfg-contact-row3 { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
