@@ -86,6 +86,11 @@ class ServiceCategory(CompanyBaseModel):
     duration_min_hours = models.DecimalField('Durée min (h)', max_digits=6, decimal_places=2, default=1)
     duration_avg_hours = models.DecimalField('Durée moyenne (h)', max_digits=6, decimal_places=2, default=1)
     duration_max_hours = models.DecimalField('Durée max (h)', max_digits=6, decimal_places=2, default=2)
+    duration_formula = models.CharField(
+        'Formule de durée (optionnel)', max_length=200, blank=True,
+        help_text='Ex: "2 + nb_prises * 0.25" — remplace la durée moyenne ci-dessus par un calcul à partir des '
+                  'réponses (§19-20). Le min/max gardent le même écart relatif que les valeurs fixes ci-dessus.',
+    )
     estimate_width_pct = models.PositiveIntegerField(
         'Largeur de fourchette (%)', default=15,
         help_text='Écart appliqué autour du prix conseillé pour construire min/max, en plus des prix min/max du matériel.',
@@ -180,7 +185,9 @@ class MaterialRequirement(models.Model):
     """Relie une prestation à un poste de `ElectricityPriceLibrary`, avec une
     quantité fixe ou dérivée d'une réponse numérique (ex: « nombre de
     prises »). Ne duplique jamais le prix — seule la quantité est calculée ici."""
-    QUANTITY_SOURCE_CHOICES = [('fixed', 'Quantité fixe'), ('from_answer', 'Depuis une réponse')]
+    QUANTITY_SOURCE_CHOICES = [
+        ('fixed', 'Quantité fixe'), ('from_answer', 'Depuis une réponse'), ('formula', 'Formule'),
+    ]
 
     service = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='material_requirements')
     price_item = models.ForeignKey(ElectricityPriceLibrary, on_delete=models.CASCADE, related_name='+')
@@ -192,6 +199,11 @@ class MaterialRequirement(models.Model):
         help_text='Question de type "Nombre" ou "Surface" dont la réponse donne la quantité.',
     )
     quantity_multiplier = models.DecimalField('Multiplicateur', max_digits=6, decimal_places=2, default=1)
+    quantity_formula = models.CharField(
+        'Formule de quantité', max_length=200, blank=True,
+        help_text='Utilisée si la source est "Formule" — ex: "nb_prises * longueur_moyenne" (§19-20). Référence '
+                  'des identifiants de question ; 0 si une variable est absente ou non numérique.',
+    )
     applies_when = models.JSONField(
         'Condition d\'inclusion', default=dict, blank=True,
         help_text='Même format que display_condition — vide = toujours inclus si quantité > 0.',

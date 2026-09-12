@@ -23,6 +23,7 @@ from apps.btp.models import ElectricityPriceLibrary
 from .conditions import condition_met
 from .diagnostic import evaluate_diagnostic
 from .confidence import compute_confidence_score, compute_visit_necessity
+from .formulas import evaluate_formula
 
 
 def resolve_material_lines(service, answers):
@@ -34,6 +35,8 @@ def resolve_material_lines(service, answers):
 
         if req.quantity_source == 'fixed':
             qty = float(req.fixed_quantity)
+        elif req.quantity_source == 'formula':
+            qty = evaluate_formula(req.quantity_formula, answers) * float(req.quantity_multiplier)
         else:
             identifier = req.quantity_answer.identifier if req.quantity_answer else None
             raw = answers.get(identifier) if identifier else None
@@ -127,9 +130,20 @@ def compute_estimate(company, service, answers, urgency='normal', photos_count=0
 
     diag = evaluate_diagnostic(service, answers)
 
-    duration_min = float(service.duration_min_hours)
-    duration_avg = float(service.duration_avg_hours)
-    duration_max = float(service.duration_max_hours)
+    static_avg = float(service.duration_avg_hours)
+    if service.duration_formula:
+        # Ratios min/max conservés depuis les valeurs fixes configurées, pour
+        # que la formule ne pilote que la moyenne sans devoir redéfinir
+        # trois formules (§19-20).
+        ratio_min = float(service.duration_min_hours) / static_avg if static_avg else 1.0
+        ratio_max = float(service.duration_max_hours) / static_avg if static_avg else 1.0
+        duration_avg = max(evaluate_formula(service.duration_formula, answers), 0.1)
+        duration_min = duration_avg * ratio_min
+        duration_max = duration_avg * ratio_max
+    else:
+        duration_min = float(service.duration_min_hours)
+        duration_avg = static_avg
+        duration_max = float(service.duration_max_hours)
     if diag['requires_diagnostic'] and diag['diagnostic_duration']:
         duration_min += diag['diagnostic_duration']['min']
         duration_avg += diag['diagnostic_duration']['avg']

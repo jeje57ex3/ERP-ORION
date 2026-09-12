@@ -29,7 +29,10 @@ class ConfiguratorQuestionInline(admin.TabularInline):
 class MaterialRequirementInline(admin.TabularInline):
     model = MaterialRequirement
     extra = 0
-    fields = ['price_item', 'quantity_source', 'fixed_quantity', 'quantity_answer', 'quantity_multiplier', 'order']
+    fields = [
+        'price_item', 'quantity_source', 'fixed_quantity', 'quantity_answer',
+        'quantity_multiplier', 'quantity_formula', 'order',
+    ]
 
 
 class DiagnosticScenarioInline(admin.StackedInline):

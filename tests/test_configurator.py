@@ -20,6 +20,7 @@ from apps.configurator.models import (
 from apps.configurator.models import ConfiguratorSession, ConfiguratorSessionLot
 from apps.configurator.services import engine
 from apps.configurator.services.confidence import DONT_KNOW
+from apps.configurator.services.formulas import evaluate_formula
 from apps.configurator.services.pricing import compute_estimate
 from apps.crm.models import Customer, Prospect
 
@@ -414,6 +415,63 @@ def test_submit_configurator_project_without_lots_raises_value_error(company):
         engine.submit_configurator_project(company, {
             'session_key': str(session.session_key), 'contact': _contact(), 'building': {},
         })
+
+
+# ─── Moteur de formules (V2 §19-20) ────────────────────────────────────────────
+
+def test_evaluate_formula_combines_two_answers():
+    assert evaluate_formula('nb_points * longueur', {'nb_points': 8, 'longueur': 5}) == 40
+
+
+def test_evaluate_formula_supports_addition_and_constants():
+    assert evaluate_formula('2 + nb_prises * 0.25', {'nb_prises': 4}) == 3
+
+
+def test_evaluate_formula_missing_variable_defaults_to_zero():
+    assert evaluate_formula('nb_points * longueur', {'nb_points': 8}) == 0
+
+
+def test_evaluate_formula_rejects_unsafe_expressions_without_crashing():
+    # Pas de eval() arbitraire : ni les attributs/appels, ni le code fantaisiste
+    # ne doivent planter — ils retombent silencieusement sur 0.
+    assert evaluate_formula('__import__("os").system("echo hi")', {}) == 0
+    assert evaluate_formula('nb.__class__', {'nb': 3}) == 0
+    assert evaluate_formula('', {}) == 0
+    assert evaluate_formula(None, {}) == 0
+
+
+@pytest.mark.django_db
+def test_material_requirement_formula_quantity_source(company, domain_reseau, price_rj45, labor_travel_margin):
+    service = ServiceCategory.objects.create(
+        domain=domain_reseau, company=company, code='rj45-formule', name='RJ45 avec formule',
+        duration_min_hours=1, duration_avg_hours=1, duration_max_hours=1,
+    )
+    q_points = ConfiguratorQuestion.objects.create(service=service, identifier='nb_points', label='Points', question_type='number', order=1)
+    ConfiguratorQuestion.objects.create(service=service, identifier='longueur', label='Longueur moyenne', question_type='number', order=2)
+    MaterialRequirement.objects.create(
+        service=service, price_item=price_rj45, quantity_source='formula',
+        quantity_formula='nb_points * longueur',
+    )
+    estimate = compute_estimate(company, service, {'nb_points': 4, 'longueur': 3})
+    assert estimate['material_lines'][0]['qty'] == 12
+
+
+@pytest.mark.django_db
+def test_service_duration_formula_overrides_static_duration_but_keeps_ratio(company, domain_electricite, labor_travel_margin):
+    service = ServiceCategory.objects.create(
+        domain=domain_electricite, company=company, code='formule-duree', name='Service formule durée',
+        duration_min_hours=1, duration_avg_hours=2, duration_max_hours=3,
+        duration_formula='2 + nb_prises * 0.5',
+    )
+    ConfiguratorQuestion.objects.create(service=service, identifier='nb_prises', label='Nb', question_type='number', order=1)
+
+    small = compute_estimate(company, service, {'nb_prises': 0})
+    large = compute_estimate(company, service, {'nb_prises': 8})
+    assert small['duration']['avg'] == pytest.approx(2.0)
+    assert large['duration']['avg'] == pytest.approx(6.0)
+    # Le ratio min/max (1/2 et 3/2 dans la config statique) doit être conservé.
+    assert large['duration']['min'] == pytest.approx(6.0 * 0.5, rel=0.02)
+    assert large['duration']['max'] == pytest.approx(6.0 * 1.5, rel=0.02)
 
 
 # ─── CRM ────────────────────────────────────────────────────────────────────────
