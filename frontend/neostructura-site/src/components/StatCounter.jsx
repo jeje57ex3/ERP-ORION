@@ -23,9 +23,8 @@ export default function StatCounter({ value, suffix = '', label }) {
 
   return (
     <div ref={ref} style={{ textAlign: 'center' }}>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 40px)',
-        fontWeight: 600, color: 'var(--accent)', lineHeight: 1,
+      <div className="neo-stat-number" style={{
+        fontSize: 'clamp(28px, 4vw, 40px)', color: 'var(--accent)', lineHeight: 1,
       }}>
         {display}{suffix}
       </div>

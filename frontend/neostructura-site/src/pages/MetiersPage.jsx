@@ -59,7 +59,7 @@ export default function MetiersPage() {
                 <span style={{ fontSize: 36 }}>{m.icon}</span>
                 <div>
                   <h2 style={{ fontSize: 26 }}>{m.name}</h2>
-                  <span className="neo-badge">{m.priceIndicatif}</span>
+                  <span className="neo-badge">{m.badge}</span>
                 </div>
               </div>
 

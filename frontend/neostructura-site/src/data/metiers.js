@@ -7,7 +7,7 @@ export const METIERS = [
     description: "De l'installation neuve à la mise aux normes, nos électriciens interviennent sur tous les projets résidentiels et professionnels.",
     services: ['Installation électrique', 'Tableau électrique', 'Mise aux normes', 'Éclairage', 'Prises', 'Réseau électrique', 'Maintenance'],
     technologies: ['Norme NF C 15-100', 'Disjoncteurs différentiels', 'Éclairage LED basse consommation'],
-    priceIndicatif: 'À partir de 65€/h',
+    badge: 'Estimation personnalisée',
   },
   {
     slug: 'domotique',
@@ -17,7 +17,7 @@ export const METIERS = [
     description: 'Nous concevons des maisons intelligentes qui simplifient le quotidien : automatisations, pilotage à distance et scénarios personnalisés.',
     services: ['Maison connectée', 'Éclairage intelligent', 'Volets', 'Chauffage', 'Sécurité', 'Scénarios automatisés'],
     technologies: ['KNX', 'Zigbee', 'Matter / Thread'],
-    priceIndicatif: 'Sur devis',
+    badge: 'Sur devis',
   },
   {
     slug: 'etancheite',
@@ -27,7 +27,7 @@ export const METIERS = [
     description: "Diagnostic, réparation et rénovation d'étanchéité pour protéger durablement votre bâtiment des infiltrations.",
     services: ['Toiture terrasse', 'Étanchéité toiture', 'Recherche de fuite', 'Réparation', 'Isolation'],
     technologies: ['Membrane EPDM', 'Résine liquide', 'Caméra thermique'],
-    priceIndicatif: 'À partir de 45€/m²',
+    badge: 'Estimation personnalisée',
   },
   {
     slug: 'informatique',
@@ -37,7 +37,7 @@ export const METIERS = [
     description: 'Câblage, réseau et sécurité pour les entreprises et particuliers exigeants — du Wi-Fi domestique à la baie informatique professionnelle.',
     services: ['Réseau entreprise', 'Wi-Fi', 'Baie informatique', 'Caméras', "Contrôle d'accès"],
     technologies: ['Câblage catégorie 6A', 'Wi-Fi 6', 'Vidéosurveillance IP'],
-    priceIndicatif: 'Sur devis',
+    badge: 'Sur devis',
   },
   {
     slug: 'renovation',
@@ -47,7 +47,7 @@ export const METIERS = [
     description: 'Un interlocuteur unique pour piloter votre projet de rénovation, de la conception à la livraison.',
     services: ['Rénovation complète', 'Coordination multi-corps de métier', 'Suivi de chantier', 'Réception des travaux'],
     technologies: ['Planning centralisé', 'Suivi photo chantier'],
-    priceIndicatif: 'Sur devis',
+    badge: 'Sur devis',
   },
   {
     slug: 'maintenance',
@@ -57,6 +57,6 @@ export const METIERS = [
     description: 'Contrats de maintenance sur mesure pour garder vos installations électriques, domotiques et techniques en parfait état.',
     services: ['Maintenance préventive', 'Interventions rapides', 'Contrats annuels', 'Astreinte technique'],
     technologies: ['Suivi à distance', 'Historique interventions'],
-    priceIndicatif: 'Contrat à partir de 39€/mois',
+    badge: 'Sur devis',
   },
 ]

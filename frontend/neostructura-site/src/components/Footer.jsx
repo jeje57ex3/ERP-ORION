@@ -12,8 +12,19 @@ export default function Footer() {
         display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.2fr', gap: 48, paddingBottom: 56,
       }} id="neo-footer-grid">
         <div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, marginBottom: 16 }}>
-            NÉOSTRUCTURA
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <span style={{
+              width: 28, height: 28, borderRadius: 7, background: '#F7F7F4',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 3, flexShrink: 0,
+            }}>
+              <img src="/logo-icon.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </span>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20 }}>
+              NÉOSTRUCTURA
+            </div>
+          </div>
+          <div className="neo-tag-technical" style={{ borderColor: 'rgba(247,247,244,0.22)', color: 'rgba(247,247,244,0.7)', marginBottom: 16 }}>
+            CONSTRUIRE DURABLEMENT, ENSEMBLE.
           </div>
           <p style={{ opacity: 0.75, fontSize: 14, lineHeight: 1.7, maxWidth: 320 }}>
             Électricité générale, domotique, informatique &amp; réseaux, étanchéité, rénovation et
