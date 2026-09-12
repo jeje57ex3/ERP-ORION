@@ -1,3 +1,5 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 const labelStyle = { display: 'block', fontSize: 12.5, fontWeight: 600, marginBottom: 8, color: 'var(--text-muted)' }
 const inputStyle = {
   width: '100%', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)',
@@ -5,70 +7,72 @@ const inputStyle = {
 }
 
 export default function StepContact({ contact, building, notes, onChangeContact, onChangeBuilding, onChangeNotes, onSubmit, onBack, submitting, error }) {
+  const { dict } = useLanguage()
+  const t = dict.configurator.contact
   const set = (field) => (e) => onChangeContact({ ...contact, [field]: e.target.value })
   const setBuilding = (field) => (e) => onChangeBuilding({ ...building, [field]: e.target.value })
   const valid = contact.first_name && contact.last_name && contact.email
 
   return (
     <div>
-      <h2 style={{ fontSize: 24, marginBottom: 8 }}>Vos coordonnées.</h2>
+      <h2 style={{ fontSize: 24, marginBottom: 8 }}>{t.title}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 32 }}>
-        Pour vous transmettre votre estimation et organiser l'intervention.
+        {t.subtitle}
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} id="neo-cfg-contact-row1">
         <div>
-          <label style={labelStyle}>Prénom *</label>
+          <label style={labelStyle}>{t.firstName} *</label>
           <input type="text" value={contact.first_name || ''} onChange={set('first_name')} style={inputStyle} required />
         </div>
         <div>
-          <label style={labelStyle}>Nom *</label>
+          <label style={labelStyle}>{t.lastName} *</label>
           <input type="text" value={contact.last_name || ''} onChange={set('last_name')} style={inputStyle} required />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} id="neo-cfg-contact-row2">
         <div>
-          <label style={labelStyle}>Email *</label>
+          <label style={labelStyle}>{t.email} *</label>
           <input type="email" value={contact.email || ''} onChange={set('email')} style={inputStyle} required />
         </div>
         <div>
-          <label style={labelStyle}>Téléphone</label>
+          <label style={labelStyle}>{t.phone}</label>
           <input type="tel" value={contact.phone || ''} onChange={set('phone')} style={inputStyle} />
         </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Adresse d'intervention</label>
+        <label style={labelStyle}>{t.address}</label>
         <input type="text" value={building.address || ''} onChange={setBuilding('address')} style={inputStyle} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} id="neo-cfg-contact-row3">
         <div>
-          <label style={labelStyle}>Code postal</label>
+          <label style={labelStyle}>{t.zip}</label>
           <input type="text" value={building.zip_code || ''} onChange={setBuilding('zip_code')} style={inputStyle} />
         </div>
         <div>
-          <label style={labelStyle}>Ville</label>
+          <label style={labelStyle}>{t.city}</label>
           <input type="text" value={building.city || ''} onChange={setBuilding('city')} style={inputStyle} />
         </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Message (optionnel)</label>
+        <label style={labelStyle}>{t.message}</label>
         <textarea rows={4} value={notes || ''} onChange={(e) => onChangeNotes(e.target.value)} style={inputStyle} />
       </div>
 
       {error && <div style={{ color: '#C0392B', fontSize: 13.5, marginBottom: 16 }}>{error}</div>}
 
       <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
-        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack} disabled={submitting}>Retour</button>
+        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack} disabled={submitting}>{dict.common.back}</button>
         <button
           type="button" className="neo-btn neo-btn-primary neo-btn-lg"
           disabled={!valid || submitting} onClick={onSubmit}
           style={{ opacity: (!valid || submitting) ? 0.6 : 1 }}
         >
-          {submitting ? 'Envoi en cours…' : 'Envoyer ma demande'}
+          {submitting ? dict.common.sending : t.send}
         </button>
       </div>
 

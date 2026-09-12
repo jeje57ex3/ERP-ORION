@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom'
-
-const METIERS = [
-  'Électricité générale', 'Domotique', 'Étanchéité',
-  'Informatique & Réseaux', 'Rénovation', 'Maintenance',
-]
+import { useLanguage } from '../i18n/LanguageContext'
+import { METIERS } from '../data/metiers'
 
 export default function Footer() {
+  const { dict } = useLanguage()
+
   return (
     <footer style={{ background: 'var(--surface-brand)', color: 'var(--surface-brand-fg)', paddingTop: 72 }}>
       <div className="neo-container" style={{
@@ -24,44 +23,45 @@ export default function Footer() {
             </div>
           </div>
           <div className="neo-tag-technical" style={{ borderColor: 'rgba(247,247,244,0.22)', color: 'rgba(247,247,244,0.7)', marginBottom: 16 }}>
-            CONSTRUIRE DURABLEMENT, ENSEMBLE.
+            {dict.footer.tagline}
           </div>
           <p style={{ opacity: 0.75, fontSize: 14, lineHeight: 1.7, maxWidth: 320 }}>
-            Électricité générale, domotique, informatique &amp; réseaux, étanchéité, rénovation et
-            maintenance. Un interlocuteur unique pour tous vos projets techniques.
+            {dict.footer.description}
           </p>
         </div>
 
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 18 }}>
-            Nos métiers
+            {dict.footer.metiersTitle}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {METIERS.map(m => (
-              <Link key={m} to="/nos-metiers" style={{ fontSize: 14, opacity: 0.85 }}>{m}</Link>
+              <Link key={m.slug} to="/nos-metiers" style={{ fontSize: 14, opacity: 0.85 }}>
+                {dict.metiersContent[m.slug]?.name}
+              </Link>
             ))}
           </div>
         </div>
 
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 18 }}>
-            Entreprise
+            {dict.footer.companyTitle}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Link to="/" style={{ fontSize: 14, opacity: 0.85 }}>Accueil</Link>
-            <Link to="/realisations" style={{ fontSize: 14, opacity: 0.85 }}>Réalisations</Link>
-            <Link to="/contact" style={{ fontSize: 14, opacity: 0.85 }}>Contact</Link>
+            <Link to="/" style={{ fontSize: 14, opacity: 0.85 }}>{dict.footer.companyLinks.home}</Link>
+            <Link to="/realisations" style={{ fontSize: 14, opacity: 0.85 }}>{dict.footer.companyLinks.realisations}</Link>
+            <Link to="/contact" style={{ fontSize: 14, opacity: 0.85 }}>{dict.footer.companyLinks.contact}</Link>
           </div>
         </div>
 
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: 18 }}>
-            Contact
+            {dict.footer.contactTitle}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, opacity: 0.85 }}>
             <a href="mailto:contact@neostructura.fr">contact@neostructura.fr</a>
             <a href="tel:+33100000000">01 00 00 00 00</a>
-            <span style={{ opacity: 0.7 }}>Intervention dans toute la région</span>
+            <span style={{ opacity: 0.7 }}>{dict.footer.zone}</span>
           </div>
         </div>
       </div>
@@ -71,8 +71,8 @@ export default function Footer() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '20px 0', fontSize: 12.5, opacity: 0.6, flexWrap: 'wrap', gap: 8,
         }}>
-          <span>© {new Date().getFullYear()} NÉOSTRUCTURA — Tous droits réservés.</span>
-          <span>Propulsé par Orion ERP</span>
+          <span>© {new Date().getFullYear()} NÉOSTRUCTURA — {dict.footer.rights}</span>
+          <span>{dict.footer.poweredBy}</span>
         </div>
       </div>
 

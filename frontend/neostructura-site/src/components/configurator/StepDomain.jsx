@@ -1,13 +1,18 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function StepDomain({ domains, loading, value, onSelect }) {
+  const { dict } = useLanguage()
+  const t = dict.configurator.domain
+
   return (
     <div>
-      <h2 style={{ fontSize: 24, marginBottom: 8 }}>Que souhaitez-vous faire ?</h2>
+      <h2 style={{ fontSize: 24, marginBottom: 8 }}>{t.question}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 32 }}>
-        Choisissez le domaine concerné par votre projet.
+        {t.help}
       </p>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Chargement…</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{dict.common.loading}</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} id="neo-cfg-domain-grid">
           {domains.map(d => {

@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
 import { sendContactMessage } from '../api/contact'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const INITIAL = { name: '', email: '', phone: '', subject: '', message: '', website_url_field: '' }
 
 export default function ContactPage() {
+  const { dict } = useLanguage()
+  const t = dict.contact
   const [form, setForm] = useState(INITIAL)
   const [status, setStatus] = useState('idle') // idle | sending | success | error
   const [error, setError] = useState('')
@@ -33,12 +36,12 @@ export default function ContactPage() {
       <section style={{ paddingTop: 'calc(var(--header-h) + 64px)', paddingBottom: 32 }}>
         <div className="neo-container">
           <Reveal style={{ maxWidth: 640 }}>
-            <div className="neo-eyebrow">Contact</div>
+            <div className="neo-eyebrow">{t.eyebrow}</div>
             <h1 style={{ fontSize: 'clamp(30px, 4.6vw, 48px)', marginBottom: 18 }}>
-              Parlons de votre projet.
+              {t.h1}
             </h1>
             <p style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-              Décrivez votre besoin, nous revenons vers vous rapidement avec une première estimation.
+              {t.intro}
             </p>
           </Reveal>
         </div>
@@ -49,9 +52,9 @@ export default function ContactPage() {
           <Reveal>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               {[
-                { label: 'Email', value: 'contact@neostructura.fr', href: 'mailto:contact@neostructura.fr' },
-                { label: 'Téléphone', value: '01 00 00 00 00', href: 'tel:+33100000000' },
-                { label: 'Zone d\'intervention', value: 'Toute la région' },
+                { label: t.emailLabel, value: 'contact@neostructura.fr', href: 'mailto:contact@neostructura.fr' },
+                { label: t.phoneLabel, value: '01 00 00 00 00', href: 'tel:+33100000000' },
+                { label: t.zoneLabel, value: t.zoneValue },
               ].map(item => (
                 <div key={item.label} className="neo-card" style={{ padding: 24 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>
@@ -69,12 +72,12 @@ export default function ContactPage() {
             {status === 'success' ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>✓</div>
-                <h3 style={{ fontSize: 20, marginBottom: 10 }}>Message envoyé</h3>
+                <h3 style={{ fontSize: 20, marginBottom: 10 }}>{t.successTitle}</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: 14.5 }}>
-                  Merci, nous revenons vers vous très rapidement.
+                  {t.successText}
                 </p>
                 <button className="neo-btn neo-btn-outline" style={{ marginTop: 24 }} onClick={() => setStatus('idle')}>
-                  Envoyer un autre message
+                  {t.sendAnother}
                 </button>
               </div>
             ) : (
@@ -88,15 +91,15 @@ export default function ContactPage() {
                 />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} id="neo-form-row">
-                  <Field label="Nom complet" name="name" value={form.name} onChange={onChange} required />
-                  <Field label="Email" name="email" type="email" value={form.email} onChange={onChange} required />
+                  <Field label={t.nameLabel} name="name" value={form.name} onChange={onChange} required />
+                  <Field label={t.emailFieldLabel} name="email" type="email" value={form.email} onChange={onChange} required />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} id="neo-form-row2">
-                  <Field label="Téléphone" name="phone" value={form.phone} onChange={onChange} />
-                  <Field label="Sujet" name="subject" value={form.subject} onChange={onChange} />
+                  <Field label={t.phoneFieldLabel} name="phone" value={form.phone} onChange={onChange} />
+                  <Field label={t.subjectLabel} name="subject" value={form.subject} onChange={onChange} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Message</label>
+                  <label style={labelStyle}>{t.messageLabel}</label>
                   <textarea
                     name="message" value={form.message} onChange={onChange} required rows={6}
                     style={inputStyle}
@@ -108,7 +111,7 @@ export default function ContactPage() {
                 )}
 
                 <button type="submit" className="neo-btn neo-btn-primary neo-btn-lg" disabled={status === 'sending'}>
-                  {status === 'sending' ? 'Envoi en cours…' : 'Envoyer ma demande'}
+                  {status === 'sending' ? t.sending : t.send}
                 </button>
               </form>
             )}

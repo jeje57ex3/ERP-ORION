@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
 import { useClientAuth } from '../hooks/useClientAuth'
 import { portalFetchDashboard } from '../api/portal'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const STATUS_COLORS = {
   study: 'var(--text-muted)', quoted: '#B8860B', won: 'var(--accent)',
@@ -11,6 +12,8 @@ const STATUS_COLORS = {
 }
 
 export default function EspaceClientDashboardPage() {
+  const { dict } = useLanguage()
+  const t = dict.portal
   const { account, loading, isAuthenticated, logout } = useClientAuth()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
@@ -30,7 +33,7 @@ export default function EspaceClientDashboardPage() {
   if (loading || (!data && !error)) {
     return (
       <section style={{ paddingTop: 'var(--header-h)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>
+        <p style={{ color: 'var(--text-muted)' }}>{t.loading}</p>
       </section>
     )
   }
@@ -43,12 +46,12 @@ export default function EspaceClientDashboardPage() {
         <div className="neo-container">
           <Reveal style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <div className="neo-eyebrow">Espace client</div>
+              <div className="neo-eyebrow">{t.eyebrow}</div>
               <h1 style={{ fontSize: 'clamp(24px, 3.2vw, 34px)' }}>
-                Bonjour {data?.account?.first_name || account?.first_name} 👋
+                {t.greeting(data?.account?.first_name || account?.first_name)}
               </h1>
             </div>
-            <button className="neo-btn neo-btn-outline" onClick={onLogout}>Déconnexion</button>
+            <button className="neo-btn neo-btn-outline" onClick={onLogout}>{t.logout}</button>
           </Reveal>
 
           {error && <p style={{ color: '#C0392B' }}>{error}</p>}
@@ -57,9 +60,9 @@ export default function EspaceClientDashboardPage() {
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 48 }} id="neo-dash-kpis">
                 {[
-                  { label: 'Chantiers actifs', value: data.projects.length },
-                  { label: 'Demandes en cours', value: data.requests.length },
-                  { label: 'Notifications', value: data.notifications.length },
+                  { label: t.kpiProjects, value: data.projects.length },
+                  { label: t.kpiRequests, value: data.requests.length },
+                  { label: t.kpiNotifications, value: data.notifications.length },
                 ].map(kpi => (
                   <div key={kpi.label} className="neo-card" style={{ padding: 24, textAlign: 'center' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, color: 'var(--accent)', fontWeight: 600 }}>{kpi.value}</div>
@@ -70,10 +73,10 @@ export default function EspaceClientDashboardPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 32 }} id="neo-dash-layout">
                 <div>
-                  <h2 style={{ fontSize: 18, marginBottom: 18 }}>Mes chantiers</h2>
+                  <h2 style={{ fontSize: 18, marginBottom: 18 }}>{t.myProjects}</h2>
                   {data.projects.length === 0 ? (
                     <div className="neo-card" style={{ padding: 28, color: 'var(--text-muted)', fontSize: 14 }}>
-                      Aucun chantier actif pour le moment.
+                      {t.noProjects}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -91,10 +94,10 @@ export default function EspaceClientDashboardPage() {
                     </div>
                   )}
 
-                  <h2 style={{ fontSize: 18, margin: '36px 0 18px' }}>Mes demandes</h2>
+                  <h2 style={{ fontSize: 18, margin: '36px 0 18px' }}>{t.myRequests}</h2>
                   {data.requests.length === 0 ? (
                     <div className="neo-card" style={{ padding: 28, color: 'var(--text-muted)', fontSize: 14 }}>
-                      Aucune demande enregistrée.
+                      {t.noRequests}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -102,7 +105,7 @@ export default function EspaceClientDashboardPage() {
                         <div key={r.reference} className="neo-card" style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: 14.5 }}>{r.request_type_label}</div>
-                            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Réf. {r.reference}</div>
+                            <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t.reference} {r.reference}</div>
                           </div>
                           <span className="neo-badge">{r.status_label}</span>
                         </div>
@@ -112,10 +115,10 @@ export default function EspaceClientDashboardPage() {
                 </div>
 
                 <div>
-                  <h2 style={{ fontSize: 18, marginBottom: 18 }}>Notifications</h2>
+                  <h2 style={{ fontSize: 18, marginBottom: 18 }}>{t.notifications}</h2>
                   {data.notifications.length === 0 ? (
                     <div className="neo-card" style={{ padding: 28, color: 'var(--text-muted)', fontSize: 14 }}>
-                      Rien de nouveau.
+                      {t.noNotifications}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

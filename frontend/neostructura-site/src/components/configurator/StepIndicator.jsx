@@ -1,6 +1,9 @@
-const LABELS = ['Domaine', 'Besoin', 'Précisions', 'Coordonnées']
+import { useLanguage } from '../../i18n/LanguageContext'
 
 export default function StepIndicator({ step }) {
+  const { dict } = useLanguage()
+  const LABELS = dict.configurator.steps
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 48 }}>
       {LABELS.map((label, i) => {

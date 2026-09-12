@@ -1,12 +1,6 @@
 import DynamicQuestion from './DynamicQuestion'
-
-const URGENCIES = [
-  { value: 'urgent', label: 'Urgent', desc: 'Sous 48h' },
-  { value: 'normal', label: 'Normal', desc: 'Sous 2 semaines' },
-  { value: 'flexible', label: 'Flexible', desc: 'Pas de contrainte' },
-]
-
-const fmt = (n) => Math.round(n).toLocaleString('fr-FR') + ' €'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { formatCurrency } from '../../i18n/format'
 
 function isAnswered(q, answers) {
   const v = answers[q.identifier]
@@ -19,20 +13,23 @@ export default function StepQuestions({
   service, questions, loadingQuestions, answers, onAnswerChange,
   urgency, onUrgencyChange, liveEstimate, estimateLoading, onNext, onBack, onAddAnother,
 }) {
+  const { dict, lang } = useLanguage()
+  const t = dict.configurator.questions
+  const fmt = (n) => formatCurrency(n, lang)
   const allRequiredAnswered = questions.every(q => isAnswered(q, answers))
 
   return (
     <div>
       <h2 style={{ fontSize: 24, marginBottom: 8 }}>{service?.name}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 28 }}>
-        Quelques précisions pour affiner votre estimation.
+        {t.title}
       </p>
 
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}>
-        Urgence
+        {t.urgencyLabel}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }} id="neo-cfg-urg-grid">
-        {URGENCIES.map(u => (
+        {t.urgencyOptions.map(u => (
           <button
             key={u.value} type="button" onClick={() => onUrgencyChange(u.value)}
             className="neo-card"
@@ -49,7 +46,7 @@ export default function StepQuestions({
       </div>
 
       {loadingQuestions ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Chargement des questions…</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{dict.common.loading}</p>
       ) : (
         <div>
           {questions.map(q => (
@@ -68,14 +65,14 @@ export default function StepQuestions({
               ⚠️ {liveEstimate.safety_message}
             </div>
           )}
-          <div className="neo-badge" style={{ marginBottom: 10 }}>Estimation indicative</div>
+          <div className="neo-badge" style={{ marginBottom: 10 }}>{t.estimatePreviewBadge}</div>
           {liveEstimate.requires_diagnostic ? (
             <>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: 'var(--accent)' }}>
-                Diagnostic à partir de {fmt(liveEstimate.diagnostic_price_from || 0)}
+                {t.diagnosticFrom(fmt(liveEstimate.diagnostic_price_from || 0))}
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 6 }}>
-                Intervention estimée ensuite entre {fmt(liveEstimate.intervention_estimate?.min || 0)} et {fmt(liveEstimate.intervention_estimate?.max || 0)}, à confirmer sur place.
+                {t.interventionEstimate(fmt(liveEstimate.intervention_estimate?.min || 0), fmt(liveEstimate.intervention_estimate?.max || 0))}
               </div>
             </>
           ) : (
@@ -84,25 +81,24 @@ export default function StepQuestions({
                 {fmt(liveEstimate.price.min)} — {fmt(liveEstimate.price.max)}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                HT · durée estimée {liveEstimate.duration.min}—{liveEstimate.duration.max}h
+                HT · {liveEstimate.duration.min}—{liveEstimate.duration.max}{t.durationSuffix}
               </div>
             </>
           )}
         </div>
       )}
-      {estimateLoading && <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Calcul de l'estimation…</p>}
+      {estimateLoading && <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{t.calculating}</p>}
 
       <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>Retour</button>
+        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>{dict.common.back}</button>
         <div style={{ display: 'flex', gap: 12 }}>
           {onAddAnother && (
             <button
               type="button" className="neo-btn neo-btn-outline"
               disabled={!allRequiredAnswered} onClick={onAddAnother}
               style={{ opacity: allRequiredAnswered ? 1 : 0.5 }}
-              title="Ajoute ce besoin au dossier et permet d'en décrire un autre (§12-13)"
             >
-              + Ajouter un autre besoin
+              {t.addAnother}
             </button>
           )}
           <button
@@ -110,7 +106,7 @@ export default function StepQuestions({
             disabled={!allRequiredAnswered} onClick={onNext}
             style={{ opacity: allRequiredAnswered ? 1 : 0.5 }}
           >
-            Continuer
+            {dict.common.continue}
           </button>
         </div>
       </div>

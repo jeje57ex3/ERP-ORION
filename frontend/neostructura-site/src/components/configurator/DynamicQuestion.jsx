@@ -1,3 +1,5 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 const inputStyle = {
   width: '100%', padding: '11px 13px', borderRadius: 8, border: '1px solid var(--border)',
   background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14,
@@ -36,6 +38,8 @@ function ChoiceRow({ options, value, onChange, multi }) {
 }
 
 export default function DynamicQuestion({ question, value, onChange }) {
+  const { dict } = useLanguage()
+  const t = dict.configurator.questions
   const { type, label, help_text: helpText, options, allow_dont_know: allowDontKnow } = question
   const isUnknown = value === DONT_KNOW
   // Photo/fichier n'ont pas de sens à "je ne sais pas" — le client peut
@@ -49,9 +53,9 @@ export default function DynamicQuestion({ question, value, onChange }) {
 
       {isUnknown ? (
         <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          Je ne sais pas — nous nous en occuperons.{' '}
+          {t.dontKnowActive}{' '}
           <button type="button" onClick={() => onChange('')} className="neo-link" style={{ fontStyle: 'normal' }}>
-            Répondre quand même
+            {t.answerAnyway}
           </button>
         </div>
       ) : (
@@ -61,7 +65,7 @@ export default function DynamicQuestion({ question, value, onChange }) {
 
       {type === 'boolean' && (
         <div style={{ display: 'flex', gap: 8 }}>
-          {[['true', 'Oui'], ['false', 'Non']].map(([v, l]) => (
+          {[['true', t.yes], ['false', t.no]].map(([v, l]) => (
             <button
               key={v} type="button" onClick={() => onChange(v === 'true')}
               className="neo-card"
@@ -111,7 +115,7 @@ export default function DynamicQuestion({ question, value, onChange }) {
           />
           {Array.isArray(value) && value.length > 0 && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-              {value.length} fichier(s) sélectionné(s)
+              {t.filesSelected(value.length)}
             </div>
           )}
         </div>
@@ -127,7 +131,7 @@ export default function DynamicQuestion({ question, value, onChange }) {
             fontSize: 12, color: 'var(--text-muted)', textDecoration: 'underline', cursor: 'pointer',
           }}
         >
-          Je ne sais pas / je préfère être accompagné
+          {t.dontKnow}
         </button>
       )}
     </div>

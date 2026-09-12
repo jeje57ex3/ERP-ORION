@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { formatCurrency } from '../../i18n/format'
 
-const fmt = (n) => Math.round(n).toLocaleString('fr-FR') + ' €'
-
-function ProjectResult({ references, project }) {
+function ProjectResult({ references, project, t, fmt }) {
   const { lots, totals } = project
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 44, marginBottom: 16 }}>✓</div>
-      <h2 style={{ fontSize: 26, marginBottom: 10 }}>Votre dossier est enregistré</h2>
+      <h2 style={{ fontSize: 26, marginBottom: 10 }}>{t.registeredProject}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 24 }}>
-        Références <strong style={{ color: 'var(--text)' }}>{references.join(', ')}</strong>
+        {t.references} <strong style={{ color: 'var(--text)' }}>{references.join(', ')}</strong>
       </p>
 
       <div style={{ maxWidth: 520, margin: '0 auto' }} className="neo-card">
@@ -19,23 +19,21 @@ function ProjectResult({ references, project }) {
               <div style={{ fontWeight: 600, fontSize: 14 }}>{lot.label}</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 {lot.estimate.requires_diagnostic
-                  ? `Diagnostic à partir de ${fmt(lot.estimate.diagnostic_price_from || 0)}`
+                  ? t.diagnosticTitle(fmt(lot.estimate.diagnostic_price_from || 0))
                   : `${fmt(lot.estimate.price.min)} — ${fmt(lot.estimate.price.max)}`}
               </div>
             </div>
           ))}
 
           <div style={{ marginTop: 20, paddingTop: 20, borderTop: '2px solid var(--border)' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total estimé du dossier</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{t.totalLabel}</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--accent)' }}>
               {fmt(totals.price_min)} — {fmt(totals.price_max)}
-              {totals.any_diagnostic_required && ' (hors diagnostic à confirmer)'}
+              {totals.any_diagnostic_required && ` ${t.diagnosticExcluded}`}
             </div>
             {totals.visit_necessity && totals.visit_necessity !== 'non_necessaire' && (
               <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 10 }}>
-                {totals.visit_necessity === 'obligatoire'
-                  ? 'Une visite sur place sera nécessaire avant validation définitive.'
-                  : 'Une visite sur place est recommandée pour confirmer ce chiffrage.'}
+                {totals.visit_necessity === 'obligatoire' ? t.visitMandatory : t.visitRecommended}
               </p>
             )}
           </div>
@@ -43,23 +41,27 @@ function ProjectResult({ references, project }) {
       </div>
 
       <Link to="/" className="neo-btn neo-btn-outline" style={{ marginTop: 40 }}>
-        Retour à l'accueil
+        {t.backHome}
       </Link>
     </div>
   )
 }
 
 export default function StepResult({ result }) {
-  if (result.isProject) return <ProjectResult references={result.references} project={result.project} />
+  const { dict, lang } = useLanguage()
+  const t = dict.configurator.result
+  const fmt = (n) => formatCurrency(n, lang)
+
+  if (result.isProject) return <ProjectResult references={result.references} project={result.project} t={t} fmt={fmt} />
 
   const { reference, estimate } = result
 
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 44, marginBottom: 16 }}>✓</div>
-      <h2 style={{ fontSize: 26, marginBottom: 10 }}>Votre demande est enregistrée</h2>
+      <h2 style={{ fontSize: 26, marginBottom: 10 }}>{t.registered}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 8 }}>
-        Référence <strong style={{ color: 'var(--text)' }}>{reference}</strong>
+        {t.reference} <strong style={{ color: 'var(--text)' }}>{reference}</strong>
       </p>
 
       {estimate ? (
@@ -72,16 +74,16 @@ export default function StepResult({ result }) {
             )}
 
             <div className="neo-badge" style={{ marginBottom: 16 }}>
-              {estimate.requires_diagnostic ? 'Diagnostic sur place nécessaire' : 'Estimation indicative'}
+              {estimate.requires_diagnostic ? t.diagnosticBadge : t.estimateBadge}
             </div>
 
             {estimate.requires_diagnostic ? (
               <>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 600, color: 'var(--accent)' }}>
-                  Diagnostic à partir de {fmt(estimate.diagnostic_price_from || 0)}
+                  {t.diagnosticTitle(fmt(estimate.diagnostic_price_from || 0))}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
-                  Intervention estimée ensuite entre {fmt(estimate.intervention_estimate?.min || 0)} et {fmt(estimate.intervention_estimate?.max || 0)} — confirmée après diagnostic sur place.
+                  {t.diagnosticSubtitle(fmt(estimate.intervention_estimate?.min || 0), fmt(estimate.intervention_estimate?.max || 0))}
                 </div>
               </>
             ) : (
@@ -89,42 +91,38 @@ export default function StepResult({ result }) {
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 600, color: 'var(--accent)' }}>
                   {fmt(estimate.price.min)} — {fmt(estimate.price.max)}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>HT · soit ~{fmt(estimate.price.total_ttc_avg)} TTC</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>HT · ~{fmt(estimate.price.total_ttc_avg)} TTC</div>
               </>
             )}
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Durée estimée</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{t.durationLabel}</div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>
-                  {estimate.duration.min}—{estimate.duration.max}h
+                  {estimate.duration.min}—{estimate.duration.max}{dict.configurator.questions.durationSuffix}
                 </div>
               </div>
             </div>
 
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 24, lineHeight: 1.6 }}>
-              {estimate.requires_diagnostic
-                ? "Cette estimation n'est pas un diagnostic confirmé. Notre équipe vous recontacte pour planifier une visite."
-                : 'Le montant définitif sera confirmé après analyse technique. Notre équipe vous recontacte très prochainement.'}
+              {estimate.requires_diagnostic ? t.diagnosticNote : t.firmNote}
             </p>
 
             {estimate.visit_necessity && estimate.visit_necessity !== 'non_necessaire' && (
               <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 10 }}>
-                {estimate.visit_necessity === 'obligatoire'
-                  ? 'Une visite sur place sera nécessaire avant validation définitive.'
-                  : 'Une visite sur place est recommandée pour confirmer ce chiffrage.'}
+                {estimate.visit_necessity === 'obligatoire' ? t.visitMandatory : t.visitRecommended}
               </p>
             )}
           </div>
         </div>
       ) : (
         <p style={{ color: 'var(--text-muted)', maxWidth: 420, margin: '24px auto 0' }}>
-          Notre équipe va étudier votre demande et revient vers vous rapidement avec une estimation personnalisée.
+          {t.genericNote}
         </p>
       )}
 
       <Link to="/" className="neo-btn neo-btn-outline" style={{ marginTop: 40 }}>
-        Retour à l'accueil
+        {t.backHome}
       </Link>
     </div>
   )

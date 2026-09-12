@@ -1,17 +1,22 @@
 import { useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
+import { useLanguage } from '../i18n/LanguageContext'
 import { REALISATIONS } from '../data/realisations'
 
-const CATEGORIES = ['Tous', ...new Set(REALISATIONS.map(r => r.category))]
-
 export default function RealisationsPage() {
-  const [filter, setFilter] = useState('Tous')
+  const { dict } = useLanguage()
+  const t = dict.realisationsPage
+  const [filter, setFilter] = useState(t.filterAll)
 
-  const filtered = useMemo(
-    () => (filter === 'Tous' ? REALISATIONS : REALISATIONS.filter(r => r.category === filter)),
-    [filter]
-  )
+  const items = useMemo(() => REALISATIONS.map(r => ({
+    ...r,
+    category: dict.metiersContent[r.categorySlug]?.name || r.categorySlug,
+    ...dict.realisationsContent[r.id],
+  })), [dict])
+
+  const categories = useMemo(() => [t.filterAll, ...new Set(items.map(r => r.category))], [items, t.filterAll])
+  const filtered = filter === t.filterAll ? items : items.filter(r => r.category === filter)
 
   return (
     <>
@@ -20,12 +25,12 @@ export default function RealisationsPage() {
       <section style={{ paddingTop: 'calc(var(--header-h) + 64px)', paddingBottom: 32 }}>
         <div className="neo-container">
           <Reveal style={{ maxWidth: 640 }}>
-            <div className="neo-eyebrow">Réalisations</div>
+            <div className="neo-eyebrow">{t.eyebrow}</div>
             <h1 style={{ fontSize: 'clamp(30px, 4.6vw, 48px)', marginBottom: 18 }}>
-              Des projets menés avec exigence.
+              {t.h1}
             </h1>
             <p style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-              Un aperçu de nos interventions récentes, tous métiers confondus.
+              {t.intro}
             </p>
           </Reveal>
         </div>
@@ -34,7 +39,7 @@ export default function RealisationsPage() {
       <section className="neo-section" style={{ paddingTop: 8 }}>
         <div className="neo-container">
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setFilter(cat)}

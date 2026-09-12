@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import Reveal from '../components/Reveal'
+import { useLanguage } from '../i18n/LanguageContext'
 import StepIndicator from '../components/configurator/StepIndicator'
 import StepDomain from '../components/configurator/StepDomain'
 import StepService from '../components/configurator/StepService'
@@ -22,6 +23,8 @@ function isAnswered(q, answers) {
 }
 
 export default function ConfigurateurPage() {
+  const { dict } = useLanguage()
+  const cfg = dict.configurator
   const [step, setStep] = useState(1)
 
   const [domains, setDomains] = useState([])
@@ -217,14 +220,14 @@ export default function ConfigurateurPage() {
 
   return (
     <>
-      <Helmet><title>Configurateur — NÉOSTRUCTURA</title></Helmet>
+      <Helmet><title>{cfg.pageTitle}</title></Helmet>
 
       <section style={{ paddingTop: 'calc(var(--header-h) + 56px)', paddingBottom: 96, minHeight: '90vh' }}>
         <div className="neo-container" style={{ maxWidth: 780 }}>
           {!result && (
             <Reveal style={{ marginBottom: 40 }}>
-              <div className="neo-eyebrow">Configurateur</div>
-              <h1 style={{ fontSize: 'clamp(26px, 3.6vw, 38px)' }}>Configurez votre projet.</h1>
+              <div className="neo-eyebrow">{cfg.eyebrow}</div>
+              <h1 style={{ fontSize: 'clamp(26px, 3.6vw, 38px)' }}>{cfg.h1}</h1>
             </Reveal>
           )}
 
@@ -232,7 +235,7 @@ export default function ConfigurateurPage() {
 
           {!result && lots.length > 0 && (
             <div className="neo-badge" style={{ marginBottom: 16 }}>
-              {lots.length} besoin{lots.length > 1 ? 's' : ''} déjà ajouté{lots.length > 1 ? 's' : ''} à ce dossier
+              {cfg.lotsBanner(lots.length)}
             </div>
           )}
 

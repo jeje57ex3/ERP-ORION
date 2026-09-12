@@ -1,13 +1,18 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function StepService({ domain, services, loading, value, onSelect, onBack }) {
+  const { dict } = useLanguage()
+  const t = dict.configurator.service
+
   return (
     <div>
       <h2 style={{ fontSize: 24, marginBottom: 8 }}>{domain?.name}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 32 }}>
-        Précisez votre besoin — nous adaptons les questions suivantes en conséquence.
+        {t.help}
       </p>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Chargement…</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{dict.common.loading}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {services.map(s => {
@@ -29,7 +34,7 @@ export default function StepService({ domain, services, loading, value, onSelect
                   )}
                 </div>
                 {s.requires_diagnostic && (
-                  <span className="neo-badge" style={{ flexShrink: 0 }}>Diagnostic sur place</span>
+                  <span className="neo-badge" style={{ flexShrink: 0 }}>{t.diagnosticBadge}</span>
                 )}
               </button>
             )
@@ -38,7 +43,7 @@ export default function StepService({ domain, services, loading, value, onSelect
       )}
 
       <div style={{ marginTop: 32 }}>
-        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>Retour</button>
+        <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>{dict.common.back}</button>
       </div>
     </div>
   )

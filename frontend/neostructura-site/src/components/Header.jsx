@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
-
-const NAV_LINKS = [
-  { to: '/', label: 'Accueil', end: true },
-  { to: '/nos-metiers', label: 'Nos métiers' },
-  { to: '/configurateur', label: 'Configurateur' },
-  { to: '/realisations', label: 'Réalisations' },
-  { to: '/contact', label: 'Contact' },
-]
+import { useLanguage } from '../i18n/LanguageContext'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme()
+  const { dict } = useLanguage()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const NAV_LINKS = [
+    { to: '/', label: dict.header.nav.home, end: true },
+    { to: '/nos-metiers', label: dict.header.nav.metiers },
+    { to: '/configurateur', label: dict.header.nav.configurator },
+    { to: '/realisations', label: dict.header.nav.realisations },
+    { to: '/contact', label: dict.header.nav.contact },
+  ]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -66,9 +69,10 @@ export default function Header() {
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <LanguageSwitcher />
           <button
             onClick={toggleTheme}
-            aria-label="Changer de thème"
+            aria-label={dict.header.themeToggle}
             style={{
               width: 38, height: 38, borderRadius: '50%',
               border: '1px solid var(--border)', background: 'var(--bg-elevated)',
@@ -77,7 +81,7 @@ export default function Header() {
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          <Link to="/espace-client" aria-label="Espace client" style={{
+          <Link to="/espace-client" aria-label={dict.header.clientSpace} style={{
             width: 38, height: 38, borderRadius: '50%',
             border: '1px solid var(--border)', background: 'var(--bg-elevated)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
@@ -85,10 +89,10 @@ export default function Header() {
             👤
           </Link>
           <Link to="/configurateur" className="neo-btn neo-btn-urgent neo-nav-urgent" style={{ padding: '10px 16px', fontSize: 13 }}>
-            Urgence / Dépannage
+            {dict.header.urgent}
           </Link>
           <Link to="/configurateur" className="neo-btn neo-btn-primary neo-nav-cta">
-            Obtenir mon estimation
+            {dict.header.cta}
           </Link>
           <button
             className="neo-nav-toggle"
@@ -125,17 +129,20 @@ export default function Header() {
               {link.label}
             </NavLink>
           ))}
+          <div style={{ marginTop: 12 }}>
+            <LanguageSwitcher compact />
+          </div>
           <Link
             to="/configurateur" onClick={() => setMenuOpen(false)}
             className="neo-btn neo-btn-primary" style={{ marginTop: 12 }}
           >
-            Obtenir mon estimation
+            {dict.header.cta}
           </Link>
           <Link
             to="/configurateur" onClick={() => setMenuOpen(false)}
             className="neo-btn neo-btn-urgent" style={{ marginTop: 8 }}
           >
-            Urgence / Dépannage
+            {dict.header.urgent}
           </Link>
         </div>
       )}
