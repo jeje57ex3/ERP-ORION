@@ -17,7 +17,9 @@ from apps.configurator.models import (
     MaterialRequirement, LaborRule, TravelRule, MarginRule, DiagnosticScenario,
     ConfiguratorSubmission,
 )
+from apps.configurator.models import ConfiguratorSession
 from apps.configurator.services import engine
+from apps.configurator.services.confidence import DONT_KNOW
 from apps.configurator.services.pricing import compute_estimate
 from apps.crm.models import Customer, Prospect
 
@@ -265,6 +267,78 @@ def test_gamme_answer_switches_to_sibling_product(company, domain_electricite, p
     assert premium['price']['avg'] > standard['price']['avg']
 
 
+# ─── Score de confiance / nécessité de visite (V2 §32-33) ──────────────────────
+
+@pytest.mark.django_db
+def test_visit_necessity_non_necessaire_for_simple_fully_answered_service(company, service_pose_prise):
+    estimate = compute_estimate(company, service_pose_prise, {'nb_prises': 3}, urgency='normal')
+    assert estimate['visit_necessity'] == 'non_necessaire'
+    assert estimate['confidence_score'] >= 60
+
+
+@pytest.mark.django_db
+def test_visit_necessity_obligatoire_when_danger_detected(company, service_disjoncteur):
+    estimate = compute_estimate(company, service_disjoncteur, {'danger_signes': True}, urgency='urgent')
+    assert estimate['visit_necessity'] == 'obligatoire'
+    assert estimate['confidence_score'] <= 35
+
+
+@pytest.mark.django_db
+def test_dont_know_answer_does_not_block_but_lowers_confidence(company, service_pose_prise):
+    answered = compute_estimate(company, service_pose_prise, {'nb_prises': 2})
+    unknown = compute_estimate(company, service_pose_prise, {'nb_prises': DONT_KNOW})
+    assert unknown['confidence_score'] < answered['confidence_score']
+
+
+@pytest.mark.django_db
+def test_dont_know_answer_recorded_as_missing_info_on_submission(company, service_pose_prise):
+    qr, _ = engine.submit_configurator_request(company, {
+        'service_code': 'pose-prise', 'answers': {'nb_prises': DONT_KNOW},
+        'contact': _contact('dontknow@example.com'), 'building': {},
+    })
+    assert 'nb_prises' in qr.configurator_submission.missing_info
+
+
+@pytest.mark.django_db
+def test_confidence_score_never_exposed_publicly(company, service_pose_prise):
+    public = engine.estimate_preview(company, 'pose-prise', {'nb_prises': 2})
+    serialized = json.dumps(public).lower()
+    assert 'confidence_score' not in serialized
+
+
+# ─── Session persistante (V2 §4/§50) ───────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_session_update_persists_answers_and_recomputes_visit_necessity(company, service_pose_prise):
+    session = ConfiguratorSession.objects.create(company=company)
+    updated = engine.update_session(
+        session, domain_code='electricite', service_code='pose-prise', urgency='normal',
+        answers={'nb_prises': 3},
+    )
+    assert updated.answers == {'nb_prises': 3}
+    assert updated.service_id == service_pose_prise.id
+    assert updated.visit_necessity == 'non_necessaire'
+
+    reloaded = ConfiguratorSession.objects.get(pk=session.pk)
+    assert reloaded.answers == {'nb_prises': 3}
+
+
+@pytest.mark.django_db
+def test_session_merges_answers_across_multiple_updates(company, service_pose_prise):
+    session = ConfiguratorSession.objects.create(company=company)
+    engine.update_session(session, 'electricite', 'pose-prise', 'normal', {'nb_prises': 1})
+    session.refresh_from_db()
+    engine.update_session(session, None, None, None, {'gamme': 'premium'})
+    session.refresh_from_db()
+    assert session.answers == {'nb_prises': 1, 'gamme': 'premium'}
+
+
+@pytest.mark.django_db
+def test_session_never_crosses_company_boundary(company, company_b):
+    session = ConfiguratorSession.objects.create(company=company)
+    assert ConfiguratorSession.objects.for_company(company_b).filter(pk=session.pk).count() == 0
+
+
 # ─── CRM ────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
@@ -384,6 +458,40 @@ def test_public_api_rejects_oversized_answers_payload(neostructura_company):
     )
     # Ne doit jamais planter (500) — troncature silencieuse côté _sanitize_answers.
     assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_public_api_session_start_update_resume_roundtrip(neostructura_company):
+    domain = ServiceDomain.objects.create(company=neostructura_company, code='electricite', name='Électricité')
+    ServiceCategory.objects.create(
+        domain=domain, company=neostructura_company, code='svc4', name='Service 4',
+        duration_min_hours=1, duration_avg_hours=1, duration_max_hours=1,
+    )
+    client = Client()
+
+    started = client.post('/api/v1/neostructura/configurateur/session/', data='{}', content_type='application/json')
+    assert started.status_code == 200
+    session_key = started.json()['session_key']
+
+    updated = client.post(
+        f'/api/v1/neostructura/configurateur/session/{session_key}/',
+        data=json.dumps({'domain_code': 'electricite', 'service_code': 'svc4', 'answers': {'foo': 'bar'}}),
+        content_type='application/json',
+    )
+    assert updated.status_code == 200
+    assert updated.json()['answers'] == {'foo': 'bar'}
+    assert updated.json()['service_code'] == 'svc4'
+
+    resumed = client.get(f'/api/v1/neostructura/configurateur/session/{session_key}/')
+    assert resumed.status_code == 200
+    assert resumed.json()['answers'] == {'foo': 'bar'}
+    assert resumed.json()['estimate'] is not None
+
+
+@pytest.mark.django_db
+def test_public_api_session_detail_unknown_key_returns_404(neostructura_company):
+    resp = Client().get('/api/v1/neostructura/configurateur/session/00000000-0000-0000-0000-000000000000/')
+    assert resp.status_code == 404
 
 
 @pytest.mark.django_db

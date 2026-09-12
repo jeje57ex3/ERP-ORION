@@ -58,6 +58,14 @@ export default function StepResult({ result }) {
                 ? "Cette estimation n'est pas un diagnostic confirmé. Notre équipe vous recontacte pour planifier une visite."
                 : 'Le montant définitif sera confirmé après analyse technique. Notre équipe vous recontacte très prochainement.'}
             </p>
+
+            {estimate.visit_necessity && estimate.visit_necessity !== 'non_necessaire' && (
+              <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 10 }}>
+                {estimate.visit_necessity === 'obligatoire'
+                  ? 'Une visite sur place sera nécessaire avant validation définitive.'
+                  : 'Une visite sur place est recommandée pour confirmer ce chiffrage.'}
+              </p>
+            )}
           </div>
         </div>
       ) : (

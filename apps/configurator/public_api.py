@@ -14,10 +14,11 @@ import json
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from apps.core.models import Company
 from apps.websites.public_views import _get_ip
+from .models import ConfiguratorSession
 from .services import engine
 
 MAX_ANSWERS_KEYS = 60
@@ -153,6 +154,44 @@ def submit(request):
         return JsonResponse({'error': str(exc)}, status=400)
 
     return JsonResponse({'success': True, 'reference': quote_request.reference, 'estimate': public_estimate})
+
+
+@csrf_exempt
+@require_POST
+def session_start(request):
+    """Crée un dossier de configuration résumable (§4/§50) : le client peut
+    quitter et revenir sans compte tant qu'il garde la clé côté navigateur."""
+    company = _get_neostructura_company()
+    if not company:
+        return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    if _rate_limited(request, 'session_start', limit=30):
+        return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
+    session = engine.create_session(company)
+    return JsonResponse(engine.session_payload(session))
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
+def session_detail(request, session_key):
+    company = _get_neostructura_company()
+    if not company:
+        return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first()
+    if not session:
+        return JsonResponse({'error': 'Session introuvable.'}, status=404)
+
+    if request.method == 'GET':
+        return JsonResponse(engine.session_payload(session))
+
+    if _rate_limited(request, 'session_update', limit=120):
+        return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
+    data, error = _parse_json(request)
+    if error:
+        return error
+    answers = _sanitize_answers(data.get('answers'))
+    urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else None
+    session = engine.update_session(session, data.get('domain_code'), data.get('service_code'), urgency, answers)
+    return JsonResponse(engine.session_payload(session))
 
 
 @csrf_exempt

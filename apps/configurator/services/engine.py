@@ -11,10 +11,11 @@ from decimal import Decimal
 from django.utils import timezone
 
 from apps.btp.models import GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem, BTPQuote, BTPQuoteLine
-from apps.configurator.models import ServiceDomain, ServiceCategory, ConfiguratorSubmission
+from apps.configurator.models import ServiceDomain, ServiceCategory, ConfiguratorSubmission, ConfiguratorSession
 from .diagnostic import get_visible_questions
 from .pricing import compute_estimate
 from .crm_sync import sync_crm_lead
+from .confidence import missing_info_from_answers
 
 VALID_PROPERTY_TYPES = {'apartment', 'house', 'commercial', 'office', 'workshop', 'building', 'other'}
 
@@ -47,6 +48,7 @@ def get_questions_payload(service, answers):
             'help_text': q.help_text,
             'type': q.question_type,
             'required': q.is_required,
+            'allow_dont_know': q.allow_dont_know,
             'options': [{'value': o.value, 'label': o.label} for o in q.options.all()],
         }
         for q in questions
@@ -57,6 +59,7 @@ def _public_estimate_payload(estimate):
     """Ne renvoie QUE ce que le client doit voir — jamais costs/margin brut."""
     payload = {
         'confidence_level': estimate['confidence_level'],
+        'visit_necessity': estimate['visit_necessity'],
         'requires_diagnostic': estimate['requires_diagnostic'],
         'danger_detected': estimate['danger_detected'],
         'duration': estimate['duration'],
@@ -195,12 +198,17 @@ def submit_configurator_request(company, payload):
     _create_estimate_items(estimate_obj, estimate, hourly_rate, estimate['costs']['travel'])
 
     human_validation_required = (
-        estimate['confidence_level'] in ('low', 'diagnostic_required') or estimate['danger_detected']
+        estimate['confidence_level'] in ('low', 'diagnostic_required')
+        or estimate['danger_detected']
+        or estimate['visit_necessity'] == 'obligatoire'
     )
     submission = ConfiguratorSubmission.objects.create(
         request=quote_request, domain=service.domain, service=service,
-        confidence_level=estimate['confidence_level'], diagnostic_required=estimate['requires_diagnostic'],
+        confidence_level=estimate['confidence_level'], confidence_score=estimate['confidence_score'],
+        visit_necessity=estimate['visit_necessity'],
+        diagnostic_required=estimate['requires_diagnostic'],
         hypotheses=estimate['hypotheses'], danger_detected=estimate['danger_detected'],
+        missing_info=missing_info_from_answers(service, answers),
         human_validation_required=human_validation_required,
         cost_material=Decimal(str(estimate['costs']['material_avg'])),
         cost_labor=Decimal(str(estimate['costs']['labor_avg'])),
@@ -224,4 +232,68 @@ def submit_configurator_request(company, payload):
         )
         quote_request.save(update_fields=['status', 'internal_notes'])
 
+    session_key = payload.get('session_key')
+    if session_key:
+        session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first()
+        if session:
+            session.submission = submission
+            session.status = 'submitted'
+            session.save(update_fields=['submission', 'status', 'last_activity_at'])
+
     return quote_request, _public_estimate_payload(estimate)
+
+
+# ─── SESSION PERSISTANTE (§4/§50 : reprise du parcours sans compte) ────────────
+
+def create_session(company):
+    return ConfiguratorSession.objects.create(company=company)
+
+
+def session_payload(session):
+    """État complet de la session — usage interne à la reprise du parcours
+    (jamais de coût/marge, seul `estimate` public est inclus)."""
+    payload = {
+        'session_key': str(session.session_key),
+        'status': session.status,
+        'domain_code': session.domain.code if session.domain_id else None,
+        'service_code': session.service.code if session.service_id else None,
+        'urgency': session.urgency,
+        'answers': session.answers,
+        'visit_necessity': session.visit_necessity,
+        'estimate': None,
+    }
+    if session.service_id:
+        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal')
+        payload['estimate'] = _public_estimate_payload(estimate)
+    return payload
+
+
+def update_session(session, domain_code, service_code, urgency, answers):
+    """Fusionne les nouvelles réponses dans la session et recalcule le score
+    de confiance / la nécessité de visite en continu (§36 : ré-estimation
+    en temps réel dès qu'une réponse change)."""
+    if domain_code:
+        domain = ServiceDomain.objects.filter(company=session.company, code=domain_code, is_active=True).first()
+        if domain:
+            session.domain = domain
+    if service_code:
+        service = get_service(session.company, service_code)
+        if service:
+            session.service = service
+            if not domain_code:
+                session.domain = service.domain
+    if urgency in ('urgent', 'normal', 'flexible'):
+        session.urgency = urgency
+    if answers:
+        merged = dict(session.answers or {})
+        merged.update(answers)
+        session.answers = merged
+
+    if session.service_id:
+        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal')
+        session.confidence_score = estimate['confidence_score']
+        session.visit_necessity = estimate['visit_necessity']
+        session.missing_info = missing_info_from_answers(session.service, session.answers or {})
+
+    session.save()
+    return session

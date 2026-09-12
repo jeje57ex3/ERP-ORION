@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     ServiceDomain, ServiceCategory, ConfiguratorQuestion, ConfiguratorQuestionOption,
     MaterialRequirement, LaborRule, TravelRule, PricingCoefficient, MarginRule,
-    DiagnosticScenario, ConfiguratorSubmission,
+    DiagnosticScenario, ConfiguratorSubmission, ConfiguratorSession,
 )
 
 
@@ -80,10 +80,26 @@ class MarginRuleAdmin(admin.ModelAdmin):
 @admin.register(ConfiguratorSubmission)
 class ConfiguratorSubmissionAdmin(admin.ModelAdmin):
     list_display = [
-        'request', 'domain', 'service', 'confidence_level', 'diagnostic_required',
-        'danger_detected', 'human_validation_required', 'human_validation_done',
+        'request', 'domain', 'service', 'confidence_level', 'confidence_score', 'visit_necessity',
+        'diagnostic_required', 'danger_detected', 'human_validation_required', 'human_validation_done',
         'recommended_price', 'created_at',
     ]
-    list_filter = ['confidence_level', 'diagnostic_required', 'danger_detected', 'human_validation_required']
+    list_filter = [
+        'confidence_level', 'visit_necessity', 'diagnostic_required', 'danger_detected',
+        'human_validation_required',
+    ]
     readonly_fields = [f.name for f in ConfiguratorSubmission._meta.fields]
     search_fields = ['request__reference', 'request__client_email']
+
+
+@admin.register(ConfiguratorSession)
+class ConfiguratorSessionAdmin(admin.ModelAdmin):
+    """Simulateur admin minimal (§45) : consulter l'état d'un parcours en
+    cours (réponses, score, nécessité de visite) sans passer par l'API."""
+    list_display = [
+        'session_key', 'company', 'domain', 'service', 'status',
+        'visit_necessity', 'confidence_score', 'last_activity_at',
+    ]
+    list_filter = ['company', 'status', 'visit_necessity', 'domain']
+    search_fields = ['session_key']
+    readonly_fields = [f.name for f in ConfiguratorSession._meta.fields if f.name != 'is_active']

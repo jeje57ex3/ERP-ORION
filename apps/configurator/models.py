@@ -17,6 +17,8 @@ exigence matériel) n'ont pas leur propre `company` — elles héritent du
 scope de leur parent (comme `GuidedQuoteEstimateItem` n'a pas de company
 propre) pour éviter tout risque de désynchronisation.
 """
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -29,6 +31,16 @@ CONFIDENCE_CHOICES = [
     ('medium', 'Moyenne — fourchette à confirmer'),
     ('low', 'Faible — fourchette large'),
     ('diagnostic_required', 'Diagnostic obligatoire'),
+]
+
+VISIT_NECESSITY_CHOICES = [
+    ('non_necessaire', 'Non nécessaire'),
+    ('recommandee', 'Recommandée'),
+    ('obligatoire', 'Obligatoire'),
+]
+
+URGENCY_CHOICES = [
+    ('urgent', 'Urgent'), ('normal', 'Normal'), ('flexible', 'Flexible'),
 ]
 
 
@@ -129,6 +141,11 @@ class ConfiguratorQuestion(models.Model):
     impacts_material = models.BooleanField('Impacte le matériel', default=False)
     impacts_duration = models.BooleanField('Impacte la durée', default=False)
     impacts_price = models.BooleanField('Impacte le prix', default=False)
+    allow_dont_know = models.BooleanField(
+        'Autoriser "Je ne sais pas"', default=True,
+        help_text='Le client ne doit jamais être bloqué par une question technique — '
+                  'il peut répondre "je ne sais pas" et le parcours continue (§10 du cahier des charges V2).',
+    )
 
     class Meta:
         ordering = ['service', 'order']
@@ -325,9 +342,21 @@ class ConfiguratorSubmission(models.Model):
     service = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
     confidence_level = models.CharField('Niveau de confiance', max_length=20, choices=CONFIDENCE_CHOICES, default='medium')
+    confidence_score = models.PositiveSmallIntegerField(
+        'Score de confiance (0-100)', null=True, blank=True,
+        help_text='Score interne détaillé (§32) — ne remplace pas confidence_level, utilisé pour la nécessité de '
+                  'visite et le suivi qualité. Jamais exposé au client.',
+    )
+    visit_necessity = models.CharField(
+        'Nécessité de visite', max_length=20, choices=VISIT_NECESSITY_CHOICES, blank=True, default='',
+    )
     diagnostic_required = models.BooleanField('Diagnostic obligatoire', default=False)
     hypotheses = models.JSONField('Hypothèses retenues', default=list, blank=True)
     danger_detected = models.BooleanField('Danger détecté', default=False)
+    missing_info = models.JSONField(
+        'Informations manquantes ("je ne sais pas")', default=list, blank=True,
+        help_text='Identifiants des questions obligatoires auxquelles le client a répondu "je ne sais pas".',
+    )
 
     human_validation_required = models.BooleanField('Validation humaine requise', default=False)
     human_validation_done = models.BooleanField('Validation humaine effectuée', default=False)
@@ -353,3 +382,45 @@ class ConfiguratorSubmission(models.Model):
 
     def __str__(self):
         return f'Résumé interne — {self.request.reference}'
+
+
+# ─── SESSION PERSISTANTE (dossier de configuration V2, §4) ─────────────────────
+
+class ConfiguratorSession(CompanyBaseModel):
+    """Dossier de configuration résumable, créé dès que le client entre dans
+    le parcours (avant même d'avoir choisi un métier). Permet de reprendre un
+    parcours interrompu sans compte obligatoire (§50) et sert de socle au
+    score de confiance / à la nécessité de visite calculés en continu.
+
+    Ne remplace pas `ConfiguratorSubmission` (qui reste le résumé interne
+    figé au moment du chiffrage final) : la session est l'état vivant du
+    parcours, la soumission est l'instantané au moment de l'envoi."""
+    STATUS_CHOICES = [
+        ('in_progress', 'En cours'), ('submitted', 'Soumis'), ('abandoned', 'Abandonné'),
+    ]
+
+    session_key = models.UUIDField('Clé de session', default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField('État', max_length=20, choices=STATUS_CHOICES, default='in_progress')
+    domain = models.ForeignKey(ServiceDomain, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    service = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    urgency = models.CharField('Urgence', max_length=10, choices=URGENCY_CHOICES, default='normal')
+    answers = models.JSONField('Réponses', default=dict, blank=True)
+
+    confidence_score = models.PositiveSmallIntegerField('Score de confiance (0-100)', null=True, blank=True)
+    visit_necessity = models.CharField(
+        'Nécessité de visite', max_length=20, choices=VISIT_NECESSITY_CHOICES, blank=True, default='',
+    )
+    missing_info = models.JSONField('Informations manquantes', default=list, blank=True)
+
+    submission = models.ForeignKey(
+        ConfiguratorSubmission, on_delete=models.SET_NULL, null=True, blank=True, related_name='session_set',
+    )
+    last_activity_at = models.DateTimeField('Dernière activité', auto_now=True)
+
+    class Meta(CompanyBaseModel.Meta):
+        verbose_name = 'Session de configuration'
+        verbose_name_plural = 'Sessions de configuration'
+        ordering = ['-last_activity_at']
+
+    def __str__(self):
+        return f'Session {self.session_key} — {self.get_status_display()}'

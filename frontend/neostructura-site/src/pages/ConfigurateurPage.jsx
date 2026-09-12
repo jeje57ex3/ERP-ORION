@@ -9,7 +9,10 @@ import StepContact from '../components/configurator/StepContact'
 import StepResult from '../components/configurator/StepResult'
 import {
   fetchDomains, fetchServices, fetchQuestions, estimateLive, submitConfigurator,
+  startSession, fetchSession, updateSession,
 } from '../api/configurator'
+
+const SESSION_STORAGE_KEY = 'neostructura_configurator_session'
 
 function isAnswered(q, answers) {
   const v = answers[q.identifier]
@@ -44,7 +47,9 @@ export default function ConfigurateurPage() {
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
 
+  const [sessionKey, setSessionKey] = useState(null)
   const debounceRef = useRef(null)
+  const sessionDebounceRef = useRef(null)
 
   const next = () => setStep(s => Math.min(s + 1, 4))
   const back = () => setStep(s => Math.max(s - 1, 1))
@@ -55,6 +60,59 @@ export default function ConfigurateurPage() {
   useEffect(() => {
     fetchDomains().then(setDomains).catch(() => {}).finally(() => setDomainsLoading(false))
   }, [])
+
+  // Dossier de configuration résumable (§4/§50) : reprend une session en
+  // cours si elle existe encore côté navigateur, sinon en crée une nouvelle.
+  // Ne bloque jamais le parcours si l'appel échoue (best-effort).
+  useEffect(() => {
+    const stored = window.localStorage?.getItem(SESSION_STORAGE_KEY)
+    const resume = async () => {
+      if (stored) {
+        const state = await fetchSession(stored).catch(() => null)
+        if (state && state.status === 'in_progress' && (state.domain_code || Object.keys(state.answers || {}).length)) {
+          setSessionKey(stored)
+          if (state.answers) setAnswers(state.answers)
+          if (state.urgency) setUrgency(state.urgency)
+          if (state.domain_code) {
+            setDomainCode(state.domain_code)
+            setServicesLoading(true)
+            const svcs = await fetchServices(state.domain_code).catch(() => [])
+            setServices(svcs)
+            setServicesLoading(false)
+            setStep(2)
+          }
+          if (state.service_code) {
+            setServiceCode(state.service_code)
+            setQuestionsLoading(true)
+            const qs = await fetchQuestions(state.service_code, state.answers || {}).catch(() => [])
+            setQuestions(qs)
+            setQuestionsLoading(false)
+            setStep(3)
+          }
+          return
+        }
+      }
+      const started = await startSession().catch(() => null)
+      if (started?.session_key) {
+        setSessionKey(started.session_key)
+        window.localStorage?.setItem(SESSION_STORAGE_KEY, started.session_key)
+      }
+    }
+    resume()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persiste l'état courant côté serveur pour permettre une reprise —
+  // best-effort, débouncé pour ne pas spammer l'API à chaque frappe.
+  useEffect(() => {
+    if (!sessionKey) return
+    if (sessionDebounceRef.current) clearTimeout(sessionDebounceRef.current)
+    sessionDebounceRef.current = setTimeout(() => {
+      updateSession(sessionKey, { domain_code: domainCode || undefined, service_code: serviceCode || undefined, urgency, answers }).catch(() => {})
+    }, 600)
+    return () => clearTimeout(sessionDebounceRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionKey, domainCode, serviceCode, urgency, answers])
 
   const selectDomain = (code) => {
     setDomainCode(code)
@@ -107,8 +165,10 @@ export default function ConfigurateurPage() {
     try {
       const data = await submitConfigurator({
         service_code: serviceCode, urgency, answers, contact, building, notes,
+        session_key: sessionKey || undefined,
       })
       setResult(data)
+      window.localStorage?.removeItem(SESSION_STORAGE_KEY)
     } catch (err) {
       setError(err.message)
     } finally {

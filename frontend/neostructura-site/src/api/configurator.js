@@ -38,6 +38,20 @@ export async function submitConfigurator(payload) {
   return postJSON(`${BASE}/soumettre/`, payload)
 }
 
+export async function startSession() {
+  return postJSON(`${BASE}/session/`, {})
+}
+
+export async function fetchSession(sessionKey) {
+  const res = await fetch(`${BASE}/session/${sessionKey}/`)
+  if (!res.ok) return null
+  return res.json()
+}
+
+export async function updateSession(sessionKey, payload) {
+  return postJSON(`${BASE}/session/${sessionKey}/`, payload)
+}
+
 export async function uploadPhotos(reference, files) {
   const formData = new FormData()
   for (const f of files) formData.append('photos', f)

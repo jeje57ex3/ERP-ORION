@@ -22,6 +22,7 @@ from django.db.models import Q
 from apps.btp.models import ElectricityPriceLibrary
 from .conditions import condition_met
 from .diagnostic import evaluate_diagnostic
+from .confidence import compute_confidence_score, compute_visit_necessity
 
 
 def resolve_material_lines(service, answers):
@@ -97,7 +98,7 @@ def resolve_difficulty_multiplier(company, domain, answers):
     return multiplier
 
 
-def compute_estimate(company, service, answers, urgency='normal'):
+def compute_estimate(company, service, answers, urgency='normal', photos_count=0):
     lines = resolve_material_lines(service, answers)
     material_min = sum(float(l['price_item'].price_min) * l['qty'] for l in lines)
     material_avg = sum(float(l['price_item'].price_avg) * l['qty'] for l in lines)
@@ -139,8 +140,15 @@ def compute_estimate(company, service, answers, urgency='normal'):
     price_min *= (1 - width)
     price_max *= (1 + width)
 
+    confidence_score = compute_confidence_score(
+        service, answers, photos_count=photos_count, danger_detected=diag['danger_detected'],
+    )
+    visit_necessity = compute_visit_necessity(service, confidence_score, diag['danger_detected'])
+
     result = {
         'confidence_level': diag['confidence_level'],
+        'confidence_score': confidence_score,
+        'visit_necessity': visit_necessity,
         'requires_diagnostic': diag['requires_diagnostic'],
         'hypotheses': diag['hypotheses'],
         'danger_detected': diag['danger_detected'],

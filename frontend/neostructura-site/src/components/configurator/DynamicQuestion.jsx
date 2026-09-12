@@ -4,6 +4,10 @@ const inputStyle = {
 }
 const labelStyle = { display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 8 }
 
+// Valeur sentinelle envoyée quand le client répond "Je ne sais pas" — doit
+// correspondre exactement à apps.configurator.services.confidence.DONT_KNOW.
+export const DONT_KNOW = '__dont_know__'
+
 function ChoiceRow({ options, value, onChange, multi }) {
   const selected = (opt) => multi ? (Array.isArray(value) && value.includes(opt.value)) : value === opt.value
   const toggle = (opt) => {
@@ -32,13 +36,26 @@ function ChoiceRow({ options, value, onChange, multi }) {
 }
 
 export default function DynamicQuestion({ question, value, onChange }) {
-  const { type, label, help_text: helpText, options } = question
+  const { type, label, help_text: helpText, options, allow_dont_know: allowDontKnow } = question
+  const isUnknown = value === DONT_KNOW
+  // Photo/fichier n'ont pas de sens à "je ne sais pas" — le client peut
+  // simplement ne pas en envoyer.
+  const canSayDontKnow = allowDontKnow !== false && type !== 'photo' && type !== 'file'
 
   return (
     <div style={{ marginBottom: 22 }}>
       <label style={labelStyle}>{label}{question.required && <span style={{ color: 'var(--accent)' }}> *</span>}</label>
       {helpText && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, marginTop: -4 }}>{helpText}</div>}
 
+      {isUnknown ? (
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          Je ne sais pas — nous nous en occuperons.{' '}
+          <button type="button" onClick={() => onChange('')} className="neo-link" style={{ fontStyle: 'normal' }}>
+            Répondre quand même
+          </button>
+        </div>
+      ) : (
+        <>
       {(type === 'single_choice') && <ChoiceRow options={options} value={value} onChange={onChange} />}
       {(type === 'multi_choice') && <ChoiceRow options={options} value={value} onChange={onChange} multi />}
 
@@ -98,6 +115,20 @@ export default function DynamicQuestion({ question, value, onChange }) {
             </div>
           )}
         </div>
+      )}
+        </>
+      )}
+
+      {canSayDontKnow && !isUnknown && (
+        <button
+          type="button" onClick={() => onChange(DONT_KNOW)}
+          style={{
+            marginTop: 8, background: 'none', border: 'none', padding: 0,
+            fontSize: 12, color: 'var(--text-muted)', textDecoration: 'underline', cursor: 'pointer',
+          }}
+        >
+          Je ne sais pas / je préfère être accompagné
+        </button>
       )}
     </div>
   )
