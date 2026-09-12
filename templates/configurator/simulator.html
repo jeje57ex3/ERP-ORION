@@ -1,0 +1,163 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Simulateur configurateur" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-sliders me-2"></i>{% trans "Simulateur du configurateur" %}</h4>
+  <a href="{% url 'configurator:analytics' %}" class="orion-btn orion-btn-outline orion-btn-sm">
+    <i class="bi bi-graph-up me-1"></i>{% trans "Voir l'analytique" %}
+  </a>
+</div>
+<p class="text-muted small mb-4">
+  {% trans "Rejoue le parcours client avec un jeu de réponses de test et affiche tout le détail interne (coûts, marge, journal de calcul) — jamais visible côté public." %}
+</p>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="orion-card">
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Domaine" %}</label>
+          <select id="sim-domain" class="form-select form-select-sm">
+            <option value="">—</option>
+            {% for d in domains %}<option value="{{ d.code }}">{{ d.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Prestation" %}</label>
+          <select id="sim-service" class="form-select form-select-sm" disabled>
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Urgence" %}</label>
+          <select id="sim-urgency" class="form-select form-select-sm">
+            <option value="normal">{% trans "Normal" %}</option>
+            <option value="urgent">{% trans "Urgent" %}</option>
+            <option value="flexible">{% trans "Flexible" %}</option>
+          </select>
+        </div>
+        <div id="sim-questions"></div>
+        <button id="sim-run" class="orion-btn orion-btn-primary orion-btn-sm mt-2" disabled>
+          <i class="bi bi-play-fill me-1"></i>{% trans "Calculer" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="orion-card">
+      <div class="orion-card-body">
+        <div id="sim-result" class="text-muted small">{% trans "Choisis un domaine puis une prestation pour lancer une simulation." %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const domainSel = document.getElementById('sim-domain');
+  const serviceSel = document.getElementById('sim-service');
+  const urgencySel = document.getElementById('sim-urgency');
+  const questionsBox = document.getElementById('sim-questions');
+  const runBtn = document.getElementById('sim-run');
+  const resultBox = document.getElementById('sim-result');
+  let answers = {};
+
+  function fmt(n) { return Math.round(n).toLocaleString('fr-FR') + ' €'; }
+
+  async function loadServices(domainCode) {
+    serviceSel.innerHTML = '<option value="">—</option>';
+    serviceSel.disabled = true;
+    runBtn.disabled = true;
+    questionsBox.innerHTML = '';
+    if (!domainCode) return;
+    const res = await fetch(`{% url 'configurator:simulator_services' %}?domain_code=${encodeURIComponent(domainCode)}`);
+    const data = await res.json();
+    (data.services || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.code; opt.textContent = s.name;
+      serviceSel.appendChild(opt);
+    });
+    serviceSel.disabled = false;
+  }
+
+  async function loadQuestions(serviceCode) {
+    questionsBox.innerHTML = '';
+    if (!serviceCode) { runBtn.disabled = true; return; }
+    const res = await fetch(`{% url 'configurator:simulator_questions' %}?service_code=${encodeURIComponent(serviceCode)}&answers=${encodeURIComponent(JSON.stringify(answers))}`);
+    const data = await res.json();
+    (data.questions || []).forEach(q => {
+      const wrap = document.createElement('div');
+      wrap.className = 'mb-2';
+      const label = document.createElement('label');
+      label.className = 'form-label small';
+      label.textContent = q.label + (q.required ? ' *' : '');
+      wrap.appendChild(label);
+
+      let input;
+      if (q.type === 'boolean') {
+        input = document.createElement('select');
+        input.className = 'form-select form-select-sm';
+        input.innerHTML = '<option value="">—</option><option value="true">Oui</option><option value="false">Non</option>';
+      } else if (q.type === 'single_choice' || q.type === 'multi_choice') {
+        input = document.createElement('select');
+        input.className = 'form-select form-select-sm';
+        input.innerHTML = '<option value="">—</option>' + (q.options || []).map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+      } else if (q.type === 'number' || q.type === 'surface' || q.type === 'distance') {
+        input = document.createElement('input');
+        input.type = 'number'; input.className = 'form-control form-control-sm';
+      } else {
+        input = document.createElement('input');
+        input.type = 'text'; input.className = 'form-control form-control-sm';
+      }
+      input.addEventListener('change', () => {
+        let val = input.value;
+        if (q.type === 'boolean') val = val === 'true' ? true : val === 'false' ? false : undefined;
+        if (val === '' || val === undefined) delete answers[q.identifier];
+        else answers[q.identifier] = val;
+        loadQuestions(serviceSel.value);
+      });
+      wrap.appendChild(input);
+      questionsBox.appendChild(wrap);
+    });
+    runBtn.disabled = false;
+  }
+
+  domainSel.addEventListener('change', () => { answers = {}; loadServices(domainSel.value); });
+  serviceSel.addEventListener('change', () => { answers = {}; loadQuestions(serviceSel.value); });
+
+  runBtn.addEventListener('click', async () => {
+    resultBox.textContent = '{% trans "Calcul en cours…" %}';
+    const res = await fetch('{% url "configurator:simulator_estimate" %}', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ service_code: serviceSel.value, urgency: urgencySel.value, answers }),
+    });
+    const data = await res.json();
+    if (data.error) { resultBox.innerHTML = `<span class="text-danger">${data.error}</span>`; return; }
+
+    let html = '';
+    if (data.danger_detected) {
+      html += `<div class="alert alert-danger py-2 small">⚠️ ${data.safety_message || ''}</div>`;
+    }
+    html += `<div class="orion-badge orion-badge-info mb-2">Confiance : ${data.confidence_level} (${data.confidence_score}/100) — Visite : ${data.visit_necessity}</div>`;
+    html += `<div class="mb-2"><strong>Prix conseillé :</strong> ${fmt(data.price.avg)} (${fmt(data.price.min)} – ${fmt(data.price.max)})</div>`;
+    html += `<div class="mb-2 small text-muted">Durée : ${data.duration.min}–${data.duration.max}h</div>`;
+    html += '<table class="orion-table small mb-2"><thead><tr><th>Coût matériel</th><th>MO</th><th>Déplacement</th><th>Coût de revient</th><th>Marge</th></tr></thead><tbody>';
+    html += `<tr><td>${fmt(data.costs.material_avg)}</td><td>${fmt(data.costs.labor_avg)}</td><td>${fmt(data.costs.travel)}</td><td>${fmt(data.costs.cost_avg)}</td><td>${data.costs.margin_percent}%</td></tr>`;
+    html += '</tbody></table>';
+    if (data.material_lines && data.material_lines.length) {
+      html += '<div class="small fw-semibold mb-1">Matériel</div><ul class="small">';
+      data.material_lines.forEach(l => { html += `<li>${l.name} × ${l.qty} = ${fmt(l.total_avg)}</li>`; });
+      html += '</ul>';
+    }
+    html += '<div class="small fw-semibold mb-1 mt-2">Journal de calcul</div><ul class="small text-muted">';
+    (data.calculation_log || []).forEach(entry => { html += `<li>[${entry.type}] ${entry.label}</li>`; });
+    html += '</ul>';
+    resultBox.innerHTML = html;
+  });
+})();
+</script>
+{% endblock %}

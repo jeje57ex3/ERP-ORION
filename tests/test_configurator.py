@@ -474,6 +474,68 @@ def test_service_duration_formula_overrides_static_duration_but_keeps_ratio(comp
     assert large['duration']['max'] == pytest.approx(6.0 * 1.5, rel=0.02)
 
 
+# ─── Outils internes ERP : simulateur + analytique (V2 §45/§52) ───────────────
+#
+# NB : le middleware CompanyMiddleware résout request.current_company via le
+# fallback superuser (première entreprise active) dès qu'on utilise
+# `superuser_client` — pas besoin de configurer UserProfile.companies pour
+# ces tests, cf. apps/core/middleware.py::_resolve_company.
+
+@pytest.mark.django_db
+def test_simulator_view_requires_login():
+    resp = Client().get('/configurateur/simulateur/')
+    assert resp.status_code == 302
+
+
+@pytest.mark.django_db
+def test_analytics_view_requires_login():
+    resp = Client().get('/configurateur/analytique/')
+    assert resp.status_code == 302
+
+
+@pytest.mark.django_db
+def test_simulator_estimate_view_exposes_full_internal_breakdown(superuser_client, company, service_pose_prise):
+    resp = superuser_client.post(
+        '/configurateur/simulateur/estimer/',
+        data=json.dumps({'service_code': 'pose-prise', 'answers': {'nb_prises': 2}}),
+        content_type='application/json',
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    # Contrairement à l'API publique : marge, coût de revient et journal de
+    # calcul DOIVENT être présents ici (vue interne réservée au personnel).
+    assert data['costs']['margin_percent'] is not None
+    assert data['costs']['cost_avg'] > 0
+    assert data['calculation_log']
+    assert data['material_lines'][0]['price_avg'] > 0
+
+
+@pytest.mark.django_db
+def test_simulator_services_and_questions_views(superuser_client, company, service_pose_prise):
+    resp = superuser_client.get('/configurateur/simulateur/services/?domain_code=electricite')
+    assert resp.status_code == 200
+    assert any(s['code'] == 'pose-prise' for s in resp.json()['services'])
+
+    resp2 = superuser_client.get('/configurateur/simulateur/questions/?service_code=pose-prise&answers=%7B%7D')
+    assert resp2.status_code == 200
+    assert resp2.json()['questions'][0]['identifier'] == 'nb_prises'
+
+
+@pytest.mark.django_db
+def test_analytics_view_renders_and_aggregates_by_domain(superuser_client, company, service_pose_prise):
+    engine.submit_configurator_request(company, {
+        'service_code': 'pose-prise', 'answers': {'nb_prises': 1},
+        'contact': _contact('a1@example.com'), 'building': {},
+    })
+    engine.submit_configurator_request(company, {
+        'service_code': 'pose-prise', 'answers': {'nb_prises': 2},
+        'contact': _contact('a2@example.com'), 'building': {},
+    })
+    resp = superuser_client.get('/configurateur/analytique/')
+    assert resp.status_code == 200
+    assert 'Électricité'.encode('utf-8') in resp.content
+
+
 # ─── CRM ────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db

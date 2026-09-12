@@ -47,6 +47,7 @@ urlpatterns = [
     path('paie/', include('apps.payroll.urls', namespace='payroll')),
     path('support/', include('apps.support.urls', namespace='support')),
     path('btp/', include('apps.btp.urls', namespace='btp')),
+    path('configurateur/', include('apps.configurator.urls', namespace='configurator')),
     path('ecommerce/', include('apps.ecommerce.urls', namespace='ecommerce')),
     path('commerce/', include('apps.commerce.urls', namespace='commerce')),
     path('production/', include('apps.production.urls', namespace='production')),

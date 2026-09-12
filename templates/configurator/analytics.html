@@ -1,0 +1,143 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% block title %}{% trans "Analytique configurateur" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0"><i class="bi bi-graph-up me-2"></i>{% trans "Analytique du configurateur" %}</h4>
+  <a href="{% url 'configurator:simulator' %}" class="orion-btn orion-btn-outline orion-btn-sm">
+    <i class="bi bi-sliders me-1"></i>{% trans "Simulateur" %}
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3F4F6;color:#374151"><i class="bi bi-inbox"></i></div>
+      <div class="orion-kpi-value">{{ totals.total_submissions }}</div>
+      <div class="orion-kpi-label">{% trans "Demandes chiffrées" %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEF9C3;color:#92400E"><i class="bi bi-person-check"></i></div>
+      <div class="orion-kpi-value">{{ totals.human_validation_required }}</div>
+      <div class="orion-kpi-label">{% trans "Validation humaine requise" %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#FEE2E2;color:#B91C1C"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="orion-kpi-value">{{ totals.danger_detected }}</div>
+      <div class="orion-kpi-label">{% trans "Danger détecté" %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DBEAFE;color:#1D4ED8"><i class="bi bi-speedometer2"></i></div>
+      <div class="orion-kpi-value">{% if totals.avg_confidence_score %}{{ totals.avg_confidence_score|floatformat:0 }}{% else %}—{% endif %}</div>
+      <div class="orion-kpi-label">{% trans "Score de confiance moyen" %}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F8F3EA;color:#C6A15B"><i class="bi bi-hourglass-split"></i></div>
+      <div class="orion-kpi-value">{{ totals.sessions_in_progress }}</div>
+      <div class="orion-kpi-label">{% trans "Sessions en cours" %}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#DCFCE7;color:#16A34A"><i class="bi bi-send-check"></i></div>
+      <div class="orion-kpi-value">{{ totals.sessions_submitted }}</div>
+      <div class="orion-kpi-label">{% trans "Sessions soumises" %}</div>
+    </div>
+  </div>
+  {% if avg_diff_pct != None %}
+  <div class="col-6 col-md-3">
+    <div class="orion-kpi">
+      <div class="orion-kpi-icon" style="background:#F3F4F6;color:#374151"><i class="bi bi-arrow-left-right"></i></div>
+      <div class="orion-kpi-value">{{ avg_diff_pct }}%</div>
+      <div class="orion-kpi-label">{% trans "Écart moyen estimation → devis" %}</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="orion-card">
+      <div class="orion-card-header"><div class="orion-card-title">{% trans "Par domaine" %}</div></div>
+      <div class="orion-card-body">
+        {% if by_domain %}
+        <table class="orion-table">
+          <thead><tr><th>{% trans "Domaine" %}</th><th>{% trans "Demandes" %}</th></tr></thead>
+          <tbody>
+          {% for row in by_domain %}
+            <tr><td>{{ row.domain__name }}</td><td>{{ row.total }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="orion-empty"><div class="orion-empty-title">{% trans "Aucune donnée pour le moment" %}</div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="orion-card">
+      <div class="orion-card-header"><div class="orion-card-title">{% trans "Par prestation" %}</div></div>
+      <div class="orion-card-body">
+        {% if by_service %}
+        <table class="orion-table">
+          <thead><tr><th>{% trans "Prestation" %}</th><th>{% trans "Demandes" %}</th><th>{% trans "Confiance moy." %}</th></tr></thead>
+          <tbody>
+          {% for row in by_service %}
+            <tr>
+              <td>{{ row.service__name }}</td><td>{{ row.total }}</td>
+              <td>{% if row.avg_confidence %}{{ row.avg_confidence|floatformat:0 }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="orion-empty"><div class="orion-empty-title">{% trans "Aucune donnée pour le moment" %}</div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card mt-3">
+  <div class="orion-card-header"><div class="orion-card-title">{% trans "Estimation vs devis final" %}</div></div>
+  <div class="orion-card-body">
+    <p class="text-muted small mb-3">
+      {% trans "Comparaison entre le prix conseillé par le configurateur et le montant du devis BTP finalement créé — sans ajustement automatique des règles (recommandation humaine uniquement, §53)." %}
+    </p>
+    {% if estimate_vs_quote %}
+    <table class="orion-table">
+      <thead><tr><th>{% trans "Référence" %}</th><th>{% trans "Estimé" %}</th><th>{% trans "Devis" %}</th><th>{% trans "Écart" %}</th></tr></thead>
+      <tbody>
+      {% for row in estimate_vs_quote %}
+        <tr>
+          <td>{{ row.reference }}</td>
+          <td>{{ row.estimated|floatformat:0 }} €</td>
+          <td>{{ row.quoted|floatformat:0 }} €</td>
+          <td class="{% if row.diff_pct > 0 %}text-danger{% elif row.diff_pct < 0 %}text-success{% endif %}">
+            {{ row.diff_pct }}%
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="orion-empty"><div class="orion-empty-title">{% trans "Aucun devis créé depuis le configurateur pour le moment" %}</div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
