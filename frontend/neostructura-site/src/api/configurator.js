@@ -52,6 +52,14 @@ export async function updateSession(sessionKey, payload) {
   return postJSON(`${BASE}/session/${sessionKey}/`, payload)
 }
 
+export async function addSessionLot(sessionKey, payload) {
+  return postJSON(`${BASE}/session/${sessionKey}/lots/`, payload)
+}
+
+export async function submitConfiguratorProject(payload) {
+  return postJSON(`${BASE}/soumettre-projet/`, payload)
+}
+
 export async function uploadPhotos(reference, files) {
   const formData = new FormData()
   for (const f of files) formData.append('photos', f)

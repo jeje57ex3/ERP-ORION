@@ -17,7 +17,7 @@ function isAnswered(q, answers) {
 
 export default function StepQuestions({
   service, questions, loadingQuestions, answers, onAnswerChange,
-  urgency, onUrgencyChange, liveEstimate, estimateLoading, onNext, onBack,
+  urgency, onUrgencyChange, liveEstimate, estimateLoading, onNext, onBack, onAddAnother,
 }) {
   const allRequiredAnswered = questions.every(q => isAnswered(q, answers))
 
@@ -92,15 +92,27 @@ export default function StepQuestions({
       )}
       {estimateLoading && <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Calcul de l'estimation…</p>}
 
-      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <button type="button" className="neo-btn neo-btn-outline" onClick={onBack}>Retour</button>
-        <button
-          type="button" className="neo-btn neo-btn-primary neo-btn-lg"
-          disabled={!allRequiredAnswered} onClick={onNext}
-          style={{ opacity: allRequiredAnswered ? 1 : 0.5 }}
-        >
-          Continuer
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {onAddAnother && (
+            <button
+              type="button" className="neo-btn neo-btn-outline"
+              disabled={!allRequiredAnswered} onClick={onAddAnother}
+              style={{ opacity: allRequiredAnswered ? 1 : 0.5 }}
+              title="Ajoute ce besoin au dossier et permet d'en décrire un autre (§12-13)"
+            >
+              + Ajouter un autre besoin
+            </button>
+          )}
+          <button
+            type="button" className="neo-btn neo-btn-primary neo-btn-lg"
+            disabled={!allRequiredAnswered} onClick={onNext}
+            style={{ opacity: allRequiredAnswered ? 1 : 0.5 }}
+          >
+            Continuer
+          </button>
+        </div>
       </div>
 
       <style>{`

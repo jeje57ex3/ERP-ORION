@@ -11,7 +11,9 @@ from decimal import Decimal
 from django.utils import timezone
 
 from apps.btp.models import GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem, BTPQuote, BTPQuoteLine
-from apps.configurator.models import ServiceDomain, ServiceCategory, ConfiguratorSubmission, ConfiguratorSession
+from apps.configurator.models import (
+    ServiceDomain, ServiceCategory, ConfiguratorSubmission, ConfiguratorSession, ConfiguratorSessionLot,
+)
 from .diagnostic import get_visible_questions
 from .pricing import compute_estimate
 from .crm_sync import sync_crm_lead
@@ -138,28 +140,14 @@ def _create_draft_quote(company, quote_request, estimate_obj):
     return quote
 
 
-def submit_configurator_request(company, payload):
-    """Point d'entrée unique appelé par la vue publique. `payload` :
-    {domain_code, service_code, urgency, answers, contact{}, building{}, notes}
-    Retourne (quote_request, public_estimate_dict) ou lève ValueError si les
-    données sont invalides (la vue traduit en 400)."""
-    service = get_service(company, payload.get('service_code', ''))
-    if not service:
-        raise ValueError('Prestation introuvable.')
-
-    contact = payload.get('contact') or {}
-    for field in ('first_name', 'last_name', 'email'):
-        if not (contact.get(field) or '').strip():
-            raise ValueError('Nom, prénom et email sont requis.')
-
-    answers = payload.get('answers') or {}
-    if not isinstance(answers, dict):
-        raise ValueError('Réponses invalides.')
-    urgency = payload.get('urgency') if payload.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
-    building = payload.get('building') or {}
-    property_type = building.get('property_type') if building.get('property_type') in VALID_PROPERTY_TYPES else ''
-
+def _process_submission(company, service, answers, urgency, contact, building, notes, session=None):
+    """Cœur partagé de la soumission : chiffrage, création de la demande
+    BTP, du résumé interne, synchronisation CRM et devis brouillon éventuel.
+    Utilisé aussi bien par une soumission simple (`submit_configurator_request`)
+    que par chaque lot d'un dossier « mode projet » (`submit_configurator_project`)
+    — §12-14 : un même moteur pour les deux, pas de logique dupliquée par lot."""
     estimate = compute_estimate(company, service, answers, urgency)
+    property_type = building.get('property_type') if building.get('property_type') in VALID_PROPERTY_TYPES else ''
 
     quote_request = GuidedQuoteRequest.objects.create(
         company=company,
@@ -176,7 +164,7 @@ def submit_configurator_request(company, payload):
         surface=str(answers.get('surface') or ''),
         quality_level=answers.get('gamme') if answers.get('gamme') in ('standard', 'premium', 'luxe') else 'standard',
         answers={'domain': service.domain.code, 'service': service.code, **answers},
-        client_notes=(payload.get('notes') or '').strip(),
+        client_notes=notes.strip(),
     )
 
     estimate_obj = GuidedQuoteEstimate.objects.create(
@@ -203,7 +191,7 @@ def submit_configurator_request(company, payload):
         or estimate['visit_necessity'] == 'obligatoire'
     )
     submission = ConfiguratorSubmission.objects.create(
-        request=quote_request, domain=service.domain, service=service,
+        request=quote_request, domain=service.domain, service=service, session=session,
         confidence_level=estimate['confidence_level'], confidence_score=estimate['confidence_score'],
         visit_necessity=estimate['visit_necessity'],
         diagnostic_required=estimate['requires_diagnostic'],
@@ -218,6 +206,7 @@ def submit_configurator_request(company, payload):
         margin_amount=Decimal(str(round(estimate['price']['avg'] - estimate['costs']['cost_avg'], 2))),
         recommended_price=Decimal(str(estimate['price']['avg'])),
         raw_answers_snapshot=answers,
+        calculation_log=estimate['calculation_log'],
     )
 
     sync_crm_lead(company, quote_request)
@@ -232,15 +221,86 @@ def submit_configurator_request(company, payload):
         )
         quote_request.save(update_fields=['status', 'internal_notes'])
 
+    return quote_request, submission, estimate
+
+
+def submit_configurator_request(company, payload):
+    """Point d'entrée « mode rapide » (§15) appelé par la vue publique.
+    `payload` : {service_code, urgency, answers, contact{}, building{}, notes}
+    Retourne (quote_request, public_estimate_dict) ou lève ValueError si les
+    données sont invalides (la vue traduit en 400)."""
+    service = get_service(company, payload.get('service_code', ''))
+    if not service:
+        raise ValueError('Prestation introuvable.')
+
+    contact = payload.get('contact') or {}
+    for field in ('first_name', 'last_name', 'email'):
+        if not (contact.get(field) or '').strip():
+            raise ValueError('Nom, prénom et email sont requis.')
+
+    answers = payload.get('answers') or {}
+    if not isinstance(answers, dict):
+        raise ValueError('Réponses invalides.')
+    urgency = payload.get('urgency') if payload.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
+    building = payload.get('building') or {}
+
     session_key = payload.get('session_key')
-    if session_key:
-        session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first()
-        if session:
-            session.submission = submission
-            session.status = 'submitted'
-            session.save(update_fields=['submission', 'status', 'last_activity_at'])
+    session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first() if session_key else None
+
+    quote_request, submission, estimate = _process_submission(
+        company, service, answers, urgency, contact, building, payload.get('notes') or '', session=session,
+    )
+
+    if session:
+        session.status = 'submitted'
+        session.save(update_fields=['status', 'last_activity_at'])
 
     return quote_request, _public_estimate_payload(estimate)
+
+
+def submit_configurator_project(company, payload):
+    """Point d'entrée « mode projet » (§12-14) : soumet TOUS les lots d'une
+    session en une fois. `payload` : {session_key, contact{}, building{}, notes}
+    Chaque lot produit sa propre `GuidedQuoteRequest`/`ConfiguratorSubmission`
+    (on ne restructure pas ces modèles historiques pour porter du multi-lot,
+    §7) mais toutes partagent `submission.session` — c'est ce qui permet de
+    les retrouver comme un seul dossier côté CRM/BTP.
+    Retourne (liste_de_quote_requests, résumé_public_agrégé)."""
+    session_key = payload.get('session_key')
+    session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first() if session_key else None
+    if not session:
+        raise ValueError('Session introuvable.')
+
+    lots = list(session.lots.select_related('service', 'service__domain').all())
+    lots = [lot for lot in lots if lot.service_id]
+    if not lots:
+        raise ValueError('Aucun lot à soumettre.')
+
+    contact = payload.get('contact') or {}
+    for field in ('first_name', 'last_name', 'email'):
+        if not (contact.get(field) or '').strip():
+            raise ValueError('Nom, prénom et email sont requis.')
+    building = payload.get('building') or {}
+    notes = payload.get('notes') or ''
+
+    quote_requests = []
+    lot_summaries = []
+    for lot in lots:
+        quote_request, submission, estimate = _process_submission(
+            company, lot.service, lot.answers or {}, lot.urgency or 'normal',
+            contact, building, notes, session=session,
+        )
+        quote_requests.append(quote_request)
+        lot_summaries.append({
+            'label': lot.label or lot.service.name,
+            'reference': quote_request.reference,
+            'estimate': _public_estimate_payload(estimate),
+        })
+
+    session.status = 'submitted'
+    session.save(update_fields=['status', 'last_activity_at'])
+
+    return quote_requests, {'lots': lot_summaries, 'totals': _aggregate_public_totals(lot_summaries)}
 
 
 # ─── SESSION PERSISTANTE (§4/§50 : reprise du parcours sans compte) ────────────
@@ -261,10 +321,18 @@ def session_payload(session):
         'answers': session.answers,
         'visit_necessity': session.visit_necessity,
         'estimate': None,
+        'lots': [],
+        'totals': None,
     }
     if session.service_id:
         estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal')
         payload['estimate'] = _public_estimate_payload(estimate)
+
+    lots = list(session.lots.select_related('domain', 'service').order_by('order', 'created_at'))
+    payload['lots'] = [lot_payload(lot) for lot in lots]
+    ready_lots = [lot for lot in payload['lots'] if lot['estimate'] is not None]
+    if ready_lots:
+        payload['totals'] = _aggregate_public_totals(ready_lots)
     return payload
 
 
@@ -297,3 +365,96 @@ def update_session(session, domain_code, service_code, urgency, answers):
 
     session.save()
     return session
+
+
+# ─── LOTS (§12-13 : « mode projet », plusieurs besoins dans un même dossier) ───
+
+def lot_payload(lot):
+    payload = {
+        'id': lot.id, 'label': lot.label,
+        'domain_code': lot.domain.code if lot.domain_id else None,
+        'service_code': lot.service.code if lot.service_id else None,
+        'urgency': lot.urgency, 'answers': lot.answers,
+        'visit_necessity': lot.visit_necessity,
+        'estimate': None,
+    }
+    if lot.service_id:
+        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal')
+        payload['estimate'] = _public_estimate_payload(estimate)
+    return payload
+
+
+def update_lot(lot, domain_code, service_code, urgency, answers, label=None):
+    if label is not None:
+        lot.label = label[:150]
+    if domain_code:
+        domain = ServiceDomain.objects.filter(company=lot.session.company, code=domain_code, is_active=True).first()
+        if domain:
+            lot.domain = domain
+    if service_code:
+        service = get_service(lot.session.company, service_code)
+        if service:
+            lot.service = service
+            if not domain_code:
+                lot.domain = service.domain
+    if urgency in ('urgent', 'normal', 'flexible'):
+        lot.urgency = urgency
+    if answers:
+        merged = dict(lot.answers or {})
+        merged.update(answers)
+        lot.answers = merged
+
+    if lot.service_id:
+        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal')
+        lot.confidence_score = estimate['confidence_score']
+        lot.visit_necessity = estimate['visit_necessity']
+        lot.missing_info = missing_info_from_answers(lot.service, lot.answers or {})
+
+    lot.save()
+    return lot
+
+
+def add_lot(session, domain_code, service_code, urgency, answers, label=''):
+    next_order = session.lots.count()
+    lot = ConfiguratorSessionLot.objects.create(session=session, order=next_order)
+    return update_lot(lot, domain_code, service_code, urgency, answers, label=label)
+
+
+def remove_lot(session, lot_id):
+    ConfiguratorSessionLot.objects.filter(session=session, pk=lot_id).delete()
+
+
+def _aggregate_public_totals(lot_payloads):
+    """Agrège les estimations publiques de plusieurs lots en un total global
+    (§13). Un seul lot en diagnostic obligatoire suffit à rendre le total
+    non ferme ; la nécessité de visite globale est la plus stricte des lots."""
+    visit_rank = {'non_necessaire': 0, 'recommandee': 1, 'obligatoire': 2}
+    total_min = total_max = total_ttc_avg = duration_min = duration_max = 0.0
+    any_diagnostic = False
+    worst_visit = 'non_necessaire'
+
+    for entry in lot_payloads:
+        est = entry['estimate']
+        if est.get('requires_diagnostic'):
+            any_diagnostic = True
+            total_min += est.get('diagnostic_price_from') or 0
+            total_max += (est.get('intervention_estimate') or {}).get('max', 0)
+        else:
+            price = est.get('price') or {}
+            total_min += price.get('min', 0)
+            total_max += price.get('max', 0)
+            total_ttc_avg += price.get('total_ttc_avg', 0)
+        duration = est.get('duration') or {}
+        duration_min += duration.get('min', 0)
+        duration_max += duration.get('max', 0)
+        visit = est.get('visit_necessity', 'non_necessaire')
+        if visit_rank.get(visit, 0) > visit_rank.get(worst_visit, 0):
+            worst_visit = visit
+
+    return {
+        'price_min': round(total_min, 2), 'price_max': round(total_max, 2),
+        'total_ttc_avg': round(total_ttc_avg, 2),
+        'duration_min': round(duration_min, 1), 'duration_max': round(duration_max, 1),
+        'any_diagnostic_required': any_diagnostic,
+        'visit_necessity': worst_visit,
+    }

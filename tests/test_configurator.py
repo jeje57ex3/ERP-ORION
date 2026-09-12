@@ -17,7 +17,7 @@ from apps.configurator.models import (
     MaterialRequirement, LaborRule, TravelRule, MarginRule, DiagnosticScenario,
     ConfiguratorSubmission,
 )
-from apps.configurator.models import ConfiguratorSession
+from apps.configurator.models import ConfiguratorSession, ConfiguratorSessionLot
 from apps.configurator.services import engine
 from apps.configurator.services.confidence import DONT_KNOW
 from apps.configurator.services.pricing import compute_estimate
@@ -339,6 +339,83 @@ def test_session_never_crosses_company_boundary(company, company_b):
     assert ConfiguratorSession.objects.for_company(company_b).filter(pk=session.pk).count() == 0
 
 
+# ─── Journal de calcul (V2 §42/§46) ────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_calculation_log_traces_applied_rules(company, service_pose_prise):
+    estimate = compute_estimate(company, service_pose_prise, {'nb_prises': 2})
+    types = {entry['type'] for entry in estimate['calculation_log']}
+    assert {'material', 'labor', 'travel', 'margin'} <= types
+
+
+@pytest.mark.django_db
+def test_calculation_log_stored_internally_but_never_exposed_publicly(company, service_pose_prise):
+    qr, public = engine.submit_configurator_request(company, {
+        'service_code': 'pose-prise', 'answers': {'nb_prises': 2},
+        'contact': _contact('log@example.com'), 'building': {},
+    })
+    assert qr.configurator_submission.calculation_log, 'le journal doit être conservé côté interne'
+    assert 'calculation_log' not in json.dumps(public).lower()
+
+
+# ─── Architecture multi-lot (V2 §12-13 : « mode projet ») ──────────────────────
+
+@pytest.mark.django_db
+def test_add_lot_computes_estimate_and_session_totals_aggregate(company, service_pose_prise, service_rj45):
+    session = ConfiguratorSession.objects.create(company=company)
+    engine.add_lot(session, 'electricite', 'pose-prise', 'normal', {'nb_prises': 2}, label='Prises salon')
+    engine.add_lot(session, 'reseau', 'rj45', 'normal', {'nb_prises_rj45': 3}, label='Réseau bureau')
+
+    assert session.lots.count() == 2
+    payload = engine.session_payload(session)
+    assert len(payload['lots']) == 2
+    assert payload['totals'] is not None
+    single_min = sum(lot['estimate']['price']['min'] for lot in payload['lots'])
+    assert payload['totals']['price_min'] == pytest.approx(single_min, rel=0.01)
+
+
+@pytest.mark.django_db
+def test_update_lot_merges_answers_and_remove_lot_deletes_it(company, service_pose_prise):
+    session = ConfiguratorSession.objects.create(company=company)
+    lot = engine.add_lot(session, 'electricite', 'pose-prise', 'normal', {'nb_prises': 1})
+    engine.update_lot(lot, None, None, None, {'gamme': 'standard'})
+    lot.refresh_from_db()
+    assert lot.answers == {'nb_prises': 1, 'gamme': 'standard'}
+
+    engine.remove_lot(session, lot.id)
+    assert ConfiguratorSessionLot.objects.filter(pk=lot.id).count() == 0
+
+
+@pytest.mark.django_db
+def test_submit_configurator_project_creates_one_quote_request_per_lot(company, service_pose_prise, service_rj45):
+    session = ConfiguratorSession.objects.create(company=company)
+    engine.add_lot(session, 'electricite', 'pose-prise', 'normal', {'nb_prises': 2})
+    engine.add_lot(session, 'reseau', 'rj45', 'normal', {'nb_prises_rj45': 1})
+
+    quote_requests, project = engine.submit_configurator_project(company, {
+        'session_key': str(session.session_key), 'contact': _contact('projet@example.com'), 'building': {},
+    })
+    assert len(quote_requests) == 2
+    for qr in quote_requests:
+        assert qr.configurator_submission.session_id == session.pk
+    session.refresh_from_db()
+    assert session.status == 'submitted'
+    assert len(project['lots']) == 2
+    assert 'totals' in project
+    serialized = json.dumps(project).lower()
+    for forbidden in ('margin', 'marge', 'cost_price', 'calculation_log'):
+        assert forbidden not in serialized
+
+
+@pytest.mark.django_db
+def test_submit_configurator_project_without_lots_raises_value_error(company):
+    session = ConfiguratorSession.objects.create(company=company)
+    with pytest.raises(ValueError):
+        engine.submit_configurator_project(company, {
+            'session_key': str(session.session_key), 'contact': _contact(), 'building': {},
+        })
+
+
 # ─── CRM ────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
@@ -486,6 +563,64 @@ def test_public_api_session_start_update_resume_roundtrip(neostructura_company):
     assert resumed.status_code == 200
     assert resumed.json()['answers'] == {'foo': 'bar'}
     assert resumed.json()['estimate'] is not None
+
+
+@pytest.mark.django_db
+def test_public_api_session_lots_add_update_remove_roundtrip(neostructura_company):
+    domain = ServiceDomain.objects.create(company=neostructura_company, code='electricite', name='Électricité')
+    ServiceCategory.objects.create(
+        domain=domain, company=neostructura_company, code='svc5', name='Service 5',
+        duration_min_hours=1, duration_avg_hours=1, duration_max_hours=1,
+    )
+    client = Client()
+    session_key = client.post('/api/v1/neostructura/configurateur/session/', data='{}', content_type='application/json').json()['session_key']
+
+    added = client.post(
+        f'/api/v1/neostructura/configurateur/session/{session_key}/lots/',
+        data=json.dumps({'domain_code': 'electricite', 'service_code': 'svc5', 'answers': {'a': 1}, 'label': 'Besoin 1'}),
+        content_type='application/json',
+    )
+    assert added.status_code == 201
+    lot_id = added.json()['lots'][0]['id']
+    assert added.json()['lots'][0]['label'] == 'Besoin 1'
+
+    updated = client.post(
+        f'/api/v1/neostructura/configurateur/session/{session_key}/lots/{lot_id}/',
+        data=json.dumps({'answers': {'b': 2}}), content_type='application/json',
+    )
+    assert updated.status_code == 200
+    assert updated.json()['lots'][0]['answers'] == {'a': 1, 'b': 2}
+
+    removed = client.delete(f'/api/v1/neostructura/configurateur/session/{session_key}/lots/{lot_id}/')
+    assert removed.status_code == 200
+    assert removed.json()['lots'] == []
+
+
+@pytest.mark.django_db
+def test_public_api_submit_project_endpoint(neostructura_company):
+    domain = ServiceDomain.objects.create(company=neostructura_company, code='electricite', name='Électricité')
+    ServiceCategory.objects.create(
+        domain=domain, company=neostructura_company, code='svc6', name='Service 6',
+        duration_min_hours=1, duration_avg_hours=1, duration_max_hours=1,
+    )
+    client = Client()
+    session_key = client.post('/api/v1/neostructura/configurateur/session/', data='{}', content_type='application/json').json()['session_key']
+    client.post(
+        f'/api/v1/neostructura/configurateur/session/{session_key}/lots/',
+        data=json.dumps({'domain_code': 'electricite', 'service_code': 'svc6', 'answers': {}}),
+        content_type='application/json',
+    )
+    resp = client.post(
+        '/api/v1/neostructura/configurateur/soumettre-projet/',
+        data=json.dumps({
+            'session_key': session_key,
+            'contact': {'first_name': 'Jean', 'last_name': 'Test', 'email': 'proj@example.com'},
+            'building': {},
+        }),
+        content_type='application/json',
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()['references']) == 1
 
 
 @pytest.mark.django_db

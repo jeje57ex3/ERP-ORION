@@ -374,6 +374,16 @@ class ConfiguratorSubmission(models.Model):
     recommended_price = models.DecimalField('Prix conseillé HT', max_digits=12, decimal_places=2, default=0)
 
     raw_answers_snapshot = models.JSONField('Copie des réponses au calcul', default=dict, blank=True)
+    calculation_log = models.JSONField(
+        'Journal de calcul', default=list, blank=True,
+        help_text='Trace règle par règle (matériel sélectionné, tarif MO, zone de déplacement, marge, '
+                  'coefficients appliqués) — pour déboguer une estimation a posteriori (§42/§46).',
+    )
+    session = models.ForeignKey(
+        'ConfiguratorSession', on_delete=models.SET_NULL, null=True, blank=True, related_name='submissions',
+        help_text='Session ayant produit cette soumission — un même dossier "projet" peut produire plusieurs '
+                  'soumissions, une par lot (§12-13).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -411,10 +421,6 @@ class ConfiguratorSession(CompanyBaseModel):
         'Nécessité de visite', max_length=20, choices=VISIT_NECESSITY_CHOICES, blank=True, default='',
     )
     missing_info = models.JSONField('Informations manquantes', default=list, blank=True)
-
-    submission = models.ForeignKey(
-        ConfiguratorSubmission, on_delete=models.SET_NULL, null=True, blank=True, related_name='session_set',
-    )
     last_activity_at = models.DateTimeField('Dernière activité', auto_now=True)
 
     class Meta(CompanyBaseModel.Meta):
@@ -424,3 +430,35 @@ class ConfiguratorSession(CompanyBaseModel):
 
     def __str__(self):
         return f'Session {self.session_key} — {self.get_status_display()}'
+
+
+class ConfiguratorSessionLot(models.Model):
+    """Un besoin distinct au sein d'une même session (§12-13 : « mode projet »
+    — plusieurs demandes dans un même dossier, ex. prises + Wi-Fi + RJ45).
+    Le mode rapide (un seul besoin, §15) continue d'utiliser les champs
+    domain/service/answers portés directement par `ConfiguratorSession` —
+    les lots sont une structure additive pour les parcours plus complexes."""
+    session = models.ForeignKey(ConfiguratorSession, on_delete=models.CASCADE, related_name='lots')
+    label = models.CharField('Libellé', max_length=150, blank=True)
+    domain = models.ForeignKey(ServiceDomain, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    service = models.ForeignKey(ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    urgency = models.CharField('Urgence', max_length=10, choices=URGENCY_CHOICES, default='normal')
+    answers = models.JSONField('Réponses', default=dict, blank=True)
+
+    confidence_score = models.PositiveSmallIntegerField('Score de confiance (0-100)', null=True, blank=True)
+    visit_necessity = models.CharField(
+        'Nécessité de visite', max_length=20, choices=VISIT_NECESSITY_CHOICES, blank=True, default='',
+    )
+    missing_info = models.JSONField('Informations manquantes', default=list, blank=True)
+
+    order = models.PositiveIntegerField('Ordre', default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Lot de configuration'
+        verbose_name_plural = 'Lots de configuration'
+        ordering = ['session', 'order', 'created_at']
+
+    def __str__(self):
+        return self.label or (self.service.name if self.service_id else f'Lot #{self.pk}')

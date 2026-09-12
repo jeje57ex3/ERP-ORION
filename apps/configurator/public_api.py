@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from apps.core.models import Company
 from apps.websites.public_views import _get_ip
-from .models import ConfiguratorSession
+from .models import ConfiguratorSession, ConfiguratorSessionLot
 from .services import engine
 
 MAX_ANSWERS_KEYS = 60
@@ -192,6 +192,85 @@ def session_detail(request, session_key):
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else None
     session = engine.update_session(session, data.get('domain_code'), data.get('service_code'), urgency, answers)
     return JsonResponse(engine.session_payload(session))
+
+
+@csrf_exempt
+@require_POST
+def session_lots(request, session_key):
+    """Ajoute un lot au dossier (§12-13 : « mode projet », plusieurs besoins
+    dans une même session — ex. prises + Wi-Fi + RJ45)."""
+    company = _get_neostructura_company()
+    if not company:
+        return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first()
+    if not session:
+        return JsonResponse({'error': 'Session introuvable.'}, status=404)
+    if _rate_limited(request, 'session_lot_add', limit=40):
+        return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
+    data, error = _parse_json(request)
+    if error:
+        return error
+    answers = _sanitize_answers(data.get('answers'))
+    urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
+    label = (data.get('label') or '')[:150]
+    engine.add_lot(session, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label)
+    return JsonResponse(engine.session_payload(session), status=201)
+
+
+@csrf_exempt
+@require_http_methods(['POST', 'DELETE'])
+def session_lot_detail(request, session_key, lot_id):
+    company = _get_neostructura_company()
+    if not company:
+        return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first()
+    if not session:
+        return JsonResponse({'error': 'Session introuvable.'}, status=404)
+    lot = ConfiguratorSessionLot.objects.filter(session=session, pk=lot_id).first()
+    if not lot:
+        return JsonResponse({'error': 'Lot introuvable.'}, status=404)
+
+    if request.method == 'DELETE':
+        engine.remove_lot(session, lot_id)
+        return JsonResponse(engine.session_payload(session))
+
+    if _rate_limited(request, 'session_lot_update', limit=120):
+        return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
+    data, error = _parse_json(request)
+    if error:
+        return error
+    answers = _sanitize_answers(data.get('answers'))
+    urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else None
+    label = data.get('label') if isinstance(data.get('label'), str) else None
+    engine.update_lot(lot, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label)
+    return JsonResponse(engine.session_payload(session))
+
+
+@csrf_exempt
+@require_POST
+def submit_project(request):
+    """Soumet en une fois tous les lots d'un dossier « mode projet »."""
+    company = _get_neostructura_company()
+    if not company:
+        return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    if _rate_limited(request, 'submit_project', limit=10):
+        return JsonResponse({'error': 'Trop de demandes envoyées depuis cette adresse, réessayez plus tard.'}, status=429)
+    data, error = _parse_json(request)
+    if error:
+        return error
+    if data.get('website_url_field'):  # honeypot
+        return JsonResponse({'error': 'Requête refusée.'}, status=400)
+
+    try:
+        quote_requests, summary = engine.submit_configurator_project(company, data)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'references': [qr.reference for qr in quote_requests],
+        'project': summary,
+    })
 
 
 @csrf_exempt

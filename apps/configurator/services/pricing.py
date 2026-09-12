@@ -83,19 +83,40 @@ def resolve_margin_percent(company, domain, category):
         or MarginRule.objects.filter(company=company, scope_type='domain', domain=domain, is_active=True).first()
         or MarginRule.objects.filter(company=company, scope_type='global', is_active=True).first()
     )
-    return rule.margin_percent if rule else Decimal('0')
+    if not rule:
+        return Decimal('0'), 'aucune règle'
+    return rule.margin_percent, str(rule)
 
 
 def resolve_difficulty_multiplier(company, domain, answers):
     from apps.configurator.models import PricingCoefficient
     multiplier = Decimal('1')
+    applied = []
     coefficients = PricingCoefficient.objects.filter(
         company=company, coefficient_type='difficulty', is_active=True,
     ).filter(Q(domain=domain) | Q(domain__isnull=True))
     for coef in coefficients:
         if answers.get(coef.code) in (True, 'true', 'True', 'on', '1', 1):
             multiplier *= coef.multiplier
-    return multiplier
+            applied.append(coef)
+    return multiplier, applied
+
+
+def _build_calculation_log(lines, labor_rule, travel_rule, difficulty_coefs, margin_rule_label, margin_pct):
+    """Journal de calcul (§42/§46) : trace lisible des règles appliquées,
+    pour comprendre a posteriori pourquoi un prix a été calculé ainsi."""
+    log = []
+    for line in lines:
+        item = line['price_item']
+        log.append({'type': 'material', 'code': item.code, 'label': f'{item.name} × {line["qty"]}'})
+    if labor_rule:
+        log.append({'type': 'labor', 'code': labor_rule.rate_type, 'label': f'{labor_rule.get_rate_type_display()} — {labor_rule.hourly_rate} €/h'})
+    if travel_rule:
+        log.append({'type': 'travel', 'code': travel_rule.zone_code, 'label': f'{travel_rule.zone_label} — {travel_rule.flat_fee} €'})
+    for coef in difficulty_coefs:
+        log.append({'type': 'difficulty', 'code': coef.code, 'label': f'{coef.label} (×{coef.multiplier})'})
+    log.append({'type': 'margin', 'code': margin_rule_label, 'label': f'Marge {margin_pct}% ({margin_rule_label})'})
+    return log
 
 
 def compute_estimate(company, service, answers, urgency='normal', photos_count=0):
@@ -123,13 +144,15 @@ def compute_estimate(company, service, answers, urgency='normal', photos_count=0
     if urgency == 'urgent' and travel_rule and travel_rule.urgency_surcharge_pct:
         travel *= (1 + float(travel_rule.urgency_surcharge_pct) / 100)
 
-    difficulty_mult = float(resolve_difficulty_multiplier(company, service.domain, answers))
+    difficulty_mult_dec, difficulty_coefs = resolve_difficulty_multiplier(company, service.domain, answers)
+    difficulty_mult = float(difficulty_mult_dec)
 
     cost_min = (material_min + labor_min) * difficulty_mult + travel
     cost_avg = (material_avg + labor_avg) * difficulty_mult + travel
     cost_max = (material_max + labor_max) * difficulty_mult + travel
 
-    margin_pct = float(resolve_margin_percent(company, service.domain, service))
+    margin_pct_dec, margin_rule_label = resolve_margin_percent(company, service.domain, service)
+    margin_pct = float(margin_pct_dec)
     price_min = cost_min * (1 + margin_pct / 100)
     price_avg = cost_avg * (1 + margin_pct / 100)
     price_max = cost_max * (1 + margin_pct / 100)
@@ -144,6 +167,7 @@ def compute_estimate(company, service, answers, urgency='normal', photos_count=0
         service, answers, photos_count=photos_count, danger_detected=diag['danger_detected'],
     )
     visit_necessity = compute_visit_necessity(service, confidence_score, diag['danger_detected'])
+    calculation_log = _build_calculation_log(lines, labor_rule, travel_rule, difficulty_coefs, margin_rule_label, margin_pct)
 
     result = {
         'confidence_level': diag['confidence_level'],
@@ -155,6 +179,7 @@ def compute_estimate(company, service, answers, urgency='normal', photos_count=0
         'safety_message': diag.get('safety_message', ''),
         'duration': {'min': round(duration_min, 1), 'avg': round(duration_avg, 1), 'max': round(duration_max, 1)},
         'material_lines': lines,
+        'calculation_log': calculation_log,
         'costs': {
             'material_avg': round(material_avg, 2), 'labor_avg': round(labor_avg, 2), 'travel': round(travel, 2),
             'cost_min': round(cost_min, 2), 'cost_avg': round(cost_avg, 2), 'cost_max': round(cost_max, 2),

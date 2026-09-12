@@ -2,7 +2,56 @@ import { Link } from 'react-router-dom'
 
 const fmt = (n) => Math.round(n).toLocaleString('fr-FR') + ' €'
 
+function ProjectResult({ references, project }) {
+  const { lots, totals } = project
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 44, marginBottom: 16 }}>✓</div>
+      <h2 style={{ fontSize: 26, marginBottom: 10 }}>Votre dossier est enregistré</h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: 14.5, marginBottom: 24 }}>
+        Références <strong style={{ color: 'var(--text)' }}>{references.join(', ')}</strong>
+      </p>
+
+      <div style={{ maxWidth: 520, margin: '0 auto' }} className="neo-card">
+        <div style={{ padding: 32, textAlign: 'left' }}>
+          {lots.map((lot, i) => (
+            <div key={i} style={{ padding: '12px 0', borderBottom: i < lots.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{lot.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                {lot.estimate.requires_diagnostic
+                  ? `Diagnostic à partir de ${fmt(lot.estimate.diagnostic_price_from || 0)}`
+                  : `${fmt(lot.estimate.price.min)} — ${fmt(lot.estimate.price.max)}`}
+              </div>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: '2px solid var(--border)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total estimé du dossier</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--accent)' }}>
+              {fmt(totals.price_min)} — {fmt(totals.price_max)}
+              {totals.any_diagnostic_required && ' (hors diagnostic à confirmer)'}
+            </div>
+            {totals.visit_necessity && totals.visit_necessity !== 'non_necessaire' && (
+              <p style={{ fontSize: 12.5, fontWeight: 600, marginTop: 10 }}>
+                {totals.visit_necessity === 'obligatoire'
+                  ? 'Une visite sur place sera nécessaire avant validation définitive.'
+                  : 'Une visite sur place est recommandée pour confirmer ce chiffrage.'}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Link to="/" className="neo-btn neo-btn-outline" style={{ marginTop: 40 }}>
+        Retour à l'accueil
+      </Link>
+    </div>
+  )
+}
+
 export default function StepResult({ result }) {
+  if (result.isProject) return <ProjectResult references={result.references} project={result.project} />
+
   const { reference, estimate } = result
 
   return (

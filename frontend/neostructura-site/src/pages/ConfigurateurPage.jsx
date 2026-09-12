@@ -9,7 +9,7 @@ import StepContact from '../components/configurator/StepContact'
 import StepResult from '../components/configurator/StepResult'
 import {
   fetchDomains, fetchServices, fetchQuestions, estimateLive, submitConfigurator,
-  startSession, fetchSession, updateSession,
+  startSession, fetchSession, updateSession, addSessionLot, submitConfiguratorProject,
 } from '../api/configurator'
 
 const SESSION_STORAGE_KEY = 'neostructura_configurator_session'
@@ -48,6 +48,8 @@ export default function ConfigurateurPage() {
   const [result, setResult] = useState(null)
 
   const [sessionKey, setSessionKey] = useState(null)
+  const [projectMode, setProjectMode] = useState(false)
+  const [lots, setLots] = useState([])
   const debounceRef = useRef(null)
   const sessionDebounceRef = useRef(null)
 
@@ -69,8 +71,9 @@ export default function ConfigurateurPage() {
     const resume = async () => {
       if (stored) {
         const state = await fetchSession(stored).catch(() => null)
-        if (state && state.status === 'in_progress' && (state.domain_code || Object.keys(state.answers || {}).length)) {
+        if (state && state.status === 'in_progress' && (state.domain_code || Object.keys(state.answers || {}).length || (state.lots || []).length)) {
           setSessionKey(stored)
+          if (state.lots?.length) { setLots(state.lots); setProjectMode(true) }
           if (state.answers) setAnswers(state.answers)
           if (state.urgency) setUrgency(state.urgency)
           if (state.domain_code) {
@@ -159,15 +162,48 @@ export default function ConfigurateurPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, questions, urgency, serviceCode, step])
 
+  // Dossier « mode projet » (§12-14) : ajoute le besoin en cours comme lot
+  // du dossier, puis repart de zéro pour en décrire un autre. Une fois un
+  // dossier entamé, "Continuer" ajoute aussi le dernier besoin comme lot
+  // avant de passer aux coordonnées (au lieu de la soumission simple).
+  const commitCurrentAsLot = async () => {
+    if (!sessionKey || !serviceCode) return
+    const data = await addSessionLot(sessionKey, {
+      domain_code: domainCode, service_code: serviceCode, urgency, answers,
+      label: service?.name || serviceCode,
+    })
+    setLots(data.lots)
+  }
+
+  const handleAddAnother = async () => {
+    await commitCurrentAsLot()
+    setProjectMode(true)
+    setServiceCode('')
+    setAnswers({})
+    setQuestions([])
+    setLiveEstimate(null)
+    setStep(1)
+  }
+
+  const handleQuestionsContinue = async () => {
+    if (projectMode) await commitCurrentAsLot()
+    next()
+  }
+
   const handleSubmit = async () => {
     setSubmitting(true)
     setError('')
     try {
-      const data = await submitConfigurator({
-        service_code: serviceCode, urgency, answers, contact, building, notes,
-        session_key: sessionKey || undefined,
-      })
-      setResult(data)
+      if (projectMode) {
+        const data = await submitConfiguratorProject({ session_key: sessionKey, contact, building, notes })
+        setResult({ isProject: true, references: data.references, project: data.project })
+      } else {
+        const data = await submitConfigurator({
+          service_code: serviceCode, urgency, answers, contact, building, notes,
+          session_key: sessionKey || undefined,
+        })
+        setResult(data)
+      }
       window.localStorage?.removeItem(SESSION_STORAGE_KEY)
     } catch (err) {
       setError(err.message)
@@ -194,6 +230,12 @@ export default function ConfigurateurPage() {
 
           {!result && <StepIndicator step={step} />}
 
+          {!result && lots.length > 0 && (
+            <div className="neo-badge" style={{ marginBottom: 16 }}>
+              {lots.length} besoin{lots.length > 1 ? 's' : ''} déjà ajouté{lots.length > 1 ? 's' : ''} à ce dossier
+            </div>
+          )}
+
           <Reveal key={result ? 'result' : step} className="neo-card" style={{ padding: 44 }}>
             {result ? (
               <StepResult result={result} />
@@ -210,7 +252,7 @@ export default function ConfigurateurPage() {
                 answers={answers} onAnswerChange={setAnswer}
                 urgency={urgency} onUrgencyChange={setUrgency}
                 liveEstimate={liveEstimate} estimateLoading={estimateLoading}
-                onNext={next} onBack={back}
+                onNext={handleQuestionsContinue} onBack={back} onAddAnother={handleAddAnother}
               />
             ) : (
               <StepContact
