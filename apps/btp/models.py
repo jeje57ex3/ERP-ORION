@@ -349,6 +349,10 @@ class GuidedQuoteRequest(models.Model):
     floor = models.CharField('Étage', max_length=20, blank=True)
     digicode = models.CharField('Digicode', max_length=20, blank=True)
     parking = models.BooleanField('Parking disponible', default=False)
+    # Coordonnées du chantier, mises en cache au premier géocodage pour ne pas
+    # réinterroger le service à chaque recalcul d'estimation.
+    site_latitude = models.DecimalField('Latitude chantier', max_digits=9, decimal_places=6, null=True, blank=True)
+    site_longitude = models.DecimalField('Longitude chantier', max_digits=9, decimal_places=6, null=True, blank=True)
 
     # Bien
     property_type = models.CharField('Type de bien', max_length=20, choices=PROPERTY_TYPE_CHOICES, blank=True)
@@ -429,6 +433,10 @@ class GuidedQuoteEstimate(models.Model):
     labor_amount = models.DecimalField('Main-d\'œuvre HT', max_digits=12, decimal_places=2, default=0)
     materials_amount = models.DecimalField('Fournitures HT', max_digits=12, decimal_places=2, default=0)
     travel_amount = models.DecimalField('Déplacement HT', max_digits=12, decimal_places=2, default=0)
+    travel_distance_km = models.DecimalField(
+        'Distance aller (km)', max_digits=7, decimal_places=1, default=0,
+        help_text='Distance entreprise → chantier ; le déplacement est facturé aller-retour.',
+    )
     urgency_surcharge = models.DecimalField('Majoration urgence HT', max_digits=10, decimal_places=2, default=0)
     vat_rate = models.DecimalField('TVA %', max_digits=5, decimal_places=2, default=20)
     total_ttc = models.DecimalField('Total TTC estimé', max_digits=12, decimal_places=2, default=0)

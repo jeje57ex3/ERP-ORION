@@ -173,6 +173,38 @@ class CompanySettings(models.Model):
     invoice_footer = models.TextField('Pied de facture', blank=True)
     quote_validity_days = models.PositiveIntegerField('Validité devis (jours)', default=30)
 
+    # ── Frais de déplacement (devis guidé) ────────────────────────────────
+    # Le coût est calculé à partir de la distance entreprise → chantier et du
+    # prix du carburant, au lieu du forfait codé en dur historique.
+    travel_billing_enabled = models.BooleanField('Facturer les déplacements', default=True)
+    travel_base_address = models.CharField(
+        'Adresse de départ', max_length=250, blank=True,
+        help_text="Point de départ des interventions. Vide = adresse de l'entreprise.",
+    )
+    travel_base_zip_code = models.CharField('Code postal de départ', max_length=10, blank=True)
+    travel_base_city = models.CharField('Ville de départ', max_length=100, blank=True)
+    travel_country_code = models.CharField(
+        'Code pays (ISO 2)', max_length=2, default='pt',
+        help_text='Utilisé pour cibler le géocodage (pt = Portugal, fr = France).',
+    )
+    travel_base_latitude = models.DecimalField(
+        'Latitude de départ', max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text='Rempli automatiquement par le géocodage de l\'adresse de départ.',
+    )
+    travel_base_longitude = models.DecimalField(
+        'Longitude de départ', max_digits=9, decimal_places=6, null=True, blank=True,
+    )
+    fuel_price_per_liter = models.DecimalField(
+        'Prix du carburant (€/L)', max_digits=6, decimal_places=3, default=1.800,
+    )
+    vehicle_consumption_l_per_100km = models.DecimalField(
+        'Consommation véhicule (L/100 km)', max_digits=5, decimal_places=2, default=8.00,
+    )
+    travel_road_factor = models.DecimalField(
+        'Coefficient routier', max_digits=4, decimal_places=2, default=1.30,
+        help_text='Rapport entre distance routière réelle et distance à vol d\'oiseau (≈1.3).',
+    )
+
     class Meta:
         verbose_name = 'Paramètres entreprise'
         verbose_name_plural = 'Paramètres entreprises'

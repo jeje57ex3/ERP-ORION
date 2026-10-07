@@ -114,7 +114,15 @@
       <div class="d-flex flex-column gap-1 small">
         <a href="tel:{{ quote.client_phone }}" class="text-decoration-none text-dark"><i class="bi bi-telephone me-2 text-warning"></i>{{ quote.client_phone }}</a>
         <a href="mailto:{{ quote.client_email }}" class="text-decoration-none text-dark"><i class="bi bi-envelope me-2 text-warning"></i>{{ quote.client_email }}</a>
-        {% if quote.address %}<div><i class="bi bi-geo-alt me-2 text-muted"></i>{{ quote.address }}, {{ quote.zip_code }} {{ quote.city }}</div>{% endif %}
+        {% if quote.address %}
+        <div><i class="bi bi-geo-alt me-2 text-muted"></i>{{ quote.address }}, {{ quote.zip_code }} {{ quote.city }}</div>
+        {% if quote.site_latitude %}
+        <a href="https://www.openstreetmap.org/?mlat={{ quote.site_latitude|stringformat:'s' }}&mlon={{ quote.site_longitude|stringformat:'s' }}#map=17/{{ quote.site_latitude|stringformat:'s' }}/{{ quote.site_longitude|stringformat:'s' }}"
+           target="_blank" rel="noopener" class="text-decoration-none text-muted">
+          <i class="bi bi-pin-map me-2"></i>{% trans "Voir la localisation des travaux" %}
+        </a>
+        {% endif %}
+        {% endif %}
       </div>
     </div>
 
@@ -125,6 +133,15 @@
       <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">{% trans "Minimum" %}</span><span class="fw-semibold">{{ quote.estimate.amount_min_ht|floatformat:2 }} € HT</span></div>
       <div class="d-flex justify-content-between mb-1 small"><span class="text-muted">{% trans "Estimé" %}</span><span class="fw-bold text-success fs-6">{{ quote.estimate.amount_avg_ht|floatformat:2 }} € HT</span></div>
       <div class="d-flex justify-content-between mb-3 small"><span class="text-muted">{% trans "Maximum" %}</span><span class="fw-semibold">{{ quote.estimate.amount_max_ht|floatformat:2 }} € HT</span></div>
+      {% if quote.estimate.travel_amount %}
+      <div class="d-flex justify-content-between mb-3 small">
+        <span class="text-muted">
+          {% trans "Déplacement" %}
+          {% if quote.estimate.travel_distance_km %}<span class="text-muted">(2 × {{ quote.estimate.travel_distance_km }} km)</span>{% endif %}
+        </span>
+        <span class="fw-semibold">{{ quote.estimate.travel_amount|floatformat:2 }} € HT</span>
+      </div>
+      {% endif %}
       <div class="border-top pt-2"><div class="d-flex justify-content-between small fw-bold"><span>{% trans "Total TTC" %}</span><span class="text-warning">{{ quote.estimate.total_ttc|floatformat:2 }} €</span></div></div>
       {% if quote.estimate.items.exists %}
       <div class="mt-3">

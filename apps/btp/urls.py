@@ -36,6 +36,7 @@ urlpatterns = [
     path('demandes-guidees/<int:pk>/', gq.guided_quote_detail, name='guided_quote_detail'),
 
     # BibliothÃ¨que de prix Ã©lectricitÃ©
+    path('frais-deplacement/', gq.travel_settings, name='travel_settings'),
     path('tarifs-electricite/', gq.price_library_list, name='price_library_list'),
     path('tarifs-electricite/nouveau/', gq.price_library_create, name='price_library_create'),
     path('tarifs-electricite/<int:pk>/modifier/', gq.price_library_edit, name='price_library_edit'),

@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from .models import (
     GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem,
     ElectricityPriceLibrary, BTPProject, ClientConversation, ClientMessage,
@@ -187,6 +188,57 @@ def price_library_list(request):
         'cat_filter': cat_filter,
         'q': q,
         'category_choices': ElectricityPriceLibrary.CATEGORY_CHOICES,
+    })
+
+
+@login_required
+def travel_settings(request):
+    """Paramètres de frais de déplacement : point de départ de l'entreprise,
+    prix du carburant et consommation du véhicule. Ce sont ces valeurs que le
+    devis guidé utilise pour chiffrer le trajet jusqu'au chantier."""
+    from apps.core.geocoding import geocode
+    from apps.core.models import CompanySettings
+    company = _company(request)
+    settings_obj, _created = CompanySettings.objects.get_or_create(company=company)
+
+    if request.method == 'POST':
+        settings_obj.travel_billing_enabled = request.POST.get('travel_billing_enabled') == 'on'
+        settings_obj.travel_base_address = request.POST.get('travel_base_address', '').strip()
+        settings_obj.travel_base_zip_code = request.POST.get('travel_base_zip_code', '').strip()
+        settings_obj.travel_base_city = request.POST.get('travel_base_city', '').strip()
+        settings_obj.travel_country_code = (request.POST.get('travel_country_code') or 'pt').strip().lower()[:2]
+        settings_obj.fuel_price_per_liter = request.POST.get('fuel_price_per_liter') or 0
+        settings_obj.vehicle_consumption_l_per_100km = request.POST.get('vehicle_consumption_l_per_100km') or 0
+        settings_obj.travel_road_factor = request.POST.get('travel_road_factor') or 1.3
+        # L'adresse a pu changer : on oublie les coordonnées pour forcer un
+        # nouveau géocodage au prochain calcul.
+        settings_obj.travel_base_latitude = None
+        settings_obj.travel_base_longitude = None
+        settings_obj.save()
+
+        if request.POST.get('action') == 'locate':
+            coords = geocode(
+                settings_obj.travel_base_address or company.address,
+                city=settings_obj.travel_base_city or company.city,
+                zip_code=settings_obj.travel_base_zip_code or company.zip_code,
+                country_code=settings_obj.travel_country_code,
+            )
+            if coords:
+                settings_obj.travel_base_latitude = coords[0]
+                settings_obj.travel_base_longitude = coords[1]
+                settings_obj.save(update_fields=['travel_base_latitude', 'travel_base_longitude'])
+                messages.success(request, _('Adresse localisée : %(lat)s, %(lon)s') % {
+                    'lat': round(coords[0], 5), 'lon': round(coords[1], 5)})
+            else:
+                messages.warning(request, _("Adresse introuvable — vérifiez l'adresse ou le code pays."))
+        else:
+            messages.success(request, _('Paramètres de déplacement enregistrés.'))
+        return redirect('btp:travel_settings')
+
+    return render(request, 'btp/travel_settings.html', {
+        'settings_obj': settings_obj,
+        'company': company,
+        'page_title': _('Frais de déplacement'),
     })
 
 
