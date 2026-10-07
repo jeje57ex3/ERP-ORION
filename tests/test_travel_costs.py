@@ -13,7 +13,7 @@ import pytest
 
 from apps.btp.models import GuidedQuoteRequest
 from apps.btp.travel_costs import compute_travel_cost, describe_travel
-from apps.core.geocoding import haversine_km, road_distance_km
+from apps.core.geocoding import geocode_detailed, haversine_km, road_distance_km
 
 LISBOA = (38.7247512, -9.1497126)
 PORTO = (41.1567862, -8.6045966)
@@ -68,6 +68,51 @@ def test_road_distance_applies_road_factor():
 def test_road_distance_returns_none_without_coordinates():
     assert road_distance_km(None, PORTO, 1.3) is None
     assert road_distance_km(LISBOA, None, 1.3) is None
+
+
+# ─── Géocodage : dégradation progressive de la précision ──────────────────────
+#
+# Beaucoup de rues ne sont pas cartographiées dans OpenStreetMap et les codes
+# postaux portugais y sont très incomplets : une recherche en tout-ou-rien
+# échouait sur des adresses pourtant valides (cas réel constaté à Nazaré).
+
+@pytest.fixture(autouse=True)
+def _clear_geocode_cache():
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def test_geocode_prefers_street_level_match():
+    with patch('apps.core.geocoding._query_nominatim',
+               return_value=(38.7, -9.1, 'Avenida da Liberdade, Lisboa')) as mocked:
+        result = geocode_detailed('Avenida da Liberdade', city='Lisboa', zip_code='1250-096')
+    assert result['precision'] == 'street'
+    assert mocked.call_count == 1  # premier essai suffisant
+
+
+def test_geocode_falls_back_to_city_when_street_unknown():
+    """Rue absente de la carte : on ne renvoie pas un échec, on dégrade."""
+    def only_city(query, country_code):
+        return (39.60, -9.07, 'Nazaré, Leiria, Portugal') if query == 'nazare' else None
+
+    with patch('apps.core.geocoding._query_nominatim', side_effect=only_city):
+        result = geocode_detailed('rua inexistante', city='nazare', zip_code='2450-169')
+
+    assert result['precision'] == 'city'
+    assert result['lat'] == pytest.approx(39.60)
+
+
+def test_geocode_returns_none_when_nothing_matches():
+    with patch('apps.core.geocoding._query_nominatim', return_value=None):
+        assert geocode_detailed('rue inconnue', city='ville inconnue') is None
+
+
+def test_geocode_without_any_address_part_does_not_call_network():
+    with patch('apps.core.geocoding._query_nominatim') as mocked:
+        assert geocode_detailed('', city='', zip_code='') is None
+        mocked.assert_not_called()
 
 
 # ─── Calcul du coût ───────────────────────────────────────────────────────────

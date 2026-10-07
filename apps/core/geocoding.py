@@ -34,24 +34,8 @@ def _cache_key(query, country_code):
     return f'geocode:{digest}'
 
 
-def geocode(address, city='', zip_code='', country_code='pt'):
-    """Convertit une adresse postale en (latitude, longitude).
-
-    Renvoie None si l'adresse est vide, introuvable, ou si Nominatim est
-    injoignable. Le résultat (y compris l'échec) est mis en cache pour ne pas
-    marteler le service à chaque recalcul d'estimation.
-    """
-    parts = [p.strip() for p in (address, zip_code, city) if p and p.strip()]
-    if not parts:
-        return None
-
-    query = ', '.join(parts)
-    key = _cache_key(query, country_code)
-    cached = cache.get(key)
-    if cached is not None:
-        # '' = échec déjà constaté, on ne retente pas avant expiration du cache
-        return tuple(cached) if cached else None
-
+def _query_nominatim(query, country_code):
+    """Un appel Nominatim. Renvoie (lat, lon, nom_trouvé) ou None."""
     try:
         response = requests.get(
             NOMINATIM_URL,
@@ -71,17 +55,73 @@ def geocode(address, city='', zip_code='', country_code='pt'):
         return None
 
     if not results:
-        cache.set(key, '', CACHE_TTL)
         return None
-
     try:
-        coords = (float(results[0]['lat']), float(results[0]['lon']))
+        return (float(results[0]['lat']), float(results[0]['lon']),
+                results[0].get('display_name', ''))
     except (KeyError, TypeError, ValueError):
-        cache.set(key, '', CACHE_TTL)
         return None
 
-    cache.set(key, list(coords), CACHE_TTL)
-    return coords
+
+def geocode_detailed(address, city='', zip_code='', country_code='pt'):
+    """Géocode une adresse en dégradant progressivement la précision.
+
+    Beaucoup de rues ne sont pas cartographiées dans OpenStreetMap, et les
+    codes postaux portugais y sont très incomplets : chercher uniquement
+    l'adresse complète échouerait sur des adresses pourtant valides. On tente
+    donc, dans l'ordre : rue + CP + ville, rue + ville, CP + ville, ville
+    seule. Pour un frais de déplacement, une localisation à la ville reste
+    largement exploitable.
+
+    Renvoie un dict {lat, lon, precision, matched} ou None si rien n'est
+    trouvé. `precision` vaut 'street', 'postcode' ou 'city'.
+    """
+    address = (address or '').strip()
+    city = (city or '').strip()
+    zip_code = (zip_code or '').strip()
+    if not any((address, city, zip_code)):
+        return None
+
+    attempts = []
+    if address and city:
+        if zip_code:
+            attempts.append(('street', f'{address}, {zip_code}, {city}'))
+        attempts.append(('street', f'{address}, {city}'))
+    elif address:
+        attempts.append(('street', address))
+    if zip_code and city:
+        attempts.append(('postcode', f'{zip_code}, {city}'))
+    elif zip_code:
+        attempts.append(('postcode', zip_code))
+    if city:
+        attempts.append(('city', city))
+
+    cache_key = _cache_key('|'.join(q for _, q in attempts), country_code)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        # '' = échec déjà constaté, on ne retente pas avant expiration du cache
+        return cached or None
+
+    for precision, query in attempts:
+        found = _query_nominatim(query, country_code)
+        if found:
+            result = {'lat': found[0], 'lon': found[1],
+                      'precision': precision, 'matched': found[2]}
+            cache.set(cache_key, result, CACHE_TTL)
+            return result
+
+    cache.set(cache_key, '', CACHE_TTL)
+    return None
+
+
+def geocode(address, city='', zip_code='', country_code='pt'):
+    """Convertit une adresse postale en (latitude, longitude), ou None.
+
+    Enveloppe de `geocode_detailed` pour les appelants qui n'ont besoin que
+    des coordonnées (calcul de distance).
+    """
+    result = geocode_detailed(address, city=city, zip_code=zip_code, country_code=country_code)
+    return (result['lat'], result['lon']) if result else None
 
 
 def haversine_km(lat1, lon1, lat2, lon2):

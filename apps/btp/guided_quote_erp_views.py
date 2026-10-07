@@ -196,7 +196,7 @@ def travel_settings(request):
     """Paramètres de frais de déplacement : point de départ de l'entreprise,
     prix du carburant et consommation du véhicule. Ce sont ces valeurs que le
     devis guidé utilise pour chiffrer le trajet jusqu'au chantier."""
-    from apps.core.geocoding import geocode
+    from apps.core.geocoding import geocode_detailed
     from apps.core.models import CompanySettings
     company = _company(request)
     settings_obj, _created = CompanySettings.objects.get_or_create(company=company)
@@ -217,20 +217,35 @@ def travel_settings(request):
         settings_obj.save()
 
         if request.POST.get('action') == 'locate':
-            coords = geocode(
+            found = geocode_detailed(
                 settings_obj.travel_base_address or company.address,
                 city=settings_obj.travel_base_city or company.city,
                 zip_code=settings_obj.travel_base_zip_code or company.zip_code,
                 country_code=settings_obj.travel_country_code,
             )
-            if coords:
-                settings_obj.travel_base_latitude = coords[0]
-                settings_obj.travel_base_longitude = coords[1]
+            if found:
+                settings_obj.travel_base_latitude = found['lat']
+                settings_obj.travel_base_longitude = found['lon']
                 settings_obj.save(update_fields=['travel_base_latitude', 'travel_base_longitude'])
-                messages.success(request, _('Adresse localisée : %(lat)s, %(lon)s') % {
-                    'lat': round(coords[0], 5), 'lon': round(coords[1], 5)})
+                # La rue peut ne pas exister dans OpenStreetMap : on le dit
+                # explicitement plutôt que de laisser croire à une précision
+                # à l'adresse exacte.
+                if found['precision'] == 'street':
+                    messages.success(request, _('Adresse localisée : %(place)s') % {'place': found['matched']})
+                elif found['precision'] == 'postcode':
+                    messages.info(request, _(
+                        'Localisé au code postal (rue absente de la carte) : %(place)s'
+                    ) % {'place': found['matched']})
+                else:
+                    messages.info(request, _(
+                        'Localisé au centre de la ville (rue et code postal absents de la carte) : '
+                        '%(place)s — suffisant pour estimer les distances.'
+                    ) % {'place': found['matched']})
             else:
-                messages.warning(request, _("Adresse introuvable — vérifiez l'adresse ou le code pays."))
+                messages.warning(request, _(
+                    "Adresse introuvable — vérifiez l'orthographe de la ville et le code pays "
+                    "(pt = Portugal)."
+                ))
         else:
             messages.success(request, _('Paramètres de déplacement enregistrés.'))
         return redirect('btp:travel_settings')
