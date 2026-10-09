@@ -23,6 +23,13 @@ media/
 staticfiles/
 storage/
 
+# Exports de donnees (export_orion_data.ps1) : dumps et medias reels,
+# ne doivent jamais etre versionnes.
+/build/
+orion-data-*.tar.gz
+orion-data-*.tar.gz.sha256
+database.sql
+
 # Logs & backups
 logs/
 *.log
@@ -42,3 +49,6 @@ node_modules/
 *.swp
 *.swo
 .DS_Store
+
+# Sauvegarde de migration locale (donnees reelles, jamais en git)
+/orion_migration_backup/

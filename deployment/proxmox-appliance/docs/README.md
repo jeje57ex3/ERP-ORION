@@ -43,7 +43,9 @@ cd /root/orion-appliance-2026.08.05
 
 Voir [PROXMOX.md](PROXMOX.md) pour le détail complet, [INSTALL.md](INSTALL.md)
 pour les prérequis de build, [BACKUP.md](BACKUP.md) et [UPDATE.md](UPDATE.md)
-pour l'exploitation.
+pour l'exploitation. L'appliance démarre avec une base vide :
+[DATA-MIGRATION.md](DATA-MIGRATION.md) explique comment y transférer les
+données réelles d'un poste existant.
 
 ## Contenu de `build/`
 
