@@ -18,6 +18,7 @@ from .diagnostic import get_visible_questions
 from .pricing import compute_estimate
 from .crm_sync import sync_crm_lead
 from .confidence import missing_info_from_answers
+from .i18n import overlay, normalize_language
 
 VALID_PROPERTY_TYPES = {'apartment', 'house', 'commercial', 'office', 'workshop', 'building', 'other'}
 
@@ -39,22 +40,40 @@ def get_service(company, service_code):
     ).select_related('domain').first()
 
 
-def get_questions_payload(service, answers):
+def domain_payload(domain, language='fr'):
+    tr = overlay(domain, language, ['name', 'description'])
+    return {'code': domain.code, 'name': tr['name'], 'icon': domain.icon, 'description': tr['description']}
+
+
+def service_summary_payload(service, language='fr'):
+    tr = overlay(service, language, ['name', 'short_description'])
+    return {
+        'code': service.code, 'name': tr['name'], 'short_description': tr['short_description'],
+        'requires_diagnostic': service.requires_diagnostic,
+    }
+
+
+def get_questions_payload(service, answers, language='fr'):
     """Questions actuellement visibles compte tenu des réponses déjà
-    données (le client peut en révéler d'autres au fur et à mesure)."""
+    données (le client peut en révéler d'autres au fur et à mesure).
+    `language` traduit label/help_text/options — voir services/i18n.py."""
     questions = get_visible_questions(service, answers or {})
-    return [
-        {
+    payload = []
+    for q in questions:
+        tr = overlay(q, language, ['label', 'help_text'])
+        payload.append({
             'identifier': q.identifier,
-            'label': q.label,
-            'help_text': q.help_text,
+            'label': tr['label'],
+            'help_text': tr['help_text'],
             'type': q.question_type,
             'required': q.is_required,
             'allow_dont_know': q.allow_dont_know,
-            'options': [{'value': o.value, 'label': o.label} for o in q.options.all()],
-        }
-        for q in questions
-    ]
+            'options': [
+                {'value': o.value, 'label': overlay(o, language, ['label'])['label']}
+                for o in q.options.all()
+            ],
+        })
+    return payload
 
 
 def _public_estimate_payload(estimate):
@@ -78,13 +97,13 @@ def _public_estimate_payload(estimate):
     return payload
 
 
-def estimate_preview(company, service_code, answers, urgency='normal'):
+def estimate_preview(company, service_code, answers, urgency='normal', language='fr'):
     """Estimation live, sans créer de demande — pour l'aperçu progressif
     côté configurateur (§28)."""
     service = get_service(company, service_code)
     if not service:
         return None
-    estimate = compute_estimate(company, service, answers or {}, urgency)
+    estimate = compute_estimate(company, service, answers or {}, urgency, language=language)
     return _public_estimate_payload(estimate)
 
 
@@ -140,13 +159,13 @@ def _create_draft_quote(company, quote_request, estimate_obj):
     return quote
 
 
-def _process_submission(company, service, answers, urgency, contact, building, notes, session=None):
+def _process_submission(company, service, answers, urgency, contact, building, notes, session=None, language='fr'):
     """Cœur partagé de la soumission : chiffrage, création de la demande
     BTP, du résumé interne, synchronisation CRM et devis brouillon éventuel.
     Utilisé aussi bien par une soumission simple (`submit_configurator_request`)
     que par chaque lot d'un dossier « mode projet » (`submit_configurator_project`)
     — §12-14 : un même moteur pour les deux, pas de logique dupliquée par lot."""
-    estimate = compute_estimate(company, service, answers, urgency)
+    estimate = compute_estimate(company, service, answers, urgency, language=language)
     property_type = building.get('property_type') if building.get('property_type') in VALID_PROPERTY_TYPES else ''
 
     quote_request = GuidedQuoteRequest.objects.create(
@@ -246,9 +265,11 @@ def submit_configurator_request(company, payload):
 
     session_key = payload.get('session_key')
     session = ConfiguratorSession.objects.filter(company=company, session_key=session_key).first() if session_key else None
+    language = normalize_language(payload.get('lang'))
 
     quote_request, submission, estimate = _process_submission(
-        company, service, answers, urgency, contact, building, payload.get('notes') or '', session=session,
+        company, service, answers, urgency, contact, building, payload.get('notes') or '',
+        session=session, language=language,
     )
 
     if session:
@@ -282,13 +303,14 @@ def submit_configurator_project(company, payload):
             raise ValueError('Nom, prénom et email sont requis.')
     building = payload.get('building') or {}
     notes = payload.get('notes') or ''
+    language = normalize_language(payload.get('lang'))
 
     quote_requests = []
     lot_summaries = []
     for lot in lots:
         quote_request, submission, estimate = _process_submission(
             company, lot.service, lot.answers or {}, lot.urgency or 'normal',
-            contact, building, notes, session=session,
+            contact, building, notes, session=session, language=language,
         )
         quote_requests.append(quote_request)
         lot_summaries.append({
@@ -309,7 +331,7 @@ def create_session(company):
     return ConfiguratorSession.objects.create(company=company)
 
 
-def session_payload(session):
+def session_payload(session, language='fr'):
     """État complet de la session — usage interne à la reprise du parcours
     (jamais de coût/marge, seul `estimate` public est inclus)."""
     payload = {
@@ -325,18 +347,18 @@ def session_payload(session):
         'totals': None,
     }
     if session.service_id:
-        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal')
+        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal', language=language)
         payload['estimate'] = _public_estimate_payload(estimate)
 
     lots = list(session.lots.select_related('domain', 'service').order_by('order', 'created_at'))
-    payload['lots'] = [lot_payload(lot) for lot in lots]
+    payload['lots'] = [lot_payload(lot, language) for lot in lots]
     ready_lots = [lot for lot in payload['lots'] if lot['estimate'] is not None]
     if ready_lots:
         payload['totals'] = _aggregate_public_totals(ready_lots)
     return payload
 
 
-def update_session(session, domain_code, service_code, urgency, answers):
+def update_session(session, domain_code, service_code, urgency, answers, language='fr'):
     """Fusionne les nouvelles réponses dans la session et recalcule le score
     de confiance / la nécessité de visite en continu (§36 : ré-estimation
     en temps réel dès qu'une réponse change)."""
@@ -358,7 +380,7 @@ def update_session(session, domain_code, service_code, urgency, answers):
         session.answers = merged
 
     if session.service_id:
-        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal')
+        estimate = compute_estimate(session.company, session.service, session.answers or {}, session.urgency or 'normal', language=language)
         session.confidence_score = estimate['confidence_score']
         session.visit_necessity = estimate['visit_necessity']
         session.missing_info = missing_info_from_answers(session.service, session.answers or {})
@@ -369,7 +391,7 @@ def update_session(session, domain_code, service_code, urgency, answers):
 
 # ─── LOTS (§12-13 : « mode projet », plusieurs besoins dans un même dossier) ───
 
-def lot_payload(lot):
+def lot_payload(lot, language='fr'):
     payload = {
         'id': lot.id, 'label': lot.label,
         'domain_code': lot.domain.code if lot.domain_id else None,
@@ -379,12 +401,12 @@ def lot_payload(lot):
         'estimate': None,
     }
     if lot.service_id:
-        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal')
+        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal', language=language)
         payload['estimate'] = _public_estimate_payload(estimate)
     return payload
 
 
-def update_lot(lot, domain_code, service_code, urgency, answers, label=None):
+def update_lot(lot, domain_code, service_code, urgency, answers, label=None, language='fr'):
     if label is not None:
         lot.label = label[:150]
     if domain_code:
@@ -405,7 +427,7 @@ def update_lot(lot, domain_code, service_code, urgency, answers, label=None):
         lot.answers = merged
 
     if lot.service_id:
-        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal')
+        estimate = compute_estimate(lot.session.company, lot.service, lot.answers or {}, lot.urgency or 'normal', language=language)
         lot.confidence_score = estimate['confidence_score']
         lot.visit_necessity = estimate['visit_necessity']
         lot.missing_info = missing_info_from_answers(lot.service, lot.answers or {})
@@ -414,10 +436,10 @@ def update_lot(lot, domain_code, service_code, urgency, answers, label=None):
     return lot
 
 
-def add_lot(session, domain_code, service_code, urgency, answers, label=''):
+def add_lot(session, domain_code, service_code, urgency, answers, label='', language='fr'):
     next_order = session.lots.count()
     lot = ConfiguratorSessionLot.objects.create(session=session, order=next_order)
-    return update_lot(lot, domain_code, service_code, urgency, answers, label=label)
+    return update_lot(lot, domain_code, service_code, urgency, answers, label=label, language=language)
 
 
 def remove_lot(session, lot_id):

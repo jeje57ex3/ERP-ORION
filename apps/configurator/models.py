@@ -43,6 +43,15 @@ URGENCY_CHOICES = [
     ('urgent', 'Urgent'), ('normal', 'Normal'), ('flexible', 'Flexible'),
 ]
 
+# Le français reste la langue de base, portée directement par les champs des
+# modèles principaux (name, label, description...) — ces choix ne couvrent
+# que les langues additionnelles gérées via les tables `*Translation`
+# ci-dessous (même convention que apps.websites : table sœur avec
+# `language = CharField`, pas de mixin générique dans ce projet).
+TRANSLATION_LANGUAGE_CHOICES = [
+    ('en', 'English'), ('de', 'Deutsch'), ('pt', 'Português'),
+]
+
 
 # ─── DOMAINES & PRESTATIONS ────────────────────────────────────────────────────
 
@@ -177,6 +186,73 @@ class ConfiguratorQuestionOption(models.Model):
 
     def __str__(self):
         return f'{self.question.identifier} = {self.value}'
+
+
+# ─── TRADUCTIONS (EN/DE/PT — le français reste porté par le modèle de base) ────
+#
+# Même convention que les tables `*Translation` déjà utilisées ailleurs dans
+# le projet (apps.websites.models : WebsitePageTranslation, etc.) : une table
+# sœur par modèle traduisible, `unique_together (objet, language)`, repli
+# silencieux sur la valeur française si aucune traduction n'existe pour la
+# langue demandée — voir apps/configurator/services/i18n.py::overlay.
+
+class ServiceDomainTranslation(models.Model):
+    domain = models.ForeignKey(ServiceDomain, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField('Langue', max_length=5, choices=TRANSLATION_LANGUAGE_CHOICES)
+    name = models.CharField('Nom', max_length=120)
+    description = models.CharField('Description courte', max_length=250, blank=True)
+
+    class Meta:
+        unique_together = [('domain', 'language')]
+        verbose_name = 'Traduction de domaine'
+        verbose_name_plural = 'Traductions de domaine'
+
+    def __str__(self):
+        return f'{self.domain.code} [{self.language}]'
+
+
+class ServiceCategoryTranslation(models.Model):
+    service = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField('Langue', max_length=5, choices=TRANSLATION_LANGUAGE_CHOICES)
+    name = models.CharField('Nom', max_length=150)
+    short_description = models.CharField('Description courte', max_length=250, blank=True)
+
+    class Meta:
+        unique_together = [('service', 'language')]
+        verbose_name = 'Traduction de prestation'
+        verbose_name_plural = 'Traductions de prestation'
+
+    def __str__(self):
+        return f'{self.service.code} [{self.language}]'
+
+
+class ConfiguratorQuestionTranslation(models.Model):
+    question = models.ForeignKey(ConfiguratorQuestion, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField('Langue', max_length=5, choices=TRANSLATION_LANGUAGE_CHOICES)
+    label = models.CharField('Question', max_length=250)
+    help_text = models.CharField('Texte d\'aide', max_length=250, blank=True)
+
+    class Meta:
+        unique_together = [('question', 'language')]
+        verbose_name = 'Traduction de question'
+        verbose_name_plural = 'Traductions de question'
+
+    def __str__(self):
+        return f'{self.question.identifier} [{self.language}]'
+
+
+class ConfiguratorQuestionOptionTranslation(models.Model):
+    option = models.ForeignKey(ConfiguratorQuestionOption, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField('Langue', max_length=5, choices=TRANSLATION_LANGUAGE_CHOICES)
+    label = models.CharField('Libellé', max_length=200)
+
+    class Meta:
+        unique_together = [('option', 'language')]
+        verbose_name = 'Traduction d\'option'
+        verbose_name_plural = 'Traductions d\'option'
+
+    def __str__(self):
+        return f'{self.option.value} [{self.language}]'
 
 
 # ─── MATÉRIEL & RÈGLES DE CHIFFRAGE ────────────────────────────────────────────
@@ -339,6 +415,25 @@ class DiagnosticScenario(models.Model):
 
     def __str__(self):
         return f'Diagnostic — {self.service.name}'
+
+
+class DiagnosticScenarioTranslation(models.Model):
+    """`danger_keywords` DOIT être traduit : la détection de danger scanne le
+    texte libre du client dans sa propre langue (§16/§17) — des mots-clés
+    seulement en français ne détecteraient jamais un danger décrit en
+    anglais/allemand/portugais."""
+    scenario = models.ForeignKey(DiagnosticScenario, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField('Langue', max_length=5, choices=TRANSLATION_LANGUAGE_CHOICES)
+    safety_message = models.TextField('Message de sécurité', blank=True)
+    danger_keywords = models.JSONField('Mots-clés danger', default=list, blank=True)
+
+    class Meta:
+        unique_together = [('scenario', 'language')]
+        verbose_name = 'Traduction de scénario de diagnostic'
+        verbose_name_plural = 'Traductions de scénario de diagnostic'
+
+    def __str__(self):
+        return f'{self.scenario_id} [{self.language}]'
 
 
 # ─── RÉSUMÉ INTERNE (jamais exposé au frontend) ────────────────────────────────

@@ -122,13 +122,13 @@ def _build_calculation_log(lines, labor_rule, travel_rule, difficulty_coefs, mar
     return log
 
 
-def compute_estimate(company, service, answers, urgency='normal', photos_count=0):
+def compute_estimate(company, service, answers, urgency='normal', photos_count=0, language='fr'):
     lines = resolve_material_lines(service, answers)
     material_min = sum(float(l['price_item'].price_min) * l['qty'] for l in lines)
     material_avg = sum(float(l['price_item'].price_avg) * l['qty'] for l in lines)
     material_max = sum(float(l['price_item'].price_max) * l['qty'] for l in lines)
 
-    diag = evaluate_diagnostic(service, answers)
+    diag = evaluate_diagnostic(service, answers, language)
 
     static_avg = float(service.duration_avg_hours)
     if service.duration_formula:

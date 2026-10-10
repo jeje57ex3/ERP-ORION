@@ -3,6 +3,8 @@ from .models import (
     ServiceDomain, ServiceCategory, ConfiguratorQuestion, ConfiguratorQuestionOption,
     MaterialRequirement, LaborRule, TravelRule, PricingCoefficient, MarginRule,
     DiagnosticScenario, ConfiguratorSubmission, ConfiguratorSession, ConfiguratorSessionLot,
+    ServiceDomainTranslation, ServiceCategoryTranslation, ConfiguratorQuestionTranslation,
+    ConfiguratorQuestionOptionTranslation, DiagnosticScenarioTranslation,
 )
 
 
@@ -11,12 +13,30 @@ class ConfiguratorQuestionOptionInline(admin.TabularInline):
     extra = 1
 
 
+class ConfiguratorQuestionOptionTranslationInline(admin.TabularInline):
+    model = ConfiguratorQuestionOptionTranslation
+    extra = 0
+
+
+@admin.register(ConfiguratorQuestionOption)
+class ConfiguratorQuestionOptionAdmin(admin.ModelAdmin):
+    list_display = ['value', 'label', 'question', 'order']
+    list_filter = ['question__service__domain']
+    search_fields = ['value', 'label']
+    inlines = [ConfiguratorQuestionOptionTranslationInline]
+
+
+class ConfiguratorQuestionTranslationInline(admin.TabularInline):
+    model = ConfiguratorQuestionTranslation
+    extra = 0
+
+
 @admin.register(ConfiguratorQuestion)
 class ConfiguratorQuestionAdmin(admin.ModelAdmin):
     list_display = ['identifier', 'service', 'question_type', 'order', 'is_required']
     list_filter = ['service__domain', 'service', 'question_type', 'is_required']
     search_fields = ['identifier', 'label']
-    inlines = [ConfiguratorQuestionOptionInline]
+    inlines = [ConfiguratorQuestionOptionInline, ConfiguratorQuestionTranslationInline]
 
 
 class ConfiguratorQuestionInline(admin.TabularInline):
@@ -35,10 +55,20 @@ class MaterialRequirementInline(admin.TabularInline):
     ]
 
 
+class DiagnosticScenarioTranslationInline(admin.TabularInline):
+    model = DiagnosticScenarioTranslation
+    extra = 0
+
+
 class DiagnosticScenarioInline(admin.StackedInline):
     model = DiagnosticScenario
     extra = 0
     can_delete = True
+
+
+class ServiceCategoryTranslationInline(admin.TabularInline):
+    model = ServiceCategoryTranslation
+    extra = 0
 
 
 @admin.register(ServiceCategory)
@@ -46,7 +76,19 @@ class ServiceCategoryAdmin(admin.ModelAdmin):
     list_display = ['name', 'domain', 'intervention_type', 'requires_diagnostic', 'confidence_level', 'is_active', 'order']
     list_filter = ['domain', 'intervention_type', 'requires_diagnostic', 'confidence_level', 'is_active']
     search_fields = ['name', 'code']
-    inlines = [ConfiguratorQuestionInline, MaterialRequirementInline, DiagnosticScenarioInline]
+    inlines = [ServiceCategoryTranslationInline, ConfiguratorQuestionInline, MaterialRequirementInline, DiagnosticScenarioInline]
+
+
+@admin.register(DiagnosticScenario)
+class DiagnosticScenarioAdmin(admin.ModelAdmin):
+    list_display = ['service', 'safety_message']
+    search_fields = ['service__name']
+    inlines = [DiagnosticScenarioTranslationInline]
+
+
+class ServiceDomainTranslationInline(admin.TabularInline):
+    model = ServiceDomainTranslation
+    extra = 0
 
 
 @admin.register(ServiceDomain)
@@ -54,6 +96,7 @@ class ServiceDomainAdmin(admin.ModelAdmin):
     list_display = ['name', 'code', 'company', 'order', 'is_active']
     list_filter = ['company', 'is_active']
     search_fields = ['name', 'code']
+    inlines = [ServiceDomainTranslationInline]
 
 
 @admin.register(LaborRule)

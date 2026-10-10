@@ -15,7 +15,9 @@ from apps.btp.models import ElectricityPriceLibrary, GuidedQuoteRequest
 from apps.configurator.models import (
     ServiceDomain, ServiceCategory, ConfiguratorQuestion, ConfiguratorQuestionOption,
     MaterialRequirement, LaborRule, TravelRule, MarginRule, DiagnosticScenario,
-    ConfiguratorSubmission,
+    ConfiguratorSubmission, ServiceDomainTranslation, ServiceCategoryTranslation,
+    ConfiguratorQuestionTranslation, ConfiguratorQuestionOptionTranslation,
+    DiagnosticScenarioTranslation,
 )
 from apps.configurator.models import ConfiguratorSession, ConfiguratorSessionLot
 from apps.configurator.services import engine
@@ -534,6 +536,72 @@ def test_analytics_view_renders_and_aggregates_by_domain(superuser_client, compa
     resp = superuser_client.get('/configurateur/analytique/')
     assert resp.status_code == 200
     assert 'Électricité'.encode('utf-8') in resp.content
+
+
+# ─── Traduction du contenu dynamique (EN/DE/PT, V2 §"traduit aussi le configurateur") ──
+
+@pytest.mark.django_db
+def test_domain_and_service_payload_use_translation_with_french_fallback(company, domain_electricite, service_pose_prise):
+    ServiceDomainTranslation.objects.create(domain=domain_electricite, language='en', name='Electrical', description='Repairs & installation.')
+    ServiceCategoryTranslation.objects.create(service=service_pose_prise, language='en', name='Install outlets')
+
+    domain_en = engine.domain_payload(domain_electricite, 'en')
+    assert domain_en['name'] == 'Electrical'
+    assert domain_en['code'] == 'electricite'  # le code technique ne change jamais
+
+    service_en = engine.service_summary_payload(service_pose_prise, 'en')
+    assert service_en['name'] == 'Install outlets'
+
+    # Langue non traduite (de) -> repli silencieux sur le français, jamais d'erreur.
+    domain_de = engine.domain_payload(domain_electricite, 'de')
+    assert domain_de['name'] == domain_electricite.name
+
+
+@pytest.mark.django_db
+def test_question_and_option_labels_translated(company, service_pose_prise):
+    question = service_pose_prise.questions.get(identifier='nb_prises')
+    ConfiguratorQuestionTranslation.objects.create(question=question, language='en', label='How many outlets?')
+
+    payload_en = engine.get_questions_payload(service_pose_prise, {}, 'en')
+    assert payload_en[0]['label'] == 'How many outlets?'
+
+    payload_fr = engine.get_questions_payload(service_pose_prise, {}, 'fr')
+    assert payload_fr[0]['label'] == question.label
+
+
+@pytest.mark.django_db
+def test_danger_detection_works_with_translated_keywords(company, service_disjoncteur):
+    scenario = service_disjoncteur.diagnostic_scenario
+    DiagnosticScenarioTranslation.objects.create(
+        scenario=scenario, language='en', safety_message='Safety first — do not touch the panel.',
+        danger_keywords=['smoke', 'burning'],
+    )
+    # Une réponse anglaise contenant un mot-clé anglais doit déclencher le
+    # danger même si les mots-clés français ('fumée'...) ne matchent pas.
+    estimate_en = compute_estimate(company, service_disjoncteur, {'danger_signes': False, 'depuis_quand': 'I smell burning near the panel'}, language='en')
+    assert estimate_en['danger_detected'] is True
+    assert estimate_en['safety_message'] == 'Safety first — do not touch the panel.'
+
+    # La même réponse en "langue" fr ne doit PAS matcher les mots-clés anglais.
+    estimate_fr = compute_estimate(company, service_disjoncteur, {'danger_signes': False, 'depuis_quand': 'I smell burning near the panel'}, language='fr')
+    assert estimate_fr['danger_detected'] is False
+
+
+@pytest.mark.django_db
+def test_public_api_list_domains_respects_lang_query_param(neostructura_company):
+    domain = ServiceDomain.objects.create(company=neostructura_company, code='electricite', name='Électricité')
+    ServiceDomainTranslation.objects.create(domain=domain, language='pt', name='Eletricidade')
+
+    resp_pt = Client().get('/api/v1/neostructura/configurateur/domaines/?lang=pt')
+    assert resp_pt.json()['domains'][0]['name'] == 'Eletricidade'
+
+    resp_default = Client().get('/api/v1/neostructura/configurateur/domaines/')
+    assert resp_default.json()['domains'][0]['name'] == 'Électricité'
+
+    # Langue non supportée -> repli silencieux sur le français, jamais 500.
+    resp_bad = Client().get('/api/v1/neostructura/configurateur/domaines/?lang=zz')
+    assert resp_bad.status_code == 200
+    assert resp_bad.json()['domains'][0]['name'] == 'Électricité'
 
 
 # ─── CRM ────────────────────────────────────────────────────────────────────────

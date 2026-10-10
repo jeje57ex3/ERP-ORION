@@ -4,6 +4,7 @@ du pré-diagnostic. Ne prétend jamais connaître la panne : construit des
 hypothèses avec un niveau de confiance, jamais un diagnostic affirmé.
 """
 from .conditions import condition_met
+from .i18n import overlay
 
 
 def get_visible_questions(service, answers):
@@ -13,7 +14,7 @@ def get_visible_questions(service, answers):
     return [q for q in questions if condition_met(q.display_condition, answers)]
 
 
-def _detect_danger(service, answers):
+def _detect_danger(service, answers, language='fr'):
     scenario = getattr(service, 'diagnostic_scenario', None)
     if not scenario:
         return False
@@ -23,8 +24,11 @@ def _detect_danger(service, answers):
         if answers.get(q.identifier) in (True, 'true', 'True', 'on', '1', 1):
             return True
 
-    # Mots-clés de danger dans les réponses texte libres
-    keywords = [k.lower() for k in (scenario.danger_keywords or [])]
+    # Mots-clés de danger dans les réponses texte libres — dans la langue du
+    # client : des mots-clés uniquement en français ne détecteraient jamais
+    # un danger décrit en anglais/allemand/portugais (§16-17).
+    tr = overlay(scenario, language, ['danger_keywords'])
+    keywords = [k.lower() for k in (tr['danger_keywords'] or [])]
     if keywords:
         for value in answers.values():
             if isinstance(value, str) and any(k in value.lower() for k in keywords):
@@ -32,7 +36,7 @@ def _detect_danger(service, answers):
     return False
 
 
-def evaluate_diagnostic(service, answers):
+def evaluate_diagnostic(service, answers, language='fr'):
     """Retourne un dict {requires_diagnostic, confidence_level, hypotheses,
     danger_detected, diagnostic_duration} — jamais un prix, jamais une
     affirmation de panne confirmée."""
@@ -45,7 +49,7 @@ def evaluate_diagnostic(service, answers):
             'diagnostic_duration': None,
         }
 
-    danger_detected = _detect_danger(service, answers)
+    danger_detected = _detect_danger(service, answers, language)
     scenario = getattr(service, 'diagnostic_scenario', None)
     hypotheses = scenario.hypotheses if scenario else []
     duration = None
@@ -56,6 +60,10 @@ def evaluate_diagnostic(service, answers):
             'max': float(scenario.diagnostic_max_hours),
         }
 
+    safety_message = ''
+    if danger_detected and scenario:
+        safety_message = overlay(scenario, language, ['safety_message'])['safety_message']
+
     return {
         'requires_diagnostic': True,
         # Un danger détecté ne peut jamais faire remonter la confiance —
@@ -64,5 +72,5 @@ def evaluate_diagnostic(service, answers):
         'hypotheses': hypotheses,
         'danger_detected': danger_detected,
         'diagnostic_duration': duration,
-        'safety_message': scenario.safety_message if (danger_detected and scenario) else '',
+        'safety_message': safety_message,
     }

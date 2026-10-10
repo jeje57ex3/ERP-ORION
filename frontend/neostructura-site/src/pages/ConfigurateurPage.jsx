@@ -23,7 +23,7 @@ function isAnswered(q, answers) {
 }
 
 export default function ConfigurateurPage() {
-  const { dict } = useLanguage()
+  const { dict, lang } = useLanguage()
   const cfg = dict.configurator
   const [step, setStep] = useState(1)
 
@@ -61,10 +61,20 @@ export default function ConfigurateurPage() {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [step, result])
 
-  // Étape 1 : domaines
+  // Étape 1 : domaines — re-résolu si la langue change (contenu traduit
+  // depuis Orion, cf. services/i18n.py) pour rester cohérent avec le
+  // sélecteur de langue du site, sans recharger la page.
   useEffect(() => {
     fetchDomains().then(setDomains).catch(() => {}).finally(() => setDomainsLoading(false))
-  }, [])
+  }, [lang])
+
+  // Rafraîchit la liste des prestations (traduite) si la langue change
+  // alors qu'un domaine est déjà sélectionné.
+  useEffect(() => {
+    if (!domainCode) return
+    fetchServices(domainCode).then(setServices).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang])
 
   // Dossier de configuration résumable (§4/§50) : reprend une session en
   // cours si elle existe encore côté navigateur, sinon en crée une nouvelle.
@@ -151,7 +161,7 @@ export default function ConfigurateurPage() {
     }, 350)
     return () => clearTimeout(debounceRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers, serviceCode, step])
+  }, [answers, serviceCode, step, lang])
 
   useEffect(() => {
     if (step !== 3 || !serviceCode || questions.length === 0) return
@@ -163,7 +173,7 @@ export default function ConfigurateurPage() {
     }, 400)
     return () => clearTimeout(handle)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers, questions, urgency, serviceCode, step])
+  }, [answers, questions, urgency, serviceCode, step, lang])
 
   // Dossier « mode projet » (§12-14) : ajoute le besoin en cours comme lot
   // du dossier, puis repart de zéro pour en décrire un autre. Une fois un

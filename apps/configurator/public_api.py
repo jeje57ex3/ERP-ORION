@@ -8,6 +8,12 @@ validation/troncature des réponses libres, honeypot sur la soumission,
 AUCUNE donnée interne (marge, coût de revient, hypothèses détaillées de
 diagnostic) n'est jamais sérialisée — voir services/engine.py
 (_public_estimate_payload) pour la frontière stricte public/interne.
+
+Langue : le contenu dynamique (domaines, prestations, questions, options,
+message de sécurité) est traduisible (§ demande utilisateur du
+2026-09-12 : « traduit aussi le configurateur »). La langue voulue est
+lue sur `?lang=` (GET) ou `lang` (corps JSON des POST), et normalisée via
+services/i18n.normalize_language — jamais fait confiance telle quelle.
 """
 import json
 
@@ -20,6 +26,7 @@ from apps.core.models import Company
 from apps.websites.public_views import _get_ip
 from .models import ConfiguratorSession, ConfiguratorSessionLot
 from .services import engine
+from .services.i18n import normalize_language
 
 MAX_ANSWERS_KEYS = 60
 MAX_ANSWER_STR_LEN = 2000
@@ -71,11 +78,9 @@ def list_domains(request):
     company = _get_neostructura_company()
     if not company:
         return JsonResponse({'domains': []})
+    language = normalize_language(request.GET.get('lang'))
     domains = engine.get_domains(company)
-    return JsonResponse({'domains': [
-        {'code': d.code, 'name': d.name, 'icon': d.icon, 'description': d.description}
-        for d in domains
-    ]})
+    return JsonResponse({'domains': [engine.domain_payload(d, language) for d in domains]})
 
 
 @require_GET
@@ -83,16 +88,11 @@ def list_services(request, domain_code):
     company = _get_neostructura_company()
     if not company:
         return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
+    language = normalize_language(request.GET.get('lang'))
     domain, services = engine.get_services(company, domain_code)
     if not domain:
         return JsonResponse({'error': 'Domaine introuvable.'}, status=404)
-    return JsonResponse({'services': [
-        {
-            'code': s.code, 'name': s.name, 'short_description': s.short_description,
-            'requires_diagnostic': s.requires_diagnostic,
-        }
-        for s in services
-    ]})
+    return JsonResponse({'services': [engine.service_summary_payload(s, language) for s in services]})
 
 
 @csrf_exempt
@@ -110,7 +110,8 @@ def service_questions(request, service_code):
     if error:
         return error
     answers = _sanitize_answers(data.get('answers'))
-    return JsonResponse({'questions': engine.get_questions_payload(service, answers)})
+    language = normalize_language(data.get('lang'))
+    return JsonResponse({'questions': engine.get_questions_payload(service, answers, language)})
 
 
 @csrf_exempt
@@ -127,7 +128,8 @@ def estimate(request):
         return error
     answers = _sanitize_answers(data.get('answers'))
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
-    result = engine.estimate_preview(company, data.get('service_code', ''), answers, urgency)
+    language = normalize_language(data.get('lang'))
+    result = engine.estimate_preview(company, data.get('service_code', ''), answers, urgency, language)
     if result is None:
         return JsonResponse({'error': 'Prestation introuvable.'}, status=404)
     return JsonResponse(result)
@@ -166,8 +168,10 @@ def session_start(request):
         return JsonResponse({'error': 'Configurateur indisponible.'}, status=503)
     if _rate_limited(request, 'session_start', limit=30):
         return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
+    data, _err = _parse_json(request)
+    language = normalize_language((data or {}).get('lang'))
     session = engine.create_session(company)
-    return JsonResponse(engine.session_payload(session))
+    return JsonResponse(engine.session_payload(session, language))
 
 
 @csrf_exempt
@@ -181,7 +185,8 @@ def session_detail(request, session_key):
         return JsonResponse({'error': 'Session introuvable.'}, status=404)
 
     if request.method == 'GET':
-        return JsonResponse(engine.session_payload(session))
+        language = normalize_language(request.GET.get('lang'))
+        return JsonResponse(engine.session_payload(session, language))
 
     if _rate_limited(request, 'session_update', limit=120):
         return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
@@ -190,8 +195,9 @@ def session_detail(request, session_key):
         return error
     answers = _sanitize_answers(data.get('answers'))
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else None
-    session = engine.update_session(session, data.get('domain_code'), data.get('service_code'), urgency, answers)
-    return JsonResponse(engine.session_payload(session))
+    language = normalize_language(data.get('lang'))
+    session = engine.update_session(session, data.get('domain_code'), data.get('service_code'), urgency, answers, language)
+    return JsonResponse(engine.session_payload(session, language))
 
 
 @csrf_exempt
@@ -213,8 +219,9 @@ def session_lots(request, session_key):
     answers = _sanitize_answers(data.get('answers'))
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else 'normal'
     label = (data.get('label') or '')[:150]
-    engine.add_lot(session, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label)
-    return JsonResponse(engine.session_payload(session), status=201)
+    language = normalize_language(data.get('lang'))
+    engine.add_lot(session, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label, language=language)
+    return JsonResponse(engine.session_payload(session, language), status=201)
 
 
 @csrf_exempt
@@ -231,8 +238,9 @@ def session_lot_detail(request, session_key, lot_id):
         return JsonResponse({'error': 'Lot introuvable.'}, status=404)
 
     if request.method == 'DELETE':
+        language = normalize_language(request.GET.get('lang'))
         engine.remove_lot(session, lot_id)
-        return JsonResponse(engine.session_payload(session))
+        return JsonResponse(engine.session_payload(session, language))
 
     if _rate_limited(request, 'session_lot_update', limit=120):
         return JsonResponse({'error': 'Trop de requêtes, réessayez plus tard.'}, status=429)
@@ -242,8 +250,9 @@ def session_lot_detail(request, session_key, lot_id):
     answers = _sanitize_answers(data.get('answers'))
     urgency = data.get('urgency') if data.get('urgency') in ('urgent', 'normal', 'flexible') else None
     label = data.get('label') if isinstance(data.get('label'), str) else None
-    engine.update_lot(lot, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label)
-    return JsonResponse(engine.session_payload(session))
+    language = normalize_language(data.get('lang'))
+    engine.update_lot(lot, data.get('domain_code'), data.get('service_code'), urgency, answers, label=label, language=language)
+    return JsonResponse(engine.session_payload(session, language))
 
 
 @csrf_exempt
