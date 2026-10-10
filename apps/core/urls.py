@@ -25,4 +25,6 @@ urlpatterns = [
     path('notifications/', views.notifications_list, name='notifications'),
     path('notifications/<int:pk>/read/', views.notifications_read, name='notification_read'),
     path('notifications/read-all/', views.notifications_read_all, name='notifications_read_all'),
+    # ── Langue ─────────────────────────────────────────────────────────────────
+    path('set-language/', views.set_user_language, name='set_user_language'),
 ]
