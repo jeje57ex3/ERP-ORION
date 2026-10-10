@@ -380,3 +380,28 @@ def notifications_list(request):
         'page_title': 'Notifications',
         'active_module': 'dashboard',
     })
+
+
+def set_user_language(request):
+    """
+    Change la langue de l'interface ERP interne. Persiste la préférence en
+    base (`UserLanguagePreference`, via `apps.translations.services.set_user_language`)
+    pour les utilisateurs connectés — contrairement au sélecteur des sites
+    publics (`apps.websites.public_views.set_site_language`) qui ne gère que
+    la session, ici la préférence doit survivre à une déconnexion/reconnexion.
+    """
+    from apps.translations import services as translation_services
+
+    code = request.GET.get('lang', '')
+    if request.user.is_authenticated:
+        company = getattr(request, 'current_company', None)
+        translation_services.set_user_language(request.user, code, company=company, request=request)
+    else:
+        from apps.translations.models import Language
+        if Language.objects.filter(code=code, is_active=True).exists():
+            request.session['_language'] = code
+
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect('core:dashboard')
