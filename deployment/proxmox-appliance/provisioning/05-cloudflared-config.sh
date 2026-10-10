@@ -23,6 +23,7 @@ if [ -n "${CF_TUNNEL_TOKEN:-}" ]; then
     && echo "     ${ORION_DOMAIN:-<orion>}  -> http://localhost:5172" \
     && echo "     ${SIECLE_DOMAIN:-<siecle>} -> http://localhost:5173" \
     && echo "     ${LUNEA_DOMAIN:-<lunea>}  -> http://localhost:5174" \
+    && echo "     ${NS_DOMAIN:-<ns>}     -> http://localhost:80  (Nginx, pas un port direct)" \
     || echo "ATTENTION: installation du tunnel échouée — relancer : cloudflared service install <token>"
 else
   systemctl disable cloudflared 2>/dev/null || true

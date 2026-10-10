@@ -50,7 +50,7 @@ fournies (auto-détection pour le reste) :
 Toutes les options : `--vmid`, `--name`, `--storage`, `--disk-size`,
 `--snippets-storage`, `--bridge`, `--ip`/`--gateway`/`--dns` (IP statique —
 omis = DHCP), `--memory`, `--cores`, `--sshkey`,
-`--login-domain`/`--orion-domain`/`--siecle-domain`/`--lunea-domain`
+`--login-domain`/`--orion-domain`/`--siecle-domain`/`--lunea-domain`/`--ns-domain`
 (domaines publics, omis = accès par IP), `--cf-token` (Cloudflare Tunnel),
 `--github-token` (jeton d'accès GitHub, requis si `ORION_GIT_REPO_URL` est un
 dépôt privé — sinon le git clone de Stage A échoue ; peut aussi être
@@ -95,9 +95,9 @@ Options utiles (voir `import_proxmox.sh --help`) :
   --sshkey ~/.ssh/id_ed25519.pub \
   --login-domain login.exemple.fr --orion-domain orion.exemple.fr \
   --siecle-domain siecle.exemple.fr --lunea-domain lunea.exemple.fr \
+  --ns-domain ns.exemple.fr \
   --cf-token "$CF_TOKEN" \
-  --github-token "$GITHUB_TOKEN" \
-  --start
+  --github-token "$GITHUB_TOKEN"
 ```
 
 Lister les stockages/bridges disponibles sur ce host avant de choisir :
@@ -158,9 +158,14 @@ ssh orion@<ip-vm>
 sudo cloudflared service install <TOKEN>
 ```
 
-Puis déclarer les 4 hostnames publics dans le dashboard Cloudflare Zero Trust
+Puis déclarer les hostnames publics dans le dashboard Cloudflare Zero Trust
 (Tunnels → *tunnel* → Public Hostname), chacun pointant vers
 `http://localhost:<port>` (9000/5172/5173/5174 — voir tableau dans README.md).
+
+Le domaine NÉOSTRUCTURA est le seul à viser `http://localhost:80` : Nginx sert
+son build statique et proxifie `/api` vers Django, parce que son client API
+utilise des chemins relatifs et exige donc la même origine. Le pointer vers un
+port applicatif direct casserait tous ses appels API.
 
 **Alternative avancée (tunnel géré localement, sans dashboard)** : un modèle
 d'ingress prêt à l'emploi existe dans `/etc/cloudflared/config.yml.tmpl`

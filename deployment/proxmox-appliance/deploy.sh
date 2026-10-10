@@ -27,6 +27,7 @@
 #   --orion-domain DOMAIN     Domaine vitrine (ex: orion.exemple.fr) — def: aucun
 #   --siecle-domain DOMAIN    Domaine boutique SIÈCLE — def: aucun
 #   --lunea-domain DOMAIN     Domaine boutique LUNEA — def: aucun
+#   --ns-domain DOMAIN        Domaine site NÉOSTRUCTURA — def: aucun
 #   --cf-token TOKEN          Token Cloudflare Tunnel — def: aucun (tunnel désactivé)
 #   --github-token TOKEN      Jeton d'accès GitHub (dépôt privé) — def: aucun (dépôt public)
 #   --as-template             Convertit la VM en template après import (pas de démarrage)
@@ -54,6 +55,7 @@ LOGIN_DOMAIN=""
 ORION_DOMAIN=""
 SIECLE_DOMAIN=""
 LUNEA_DOMAIN=""
+NS_DOMAIN=""
 CF_TOKEN=""
 GITHUB_TOKEN=""
 AS_TEMPLATE=0
@@ -87,6 +89,7 @@ while [ $# -gt 0 ]; do
     --orion-domain) ORION_DOMAIN="$2"; shift 2 ;;
     --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
     --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
+    --ns-domain) NS_DOMAIN="$2"; shift 2 ;;
     --cf-token) CF_TOKEN="$2"; shift 2 ;;
     --github-token) GITHUB_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; START_VM=0; shift ;;
@@ -281,6 +284,7 @@ run_wizard() {
   ORION_DOMAIN="$(ask_optional "Domaine Orion (vitrine)" "$ORION_DOMAIN")"
   SIECLE_DOMAIN="$(ask_optional "Domaine SIÈCLE" "$SIECLE_DOMAIN")"
   LUNEA_DOMAIN="$(ask_optional "Domaine LUNEA" "$LUNEA_DOMAIN")"
+  NS_DOMAIN="$(ask_optional "Domaine NÉOSTRUCTURA" "$NS_DOMAIN")"
   CF_TOKEN="$(ask_secret "Cloudflare Tunnel Token")"
 
   # ── Dépôt Git privé (optionnel) ──────────────────────────────────────────
@@ -319,7 +323,7 @@ run_wizard() {
   echo " Réseau              : $BRIDGE — $([ -n "$STATIC_IP" ] && echo "IP statique $STATIC_IP (gw $GATEWAY, dns $DNS)" || echo "DHCP")"
   echo " Ressources          : ${MEMORY} Mo RAM / ${CORES} vCPU"
   echo " Clé SSH             : ${SSHKEY:-aucune}"
-  echo " Domaines            : $([ -n "$LOGIN_DOMAIN$ORION_DOMAIN$SIECLE_DOMAIN$LUNEA_DOMAIN" ] && echo "login=${LOGIN_DOMAIN:-—} orion=${ORION_DOMAIN:-—} siecle=${SIECLE_DOMAIN:-—} lunea=${LUNEA_DOMAIN:-—}" || echo "aucun (accès par IP)")"
+  echo " Domaines            : $([ -n "$LOGIN_DOMAIN$ORION_DOMAIN$SIECLE_DOMAIN$LUNEA_DOMAIN$NS_DOMAIN" ] && echo "login=${LOGIN_DOMAIN:-—} orion=${ORION_DOMAIN:-—} siecle=${SIECLE_DOMAIN:-—} lunea=${LUNEA_DOMAIN:-—} ns=${NS_DOMAIN:-—}" || echo "aucun (accès par IP)")"
   echo " Cloudflare Tunnel   : $([ -n "$CF_TOKEN" ] && echo "token fourni" || echo "non configuré")"
   echo " Dépôt Git privé     : $([ -n "$GITHUB_TOKEN" ] && echo "jeton fourni" || echo "non configuré (dépôt public)")"
   echo " Action finale       : $final_choice"
@@ -401,6 +405,7 @@ fi
 [ -n "$ORION_DOMAIN" ] && IMPORT_ARGS+=(--orion-domain "$ORION_DOMAIN")
 [ -n "$SIECLE_DOMAIN" ] && IMPORT_ARGS+=(--siecle-domain "$SIECLE_DOMAIN")
 [ -n "$LUNEA_DOMAIN" ] && IMPORT_ARGS+=(--lunea-domain "$LUNEA_DOMAIN")
+[ -n "$NS_DOMAIN" ] && IMPORT_ARGS+=(--ns-domain "$NS_DOMAIN")
 [ -n "$CF_TOKEN" ] && IMPORT_ARGS+=(--cf-token "$CF_TOKEN")
 [ -n "$GITHUB_TOKEN" ] && IMPORT_ARGS+=(--github-token "$GITHUB_TOKEN")
 if [ "$AS_TEMPLATE" -eq 1 ]; then

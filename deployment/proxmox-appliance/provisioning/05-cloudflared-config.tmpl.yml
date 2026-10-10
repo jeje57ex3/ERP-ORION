@@ -17,4 +17,10 @@ ingress:
     service: http://127.0.0.1:5173
   - hostname: __LUNEA_DOMAIN__
     service: http://127.0.0.1:5174
+  # NÉOSTRUCTURA vise Nginx (port 80) et non un port applicatif direct,
+  # contrairement aux quatre entrées ci-dessus : son SPA appelle /api en
+  # relatif et c'est Nginx qui proxifie vers Django sur la même origine.
+  # Pointer un serveur de fichiers statiques casserait tous ses appels API.
+  - hostname: __NS_DOMAIN__
+    service: http://127.0.0.1:80
   - service: http_status:404

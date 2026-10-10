@@ -115,6 +115,30 @@ else
   echo "     (les construire plus tard une fois un domaine configuré, voir PROXMOX.md)"
 fi
 
+# ─── Site NÉOSTRUCTURA (SPA statique servie par Nginx) ─────────────────────────
+# Volontairement NON conditionné à LOGIN_DOMAIN, contrairement aux boutiques :
+# son client API utilise des chemins relatifs (src/api/configurator.js), il n'y
+# a donc aucune URL d'API à injecter au moment du build. Le site se construit
+# et se déploie même sans aucun domaine fourni, et reste joignable par l'IP.
+NS_SRC="$ORION_HOME/backend/frontend/neostructura-site"
+if [ -d "$NS_SRC" ]; then
+  echo "[03] Build du site NÉOSTRUCTURA..."
+  mkdir -p "$ORION_HOME/neostructura"
+  if (cd "$NS_SRC" && npm run build); then
+    rm -rf "$ORION_HOME/neostructura"/*
+    cp -r "$NS_SRC/dist/." "$ORION_HOME/neostructura/"
+    chown -R orion:orion "$ORION_HOME/neostructura"
+    # Nginx (www-data) lit ces fichiers directement, sans passer par un
+    # service applicatif : ils doivent être lisibles par tous.
+    chmod -R a+rX "$ORION_HOME/neostructura"
+    echo "[03] NÉOSTRUCTURA déployé dans $ORION_HOME/neostructura."
+  else
+    echo "ATTENTION: build NÉOSTRUCTURA échoué — son domaine renverra 404." >&2
+  fi
+else
+  echo "[03] ATTENTION : $NS_SRC introuvable — site NÉOSTRUCTURA ignoré."
+fi
+
 systemctl enable --now orion-health.timer
 
 echo "[03] Terminé."

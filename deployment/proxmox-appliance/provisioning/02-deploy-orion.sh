@@ -59,8 +59,10 @@ python3 -m venv "$ORION_HOME/backend/.venv"
 "$ORION_HOME/backend/.venv/bin/pip" install --upgrade pip --quiet
 "$ORION_HOME/backend/.venv/bin/pip" install --no-cache-dir -r "$ORION_HOME/backend/requirements.txt"
 
-# ─── Dépendances Node des stores (installation seule, build différé) ──────────
-for store in siecle-store lunea-store; do
+# ─── Dépendances Node des frontends (installation seule, build différé) ───────
+# neostructura-site est un site vitrine, pas une boutique, mais vit dans le même
+# dossier frontend/ et se construit de la même façon.
+for store in siecle-store lunea-store neostructura-site; do
   DIR="$ORION_HOME/backend/frontend/$store"
   if [ -d "$DIR" ]; then
     echo "[02] npm ci — $store..."
@@ -96,7 +98,10 @@ VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="s
 ALLOWED_HOSTS="localhost,127.0.0.1${VM_IP:+,$VM_IP}"
 CSRF_ORIGINS=""
 CORS_ORIGINS=""
-for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}"; do
+# NS_DOMAIN est ici et non dans le groupe suivant : le SPA NÉOSTRUCTURA est
+# servi par Nginx sur la MÊME origine que l'API qu'il appelle en relatif, il
+# n'a donc pas besoin d'entrée CORS — seulement d'être un hôte autorisé.
+for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}" "${NS_DOMAIN:-}"; do
   [ -n "$d" ] && { ALLOWED_HOSTS="$ALLOWED_HOSTS,$d"; CSRF_ORIGINS="${CSRF_ORIGINS:+$CSRF_ORIGINS,}https://$d"; }
 done
 for d in "${SIECLE_DOMAIN:-}" "${LUNEA_DOMAIN:-}"; do

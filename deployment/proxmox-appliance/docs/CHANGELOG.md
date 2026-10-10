@@ -1,5 +1,34 @@
 # Changelog — Appliance Proxmox Orion ERP
 
+## 2026.10.10
+
+- Site NÉOSTRUCTURA pris en charge par l'appliance : il n'y figurait nulle
+  part (aucune unit, aucun vhost, aucune option de domaine) et n'avait donc
+  jamais de mode de service en production — il ne tournait qu'en serveur de
+  développement Vite. Nouvelle option `--ns-domain` propagée de `deploy.sh`
+  jusqu'à `deploy-info.env`, build au provisioning, vhost Nginx, ingress du
+  tunnel et reconstruction dans `update_orion.sh`.
+- Contrairement aux boutiques SIÈCLE/LUNEA, ce site n'a **pas** de service
+  dédié : Nginx sert son build statique et proxifie `/api` et `/media` vers
+  Django. Son client API appelle des chemins relatifs (en développement c'est
+  le proxy Vite qui les redirige), le SPA et l'API doivent donc partager la
+  même origine — ce qu'un serveur de fichiers statiques ne sait pas faire.
+  Conséquence : dans le tunnel, ce domaine vise Nginx (port 80) et non un
+  port applicatif direct.
+- Son build n'est pas conditionné à `--login-domain`, à la différence des
+  boutiques : aucune URL d'API n'est à injecter à la compilation.
+- `frontend/neostructura-site` : sortie du build déplacée de
+  `static/neostructura-site` vers `dist/`. Le premier est dans
+  `STATICFILES_DIRS`, le build passait donc dans `collectstatic` et son
+  `ManifestStaticFilesStorage`, qui échoue dès qu'un asset référence une
+  ressource non résolvable.
+- Documentation : le README décrivait un « assistant console (Stage B) » sur
+  `tty1` qui n'existe pas — remplacé par le formulaire web `/setup/`
+  (`apps/core/setup_views.py`). L'exemple non-interactif de PROXMOX.md
+  passait `--start`, une option que `deploy.sh` rejette (son parser sort en
+  erreur sur toute option inconnue) ; la VM démarre par défaut et
+  `--as-template` fait l'inverse.
+
 ## 2026.10.09
 
 - Migration des données vers l'appliance : `scripts/export_orion_data.ps1`

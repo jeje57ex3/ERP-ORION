@@ -36,7 +36,7 @@ npm update -g --silent || true
 echo "[4/6] Mise à jour applicative Orion ERP (git pull + migrations)..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm
 
-echo "[5/6] Reconstruction des frontends SIÈCLE / LUNEA..."
+echo "[5/6] Reconstruction des frontends SIÈCLE / LUNEA / NÉOSTRUCTURA..."
 for store in siecle-store:siecle lunea-store:lunea; do
   SRC_DIR="${store%%:*}"; DEST_NAME="${store##*:}"
   STORE_PATH="$ORION_HOME/backend/frontend/$SRC_DIR"
@@ -49,6 +49,22 @@ for store in siecle-store:siecle lunea-store:lunea; do
   fi
 done
 chown -R orion:orion "$ORION_HOME/siecle" "$ORION_HOME/lunea"
+
+# NÉOSTRUCTURA à part : aucune URL d'API à injecter au build (appels relatifs,
+# proxifiés par Nginx), et pas de service applicatif à redémarrer puisque c'est
+# Nginx qui sert les fichiers — d'où le chmod, www-data doit pouvoir les lire.
+NS_PATH="$ORION_HOME/backend/frontend/neostructura-site"
+if [ -d "$NS_PATH" ]; then
+  if (cd "$NS_PATH" && npm ci --silent && npm run build); then
+    mkdir -p "$ORION_HOME/neostructura"
+    rm -rf "$ORION_HOME/neostructura"/*
+    cp -r "$NS_PATH/dist/." "$ORION_HOME/neostructura/"
+    chown -R orion:orion "$ORION_HOME/neostructura"
+    chmod -R a+rX "$ORION_HOME/neostructura"
+  else
+    echo "  ATTENTION: build NÉOSTRUCTURA échoué — version précédente conservée."
+  fi
+fi
 
 echo "[6/6] Redémarrage des services..."
 systemctl restart orion-backend.service orion-frontend.service

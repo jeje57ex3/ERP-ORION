@@ -16,11 +16,19 @@ déployer sur un serveur déjà existant) : celui-ci produit une **VM complète*
 | `orion.<domaine>` | 5172 | `orion-frontend` | Django Vitrine (même code) |
 | `siecle.<domaine>` | 5173 | `siecle-frontend` | SPA React SIÈCLE |
 | `lunea.<domaine>` | 5174 | `lunea-frontend` | SPA React LUNEA |
+| `ns.<domaine>` | 80 (Nginx) | `nginx` | SPA React NÉOSTRUCTURA |
 
 MySQL 8.0 et Redis 7 tournent en conteneurs Docker (`orion-db-stack.service`) ;
 les 4 services applicatifs tournent nativement (systemd) pour rester
 individuellement pilotables — topologie identique à la production réelle
 (voir `server_tools/orion_cloudflare_guard.py` à la racine du projet).
+
+NÉOSTRUCTURA fait exception : il n'a pas de service dédié, Nginx sert son
+build statique et proxifie `/api` et `/media` vers Django. Son client API
+appelle en effet des chemins relatifs, le SPA et l'API doivent donc partager
+la même origine — ce qu'un serveur de fichiers statiques ne sait pas faire.
+Conséquence : dans le tunnel Cloudflare, ce domaine vise Nginx (port 80) et
+non un port applicatif direct.
 
 ## Démarrage rapide
 
@@ -62,13 +70,16 @@ build/
 
 ## Premier démarrage
 
-Deux étapes, automatiques puis interactives :
+1. **cloud-init** — paquets, code source, `.env`, migrations, build des
+   frontends, nginx, services : **entièrement automatique**, aucune étape
+   interactive sur la console, ~3-8 min.
+2. **Assistant de premier accès** — dans un **navigateur**, sur le domaine
+   Login ou directement sur l'IP de la VM : nom de l'entreprise, email et
+   mot de passe administrateur, fuseau horaire. `SetupRequiredMiddleware`
+   affiche `/setup/` tant qu'aucune entreprise n'existe en base, puis la
+   route redirige vers la connexion normale.
 
-1. **cloud-init (Stage A)** — install des paquets, code source, services —
-   entièrement automatique, ~2-5 min.
-2. **Assistant console (Stage B)** — sur la console de la VM (tty1, visible
-   via noVNC dans Proxmox) : entreprise, domaines, admin, fuseau horaire,
-   token Cloudflare (optionnel). Écrit `.env`, migre la base, construit les
-   frontends, démarre tous les services.
-
-Aucune configuration manuelle au-delà de ces questions.
+Il n'y a **pas** d'assistant sur la console série de la VM : le formulaire web
+`/setup/` l'a remplacé (voir `apps/core/setup_views.py`). Les domaines et le
+token Cloudflare se fournissent à `deploy.sh` au moment du déploiement, pas
+au premier démarrage.

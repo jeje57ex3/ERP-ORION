@@ -18,6 +18,10 @@ db.sqlite3
 db_local.sqlite3
 *.db
 
+# Sorties de build des frontends (reconstruites au deploiement)
+frontend/*/dist/
+static/neostructura-site/
+
 # Generated / large assets
 media/
 staticfiles/
