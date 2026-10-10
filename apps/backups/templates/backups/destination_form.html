@@ -1,0 +1,111 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'backups:dashboard' %}">Sauvegardes</a></li>
+<li class="breadcrumb-item"><a href="{% url 'backups:settings' %}">Paramètres</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card erp-card">
+      <div class="card-header"><h5 class="mb-0">{{ page_title }}</h5></div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ form.name.label }}</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{{ form.destination_type.label }}</label>
+            {{ form.destination_type }}
+            {% if form.destination_type.errors %}<div class="text-danger small">{{ form.destination_type.errors }}</div>{% endif %}
+          </div>
+
+          <div id="fields-local" class="mb-3">
+            <label class="form-label fw-semibold">{{ form.local_path.label }}</label>
+            {{ form.local_path }}
+            {% if form.local_path.help_text %}<div class="form-text">{{ form.local_path.help_text }}</div>{% endif %}
+            {% if form.local_path.errors %}<div class="text-danger small">{{ form.local_path.errors }}</div>{% endif %}
+          </div>
+
+          <div id="fields-smb">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">{{ form.smb_server.label }}</label>
+                {{ form.smb_server }}
+                {% if form.smb_server.errors %}<div class="text-danger small">{{ form.smb_server.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">{{ form.smb_share.label }}</label>
+                {{ form.smb_share }}
+                {% if form.smb_share.errors %}<div class="text-danger small">{{ form.smb_share.errors }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">{{ form.smb_path.label }}</label>
+              {{ form.smb_path }}
+              {% if form.smb_path.help_text %}<div class="form-text">{{ form.smb_path.help_text }}</div>{% endif %}
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-5">
+                <label class="form-label fw-semibold">{{ form.smb_username.label }}</label>
+                {{ form.smb_username }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">{{ form.smb_domain.label }}</label>
+                {{ form.smb_domain }}
+                {% if form.smb_domain.help_text %}<div class="form-text">{{ form.smb_domain.help_text }}</div>{% endif %}
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">{{ form.smb_password.label }}</label>
+                {{ form.smb_password }}
+              </div>
+            </div>
+            {% if form.smb_password.help_text %}<div class="form-text mb-3">{{ form.smb_password.help_text }}</div>{% endif %}
+          </div>
+
+          <div class="form-check mb-2">
+            {{ form.is_active }}
+            <label class="form-check-label">{{ form.is_active.label }}</label>
+          </div>
+          <div class="form-check mb-3">
+            {{ form.is_default }}
+            <label class="form-check-label">{{ form.is_default.label }}</label>
+            {% if form.is_default.help_text %}<div class="form-text">{{ form.is_default.help_text }}</div>{% endif %}
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-check-lg me-2"></i>{% if action == 'edit' %}Enregistrer{% else %}Créer{% endif %}
+            </button>
+            <a href="{% url 'backups:settings' %}" class="orion-btn orion-btn-ghost">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var typeField = document.getElementById('id_destination_type');
+  var localFields = document.getElementById('fields-local');
+  var smbFields = document.getElementById('fields-smb');
+  function toggle() {
+    var isSmb = typeField.value === 'smb';
+    localFields.style.display = isSmb ? 'none' : '';
+    smbFields.style.display = isSmb ? '' : 'none';
+  }
+  if (typeField) {
+    typeField.addEventListener('change', toggle);
+    toggle();
+  }
+})();
+</script>
+{% endblock %}

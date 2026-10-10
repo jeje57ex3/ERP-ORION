@@ -29,6 +29,8 @@
 
 {% block content %}
 
+{% with active_subnav='projects' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
 {% if messages %}
 {% for msg in messages %}
 <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3">

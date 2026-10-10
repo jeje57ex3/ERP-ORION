@@ -18,6 +18,8 @@
 {% endblock %}
 
 {% block content %}
+{% with active_subnav='timesheets' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
 <!-- KPIs -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">

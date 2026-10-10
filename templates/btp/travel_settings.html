@@ -1,0 +1,120 @@
+{% extends "erp_base.html" %}
+{% load static i18n l10n %}
+{% block title %}{% trans "Frais de déplacement" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="fw-bold mb-0">{% trans "Frais de déplacement" %}</h4>
+  <a href="{% url 'btp:guided_quote_list' %}" class="orion-btn orion-btn-outline orion-btn-sm">
+    {% trans "Demandes guidées" %}
+  </a>
+</div>
+
+<p class="text-muted small mb-4" style="max-width:720px">
+  {% blocktrans %}Ces paramètres servent à chiffrer automatiquement le déplacement dans le devis guidé : la distance entre le point de départ de l'entreprise et la localisation des travaux est calculée, puis facturée en aller-retour selon la consommation du véhicule et le prix du carburant.{% endblocktrans %}
+</p>
+
+<form method="post" class="row g-4">
+  {% csrf_token %}
+
+  <div class="col-lg-6">
+    <div class="orion-card h-100">
+      <div class="orion-card-header"><div class="orion-card-title">{% trans "Point de départ de l'entreprise" %}</div></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Adresse" %}</label>
+          <input type="text" name="travel_base_address" class="form-control form-control-sm"
+                 value="{{ settings_obj.travel_base_address }}"
+                 placeholder="{{ company.address|default:'' }}">
+          <div class="form-text">{% trans "Vide = adresse de l'entreprise" %}{% if company.address %} ({{ company.address }}){% endif %}</div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-5">
+            <label class="form-label small fw-semibold">{% trans "Code postal" %}</label>
+            <input type="text" name="travel_base_zip_code" class="form-control form-control-sm"
+                   value="{{ settings_obj.travel_base_zip_code }}" placeholder="{{ company.zip_code|default:'' }}">
+          </div>
+          <div class="col-7">
+            <label class="form-label small fw-semibold">{% trans "Ville" %}</label>
+            <input type="text" name="travel_base_city" class="form-control form-control-sm"
+                   value="{{ settings_obj.travel_base_city }}" placeholder="{{ company.city|default:'' }}">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Pays (code ISO 2)" %}</label>
+          <input type="text" name="travel_country_code" class="form-control form-control-sm" maxlength="2"
+                 style="max-width:90px" value="{{ settings_obj.travel_country_code }}">
+          <div class="form-text">{% trans "pt = Portugal, fr = France, es = Espagne…" %}</div>
+        </div>
+
+        <div class="p-3 rounded" style="background:#F8F3EA">
+          <div class="small fw-semibold mb-1">{% trans "Coordonnées résolues" %}</div>
+          {% if settings_obj.travel_base_latitude %}
+            <div class="fw-mono small">{{ settings_obj.travel_base_latitude }}, {{ settings_obj.travel_base_longitude }}</div>
+          {% else %}
+            <div class="text-muted small">{% trans "Pas encore localisé — enregistrez puis cliquez sur « Localiser »." %}</div>
+          {% endif %}
+          <button type="submit" name="action" value="locate" class="orion-btn orion-btn-outline orion-btn-sm mt-2">
+            {% trans "Localiser l'adresse" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="orion-card h-100">
+      <div class="orion-card-header"><div class="orion-card-title">{% trans "Carburant et véhicule" %}</div></div>
+      <div class="orion-card-body">
+        <div class="form-check form-switch mb-4">
+          <input class="form-check-input" type="checkbox" role="switch" id="travelEnabled"
+                 name="travel_billing_enabled" {% if settings_obj.travel_billing_enabled %}checked{% endif %}>
+          <label class="form-check-label small fw-semibold" for="travelEnabled">
+            {% trans "Facturer les déplacements dans le devis guidé" %}
+          </label>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Prix du carburant (€/L)" %}</label>
+          {# unlocalize : un input[type=number] n'accepte que le point décimal #}
+          <input type="number" step="0.001" min="0" name="fuel_price_per_liter"
+                 class="form-control form-control-sm" style="max-width:160px"
+                 value="{{ settings_obj.fuel_price_per_liter|unlocalize }}">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Consommation du véhicule (L/100 km)" %}</label>
+          <input type="number" step="0.01" min="0" name="vehicle_consumption_l_per_100km"
+                 class="form-control form-control-sm" style="max-width:160px"
+                 value="{{ settings_obj.vehicle_consumption_l_per_100km|unlocalize }}">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{% trans "Coefficient routier" %}</label>
+          <input type="number" step="0.01" min="1" name="travel_road_factor"
+                 class="form-control form-control-sm" style="max-width:160px"
+                 value="{{ settings_obj.travel_road_factor|unlocalize }}">
+          <div class="form-text">
+            {% trans "Rapport distance routière / distance à vol d'oiseau (1.3 recommandé)." %}
+          </div>
+        </div>
+
+        <div class="p-3 rounded small" style="background:#F8F3EA">
+          <div class="fw-semibold mb-1">{% trans "Formule appliquée" %}</div>
+          <div class="text-muted">
+            {% trans "distance aller × 2 × (consommation ÷ 100) × prix du litre" %}
+          </div>
+          <div class="mt-2 fw-mono">
+            {% trans "Ex. 20 km" %} → 20 × 2 × ({{ settings_obj.vehicle_consumption_l_per_100km }} ÷ 100) × {{ settings_obj.fuel_price_per_liter }} €
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <button type="submit" class="orion-btn orion-btn-primary">{% trans "Enregistrer" %}</button>
+  </div>
+</form>
+{% endblock %}

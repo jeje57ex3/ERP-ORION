@@ -1,5 +1,29 @@
 # Changelog — Appliance Proxmox Orion ERP
 
+## 2026.10.09
+
+- Migration des données vers l'appliance : `scripts/export_orion_data.ps1`
+  (poste Windows → archive horodatée base + médias + manifeste, empreinte
+  SHA-256) et `scripts/install_orion_data.sh` (VM → vérification d'empreinte,
+  sauvegarde de sécurité, restauration, fusion des médias, `migrate` +
+  `collectstatic`, redémarrage des services). L'appliance démarrait jusqu'ici
+  avec une base vide, sans chemin outillé pour y porter des données
+  existantes. Documenté dans [DATA-MIGRATION.md](DATA-MIGRATION.md).
+- Les builds mobiles (`.apk`/`.aab`, ~1 Go d'artefacts reconstructibles) sont
+  exclus de l'export par défaut (`-IncludeMobileBuilds` pour les inclure).
+
+## 2026.08.06
+
+- `deploy_proxmox_vm.sh` : ajout d'un assistant interactif (choix du disque/
+  stockage d'installation via menu détecté par `pvesm`, taille du disque
+  virtuel personnalisable, bridge réseau, IP statique ou DHCP, clé SSH avec
+  détection des `~/.ssh/*.pub`, choix démarrer/laisser arrêtée/template,
+  récapitulatif avant confirmation). Actif par défaut sans option sur un
+  terminal interactif ; mode non-interactif (flags) inchangé pour
+  l'automatisation/CI.
+- `import_proxmox.sh` : nouvelles options `--disk-size`, `--ip`/`--gateway`/
+  `--dns` (IP statique), `--list-storage`, `--list-bridges`.
+
 ## 2026.08.05
 
 - Première version : pipeline de build complet (Ubuntu 24.04 cloud image +

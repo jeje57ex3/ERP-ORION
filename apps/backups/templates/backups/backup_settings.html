@@ -49,6 +49,88 @@
   </div>
   <div class="col-12">
     <div class="card erp-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Destinations de sauvegarde</h5>
+        <a href="{% url 'backups:destination_create' %}" class="orion-btn orion-btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Ajouter une destination
+        </a>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Par défaut, les sauvegardes restent sur le disque local
+          (<code>storage/backups/</code>). Ajoutez une destination et
+          marquez-la « par défaut » pour envoyer automatiquement les
+          prochaines sauvegardes sur un autre disque ou un partage réseau
+          SMB/CIFS.
+        </p>
+        {% if destinations and not has_default_destination %}
+        <div class="alert alert-warning py-2 px-3 small mb-3">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Aucune destination n'est marquée « par défaut » — les sauvegardes
+          continuent d'être stockées en local uniquement. Modifiez une
+          destination ci-dessous et cochez « Destination par défaut ».
+        </div>
+        {% endif %}
+        {% if destinations %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Emplacement</th>
+                <th>Statut</th>
+                <th>Dernier test</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in destinations %}
+              <tr>
+                <td>
+                  {{ d.name }}
+                  {% if d.is_default %}<span class="badge bg-primary ms-1">Par défaut</span>{% endif %}
+                  {% if not d.is_active %}<span class="badge bg-secondary ms-1">Inactive</span>{% endif %}
+                </td>
+                <td>{{ d.get_destination_type_display }}</td>
+                <td class="small text-muted">
+                  {% if d.destination_type == 'local' %}{{ d.local_path }}{% else %}{{ d.smb_unc_root }}{% endif %}
+                </td>
+                <td>
+                  {% if d.last_test_ok is None %}
+                  <span class="badge bg-secondary">Non testée</span>
+                  {% elif d.last_test_ok %}
+                  <span class="badge bg-success">OK</span>
+                  {% else %}
+                  <span class="badge bg-danger">Échec</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ d.last_test_at|date:"d/m/Y H:i"|default:"—" }}</td>
+                <td class="text-end">
+                  <div class="d-flex gap-1 justify-content-end">
+                    <form method="post" action="{% url 'backups:destination_test' d.pk %}">
+                      {% csrf_token %}
+                      <button type="submit" class="orion-btn orion-btn-outline btn-sm" title="Tester la connexion">
+                        <i class="bi bi-plug"></i>
+                      </button>
+                    </form>
+                    <a href="{% url 'backups:destination_edit' d.pk %}" class="orion-btn orion-btn-outline btn-sm"><i class="bi bi-pencil"></i></a>
+                    <a href="{% url 'backups:destination_delete' d.pk %}" class="orion-btn orion-btn-danger btn-sm"><i class="bi bi-trash"></i></a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune destination configurée — les sauvegardes restent en local.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card erp-card">
       <div class="card-header"><h5 class="mb-0">Informations de sécurité</h5></div>
       <div class="card-body">
         <ul class="list-unstyled mb-0">

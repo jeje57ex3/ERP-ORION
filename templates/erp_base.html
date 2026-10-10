@@ -84,13 +84,6 @@
            href="#navCollapse-{{ module.id }}"
            role="button"
            aria-expanded="{% if active_module == module.id %}true{% else %}false{% endif %}">
-          <span class="nav-icon" style="color: {{ module.color }}">
-            {% if module.icon_img %}
-            <img src="{% static 'img/nav-icons/'|add:module.icon_img %}?v=4" alt="" class="nav-icon-img">
-            {% else %}
-            <i class="ti {{ module.icon }}"></i>
-            {% endif %}
-          </span>
           <span class="nav-label">{{ module.label }}</span>
           <i class="bi bi-chevron-down nav-arrow"></i>
         </a>
@@ -99,11 +92,6 @@
             {% for child in module.children %}
             <a class="nav-sublink {% if request.resolver_match.view_name == child.url_name %}active{% endif %}"
                href="{% url child.url_name %}">
-              {% if child.icon_img %}
-              <img src="{% static 'img/nav-icons/'|add:child.icon_img %}?v=4" alt="" class="nav-icon-img sm me-2">
-              {% else %}
-              <i class="ti {{ child.icon }} me-2"></i>
-              {% endif %}
               {{ child.label }}
             </a>
             {% endfor %}
@@ -112,13 +100,6 @@
         {% else %}
         <a class="nav-link {% if active_module == module.id %}active{% endif %}"
            href="{% url module.url_name %}">
-          <span class="nav-icon" style="color: {{ module.color }}">
-            {% if module.icon_img %}
-            <img src="{% static 'img/nav-icons/'|add:module.icon_img %}?v=4" alt="" class="nav-icon-img">
-            {% else %}
-            <i class="ti {{ module.icon }}"></i>
-            {% endif %}
-          </span>
           <span class="nav-label">{{ module.label }}</span>
         </a>
         {% endif %}

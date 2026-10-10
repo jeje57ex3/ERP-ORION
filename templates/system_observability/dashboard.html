@@ -5,10 +5,14 @@
     <div class="orion-page-eyebrow">Système</div>
     <h1 class="orion-page-title">Observabilité système</h1>
   </div>
-  <div class="orion-page-actions">
+  <div class="orion-page-actions d-flex align-items-center gap-2">
     <span class="orion-badge {% if stats.overall_status == 'ok' %}success{% elif stats.overall_status == 'warning' %}warning{% elif stats.overall_status == 'critical' %}danger{% else %}neutral{% endif %}" style="font-size:13px;padding:6px 14px">
       {% if stats.overall_status == 'ok' %}Tout est OK{% elif stats.overall_status == 'warning' %}Avertissements{% elif stats.overall_status == 'critical' %}État critique{% else %}Inconnu{% endif %}
     </span>
+    <form method="post" action="{% url 'system_observability:run_now' %}">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn primary sm"><i class="bi bi-arrow-clockwise me-1"></i>Relancer une analyse</button>
+    </form>
   </div>
 </div>
 {% endblock %}

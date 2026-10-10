@@ -3,6 +3,8 @@
 {% block title %}{% trans "Bibliothèque de prix" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
 {% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
 {% block content %}
+{% with active_subnav='price_library' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="fw-bold mb-0"><i class="bi bi-lightning-fill text-warning me-2"></i>{% trans "Bibliothèque de prix" %}</h4>
   <a href="{% url 'btp:price_library_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un tarif" %}</a>
@@ -42,6 +44,7 @@
         <tr>
           <th>{% trans "Prestation" %}</th>
           <th>{% trans "Catégorie" %}</th>
+          <th>{% trans "Configurateur public" %}</th>
           <th>{% trans "Prix min HT" %}</th>
           <th>{% trans "Prix moyen HT" %}</th>
           <th>{% trans "Prix max HT" %}</th>
@@ -58,6 +61,16 @@
           {% if item.description %}<div class="text-muted" style="font-size:.7rem">{{ item.description|truncatechars:50 }}</div>{% endif %}
         </td>
         <td><span class="badge bg-light text-dark border small">{{ item.get_category_display }}</span></td>
+        <td>
+          {% if item.metier %}
+          <span class="orion-badge orion-badge-success small">{{ item.get_metier_display }}</span>
+          <div class="text-muted" style="font-size:.68rem">
+            {{ item.get_quality_level_display }}{% if item.product_family %} · {{ item.product_family }}{% endif %}
+          </div>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
         <td class="small">{{ item.price_min|floatformat:2 }} €</td>
         <td class="small fw-semibold">{{ item.price_avg|floatformat:2 }} €</td>
         <td class="small">{{ item.price_max|floatformat:2 }} €</td>

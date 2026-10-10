@@ -29,6 +29,7 @@ bleach==6.1.0
 gunicorn>=22.0.0
 mysqlclient>=2.2.0
 cryptography>=42.0.0
+smbprotocol>=1.15.0
 dnspython>=2.6.0
 requests>=2.31.0
 psutil>=5.9.0

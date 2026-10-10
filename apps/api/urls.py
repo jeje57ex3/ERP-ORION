@@ -1,5 +1,8 @@
 from django.urls import path
 from . import views
+from apps.websites import api_neostructura
+from apps.configurator import public_api as neo_configurator
+from apps.portals import client_api as neo_portal
 from apps.ecommerce.api.siecle_api import (
     ProductListView, ProductDetailView, CollectionListView,
     CartValidateView, CreateCheckoutSessionView, StripeWebhookView,
@@ -83,4 +86,22 @@ urlpatterns = [
     path('siecle/community/posts/',                  CommunityPostsView.as_view(),      name='siecle_community_posts'),
     path('siecle/customer/watch-configurations/',    WatchConfigurationsView.as_view(), name='siecle_watch_configs'),
     path('siecle/watches/certificate/<str:watch_id>/', WatchCertificateView.as_view(), name='siecle_watch_certificate'),
+
+    # ── NÉOSTRUCTURA (site vitrine) ────────────────────────────────────────────
+    path('neostructura/contact/', api_neostructura.contact, name='neostructura_contact'),
+    path('neostructura/configurateur/domaines/', neo_configurator.list_domains, name='neostructura_configurator_domains'),
+    path('neostructura/configurateur/domaines/<slug:domain_code>/services/', neo_configurator.list_services, name='neostructura_configurator_services'),
+    path('neostructura/configurateur/services/<slug:service_code>/questions/', neo_configurator.service_questions, name='neostructura_configurator_questions'),
+    path('neostructura/configurateur/estimer/', neo_configurator.estimate, name='neostructura_configurator_estimate'),
+    path('neostructura/configurateur/soumettre/', neo_configurator.submit, name='neostructura_configurator_submit'),
+    path('neostructura/configurateur/soumettre-projet/', neo_configurator.submit_project, name='neostructura_configurator_submit_project'),
+    path('neostructura/configurateur/session/', neo_configurator.session_start, name='neostructura_configurator_session_start'),
+    path('neostructura/configurateur/session/<uuid:session_key>/', neo_configurator.session_detail, name='neostructura_configurator_session_detail'),
+    path('neostructura/configurateur/session/<uuid:session_key>/lots/', neo_configurator.session_lots, name='neostructura_configurator_session_lots'),
+    path('neostructura/configurateur/session/<uuid:session_key>/lots/<int:lot_id>/', neo_configurator.session_lot_detail, name='neostructura_configurator_session_lot_detail'),
+    path('neostructura/configurateur/<str:reference>/photos/', neo_configurator.upload_photo, name='neostructura_configurator_upload_photo'),
+    path('neostructura/portail/connexion/', neo_portal.portal_login, name='neostructura_portal_login'),
+    path('neostructura/portail/deconnexion/', neo_portal.portal_logout, name='neostructura_portal_logout'),
+    path('neostructura/portail/moi/', neo_portal.portal_me, name='neostructura_portal_me'),
+    path('neostructura/portail/tableau-de-bord/', neo_portal.portal_dashboard, name='neostructura_portal_dashboard'),
 ]

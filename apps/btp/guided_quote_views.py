@@ -14,6 +14,7 @@ from .models import (
     GuidedQuotePhoto, GuidedQuoteDocument, ElectricityPriceLibrary,
     ClientNotification,
 )
+from .travel_costs import compute_travel_cost, describe_travel
 
 
 def _get_company(request):
@@ -39,14 +40,29 @@ def _calculate_estimate(company, quote_request):
     total_avg = 0
     total_max = 0
 
+    # Frais de déplacement calculés depuis la localisation des travaux
+    # (distance entreprise → chantier × carburant). Repli sur le forfait du
+    # catalogue si le géocodage n'a rien donné.
+    travel_distance, travel_cost = compute_travel_cost(company, quote_request)
+    if travel_cost:
+        travel_cost = float(travel_cost)
+        items.append({
+            'item': None, 'qty': 1, 'desc': describe_travel(travel_distance, None),
+            'unit': 'forfait', 'unit_price': travel_cost,
+        })
+        total_min += travel_cost
+        total_avg += travel_cost
+        total_max += travel_cost
+
     if quote_request.request_type == 'depannage':
-        # Forfait déplacement
-        travel = ElectricityPriceLibrary.objects.filter(company=company, category='deplacement', is_active=True).first()
-        if travel:
-            items.append({'item': travel, 'qty': 1, 'desc': 'Déplacement'})
-            total_min += float(travel.price_min)
-            total_avg += float(travel.price_avg)
-            total_max += float(travel.price_max)
+        # Forfait déplacement du catalogue — uniquement si aucun calcul réel
+        if not travel_cost:
+            travel = ElectricityPriceLibrary.objects.filter(company=company, category='deplacement', is_active=True).first()
+            if travel:
+                items.append({'item': travel, 'qty': 1, 'desc': 'Déplacement'})
+                total_min += float(travel.price_min)
+                total_avg += float(travel.price_avg)
+                total_max += float(travel.price_max)
 
         # Diagnostic
         diag = ElectricityPriceLibrary.objects.filter(company=company, category='diagnostic', is_active=True).first()
@@ -113,8 +129,8 @@ def _calculate_estimate(company, quote_request):
                 total_avg += float(borne_item.price_avg)
                 total_max += float(borne_item.price_max)
 
-        # Si rien trouvé, estimation forfaitaire surface
-        if not items:
+        # Si rien trouvé hors déplacement, estimation forfaitaire surface
+        if not [i for i in items if i['item'] is not None]:
             ren_item = ElectricityPriceLibrary.objects.filter(company=company, category='renovation', is_active=True).first()
             if ren_item:
                 qty = 50 if 'moins' in surface_key else 80 if '30' in surface_key else 100
@@ -132,20 +148,22 @@ def _calculate_estimate(company, quote_request):
         amount_max_ht=round(total_max, 2),
         labor_amount=round(total_avg * 0.6, 2),
         materials_amount=round(total_avg * 0.4, 2),
-        travel_amount=round(50 if quote_request.request_type == 'depannage' else 0, 2),
+        travel_amount=round(travel_cost, 2),
+        travel_distance_km=travel_distance,
         urgency_surcharge=round(total_avg * 0.25 if quote_request.urgency == 'urgent' else 0, 2),
         total_ttc=round(total_ttc, 2),
         duration_min_days=0.5 if quote_request.request_type == 'depannage' else 1,
         duration_max_days=1 if quote_request.request_type == 'depannage' else 5,
     )
     for order, it in enumerate(items):
+        price_item = it['item']
         GuidedQuoteEstimateItem.objects.create(
             estimate=estimate,
-            price_item=it['item'],
+            price_item=price_item,
             description=it['desc'],
             quantity=it['qty'],
-            unit=it['item'].unit,
-            unit_price_avg=it['item'].price_avg,
+            unit=it.get('unit') if price_item is None else price_item.unit,
+            unit_price_avg=it.get('unit_price', 0) if price_item is None else price_item.price_avg,
             order=order,
         )
     return estimate

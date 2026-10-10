@@ -35,6 +35,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'corsheaders',
     'import_export',
+    'django_celery_beat',
 ]
 
 LOCAL_APPS = [
@@ -54,6 +55,7 @@ LOCAL_APPS = [
     'apps.workflow',
     'apps.portals',
     'apps.btp',
+    'apps.configurator',
     'apps.ecommerce',
     'apps.commerce',
     'apps.production',
@@ -370,6 +372,26 @@ ORION_UPDATE_CELERY_BEAT_RESTART_COMMAND = config('ORION_UPDATE_CELERY_BEAT_REST
 
 ORION_UPDATE_FRONTEND_BUILD_ENABLED = config('ORION_UPDATE_FRONTEND_BUILD_ENABLED', default=True, cast=bool)
 ORION_UPDATE_FRONTEND_BUILD_COMMAND = config('ORION_UPDATE_FRONTEND_BUILD_COMMAND', default='npm run build')
+
+# ─── Celery / Redis ──────────────────────────────────────────────────────────
+# REDIS_URL était déjà déclaré dans .env(.example) mais jamais lu nulle part :
+# erp_btp/celery.py charge la config Celery depuis les settings Django
+# (namespace CELERY_) — sans ces clés, aucun broker n'est configuré et
+# `current_app.control.ping()` (apps.system_observability.services.check_queue)
+# ne peut jamais aboutir.
+CELERY_BROKER_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# ─── Intégrations externes ────────────────────────────────────────────────────
+# apps.domain_diagnostics.cloudflare.CloudflareClient lit déjà cette clé via
+# getattr(settings, ...) mais rien ne la déclarait ici : jamais lue depuis
+# .env, donc toujours vide quel que soit le contenu du fichier.
+ORION_CLOUDFLARE_API_TOKEN = config('ORION_CLOUDFLARE_API_TOKEN', default='')
 
 ORION_UPDATE_LOCK_FILE = config('ORION_UPDATE_LOCK_FILE', default='/tmp/orion_update.lock')
 

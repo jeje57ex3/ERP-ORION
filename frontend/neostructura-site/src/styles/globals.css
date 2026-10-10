@@ -1,0 +1,272 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Identité NÉOSTRUCTURA */
+  --neo-green:       #123D2A;
+  --neo-dark:         #071A13;
+  --neo-green-light:  #1F6B49;
+  --background-light: #F7F7F4;
+  --text-dark:         #15231D;
+
+  /* Nuances techniques (béton / anthracite) — utilisées pour les éléments
+     structurels (dividers, fonds de section, badges techniques) afin de
+     renforcer le registre "BTP premium technique" plutôt que tout miser
+     sur le vert de marque. */
+  --concrete:        #A9A79E;
+  --concrete-light:  #DFDDD3;
+  --anthracite:      #23261F;
+
+  /* Tokens fonctionnels (clair par défaut) */
+  --bg:               var(--background-light);
+  --bg-elevated:      #FFFFFF;
+  --bg-subtle:        #EEEFEA;
+  --text:             var(--text-dark);
+  --text-muted:       rgba(21, 35, 29, 0.62);
+  --border:           rgba(21, 35, 29, 0.12);
+  --border-hover:     rgba(21, 35, 29, 0.24);
+  --accent:           var(--neo-green-light);
+  --accent-contrast:  #FFFFFF;
+  --urgent:           #C1401F;
+  --urgent-contrast:  #FFFFFF;
+  --surface-brand:    var(--neo-green);
+  --surface-brand-fg: #F7F7F4;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans:    'Manrope', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 16px;
+  --radius-technical: 3px;
+  --header-h:  76px;
+  --header-h-scrolled: 64px;
+  --transition: 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-soft: 0 8px 30px rgba(7, 26, 19, 0.08);
+  --shadow-lift: 0 16px 48px rgba(7, 26, 19, 0.14);
+}
+
+:root[data-theme='dark'] {
+  --bg:               var(--neo-dark);
+  --bg-elevated:      #0E2A1E;
+  --bg-subtle:        #0B2118;
+  --text:             #F1F3EE;
+  --text-muted:       rgba(241, 243, 238, 0.64);
+  --border:           rgba(241, 243, 238, 0.12);
+  --border-hover:     rgba(241, 243, 238, 0.22);
+  --accent:           #3FA871;
+  --accent-contrast:  #071A13;
+  --urgent:           #E2603C;
+  --urgent-contrast:  #071A13;
+  --surface-brand:    #0B2118;
+  --surface-brand-fg: #F1F3EE;
+  --concrete:        #565A50;
+  --concrete-light:  #33362E;
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.28);
+  --shadow-lift: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background var(--transition), color var(--transition);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ─── Layout ──────────────────────────────────────────────────────────── */
+
+.neo-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.neo-section {
+  padding: 96px 0;
+}
+
+@media (max-width: 768px) {
+  .neo-section { padding: 64px 0; }
+}
+
+.neo-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.neo-eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--accent);
+}
+
+/* ─── Boutons ─────────────────────────────────────────────────────────── */
+
+.neo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.neo-btn:active { transform: scale(0.98); }
+
+.neo-btn-primary {
+  background: var(--surface-brand);
+  color: var(--surface-brand-fg);
+}
+.neo-btn-primary:hover { background: var(--neo-green-light); }
+
+/* En thème sombre, --surface-brand est presque identique à --bg (les deux
+   sont de très légères variations de vert quasi noir) : le CTA principal
+   devenait quasi invisible. On le fait reposer sur l'accent (plus clair,
+   plus vif) pour qu'il reste le bouton le plus visible de l'écran. */
+:root[data-theme='dark'] .neo-btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+:root[data-theme='dark'] .neo-btn-primary:hover { background: #4FC287; }
+
+.neo-btn-outline {
+  background: transparent;
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+.neo-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+.neo-btn-lg { padding: 17px 34px; font-size: 15px; }
+
+.neo-btn-urgent {
+  background: transparent;
+  border-color: var(--urgent);
+  color: var(--urgent);
+}
+.neo-btn-urgent:hover { background: var(--urgent); color: var(--urgent-contrast); }
+
+/* ─── Cartes ──────────────────────────────────────────────────────────── */
+
+.neo-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.neo-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--border-hover);
+}
+
+/* ─── Utilitaires ─────────────────────────────────────────────────────── */
+
+.neo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+/* ─── Registre technique (grille, chiffres, séparateurs) ─────────────────── */
+
+.neo-grid-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--text) 1px, transparent 1px),
+    linear-gradient(90deg, var(--text) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.neo-stat-number {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.neo-tag-technical {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-technical);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.neo-arrow {
+  display: inline-block;
+  transition: transform var(--transition);
+}
+.neo-hover-arrow:hover .neo-arrow { transform: translateX(4px); }
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 6px; }

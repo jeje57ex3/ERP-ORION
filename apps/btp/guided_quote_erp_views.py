@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from .models import (
     GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem,
     ElectricityPriceLibrary, BTPProject, ClientConversation, ClientMessage,
@@ -115,6 +116,22 @@ def guided_quote_detail(request, pk):
                     pass
         elif action == 'create_quote':
             from .models import BTPQuote
+            # crm_customer_id n'est renseigné que si un Customer a déjà été
+            # créé (ex: via le configurateur public) — sinon on le crée ici,
+            # sans quoi BTPQuote.customer (FK obligatoire) ferait échouer la création.
+            if not quote_request.crm_customer_id:
+                from apps.crm.models import Customer
+                customer = Customer.objects.create(
+                    company=company, customer_type='individual',
+                    name=quote_request.client_full_name or quote_request.client_email,
+                    contact_name=quote_request.client_full_name,
+                    email=quote_request.client_email, phone=quote_request.client_phone,
+                    address=quote_request.address, city=quote_request.city,
+                    zip_code=quote_request.zip_code,
+                    notes=f'Créé automatiquement depuis la demande guidée {quote_request.reference}',
+                )
+                quote_request.crm_customer_id = customer.pk
+                quote_request.save(update_fields=['crm_customer_id'])
             # Créer un brouillon de devis BTP
             quote = BTPQuote.objects.create(
                 company=company,
@@ -175,6 +192,72 @@ def price_library_list(request):
 
 
 @login_required
+def travel_settings(request):
+    """Paramètres de frais de déplacement : point de départ de l'entreprise,
+    prix du carburant et consommation du véhicule. Ce sont ces valeurs que le
+    devis guidé utilise pour chiffrer le trajet jusqu'au chantier."""
+    from apps.core.geocoding import geocode_detailed
+    from apps.core.models import CompanySettings
+    company = _company(request)
+    settings_obj, _created = CompanySettings.objects.get_or_create(company=company)
+
+    if request.method == 'POST':
+        settings_obj.travel_billing_enabled = request.POST.get('travel_billing_enabled') == 'on'
+        settings_obj.travel_base_address = request.POST.get('travel_base_address', '').strip()
+        settings_obj.travel_base_zip_code = request.POST.get('travel_base_zip_code', '').strip()
+        settings_obj.travel_base_city = request.POST.get('travel_base_city', '').strip()
+        settings_obj.travel_country_code = (request.POST.get('travel_country_code') or 'pt').strip().lower()[:2]
+        settings_obj.fuel_price_per_liter = request.POST.get('fuel_price_per_liter') or 0
+        settings_obj.vehicle_consumption_l_per_100km = request.POST.get('vehicle_consumption_l_per_100km') or 0
+        settings_obj.travel_road_factor = request.POST.get('travel_road_factor') or 1.3
+        # L'adresse a pu changer : on oublie les coordonnées pour forcer un
+        # nouveau géocodage au prochain calcul.
+        settings_obj.travel_base_latitude = None
+        settings_obj.travel_base_longitude = None
+        settings_obj.save()
+
+        if request.POST.get('action') == 'locate':
+            found = geocode_detailed(
+                settings_obj.travel_base_address or company.address,
+                city=settings_obj.travel_base_city or company.city,
+                zip_code=settings_obj.travel_base_zip_code or company.zip_code,
+                country_code=settings_obj.travel_country_code,
+            )
+            if found:
+                settings_obj.travel_base_latitude = found['lat']
+                settings_obj.travel_base_longitude = found['lon']
+                settings_obj.save(update_fields=['travel_base_latitude', 'travel_base_longitude'])
+                # La rue peut ne pas exister dans OpenStreetMap : on le dit
+                # explicitement plutôt que de laisser croire à une précision
+                # à l'adresse exacte.
+                if found['precision'] == 'street':
+                    messages.success(request, _('Adresse localisée : %(place)s') % {'place': found['matched']})
+                elif found['precision'] == 'postcode':
+                    messages.info(request, _(
+                        'Localisé au code postal (rue absente de la carte) : %(place)s'
+                    ) % {'place': found['matched']})
+                else:
+                    messages.info(request, _(
+                        'Localisé au centre de la ville (rue et code postal absents de la carte) : '
+                        '%(place)s — suffisant pour estimer les distances.'
+                    ) % {'place': found['matched']})
+            else:
+                messages.warning(request, _(
+                    "Adresse introuvable — vérifiez l'orthographe de la ville et le code pays "
+                    "(pt = Portugal)."
+                ))
+        else:
+            messages.success(request, _('Paramètres de déplacement enregistrés.'))
+        return redirect('btp:travel_settings')
+
+    return render(request, 'btp/travel_settings.html', {
+        'settings_obj': settings_obj,
+        'company': company,
+        'page_title': _('Frais de déplacement'),
+    })
+
+
+@login_required
 def price_library_create(request):
     company = _company(request)
     if request.method == 'POST':
@@ -189,6 +272,11 @@ def price_library_create(request):
         item.price_max = request.POST.get('price_max', 0) or 0
         item.duration_hours = request.POST.get('duration_hours', 0) or 0
         item.complexity = request.POST.get('complexity', 'medium')
+        item.metier = request.POST.get('metier', '')
+        item.product_family = request.POST.get('product_family', '').strip()
+        item.quality_level = request.POST.get('quality_level', 'standard')
+        item.brand = request.POST.get('brand', '').strip()
+        item.reference = request.POST.get('reference', '').strip()
         item.save()
         messages.success(request, f'Poste « {item.name} » créé.')
         return redirect('btp:price_library_list')
@@ -196,6 +284,8 @@ def price_library_create(request):
         'category_choices': ElectricityPriceLibrary.CATEGORY_CHOICES,
         'unit_choices': ElectricityPriceLibrary.UNIT_CHOICES,
         'complexity_choices': ElectricityPriceLibrary.COMPLEXITY_CHOICES,
+        'metier_choices': ElectricityPriceLibrary.METIER_CHOICES,
+        'quality_level_choices': ElectricityPriceLibrary.QUALITY_LEVEL_CHOICES,
         'action': 'create',
     })
 
@@ -215,6 +305,11 @@ def price_library_edit(request, pk):
         item.price_max = request.POST.get('price_max', item.price_max) or 0
         item.duration_hours = request.POST.get('duration_hours', item.duration_hours) or 0
         item.complexity = request.POST.get('complexity', item.complexity)
+        item.metier = request.POST.get('metier', item.metier)
+        item.product_family = request.POST.get('product_family', '').strip()
+        item.quality_level = request.POST.get('quality_level', item.quality_level)
+        item.brand = request.POST.get('brand', '').strip()
+        item.reference = request.POST.get('reference', '').strip()
         item.is_active = request.POST.get('is_active') == 'on'
         item.save()
         messages.success(request, 'Poste mis à jour.')
@@ -224,6 +319,8 @@ def price_library_edit(request, pk):
         'category_choices': ElectricityPriceLibrary.CATEGORY_CHOICES,
         'unit_choices': ElectricityPriceLibrary.UNIT_CHOICES,
         'complexity_choices': ElectricityPriceLibrary.COMPLEXITY_CHOICES,
+        'metier_choices': ElectricityPriceLibrary.METIER_CHOICES,
+        'quality_level_choices': ElectricityPriceLibrary.QUALITY_LEVEL_CHOICES,
         'action': 'edit',
     })
 

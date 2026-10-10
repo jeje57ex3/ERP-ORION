@@ -6,6 +6,75 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+class BackupDestination(models.Model):
+    """Où les sauvegardes sont physiquement stockées une fois créées —
+    par défaut sur le disque local (storage/backups/), ou sur un autre
+    disque/dossier local, ou sur un partage réseau SMB/CIFS. Voir
+    apps.backups.storage pour la logique d'envoi (fichier local ou
+    smbprotocol pour SMB — pas de montage OS requis, fonctionne pareil en
+    dev Windows et en prod sur l'appliance Proxmox/Linux)."""
+    DESTINATION_TYPES = [
+        ('local', 'Disque / dossier local'),
+        ('smb', 'Partage réseau (SMB/CIFS)'),
+    ]
+
+    name = models.CharField('Nom', max_length=120)
+    destination_type = models.CharField('Type', max_length=10, choices=DESTINATION_TYPES, default='local')
+
+    # ── Disque / dossier local (autre disque, disque externe, point de montage) ──
+    local_path = models.CharField(
+        'Chemin local', max_length=500, blank=True,
+        help_text=r'Ex: E:\Sauvegardes (Windows) ou /mnt/backup-disk (Linux).',
+    )
+
+    # ── Partage réseau SMB/CIFS ──
+    smb_server = models.CharField('Serveur', max_length=255, blank=True, help_text='Nom ou IP du serveur (sans \\\\).')
+    smb_share = models.CharField('Partage', max_length=255, blank=True)
+    smb_path = models.CharField('Sous-dossier', max_length=500, blank=True, help_text='Optionnel, ex: orion/sauvegardes')
+    smb_username = models.CharField('Utilisateur', max_length=255, blank=True)
+    smb_password_encrypted = models.TextField('Mot de passe (chiffré)', blank=True)
+    smb_domain = models.CharField('Domaine', max_length=255, blank=True, help_text='Optionnel (environnement Active Directory).')
+
+    is_active = models.BooleanField('Active', default=True)
+    is_default = models.BooleanField(
+        'Destination par défaut', default=False,
+        help_text='Les nouvelles sauvegardes sont envoyées ici. Une seule destination par défaut à la fois.',
+    )
+    last_test_at = models.DateTimeField('Dernier test', null=True, blank=True)
+    last_test_ok = models.BooleanField('Dernier test réussi', null=True, blank=True)
+    last_test_message = models.CharField('Résultat du dernier test', max_length=500, blank=True)
+    created_at = models.DateTimeField('Créée le', auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_default', 'name']
+        verbose_name = 'Destination de sauvegarde'
+        verbose_name_plural = 'Destinations de sauvegarde'
+
+    def __str__(self):
+        return f'{self.name} ({self.get_destination_type_display()})'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            BackupDestination.objects.exclude(pk=self.pk).update(is_default=False)
+
+    @property
+    def smb_password(self):
+        from apps.website_shop_settings.crypto import decrypt_secret
+        return decrypt_secret(self.smb_password_encrypted)
+
+    @smb_password.setter
+    def smb_password(self, value):
+        from apps.website_shop_settings.crypto import encrypt_secret
+        self.smb_password_encrypted = encrypt_secret(value) if value else ''
+
+    @property
+    def smb_unc_root(self):
+        sub = self.smb_path.strip('\\/').replace('/', '\\')
+        root = f'\\\\{self.smb_server}\\{self.smb_share}'
+        return f'{root}\\{sub}' if sub else root
+
+
 class BackupJob(models.Model):
     BACKUP_TYPE_CHOICES = [
         ('manual',        'Manuel'),
@@ -44,6 +113,11 @@ class BackupJob(models.Model):
     scope         = models.CharField('Périmètre', max_length=30, choices=SCOPE_CHOICES, default='company_database')
     status        = models.CharField('Statut', max_length=20, choices=STATUS_CHOICES, default='pending')
     file_path     = models.CharField('Chemin fichier', max_length=500, blank=True)
+    destination   = models.ForeignKey(
+        BackupDestination, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='backup_jobs', verbose_name='Destination',
+        help_text='Vide = stockage local par défaut (storage/backups/).',
+    )
     file_size     = models.BigIntegerField('Taille (octets)', null=True, blank=True)
     checksum      = models.CharField('Checksum SHA-256', max_length=64, blank=True)
     started_at    = models.DateTimeField('Début', null=True, blank=True)
