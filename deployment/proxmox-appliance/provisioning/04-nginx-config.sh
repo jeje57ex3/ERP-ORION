@@ -19,6 +19,7 @@ sed \
   -e "s/__ORION_DOMAIN__/${ORION_DOMAIN:-orion.invalid}/g" \
   -e "s/__SIECLE_DOMAIN__/${SIECLE_DOMAIN:-siecle.invalid}/g" \
   -e "s/__LUNEA_DOMAIN__/${LUNEA_DOMAIN:-lunea.invalid}/g" \
+  -e "s/__NS_DOMAIN__/${NS_DOMAIN:-ns.invalid}/g" \
   "$PAYLOAD_DIR/nginx/orion-proxmox.conf.tmpl" > /etc/nginx/sites-available/orion.conf
 
 ln -sfn /etc/nginx/sites-available/orion.conf /etc/nginx/sites-enabled/orion.conf
