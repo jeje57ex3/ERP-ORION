@@ -53,7 +53,9 @@ Voir [PROXMOX.md](PROXMOX.md) pour le détail complet, [INSTALL.md](INSTALL.md)
 pour les prérequis de build, [BACKUP.md](BACKUP.md) et [UPDATE.md](UPDATE.md)
 pour l'exploitation. L'appliance démarre avec une base vide :
 [DATA-MIGRATION.md](DATA-MIGRATION.md) explique comment y transférer les
-données réelles d'un poste existant.
+données réelles d'un poste existant. [DISQUES.md](DISQUES.md) détaille où
+vont les données, quels emplacements sont purgés et comment agrandir le
+disque après coup.
 
 ## Contenu de `build/`
 

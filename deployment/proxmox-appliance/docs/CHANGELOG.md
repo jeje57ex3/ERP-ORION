@@ -2,6 +2,17 @@
 
 ## 2026.10.10
 
+- Gestion des disques : nouveau `scripts/orion-disk.sh` (état des volumes et
+  de chaque emplacement de données, classement des plus gros consommateurs,
+  extension partition + système de fichiers après un `qm resize`, revue des
+  sauvegardes purgeables) et [DISQUES.md](DISQUES.md). Rien n'outillait ce
+  sujet : `growpart` ne tourne qu'au premier démarrage, donc un `qm resize`
+  ultérieur laissait l'espace ajouté inutilisable sans intervention manuelle.
+- Documenté au passage un piège réel : les sauvegardes de l'ERP vivent dans
+  `backend/storage/backups` et non dans `/opt/orion/backups`, et
+  `cleanup_old_backups()` ne purge que celles rattachées à une planification
+  active — une sauvegarde manuelle ou un export portable n'est donc jamais
+  supprimé automatiquement.
 - Site NÉOSTRUCTURA pris en charge par l'appliance : il n'y figurait nulle
   part (aucune unit, aucun vhost, aucune option de domaine) et n'avait donc
   jamais de mode de service en production — il ne tournait qu'en serveur de
