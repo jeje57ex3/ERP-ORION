@@ -255,16 +255,16 @@ class CloudflareTunnel(models.Model):
     )
     tunnel_id = models.CharField(
         'ID Tunnel', max_length=100, blank=True,
-        help_text='UUID du tunnel (ex: f4aa00aa-1df4-41f9-b676-946933560b2f)',
+        help_text='UUID du tunnel (ex: 00000000-0000-0000-0000-000000000000)',
     )
     name = models.CharField('Nom', max_length=100)
     credentials_file = models.CharField(
         'Fichier credentials', max_length=500, blank=True,
-        help_text='Chemin vers le .json de credentials cloudflared',
+        help_text='Chemin du .json de credentials cloudflared. Linux : /etc/cloudflared/<uuid>.json — Windows : %USERPROFILE%/.cloudflared/<uuid>.json',
     )
     config_file = models.CharField(
         'Fichier config.yml', max_length=500, blank=True,
-        help_text='Chemin vers config.yml (ex: C:\\Users\\jessy\\.cloudflared\\config.yml)',
+        help_text='Chemin du config.yml. Linux : /etc/cloudflared/config.yml — Windows : %USERPROFILE%/.cloudflared/config.yml',
     )
     is_active = models.BooleanField('Actif', default=True)
     notes = models.TextField('Notes', blank=True)

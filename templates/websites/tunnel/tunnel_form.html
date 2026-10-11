@@ -83,7 +83,8 @@
         <label class="form-label fw-semibold small">{% trans "Chemin config.yml" %}</label>
         {{ form.config_file }}
         {% if form.config_file.errors %}<div class="invalid-feedback d-block small text-danger mt-1">{{ form.config_file.errors|join:", " }}</div>{% endif %}
-        <div class="form-text small text-muted">{% blocktrans %}Chemin où écrire le config.yml généré (ex: <code>C:\Users\jessy\.cloudflared\config.yml</code>){% endblocktrans %}</div>
+        {# Source unique : le help_text du champ, qui s'adapte a la plateforme. #}
+        <div class="form-text small text-muted">{{ form.config_file.help_text }}</div>
       </div>
 
       {# État #}
