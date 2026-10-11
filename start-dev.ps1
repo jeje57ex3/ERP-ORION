@@ -1,8 +1,10 @@
 ﻿# ============================================================
 # Orion ERP — Script de démarrage développement
 # Lance : MySQL (XAMPP) + Django + SIÈCLE Store + LUNEA Store
-# Usage : .\start-dev.ps1
+# Usage : .\start-dev.ps1  [-WithTunnel]
 # ============================================================
+
+param([switch]$WithTunnel)
 
 $ROOT = $PSScriptRoot
 
@@ -176,24 +178,33 @@ if ($neostructuraUp) {
 # ────────────────────────────────────────────────────────────
 # 6. Cloudflare Tunnel — orion.elysiums.fr → localhost:5172
 # ────────────────────────────────────────────────────────────
-Write-Step "Cloudflare Tunnel (orion.elysiums.fr → port 5172)..."
+Write-Step "Cloudflare Tunnel..."
 
-$cfExe    = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
-$cfConfig = "$env:USERPROFILE\.cloudflared\config.yml"
-
-$cloudflaredRunning = Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue
-
-if (-not (Test-Path $cfExe)) {
-    Write-Fail "cloudflared.exe introuvable à $cfExe"
-} elseif (-not (Test-Path $cfConfig)) {
-    Write-Fail "config.yml introuvable à $cfConfig"
-} elseif ($cloudflaredRunning) {
-    Write-Warn "cloudflared déjà en cours d'exécution (PID $($cloudflaredRunning.Id -join ', ')) — pas relancé"
+# Le tunnel est desormais porte par l'appliance Proxmox, pas par ce poste.
+# Le relancer ici ferait tourner DEUX connecteurs sur le meme tunnel :
+# Cloudflare repartirait les requetes au hasard entre le PC et la VM, qui ont
+# des bases de donnees distinctes — un comportement indebuggable.
+# Pour le forcer ponctuellement ici :  .\start-dev.ps1 -WithTunnel
+if (-not $WithTunnel) {
+    Write-Warn "ignore - reserve a l'appliance (-WithTunnel pour forcer ici)"
 } else {
-    Start-Process $cfExe `
-        -ArgumentList "tunnel","--config",$cfConfig,"run" `
-        -WindowStyle Minimized
-    Write-Ok "Tunnel lance -> https://orion.elysiums.fr"
+    $cfExe    = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
+    $cfConfig = "$env:USERPROFILE\.cloudflared\config.yml"
+
+    $cloudflaredRunning = Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue
+
+    if (-not (Test-Path $cfExe)) {
+        Write-Fail "cloudflared.exe introuvable à $cfExe"
+    } elseif (-not (Test-Path $cfConfig)) {
+        Write-Fail "config.yml introuvable à $cfConfig"
+    } elseif ($cloudflaredRunning) {
+        Write-Warn "cloudflared déjà en cours d'exécution (PID $($cloudflaredRunning.Id -join ', ')) — pas relancé"
+    } else {
+        Start-Process $cfExe `
+            -ArgumentList "tunnel","--config",$cfConfig,"run" `
+            -WindowStyle Minimized
+        Write-Ok "Tunnel lance -> https://orion.elysiums.fr"
+    }
 }
 
 # ────────────────────────────────────────────────────────────

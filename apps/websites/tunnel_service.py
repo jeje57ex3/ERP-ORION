@@ -4,19 +4,42 @@ apps/websites/tunnel_service.py — Service Cloudflare Tunnel pour Orion ERP
 Fonctions utilitaires pour :
 - Générer un config.yml à partir des règles d'ingress
 - Écrire le config.yml sur disque
-- Vérifier si cloudflared.exe tourne (Windows)
+- Vérifier si cloudflared tourne (Windows et Linux)
 - Synchroniser les enregistrements DNS CNAME via l'API Cloudflare
 """
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .models_domains import CloudflareTunnel, TunnelIngressRule
+
+
+# --- Chemins par defaut --------------------------------------------------
+
+def default_cloudflared_paths() -> dict:
+    """Emplacements habituels de cloudflared selon la plateforme.
+
+    Ces chemins etaient codes en dur sur le poste de developpement
+    (C:\\<dev>\\.cloudflared), ce qui les rendait absurdes sur
+    l'appliance Linux ou cloudflared s'installe dans /etc/cloudflared.
+    """
+    if sys.platform == 'win32':
+        base = Path(os.path.expanduser('~')) / '.cloudflared'
+    else:
+        # PurePosixPath et non Path : evaluee depuis Windows, Path produirait
+        # des antislashs pour un chemin Linux.
+        base = PurePosixPath('/etc/cloudflared')
+    return {
+        'dir': str(base),
+        'config': str(base / 'config.yml'),
+        'credentials': str(base / '<tunnel-id>.json'),
+    }
 
 
 # ─── Génération config.yml ────────────────────────────────────────────────────
@@ -187,13 +210,22 @@ def reload_cloudflared() -> tuple[bool, str]:
             )
 
         else:
-            r = subprocess.run(
-                ['systemctl', 'restart', 'cloudflared'],
-                capture_output=True, text=True, timeout=30,
-            )
-            if r.returncode == 0:
-                return True, 'cloudflared redémarré (systemctl).'
-            return False, f'systemctl restart cloudflared : {r.stderr.strip()}'
+            # systemctl exige les droits root. Django tourne sous
+            # l'utilisateur applicatif (orion sur l'appliance), qui dispose
+            # de sudo sans mot de passe : sans sudo, systemctl repond
+            # « Interactive authentication required » et le redemarrage
+            # echouait systematiquement.
+            tentatives = [['systemctl', 'restart', 'cloudflared']]
+            if os.geteuid() != 0:
+                tentatives.insert(
+                    0, ['sudo', '-n', 'systemctl', 'restart', 'cloudflared'])
+            detail = ''
+            for cmd in tentatives:
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                if r.returncode == 0:
+                    return True, 'cloudflared redémarré (systemctl).'
+                detail = (r.stderr or r.stdout).strip() or f'code {r.returncode}'
+            return False, f'systemctl restart cloudflared : {detail}'
 
     except Exception as exc:
         return False, f'Erreur lors du redémarrage cloudflared : {exc}'

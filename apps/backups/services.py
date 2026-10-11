@@ -313,13 +313,26 @@ def restore_backup(backup, restored_by=None):
     return log
 
 
-def create_portable_backup(created_by=None):
+# Artefacts de build mobile : reconstructibles depuis les sources, et ils
+# écrasaient complètement le poids de l'archive — 513 Mo sur 530 mesurés, soit
+# 97 %, là où les données utiles (le dump SQL) tenaient en 0,7 Mo. Un export
+# de cette taille ne se télécharge pas dans un délai raisonnable à travers un
+# tunnel ou une liaison domestique, alors qu'il n'apporte aucune donnée.
+# L'import fusionne les médias sans rien supprimer : les exclure ici ne les
+# efface donc pas sur l'instance de destination.
+REBUILDABLE_MEDIA_SUFFIXES = {'.apk', '.aab'}
+
+
+def create_portable_backup(created_by=None, include_mobile_builds=False):
     """
     Sauvegarde portable : base de données centrale + médias dans une seule
     archive .zip (database.sql + media/) — pensée pour être téléchargée et
     importée sur une AUTRE instance Orion ERP, contrairement aux sauvegardes
     classiques (restaurables seulement là où elles ont été créées, un
     BackupJob local pointe vers un fichier sur le même disque).
+
+    Les builds mobiles (.apk/.aab) sont exclus par défaut : voir
+    REBUILDABLE_MEDIA_SUFFIXES. `include_mobile_builds=True` les réintègre.
     """
     from apps.backups.models import BackupJob
 
@@ -347,10 +360,27 @@ def create_portable_backup(created_by=None):
         media_root = Path(settings.MEDIA_ROOT)
         with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             zf.write(tmp_sql, 'database.sql')
+            skipped_count = 0
+            skipped_bytes = 0
             if media_root.exists():
                 for f in media_root.rglob('*'):
-                    if f.is_file():
-                        zf.write(f, str(Path('media') / f.relative_to(media_root)))
+                    if not f.is_file():
+                        continue
+                    if (not include_mobile_builds
+                            and f.suffix.lower() in REBUILDABLE_MEDIA_SUFFIXES):
+                        skipped_count += 1
+                        skipped_bytes += f.stat().st_size
+                        continue
+                    zf.write(f, str(Path('media') / f.relative_to(media_root)))
+
+        # Tracé dans le nom du job : sans ça, un export nettement plus léger
+        # que le précédent ressemblerait à un export incomplet.
+        if skipped_count:
+            # Formaté en Go au-delà de 1024 Mo : « 1,048 Mo » se lirait comme
+            # un millième de Go avec la virgule décimale française.
+            mb = skipped_bytes / 1024 / 1024
+            volume = f'{mb / 1024:.1f} Go' if mb >= 1024 else f'{mb:.0f} Mo'
+            job.name = f'{job.name} (hors {skipped_count} build(s) mobile, {volume})'[:120]
 
         job.status = 'success'
         job.file_path = file_path

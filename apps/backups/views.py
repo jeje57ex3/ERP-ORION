@@ -171,7 +171,10 @@ def backup_export(request):
     autre instance Orion ERP).
     """
     if request.method == 'POST':
-        job = create_portable_backup(created_by=request.user)
+        job = create_portable_backup(
+            created_by=request.user,
+            include_mobile_builds=bool(request.POST.get('include_mobile_builds')),
+        )
         if job.status == 'success':
             messages.success(request, f'Export portable créé — {job.file_size_display}. Téléchargez-le ci-dessous.')
         else:

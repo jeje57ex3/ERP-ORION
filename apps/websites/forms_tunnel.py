@@ -3,6 +3,11 @@ apps/websites/forms_tunnel.py — Formulaires pour la gestion des tunnels Cloudf
 """
 from django import forms
 from .models_domains import CloudflareTunnel, TunnelIngressRule, CloudflareAccount
+from .tunnel_service import default_cloudflared_paths
+
+# Les placeholders montraient les chemins (et un vrai identifiant de tunnel)
+# du poste de developpement, trompeurs sur l'appliance Linux.
+_paths = default_cloudflared_paths()
 
 
 class CloudflareTunnelForm(forms.ModelForm):
@@ -11,10 +16,10 @@ class CloudflareTunnelForm(forms.ModelForm):
         fields = ['name', 'tunnel_id', 'cloudflare_account', 'credentials_file', 'config_file', 'is_active', 'notes']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Tunnel principal Orion'}),
-            'tunnel_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'f4aa00aa-1df4-41f9-b676-946933560b2f'}),
+            'tunnel_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '00000000-0000-0000-0000-000000000000'}),
             'cloudflare_account': forms.Select(attrs={'class': 'form-select'}),
-            'credentials_file': forms.TextInput(attrs={'class': 'form-control', 'placeholder': r'C:\Users\jessy\.cloudflared\<id>.json'}),
-            'config_file': forms.TextInput(attrs={'class': 'form-control', 'placeholder': r'C:\Users\jessy\.cloudflared\config.yml'}),
+            'credentials_file': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _paths['credentials']}),
+            'config_file': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _paths['config']}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
