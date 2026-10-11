@@ -11,6 +11,7 @@ from .models_domains import CloudflareTunnel, TunnelIngressRule, CloudflareAccou
 from .forms_tunnel import CloudflareTunnelForm, TunnelIngressRuleForm
 from .tunnel_service import (
     generate_config_yml, write_config_yml, get_cloudflared_status,
+    default_cloudflared_paths,
     sync_tunnel_dns, parse_config_yml,
 )
 
@@ -406,7 +407,7 @@ def tunnel_import(request):
 
     return render(request, 'websites/tunnel/tunnel_import.html', {
         'accounts': accounts,
-        'default_config_path': r'C:\Users\jessy\.cloudflared\config.yml',
+        'default_config_path': default_cloudflared_paths()['config'],
         'page_title': 'Importer un tunnel',
         'active_module': 'websites',
     })
