@@ -151,6 +151,10 @@ LUNEA_STORE_URL=${LUNEA_DOMAIN:+https://$LUNEA_DOMAIN}
 
 ORION_LOGIN_DOMAIN=${LOGIN_DOMAIN:-}
 ORION_FRONTEND_DOMAIN=${ORION_DOMAIN:-}
+# Lu par refresh_allowed_hosts.sh, qui réécrit ALLOWED_HOSTS à chaque
+# démarrage de service : sans ce champ, le domaine NÉOSTRUCTURA en était
+# effacé au premier redémarrage.
+ORION_NS_DOMAIN=${NS_DOMAIN:-}
 
 MEDIA_ROOT=media/
 STATIC_ROOT=staticfiles/

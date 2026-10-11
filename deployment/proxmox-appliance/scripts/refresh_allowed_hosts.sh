@@ -15,8 +15,12 @@ VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="s
 get_field() { grep "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-; }
 
 HOSTS="localhost,127.0.0.1"
+# ORION_NS_DOMAIN inclus : ce script RÉÉCRIT ALLOWED_HOSTS en entier, donc
+# tout domaine absent de cette liste est effacé au premier redémarrage de
+# service — même s'il avait été correctement posé au provisioning.
 for domain in "$(get_field ORION_LOGIN_DOMAIN)" "$(get_field ORION_FRONTEND_DOMAIN)" \
-              "$(get_field SIECLE_STORE_DOMAIN)" "$(get_field LUNEA_STORE_DOMAIN)"; do
+              "$(get_field SIECLE_STORE_DOMAIN)" "$(get_field LUNEA_STORE_DOMAIN)" \
+              "$(get_field ORION_NS_DOMAIN)"; do
   [ -n "$domain" ] && HOSTS="$HOSTS,$domain"
 done
 HOSTS="$HOSTS,$VM_IP"
