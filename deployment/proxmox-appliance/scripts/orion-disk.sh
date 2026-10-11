@@ -83,19 +83,26 @@ cmd_status() {
   fi
 
   titre "Espace non alloué (après un qm resize côté Proxmox)"
-  local src disque octets_disque octets_part ecart
+  local src disque octets_disque octets_parts ecart
   src="$(racine_src)"
   disque="$(lsblk -no pkname "$src" 2>/dev/null | head -1)"
   if [ -n "$disque" ]; then
     octets_disque="$(lsblk -bdno SIZE "/dev/$disque" 2>/dev/null | head -1)"
-    octets_part="$(lsblk -bno SIZE "$src" 2>/dev/null | head -1)"
+
+    # Somme de TOUTES les partitions du disque, pas seulement la racine :
+    # les images cloud Ubuntu en portent d'autres (/boot, /boot/efi, BIOS
+    # boot), ~1 Go au total. Ne comparer qu'à la racine faisait annoncer
+    # 1 Go « non alloué » alors que growpart répondait NOCHANGE.
+    octets_parts="$(lsblk -bnr -o SIZE,TYPE "/dev/$disque" 2>/dev/null \
+      | awk '$2 == "part" { total += $1 } END { print total + 0 }')"
+
     echo "  disque /dev/$disque : $(mo "$octets_disque")"
-    echo "  partition $src : $(mo "$octets_part")"
-    ecart=$(( (octets_disque - octets_part) / 1048576 ))
+    echo "  somme des partitions : $(mo "$octets_parts")"
+    ecart=$(( (octets_disque - octets_parts) / 1048576 ))
     if [ "$ecart" -gt 512 ]; then
       avert "$ecart Mo non alloués — récupérez-les avec : $0 grow"
     else
-      echo "  partition alignée sur le disque, rien à récupérer"
+      echo "  disque entièrement alloué ($ecart Mo de reste), rien à récupérer"
     fi
   else
     avert "racine non identifiée (LVM ou montage inhabituel) : à vérifier à la main"
