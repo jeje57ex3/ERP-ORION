@@ -11,6 +11,7 @@ Fonctions utilitaires pour :
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
@@ -40,6 +41,25 @@ def default_cloudflared_paths() -> dict:
         'config': str(base / 'config.yml'),
         'credentials': str(base / '<tunnel-id>.json'),
     }
+
+
+def path_is_foreign(raw: str) -> bool:
+    """Vrai si ce chemin appartient a une AUTRE plateforme que l'hote.
+
+    Un chemin Windows sur un hote POSIX n'est pas vu comme absolu : Path le
+    traite comme un nom de fichier relatif contenant des antislashs.
+    write_config_yml creait alors un fichier litteralement nomme
+    "C:[...]config.yml" dans le repertoire de travail de Django et renvoyait
+    un SUCCES, alors que cloudflared ne voyait jamais la configuration.
+    Cas reel : base importee d'un poste Windows vers l'appliance Linux, ou
+    les chemins stockes en base restent ceux du poste d'origine.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return False
+    if sys.platform == 'win32':
+        return raw.startswith('/')
+    return bool(re.match(r'^[A-Za-z]:[\\/]', raw)) or raw.startswith(chr(92) * 2)
 
 
 # ─── Génération config.yml ────────────────────────────────────────────────────
@@ -79,6 +99,16 @@ def write_config_yml(tunnel: "CloudflareTunnel") -> tuple[bool, str]:
     """
     if not tunnel.config_file:
         return False, "Aucun chemin de config.yml défini sur ce tunnel."
+
+    if path_is_foreign(tunnel.config_file):
+        attendu = default_cloudflared_paths()['config']
+        return False, (
+            f"Le chemin « {tunnel.config_file} » appartient à une autre "
+            f"plateforme que ce serveur. Sans ce contrôle, un fichier portant "
+            f"ce nom littéral serait créé dans le répertoire de travail et "
+            f"cloudflared ne le lirait jamais. Corrigez le champ « Fichier "
+            f"config.yml » du tunnel, par exemple : {attendu}"
+        )
 
     try:
         content = generate_config_yml(tunnel)
