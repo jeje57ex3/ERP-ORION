@@ -2,7 +2,10 @@
 apps/system_health/services.py — Collecte des métriques et calcul de santé globale.
 """
 import logging
+import os
+import subprocess
 from datetime import timedelta
+from pathlib import Path
 
 from django.db import connection
 from django.utils import timezone
@@ -177,6 +180,191 @@ def get_disk_summary():
         'percent':    percent,
         'status':     status,
     }
+
+
+def get_disk_allocations():
+    """Agencement physique du disque : partitions et espace non alloué.
+
+    Complète get_disk_partitions_usage(), qui ne voit que les points MONTÉS :
+    une partition non montée, ou de l'espace libre en fin de disque après un
+    agrandissement côté hyperviseur, n'y apparaît pas.
+
+    Repose sur lsblk, donc Linux uniquement : renvoie une liste vide ailleurs
+    (poste de développement Windows) plutôt que de faire échouer la page.
+    """
+    if os.name != 'posix':
+        return []
+
+    try:
+        sortie = subprocess.run(
+            ['lsblk', '-bnr', '-o', 'NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if sortie.returncode != 0:
+            return []
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning('lsblk indisponible : %s', exc)
+        return []
+
+    return _parse_lsblk(sortie.stdout)
+
+
+def _parse_lsblk(stdout: str):
+    """Analyse la sortie de « lsblk -bnr -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT ».
+
+    Séparée de get_disk_allocations() pour être testable sans Linux : simuler
+    la plateforme en patchant os.name casse pathlib, qui s'en sert pour
+    choisir entre PosixPath et WindowsPath.
+    """
+    disques = []
+    courant = None
+    for ligne in stdout.splitlines():
+        champs = ligne.split(None, 4)
+        if len(champs) < 3:
+            continue
+        nom, taille, type_ = champs[0], champs[1], champs[2]
+        fstype = champs[3] if len(champs) > 3 else ''
+        montage = champs[4] if len(champs) > 4 else ''
+        try:
+            octets = int(taille)
+        except ValueError:
+            continue
+
+        if type_ == 'disk':
+            courant = {
+                'name': nom,
+                'total_bytes': octets,
+                'total_gb': round(octets / 1e9, 2),
+                'partitions': [],
+            }
+            disques.append(courant)
+        elif type_ == 'part' and courant is not None:
+            courant['partitions'].append({
+                'name': nom,
+                'size_gb': round(octets / 1e9, 2),
+                'size_bytes': octets,
+                'fstype': fstype or '-',
+                'mountpoint': montage or '',
+                'percent_of_disk': (
+                    round(octets / courant['total_bytes'] * 100, 1)
+                    if courant['total_bytes'] else 0
+                ),
+            })
+
+    # Espace non alloué = disque MOINS LA SOMME des partitions. Ne comparer
+    # qu'à la racine ferait annoncer ~1 Go récupérable à tort : les images
+    # cloud portent aussi /boot et /boot/efi.
+    for d in disques:
+        alloue = sum(part['size_bytes'] for part in d['partitions'])
+        libre = max(d['total_bytes'] - alloue, 0)
+        d['allocated_gb'] = round(alloue / 1e9, 2)
+        d['unallocated_gb'] = round(libre / 1e9, 2)
+        d['unallocated_mb'] = round(libre / 1048576)
+        d['percent_allocated'] = (
+            round(alloue / d['total_bytes'] * 100, 1) if d['total_bytes'] else 0
+        )
+        # Seuil à 512 Mo : en dessous, ce sont les quelques Mo d'alignement
+        # que laisse tout schéma de partitionnement, non récupérables.
+        d['has_reclaimable'] = libre > 512 * 1048576
+    return disques
+
+
+def _emplacements_donnees():
+    """Libellé, chemin et politique de purge de chaque emplacement de données.
+
+    Les chemins viennent des settings quand ils existent, pour rester valables
+    sur le poste de développement comme sur l'appliance (où MEDIA_ROOT et
+    LOG_DIR sont des liens vers /opt/orion/uploads et /opt/orion/logs).
+    """
+    from django.conf import settings
+    base = Path(settings.BASE_DIR)
+    orion = Path('/opt/orion')
+    entrees = [
+        ("Médias (photos, PDF, APK)", Path(settings.MEDIA_ROOT), "Aucune : jamais purgé"),
+        ("Sauvegardes de l'ERP", base / 'storage' / 'backups', "Seulement si planifiées"),
+        ("Journaux", Path(getattr(settings, 'LOG_DIR', base / 'logs')), "Rotation 10 Mo x 10"),
+        ("Fichiers statiques", Path(settings.STATIC_ROOT), "Écrasé à chaque collectstatic"),
+        ("Sources des frontends", base / 'frontend', "Réinstallé aux mises à jour"),
+        ("Environnement Python", base / '.venv', "Remplacé aux mises à jour"),
+    ]
+    # Propres à l'appliance : simplement ignorés s'ils n'existent pas.
+    entrees += [
+        ("Données MySQL (conteneur)", orion / 'docker' / 'mysql', "Aucune : suit vos données"),
+        ("Persistance Redis", orion / 'docker' / 'redis', "Aucune : volume faible"),
+        ("Archives nocturnes", orion / 'backups', "Oui : rétention configurée"),
+        ("Build SIÈCLE", orion / 'siecle', "Écrasé à chaque build"),
+        ("Build LUNEA", orion / 'lunea', "Écrasé à chaque build"),
+        ("Build NÉOSTRUCTURA", orion / 'neostructura', "Écrasé à chaque build"),
+    ]
+    return entrees
+
+
+def _taille_repertoire(chemin) -> int:
+    """Somme des tailles de fichiers d'une arborescence.
+
+    Ne lit que les métadonnées, donc rapide même sur plusieurs Go. Les erreurs
+    d'accès sont ignorées fichier par fichier plutôt que de faire échouer tout
+    le calcul.
+    """
+    total = 0
+    try:
+        for racine, _dirs, fichiers in os.walk(chemin, followlinks=False):
+            for f in fichiers:
+                try:
+                    total += os.stat(os.path.join(racine, f)).st_size
+                except OSError:
+                    continue
+    except OSError:
+        return 0
+    return total
+
+
+def get_storage_breakdown(use_cache=True):
+    """Répartition des données par emplacement, avec sa politique de purge.
+
+    Mise en cache 5 minutes : parcourir node_modules et les médias représente
+    plusieurs dizaines de milliers de fichiers, inutile de le refaire à chaque
+    affichage de la page.
+    """
+    from django.core.cache import cache
+    CLE = 'system_health:storage_breakdown'
+    if use_cache:
+        en_cache = cache.get(CLE)
+        if en_cache is not None:
+            return en_cache
+
+    lignes = []
+    for libelle, chemin, purge in _emplacements_donnees():
+        chemin = Path(chemin)
+        if not chemin.exists():
+            continue
+        octets = _taille_repertoire(chemin)
+        lignes.append({
+            'label': libelle,
+            'path': str(chemin),
+            'purge': purge,
+            'bytes': octets,
+            'mb': round(octets / 1048576, 1),
+            'gb': round(octets / 1e9, 2),
+            # Ces deux politiques laissent les fichiers s'accumuler sans fin :
+            # c'est le principal remplissage silencieux du disque.
+            'never_purged': purge.startswith(('Aucune', 'Seulement')),
+        })
+
+    total = sum(ligne['bytes'] for ligne in lignes)
+    for ligne in lignes:
+        ligne['percent'] = round(ligne['bytes'] / total * 100, 1) if total else 0
+    lignes.sort(key=lambda ligne: -ligne['bytes'])
+
+    resultat = {
+        'rows': lignes,
+        'total_gb': round(total / 1e9, 2),
+        'never_purged_gb': round(
+            sum(l['bytes'] for l in lignes if l['never_purged']) / 1e9, 2
+        ),
+    }
+    cache.set(CLE, resultat, 300)
+    return resultat
 
 
 def collect_app_sensors():
