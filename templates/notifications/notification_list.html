@@ -19,15 +19,34 @@
           </h1>
           <p class="text-muted mb-0 small">Vos alertes et messages ERP</p>
         </div>
-        {% if unread_count > 0 %}
-          <form method="post" action="{% url 'notifications:mark_all_read' %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-outline-primary orion-btn sm">
-              <i class="bi bi-check2-all me-1"></i>Tout marquer comme lu
-            </button>
-          </form>
-        {% endif %}
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary orion-btn sm">
+            <i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}
+          </a>
+
+          {% if unread_count > 0 %}
+            <form method="post" action="{% url 'notifications:mark_all_read' %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-outline-primary orion-btn sm">
+                <i class="bi bi-check2-all me-1"></i>Tout marquer comme lu
+              </button>
+            </form>
+          {% endif %}
+
+          {# total_count et non page_obj : le bouton doit rester disponible même
+             quand les filtres de la page ne laissent rien voir. #}
+          {% if total_count > 0 %}
+            <form method="post" action="{% url 'notifications:delete_all' %}"
+                  onsubmit="return confirm('{% trans "Supprimer définitivement toutes vos notifications ? Cette action est irréversible." %}')">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'notifications:list' %}">
+              <button type="submit" class="btn btn-outline-danger orion-btn sm">
+                <i class="bi bi-trash3 me-1"></i>{% trans "Tout supprimer" %} ({{ total_count }})
+              </button>
+            </form>
+          {% endif %}
+        </div>
       </div>
 
       {# Filtres #}

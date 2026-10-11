@@ -15,7 +15,7 @@ from . import services
 
 def _get_company(request):
     """Retourne l'entreprise courante depuis la session/contexte."""
-    return getattr(request, 'company', None)
+    return getattr(request, 'current_company', None)
 
 
 @login_required
@@ -59,9 +59,16 @@ def notification_list(request):
         .order_by('source_module')
     )
 
+    # Compte NON filtre : le bouton « tout supprimer » doit rester visible
+    # meme quand les filtres de la page ne laissent rien voir.
+    total_qs = Notification.objects.filter(user=request.user)
+    if company:
+        total_qs = total_qs.filter(company=company)
+
     context = {
         'page_obj': page_obj,
         'unread_count': unread_count,
+        'total_count': total_qs.count(),
         'notification_types': NOTIFICATION_TYPES,
         'available_modules': available_modules,
         'filter_type': filter_type,
@@ -129,5 +136,36 @@ def delete_notification(request, pk):
         return JsonResponse({'status': 'ok', 'pk': pk})
 
     messages.success(request, 'Notification supprimée.')
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
+    return redirect(next_url or 'notifications:list')
+
+
+@login_required
+@require_POST
+def delete_all_notifications(request):
+    """Supprime toutes les notifications de l'utilisateur (POST).
+
+    Portée volontairement identique aux autres vues du module : l'utilisateur
+    courant, et l'entreprise active quand elle est connue. On ne supprime
+    jamais au-delà, même pour un superadmin.
+
+    La suppression ignore les filtres d'affichage de la page : le bouton
+    annonce « toutes les notifications », il serait trompeur de n'effacer que
+    la sélection visible.
+    """
+    company = _get_company(request)
+    qs = Notification.objects.filter(user=request.user)
+    if company:
+        qs = qs.filter(company=company)
+    count = qs.count()
+    qs.delete()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'ok', 'count': count})
+
+    if count:
+        messages.success(request, f'{count} notification(s) supprimée(s).')
+    else:
+        messages.info(request, 'Aucune notification à supprimer.')
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
     return redirect(next_url or 'notifications:list')

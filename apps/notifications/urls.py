@@ -12,4 +12,5 @@ urlpatterns = [
     path('read-all/', views.mark_all_read, name='mark_all_read'),
     path('count/', views.notification_count_api, name='count_api'),
     path('<int:pk>/delete/', views.delete_notification, name='delete'),
+    path('delete-all/', views.delete_all_notifications, name='delete_all'),
 ]
