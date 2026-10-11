@@ -34,7 +34,31 @@ npm update -g --silent || true
 "$VENV_PY" -m pip install --no-cache-dir -r "$ORION_HOME/backend/requirements.txt"
 
 echo "[4/6] Mise à jour applicative Orion ERP (git pull + migrations)..."
-sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm
+
+# Repli indispensable : sans lui, un bug DANS le mécanisme de mise à jour est
+# irrécupérable. run_system_update est seul à déclencher le git pull, donc son
+# propre correctif ne peut jamais arriver — il faut alors intervenir à la main
+# depuis l'hyperviseur. Constaté en production avec « Commande de sauvegarde
+# non configurée », qui bloquait toute mise à jour par défaut.
+if ! sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm; then
+  echo "  ATTENTION: run_system_update a échoué — repli sur une mise à jour directe." >&2
+
+  if sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
+    sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput
+    sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput >/dev/null
+    echo "  code récupéré et schéma migré par le repli."
+
+    # Nouvelle tentative avec le code à jour : si l'échec venait du mécanisme
+    # lui-même, il est désormais corrigé. Cela restaure aussi la trace
+    # SystemUpdateRun et le point de rollback, que le repli ne crée pas.
+    echo "  nouvelle tentative du mécanisme normal..."
+    sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm \
+      || echo "  ATTENTION: run_system_update échoue encore — cause applicative, voir /opt/orion/logs/errors.log." >&2
+  else
+    echo "  ERREUR: git pull impossible (arbre modifié, ou branche suivie différente)." >&2
+    echo "          Vérifiez : git -C $ORION_HOME/backend status" >&2
+  fi
+fi
 
 echo "[5/6] Reconstruction des frontends SIÈCLE / LUNEA / NÉOSTRUCTURA..."
 for store in siecle-store:siecle lunea-store:lunea; do

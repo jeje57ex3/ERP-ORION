@@ -2,6 +2,12 @@
 
 ## 2026.10.10
 
+- `update_orion.sh` : repli automatique si `run_system_update` échoue (git pull
+  + migrate + collectstatic directs, puis nouvelle tentative du mécanisme
+  normal). Sans ce repli, un bug dans la mise à jour était irrécupérable :
+  `run_system_update` est seul à déclencher le `git pull`, donc son propre
+  correctif ne pouvait jamais arriver et il fallait intervenir à la main
+  depuis l'hyperviseur.
 - Gestion des disques : nouveau `scripts/orion-disk.sh` (état des volumes et
   de chaque emplacement de données, classement des plus gros consommateurs,
   extension partition + système de fichiers après un `qm resize`, revue des
