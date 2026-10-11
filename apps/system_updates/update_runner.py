@@ -102,7 +102,15 @@ def run_system_update(started_by=None):
         if update_settings.require_backup_before_update:
             backup_cmd = getattr(settings, 'ORION_UPDATE_BACKUP_COMMAND', '')
             if not backup_cmd:
-                raise RuntimeError('Commande de sauvegarde non configurée.')
+                # Repli sur la sauvegarde intégrée au lieu d'échouer :
+                # require_backup_before_update vaut True côté modèle et
+                # ORION_UPDATE_BACKUP_COMMAND vaut '' côté settings, et le .env
+                # généré par l'appliance n'en définit aucun — exiger une
+                # commande externe rendait donc TOUTE mise à jour impossible
+                # par défaut, avec un message qui n'indiquait pas quoi
+                # configurer. backup_all est déjà la commande employée par le
+                # backup.sh de l'appliance et par le cron quotidien.
+                backup_cmd = f'{shlex.quote(sys.executable)} manage.py backup_all'
             run_shell_step(update_run, 'backup', 'Sauvegarde avant mise à jour',
                            backup_cmd, cwd=backend_path, timeout=3600)
 
