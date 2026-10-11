@@ -394,6 +394,13 @@ NAV_MODULES = [
             {'label': _('Dashboard'),       'url_name': 'private_saas:dashboard',         'icon_img': 'private_saas_dashboard.png', 'icon': 'ti-gauge'},
             {'label': _('Entreprises'),     'url_name': 'private_saas:company_list',      'icon_img': 'entreprises.png', 'icon': 'ti-building'},
             {'label': _('Santé'),           'url_name': 'private_saas:health',            'icon_img': 'sante.png', 'icon': 'ti-heartbeat'},
+            # Les pages de apps.system_health n'etaient atteignables que par
+            # URL directe : aucune entree de navigation n'y menait, et
+            # l'entree « Sante » ci-dessus pointe vers une autre page
+            # (private_saas:health). On ne pouvait donc pas trouver le
+            # tableau de bord des disques depuis l'interface.
+            {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
+            {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
             {'label': _('Mises à jour'),       'url_name': 'system_updates:dashboard',        'icon_img': 'mises_a_jour.png', 'icon': 'ti-cloud-download'},
             {'label': _('Centre sauvegardes'), 'url_name': 'backup_center:dashboard',          'icon_img': 'centre_sauvegardes.png', 'icon': 'ti-server-2'},
