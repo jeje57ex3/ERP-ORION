@@ -2,7 +2,7 @@
 
 {% block title %}Disques & stockage — Santé système{% endblock %}
 {% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
-{% block page_subtitle %}Espace disque utilisé et disponible par volume monté sur le serveur.{% endblock %}
+{% block page_subtitle %}Volumes montés, allocations du disque et répartition réelle des données.{% endblock %}
 {% block page_actions %}
 <a href="{% url 'system_health:dashboard' %}" class="orion-btn">
   <i class="bi bi-arrow-left me-1"></i>Retour
@@ -21,6 +21,35 @@
 .disk-card.warning  { border-left-color: #ffc107; }
 .disk-card.critical { border-left-color: #dc3545; }
 .disk-percent { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Allocations : une barre empilée par disque, un segment par partition,
+   plus un segment hachuré pour l'espace non alloué. */
+.alloc-bar {
+  display: flex; height: 26px; border-radius: 6px; overflow: hidden;
+  background: var(--orion-bg-subtle); border: 1px solid var(--orion-border);
+}
+.alloc-seg {
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 600; color: #fff; overflow: hidden;
+  white-space: nowrap; min-width: 0;
+}
+.alloc-seg.free {
+  color: var(--orion-text-muted);
+  background: repeating-linear-gradient(45deg,
+    transparent, transparent 5px,
+    rgba(127, 127, 127, .22) 5px, rgba(127, 127, 127, .22) 10px);
+}
+.alloc-legend { font-size: .78rem; }
+.alloc-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin-right: .35rem; vertical-align: baseline;
+}
+
+/* Répartition des données : barre fine par emplacement. */
+.store-bar { height: 7px; border-radius: 4px; background: var(--orion-bg-subtle); overflow: hidden; }
+.store-bar-fill { height: 100%; border-radius: 4px; background: var(--orion-primary, #0d6efd); }
+.store-bar-fill.never { background: #fd7e14; }
+.store-path { font-size: .72rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
 </style>
 {% endblock %}
 
@@ -90,6 +119,138 @@
   </div>
   {% endfor %}
 </div>
+
+<!-- Allocations : agencement physique du disque -->
+{% if allocations %}
+<div class="orion-card mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h2 class="h6 mb-0"><i class="bi bi-hdd-stack me-2"></i>Allocations du disque</h2>
+    <span class="text-muted small">partitions et espace non alloué</span>
+  </div>
+  <p class="text-muted small mb-3">
+    Les volumes ci-dessus ne montrent que les points <em>montés</em>. Ici figure
+    l'agencement réel du disque, y compris l'espace libre en fin de disque après
+    un agrandissement côté hyperviseur.
+  </p>
+
+  {% for d in allocations %}
+  <div class="{% if not forloop.last %}mb-4{% endif %}">
+    <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <span class="fw-600">/dev/{{ d.name }}</span>
+      <span class="text-muted small">
+        {{ d.total_gb }} Go · {{ d.allocated_gb }} Go alloués ({{ d.percent_allocated }}%)
+      </span>
+    </div>
+
+    <div class="alloc-bar mb-2">
+      {% for p in d.partitions %}
+      <div class="alloc-seg" style="width:{{ p.percent_of_disk }}%;background:{% cycle '#0d6efd' '#6f42c1' '#20c997' '#fd7e14' '#d63384' as segcolor %}"
+           title="{{ p.name }} — {{ p.size_gb }} Go — {{ p.fstype }}{% if p.mountpoint %} — monté sur {{ p.mountpoint }}{% endif %}">
+        {% if p.percent_of_disk > 8 %}{{ p.name }}{% endif %}
+      </div>
+      {% endfor %}
+      {% if d.unallocated_mb > 0 %}
+      <div class="alloc-seg free" style="flex:1 1 auto"
+           title="{{ d.unallocated_mb }} Mo non alloués">
+        {% if d.has_reclaimable %}{{ d.unallocated_gb }} Go libres{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="alloc-legend text-muted mb-2">
+      {% resetcycle segcolor %}
+      {% for p in d.partitions %}
+      <span class="me-3 d-inline-block">
+        <span class="alloc-dot" style="background:{% cycle '#0d6efd' '#6f42c1' '#20c997' '#fd7e14' '#d63384' as legcolor %}"></span>
+        <strong>{{ p.name }}</strong> {{ p.size_gb }} Go · {{ p.fstype }}{% if p.mountpoint %} · <code>{{ p.mountpoint }}</code>{% endif %}
+      </span>
+      {% endfor %}
+      {% resetcycle legcolor %}
+    </div>
+
+    {% if d.has_reclaimable %}
+    <div class="alert alert-warning py-2 px-3 mb-0 small">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      <strong>{{ d.unallocated_mb }} Mo non alloués</strong> en fin de disque.
+      Récupérez-les avec <code>orion-disk.sh grow</code> (étend la partition puis
+      le système de fichiers).
+    </div>
+    {% else %}
+    <div class="text-muted small">
+      Disque entièrement alloué — {{ d.unallocated_mb }} Mo de reste, non
+      récupérables (alignement de partitionnement).
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Répartition des données par emplacement -->
+{% if breakdown.rows %}
+<div class="orion-card mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h2 class="h6 mb-0"><i class="bi bi-folder2-open me-2"></i>Où vont les données</h2>
+    <span class="text-muted small">{{ breakdown.total_gb }} Go analysés</span>
+  </div>
+  <p class="text-muted small mb-3">
+    Taille réelle de chaque emplacement et politique de purge associée.
+    {% if breakdown.never_purged_gb %}
+    <strong class="text-warning">{{ breakdown.never_purged_gb }} Go</strong>
+    occupent des emplacements qui ne se vident jamais d'eux-mêmes.
+    {% endif %}
+  </p>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="small text-muted">
+        <tr>
+          <th>Emplacement</th>
+          <th class="text-end" style="width:110px">Taille</th>
+          <th style="width:28%">Part</th>
+          <th style="width:30%">Purge</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in breakdown.rows %}
+        <tr>
+          <td>
+            <div class="fw-600">
+              {% if r.never_purged %}<i class="bi bi-exclamation-circle text-warning me-1"
+                 title="Cet emplacement ne se vide jamais automatiquement"></i>{% endif %}
+              {{ r.label }}
+            </div>
+            <div class="text-muted store-path text-truncate" title="{{ r.path }}">{{ r.path }}</div>
+          </td>
+          <td class="text-end">
+            {% if r.gb >= 1 %}<span class="fw-600">{{ r.gb }} Go</span>
+            {% else %}{{ r.mb }} Mo{% endif %}
+          </td>
+          <td>
+            <div class="store-bar">
+              <div class="store-bar-fill {% if r.never_purged %}never{% endif %}"
+                   style="width:{{ r.percent }}%"></div>
+            </div>
+            <span class="text-muted small">{{ r.percent }}%</span>
+          </td>
+          <td class="small {% if r.never_purged %}text-warning{% else %}text-muted{% endif %}">
+            {{ r.purge }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted small mb-0 mt-3">
+    Les sauvegardes lancées à la main et les exports portables ne sont jamais
+    purgés automatiquement : seules celles rattachées à une planification active
+    le sont. Supprimez-les depuis
+    <a href="{% url 'backups:dashboard' %}">Sauvegardes</a> plutôt qu'au niveau
+    du système, afin que la base reste cohérente.
+  </p>
+</div>
+{% endif %}
 
 {% endblock %}
 

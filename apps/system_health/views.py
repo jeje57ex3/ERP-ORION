@@ -28,8 +28,8 @@ from .models import (
 )
 from .permissions import _audit, has_health_perm
 from .services import (
-    compute_global_health, get_disk_summary, get_latest_sensor_readings,
-    get_snapshot_history,
+    compute_global_health, get_disk_allocations, get_disk_summary,
+    get_latest_sensor_readings, get_snapshot_history, get_storage_breakdown,
 )
 
 
@@ -247,8 +247,13 @@ def sensor_history_api(request, sensor_type):
 @_require_perm('can_view_technical')
 def disk_dashboard(request):
     _audit(request, 'view_dashboard', description='Consultation disques & stockage')
+    # allocations : agencement physique (partitions, espace non alloué), vide
+    # hors Linux. breakdown : où vont réellement les données, mis en cache
+    # côté service car il parcourt des dizaines de milliers de fichiers.
     return render(request, 'system_health/disk_dashboard.html', {
         'disks': get_disk_summary(),
+        'allocations': get_disk_allocations(),
+        'breakdown': get_storage_breakdown(),
     })
 
 

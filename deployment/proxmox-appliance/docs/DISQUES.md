@@ -130,6 +130,10 @@ Ces seuils sont posés par `manage.py setup_health_thresholds` et modifiables
 depuis l'ERP. `apps/orion_ops` calcule en plus une tendance sur 7 et 30 jours,
 qui permet d'anticiper la saturation plutôt que de la découvrir.
 
+Et dans l'ERP, **Santé système → Disques & stockage** présente visuellement
+les volumes montés, les allocations du disque (partitions et espace non
+alloué) et la répartition des données avec leur politique de purge.
+
 Vue rapide côté système :
 
 ```bash
