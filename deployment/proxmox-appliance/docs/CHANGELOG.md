@@ -2,6 +2,11 @@
 
 ## 2026.10.10
 
+- `orion-disk.sh` : correction du calcul de l'espace non alloué, qui ne
+  comparait la taille du disque qu'à la partition racine. Les images cloud
+  Ubuntu en portent d'autres (`/boot`, `/boot/efi`, BIOS boot, ~1 Go), d'où
+  un faux « 1025 Mo non alloués » alors que `growpart` répondait `NOCHANGE`.
+  La somme de toutes les partitions est désormais prise en compte.
 - `update_orion.sh` : repli automatique si `run_system_update` échoue (git pull
   + migrate + collectstatic directs, puis nouvelle tentative du mécanisme
   normal). Sans ce repli, un bug dans la mise à jour était irrécupérable :

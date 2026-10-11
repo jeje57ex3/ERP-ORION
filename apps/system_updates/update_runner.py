@@ -1,7 +1,9 @@
+import logging
+import os
 import shlex
 import sys
 from pathlib import Path
-from time import monotonic
+from time import monotonic, time
 
 from django.conf import settings
 from django.utils import timezone
@@ -12,6 +14,8 @@ from apps.system_updates.health_checks import run_post_update_health_checks
 from apps.system_updates.models import SystemUpdateRun, SystemUpdateStepLog
 from apps.system_updates.selectors import get_update_settings
 
+logger = logging.getLogger(__name__)
+
 
 class UpdateAlreadyRunning(Exception):
     pass
@@ -21,11 +25,74 @@ def _get_lock_file():
     return Path(getattr(settings, 'ORION_UPDATE_LOCK_FILE', '/tmp/orion_update.lock'))
 
 
+# Au-delà de cette durée, un verrou est considéré comme abandonné. Large à
+# dessein : une mise à jour complète (pip, migrations, builds React) peut
+# durer longtemps, mais jamais plusieurs heures.
+LOCK_MAX_AGE_SECONDS = 3 * 3600
+
+
+def _process_alive(pid: int) -> bool:
+    # Uniquement sur POSIX : sous Windows, os.kill() TERMINE le processus
+    # quel que soit le signal demandé, y compris 0.
+    if os.name != 'posix':
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True  # existe mais hors de portée (permissions)
+    return True
+
+
+def _lock_stale_reason(lock_file: Path):
+    """Pourquoi ce verrou est abandonné, ou None s'il est légitime.
+
+    Le verrou n'avait ni âge ni PID : un processus tué en cours de route
+    (agent invité qui tombe, « qm guest exec » interrompu, VM redémarrée)
+    laissait un verrou DÉFINITIF, et plus aucune mise à jour n'était possible
+    sans supprimer à la main un fichier dont l'emplacement n'était documenté
+    nulle part. Constaté sur l'appliance Proxmox.
+    """
+    try:
+        age = time() - lock_file.stat().st_mtime
+    except OSError:
+        return 'verrou illisible'
+
+    pid = None
+    try:
+        for ligne in lock_file.read_text(encoding='utf-8').splitlines():
+            if ligne.startswith('pid='):
+                pid = int(ligne[4:].strip())
+                break
+    except (OSError, ValueError):
+        pass
+
+    if pid is not None and not _process_alive(pid):
+        return f'processus {pid} absent'
+    if age > LOCK_MAX_AGE_SECONDS:
+        return f'verrou vieux de {int(age // 3600)} h'
+    return None
+
+
 def _create_update_lock():
     lock_file = _get_lock_file()
     if lock_file.exists():
-        raise UpdateAlreadyRunning('Une mise à jour est déjà en cours.')
-    lock_file.write_text(str(timezone.now()), encoding='utf-8')
+        raison = _lock_stale_reason(lock_file)
+        if raison is None:
+            age = int(time() - lock_file.stat().st_mtime)
+            raise UpdateAlreadyRunning(
+                f'Une mise à jour est déjà en cours (démarrée il y a {age} s). '
+                f'Si ce n\'est pas le cas, supprimez {lock_file}.'
+            )
+        logger.warning('Verrou de mise à jour abandonné repris (%s) : %s', raison, lock_file)
+        _remove_update_lock()
+
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_file.write_text(
+        f'created={timezone.now().isoformat()}\npid={os.getpid()}\n',
+        encoding='utf-8',
+    )
 
 
 def _remove_update_lock():
@@ -79,17 +146,24 @@ def run_system_update(started_by=None):
 
     _create_update_lock()
 
-    from_commit = get_current_commit()
-    backend_path = getattr(settings, 'ORION_BACKEND_PATH', '') or str(settings.BASE_DIR)
-    project_root = getattr(settings, 'ORION_PROJECT_ROOT', '') or str(settings.BASE_DIR)
-    remote = getattr(settings, 'ORION_GIT_REMOTE', 'origin')
-    branch = getattr(settings, 'ORION_GIT_BRANCH', 'main')
+    # Ces lignes etaient hors du try/finally : un echec ici (commit Git
+    # illisible, base indisponible) laissait le verrou en place et bloquait
+    # toutes les mises a jour suivantes.
+    try:
+        from_commit = get_current_commit()
+        backend_path = getattr(settings, 'ORION_BACKEND_PATH', '') or str(settings.BASE_DIR)
+        project_root = getattr(settings, 'ORION_PROJECT_ROOT', '') or str(settings.BASE_DIR)
+        remote = getattr(settings, 'ORION_GIT_REMOTE', 'origin')
+        branch = getattr(settings, 'ORION_GIT_BRANCH', 'main')
 
-    update_run = SystemUpdateRun.objects.create(
-        status='running',
-        from_commit=from_commit,
-        started_by=started_by,
-    )
+        update_run = SystemUpdateRun.objects.create(
+            status='running',
+            from_commit=from_commit,
+            started_by=started_by,
+        )
+    except Exception:
+        _remove_update_lock()
+        raise
 
     try:
         if update_settings.maintenance_mode_during_update:
