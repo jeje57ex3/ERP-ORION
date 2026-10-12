@@ -10,9 +10,41 @@ class CloudflareClient:
     BASE_URL = 'https://api.cloudflare.com/client/v4'
 
     def __init__(self, api_token=None):
-        self.api_token = api_token or getattr(settings, 'ORION_CLOUDFLARE_API_TOKEN', '')
+        self.api_token = (
+            api_token
+            or getattr(settings, 'ORION_CLOUDFLARE_API_TOKEN', '')
+            or self._jeton_depuis_compte_enregistre()
+        )
         if not self.api_token:
-            raise CloudflareAPIError('Token Cloudflare manquant. Configurez ORION_CLOUDFLARE_API_TOKEN dans .env.')
+            raise CloudflareAPIError(
+                'Aucun jeton Cloudflare disponible. Connectez un compte dans '
+                "Sites web > Cloudflare, ou renseignez ORION_CLOUDFLARE_API_TOKEN "
+                'dans le .env.'
+            )
+
+    @staticmethod
+    def _jeton_depuis_compte_enregistre():
+        """Jeton du compte Cloudflare connecté dans l'interface, à défaut d'env.
+
+        Sans ce repli, la page Observabilité signalait « Token Cloudflare
+        manquant » alors qu'un compte était bel et bien connecté et
+        fonctionnel : le diagnostic ne lisait que la variable
+        d'environnement, jamais la base. Un faux négatif d'autant plus
+        trompeur que la variable d'env n'est pas renseignée par le
+        provisioning de l'appliance.
+
+        Il s'agit d'une sonde système, consultée par les seuls
+        superutilisateurs : on prend le premier compte actif, sans contexte
+        d'entreprise — aucune donnée d'entreprise n'est exposée, seule la
+        joignabilité de l'API est rapportée.
+        """
+        try:
+            from apps.websites.models_domains import CloudflareAccount
+            compte = (CloudflareAccount.objects.filter(is_active=True).first()
+                      or CloudflareAccount.objects.first())
+        except Exception:
+            return ''
+        return (compte.api_token or '').strip() if compte else ''
 
     @property
     def _headers(self):

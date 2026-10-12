@@ -1,0 +1,35 @@
+[Unit]
+# Worker Celery — absent de l'appliance jusqu'ici, alors que l'ERP s'appuie
+# dessus pour ses traitements planifiés : sauvegardes programmées, collecte
+# des capteurs de santé, checks d'observabilité, alertes. Sans lui, la page
+# Observabilité signale « Aucun worker Celery ne répond » et aucune tâche
+# planifiée ne s'exécute jamais.
+Description=Orion ERP — Celery worker (tâches asynchrones et planifiées)
+After=network-online.target orion-db-stack.service orion-backend.service
+Wants=network-online.target
+Requires=orion-db-stack.service
+
+[Service]
+Type=simple
+User=orion
+Group=orion
+WorkingDirectory=/opt/orion/backend
+EnvironmentFile=/opt/orion/backend/.env
+Environment=DJANGO_SETTINGS_MODULE=erp_btp.settings.production
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 3306 60
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
+# Pool prefork par défaut : --pool=threads n'est utilisé que sur le poste de
+# développement Windows, où prefork n'existe pas. Concurrence volontairement
+# modeste, gunicorn occupant déjà 5 workers sur les 4 vCPU de la VM.
+ExecStart=/opt/orion/backend/.venv/bin/celery -A erp_btp worker \
+    --concurrency=2 \
+    --loglevel=info \
+    --logfile=/opt/orion/logs/celery-worker.log
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

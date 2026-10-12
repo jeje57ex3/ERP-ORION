@@ -156,6 +156,14 @@ ORION_FRONTEND_DOMAIN=${ORION_DOMAIN:-}
 # effacé au premier redémarrage.
 ORION_NS_DOMAIN=${NS_DOMAIN:-}
 
+# Redemarrage de Celery apres une mise a jour lancee depuis l'interface.
+# ORION_UPDATE_RESTART_COMMAND est volontairement laisse VIDE : il
+# redemarrerait orion-backend, c'est-a-dire le processus qui execute la
+# mise a jour, qui serait tue avant de pouvoir l'enregistrer. Le
+# redemarrage du backend est fait par update_orion.sh, depuis l'exterieur.
+ORION_UPDATE_CELERY_RESTART_COMMAND=sudo -n systemctl restart orion-celery
+ORION_UPDATE_CELERY_BEAT_RESTART_COMMAND=sudo -n systemctl restart orion-celery-beat
+
 MEDIA_ROOT=media/
 STATIC_ROOT=staticfiles/
 BACKUP_DIR=/opt/orion/backups/
