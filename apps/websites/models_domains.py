@@ -199,7 +199,12 @@ class CloudflareAccount(models.Model):
     )
     api_token = models.CharField(
         'Token API Cloudflare',
-        max_length=200,
+        # 500 et non 200 : Django derive un maxlength HTML de cette valeur, et
+        # le navigateur TRONQUE silencieusement tout collage au-dela. Le champ
+        # etant de type password, la valeur est masquee : impossible de voir
+        # que le jeton a ete coupe. Constate en production, avec un jeton
+        # refuse sans explication.
+        max_length=500,
         help_text=(
             "Jeton d'API (Mon profil > Jetons d'API), ~40 caractères. Zone > DNS > Edit pour les enregistrements. Pour piloter les tunnels, il faut EN PLUS une portée de compte : Account > Cloudflare Tunnel > Edit, avec le compte coché dans Account Resources."
         ),
