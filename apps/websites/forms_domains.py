@@ -235,5 +235,7 @@ class CloudflareAccountForm(forms.ModelForm):
             'api_token': 'Token API Cloudflare',
         }
         help_texts = {
-            'api_token': 'Token avec permissions « DNS Edit » sur les zones concernées.',
+            'api_token': (
+                "Jeton d'API (Mon profil > Jetons d'API), ~40 caractères. Zone > DNS > Edit pour les enregistrements. Pour piloter les tunnels, il faut EN PLUS une portée de compte : Account > Cloudflare Tunnel > Edit, avec le compte coché dans Account Resources."
+            ),
         }
