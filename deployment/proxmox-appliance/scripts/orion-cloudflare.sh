@@ -129,6 +129,18 @@ cmd_set_token() {
   fi
 
   titre "Installation du service"
+
+  # Une unité déjà installée porte l'ancienne configuration — en mode fichier,
+  # « --config /etc/cloudflared/config.yml ». La conserver ferait redémarrer
+  # cloudflared sur cette configuration, le token ne servant jamais, et
+  # « service install » refuse d'écraser : « cloudflared service is already
+  # installed at /etc/systemd/system/cloudflared.service ». On désinstalle
+  # donc d'abord ; l'échec est normal la première fois, rien à désinstaller.
+  if [ "$mode" != 'absent' ]; then
+    echo "  désinstallation de l'unité existante ($mode)..."
+    cloudflared service uninstall >/dev/null 2>&1 || true
+  fi
+
   # cloudflared inscrit lui-même le token dans l'unité systemd qu'il crée :
   # il n'y a rien à stocker dans le .env, et rien à nettoyer ici.
   if ! cloudflared service install "$token" 2>&1 | sed 's/^/  /'; then

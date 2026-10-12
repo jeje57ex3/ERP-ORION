@@ -258,14 +258,30 @@ def _installer_connecteur(token: str, origine: str) -> tuple[bool, str]:
     # l'utilisateur applicatif, qui dispose de sudo sans mot de passe.
     prefixe = [] if (os.name == 'posix' and os.geteuid() == 0) else ['sudo', '-n']
     try:
+        # Une unité déjà installée porte l'ancienne configuration — typiquement
+        # « --config /etc/cloudflared/config.yml », donc le mode FICHIER. La
+        # conserver ferait redémarrer cloudflared sur cette configuration et le
+        # jeton ne serait jamais utilisé : « service install » refuse d'ailleurs
+        # d'écraser, avec « cloudflared service is already installed at ... ».
+        # On désinstalle donc avant de reposer l'unité. Échec ignoré : il n'y a
+        # simplement rien à désinstaller la première fois.
+        subprocess.run(
+            prefixe + [exe, 'service', 'uninstall'],
+            capture_output=True, text=True, timeout=60,
+        )
+
         pose = subprocess.run(
             prefixe + [exe, 'service', 'install', token],
             capture_output=True, text=True, timeout=60,
         )
         if pose.returncode != 0:
             detail = (pose.stderr or pose.stdout).strip()[:300]
-            # « already exists » n'est pas un echec : on enchaine sur le demarrage.
-            if 'already exists' not in detail.lower():
+            # Les deux formulations rencontrées selon les versions de
+            # cloudflared ; « already installed » est celle observée en
+            # production. Ni l'une ni l'autre n'est un échec à ce stade.
+            deja = ('already exists' in detail.lower()
+                    or 'already installed' in detail.lower())
+            if not deja:
                 return False, f"Installation du service échouée : {detail}"
 
         for cmd in (['systemctl', 'enable', 'cloudflared'],
