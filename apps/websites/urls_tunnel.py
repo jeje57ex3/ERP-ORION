@@ -17,6 +17,7 @@ urlpatterns = [
 
     # ─── Config.yml ───────────────────────────────────────────────────────────
     path('<int:pk>/config/ecrire/',                         v.tunnel_write_config,    name='tunnel_write_config'),
+    path('<int:pk>/connecteur/demarrer/',                    v.tunnel_start_connector, name='tunnel_start_connector'),
     path('<int:pk>/config/telecharger/',                    v.tunnel_download_config, name='tunnel_download_config'),
 
     # ─── Règles d'ingress ─────────────────────────────────────────────────────

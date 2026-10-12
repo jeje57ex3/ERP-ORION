@@ -35,9 +35,35 @@
 </div>
 {% else %}
 <div class="orion-alert warning mb-4">
-  <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>{% trans "cloudflared n'est pas en cours d'exécution." %}</strong>
-  {% trans "Lancez" %} <code>cloudflared tunnel --config "{{ tunnel.config_file|default:'config.yml' }}" run</code>
+  <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+    <div>
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>{% trans "cloudflared n'est pas en cours d'exécution." %}</strong>
+      <div class="small mt-2 mb-0">
+        {% if tunnel.cloudflare_account %}
+          {% blocktrans %}Un compte Cloudflare est rattaché à ce tunnel : le connecteur peut être
+          démarré directement, sans copier de fichier d'identifiants. Son jeton sera
+          récupéré par l'API.{% endblocktrans %}
+        {% else %}
+          {# Sans compte rattache, seul le fichier de credentials permet de demarrer :
+             il n'existe que sur la machine ou le tunnel a ete cree. #}
+          {% blocktrans %}Aucun compte Cloudflare n'est rattaché à ce tunnel. Rattachez-en un pour
+          pouvoir démarrer le connecteur depuis l'interface, ou lancez-le à la
+          main :{% endblocktrans %}
+          <code>cloudflared tunnel --config "{{ tunnel.config_file|default:'config.yml' }}" run</code>
+        {% endif %}
+      </div>
+    </div>
+    {% if tunnel.cloudflare_account and tunnel.tunnel_id %}
+    <form method="post" action="{% url 'websites:tunnel_start_connector' tunnel.pk %}"
+          onsubmit="return confirm('{% trans "Installer et démarrer le connecteur avec le compte Cloudflare rattaché ? En mode jeton, l\'ingress provient du dashboard Zero Trust et non du config.yml local." %}')">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn orion-btn-primary sm text-nowrap">
+        <i class="bi bi-play-fill me-1"></i>{% trans "Démarrer le connecteur" %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 

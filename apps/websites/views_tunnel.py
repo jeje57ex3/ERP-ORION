@@ -11,6 +11,7 @@ from .models_domains import CloudflareTunnel, TunnelIngressRule, CloudflareAccou
 from .forms_tunnel import CloudflareTunnelForm, TunnelIngressRuleForm
 from .tunnel_service import (
     generate_config_yml, write_config_yml, get_cloudflared_status,
+    install_connector_from_account,
     default_cloudflared_paths,
     sync_tunnel_dns, parse_config_yml,
 )
@@ -237,6 +238,28 @@ def tunnel_write_config(request, pk):
     company = _company(request)
     tunnel = get_object_or_404(CloudflareTunnel, pk=pk, company=company)
     success, msg = write_config_yml(tunnel)
+    if success:
+        messages.success(request, msg)
+    else:
+        messages.error(request, msg)
+    return redirect('websites:tunnel_detail', pk=tunnel.pk)
+
+
+# ─── Démarrer le connecteur depuis le compte Cloudflare ──────────────────────
+
+@login_required
+@require_POST
+def tunnel_start_connector(request, pk):
+    """Installe et démarre le connecteur local via le compte Cloudflare.
+
+    Alternative au fichier de credentials : celui-ci n'existe que sur la
+    machine ou le tunnel a ete cree, et devait etre copie a la main. Ici le
+    jeton de connecteur est recupere par l'API avec le compte deja
+    enregistre dans l'ERP.
+    """
+    company = _company(request)
+    tunnel = get_object_or_404(CloudflareTunnel, pk=pk, company=company)
+    success, msg = install_connector_from_account(tunnel)
     if success:
         messages.success(request, msg)
     else:
