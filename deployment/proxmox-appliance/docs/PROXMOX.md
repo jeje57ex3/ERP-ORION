@@ -151,11 +151,37 @@ redirige vers la page de connexion normale.
 
 ## Activer Cloudflare Tunnel après coup
 
-Si aucun token n'a été fourni à `deploy.sh` au moment du déploiement :
+Si aucun token n'a été fourni à `deploy.sh` au moment du déploiement, le
+service est désactivé. `scripts/orion-cloudflare.sh` l'active sans redéployer :
 
 ```bash
-ssh orion@<ip-vm>
-sudo cloudflared service install <TOKEN>
+qm guest exec <vmid> -- /bin/bash -c '/opt/orion/scripts/orion-cloudflare.sh'
+```
+
+donne l'état courant (mode token ou fichier, service actif, hostnames,
+journal). Pour poser le token :
+
+```bash
+# depuis l'hyperviseur, le token ne touche jamais le disque de la VM
+qm guest exec <vmid> --pass-stdin 1 -- /bin/bash -c '/opt/orion/scripts/orion-cloudflare.sh set-token' < token.txt
+```
+
+Le token est lu sur **l'entrée standard**, jamais en argument : passé en
+paramètre, il se retrouverait dans l'historique du shell et dans la liste des
+processus, lisible par tout utilisateur de la machine. Le script valide sa
+longueur, installe l'unité systemd, l'active, puis **vérifie que la connexion
+au réseau Cloudflare est établie** avant de rendre la main — et affiche le
+journal en cas d'échec.
+
+Cette commande passe par l'agent invité et ne requiert donc **aucune clé
+SSH** : sans `--sshkey` au déploiement, la VM n'est de toute façon pas
+joignable en SSH (`ssh_pwauth` est à `false` et les mots de passe sont
+verrouillés).
+
+Pour désactiver le tunnel sans perdre le token :
+
+```bash
+qm guest exec <vmid> -- /bin/bash -c '/opt/orion/scripts/orion-cloudflare.sh disable'
 ```
 
 Puis déclarer les hostnames publics dans le dashboard Cloudflare Zero Trust

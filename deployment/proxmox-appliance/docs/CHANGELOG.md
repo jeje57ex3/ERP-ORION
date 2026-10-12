@@ -2,6 +2,14 @@
 
 ## 2026.10.10
 
+- Activation de Cloudflare Tunnel après l'installation :
+  `scripts/orion-cloudflare.sh` (état, pose du token, désactivation). La
+  procédure documentée jusqu'ici passait par `ssh orion@<ip>`, impossible
+  sans clé SSH fournie au déploiement, et plaçait le token en argument de
+  commande — donc dans l'historique du shell et la liste des processus. Le
+  script le lit sur l'entrée standard, valide sa longueur, et vérifie que la
+  connexion au réseau Cloudflare est bien établie au lieu de s'arrêter à
+  « service installé ».
 - `orion-disk.sh` : correction du calcul de l'espace non alloué, qui ne
   comparait la taille du disque qu'à la partition racine. Les images cloud
   Ubuntu en portent d'autres (`/boot`, `/boot/efi`, BIOS boot, ~1 Go), d'où
