@@ -200,7 +200,9 @@ class CloudflareAccount(models.Model):
     api_token = models.CharField(
         'Token API Cloudflare',
         max_length=200,
-        help_text='Token API avec permissions DNS Edit sur les zones concernées',
+        help_text=(
+            "Jeton d'API (Mon profil > Jetons d'API), ~40 caractères. Zone > DNS > Edit pour les enregistrements. Pour piloter les tunnels, il faut EN PLUS une portée de compte : Account > Cloudflare Tunnel > Edit, avec le compte coché dans Account Resources."
+        ),
     )
     account_id = models.CharField('ID compte Cloudflare', max_length=100, blank=True)
     email = models.EmailField('Email Cloudflare', blank=True)

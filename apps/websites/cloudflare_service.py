@@ -18,7 +18,39 @@ CF_BASE = 'https://api.cloudflare.com/client/v4'
 
 
 def _headers(api_token: str) -> dict:
-    return {'Authorization': f'Bearer {api_token}', 'Content-Type': 'application/json'}
+    # .strip() : un jeton copié depuis le dashboard arrive souvent avec une
+    # espace ou un retour à la ligne, qui rend l'en-tête Authorization
+    # invalide et fait répondre « Token invalide » sans autre explication.
+    return {
+        'Authorization': f'Bearer {(api_token or "").strip()}',
+        'Content-Type': 'application/json',
+    }
+
+
+def _diagnostic_forme_jeton(api_token: str) -> str:
+    """Message d'erreur quand le jeton n'a visiblement pas la bonne forme.
+
+    Cloudflare expose deux objets très différents, souvent confondus :
+    un JETON D'API (My Profile > API Tokens, ~40 caractères) qui pilote
+    l'API, et un JETON DE CONNECTEUR (Zero Trust > Tunnels > Install,
+    plus de 150 caractères) qui sert uniquement à lancer cloudflared.
+    Seul le premier est attendu ici ; le second échoue sur
+    /user/tokens/verify avec un message incompréhensible.
+
+    Retourne '' si la forme est plausible.
+    """
+    jeton = (api_token or '').strip()
+    if not jeton:
+        return 'Jeton vide.'
+    if len(jeton) > 100:
+        return (f'Ce jeton fait {len(jeton)} caractères : il s\'agit probablement d\'un '
+                'JETON DE CONNECTEUR (Zero Trust > Tunnels > Install connector), '
+                'et non d\'un JETON D\'API. Celui attendu ici se crée dans '
+                'Mon profil > Jetons d\'API et fait une quarantaine de caractères.')
+    if len(jeton) < 20:
+        return (f'Jeton trop court ({len(jeton)} caractères) : copie probablement '
+                'incomplète.')
+    return ''
 
 
 def test_token(api_token: str) -> dict:
@@ -26,6 +58,10 @@ def test_token(api_token: str) -> dict:
     Vérifie qu'un token API Cloudflare est valide et retourne les infos associées.
     Retourne : {success, account_id, email, account_name, error}
     """
+    forme = _diagnostic_forme_jeton(api_token)
+    if forme:
+        return {'success': False, 'error': forme}
+
     try:
         import requests
         r = requests.get(f'{CF_BASE}/user/tokens/verify', headers=_headers(api_token), timeout=10)
@@ -33,6 +69,13 @@ def test_token(api_token: str) -> dict:
         if not data.get('success'):
             errors = data.get('errors', [])
             msg = errors[0].get('message', 'Token invalide') if errors else 'Token invalide'
+            # « Invalid API Token » recouvre aussi bien une faute de frappe
+            # qu'un jeton revoque ou pas encore actif : on oriente la
+            # verification plutot que de laisser le message brut seul.
+            if 'invalid' in msg.lower():
+                msg += (" — vérifiez qu'il s'agit bien d'un jeton d'API (Mon profil > "
+                        "Jetons d'API), qu'il n'est pas révoqué, et qu'il a été copié "
+                        "en entier.")
             return {'success': False, 'error': msg}
 
         # Token valide — récupérer les infos du compte
