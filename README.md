@@ -1,9 +1,28 @@
 # Orion ERP
 
-ERP interne multi-modules pour la gestion de SIÈCLE Créations et LUNEA Beauty.
-Développé en Django 5 + Python 3.12.
+ERP multi-entreprises couvrant le BTP et l'électricité, le commerce et
+l'e-commerce, la production, l'audiovisuel et la gestion de sites web. Une
+seule installation sert plusieurs sociétés, chacune avec ses données, ses
+modules activés et ses domaines.
+
+Django 4.2 · Python 3.12+ · MySQL · Redis/Celery · 3 frontends React (Vite).
 
 > **Dépôt privé.** Ne jamais partager les clés, tokens, fichiers `.env`, bases locales ou backups.
+
+---
+
+## Documentation
+
+| Document | Contenu |
+|---|---|
+| **[docs/MANUEL.md](docs/MANUEL.md)** | **Entrée du manuel** : architecture, modèle multi-entreprises, exploitation courante, pièges rencontrés en production |
+| [docs/PARAMETRES.md](docs/PARAMETRES.md) | Les 76 variables de configuration, avec leurs valeurs par défaut extraites du code |
+| [docs/MODULES.md](docs/MODULES.md) | Inventaire généré : 27 modules de navigation, 110 pages, 62 namespaces d'URL |
+| [INSTALL.md](INSTALL.md) | Installation locale pas à pas, depuis Python et XAMPP |
+| [deployment/proxmox-appliance/docs/](deployment/proxmox-appliance/docs/) | Déploiement en production : appliance Proxmox, sauvegardes, disques, migration des données |
+
+Les inventaires sont **générés depuis le code** : ils ne décrivent pas une
+version supposée du logiciel.
 
 ---
 
