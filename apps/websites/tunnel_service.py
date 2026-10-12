@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
@@ -180,6 +181,72 @@ def toggle_hostname_in_config(config_path: str, hostname: str, enabled: bool) ->
 
     except Exception as exc:
         return False, f'Erreur modification config.yml : {exc}'
+
+
+def install_connector_from_account(tunnel) -> tuple[bool, str]:
+    """Installe et démarre le connecteur local depuis le compte Cloudflare.
+
+    Évite de copier à la main le fichier de credentials depuis la machine où
+    le tunnel a été créé : le jeton de connecteur est récupéré par l'API avec
+    le compte déjà enregistré dans l'ERP. En mode jeton, l'ingress vient du
+    dashboard Zero Trust et non du config.yml local.
+
+    Le jeton transite en argument de « cloudflared service install », faute
+    d'option d'entrée standard côté cloudflared : il est donc visible une
+    fraction de seconde dans la liste des processus locaux. Il n'y a en
+    revanche aucune trace en historique de shell, et cloudflared l'inscrit
+    ensuite lui-même dans l'unité systemd, lisible par root seul.
+
+    Retourne (success, message).
+    """
+    account = getattr(tunnel, 'cloudflare_account', None)
+    if account is None:
+        return False, ("Aucun compte Cloudflare rattaché à ce tunnel. "
+                       "Associez-en un pour récupérer son jeton de connecteur.")
+    if not tunnel.tunnel_id:
+        return False, "Ce tunnel n'a pas d'identifiant (UUID) renseigné."
+
+    from .cloudflare_service import fetch_tunnel_token
+    resultat = fetch_tunnel_token(account, tunnel.tunnel_id)
+    if not resultat['success']:
+        return False, (f"Jeton de connecteur indisponible : {resultat['error']}. "
+                       "Le jeton d'API doit porter la permission "
+                       "« Cloudflare Tunnel: Edit ».")
+
+    exe = shutil.which('cloudflared')
+    if not exe:
+        return False, "cloudflared n'est pas installé sur ce serveur."
+
+    # systemctl et « service install » exigent root ; Django tourne sous
+    # l'utilisateur applicatif, qui dispose de sudo sans mot de passe.
+    prefixe = [] if (os.name == 'posix' and os.geteuid() == 0) else ['sudo', '-n']
+    try:
+        pose = subprocess.run(
+            prefixe + [exe, 'service', 'install', resultat['token']],
+            capture_output=True, text=True, timeout=60,
+        )
+        if pose.returncode != 0:
+            detail = (pose.stderr or pose.stdout).strip()[:300]
+            # « already exists » n'est pas un echec : on enchaine sur le demarrage.
+            if 'already exists' not in detail.lower():
+                return False, f"Installation du service échouée : {detail}"
+
+        for cmd in (['systemctl', 'enable', 'cloudflared'],
+                    ['systemctl', 'restart', 'cloudflared']):
+            subprocess.run(prefixe + cmd, capture_output=True, text=True, timeout=30)
+
+        etat = subprocess.run(
+            ['systemctl', 'is-active', 'cloudflared'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if etat.stdout.strip() == 'active':
+            return True, ("Connecteur installé et démarré depuis le compte Cloudflare. "
+                          "En mode jeton, déclarez les hostnames dans Zero Trust "
+                          "(Tunnels > Public Hostname).")
+        return False, ("Service installé mais inactif. Journal : "
+                       "journalctl -u cloudflared -n 20")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"Erreur lors de l'installation du connecteur : {exc}"
 
 
 # ─── Reload / restart cloudflared ────────────────────────────────────────────

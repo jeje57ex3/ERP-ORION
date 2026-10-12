@@ -134,6 +134,47 @@ def fetch_cf_tunnels(account: "CloudflareAccount") -> dict:
         return {'success': False, 'tunnels': [], 'error': str(exc)}
 
 
+def fetch_tunnel_token(account: "CloudflareAccount", tunnel_id: str) -> dict:
+    """
+    Récupère le jeton de connecteur d'un Named Tunnel.
+
+    C'est la seule donnée de l'API qui permette de FAIRE TOURNER un tunnel :
+    lister les tunnels (fetch_cf_tunnels) et lire leur ingress
+    (fetch_tunnel_ingress) renseigne l'ERP mais ne démarre rien. Sans ce jeton
+    — ou sans le fichier de credentials produit par « cloudflared tunnel
+    create » sur la machine d'origine — aucun connecteur ne peut se lancer,
+    d'où l'impression trompeuse qu'un compte Cloudflare connecté suffit.
+
+    Le jeton d'API du compte doit porter la permission
+    « Cloudflare Tunnel: Edit » ; en lecture seule, Cloudflare refuse cet
+    endpoint.
+
+    Retourne: {success, token, error}
+    """
+    if not account.account_id:
+        return {'success': False, 'token': '', 'error': "account_id manquant — testez d'abord la connexion."}
+    if not tunnel_id:
+        return {'success': False, 'token': '', 'error': 'ID de tunnel manquant.'}
+    try:
+        import requests
+        r = requests.get(
+            f'{CF_BASE}/accounts/{account.account_id}/cfd_tunnel/{tunnel_id}/token',
+            headers=_headers(account.api_token),
+            timeout=10,
+        )
+        data = r.json()
+        if data.get('success'):
+            token = data.get('result') or ''
+            if not token:
+                return {'success': False, 'token': '', 'error': 'Réponse de l\'API sans jeton.'}
+            return {'success': True, 'token': token}
+        errors = data.get('errors', [])
+        msg = errors[0].get('message', 'Erreur') if errors else 'Erreur'
+        return {'success': False, 'token': '', 'error': msg}
+    except Exception as exc:
+        return {'success': False, 'token': '', 'error': str(exc)}
+
+
 def fetch_tunnel_ingress(account: "CloudflareAccount", tunnel_id: str) -> dict:
     """
     Récupère les règles d'ingress d'un Named Tunnel depuis l'API Cloudflare.
