@@ -58,33 +58,58 @@ def test_token(api_token: str) -> dict:
     Vérifie qu'un token API Cloudflare est valide et retourne les infos associées.
     Retourne : {success, account_id, email, account_name, error}
     """
-    forme = _diagnostic_forme_jeton(api_token)
-    if forme:
-        return {'success': False, 'error': forme}
+    # Un jeton vide ne vaut pas un appel réseau. Les autres anomalies de forme
+    # ne BLOQUENT pas : elles servent d'indice ajouté au message si le test
+    # fonctionnel échoue aussi. Rejeter sur la seule apparence reproduirait le
+    # bug corrigé ici — refuser un jeton qui fonctionne.
+    indice_forme = _diagnostic_forme_jeton(api_token)
+    if not (api_token or '').strip():
+        return {'success': False, 'error': indice_forme or 'Jeton vide.'}
 
     try:
         import requests
         r = requests.get(f'{CF_BASE}/user/tokens/verify', headers=_headers(api_token), timeout=10)
         data = r.json()
-        if not data.get('success'):
-            errors = data.get('errors', [])
-            msg = errors[0].get('message', 'Token invalide') if errors else 'Token invalide'
-            # « Invalid API Token » recouvre aussi bien une faute de frappe
-            # qu'un jeton revoque ou pas encore actif : on oriente la
-            # verification plutot que de laisser le message brut seul.
-            if 'invalid' in msg.lower():
-                msg += (" — vérifiez qu'il s'agit bien d'un jeton d'API (Mon profil > "
-                        "Jetons d'API), qu'il n'est pas révoqué, et qu'il a été copié "
-                        "en entier.")
-            return {'success': False, 'error': msg}
 
-        # Token valide — récupérer les infos du compte
+        # /user/tokens/verify ne connaît que les jetons d'UTILISATEUR (Mon
+        # profil > Jetons d'API). Un jeton de COMPTE (Gérer le compte >
+        # Jetons d'API) y répond 401 « Invalid API Token » alors qu'il
+        # fonctionne parfaitement sur les endpoints réels. Constaté en
+        # production : /zones et /accounts répondaient 200 avec des résultats,
+        # pendant que /verify refusait le même jeton — et l'ERP le rejetait
+        # donc à l'enregistrement. On valide désormais sur ce que le jeton
+        # FAIT, et non sur un seul endpoint de vérification.
         account_info = _get_account_info(api_token)
-        return {
-            'success': True,
-            'token_status': data.get('result', {}).get('status', 'active'),
-            **account_info,
-        }
+
+        if data.get('success'):
+            return {
+                'success': True,
+                'token_status': data.get('result', {}).get('status', 'active'),
+                **account_info,
+            }
+
+        if account_info.get('account_id'):
+            return {
+                'success': True,
+                'token_status': 'account-scoped',
+                **account_info,
+            }
+
+        errors = data.get('errors', [])
+        msg = errors[0].get('message', 'Token invalide') if errors else 'Token invalide'
+        # Le jeton echoue a la fois a la verification ET a la lecture des
+        # comptes : la cause est donc reelle.
+        if indice_forme:
+            # Forme suspecte ET inopérant : l'indice devient l'explication la
+            # plus probable (jeton de connecteur collé à la place, copie
+            # tronquée).
+            msg += f' — {indice_forme}'
+        elif 'invalid' in msg.lower():
+            msg += (" — le jeton ne permet ni de se vérifier ni de lire un compte. "
+                    "Vérifiez qu'il est copié en entier, non révoqué, et qu'il porte "
+                    "au moins une permission avec la ressource correspondante "
+                    "sélectionnée (Account Resources ou Zone Resources).")
+        return {'success': False, 'error': msg}
     except ImportError:
         return {'success': False, 'error': "Le package 'requests' n'est pas installé."}
     except Exception as exc:
