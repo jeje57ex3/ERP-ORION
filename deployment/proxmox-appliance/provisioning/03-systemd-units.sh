@@ -88,6 +88,14 @@ echo "[03] Démarrage orion-backend..."
 systemctl enable --now orion-backend.service
 systemctl enable --now orion-frontend.service
 
+# Celery : indispensable aux traitements planifiés (sauvegardes programmées,
+# capteurs de santé, checks d'observabilité, alertes). Son absence se voyait
+# dans la page Observabilité, « Aucun worker Celery ne répond », et aucune
+# tâche planifiée ne s'exécutait.
+echo "[03] Démarrage Celery (worker + beat)..."
+systemctl enable --now orion-celery.service
+systemctl enable --now orion-celery-beat.service
+
 # ─── Frontends SIÈCLE / LUNEA (nécessitent un domaine Login connu) ─────────────
 if [ -n "${LOGIN_DOMAIN:-}" ]; then
   echo "[03] Build des frontends SIÈCLE / LUNEA (API: https://$LOGIN_DOMAIN/api/v1)..."

@@ -93,6 +93,9 @@ fi
 echo "[6/6] Redémarrage des services..."
 systemctl restart orion-backend.service orion-frontend.service
 systemctl restart siecle-frontend.service lunea-frontend.service
+# Celery charge le code applicatif au demarrage : sans redemarrage, les
+# taches continueraient de tourner sur l'ancienne version.
+systemctl restart orion-celery.service orion-celery-beat.service || true
 systemctl reload nginx || true
 
 sleep 3

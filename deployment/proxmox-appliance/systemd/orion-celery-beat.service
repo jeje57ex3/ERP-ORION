@@ -1,0 +1,34 @@
+[Unit]
+# Planificateur Celery. Le projet utilise django_celery_beat avec son
+# DatabaseScheduler (CELERY_BEAT_SCHEDULER dans les settings) : les horaires
+# vivent en base et se modifient depuis l'administration, sans redémarrage.
+# Sans ce service, ces horaires existent mais ne déclenchent rien.
+Description=Orion ERP — Celery beat (planificateur)
+After=network-online.target orion-db-stack.service orion-celery.service
+Wants=network-online.target
+Requires=orion-db-stack.service
+
+[Service]
+Type=simple
+User=orion
+Group=orion
+WorkingDirectory=/opt/orion/backend
+EnvironmentFile=/opt/orion/backend/.env
+Environment=DJANGO_SETTINGS_MODULE=erp_btp.settings.production
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 3306 60
+ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
+# --scheduler explicite : beat retomberait sinon sur le planificateur par
+# fichier si la configuration n'était pas chargée, et ignorerait les horaires
+# enregistrés en base.
+ExecStart=/opt/orion/backend/.venv/bin/celery -A erp_btp beat \
+    --scheduler django_celery_beat.schedulers:DatabaseScheduler \
+    --loglevel=info \
+    --logfile=/opt/orion/logs/celery-beat.log
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
