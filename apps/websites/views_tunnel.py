@@ -12,6 +12,7 @@ from .forms_tunnel import CloudflareTunnelForm, TunnelIngressRuleForm
 from .tunnel_service import (
     generate_config_yml, write_config_yml, get_cloudflared_status,
     install_connector_from_account,
+    install_connector_with_token,
     default_cloudflared_paths,
     sync_tunnel_dns, parse_config_yml,
 )
@@ -260,6 +261,28 @@ def tunnel_start_connector(request, pk):
     company = _company(request)
     tunnel = get_object_or_404(CloudflareTunnel, pk=pk, company=company)
     success, msg = install_connector_from_account(tunnel)
+    if success:
+        messages.success(request, msg)
+    else:
+        messages.error(request, msg)
+    return redirect('websites:tunnel_detail', pk=tunnel.pk)
+
+
+# ─── Demarrer le connecteur avec un jeton colle a la main ────────────────────
+
+@login_required
+@require_POST
+def tunnel_install_token(request, pk):
+    """Installe le connecteur avec un jeton de connecteur saisi dans le form.
+
+    Voie de secours quand l'API n'est pas exploitable : jeton d'API sans
+    portee de compte, ou tunnel appartenant a un autre compte Cloudflare que
+    celui enregistre. Le jeton n'est jamais stocke en base : il sert une
+    fois, et cloudflared l'inscrit lui-meme dans l'unite systemd.
+    """
+    company = _company(request)
+    tunnel = get_object_or_404(CloudflareTunnel, pk=pk, company=company)
+    success, msg = install_connector_with_token(request.POST.get('connector_token', ''))
     if success:
         messages.success(request, msg)
     else:

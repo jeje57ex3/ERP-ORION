@@ -213,6 +213,43 @@ def install_connector_from_account(tunnel) -> tuple[bool, str]:
                        "Le jeton d'API doit porter la permission "
                        "« Cloudflare Tunnel: Edit ».")
 
+    return _installer_connecteur(resultat['token'], origine='le compte Cloudflare')
+
+
+def install_connector_with_token(token: str) -> tuple[bool, str]:
+    """Installe le connecteur avec un jeton copié à la main.
+
+    Voie de secours quand l'API n'est pas exploitable : jeton d'API sans
+    portée de compte (« Not authorized » sur /cfd_tunnel/<uuid>/token), ou
+    tunnel appartenant à un autre compte que celui enregistré dans l'ERP. Le
+    jeton se copie dans Zero Trust > Networks > Tunnels > Configure >
+    Install connector.
+
+    Retourne (success, message).
+    """
+    token = (token or '').strip()
+    if not token:
+        return False, 'Jeton de connecteur vide.'
+    # Un jeton de connecteur est un blob base64 d'environ 180 caracteres. Ce
+    # controle distingue surtout un JETON D'API (~40) collé par erreur.
+    if len(token) < 80:
+        return False, (f'Jeton trop court ({len(token)} caractères). Un jeton de '
+                       'connecteur fait environ 180 caractères et se copie dans '
+                       'Zero Trust > Tunnels > Configure > Install connector. '
+                       "Un jeton d'API (~40 caractères) ne convient pas ici.")
+    return _installer_connecteur(token, origine='le jeton fourni')
+
+
+def _installer_connecteur(token: str, origine: str) -> tuple[bool, str]:
+    """Pose l'unité systemd cloudflared avec ce jeton, la démarre, la vérifie.
+
+    Le jeton transite en argument de « cloudflared service install », faute
+    d'option d'entrée standard côté cloudflared : il est donc visible une
+    fraction de seconde dans la liste des processus locaux. Il n'y a en
+    revanche aucune trace en historique de shell (subprocess sans shell), et
+    cloudflared l'inscrit ensuite lui-même dans l'unité systemd, lisible par
+    root seul.
+    """
     exe = shutil.which('cloudflared')
     if not exe:
         return False, "cloudflared n'est pas installé sur ce serveur."
@@ -222,7 +259,7 @@ def install_connector_from_account(tunnel) -> tuple[bool, str]:
     prefixe = [] if (os.name == 'posix' and os.geteuid() == 0) else ['sudo', '-n']
     try:
         pose = subprocess.run(
-            prefixe + [exe, 'service', 'install', resultat['token']],
+            prefixe + [exe, 'service', 'install', token],
             capture_output=True, text=True, timeout=60,
         )
         if pose.returncode != 0:
@@ -240,7 +277,7 @@ def install_connector_from_account(tunnel) -> tuple[bool, str]:
             capture_output=True, text=True, timeout=10,
         )
         if etat.stdout.strip() == 'active':
-            return True, ("Connecteur installé et démarré depuis le compte Cloudflare. "
+            return True, (f"Connecteur installé et démarré depuis {origine}. "
                           "En mode jeton, déclarez les hostnames dans Zero Trust "
                           "(Tunnels > Public Hostname).")
         return False, ("Service installé mais inactif. Journal : "
