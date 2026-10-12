@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Orion ERP Appliance — recalcule ALLOWED_HOSTS à CHAQUE démarrage du service
-# (ExecStartPre de orion-backend/orion-frontend), pas seulement pendant le
-# provisioning : le bail DHCP de la VM peut changer entre deux redémarrages,
-# et ALLOWED_HOSTS n'est lu qu'une fois par gunicorn (EnvironmentFile) — une
-# IP figée au premier boot casserait l'accès par IP après un simple reboot.
+# Orion ERP Appliance — recalcule ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS et
+# CORS_ALLOWED_ORIGINS à CHAQUE démarrage du service (ExecStartPre de
+# orion-backend/orion-frontend), pas seulement pendant le provisioning : le
+# bail DHCP de la VM peut changer entre deux redémarrages, et ces variables ne
+# sont lues qu'une fois par gunicorn (EnvironmentFile) — une IP figée au
+# premier boot casserait l'accès par IP après un simple reboot.
+#
+# Les trois variables sont traitées ensemble parce qu'elles dérivent des mêmes
+# domaines. N'en rafraîchir qu'une menait à un enchaînement d'erreurs
+# déroutant, constaté en production : un domaine ajouté après coup passait
+# bien ALLOWED_HOSTS (plus de 400 DisallowedHost) mais restait absent de
+# CSRF_TRUSTED_ORIGINS, et la soumission du formulaire de connexion échouait
+# alors en 403 CSRF.
 set -euo pipefail
 
 ENV_FILE="/opt/orion/backend/.env"
@@ -14,19 +22,48 @@ VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="s
 
 get_field() { grep "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-; }
 
+# Remplace la ligne si la clé existe, l'ajoute sinon.
+set_field() {
+  local cle="$1" valeur="$2"
+  if grep -q "^${cle}=" "$ENV_FILE"; then
+    sed -i "s#^${cle}=.*#${cle}=${valeur}#" "$ENV_FILE"
+  else
+    echo "${cle}=${valeur}" >> "$ENV_FILE"
+  fi
+}
+
+LOGIN="$(get_field ORION_LOGIN_DOMAIN)"
+ORION="$(get_field ORION_FRONTEND_DOMAIN)"
+SIECLE="$(get_field SIECLE_STORE_DOMAIN)"
+LUNEA="$(get_field LUNEA_STORE_DOMAIN)"
+NS="$(get_field ORION_NS_DOMAIN)"
+
+# ─── ALLOWED_HOSTS : tous les domaines + l'IP courante ────────────────────────
+# Ce script RÉÉCRIT la variable en entier : tout domaine absent de cette liste
+# serait effacé au premier redémarrage de service, même correctement posé au
+# provisioning.
 HOSTS="localhost,127.0.0.1"
-# ORION_NS_DOMAIN inclus : ce script RÉÉCRIT ALLOWED_HOSTS en entier, donc
-# tout domaine absent de cette liste est effacé au premier redémarrage de
-# service — même s'il avait été correctement posé au provisioning.
-for domain in "$(get_field ORION_LOGIN_DOMAIN)" "$(get_field ORION_FRONTEND_DOMAIN)" \
-              "$(get_field SIECLE_STORE_DOMAIN)" "$(get_field LUNEA_STORE_DOMAIN)" \
-              "$(get_field ORION_NS_DOMAIN)"; do
-  [ -n "$domain" ] && HOSTS="$HOSTS,$domain"
+for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS"; do
+  [ -n "$domaine" ] && HOSTS="$HOSTS,$domaine"
 done
 HOSTS="$HOSTS,$VM_IP"
+set_field ALLOWED_HOSTS "$HOSTS"
 
-if grep -q '^ALLOWED_HOSTS=' "$ENV_FILE"; then
-  sed -i "s#^ALLOWED_HOSTS=.*#ALLOWED_HOSTS=${HOSTS}#" "$ENV_FILE"
-else
-  echo "ALLOWED_HOSTS=${HOSTS}" >> "$ENV_FILE"
-fi
+# ─── CSRF_TRUSTED_ORIGINS : tous les domaines, en https ──────────────────────
+# Obligatoire dès qu'un formulaire est soumis depuis un domaine : Django
+# refuse sinon la requête en 403, même si l'hôte est autorisé.
+CSRF=""
+for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS"; do
+  [ -n "$domaine" ] && CSRF="${CSRF:+$CSRF,}https://$domaine"
+done
+set_field CSRF_TRUSTED_ORIGINS "$CSRF"
+
+# ─── CORS_ALLOWED_ORIGINS : seulement les boutiques ──────────────────────────
+# Les SPA SIÈCLE et LUNEA appellent l'API depuis une AUTRE origine que celle
+# qui la sert. NÉOSTRUCTURA n'y figure pas : Nginx sert son build et proxifie
+# /api sur la même origine, aucune requête croisée n'a lieu.
+CORS=""
+for domaine in "$SIECLE" "$LUNEA"; do
+  [ -n "$domaine" ] && CORS="${CORS:+$CORS,}https://$domaine"
+done
+set_field CORS_ALLOWED_ORIGINS "$CORS"
