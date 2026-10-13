@@ -99,6 +99,20 @@
         </div>
 
         <div class="orion-form-section">
+          <h3 class="orion-form-section-title">{% trans "Retour d'un serveur" %}</h3>
+          <div class="orion-form-field">
+            <label>{{ form.failback_policy.label }}</label>
+            {{ form.failback_policy }}
+            <p class="orion-form-help">{{ form.failback_policy.help_text }}</p>
+          </div>
+          <div class="orion-form-field">
+            <label>{{ form.failback_min_stable_seconds.label }} ({% trans "secondes" %})</label>
+            {{ form.failback_min_stable_seconds }}
+            <p class="orion-form-help">{{ form.failback_min_stable_seconds.help_text }}</p>
+          </div>
+        </div>
+
+        <div class="orion-form-section">
           <h3 class="orion-form-section-title">{% trans "Surveillance" %}</h3>
           <div class="orion-form-field">
             <label>{{ form.media_sync_enabled.label }}</label>

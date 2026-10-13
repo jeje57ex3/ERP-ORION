@@ -28,6 +28,7 @@
 #   --siecle-domain DOMAIN    Domaine boutique SIÈCLE — def: aucun
 #   --lunea-domain DOMAIN     Domaine boutique LUNEA — def: aucun
 #   --ns-domain DOMAIN        Domaine site NÉOSTRUCTURA — def: aucun
+#   --node-domain DOMAIN      Sous-domaine de CETTE machine (HA) — def: aucun
 #   --cf-token TOKEN          Token Cloudflare Tunnel — def: aucun
 #   --as-template             Convertit la VM en template Proxmox après import
 #   --start                   Démarre la VM après import
@@ -53,6 +54,7 @@ ORION_DOMAIN=""
 SIECLE_DOMAIN=""
 LUNEA_DOMAIN=""
 NS_DOMAIN=""
+NODE_DOMAIN=""
 CF_TOKEN=""
 GITHUB_TOKEN=""
 AS_TEMPLATE=0
@@ -101,6 +103,7 @@ while [ $# -gt 0 ]; do
     --siecle-domain) SIECLE_DOMAIN="$2"; shift 2 ;;
     --lunea-domain) LUNEA_DOMAIN="$2"; shift 2 ;;
     --ns-domain) NS_DOMAIN="$2"; shift 2 ;;
+    --node-domain) NODE_DOMAIN="$2"; shift 2 ;;
     --cf-token) CF_TOKEN="$2"; shift 2 ;;
     --github-token) GITHUB_TOKEN="$2"; shift 2 ;;
     --as-template) AS_TEMPLATE=1; shift ;;
@@ -201,7 +204,7 @@ if [ -f "$USERDATA_FILE" ] && [ -f "$NETWORK_FILE" ]; then
     python3 "$RENDER_PY" \
       "$SNIPPETS_DIR/$USERDATA_SNIPPET" "$SNIPPETS_DIR/$USERDATA_SNIPPET" \
       "LOGIN_DOMAIN=$LOGIN_DOMAIN" "ORION_DOMAIN=$ORION_DOMAIN" \
-      "SIECLE_DOMAIN=$SIECLE_DOMAIN" "LUNEA_DOMAIN=$LUNEA_DOMAIN" "NS_DOMAIN=$NS_DOMAIN" \
+      "SIECLE_DOMAIN=$SIECLE_DOMAIN" "LUNEA_DOMAIN=$LUNEA_DOMAIN" "NS_DOMAIN=$NS_DOMAIN" "NODE_DOMAIN=$NODE_DOMAIN" \
       "CF_TUNNEL_TOKEN=$CF_TOKEN" "GITHUB_TOKEN=$GITHUB_TOKEN" \
       "ORION_SSH_KEYS_BLOCK=@$SSH_KEYS_BLOCK_FILE"
   else

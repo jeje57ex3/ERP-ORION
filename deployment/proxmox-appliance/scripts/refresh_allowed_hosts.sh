@@ -37,13 +37,18 @@ ORION="$(get_field ORION_FRONTEND_DOMAIN)"
 SIECLE="$(get_field SIECLE_STORE_DOMAIN)"
 LUNEA="$(get_field LUNEA_STORE_DOMAIN)"
 NS="$(get_field ORION_NS_DOMAIN)"
+# Sous-domaine propre à CETTE machine (haute disponibilité) : les autres nœuds
+# interrogent /ha/health/ sur ce nom. Absent d'ALLOWED_HOSTS, Django rejette
+# chaque battement de cœur en 400 DisallowedHost — tous les nœuds se croient
+# alors mutuellement hors ligne, ce qui est exactement l'inverse du but.
+NODE="$(get_field ORION_NODE_DOMAIN)"
 
 # ─── ALLOWED_HOSTS : tous les domaines + l'IP courante ────────────────────────
 # Ce script RÉÉCRIT la variable en entier : tout domaine absent de cette liste
 # serait effacé au premier redémarrage de service, même correctement posé au
 # provisioning.
 HOSTS="localhost,127.0.0.1"
-for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS"; do
+for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS" "$NODE"; do
   [ -n "$domaine" ] && HOSTS="$HOSTS,$domaine"
 done
 HOSTS="$HOSTS,$VM_IP"
@@ -53,7 +58,7 @@ set_field ALLOWED_HOSTS "$HOSTS"
 # Obligatoire dès qu'un formulaire est soumis depuis un domaine : Django
 # refuse sinon la requête en 403, même si l'hôte est autorisé.
 CSRF=""
-for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS"; do
+for domaine in "$LOGIN" "$ORION" "$SIECLE" "$LUNEA" "$NS" "$NODE"; do
   [ -n "$domaine" ] && CSRF="${CSRF:+$CSRF,}https://$domaine"
 done
 set_field CSRF_TRUSTED_ORIGINS "$CSRF"

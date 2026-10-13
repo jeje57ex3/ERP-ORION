@@ -105,6 +105,47 @@ case "$MODE" in
     ;;
 esac
 
+# Rafraichit /opt/orion/scripts/ depuis le depot.
+#
+# Ces scripts n'arrivaient QUE par le payload cloud-init, copie une seule
+# fois au provisioning (07-backup-cron.sh). Aucune mise a jour ne les
+# touchait : un correctif apporte a refresh_allowed_hosts.sh, orion-disk.sh
+# ou orion-cloudflare.sh n'atteignait jamais une appliance deja installee,
+# alors meme que le code applicatif, lui, se mettait a jour.
+#
+# Le renommage (mv) est essentiel : bash lit son script au fur et a mesure de
+# l'execution. Un cp ecraserait le fichier EN PLACE, et le shell en cours
+# reprendrait sa lecture a son ancien decalage dans le nouveau contenu --
+# donc au milieu d'une ligne. Un mv cree un nouvel inode ; le processus en
+# cours garde l'ancien ouvert et se termine proprement sur la version avec
+# laquelle il a demarre.
+rafraichir_scripts() {
+  local source_scripts="$ORION_HOME/backend/deployment/proxmox-appliance/scripts"
+  if [ ! -d "$source_scripts" ]; then
+    echo "  scripts absents du depot ($source_scripts) — ignores."
+    return 0
+  fi
+
+  local sas
+  sas="$(mktemp -d)"
+  cp "$source_scripts"/*.sh "$sas"/ 2>/dev/null || true
+  cp "$source_scripts"/*.py "$sas"/ 2>/dev/null || true
+
+  local poses=0
+  for fichier in "$sas"/*; do
+    [ -f "$fichier" ] || continue
+    chmod +x "$fichier"
+    mv -f "$fichier" "$ORION_HOME/scripts/$(basename "$fichier")"
+    poses=$((poses + 1))
+  done
+  rm -rf "$sas"
+
+  chown -R orion:orion "$ORION_HOME/scripts" 2>/dev/null || true
+  echo "  $poses script(s) d'exploitation rafraichis depuis le depot."
+  echo "  (update_orion.sh lui-meme prendra effet au prochain lancement)"
+}
+rafraichir_scripts || echo "  ATTENTION: rafraichissement des scripts echoue." >&2
+
 # Recompile les catalogues : un .po mis a jour par le git pull resterait
 # sans effet tant que son .mo n'est pas regenere.
 sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \

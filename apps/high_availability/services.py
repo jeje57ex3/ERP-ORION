@@ -71,6 +71,9 @@ def fetch_node_health(node):
     return response.json()
 
 
+ETATS_SAINS = ('healthy', 'passive', 'warning', 'active')
+
+
 def update_node_from_health(node, payload):
     node.status = payload.get('status', 'unknown')
     node.last_heartbeat_at = timezone.now()
@@ -80,6 +83,16 @@ def update_node_from_health(node, payload):
     node.replication_lag_seconds = payload.get('replication_lag_seconds')
     node.app_version = payload.get('app_version', node.app_version)
     node.git_commit = payload.get('git_commit', node.git_commit)
+
+    # Horodate le DÉBUT du bon état courant, sans l'écraser aux bilans
+    # suivants : c'est la durée de stabilité, pas la fraîcheur du dernier
+    # battement, qui autorise un retour de la main.
+    if node.status in ETATS_SAINS:
+        if not node.healthy_since:
+            node.healthy_since = timezone.now()
+    else:
+        node.healthy_since = None
+
     node.save()
     return node
 
@@ -91,14 +104,45 @@ def check_node_health(node):
         return {'node': node, 'ok': True, 'payload': payload}
     except Exception as exc:
         node.status = 'down'
-        node.save(update_fields=['status', 'updated_at'])
+        # La stabilité repart de zéro : sans cette remise à zéro, un serveur
+        # qui oscille accumulerait une ancienneté qu'il n'a jamais eue.
+        node.healthy_since = None
+        node.save(update_fields=['status', 'healthy_since', 'updated_at'])
         return {'node': node, 'ok': False, 'error': str(exc)}
 
 
-def check_all_ha_nodes():
+def check_all_ha_nodes(apply_failback=True):
+    """Interroge tous les serveurs, puis applique la règle de retour.
+
+    C'est ici que « quand un serveur revient » se joue : le balayage de santé
+    est le seul moment où l'on constate qu'un serveur tombé répond de nouveau.
+
+    Le parcours suit l'ordre du modèle (`priority`, puis nom), donc le serveur
+    le mieux classé est examiné le premier — ce qui rend le résultat
+    déterministe quand plusieurs revenants sont mieux classés que l'actif.
+
+    Sous la politique par défaut (« manuel »), rien n'est décidé ici : la
+    règle se contente de proposer.
+    """
     results = []
     for node in OrionHANode.objects.filter(is_enabled=True):
         results.append(check_node_health(node))
+
+    # Import tardif : takeover importe failover, qui importe ce module.
+    from apps.high_availability.takeover import evaluate_returning_node
+
+    for resultat in results:
+        if not resultat['ok']:
+            continue
+        try:
+            resultat['takeover'] = evaluate_returning_node(
+                resultat['node'], apply=apply_failback,
+            )
+        except Exception as exc:
+            # Un retour de main refusé ne doit pas faire échouer la
+            # surveillance : le reste du bilan garde sa valeur.
+            resultat['takeover'] = {'error': str(exc)}
+
     return results
 
 
@@ -118,30 +162,66 @@ def get_failover_candidates():
     return qs
 
 
-def select_best_failover_target():
-    settings_obj = OrionHASettings.get_solo()
-    preferred = settings_obj.preferred_secondary_node
+def select_best_failover_target(automatic=False):
+    """Serveur qui prend le dessus, dans l'ordre de préséance.
 
-    if preferred and preferred.can_be_failover_target:
-        lag = preferred.replication_lag_seconds
-        if lag is None or lag <= settings_obj.max_allowed_replication_lag_seconds:
-            return preferred
+    `automatic=True` écarte en plus les serveurs dont la promotion automatique
+    est interdite. Ce drapeau existait sur le modèle sans être lu nulle part :
+    le décocher ne protégeait de rien.
+    """
+    settings_obj = OrionHASettings.get_solo()
+
+    def acceptable(node):
+        if not node.can_be_failover_target:
+            return False
+        if automatic and not node.allow_auto_failover:
+            return False
+        lag = node.replication_lag_seconds
+        return lag is None or lag <= settings_obj.max_allowed_replication_lag_seconds
+
+    preferred = settings_obj.preferred_secondary_node
+    if preferred and acceptable(preferred):
+        return preferred
 
     for node in get_failover_candidates():
-        if not node.can_be_failover_target:
-            continue
-        lag = node.replication_lag_seconds
-        if lag is not None and lag > settings_obj.max_allowed_replication_lag_seconds:
-            continue
-        return node
+        if acceptable(node):
+            return node
 
     return None
 
 
 @transaction.atomic
 def set_active_node(node, lock_token=''):
+    """Donne la main à `node` et RÉTROGRADE tous les autres.
+
+    La rétrogradation n'était pas faite : le nouveau serveur prenait le rôle
+    « principal » sans que l'ancien le perde. Après une seule bascule, deux
+    serveurs portaient donc le rôle principal, et l'ancien se retrouvait
+    définitivement exclu — `can_be_failover_target` et
+    `get_failover_candidates()` exigent tous deux le rôle « secondaire ».
+    Autrement dit, le retour d'un serveur était structurellement impossible,
+    indépendamment de toute politique.
+
+    Un serveur rétrogradé devient par conséquent éligible à recevoir la main :
+    il l'a déjà portée, rien ne justifie de l'écarter. Son rang de préséance,
+    lui, ne change pas — c'est ce qui le désigne pour la reprendre.
+    """
     OrionHANode.objects.select_for_update().all()
-    OrionHANode.objects.update(is_current_active=False)
+
+    for autre in OrionHANode.objects.exclude(pk=node.pk):
+        champs = ['is_current_active', 'updated_at']
+        autre.is_current_active = False
+        if autre.role == 'primary':
+            autre.role = 'secondary'
+            autre.is_failover_target = True
+            champs += ['role', 'is_failover_target']
+        # Un serveur injoignable reste « hors ligne » : le repasser en
+        # « passif » laisserait croire qu'il est disponible.
+        if autre.status == 'active':
+            autre.status = 'passive'
+            champs.append('status')
+        autre.save(update_fields=champs)
+
     node.is_current_active = True
     node.status = 'active'
     node.role = 'primary'

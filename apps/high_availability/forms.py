@@ -14,6 +14,8 @@ class OrionHASettingsForm(forms.ModelForm):
             'minimum_healthy_secondaries',
             'preferred_secondary_node',
             'allow_failover_to_secondary_2',
+            'failback_policy',
+            'failback_min_stable_seconds',
             'media_sync_enabled',
             'database_replication_check_enabled',
             'cloudflare_failover_enabled',
@@ -78,13 +80,18 @@ class OrionHANodeForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         role = cleaned_data.get('role')
-        priority = cleaned_data.get('priority')
         is_current_active = cleaned_data.get('is_current_active')
 
-        if role == 'primary' and priority != 1:
-            raise forms.ValidationError('Le serveur principal doit avoir la priorité 1.')
-        if role == 'secondary' and priority == 1:
-            raise forms.ValidationError('Un serveur secondaire ne peut pas avoir la priorité 1.')
+        # Le rang de préséance n'est PLUS lié au rôle. Les deux règles qui les
+        # couplaient ici rendaient inéditable tout serveur ayant connu une
+        # bascule : le promu portait le rôle principal avec un rang 2, et
+        # l'ancien principal rétrogradé gardait son rang 1 — chacun des deux
+        # cas déclenchait une erreur de validation sur une situation
+        # parfaitement normale.
+        if is_current_active and role != 'primary':
+            raise forms.ValidationError(
+                'Le serveur actif doit porter le rôle principal.'
+            )
 
         if is_current_active:
             qs = OrionHANode.objects.filter(is_current_active=True)

@@ -34,17 +34,43 @@ class OrionHANode(models.Model):
 
     region = models.CharField(max_length=80, blank=True)
 
+    # Rang de préséance, et NON le rôle courant. Les deux étaient confondus :
+    # le rôle se déplace à chaque bascule, la préséance est une décision
+    # d'exploitation qui ne bouge pas. Un ancien principal rétrogradé garde
+    # donc sa priorité 1, ce qui est précisément ce qui le désigne pour
+    # reprendre la main quand il revient.
     priority = models.PositiveIntegerField(
         default=100,
-        help_text='1 = serveur principal, 2 = secondaire prioritaire, 3 = secondaire de secours.',
+        verbose_name='Rang de préséance',
+        help_text='1 = reprend la main en priorité, 2 = secours, 3 = dernier '
+                  'recours. Indépendant du rôle courant.',
     )
 
     is_enabled = models.BooleanField(default=True)
     is_current_active = models.BooleanField(default=False)
-    is_failover_target = models.BooleanField(default=False)
-    allow_auto_failover = models.BooleanField(default=True)
+    is_failover_target = models.BooleanField(
+        default=False,
+        verbose_name='Peut recevoir la main',
+        help_text='Décoché, ce serveur ne sera jamais promu, même seul '
+                  'survivant.',
+    )
+    allow_auto_failover = models.BooleanField(
+        default=True,
+        verbose_name='Promotion automatique autorisée',
+        help_text='Décoché, ce serveur ne peut être promu que par un '
+                  'administrateur, jamais par la surveillance.',
+    )
 
     last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+
+    # Date du RETOUR en bon état, pas du dernier battement de cœur. Permet
+    # d'exiger une stabilité durable avant de rendre la main à un serveur qui
+    # revient : un serveur qui oscille entre marche et panne satisferait
+    # sinon le contrôle à chacun de ses passages en bon état.
+    healthy_since = models.DateTimeField(
+        'En bon état depuis', null=True, blank=True,
+        help_text='Réinitialisée à chaque passage hors ligne.',
+    )
     last_health_payload = models.JSONField(default=dict, blank=True)
 
     app_version = models.CharField(max_length=80, blank=True)
@@ -87,12 +113,32 @@ class OrionHANode(models.Model):
         return age is None or age > 120
 
     @property
+    def stable_healthy_seconds(self):
+        """Durée du bon état courant, ou None s'il n'est pas en bon état."""
+        if not self.healthy_since:
+            return None
+        return int((timezone.now() - self.healthy_since).total_seconds())
+
+    @property
     def can_be_failover_target(self):
         return (
             self.is_enabled
+            and self.is_failover_target
             and self.role == 'secondary'
             and self.status in ('healthy', 'passive', 'warning')
         )
+
+    @property
+    def claims_to_be_writable(self):
+        """Le serveur se dit inscriptible d'après son dernier bilan de santé.
+
+        Sert à repérer un ancien principal qui revient sans avoir été
+        rétrogradé : sa base accepte encore les écritures alors que le cluster
+        a donné la main à un autre. C'est la situation à ne jamais laisser
+        s'installer — deux bases divergentes, impossibles à fusionner.
+        """
+        lecture_seule = (self.last_health_payload or {}).get('read_only')
+        return lecture_seule is False
 
 
 class OrionHASettings(models.Model):
@@ -126,13 +172,67 @@ class OrionHASettings(models.Model):
         help_text='Autoriser la bascule vers le second serveur secondaire si le premier est indisponible.',
     )
 
+    # ─── Retour d'un serveur (failback) ──────────────────────────────────────
+    # Ce qui se passe quand un serveur tombé revient en bon état. Sans règle,
+    # il revenait simplement « sain » dans la liste sans que rien ne tranche :
+    # le serveur promu gardait la main indéfiniment, et le rang de préséance
+    # ne servait plus à rien après la première bascule.
+    FAILBACK_POLICY_CHOICES = [
+        ('manual', 'Manuel — proposer, et attendre un administrateur'),
+        ('never', 'Jamais — le serveur promu garde la main'),
+        ('automatic', 'Automatique — le mieux classé reprend la main'),
+    ]
+
+    failback_policy = models.CharField(
+        max_length=20,
+        choices=FAILBACK_POLICY_CHOICES,
+        default='manual',
+        verbose_name="Au retour d'un serveur",
+        help_text='« Automatique » ne rend la main que si le serveur est mieux '
+                  'classé, stable depuis assez longtemps et sa réplication à '
+                  'jour.',
+    )
+
+    failback_min_stable_seconds = models.PositiveIntegerField(
+        default=300,
+        verbose_name='Stabilité exigée avant de rendre la main',
+        help_text='En secondes. Empêche un serveur qui oscille entre marche '
+                  'et panne de reprendre la main à chaque passage en bon état.',
+    )
+
     media_sync_enabled = models.BooleanField(default=True)
     database_replication_check_enabled = models.BooleanField(default=True)
 
-    cloudflare_failover_enabled = models.BooleanField(default=False)
-    cloudflare_zone_id = models.CharField(max_length=180, blank=True)
-    cloudflare_dns_record_id = models.CharField(max_length=180, blank=True)
-    cloudflare_record_name = models.CharField(max_length=180, default='erp')
+    # Redirection du trafic par indirection : tous les domaines publics
+    # pointent par CNAME vers l'enregistrement nommé ci-dessous, et la bascule
+    # ne déplace que lui. Voir apps/high_availability/failover.py pour le
+    # schéma complet, et docs/HAUTE-DISPONIBILITE.md pour la mise en place.
+    cloudflare_failover_enabled = models.BooleanField(
+        default=False,
+        verbose_name='Déplacer les domaines à la bascule',
+        help_text="Sans cette option, la bascule promeut la base mais le trafic "
+                  "continue d'aller vers l'ancien serveur.",
+    )
+    cloudflare_zone_id = models.CharField(
+        max_length=180, blank=True,
+        verbose_name='Identifiant de zone Cloudflare',
+        help_text='Facultatif si le nom ci-dessous est un domaine complet : la '
+                  'zone est alors déduite automatiquement.',
+    )
+    cloudflare_dns_record_id = models.CharField(
+        max_length=180, blank=True,
+        verbose_name="Identifiant de l'enregistrement",
+        help_text='Facultatif. Laissez vide pour retrouver automatiquement '
+                  "l'enregistrement par son nom.",
+    )
+    cloudflare_record_name = models.CharField(
+        max_length=180, default='erp',
+        verbose_name="Nom de l'enregistrement d'indirection",
+        help_text="Enregistrement que la bascule déplace, et vers lequel TOUS "
+                  'vos domaines doivent pointer par CNAME (ex. « actif » ou '
+                  '« actif.exemple.fr »). Il doit déjà exister dans la zone, '
+                  'pointé vers le sous-domaine du serveur actif.',
+    )
 
     notify_admins = models.BooleanField(default=True)
     notify_email = models.EmailField(blank=True)
