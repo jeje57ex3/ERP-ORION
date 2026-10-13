@@ -1,9 +1,23 @@
 #!/usr/bin/env bash
-# Orion ERP Appliance — Mise à jour complète (OS + Docker + Node + Python + Orion ERP).
-# La partie applicative (git pull, migrations) est déléguée à
-# apps.system_updates (manage.py run_system_update), qui gère déjà la
-# sauvegarde préventive et les vérifications post-update — on ne la réimplémente pas.
-# Rollback applicatif disponible via : manage.py rollback_system_update
+# ============================================================================
+# Orion ERP Appliance — Mise à jour complète (OS + Docker + Node + Python + ERP)
+#
+# Trois modes, parce que la voie applicative ne doit pas être la seule.
+# `manage.py run_system_update` apporte la trace d'audit, le point de rollback
+# et les vérifications post-update, mais sa PREMIÈRE instruction est une
+# lecture en base (SystemUpdateSettings). Elle est donc indisponible
+# précisément quand on en a le plus besoin : base injoignable, migration
+# cassée, Django qui ne démarre pas, ou simplement `update_enabled` à faux.
+#
+#   --direct       git pull + migrations + statiques + builds, SANS Django.
+#                  Aucune dépendance à la base ni au mécanisme applicatif.
+#                  À utiliser quand l'ERP est en panne.
+#   --django-only  n'utilise que le mécanisme applicatif, sans repli.
+#   (par défaut)   mécanisme applicatif, repli direct s'il échoue, puis
+#                  nouvelle tentative pour restaurer la trace d'audit.
+#
+# Rollback applicatif : manage.py rollback_system_update
+# ============================================================================
 
 set -euo pipefail
 
@@ -11,6 +25,17 @@ ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
 VENV_PY="$ORION_HOME/backend/.venv/bin/python"
 MANAGE="$ORION_HOME/backend/manage.py"
+
+MODE='auto'
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --direct)      MODE='direct' ;;
+    --django-only) MODE='django' ;;
+    -h|--help)     sed -n '2,20p' "$0"; exit 0 ;;
+    *)             echo "Option inconnue : $1" >&2; sed -n '11,16p' "$0" >&2; exit 2 ;;
+  esac
+  shift
+done
 
 [ -f "$ENV_FILE" ] || { echo "ERREUR: $ENV_FILE introuvable — appliance non configurée."; exit 1; }
 set -a; . "$ENV_FILE"; set +a
@@ -35,30 +60,50 @@ npm update -g --silent || true
 
 echo "[4/6] Mise à jour applicative Orion ERP (git pull + migrations)..."
 
-# Repli indispensable : sans lui, un bug DANS le mécanisme de mise à jour est
-# irrécupérable. run_system_update est seul à déclencher le git pull, donc son
-# propre correctif ne peut jamais arriver — il faut alors intervenir à la main
-# depuis l'hyperviseur. Constaté en production avec « Commande de sauvegarde
-# non configurée », qui bloquait toute mise à jour par défaut.
-if ! sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm; then
-  echo "  ATTENTION: run_system_update a échoué — repli sur une mise à jour directe." >&2
-
-  if sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
-    sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput
-    sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput >/dev/null
-    echo "  code récupéré et schéma migré par le repli."
-
-    # Nouvelle tentative avec le code à jour : si l'échec venait du mécanisme
-    # lui-même, il est désormais corrigé. Cela restaure aussi la trace
-    # SystemUpdateRun et le point de rollback, que le repli ne crée pas.
-    echo "  nouvelle tentative du mécanisme normal..."
-    sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm \
-      || echo "  ATTENTION: run_system_update échoue encore — cause applicative, voir /opt/orion/logs/errors.log." >&2
-  else
+# Mise à jour sans aucune dépendance au mécanisme applicatif : seuls git, pip
+# et les commandes Django de base sont requis. C'est la voie de survie quand
+# l'ERP est en panne — un bug DANS le mécanisme de mise à jour serait sinon
+# irrécupérable, son propre correctif ne pouvant arriver que par lui.
+# Constaté en production avec « Commande de sauvegarde non configurée », qui
+# bloquait toute mise à jour par défaut.
+maj_directe() {
+  if ! sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
     echo "  ERREUR: git pull impossible (arbre modifié, ou branche suivie différente)." >&2
     echo "          Vérifiez : git -C $ORION_HOME/backend status" >&2
+    return 1
   fi
-fi
+  sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput
+  sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput >/dev/null
+  echo "  code récupéré, schéma migré, statiques collectés."
+}
+
+maj_applicative() {
+  sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm
+}
+
+case "$MODE" in
+  direct)
+    echo "  mode --direct : le mécanisme applicatif est volontairement ignoré."
+    maj_directe || echo "  ATTENTION: mise à jour directe échouée." >&2
+    ;;
+  django)
+    echo "  mode --django-only : aucun repli."
+    maj_applicative || echo "  ATTENTION: run_system_update a échoué." >&2
+    ;;
+  *)
+    if ! maj_applicative; then
+      echo "  ATTENTION: run_system_update a échoué — repli sur une mise à jour directe." >&2
+      if maj_directe; then
+        # Nouvelle tentative avec le code à jour : si l'échec venait du
+        # mécanisme lui-même, il est désormais corrigé. Cela restaure la trace
+        # SystemUpdateRun et le point de rollback, que le repli ne crée pas.
+        echo "  nouvelle tentative du mécanisme normal..."
+        maj_applicative \
+          || echo "  ATTENTION: run_system_update échoue encore — cause applicative, voir /opt/orion/logs/errors.log." >&2
+      fi
+    fi
+    ;;
+esac
 
 # Recompile les catalogues : un .po mis a jour par le git pull resterait
 # sans effet tant que son .mo n'est pas regenere.
