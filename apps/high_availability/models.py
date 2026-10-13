@@ -206,6 +206,27 @@ class OrionHASettings(models.Model):
                   'certificat.',
     )
 
+    # ─── Réseau privé entre sites ────────────────────────────────────────────
+    # En production les serveurs ne partagent aucun réseau local. Il leur faut
+    # un chemin privé unique, sur lequel passe TOUT : battements de cœur,
+    # validation d'adhésion, réplication MySQL, synchronisation des médias.
+    # Deux mécanismes séparés feraient deux fois plus de choses à casser — et
+    # la réplication, elle, ne peut pas voyager en clair sur Internet.
+    #
+    # L'adresse privée se déduit du rang, comme le nom : rang 2 donne
+    # 10.10.0.2. Un seul chiffre à retenir par serveur.
+    mesh_subnet = models.CharField(
+        max_length=40, default='10.10.0.0/24',
+        verbose_name='Sous-réseau privé',
+        help_text='Le dernier octet est le rang du serveur : rang 2 → 10.10.0.2.',
+    )
+
+    mesh_port = models.PositiveIntegerField(
+        default=51820,
+        verbose_name='Port WireGuard (UDP)',
+        help_text='À ouvrir sur le pare-feu de chaque site.',
+    )
+
     # ─── Retour d'un serveur (failback) ──────────────────────────────────────
     # Ce qui se passe quand un serveur tombé revient en bon état. Sans règle,
     # il revenait simplement « sain » dans la liste sans que rien ne tranche :
