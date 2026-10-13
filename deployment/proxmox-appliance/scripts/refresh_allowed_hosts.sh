@@ -20,7 +20,15 @@ ENV_FILE="/opt/orion/backend/.env"
 VM_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1)" || true
 [ -n "${VM_IP:-}" ] || exit 0
 
-get_field() { grep "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-; }
+# Le « || true » final n'est pas une précaution de style, il est
+# indispensable. Avec `set -o pipefail`, un grep sans correspondance fait
+# échouer tout le pipeline ; l'affectation `X="$(get_field ...)"` hérite de ce
+# code, et `set -e` tue alors le script sur une clé simplement ABSENTE du
+# .env. Ce script étant un ExecStartPre d'orion-backend et d'orion-frontend,
+# cela a empêché les deux services de démarrer et fait répondre 502 à nginx —
+# constaté en production à l'ajout d'ORION_NODE_DOMAIN, clé que les anciennes
+# installations n'ont pas dans leur .env.
+get_field() { grep "^$1=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- || true; }
 
 # Remplace la ligne si la clé existe, l'ajoute sinon.
 set_field() {
