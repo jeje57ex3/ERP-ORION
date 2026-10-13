@@ -38,6 +38,18 @@ while [ $# -gt 0 ]; do
 done
 
 [ -f "$ENV_FILE" ] || { echo "ERREUR: $ENV_FILE introuvable — appliance non configurée."; exit 1; }
+
+# Une valeur contenant des espaces sans guillemets rend ce sourçage fatal et
+# opaque : bash lit « VAR=sudo » puis tente d'exécuter « -n », d'où un
+# « -n: command not found » et un exit 127 qui ne nomme ni la clé ni le
+# fichier. La mise à jour échouait donc avant même de commencer, sur une
+# appliance par ailleurs saine. Seules les clés *_COMMAND sont corrigées :
+# leur valeur est par nature une ligne de commande.
+if grep -qE '^[A-Za-z_]*_COMMAND=[^"]*[[:space:]]' "$ENV_FILE"; then
+  sed -i -E 's/^([A-Za-z_]*_COMMAND)=([^"].*)$/\1="\2"/' "$ENV_FILE"
+  echo "  .env normalisé : valeurs de commande protégées par des guillemets."
+fi
+
 set -a; . "$ENV_FILE"; set +a
 
 echo "======================================"

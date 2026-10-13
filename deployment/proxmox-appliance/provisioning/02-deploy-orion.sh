@@ -168,8 +168,15 @@ ORION_NODE_DOMAIN=${NODE_DOMAIN:-}
 # redemarrerait orion-backend, c'est-a-dire le processus qui execute la
 # mise a jour, qui serait tue avant de pouvoir l'enregistrer. Le
 # redemarrage du backend est fait par update_orion.sh, depuis l'exterieur.
-ORION_UPDATE_CELERY_RESTART_COMMAND=sudo -n systemctl restart orion-celery
-ORION_UPDATE_CELERY_BEAT_RESTART_COMMAND=sudo -n systemctl restart orion-celery-beat
+# Guillemets INDISPENSABLES : ces valeurs contiennent des espaces, et ce
+# fichier est aussi source par des scripts shell (etape 03, update_orion.sh).
+# Sans eux, bash lit « VAR=sudo » puis tente d'executer la commande « -n »,
+# d'ou un « -n: command not found » et un exit 127 qui ne nomme ni la cle ni
+# le fichier. python-decouple, lui, rend la meme valeur avec ou sans
+# guillemets (verifie) : le defaut etait donc invisible cote Django et fatal
+# cote scripts. Il a empeche tout le provisionnement d'une VM neuve.
+ORION_UPDATE_CELERY_RESTART_COMMAND="sudo -n systemctl restart orion-celery"
+ORION_UPDATE_CELERY_BEAT_RESTART_COMMAND="sudo -n systemctl restart orion-celery-beat"
 
 MEDIA_ROOT=media/
 STATIC_ROOT=staticfiles/
