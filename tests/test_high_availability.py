@@ -1965,3 +1965,479 @@ def test_convention_refuse_un_domaine_avec_schema(client, superuser, entreprise,
     assert reponse.status_code == 200
     ha_settings.refresh_from_db()
     assert ha_settings.cluster_base_domain == ''
+
+
+# ── Réseau privé entre sites ────────────────────────────────────────────────
+# L'adresse privée se déduit du rang, comme le nom d'hôte : rang 2 donne
+# 10.10.0.2. Les trois identités ne peuvent donc plus se contredire.
+
+from apps.high_availability.mesh import (
+    MeshConfigError,
+    adresse_overlay,
+    config_locale,
+    entrees_hosts,
+    pairs_attendus,
+    reseau,
+)
+from apps.high_availability.media_sync import (
+    cibles_de_synchronisation,
+    construire_commande,
+    synchroniser,
+)
+from apps.high_availability.replication import (
+    appliquer_etat,
+    parse_replica_status,
+)
+from apps.high_availability.models import OrionHAReplicationStatus
+
+
+@pytest.fixture
+def mesh(grappe):
+    grappe.mesh_subnet = '10.10.0.0/24'
+    grappe.mesh_port = 51820
+    grappe.save()
+    return grappe
+
+
+def test_adresse_deduite_du_rang(mesh):
+    assert adresse_overlay(mesh, 1) == '10.10.0.1'
+    assert adresse_overlay(mesh, 2) == '10.10.0.2'
+    assert adresse_overlay(mesh, 12) == '10.10.0.12'
+
+
+def test_adresse_suit_un_autre_sous_reseau(mesh):
+    mesh.mesh_subnet = '172.31.9.0/24'
+    mesh.save()
+    assert adresse_overlay(mesh, 3) == '172.31.9.3'
+
+
+def test_rang_zero_refuse(mesh):
+    """Le rang 0 donnerait l'adresse du réseau lui-même."""
+    with pytest.raises(MeshConfigError, match='Rang invalide'):
+        adresse_overlay(mesh, 0)
+
+
+def test_rang_hors_du_sous_reseau_refuse(mesh):
+    mesh.mesh_subnet = '10.10.0.0/30'  # 2 hôtes utilisables
+    mesh.save()
+    assert adresse_overlay(mesh, 2) == '10.10.0.2'
+    with pytest.raises(MeshConfigError, match='ne tient pas'):
+        adresse_overlay(mesh, 9)
+
+
+def test_sous_reseau_illisible_est_nomme(mesh):
+    mesh.mesh_subnet = 'pas-un-reseau'
+    mesh.save()
+    with pytest.raises(MeshConfigError, match='illisible'):
+        reseau(mesh)
+
+
+def test_sous_reseau_absent_est_nomme(mesh):
+    mesh.mesh_subnet = ''
+    mesh.save()
+    with pytest.raises(MeshConfigError, match='Aucun sous-réseau'):
+        reseau(mesh)
+
+
+def test_entrees_hosts_deduites_des_noeuds(mesh, primary_node, secondary_1):
+    entrees = dict((h, a) for a, h in entrees_hosts(mesh))
+    assert entrees['serveur1.exemple.fr'] == '10.10.0.1'
+    assert entrees['serveur2.exemple.fr'] == '10.10.0.2'
+
+
+def test_entrees_hosts_sans_noeud_explore_les_rangs(mesh):
+    """Avant tout raccordement, on prépare la résolution des rangs possibles."""
+    mesh.cluster_max_nodes = 2
+    mesh.save()
+    assert len(entrees_hosts(mesh)) == 2
+
+
+def test_config_locale_suit_le_rang_de_ce_serveur(mesh, settings):
+    settings.ORION_NODE_PRIORITY = 2
+    cfg = config_locale(mesh)
+    assert cfg['ORION_MESH_ADDRESS'] == '10.10.0.2'
+    assert cfg['ORION_MESH_PREFIX'] == '24'
+    assert cfg['ORION_MESH_SUBNET'] == '10.10.0.0/24'
+    assert cfg['ORION_MESH_PORT'] == '51820'
+    assert cfg['ORION_MESH_RANK'] == '2'
+    assert cfg['ORION_MESH_HOST'] == 'serveur2.exemple.fr'
+
+
+def test_pairs_attendus_excluent_ce_serveur(mesh, settings, primary_node, secondary_1):
+    settings.ORION_NODE_PRIORITY = 1
+    pairs = pairs_attendus(mesh)
+    assert [p['rang'] for p in pairs] == [2]
+    assert pairs[0]['adresse'] == '10.10.0.2'
+
+
+def test_pairs_attendus_excluent_un_serveur_desactive(
+    mesh, settings, primary_node, secondary_1, secondary_2,
+):
+    settings.ORION_NODE_PRIORITY = 1
+    secondary_2.is_enabled = False
+    secondary_2.save()
+    assert [p['rang'] for p in pairs_attendus(mesh)] == [2]
+
+
+# ── Analyse de SHOW REPLICA STATUS ──────────────────────────────────────────
+# MySQL 8.0.22 a renommé la commande ET ses colonnes ; MariaDB ne connaît que
+# les anciens noms. Les deux familles doivent être comprises.
+
+def test_serveur_autonome_n_est_pas_une_erreur():
+    etat = parse_replica_status({})
+    assert etat['is_replica'] is False
+    assert etat['status'] == 'standalone'
+    assert etat['lag_seconds'] is None
+
+
+def test_colonnes_mysql_8():
+    etat = parse_replica_status({
+        'Replica_IO_Running': 'Yes',
+        'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': 3,
+        'Source_Log_File': 'bin.000007',
+        'Read_Source_Log_Pos': 1543,
+        'Source_Host': '10.10.0.1',
+    })
+    assert etat['is_replica'] is True
+    assert etat['status'] == 'ok'
+    assert etat['io_running'] is True
+    assert etat['sql_running'] is True
+    assert etat['lag_seconds'] == 3
+    assert etat['log_file'] == 'bin.000007'
+    assert etat['log_position'] == '1543'
+    assert etat['source_host'] == '10.10.0.1'
+
+
+def test_colonnes_mariadb():
+    etat = parse_replica_status({
+        'Slave_IO_Running': 'Yes',
+        'Slave_SQL_Running': 'Yes',
+        'Seconds_Behind_Master': 0,
+        'Master_Log_File': 'bin.000002',
+        'Read_Master_Log_Pos': 99,
+        'Master_Host': '10.10.0.1',
+    })
+    assert etat['status'] == 'ok'
+    assert etat['lag_seconds'] == 0
+    assert etat['log_file'] == 'bin.000002'
+    assert etat['source_host'] == '10.10.0.1'
+
+
+def test_retard_nul_distingue_de_retard_inconnu():
+    """NULL veut dire « réplication arrêtée », pas « aucun retard ».
+
+    Les confondre ferait passer une réplication morte pour parfaite — le genre
+    de faux positif qui ne se découvre qu'au moment de la bascule.
+    """
+    a_jour = parse_replica_status({
+        'Replica_IO_Running': 'Yes', 'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': 0,
+    })
+    arretee = parse_replica_status({
+        'Replica_IO_Running': 'Yes', 'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': None,
+    })
+    assert a_jour['lag_seconds'] == 0
+    assert a_jour['status'] == 'ok'
+    assert arretee['lag_seconds'] is None
+    assert arretee['status'] == 'warning'
+
+
+def test_fil_arrete_est_une_erreur():
+    etat = parse_replica_status({
+        'Replica_IO_Running': 'Yes',
+        'Replica_SQL_Running': 'No',
+        'Seconds_Behind_Source': 0,
+    })
+    assert etat['status'] == 'error'
+    assert etat['sql_running'] is False
+
+
+def test_erreur_rapportee_est_remontee():
+    etat = parse_replica_status({
+        'Replica_IO_Running': 'Yes', 'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': 0,
+        'Last_SQL_Error': "Duplicate entry '7' for key 'PRIMARY'",
+    })
+    assert etat['status'] == 'error'
+    assert any('Duplicate entry' in e for e in etat['errors'])
+
+
+@pytest.mark.parametrize('brut,attendu', [
+    ('Yes', True), ('yes', True), ('YES', True), (1, True), (True, True),
+    ('No', False), ('', False), (None, False), (0, False),
+])
+def test_lecture_des_booleens_du_serveur(brut, attendu):
+    etat = parse_replica_status({
+        'Replica_IO_Running': brut, 'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': 0,
+    })
+    assert etat['io_running'] is attendu
+
+
+# ── Consignation de l'état de réplication ───────────────────────────────────
+
+def test_etat_consigne_pour_un_noeud(secondary_1):
+    """La page Réplication affichait un tableau que rien ne remplissait."""
+    assert OrionHAReplicationStatus.objects.count() == 0
+
+    appliquer_etat(secondary_1, parse_replica_status({
+        'Replica_IO_Running': 'Yes', 'Replica_SQL_Running': 'Yes',
+        'Seconds_Behind_Source': 4,
+        'Source_Log_File': 'bin.000003', 'Read_Source_Log_Pos': 77,
+    }))
+
+    objet = OrionHAReplicationStatus.objects.get(node=secondary_1)
+    assert objet.database_status == 'ok'
+    assert objet.io_thread_running is True
+    assert objet.sql_thread_running is True
+    assert objet.seconds_behind_primary == 4
+    assert objet.primary_log_file == 'bin.000003'
+    assert objet.primary_log_position == '77'
+    assert objet.payload['releve_a']
+
+
+def test_consignation_est_idempotente(secondary_1):
+    etat = parse_replica_status({'Replica_IO_Running': 'Yes', 'Replica_SQL_Running': 'Yes'})
+    appliquer_etat(secondary_1, etat)
+    appliquer_etat(secondary_1, etat)
+    assert OrionHAReplicationStatus.objects.filter(node=secondary_1).count() == 1
+
+
+def test_bilan_de_sante_alimente_la_replication(secondary_1):
+    """Le chemin complet : un nœud distant rapporte, on consigne."""
+    services.update_node_from_health(secondary_1, {
+        'status': 'healthy',
+        'replication': parse_replica_status({
+            'Slave_IO_Running': 'Yes', 'Slave_SQL_Running': 'Yes',
+            'Seconds_Behind_Master': 12,
+        }),
+    })
+    objet = OrionHAReplicationStatus.objects.get(node=secondary_1)
+    assert objet.seconds_behind_primary == 12
+    assert objet.database_status == 'ok'
+
+
+# ── Synchronisation des médias ──────────────────────────────────────────────
+
+def test_commande_rsync_ne_supprime_jamais():
+    """Décision de conception : pas de --delete.
+
+    Un fichier absent de la source peut provenir d'une bascule précédente, où
+    l'autre serveur a reçu des téléversements. Supprimer serait irréversible.
+    """
+    commande = construire_commande(
+        '10.10.0.2', source_dir='/opt/orion/uploads', dest_dir='/opt/orion/uploads',
+    )
+    assert '--delete' not in commande
+    assert '-a' in commande
+    assert '--partial' in commande
+
+
+def test_commande_rsync_pousse_le_contenu_du_repertoire():
+    """La barre finale sur la source compte : sans elle, rsync imbriquerait
+    le répertoire dans la destination."""
+    commande = construire_commande(
+        '10.10.0.2', source_dir='/opt/orion/uploads', dest_dir='/opt/orion/uploads',
+    )
+    assert '/opt/orion/uploads/' in commande
+    assert 'orion@10.10.0.2:/opt/orion/uploads/' in commande
+
+
+def test_commande_rsync_porte_la_cle_ssh():
+    commande = construire_commande(
+        '10.10.0.2', source_dir='/m', dest_dir='/m', cle_ssh='/etc/orion/id_sync', port=2222,
+    )
+    transport = commande[commande.index('-e') + 1]
+    assert '-p 2222' in transport
+    assert '/etc/orion/id_sync' in transport
+    assert 'BatchMode=yes' in transport
+
+
+def test_pas_de_cible_sans_serveur_actif(db, mesh):
+    cibles, motif = cibles_de_synchronisation(mesh)
+    assert cibles == []
+    assert 'Aucun serveur actif' in motif
+
+
+def test_un_serveur_passif_ne_pousse_rien(mesh, settings, primary_node, secondary_1):
+    """Pousser depuis un passif écraserait du récent par de l'ancien."""
+    settings.ORION_NODE_ID = 'orion-secondary-1'
+    cibles, motif = cibles_de_synchronisation(mesh)
+    assert cibles == []
+    assert "n'est pas l'actif" in motif
+
+
+def test_le_serveur_actif_pousse_vers_les_autres(mesh, settings, primary_node, secondary_1):
+    settings.ORION_NODE_ID = 'orion-primary'
+    cibles, motif = cibles_de_synchronisation(mesh)
+    assert motif == ''
+    assert [c['node'].node_id for c in cibles] == ['orion-secondary-1']
+    assert cibles[0]['adresse'] == '10.10.0.2'
+
+
+def test_synchronisation_desactivee_ne_fait_rien(mesh, settings, primary_node, secondary_1):
+    settings.ORION_NODE_ID = 'orion-primary'
+    mesh.media_sync_enabled = False
+    mesh.save()
+    res = synchroniser(mesh)
+    assert res['skipped'] is True
+    assert 'désactivée' in res['reason']
+
+
+def test_mode_constat_ne_copie_rien(mesh, settings, primary_node, secondary_1, monkeypatch):
+    settings.ORION_NODE_ID = 'orion-primary'
+    settings.MEDIA_ROOT = '/opt/orion/uploads'
+
+    appels = []
+    monkeypatch.setattr(
+        'apps.high_availability.media_sync.subprocess.run',
+        lambda *a, **k: appels.append(a) or None,
+    )
+    res = synchroniser(mesh, executer=False)
+
+    assert appels == []
+    assert res['resultats'][0]['ok'] is None
+    assert 'rsync' in res['resultats'][0]['commande'][0]
+
+
+def test_statut_consigne_sur_le_noeud_destination(
+    mesh, settings, primary_node, secondary_1, monkeypatch,
+):
+    """C'est le contenu de la DESTINATION qui est à jour ou non."""
+    settings.ORION_NODE_ID = 'orion-primary'
+    settings.MEDIA_ROOT = '/opt/orion/uploads'
+
+    class _Proc:
+        returncode = 0
+        stdout = 'sent 12 bytes'
+        stderr = ''
+
+    monkeypatch.setattr(
+        'apps.high_availability.media_sync.subprocess.run', lambda *a, **k: _Proc(),
+    )
+    synchroniser(mesh)
+
+    secondary_1.refresh_from_db()
+    assert secondary_1.media_sync_status == 'ok'
+    assert secondary_1.media_last_sync_at is not None
+
+
+def test_echec_de_rsync_est_consigne(mesh, settings, primary_node, secondary_1, monkeypatch):
+    settings.ORION_NODE_ID = 'orion-primary'
+    settings.MEDIA_ROOT = '/opt/orion/uploads'
+
+    class _Proc:
+        returncode = 23
+        stdout = ''
+        stderr = 'rsync: connection unexpectedly closed'
+
+    monkeypatch.setattr(
+        'apps.high_availability.media_sync.subprocess.run', lambda *a, **k: _Proc(),
+    )
+    res = synchroniser(mesh)
+
+    secondary_1.refresh_from_db()
+    assert secondary_1.media_sync_status == 'error'
+    assert secondary_1.media_last_sync_at is None
+    assert res['resultats'][0]['ok'] is False
+    assert 'connection unexpectedly closed' in res['resultats'][0]['detail']
+
+
+def test_rsync_absent_est_dit_clairement(mesh, settings, primary_node, secondary_1, monkeypatch):
+    settings.ORION_NODE_ID = 'orion-primary'
+    settings.MEDIA_ROOT = '/opt/orion/uploads'
+    monkeypatch.setattr(
+        'apps.high_availability.media_sync.subprocess.run',
+        lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()),
+    )
+    res = synchroniser(mesh)
+    assert "rsync n'est pas installé" in res['resultats'][0]['detail']
+
+
+# ── Commandes d'exploitation ─────────────────────────────────────────────────
+# Eprouvees ici plutot que sur la base de developpement : celle-ci peut etre
+# en retard de migrations, et l'echec serait alors imputable a elle et non au
+# code qu'on veut verifier.
+
+from io import StringIO
+
+from django.core.management import call_command
+
+
+def test_commande_mesh_config_affiche_les_cles(mesh, settings):
+    settings.ORION_NODE_PRIORITY = 2
+    sortie = StringIO()
+    call_command('ha_mesh_config', stdout=sortie)
+    texte = sortie.getvalue()
+
+    assert 'ORION_MESH_ADDRESS=10.10.0.2' in texte
+    assert 'ORION_MESH_PREFIX=24' in texte
+    assert 'ORION_MESH_PORT=51820' in texte
+    assert 'ORION_MESH_HOST=serveur2.exemple.fr' in texte
+    # Sourcable par un shell : une cle par ligne, aucun espace autour du =.
+    for ligne in texte.strip().splitlines():
+        assert ligne.count('=') >= 1
+        assert ' = ' not in ligne
+
+
+def test_commande_mesh_config_hosts(mesh, primary_node, secondary_1):
+    sortie = StringIO()
+    call_command('ha_mesh_config', '--hosts', stdout=sortie)
+    lignes = sortie.getvalue().strip().splitlines()
+    assert '10.10.0.1 serveur1.exemple.fr' in lignes
+    assert '10.10.0.2 serveur2.exemple.fr' in lignes
+
+
+def test_commande_mesh_config_refuse_un_sous_reseau_invalide(mesh):
+    from django.core.management.base import CommandError
+    mesh.mesh_subnet = 'pas-un-reseau'
+    mesh.save()
+    with pytest.raises(CommandError, match='illisible'):
+        call_command('ha_mesh_config', stdout=StringIO())
+
+
+def test_commande_replication_status_sans_consigner(db, secondary_1):
+    sortie = StringIO()
+    call_command('ha_replication_status', '--no-save', stdout=sortie)
+    # SQLite n'a pas de replication : l'etat autonome est le bon resultat.
+    assert 'autonome' in sortie.getvalue()
+    assert OrionHAReplicationStatus.objects.count() == 0
+
+
+def test_commande_replication_status_consigne_le_noeud_courant(
+    db, secondary_1, settings,
+):
+    settings.ORION_NODE_ID = secondary_1.node_id
+    sortie = StringIO()
+    call_command('ha_replication_status', stdout=sortie)
+    assert OrionHAReplicationStatus.objects.filter(node=secondary_1).exists()
+    assert 'Consigné' in sortie.getvalue()
+
+
+def test_commande_replication_status_sans_noeud_correspondant(db, settings):
+    """Un serveur pas encore raccorde ne doit pas faire echouer la commande."""
+    settings.ORION_NODE_ID = 'serveur-inconnu'
+    sortie = StringIO()
+    call_command('ha_replication_status', stdout=sortie)
+    assert 'Non consigné' in sortie.getvalue()
+    assert OrionHAReplicationStatus.objects.count() == 0
+
+
+def test_commande_sync_media_constat(mesh, settings, primary_node, secondary_1):
+    settings.ORION_NODE_ID = 'orion-primary'
+    settings.MEDIA_ROOT = '/opt/orion/uploads'
+    sortie = StringIO()
+    call_command('ha_sync_media', '--constat', stdout=sortie)
+    texte = sortie.getvalue()
+    assert 'orion-secondary-1' in texte
+    assert 'rsync' in texte
+    assert '--delete' not in texte
+
+
+def test_commande_sync_media_explique_son_refus(mesh, settings, primary_node, secondary_1):
+    settings.ORION_NODE_ID = 'orion-secondary-1'
+    sortie = StringIO()
+    call_command('ha_sync_media', stdout=sortie)
+    assert "n'est pas l'actif" in sortie.getvalue()

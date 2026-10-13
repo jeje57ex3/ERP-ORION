@@ -27,47 +27,28 @@ def _check_database():
 
 
 def _replication_state():
-    """État réel de la réplication, et non le rôle déclaré dans le .env.
+    """Etat reel de la replication, delegue au module dedie.
 
-    `replication_lag_seconds` était auparavant codé en dur à None, ce qui
-    rendait inertes tous les garde-fous qui en dépendent : la validation de
-    cible comme la règle de retour laissent passer un retard inconnu. Sans
-    mesure réelle, elles ne protégeaient donc de rien.
-
-    `read_only` sert à repérer un ancien principal qui revient sans avoir été
-    rétrogradé. Il reste à None quand l'information n'est pas disponible :
-    « inconnu » ne doit jamais être confondu avec « inscriptible ».
+    L'analyse vivait ici sous une forme sommaire et non testable : elle ne
+    relevait que le retard et la lecture seule, en recopiant la double
+    nomenclature MySQL 8 / MariaDB. Elle est desormais dans
+    apps/high_availability/replication.py, en fonction pure, et rapporte en
+    plus l'etat des fils de replication, la position dans le journal et les
+    erreurs -- ce qu'il faut pour alimenter la page Replication.
     """
-    etat = {'read_only': None, 'replication_lag_seconds': None, 'is_replica': False}
+    from apps.high_availability.replication import lire_status_local
 
-    with connection.cursor() as cursor:
-        try:
-            cursor.execute('SELECT @@global.read_only')
-            etat['read_only'] = bool(int(cursor.fetchone()[0]))
-        except Exception:
-            pass
-
-        # MySQL 8.0.22 a renommé SHOW SLAVE STATUS en SHOW REPLICA STATUS, et
-        # les colonnes avec. MariaDB ne connaît que l'ancienne forme : les deux
-        # sont tentées, l'une des deux échoue toujours.
-        for requete in ('SHOW REPLICA STATUS', 'SHOW SLAVE STATUS'):
-            try:
-                cursor.execute(requete)
-                colonnes = [c[0] for c in cursor.description]
-                ligne = cursor.fetchone()
-            except Exception:
-                continue
-            if not ligne:
-                continue
-            donnees = dict(zip(colonnes, ligne))
-            etat['is_replica'] = True
-            for champ in ('Seconds_Behind_Source', 'Seconds_Behind_Master'):
-                if donnees.get(champ) is not None:
-                    etat['replication_lag_seconds'] = int(donnees[champ])
-                    break
-            break
-
-    return etat
+    try:
+        return lire_status_local()
+    except Exception:
+        # Un bilan de sante ne doit jamais echouer a cause de la replication :
+        # c'est precisement quand elle va mal qu'on a besoin du bilan.
+        return {
+            'is_replica': False, 'read_only': None, 'lag_seconds': None,
+            'io_running': False, 'sql_running': False, 'log_file': '',
+            'log_position': '', 'source_host': '', 'errors': [],
+            'status': 'unknown',
+        }
 
 
 def _build_payload():
@@ -76,7 +57,7 @@ def _build_payload():
 
     if replication['is_replica']:
         database_role = 'replica'
-    elif replication['read_only']:
+    elif replication.get('read_only'):
         database_role = 'read_only'
     else:
         database_role = getattr(settings, 'ORION_NODE_ROLE', 'primary')
@@ -89,8 +70,11 @@ def _build_payload():
         'region': getattr(settings, 'ORION_NODE_REGION', 'local'),
         'database': db_status,
         'database_role': database_role,
-        'read_only': replication['read_only'],
-        'replication_lag_seconds': replication['replication_lag_seconds'],
+        'read_only': replication.get('read_only'),
+        'replication_lag_seconds': replication.get('lag_seconds'),
+        # Detail complet, consomme par update_node_from_health pour
+        # alimenter OrionHAReplicationStatus -- que rien n'ecrivait.
+        'replication': replication,
         'media': 'unknown',
         'redis': 'unknown',
         'celery': 'unknown',

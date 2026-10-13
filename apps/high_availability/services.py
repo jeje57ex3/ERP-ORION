@@ -94,6 +94,15 @@ def update_node_from_health(node, payload):
         node.healthy_since = None
 
     node.save()
+
+    # Consigne l'état de réplication rapporté par le nœud. C'est le seul
+    # moment où on l'a : un serveur distant ne peut pas s'interroger lui-même
+    # depuis ici. Sans cela, la page Réplication restait vide.
+    detail = payload.get('replication')
+    if detail:
+        from apps.high_availability.replication import appliquer_etat
+        appliquer_etat(node, detail)
+
     return node
 
 

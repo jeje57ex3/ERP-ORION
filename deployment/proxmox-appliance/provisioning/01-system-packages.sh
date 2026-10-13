@@ -23,7 +23,9 @@ apt-get install -y --no-install-recommends \
   qemu-guest-agent \
   jq unzip \
   gettext \
-  default-mysql-client
+  default-mysql-client \
+  rsync \
+  wireguard wireguard-tools
 
 echo "[01] QEMU Guest Agent..."
 # L'unité systemd du paquet ne redémarre pas automatiquement l'agent s'il

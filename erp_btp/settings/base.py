@@ -343,6 +343,15 @@ ORION_PUBLIC_ERP_URL  = config('ORION_PUBLIC_ERP_URL',  default='')
 
 ORION_HA_SECRET = config('ORION_HA_SECRET', default='CHANGE_ME')
 
+# Cle privee du compte orion, utilisee par rsync pour pousser les medias vers
+# les autres serveurs. Sans elle, la copie echoue en demandant un mot de passe
+# -- que BatchMode refuse de fournir, donc sans message utile. Posee par
+# « orion-mesh.sh media-key ».
+ORION_MEDIA_SYNC_SSH_KEY = config(
+    'ORION_MEDIA_SYNC_SSH_KEY',
+    default='/opt/orion/.ssh/id_ed25519',
+)
+
 ORION_HA_FAILOVER_AFTER_SECONDS         = config('ORION_HA_FAILOVER_AFTER_SECONDS',         default=120,  cast=int)
 ORION_HA_MAX_REPLICATION_LAG_SECONDS    = config('ORION_HA_MAX_REPLICATION_LAG_SECONDS',    default=10,   cast=int)
 ORION_HA_REQUIRE_MANUAL_CONFIRMATION    = config('ORION_HA_REQUIRE_MANUAL_CONFIRMATION',    default=True, cast=bool)
