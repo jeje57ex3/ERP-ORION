@@ -277,6 +277,122 @@ Pour rendre la main à la demande, utilisez la page **Bascule** en désignant le
 serveur revenu. L'opération est tracée comme un *retour*, distinct d'une
 bascule subie, dans **Événements**.
 
+## Plusieurs sites : le chemin privé
+
+Tout ce qui précède suppose que les serveurs se joignent. En production ils ne
+partagent aucun réseau local, et les relier par leurs adresses publiques
+imposerait d'ouvrir des ports à chaque site, de dépendre d'IP qui changent, et
+de faire voyager la réplication MySQL en clair sur Internet — ce dernier point
+à lui seul l'interdit.
+
+Un seul chemin privé porte donc tout : battements de cœur, validation
+d'adhésion, réplication, fichiers.
+
+```
+PUBLIC — Cloudflare Tunnel            → les utilisateurs
+  erp / siecle / lunea  →  actif.exemple.fr  →  tunnel du serveur actif
+
+PRIVÉ — WireGuard                     → les serveurs entre eux
+  serveur1.exemple.fr  →  10.10.0.1
+  serveur2.exemple.fr  →  10.10.0.2
+```
+
+L'adresse privée se déduit du rang, comme le nom : **rang 2 donne 10.10.0.2**.
+Un seul chiffre à retenir par serveur, et les trois identités ne peuvent plus
+se contredire.
+
+### Monter le réseau privé
+
+Sur **chaque** serveur :
+
+```bash
+/opt/orion/scripts/orion-mesh.sh init
+```
+
+Il installe WireGuard, pose l'adresse déduite du rang, ouvre le port UDP au
+pare-feu, et affiche la **clé publique à communiquer aux autres**.
+
+Puis, sur chaque serveur, déclarez les autres — en indiquant leur rang, leur
+clé, et l'adresse publique par laquelle les joindre :
+
+```bash
+/opt/orion/scripts/orion-mesh.sh add-peer 2 "CLE_DU_SERVEUR_2" serveur2-public.exemple.fr:51820
+/opt/orion/scripts/orion-mesh.sh hosts
+/opt/orion/scripts/orion-mesh.sh up
+/opt/orion/scripts/orion-mesh.sh status
+```
+
+`hosts` pose la résolution privée des noms. `status` affiche les liaisons, les
+pairs attendus d'après la grappe, et teste la joignabilité de chacun.
+
+L'échange de clés est manuel et le restera : aucune des deux clés n'existe
+avant que les deux machines soient installées.
+
+### Mettre en place la réplication
+
+Sans elle, la haute disponibilité est **décorative** : une bascule promouvrait
+une base dépourvue des données de l'autre site.
+
+Sur le serveur **source** (rang 1) :
+
+```bash
+/opt/orion/scripts/orion-replication.sh expose
+/opt/orion/scripts/orion-replication.sh grant 2
+```
+
+`expose` ajoute l'écoute de MySQL sur la seule adresse privée — jamais sur
+`0.0.0.0` — sans retirer `127.0.0.1`, par lequel l'ERP accède à sa base.
+`grant` crée le compte de réplication, restreint à l'adresse privée du
+réplica, et affiche la commande à lancer en face.
+
+Sur le **réplica** :
+
+```bash
+/opt/orion/scripts/orion-replication.sh follow 1 'MOT_DE_PASSE_AFFICHE'
+/opt/orion/scripts/orion-replication.sh status
+```
+
+Le mot de passe n'est affiché qu'une fois et stocké nulle part : relancez
+`grant` si vous le perdez, il sera simplement remplacé.
+
+La page **Réplication** se remplit ensuite à chaque vérification des serveurs.
+Elle affichait jusqu'ici un tableau que rien n'alimentait.
+
+### Synchroniser les fichiers
+
+La base se réplique, les fichiers non. Une facture dont le PDF manque est une
+donnée incomplète.
+
+Sur chaque serveur, une fois :
+
+```bash
+/opt/orion/scripts/orion-mesh.sh media-key
+```
+
+puis déclarez la clé obtenue sur **l'autre** serveur :
+
+```bash
+/opt/orion/scripts/orion-mesh.sh trust 1 "CLE_DU_SERVEUR_1"
+```
+
+La clé est liée à l'adresse privée de son pair : même divulguée, elle ne sert
+à rien depuis ailleurs.
+
+Vérifiez sans rien copier, puis planifiez sur le serveur actif :
+
+```bash
+sudo -u orion /opt/orion/backend/.venv/bin/python /opt/orion/backend/manage.py ha_sync_media --constat
+```
+
+La copie part **toujours du serveur actif** vers les autres : lui seul reçoit
+des téléversements. Lancée sur un passif, la commande refuse et le dit —
+copier dans l'autre sens écraserait des fichiers récents par des anciens.
+
+Elle ne supprime jamais rien côté destination. Un fichier absent de la source
+peut provenir d'une bascule précédente, où l'autre serveur a reçu des
+téléversements ; la place gagnée ne vaudrait pas ce qu'on risquerait de
+perdre.
+
 ## Limite à connaître : la détection automatique
 
 La bascule **manuelle** est opérationnelle. La bascule **automatique** ne l'est
@@ -327,6 +443,24 @@ joint pas ce serveur-ci, alors que l’inverse fonctionne. Vérifiez les règles
 de pare-feu dans CE sens, et que l’adresse de ce serveur dans la convention
 (affichée en haut du tableau) est bien celle par laquelle les autres peuvent
 le joindre.
+
+**Un pair WireGuard reste injoignable.** `orion-mesh.sh status` teste
+chaque adresse privee. Verifiez le port UDP au pare-feu des DEUX cotes, et
+que l'`Endpoint` declare est joignable depuis l'autre site. Derriere un NAT,
+au moins un des deux doit avoir un endpoint atteignable.
+
+**La replication ne demarre pas.** `orion-replication.sh follow` teste
+d'abord la joignabilite du port 3306 prive et le dit explicitement.
+Si elle echoue : le reseau prive est-il actif, et `expose` a-t-il ete lance
+sur la source ?
+
+**Retard de replication « inconnu ».** La replication est arretee, pas a
+jour. C'est une panne, pas une absence de retard : `orion-replication.sh
+status` donne les fils arretes et la derniere erreur.
+
+**La synchronisation des medias echoue en silence.** La cle SSH du compte
+orion manque, ou n'est pas declaree en face : `orion-mesh.sh media-key`
+puis `trust` sur l’autre serveur. `--constat` montre la commande exacte.
 
 **Un serveur ne se raccorde pas.** Lancez « Tester la liaison » sur la
 page de raccordement : chacun des cinq contrôles nomme sa cause et son
