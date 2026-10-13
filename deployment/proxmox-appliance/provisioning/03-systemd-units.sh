@@ -21,6 +21,26 @@ MANAGE="$ORION_HOME/backend/manage.py"
 cp "$PAYLOAD_DIR"/systemd/*.service "$PAYLOAD_DIR"/systemd/*.timer /etc/systemd/system/
 systemctl daemon-reload
 
+# ─── Normalisation du .env avant sourçage ──────────────────────────────────────
+# Une valeur contenant des espaces sans guillemets rend le sourçage shell
+# fatal ET opaque : bash lit « VAR=sudo » puis tente d'exécuter la commande
+# « -n », d'où « -n: command not found » et un exit 127 qui ne nomme ni la clé
+# ni le fichier. python-decouple tolérant la forme nue, le défaut est
+# invisible côté Django — il a pourtant empêché tout le provisionnement d'une
+# VM neuve, et le symptôme observé (toutes les pages en 500) n'avait aucun
+# rapport apparent.
+#
+# Cible volontairement étroite : seules les clés *_COMMAND, dont la valeur est
+# par nature une ligne de commande. Aucune autre valeur n'est réécrite. Répare
+# au passage les installations déjà en place.
+normaliser_env() {
+  local fichier="$1"
+  grep -qE '^[A-Za-z_]*_COMMAND=[^"]*[[:space:]]' "$fichier" || return 0
+  sed -i -E 's/^([A-Za-z_]*_COMMAND)=([^"].*)$/\1="\2"/' "$fichier"
+  echo "[03] .env normalisé : valeurs de commande protégées par des guillemets."
+}
+normaliser_env "$ENV_FILE"
+
 # ─── Infrastructure MySQL / Redis ──────────────────────────────────────────────
 set -a; . "$ENV_FILE"; set +a
 
