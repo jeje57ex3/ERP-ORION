@@ -38,7 +38,7 @@ systemctl enable --now orion-db-stack.service
 # donc ici exactement le même chemin que Django : une vraie connexion TCP.
 echo "[03] Attente de MySQL sur le port TCP 3306 (pas juste le socket local)..."
 DB_READY=0
-for i in $(seq 1 60); do
+for i in $(seq 1 100); do
   if docker exec orion-db mysqladmin ping -h 127.0.0.1 -P 3306 \
       -u"${DB_USER:-orion}" -p"${DB_PASSWORD:-}" --silent >/dev/null 2>&1; then
     DB_READY=1
@@ -47,7 +47,7 @@ for i in $(seq 1 60); do
   sleep 3
 done
 if [ "$DB_READY" -ne 1 ]; then
-  echo "ATTENTION: MySQL ne répond pas sur le port 3306 après ~180s — on continue quand même." >&2
+  echo "ATTENTION: MySQL ne répond pas sur le port 3306 après ~300s — on continue quand même." >&2
 fi
 
 # ─── Migrations + fichiers statiques ───────────────────────────────────────────
@@ -58,24 +58,41 @@ echo "[03] Migrations Django..."
 # during query"). On réessaie plutôt que d'essayer d'affiner encore le
 # timing.
 MIGRATE_OK=0
-for attempt in 1 2 3 4 5; do
+for attempt in 1 2 3 4 5 6 7 8; do
   if sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput; then
     MIGRATE_OK=1
     break
   fi
-  echo "[03] migrate a échoué (tentative $attempt/5) — nouvelle tentative dans 10s..." >&2
-  sleep 10
+  echo "[03] migrate a échoué (tentative $attempt/8) — nouvelle tentative dans 15s..." >&2
+  sleep 15
 done
+# L’echec de migrate n’interrompt PLUS l’etape. collectstatic ne depend
+# d’aucune base, et son absence a une consequence disproportionnee : le
+# stockage a manifeste (CompressedManifestStaticFilesStorage) fait lever une
+# erreur a chaque {% static %} sans entree, donc TOUTE page renvoie 500 et
+# les statiques 404. Le symptome visible se retrouve a trois etapes en aval
+# de la panne reelle, et ne la designe pas du tout -- diagnostic egare
+# constate en production sur une VM de test.
+#
+# Mieux vaut un ERP qui demarre et journalise clairement
+# « Table orion_core.core_company doesn’t exist » qu’une appliance muette
+# dont chaque page echoue pour une raison sans rapport apparent.
 if [ "$MIGRATE_OK" -ne 1 ]; then
-  echo "[03] ERREUR: migrate a échoué après 5 tentatives." >&2
-  exit 1
+  echo "[03] ERREUR: migrate a échoué après 8 tentatives — schéma absent." >&2
+  echo "[03] L’étape continue : les travaux indépendants de la base sont" >&2
+  echo "[03] effectués, et l’échec est signalé à la fin." >&2
 fi
 
 echo "[03] Collecte des fichiers statiques..."
-sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
+sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput \
+  || echo "[03] ATTENTION: collectstatic a échoué." >&2
 
-echo "[03] Peuplement du catalogue de widgets dashboard..."
-sudo -u orion -E "$VENV_PY" "$MANAGE" seed_dashboard_widgets
+if [ "$MIGRATE_OK" -eq 1 ]; then
+  echo "[03] Peuplement du catalogue de widgets dashboard..."
+  sudo -u orion -E "$VENV_PY" "$MANAGE" seed_dashboard_widgets
+else
+  echo "[03] Peuplement des widgets ignoré : schéma absent." >&2
+fi
 
 # Les .po sont versionnes, les .mo non : ce sont des binaires generes, qui
 # se desynchroniseraient silencieusement de leurs sources. Sans cette
@@ -85,11 +102,15 @@ echo "[03] Compilation des catalogues de traduction..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
   || echo "[03] ATTENTION: compilemessages a echoue (gettext absent ?)." >&2
 
-echo "[03] Peuplement des langues (sélecteur de langue ERP)..."
-sudo -u orion -E "$VENV_PY" "$MANAGE" seed_languages
+if [ "$MIGRATE_OK" -eq 1 ]; then
+  echo "[03] Peuplement des langues (sélecteur de langue ERP)..."
+  sudo -u orion -E "$VENV_PY" "$MANAGE" seed_languages
 
-echo "[03] Paramètres mises à jour (+ jeton GitHub si dépôt privé)..."
-sudo -u orion -E "$VENV_PY" "$MANAGE" seed_system_updates
+  echo "[03] Paramètres mises à jour (+ jeton GitHub si dépôt privé)..."
+  sudo -u orion -E "$VENV_PY" "$MANAGE" seed_system_updates
+else
+  echo "[03] Peuplements langues/mises à jour ignorés : schéma absent." >&2
+fi
 
 # ─── Backend Django ─────────────────────────────────────────────────────────────
 echo "[03] Démarrage orion-backend..."
@@ -156,5 +177,13 @@ else
 fi
 
 systemctl enable --now orion-health.timer
+
+if [ "$MIGRATE_OK" -ne 1 ]; then
+  echo "[03] ÉCHEC : le schéma de base n’a pas été créé. Les services sont" >&2
+  echo "[03] démarrés mais l’ERP est inutilisable. Rejouez :" >&2
+  echo "[03]   sudo -u orion -E $VENV_PY $MANAGE migrate --noinput" >&2
+  echo "[03] puis relancez cette étape pour les peuplements." >&2
+  exit 1
+fi
 
 echo "[03] Terminé."
