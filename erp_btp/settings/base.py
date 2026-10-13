@@ -329,6 +329,13 @@ ORION_NODE_ROLE     = config('ORION_NODE_ROLE',     default='primary')
 ORION_NODE_PRIORITY = config('ORION_NODE_PRIORITY', default=1, cast=int)
 ORION_NODE_REGION   = config('ORION_NODE_REGION',   default='local')
 
+# Sous-domaine propre à CE serveur (ex. serveur1.exemple.fr). Distinct des
+# domaines de service : il désigne la machine, pas l'application, et sert de
+# cible stable à l'enregistrement d'indirection de la bascule. Il doit figurer
+# dans ALLOWED_HOSTS, sinon les battements de cœur entre nœuds sont rejetés en
+# 400 DisallowedHost — et tous les nœuds paraissent hors ligne.
+ORION_NODE_DOMAIN   = config('ORION_NODE_DOMAIN',   default='')
+
 ORION_PRIMARY_URL     = config('ORION_PRIMARY_URL',     default='')
 ORION_SECONDARY_1_URL = config('ORION_SECONDARY_1_URL', default='')
 ORION_SECONDARY_2_URL = config('ORION_SECONDARY_2_URL', default='')

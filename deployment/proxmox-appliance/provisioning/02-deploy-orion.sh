@@ -101,7 +101,11 @@ CORS_ORIGINS=""
 # NS_DOMAIN est ici et non dans le groupe suivant : le SPA NÉOSTRUCTURA est
 # servi par Nginx sur la MÊME origine que l'API qu'il appelle en relatif, il
 # n'a donc pas besoin d'entrée CORS — seulement d'être un hôte autorisé.
-for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}" "${NS_DOMAIN:-}"; do
+# NODE_DOMAIN est le sous-domaine propre à cette machine (haute
+# disponibilité) : les autres nœuds appellent /ha/health/ dessus, et il sert
+# de cible à l'enregistrement d'indirection de la bascule. Sans lui dans
+# ALLOWED_HOSTS, chaque battement de cœur repart en 400 DisallowedHost.
+for d in "${LOGIN_DOMAIN:-}" "${ORION_DOMAIN:-}" "${NS_DOMAIN:-}" "${NODE_DOMAIN:-}"; do
   [ -n "$d" ] && { ALLOWED_HOSTS="$ALLOWED_HOSTS,$d"; CSRF_ORIGINS="${CSRF_ORIGINS:+$CSRF_ORIGINS,}https://$d"; }
 done
 for d in "${SIECLE_DOMAIN:-}" "${LUNEA_DOMAIN:-}"; do
@@ -155,6 +159,9 @@ ORION_FRONTEND_DOMAIN=${ORION_DOMAIN:-}
 # démarrage de service : sans ce champ, le domaine NÉOSTRUCTURA en était
 # effacé au premier redémarrage.
 ORION_NS_DOMAIN=${NS_DOMAIN:-}
+# Sous-domaine de CETTE machine, également relu par refresh_allowed_hosts.sh.
+# Vide sur une installation isolée : la haute disponibilité est alors inutile.
+ORION_NODE_DOMAIN=${NODE_DOMAIN:-}
 
 # Redemarrage de Celery apres une mise a jour lancee depuis l'interface.
 # ORION_UPDATE_RESTART_COMMAND est volontairement laisse VIDE : il

@@ -20,6 +20,7 @@ version imaginaire du logiciel.
 | Comprendre où vont les données | [DISQUES.md](../deployment/proxmox-appliance/docs/DISQUES.md) |
 | Sauvegarder ou restaurer | [BACKUP.md](../deployment/proxmox-appliance/docs/BACKUP.md) |
 | Transférer les données d'un poste vers un serveur | [DATA-MIGRATION.md](../deployment/proxmox-appliance/docs/DATA-MIGRATION.md) |
+| Répartir sur plusieurs serveurs, un seul domaine | [HAUTE-DISPONIBILITE.md](HAUTE-DISPONIBILITE.md) |
 
 ## Ce qui compose l'application
 

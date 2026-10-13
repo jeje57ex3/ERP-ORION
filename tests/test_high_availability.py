@@ -12,7 +12,12 @@ from apps.high_availability.models import (
     OrionHAFailoverEvent,
 )
 from apps.high_availability import services
-from apps.high_availability.failover import validate_failover_target, run_manual_failover_to_node
+from apps.high_availability.failover import (
+    FailoverTrafficError,
+    _hote_du_noeud,
+    run_manual_failover_to_node,
+    validate_failover_target,
+)
 from apps.high_availability.automatic import check_and_run_automatic_failover
 from apps.high_availability.forms import OrionHASettingsForm, OrionHANodeForm
 
@@ -331,8 +336,8 @@ def test_run_failover_switches_active_node(primary_node, secondary_1, ha_setting
 def test_run_failover_fails_on_disabled_target(primary_node, secondary_1, ha_settings):
     secondary_1.is_enabled = False
     secondary_1.save()
-    # The atomic transaction rolls back on exception (including the event), so only
-    # check that the RuntimeError is raised, not the DB event.
+    # L'evenement d'echec est desormais enregistre : la bascule n'est plus
+    # englobee dans une transaction atomique qui le perdait au rollback.
     with pytest.raises(RuntimeError):
         run_manual_failover_to_node(target_node=secondary_1, reason='Test')
 
@@ -527,3 +532,244 @@ def test_public_health_view_no_auth(client):
     data = response.json()
     assert 'status' in data
     assert 'role' in data
+
+
+# ── Bascule : redirection du trafic par indirection DNS ──────────────────────
+# Tous les domaines publics pointent par CNAME vers un seul nom d'indirection
+# (actif.exemple.fr), lui-même pointé vers le sous-domaine du serveur actif.
+# La bascule ne doit modifier QUE cet enregistrement.
+
+class _FauxCloudflare:
+    """Client Cloudflare en double, pour éprouver la bascule sans réseau."""
+
+    def __init__(self, enregistrements=None, zone_nom='exemple.fr'):
+        self.zone_nom = zone_nom
+        self.patchs = []
+        self.enregistrements = enregistrements if enregistrements is not None else [
+            {'id': 'rec-actif', 'type': 'CNAME', 'name': 'actif.exemple.fr',
+             'content': 'serveur1.exemple.fr', 'proxied': True},
+        ]
+
+    def get_zone(self, zone_id):
+        return {'id': zone_id, 'name': self.zone_nom}
+
+    def list_zones(self, name=None):
+        return [{'id': 'zone-1', 'name': name}] if name == self.zone_nom else []
+
+    def list_dns_records(self, zone_id, name=None, record_type=None):
+        return [r for r in self.enregistrements if name is None or r['name'] == name]
+
+    def patch_dns_record(self, zone_id, record_id, **payload):
+        self.patchs.append((zone_id, record_id, payload))
+        for r in self.enregistrements:
+            if r['id'] == record_id:
+                r.update(payload)
+                return r
+        return None
+
+
+@pytest.fixture
+def faux_cloudflare(monkeypatch):
+    """Substitue le client Cloudflare, importé paresseusement par failover.py."""
+    faux = _FauxCloudflare()
+    monkeypatch.setattr(
+        'apps.domain_diagnostics.cloudflare.CloudflareClient',
+        lambda *a, **k: faux,
+    )
+    return faux
+
+
+@pytest.fixture
+def ha_cloudflare(ha_settings):
+    ha_settings.cloudflare_failover_enabled = True
+    ha_settings.cloudflare_zone_id = 'zone-1'
+    ha_settings.cloudflare_record_name = 'actif'
+    ha_settings.save()
+    return ha_settings
+
+
+@pytest.fixture
+def secondary_avec_sous_domaine(secondary_1):
+    secondary_1.base_url = 'https://serveur2.exemple.fr'
+    secondary_1.save()
+    return secondary_1
+
+
+# ── _hote_du_noeud ───────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize('valeur,attendu', [
+    ('https://serveur2.exemple.fr', 'serveur2.exemple.fr'),
+    ('https://serveur2.exemple.fr/', 'serveur2.exemple.fr'),
+    ('http://Serveur2.Exemple.FR:9000/ha/', 'serveur2.exemple.fr'),
+    ('serveur2.exemple.fr', 'serveur2.exemple.fr'),
+    ('', ''),
+])
+def test_hote_du_noeud_extrait_le_sous_domaine(valeur, attendu, secondary_1):
+    secondary_1.base_url = valeur
+    assert _hote_du_noeud(secondary_1) == attendu
+
+
+# ── Repointage de l'indirection ──────────────────────────────────────────────
+
+def test_bascule_repointe_l_indirection_vers_le_noeud_cible(
+    primary_node, secondary_avec_sous_domaine, ha_cloudflare, faux_cloudflare,
+):
+    event = run_manual_failover_to_node(target_node=secondary_avec_sous_domaine)
+
+    assert faux_cloudflare.patchs == [
+        ('zone-1', 'rec-actif', {'content': 'serveur2.exemple.fr'}),
+    ]
+    dns = event.result_payload['dns']
+    assert dns['changed'] is True
+    assert dns['previous'] == 'serveur1.exemple.fr'
+    assert dns['content'] == 'serveur2.exemple.fr'
+
+
+def test_bascule_ne_modifie_pas_les_domaines_publics(
+    primary_node, secondary_avec_sous_domaine, ha_cloudflare, monkeypatch,
+):
+    """Le gain du modèle d'indirection : un seul appel, quel que soit le parc."""
+    faux = _FauxCloudflare(enregistrements=[
+        {'id': 'rec-actif', 'type': 'CNAME', 'name': 'actif.exemple.fr',
+         'content': 'serveur1.exemple.fr'},
+        {'id': 'rec-erp', 'type': 'CNAME', 'name': 'erp.exemple.fr',
+         'content': 'actif.exemple.fr'},
+        {'id': 'rec-siecle', 'type': 'CNAME', 'name': 'siecle.exemple.fr',
+         'content': 'actif.exemple.fr'},
+        {'id': 'rec-client', 'type': 'CNAME', 'name': 'client-x.exemple.fr',
+         'content': 'actif.exemple.fr'},
+    ])
+    monkeypatch.setattr(
+        'apps.domain_diagnostics.cloudflare.CloudflareClient', lambda *a, **k: faux,
+    )
+    run_manual_failover_to_node(target_node=secondary_avec_sous_domaine)
+
+    assert [p[1] for p in faux.patchs] == ['rec-actif']
+    for rec in faux.enregistrements:
+        if rec['id'] != 'rec-actif':
+            assert rec['content'] == 'actif.exemple.fr'
+
+
+def test_bascule_est_idempotente_si_deja_pointe(
+    primary_node, secondary_avec_sous_domaine, ha_cloudflare, monkeypatch,
+):
+    faux = _FauxCloudflare(enregistrements=[
+        {'id': 'rec-actif', 'type': 'CNAME', 'name': 'actif.exemple.fr',
+         'content': 'serveur2.exemple.fr'},
+    ])
+    monkeypatch.setattr(
+        'apps.domain_diagnostics.cloudflare.CloudflareClient', lambda *a, **k: faux,
+    )
+    event = run_manual_failover_to_node(target_node=secondary_avec_sous_domaine)
+
+    assert faux.patchs == []
+    assert event.result_payload['dns']['changed'] is False
+
+
+def test_nom_complet_accepte_un_fqdn_sans_identifiant_de_zone(
+    primary_node, secondary_avec_sous_domaine, ha_settings, faux_cloudflare,
+):
+    ha_settings.cloudflare_failover_enabled = True
+    ha_settings.cloudflare_zone_id = ''
+    ha_settings.cloudflare_record_name = 'actif.exemple.fr'
+    ha_settings.save()
+
+    run_manual_failover_to_node(target_node=secondary_avec_sous_domaine)
+    assert faux_cloudflare.patchs[0][0] == 'zone-1'
+
+
+def test_enregistrement_a_recoit_l_ip_publique(
+    primary_node, secondary_1, ha_cloudflare, monkeypatch,
+):
+    """Sans tunnel devant, l'indirection est un A : un nom d'hôte n'y a pas sa place."""
+    secondary_1.base_url = 'https://serveur2.exemple.fr'
+    secondary_1.public_ip = '203.0.113.7'
+    secondary_1.save()
+    faux = _FauxCloudflare(enregistrements=[
+        {'id': 'rec-actif', 'type': 'A', 'name': 'actif.exemple.fr',
+         'content': '203.0.113.1'},
+    ])
+    monkeypatch.setattr(
+        'apps.domain_diagnostics.cloudflare.CloudflareClient', lambda *a, **k: faux,
+    )
+    run_manual_failover_to_node(target_node=secondary_1)
+    assert faux.patchs == [('zone-1', 'rec-actif', {'content': '203.0.113.7'})]
+
+
+def test_cloudflare_desactive_laisse_la_bascule_passer(
+    primary_node, secondary_1, ha_settings,
+):
+    event = run_manual_failover_to_node(target_node=secondary_1)
+    assert event.status == 'success'
+    assert event.result_payload['dns']['skipped'] is True
+
+
+# ── Échecs de redirection : la bascule doit être refusée ─────────────────────
+
+def test_bascule_refusee_si_noeud_sans_sous_domaine(
+    primary_node, secondary_1, ha_cloudflare, faux_cloudflare,
+):
+    with pytest.raises(FailoverTrafficError, match="URL de base"):
+        run_manual_failover_to_node(target_node=secondary_1)
+
+
+def test_bascule_refuse_un_cname_sur_lui_meme(
+    primary_node, secondary_1, ha_cloudflare, faux_cloudflare,
+):
+    secondary_1.base_url = 'https://actif.exemple.fr'
+    secondary_1.save()
+    with pytest.raises(FailoverTrafficError, match='lui-même'):
+        run_manual_failover_to_node(target_node=secondary_1)
+
+
+def test_bascule_refusee_si_enregistrement_absent(
+    primary_node, secondary_avec_sous_domaine, ha_cloudflare, monkeypatch,
+):
+    faux = _FauxCloudflare(enregistrements=[])
+    monkeypatch.setattr(
+        'apps.domain_diagnostics.cloudflare.CloudflareClient', lambda *a, **k: faux,
+    )
+    with pytest.raises(FailoverTrafficError, match='Aucun enregistrement'):
+        run_manual_failover_to_node(target_node=secondary_avec_sous_domaine)
+
+
+def test_noeud_actif_inchange_quand_la_redirection_echoue(
+    primary_node, secondary_1, ha_cloudflare, faux_cloudflare,
+):
+    """Propriété de sûreté : mieux vaut refuser que déclarer actif un nœud
+    que personne ne joint. Les domaines pointent encore vers l'ancien."""
+    with pytest.raises(FailoverTrafficError):
+        run_manual_failover_to_node(target_node=secondary_1)
+
+    primary_node.refresh_from_db()
+    secondary_1.refresh_from_db()
+    assert primary_node.is_current_active is True
+    assert secondary_1.is_current_active is False
+
+
+def test_echec_de_redirection_est_journalise(
+    primary_node, secondary_1, ha_cloudflare, faux_cloudflare,
+):
+    """Possible seulement depuis que la trace est écrite hors transaction
+    englobante : l'ancienne version la perdait au rollback."""
+    with pytest.raises(FailoverTrafficError):
+        run_manual_failover_to_node(target_node=secondary_1, reason='Test trace')
+
+    event = OrionHAFailoverEvent.objects.latest('started_at')
+    assert event.status == 'failed'
+    assert event.to_node == secondary_1
+    assert event.from_node == primary_node
+    assert 'URL de base' in event.error_message
+    assert event.steps == [
+        'Validation du serveur cible',
+        'Promotion base de données',
+        'Redirection du trafic (DNS Cloudflare)',
+    ]
+
+
+def test_type_evenement_est_personnalisable(primary_node, secondary_1, ha_settings):
+    """La bascule automatique doit pouvoir se distinguer d'une bascule manuelle."""
+    event = run_manual_failover_to_node(
+        target_node=secondary_1, event_type='automatic_failover',
+    )
+    assert event.event_type == 'automatic_failover'

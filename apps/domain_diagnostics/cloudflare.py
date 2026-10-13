@@ -84,6 +84,15 @@ class CloudflareClient:
             raise CloudflareAPIError(f'Zone Cloudflare introuvable : {zone_name}')
         return zones[0]['id']
 
+    def get_zone(self, zone_id):
+        """Zone complète depuis son identifiant — l'inverse de get_zone_id.
+
+        Sert notamment à retrouver le nom de la zone pour compléter une
+        étiquette seule en nom de domaine (voir la bascule HA, qui n'a souvent
+        que « actif » et un identifiant de zone).
+        """
+        return self._request('GET', f'/zones/{zone_id}')
+
     def list_dns_records(self, zone_id, name=None, record_type=None):
         params = {}
         if name:

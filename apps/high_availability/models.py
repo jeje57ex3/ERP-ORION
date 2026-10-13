@@ -129,10 +129,36 @@ class OrionHASettings(models.Model):
     media_sync_enabled = models.BooleanField(default=True)
     database_replication_check_enabled = models.BooleanField(default=True)
 
-    cloudflare_failover_enabled = models.BooleanField(default=False)
-    cloudflare_zone_id = models.CharField(max_length=180, blank=True)
-    cloudflare_dns_record_id = models.CharField(max_length=180, blank=True)
-    cloudflare_record_name = models.CharField(max_length=180, default='erp')
+    # Redirection du trafic par indirection : tous les domaines publics
+    # pointent par CNAME vers l'enregistrement nommé ci-dessous, et la bascule
+    # ne déplace que lui. Voir apps/high_availability/failover.py pour le
+    # schéma complet, et docs/HAUTE-DISPONIBILITE.md pour la mise en place.
+    cloudflare_failover_enabled = models.BooleanField(
+        default=False,
+        verbose_name='Déplacer les domaines à la bascule',
+        help_text="Sans cette option, la bascule promeut la base mais le trafic "
+                  "continue d'aller vers l'ancien serveur.",
+    )
+    cloudflare_zone_id = models.CharField(
+        max_length=180, blank=True,
+        verbose_name='Identifiant de zone Cloudflare',
+        help_text='Facultatif si le nom ci-dessous est un domaine complet : la '
+                  'zone est alors déduite automatiquement.',
+    )
+    cloudflare_dns_record_id = models.CharField(
+        max_length=180, blank=True,
+        verbose_name="Identifiant de l'enregistrement",
+        help_text='Facultatif. Laissez vide pour retrouver automatiquement '
+                  "l'enregistrement par son nom.",
+    )
+    cloudflare_record_name = models.CharField(
+        max_length=180, default='erp',
+        verbose_name="Nom de l'enregistrement d'indirection",
+        help_text="Enregistrement que la bascule déplace, et vers lequel TOUS "
+                  'vos domaines doivent pointer par CNAME (ex. « actif » ou '
+                  '« actif.exemple.fr »). Il doit déjà exister dans la zone, '
+                  'pointé vers le sous-domaine du serveur actif.',
+    )
 
     notify_admins = models.BooleanField(default=True)
     notify_email = models.EmailField(blank=True)
