@@ -1,0 +1,171 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <p class="orion-record-ref">{% trans "Super Admin · Haute disponibilité" %}</p>
+      <h1 class="orion-record-title">{% trans "Raccorder un serveur" %}</h1>
+    </div>
+    <div class="orion-record-toolbar">
+      <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">{% trans "Serveurs" %}</a>
+      <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% elif msg.tags == 'success' %}success{% else %}info{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="orion-record-grid">
+
+    {# ── Formulaire ───────────────────────────────────────────────────────── #}
+    <div class="orion-record-panel">
+      <div class="orion-record-panel-header">
+        <h3 class="orion-record-panel-title">{% trans "Serveur à raccorder" %}</h3>
+      </div>
+      <div class="orion-record-panel-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="orion-alert danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          {% for field in form %}
+            <div class="orion-form-row">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;color:var(--orion-danger);">{{ field.errors|first }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <div class="orion-form-actions">
+            <button type="submit" name="action" value="test" class="orion-btn">
+              {% trans "Tester la liaison" %}
+            </button>
+            <button type="submit" name="action" value="connect" class="orion-btn primary">
+              {% trans "Raccorder ce serveur" %}
+            </button>
+          </div>
+          <p class="orion-text-muted" style="font-size:12px;margin-top:8px;">
+            {% trans "« Tester » ne modifie rien. « Raccorder » refait le test avant d'enregistrer." %}
+          </p>
+        </form>
+      </div>
+    </div>
+
+    {# ── Résultats du test ────────────────────────────────────────────────── #}
+    <div class="orion-record-panel">
+      <div class="orion-record-panel-header">
+        <h3 class="orion-record-panel-title">{% trans "Épreuve de la liaison" %}</h3>
+      </div>
+      <div class="orion-record-panel-body">
+        {% if not diagnostic %}
+          <p class="orion-text-muted">
+            {% trans "Renseignez l'adresse du serveur et lancez le test." %}
+          </p>
+          <p class="orion-text-muted" style="font-size:12px;">
+            {% trans "Cinq contrôles : résolution du nom, joignabilité, secret partagé, identité, état de la base. Chaque échec indique la cause probable et le remède — six causes très différentes donnent sinon le même « le serveur ne répond pas »." %}
+          </p>
+        {% else %}
+          {% if diagnostic.ok %}
+            <div class="orion-alert success">
+              {% trans "Liaison opérationnelle. Le serveur peut être raccordé." %}
+            </div>
+          {% elif diagnostic.identity_ok %}
+            <div class="orion-alert warning">
+              {% trans "Serveur identifié, mais des points restent à corriger. Le raccordement est possible ; traitez-les avant de compter sur ce serveur." %}
+            </div>
+          {% else %}
+            <div class="orion-alert danger">
+              {% trans "Liaison inexploitable : le serveur ne peut pas être identifié de façon fiable." %}
+            </div>
+          {% endif %}
+
+          <table class="orion-table">
+            <tbody>
+              {% for step in diagnostic.steps %}
+              <tr>
+                <td style="width:96px;vertical-align:top;">
+                  {% if step.ok %}
+                    <span class="orion-badge success dot">{% trans "OK" %}</span>
+                  {% else %}
+                    <span class="orion-badge danger dot">{% trans "À corriger" %}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong>{{ step.name }}</strong><br>
+                  <span style="font-size:12px;">{{ step.detail }}</span>
+                  {% if step.remedy %}
+                    <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ step.remedy }}</p>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          {% if diagnostic.node_id %}
+            <p class="orion-text-muted" style="font-size:12px;margin-top:8px;">
+              {% trans "Identifiant relevé sur le serveur" %} : <code>{{ diagnostic.node_id }}</code>
+            </p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Serveurs déjà raccordés ──────────────────────────────────────────────── #}
+  <div class="orion-record-panel" style="margin-top:12px;">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Serveurs déjà raccordés" %}</h3>
+    </div>
+    <div class="orion-record-panel-body" style="padding:0;">
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th>{% trans "Rang" %}</th>
+            <th>{% trans "Serveur" %}</th>
+            <th>{% trans "Identifiant" %}</th>
+            <th>{% trans "Adresse" %}</th>
+            <th>{% trans "Statut" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for node in nodes %}
+          <tr>
+            <td><strong>{{ node.priority }}</strong></td>
+            <td>
+              {{ node.name }}
+              {% if node.is_current_active %}
+                <span class="orion-badge success">{% trans "Actif" %}</span>
+              {% endif %}
+            </td>
+            <td><code>{{ node.node_id }}</code></td>
+            <td style="font-size:12px;">{{ node.base_url|default:"—" }}</td>
+            <td>{{ node.get_status_display }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="orion-text-muted">
+              {% trans "Aucun serveur raccordé pour l'instant." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

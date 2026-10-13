@@ -6,11 +6,12 @@
   <div class="page-header-left">
     <p class="text-muted small mb-1">{% trans "Super Admin · Haute disponibilité" %}</p>
     <h1 class="page-title">{% trans "Serveurs Orion" %}</h1>
-    <p class="page-subtitle text-muted mb-0 small">{% trans "Principal + 2 secondaires." %}</p>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Deux serveurs ou plus. Le rang de préséance décide qui prend le dessus." %}</p>
   </div>
   <div class="page-header-actions">
     <a class="orion-btn" href="{% url 'high_availability:admin_check_nodes' %}">{% trans "Vérifier les serveurs" %}</a>
-    <a class="orion-btn orion-btn--primary" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
+    <a class="orion-btn primary" href="{% url 'high_availability:admin_connect' %}">{% trans "Raccorder un serveur" %}</a>
+    <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
   </div>
 </div>
 {% endblock %}
@@ -91,8 +92,42 @@
         {% empty %}
         <tr>
           <td colspan="10" class="orion-table-empty">
-            {% trans "Aucun serveur configuré. Exécutez" %} <code>python manage.py ha_seed</code>.
+            {% trans "Aucun serveur raccordé." %}
+            <a href="{% url 'high_availability:admin_connect' %}">{% trans "Raccorder le premier serveur" %}</a>.
           </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="orion-card" style="margin-top:16px;">
+  <div class="orion-card-header">
+    <h3 class="orion-card-title">{% trans "Qui prend le dessus" %}</h3>
+  </div>
+  <div class="orion-card-body">
+    <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+      {% trans "Ordre appliqué si le serveur actif tombe, et motif d'exclusion de chacun." %}
+    </p>
+    <table class="orion-table">
+      <tbody>
+        {% for ligne in precedence %}
+        <tr>
+          <td style="width:64px;"><strong>{% trans "Rang" %} {{ ligne.node.priority }}</strong></td>
+          <td>
+            {{ ligne.node.name }}
+            {% if ligne.is_active %}<span class="orion-badge success">{% trans "Actif" %}</span>{% endif %}
+            {% if ligne.is_preferred %}<span class="orion-badge info">{% trans "Préféré" %}</span>{% endif %}
+          </td>
+          <td style="width:112px;">
+            {% if ligne.eligible %}
+              <span class="orion-badge success dot">{% trans "Disponible" %}</span>
+            {% else %}
+              <span class="orion-badge neutral dot">{% trans "Écarté" %}</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;">{{ ligne.reason }}</td>
         </tr>
         {% endfor %}
       </tbody>

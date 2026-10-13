@@ -71,7 +71,41 @@ Les domaines de service (`ORION_LOGIN_DOMAIN`, `SIECLE_STORE_DOMAIN`…) doivent
 porter les **mêmes valeurs sur tous les serveurs** : après une bascule, c'est
 le serveur 2 qui répond pour `erp.exemple.fr`, et il doit l'accepter.
 
-### 3. Dans l'ERP
+### 3. Raccorder le serveur dans l'ERP
+
+**Super Admin → Nœuds HA → Raccorder un serveur**. Trois champs suffisent :
+l'adresse du serveur (son sous-domaine), un nom d'affichage, et son rang de
+préséance.
+
+L'**identifiant du nœud n'est pas à saisir** : il est relevé sur le serveur
+lui-même. C'est important, pas seulement commode. La protection en écriture
+compare `ORION_NODE_ID` du serveur au verrou de cluster ; un identifiant saisi
+à la main qui en diffère donne un serveur qui refuse toutes les écritures sans
+que rien n'explique pourquoi.
+
+Le bouton **Tester la liaison** ne modifie rien et passe cinq contrôles :
+
+| Contrôle | Ce qu'il attrape |
+|---|---|
+| Résolution DNS | nom mal orthographié, enregistrement absent |
+| Joignabilité | service arrêté, pare-feu, 400 ALLOWED_HOSTS, 502, 530, certificat |
+| Secret partagé | `ORION_HA_SECRET` différent d'un serveur à l'autre |
+| Identité | identifiant absent, ou déjà pris par un autre serveur |
+| État de la base | base injoignable, ou secondaire encore inscriptible |
+
+Chaque échec affiche la cause probable **et le remède**. C'est tout l'intérêt
+du test : six causes très différentes produisent sinon le même « le serveur ne
+répond pas », et les distinguer à la main coûte des heures.
+
+**Raccorder ce serveur** refait le test avant d'enregistrer — un résultat
+affiché depuis plusieurs minutes ne prouve plus rien. Seul l'échec du contrôle
+d'identité bloque l'enregistrement ; les autres défauts sont enregistrés comme
+avertissements, à traiter avant de compter sur ce serveur.
+
+La même épreuve est disponible depuis la fiche de chaque serveur déjà
+raccordé, par le bouton **Tester la liaison**.
+
+### 4. Les règles du cluster
 
 **Super Admin → Haute disponibilité → Paramètres** :
 
@@ -82,10 +116,9 @@ le serveur 2 qui répond pour `erp.exemple.fr`, et il doit l'accepter.
 | Identifiant de zone Cloudflare | facultatif si le nom ci-dessus est complet |
 | Identifiant de l'enregistrement | facultatif, retrouvé par son nom |
 
-Puis, pour chaque serveur dans **Serveurs**, renseignez l'**URL de base** avec
-son sous-domaine : `https://serveur2.exemple.fr`. C'est cette valeur que la
-bascule écrit dans l'enregistrement d'indirection — sans elle, elle est
-refusée.
+L'URL de base de chaque serveur est posée par le raccordement. C'est
+elle que la bascule écrit dans l'enregistrement d'indirection : un
+serveur sans adresse voit toute bascule vers lui refusée.
 
 Le compte Cloudflare utilisé est celui connecté dans **Sites web → Cloudflare**,
 ou `ORION_CLOUDFLARE_API_TOKEN` dans le `.env`. Le jeton doit pouvoir modifier
@@ -241,6 +274,10 @@ pour un 400 DisallowedHost sur `/ha/health/`.
 **Une bascule « réussie » mais les domaines ne suivent pas.** Vérifiez que
 « Déplacer les domaines à la bascule » est activé : désactivé, l'étape est
 sautée et la trace d'audit l'indique (`"skipped": true`).
+
+**Un serveur ne se raccorde pas.** Lancez « Tester la liaison » sur la
+page de raccordement : chacun des cinq contrôles nomme sa cause et son
+remède.
 
 **Un serveur revenu ne reprend jamais la main.** `ha_check_nodes` donne le
 motif exact : rang insuffisant, stabilité trop courte, réplication en retard,

@@ -1,7 +1,16 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.high_availability.forms import OrionHASettingsForm, OrionHANodeForm
+from apps.high_availability.connection import (
+    diagnose_node_connection,
+    normaliser_base_url,
+    prochain_rang_libre,
+)
+from apps.high_availability.forms import (
+    OrionHAConnectForm,
+    OrionHANodeForm,
+    OrionHASettingsForm,
+)
 from apps.high_availability.models import (
     OrionHANode,
     OrionHASettings,
@@ -15,8 +24,10 @@ from apps.high_availability.services import (
     count_healthy_secondaries,
     get_active_node,
     select_best_failover_target,
+    update_node_from_health,
 )
 from apps.high_availability.failover import run_manual_failover_to_node
+from apps.high_availability.takeover import precedence_order
 
 
 @super_admin_required
@@ -48,14 +59,21 @@ def ha_settings_view(request):
 def ha_nodes_view(request):
     return render(request, 'high_availability/admin_nodes.html', {
         'nodes': OrionHANode.objects.all().order_by('priority'),
+        'precedence': precedence_order(),
     })
 
 
 @super_admin_required
 def ha_node_detail_view(request, pk):
     node = get_object_or_404(OrionHANode, pk=pk)
+    diagnostic = None
 
-    if request.method == 'POST':
+    if request.method == 'POST' and request.POST.get('action') == 'test':
+        # Le noeud est passe au diagnostic pour qu'il n'y voie pas son propre
+        # identifiant comme deja pris.
+        diagnostic = diagnose_node_connection(node.base_url, node=node)
+        form = OrionHANodeForm(instance=node)
+    elif request.method == 'POST':
         form = OrionHANodeForm(request.POST, instance=node)
         if form.is_valid():
             form.save()
@@ -67,6 +85,71 @@ def ha_node_detail_view(request, pk):
     return render(request, 'high_availability/admin_node_detail.html', {
         'node': node,
         'form': form,
+        'diagnostic': diagnostic,
+    })
+
+
+@super_admin_required
+def ha_connect_node_view(request):
+    """Raccorde un serveur au cluster, apres epreuve de la liaison.
+
+    Deux actions sur le même formulaire : « tester », qui ne touche à rien, et
+    « raccorder », qui refait le test puis enregistre. Le test est refait à
+    l'enregistrement à dessein : un résultat affiché depuis plusieurs minutes
+    ne prouve plus rien.
+
+    Seul le contrôle d'identité bloque l'enregistrement. Les autres défauts
+    sont affichés comme avertissements : une base encore inscriptible, par
+    exemple, est grave, mais la fiche du serveur n'est pas nuisible en
+    elle-même et la règle de retour la refusera de toute façon.
+    """
+    diagnostic = None
+
+    if request.method == 'POST':
+        form = OrionHAConnectForm(request.POST)
+        action = request.POST.get('action', 'test')
+
+        if form.is_valid():
+            url, _hote = normaliser_base_url(form.cleaned_data['base_url'])
+            diagnostic = diagnose_node_connection(url)
+
+            if action == 'connect':
+                if not diagnostic['identity_ok']:
+                    messages.error(
+                        request,
+                        "Raccordement refusé : le serveur n'a pas pu être "
+                        'identifié de manière fiable. Corrigez les points '
+                        'signalés ci-dessous, puis retestez.',
+                    )
+                else:
+                    node = OrionHANode.objects.create(
+                        node_id=diagnostic['node_id'],
+                        name=form.cleaned_data['name'],
+                        role='secondary',
+                        status='healthy' if diagnostic['ok'] else 'warning',
+                        base_url=url,
+                        region=form.cleaned_data['region'],
+                        priority=form.cleaned_data['priority'],
+                        is_enabled=True,
+                        is_current_active=False,
+                        is_failover_target=form.cleaned_data['is_failover_target'],
+                        allow_auto_failover=form.cleaned_data['allow_auto_failover'],
+                    )
+                    if diagnostic['payload']:
+                        update_node_from_health(node, diagnostic['payload'])
+                    messages.success(
+                        request,
+                        f'Serveur « {node.name} » raccordé au cluster sous '
+                        f"l'identifiant {node.node_id}.",
+                    )
+                    return redirect('high_availability:admin_nodes')
+    else:
+        form = OrionHAConnectForm(initial={'priority': prochain_rang_libre()})
+
+    return render(request, 'high_availability/admin_connect.html', {
+        'form': form,
+        'diagnostic': diagnostic,
+        'nodes': OrionHANode.objects.all().order_by('priority'),
     })
 
 
