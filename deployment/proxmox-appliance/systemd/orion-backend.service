@@ -11,7 +11,12 @@ Group=orion
 WorkingDirectory=/opt/orion/backend
 EnvironmentFile=/opt/orion/backend/.env
 Environment=DJANGO_SETTINGS_MODULE=erp_btp.settings.production
-ExecStartPre=/opt/orion/scripts/refresh_allowed_hosts.sh
+# Prefixe « - » : un echec de ce script ne doit PAS empecher le demarrage.
+# Son role est de rafraichir ALLOWED_HOSTS, pas de garder la porte. Sans ce
+# prefixe, un simple bug dedans rendait orion-backend indemarrable et nginx
+# repondait 502 — c est arrive, pour une cle absente du .env. Le controle
+# des ports, lui, reste bloquant : attendre MySQL est un vrai prerequis.
+ExecStartPre=-/opt/orion/scripts/refresh_allowed_hosts.sh
 ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 3306 60
 ExecStartPre=/opt/orion/scripts/wait_for_port.sh 127.0.0.1 6379 60
 ExecStart=/opt/orion/backend/.venv/bin/gunicorn erp_btp.wsgi:application \
