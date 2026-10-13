@@ -1,0 +1,228 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <p class="orion-record-ref">{% trans "Super Admin · Haute disponibilité" %}</p>
+      <h1 class="orion-record-title">{% trans "Relier les serveurs" %}</h1>
+    </div>
+    <div class="orion-record-toolbar">
+      <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">{% trans "Serveurs" %}</a>
+      <a class="orion-btn" href="{% url 'high_availability:admin_connect' %}">{% trans "Raccorder à la main" %}</a>
+      <a class="orion-btn" href="{% url 'high_availability:admin_settings' %}">{% trans "Paramètres HA" %}</a>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% elif msg.tags == 'success' %}success{% else %}info{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="orion-record-panel">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Convention de nommage" %}</h3>
+    </div>
+    <div class="orion-record-panel-body">
+      <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+        {% blocktrans %}Le rang de chaque serveur se lit dans son nom : le rang 1 est le serveur principal. Adresse et rang ne peuvent donc plus se contredire.{% endblocktrans %}
+      </p>
+
+      {% if settings_obj.cluster_base_domain %}
+        <p style="font-size:13px;">
+          <code>{{ settings_obj.node_name_pattern }}.{{ settings_obj.cluster_base_domain }}</code>
+          &nbsp;→&nbsp;
+          <code>{{ settings_obj.node_name_pattern|cut:"{n}" }}1.{{ settings_obj.cluster_base_domain }}</code>,
+          <code>{{ settings_obj.node_name_pattern|cut:"{n}" }}2.{{ settings_obj.cluster_base_domain }}</code>, …
+        </p>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="orion-alert danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="orion-record-grid">
+          {% for field in form %}
+            <div class="orion-form-row">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <p style="font-size:12px;margin:4px 0 0;color:var(--orion-danger);">{{ field.errors|first }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="orion-form-actions">
+          <button type="submit" name="action" value="save" class="orion-btn">
+            {% trans "Enregistrer la convention" %}
+          </button>
+          <button type="submit" name="action" value="scan" class="orion-btn primary">
+            {% trans "Chercher les serveurs" %}
+          </button>
+          {% if exploration %}
+            <button type="submit" name="action" value="join" class="orion-btn primary">
+              {% trans "Raccorder les serveurs validés" %}
+            </button>
+          {% endif %}
+        </div>
+        <p class="orion-text-muted" style="font-size:12px;margin-top:8px;">
+          {% trans "« Chercher » ne modifie rien. « Raccorder » refait la recherche avant d'enregistrer." %}
+        </p>
+      </form>
+    </div>
+  </div>
+
+  {% if exploration %}
+  <div class="orion-record-panel" style="margin-top:12px;">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Serveurs trouvés" %}</h3>
+    </div>
+    <div class="orion-record-panel-body">
+      <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+        {% trans "Adresse de ce serveur dans la convention" %} :
+        {% if exploration.source_url %}
+          <code>{{ exploration.source_url }}</code>
+        {% else %}
+          <span style="color:var(--orion-danger);">{% trans "inconnue — la validation réciproque est impossible" %}</span>
+        {% endif %}
+      </p>
+
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th>{% trans "Rang" %}</th>
+            <th>{% trans "Adresse" %}</th>
+            <th>{% trans "Liaison" %}</th>
+            <th>{% trans "Validation croisée" %}</th>
+            <th>{% trans "État" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ligne in exploration.rangs %}
+          <tr>
+            <td><strong>{{ ligne.rang }}</strong></td>
+            <td style="font-size:12px;">
+              {{ ligne.hote }}
+              {% if ligne.node_id %}<br><code style="font-size:11px;">{{ ligne.node_id }}</code>{% endif %}
+            </td>
+
+            {% if not ligne.present %}
+              <td colspan="3" class="orion-text-muted" style="font-size:12px;">
+                {% trans "Aucun serveur Orion à ce rang." %}
+              </td>
+            {% else %}
+              <td>
+                {% if ligne.diagnostic.identity_ok %}
+                  <span class="orion-badge success dot">{% trans "Joint" %}</span>
+                {% else %}
+                  <span class="orion-badge danger dot">{% trans "Défaut" %}</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px;">
+                {% if ligne.est_ce_serveur %}
+                  <span class="orion-badge info">{% trans "Ce serveur" %}</span>
+                {% elif ligne.reciprocite.ok %}
+                  <span class="orion-badge success dot">{% trans "Deux sens" %}</span>
+                {% else %}
+                  <span class="orion-badge danger dot">{% trans "Incomplète" %}</span><br>
+                  {{ ligne.reciprocite.detail }}
+                {% endif %}
+              </td>
+              <td style="font-size:12px;">
+                {% if ligne.deja_raccorde %}
+                  <span class="orion-badge neutral">{% trans "Déjà raccordé" %}</span>
+                {% elif ligne.raccordable %}
+                  <span class="orion-badge success">{% trans "Prêt" %}</span>
+                {% else %}
+                  <span class="orion-badge warning">{% trans "Écarté" %}</span>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+
+          {% if ligne.present and not ligne.diagnostic.ok %}
+          <tr>
+            <td></td>
+            <td colspan="4" style="padding-top:0;">
+              <table class="orion-table" style="margin:0;">
+                <tbody>
+                  {% for step in ligne.diagnostic.steps %}
+                    {% if not step.ok %}
+                    <tr>
+                      <td style="width:112px;vertical-align:top;">
+                        <span class="orion-badge danger dot">{% trans "À corriger" %}</span>
+                      </td>
+                      <td>
+                        <strong style="font-size:12px;">{{ step.name }}</strong><br>
+                        <span style="font-size:12px;">{{ step.detail }}</span>
+                        {% if step.remedy %}
+                          <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ step.remedy }}</p>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="orion-record-panel" style="margin-top:12px;">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Grappe actuelle" %}</h3>
+    </div>
+    <div class="orion-record-panel-body" style="padding:0;">
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th>{% trans "Rang" %}</th>
+            <th>{% trans "Serveur" %}</th>
+            <th>{% trans "Adresse" %}</th>
+            <th>{% trans "Rôle" %}</th>
+            <th>{% trans "Statut" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for node in nodes %}
+          <tr>
+            <td><strong>{{ node.priority }}</strong></td>
+            <td>
+              {{ node.name }}
+              {% if node.is_current_active %}
+                <span class="orion-badge success">{% trans "Actif" %}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;">{{ node.base_url|default:"—" }}</td>
+            <td>{{ node.get_role_display }}</td>
+            <td>{{ node.get_status_display }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="orion-text-muted">
+              {% trans "Aucun serveur dans la grappe. Renseignez la convention, puis cherchez." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

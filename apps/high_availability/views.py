@@ -1,12 +1,14 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.high_availability.cluster import explorer_grappe, raccorder_grappe
 from apps.high_availability.connection import (
     diagnose_node_connection,
     normaliser_base_url,
     prochain_rang_libre,
 )
 from apps.high_availability.forms import (
+    OrionHAClusterForm,
     OrionHAConnectForm,
     OrionHANodeForm,
     OrionHASettingsForm,
@@ -152,6 +154,72 @@ def ha_connect_node_view(request):
         'nodes': OrionHANode.objects.all().order_by('priority'),
     })
 
+
+@super_admin_required
+def ha_cluster_view(request):
+    """Relie les serveurs par convention de nommage, avec validation croisee.
+
+    Trois actions sur une seule page : enregistrer les reglages de la grappe,
+    explorer les rangs, puis raccorder ceux qui sont valides. L'exploration ne
+    modifie rien -- elle sonde et rapporte.
+
+    Le raccordement REFAIT l'exploration avant d'ecrire : un resultat affiche
+    depuis plusieurs minutes ne prouve plus rien, et un serveur peut etre tombe
+    entre-temps.
+    """
+    settings_obj = OrionHASettings.get_solo()
+    action = request.POST.get('action', '') if request.method == 'POST' else ''
+    exploration = None
+
+    if action == 'save':
+        form = OrionHAClusterForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(request, 'Reglages de la grappe enregistres.')
+            return redirect('high_availability:admin_cluster')
+    else:
+        form = OrionHAClusterForm(instance=settings_obj)
+
+    if action in ('scan', 'join'):
+        if not settings_obj.cluster_base_domain:
+            messages.error(
+                request,
+                "Renseignez d'abord le domaine de la grappe, puis enregistrez.",
+            )
+        else:
+            exploration = explorer_grappe(settings_obj)
+
+            if action == 'join':
+                resultat = raccorder_grappe(exploration, settings_obj)
+                poses = len(resultat['poses'])
+                ignores = len(resultat['ignores'])
+                if poses:
+                    messages.success(
+                        request,
+                        f'{poses} serveur(s) raccorde(s) a la grappe.',
+                    )
+                if ignores:
+                    messages.warning(
+                        request,
+                        f'{ignores} serveur(s) ecarte(s) : validation incomplete. '
+                        'Voir les motifs ci-dessous.',
+                    )
+                if not poses and not ignores:
+                    messages.info(
+                        request,
+                        'Aucun serveur Orion trouve aux rangs explores.',
+                    )
+                # Nouvelle exploration pour refleter l'etat ecrit en base.
+                exploration = explorer_grappe(settings_obj)
+
+    return render(request, 'high_availability/admin_cluster.html', {
+        'form': form,
+        'settings_obj': settings_obj,
+        'exploration': exploration,
+        'nodes': OrionHANode.objects.all().order_by('priority'),
+    })
 
 @super_admin_required
 def ha_replication_view(request):
