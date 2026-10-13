@@ -1548,3 +1548,420 @@ def test_test_depuis_la_fiche_d_un_serveur(
     # Un test ne modifie rien.
     secondary_1.refresh_from_db()
     assert secondary_1.base_url == 'https://serveur2.exemple.fr'
+
+
+# ── Grappe par convention de nommage ────────────────────────────────────────
+# « serveur2.exemple.fr » EST le serveur de rang 2 : adresse et rang se
+# déduisent l'un de l'autre et ne peuvent plus se contredire.
+
+from apps.high_availability.cluster import (
+    adresse_de_ce_serveur,
+    adresse_du_rang,
+    explorer_grappe,
+    hote_du_rang,
+    raccorder_grappe,
+    verifier_reciprocite,
+)
+
+
+@pytest.fixture
+def grappe(ha_settings):
+    ha_settings.cluster_base_domain = 'exemple.fr'
+    ha_settings.node_name_pattern = 'serveur{n}'
+    ha_settings.cluster_max_nodes = 3
+    ha_settings.cluster_use_https = True
+    ha_settings.save()
+    return ha_settings
+
+
+# ── Déduction des adresses ───────────────────────────────────────────────────
+
+def test_hote_deduit_du_rang(grappe):
+    assert hote_du_rang(grappe, 1) == 'serveur1.exemple.fr'
+    assert hote_du_rang(grappe, 2) == 'serveur2.exemple.fr'
+    assert adresse_du_rang(grappe, 2) == 'https://serveur2.exemple.fr'
+
+
+def test_schema_http_pour_une_grappe_locale(grappe):
+    grappe.cluster_use_https = False
+    grappe.save()
+    assert adresse_du_rang(grappe, 2) == 'http://serveur2.exemple.fr'
+
+
+def test_motif_personnalise(grappe):
+    grappe.node_name_pattern = 'orion-n{n}'
+    grappe.save()
+    assert hote_du_rang(grappe, 3) == 'orion-n3.exemple.fr'
+
+
+def test_aucune_adresse_sans_domaine(ha_settings):
+    assert hote_du_rang(ha_settings, 1) == ''
+    assert adresse_du_rang(ha_settings, 1) == ''
+
+
+def test_motif_sans_marqueur_ne_produit_rien(grappe):
+    """Sans {n}, tous les rangs donneraient le même hôte."""
+    grappe.node_name_pattern = 'serveur'
+    grappe.save()
+    assert hote_du_rang(grappe, 2) == ''
+
+
+def test_adresse_de_ce_serveur_suit_son_rang(grappe, settings):
+    settings.ORION_NODE_PRIORITY = 2
+    assert adresse_de_ce_serveur(grappe) == 'https://serveur2.exemple.fr'
+
+
+# ── Validation réciproque ────────────────────────────────────────────────────
+
+def _brancher_post(monkeypatch, reponse):
+    appels = []
+
+    def faux_post(url, **kwargs):
+        appels.append((url, kwargs))
+        if isinstance(reponse, Exception):
+            raise reponse
+        return reponse
+
+    monkeypatch.setattr('apps.high_availability.cluster.requests.post', faux_post)
+    return appels
+
+
+def test_reciprocite_validee(db, monkeypatch, secret_pose):
+    appels = _brancher_post(monkeypatch, _FausseReponse(200, {
+        'source_reachable': True, 'secret_match': True,
+        'source_node_id': 'serveur1', 'detail': 'Liaison vérifiée dans les deux sens.',
+    }))
+    r = verifier_reciprocite('https://serveur2.exemple.fr', 'https://serveur1.exemple.fr')
+
+    assert r['ok'] is True
+    assert r['source_node_id'] == 'serveur1'
+    assert appels[0][0] == 'https://serveur2.exemple.fr/ha/join-check/'
+    assert appels[0][1]['data']['source_url'] == 'https://serveur1.exemple.fr'
+
+
+def test_liaison_a_sens_unique_est_refusee(db, monkeypatch, secret_pose):
+    """Le défaut que rien ne détectait : A joint B, mais B ne joint pas A."""
+    _brancher_post(monkeypatch, _FausseReponse(200, {
+        'source_reachable': False, 'secret_match': False, 'source_node_id': '',
+        'detail': 'Serveur source injoignable depuis ici : timeout',
+    }))
+    r = verifier_reciprocite('https://serveur2.exemple.fr', 'https://serveur1.exemple.fr')
+    assert r['ok'] is False
+    assert 'injoignable' in r['detail']
+
+
+def test_secret_different_vu_depuis_le_candidat(db, monkeypatch, secret_pose):
+    _brancher_post(monkeypatch, _FausseReponse(200, {
+        'source_reachable': True, 'secret_match': False, 'source_node_id': '',
+        'detail': 'Le serveur source refuse notre secret',
+    }))
+    r = verifier_reciprocite('https://serveur2.exemple.fr', 'https://serveur1.exemple.fr')
+    assert r['ok'] is False
+    assert 'secret' in r['detail'].lower()
+
+
+def test_candidat_trop_ancien_est_distingue(db, monkeypatch, secret_pose):
+    """404 sur le point de validation : version antérieure, pas panne de liaison."""
+    _brancher_post(monkeypatch, _FausseReponse(404))
+    r = verifier_reciprocite('https://serveur2.exemple.fr', 'https://serveur1.exemple.fr')
+    assert r['ok'] is False
+    assert r['supported'] is False
+    assert 'antérieure' in r['detail']
+
+
+def test_reciprocite_impossible_sans_adresse_source(db, secret_pose):
+    r = verifier_reciprocite('https://serveur2.exemple.fr', '')
+    assert r['ok'] is False
+    assert 'convention' in r['detail']
+
+
+def test_reciprocite_impossible_sans_secret_local(db, settings):
+    settings.ORION_HA_SECRET = 'CHANGE_ME'
+    r = verifier_reciprocite('https://serveur2.exemple.fr', 'https://serveur1.exemple.fr')
+    assert r['ok'] is False
+    assert 'secret' in r['detail'].lower()
+
+
+# ── Exploration de la grappe ─────────────────────────────────────────────────
+
+def _grappe_branchee(monkeypatch, presents, secret_pose=True):
+    """Branche le réseau pour que seuls les rangs de `presents` répondent.
+
+    `presents` associe un rang à son node_id.
+    """
+    par_hote = {f'serveur{r}.exemple.fr': nid for r, nid in presents.items()}
+
+    def faux_get(url, **kwargs):
+        for hote, nid in par_hote.items():
+            if hote in url:
+                if '/ha/public-health/' in url:
+                    return _FausseReponse(200, {
+                        'status': 'healthy', 'node_id': nid, 'role': 'secondary',
+                    })
+                return _FausseReponse(200, {
+                    'status': 'healthy', 'node_id': nid, 'role': 'secondary',
+                    'database': 'ok', 'database_role': 'replica',
+                    'read_only': True, 'replication_lag_seconds': 1,
+                })
+        raise requests.exceptions.ConnectionError('refused')
+
+    def faux_post(url, **kwargs):
+        return _FausseReponse(200, {
+            'source_reachable': True, 'secret_match': True,
+            'source_node_id': 'serveur1', 'detail': 'ok',
+        })
+
+    monkeypatch.setattr('apps.high_availability.connection.requests.get', faux_get)
+    monkeypatch.setattr('apps.high_availability.cluster.requests.post', faux_post)
+    monkeypatch.setattr(
+        'apps.high_availability.connection.socket.getaddrinfo',
+        lambda *a, **k: [('AF_INET', None, None, '', ('203.0.113.1', 0))],
+    )
+
+
+def test_exploration_ne_signale_pas_les_rangs_vides(
+    db, monkeypatch, grappe, secret_pose,
+):
+    """Un rang non pourvu est normal, pas un défaut à corriger."""
+    _grappe_branchee(monkeypatch, {2: 'serveur2'})
+    res = explorer_grappe(grappe)
+
+    par_rang = {l['rang']: l for l in res['rangs']}
+    assert par_rang[1]['present'] is False
+    assert par_rang[2]['present'] is True
+    assert par_rang[3]['present'] is False
+    assert OrionHANode.objects.count() == 0  # l'exploration ne modifie rien
+
+
+def test_exploration_reconnait_ce_serveur(
+    db, monkeypatch, grappe, secret_pose, settings,
+):
+    settings.ORION_NODE_ID = 'serveur1'
+    settings.ORION_NODE_PRIORITY = 1
+    _grappe_branchee(monkeypatch, {1: 'serveur1', 2: 'serveur2'})
+    res = explorer_grappe(grappe)
+
+    par_rang = {l['rang']: l for l in res['rangs']}
+    assert par_rang[1]['est_ce_serveur'] is True
+    # Se valider soi-même en réciprocité n'aurait aucun sens.
+    assert par_rang[1]['reciprocite'] is None
+    assert par_rang[1]['raccordable'] is True
+    assert par_rang[2]['est_ce_serveur'] is False
+    assert par_rang[2]['reciprocite']['ok'] is True
+
+
+# ── Raccordement ─────────────────────────────────────────────────────────────
+
+def test_raccordement_pose_rang_et_adresse_depuis_la_convention(
+    db, monkeypatch, grappe, secret_pose, settings,
+):
+    settings.ORION_NODE_ID = 'serveur1'
+    settings.ORION_NODE_PRIORITY = 1
+    _grappe_branchee(monkeypatch, {1: 'serveur1', 2: 'serveur2', 3: 'serveur3'})
+
+    res = raccorder_grappe(explorer_grappe(grappe), grappe)
+    assert len(res['poses']) == 3
+
+    n2 = OrionHANode.objects.get(node_id='serveur2')
+    assert n2.priority == 2
+    assert n2.base_url == 'https://serveur2.exemple.fr'
+    assert n2.role == 'secondary'
+    assert n2.is_failover_target is True
+
+    n1 = OrionHANode.objects.get(node_id='serveur1')
+    assert n1.priority == 1
+    assert n1.role == 'primary'
+    # Aucun actif n'existait : le serveur courant prend la main.
+    assert n1.is_current_active is True
+
+
+def test_raccordement_ne_deplace_pas_la_main(
+    db, monkeypatch, grappe, secret_pose, settings, primary_node,
+):
+    """Une exploration ne doit jamais basculer le cluster."""
+    settings.ORION_NODE_ID = 'serveur2'
+    settings.ORION_NODE_PRIORITY = 2
+    _grappe_branchee(monkeypatch, {2: 'serveur2'})
+
+    raccorder_grappe(explorer_grappe(grappe), grappe)
+
+    primary_node.refresh_from_db()
+    assert primary_node.is_current_active is True
+    assert OrionHANode.objects.get(node_id='serveur2').is_current_active is False
+
+
+def test_raccordement_est_idempotent(db, monkeypatch, grappe, secret_pose, settings):
+    settings.ORION_NODE_ID = 'serveur1'
+    _grappe_branchee(monkeypatch, {1: 'serveur1', 2: 'serveur2'})
+
+    raccorder_grappe(explorer_grappe(grappe), grappe)
+    raccorder_grappe(explorer_grappe(grappe), grappe)
+    assert OrionHANode.objects.count() == 2
+
+
+def test_raccordement_conserve_le_nom_choisi(db, monkeypatch, grappe, secret_pose, settings):
+    """Une nouvelle exploration ne doit pas effacer le nom donné par l'exploitant."""
+    settings.ORION_NODE_ID = 'serveur1'
+    _grappe_branchee(monkeypatch, {2: 'serveur2'})
+    raccorder_grappe(explorer_grappe(grappe), grappe)
+
+    node = OrionHANode.objects.get(node_id='serveur2')
+    node.name = 'Secours Lille'
+    node.save()
+
+    raccorder_grappe(explorer_grappe(grappe), grappe)
+    node.refresh_from_db()
+    assert node.name == 'Secours Lille'
+    assert node.base_url == 'https://serveur2.exemple.fr'
+
+
+def test_raccordement_ecarte_une_liaison_a_sens_unique(
+    db, monkeypatch, grappe, secret_pose, settings,
+):
+    settings.ORION_NODE_ID = 'serveur1'
+    _grappe_branchee(monkeypatch, {2: 'serveur2'})
+    monkeypatch.setattr(
+        'apps.high_availability.cluster.requests.post',
+        lambda url, **k: _FausseReponse(200, {
+            'source_reachable': False, 'secret_match': False,
+            'source_node_id': '', 'detail': 'Serveur source injoignable depuis ici',
+        }),
+    )
+    res = raccorder_grappe(explorer_grappe(grappe), grappe)
+
+    assert res['poses'] == []
+    assert len(res['ignores']) == 1
+    assert OrionHANode.objects.count() == 0
+
+
+# ── Point d'entrée /ha/join-check/ ───────────────────────────────────────────
+
+def test_join_check_exige_le_secret(client, db, secret_pose):
+    reponse = client.post('/ha/join-check/', {'source_url': 'https://serveur1.exemple.fr'})
+    assert reponse.status_code == 403
+
+
+def test_join_check_refuse_les_requetes_get(client, db, secret_pose):
+    reponse = client.get('/ha/join-check/', HTTP_X_ORION_HA_SECRET='secret-partage-de-test')
+    assert reponse.status_code == 405
+
+
+def test_join_check_refuse_une_adresse_illisible(client, db, secret_pose):
+    reponse = client.post(
+        '/ha/join-check/', {'source_url': 'pas-une-url://'},
+        HTTP_X_ORION_HA_SECRET='secret-partage-de-test',
+    )
+    assert reponse.status_code == 400
+
+
+def test_join_check_sonde_le_source_et_rapporte(client, db, monkeypatch, secret_pose):
+    appels = []
+
+    def faux_get(url, **kwargs):
+        appels.append((url, kwargs))
+        return _FausseReponse(200, {'node_id': 'serveur1', 'status': 'healthy'})
+
+    monkeypatch.setattr('apps.high_availability.health.requests.get', faux_get)
+    reponse = client.post(
+        '/ha/join-check/', {'source_url': 'https://serveur1.exemple.fr/un/chemin'},
+        HTTP_X_ORION_HA_SECRET='secret-partage-de-test',
+    )
+
+    assert reponse.status_code == 200
+    donnees = reponse.json()
+    assert donnees['source_reachable'] is True
+    assert donnees['secret_match'] is True
+    assert donnees['source_node_id'] == 'serveur1'
+    # Seul /ha/health/ est construit sur l'hote fourni : le chemin est ecarte.
+    assert appels[0][0] == 'https://serveur1.exemple.fr/ha/health/'
+    assert appels[0][1]['headers']['X-Orion-HA-Secret'] == 'secret-partage-de-test'
+
+
+def test_join_check_signale_un_secret_different(client, db, monkeypatch, secret_pose):
+    monkeypatch.setattr(
+        'apps.high_availability.health.requests.get',
+        lambda url, **k: _FausseReponse(403),
+    )
+    reponse = client.post(
+        '/ha/join-check/', {'source_url': 'https://serveur1.exemple.fr'},
+        HTTP_X_ORION_HA_SECRET='secret-partage-de-test',
+    )
+    donnees = reponse.json()
+    assert donnees['source_reachable'] is True
+    assert donnees['secret_match'] is False
+    assert 'ORION_HA_SECRET' in donnees['detail']
+
+
+def test_join_check_signale_un_source_injoignable(client, db, monkeypatch, secret_pose):
+    monkeypatch.setattr(
+        'apps.high_availability.health.requests.get',
+        lambda url, **k: (_ for _ in ()).throw(
+            requests.exceptions.ConnectionError('refused')
+        ),
+    )
+    reponse = client.post(
+        '/ha/join-check/', {'source_url': 'https://serveur1.exemple.fr'},
+        HTTP_X_ORION_HA_SECRET='secret-partage-de-test',
+    )
+    donnees = reponse.json()
+    assert donnees['source_reachable'] is False
+    assert 'injoignable' in donnees['detail']
+
+
+# ── Vue de la grappe ─────────────────────────────────────────────────────────
+
+def test_page_grappe_accessible(client, superuser, entreprise):
+    client.force_login(superuser)
+    reponse = client.get('/orion-admin/ha/grappe/')
+    assert reponse.status_code == 200
+    assert 'Relier les serveurs' in reponse.content.decode()
+
+
+def test_page_grappe_refuse_la_recherche_sans_domaine(
+    client, superuser, entreprise, ha_settings,
+):
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/grappe/', {'action': 'scan'}, follow=True)
+    assert 'domaine de la grappe' in reponse.content.decode()
+
+
+def test_page_grappe_enregistre_la_convention(client, superuser, entreprise, ha_settings):
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/grappe/', {
+        'action': 'save',
+        'cluster_base_domain': 'exemple.fr',
+        'node_name_pattern': 'serveur{n}',
+        'cluster_max_nodes': 4,
+        'cluster_use_https': 'on',
+    })
+    assert reponse.status_code == 302
+    ha_settings.refresh_from_db()
+    assert ha_settings.cluster_base_domain == 'exemple.fr'
+    assert ha_settings.cluster_max_nodes == 4
+
+
+def test_convention_refuse_un_motif_sans_marqueur(client, superuser, entreprise, ha_settings):
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/grappe/', {
+        'action': 'save',
+        'cluster_base_domain': 'exemple.fr',
+        'node_name_pattern': 'serveur',
+        'cluster_max_nodes': 4,
+    })
+    assert reponse.status_code == 200
+    assert '{n}' in reponse.content.decode()
+    ha_settings.refresh_from_db()
+    assert ha_settings.cluster_base_domain == ''
+
+
+def test_convention_refuse_un_domaine_avec_schema(client, superuser, entreprise, ha_settings):
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/grappe/', {
+        'action': 'save',
+        'cluster_base_domain': 'https://exemple.fr',
+        'node_name_pattern': 'serveur{n}',
+        'cluster_max_nodes': 4,
+    })
+    assert reponse.status_code == 200
+    ha_settings.refresh_from_db()
+    assert ha_settings.cluster_base_domain == ''

@@ -139,3 +139,56 @@ class OrionHAConnectForm(forms.Form):
         for champ in self.fields.values():
             if not isinstance(champ.widget, forms.CheckboxInput):
                 champ.widget.attrs.setdefault('class', 'orion-form-control')
+
+
+class OrionHAClusterForm(forms.ModelForm):
+    """Réglages de la grappe : un domaine, un motif, et c'est tout.
+
+    Le rang et l'adresse de chaque serveur se déduisent du nommage, au lieu
+    d'être saisis séparément pour chaque machine — deux données qui pouvaient
+    se contredire.
+    """
+
+    class Meta:
+        model = OrionHASettings
+        fields = [
+            'cluster_base_domain',
+            'node_name_pattern',
+            'cluster_max_nodes',
+            'cluster_use_https',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for champ in self.fields.values():
+            if not isinstance(champ.widget, forms.CheckboxInput):
+                champ.widget.attrs.setdefault('class', 'orion-form-control')
+
+    def clean_node_name_pattern(self):
+        motif = (self.cleaned_data.get('node_name_pattern') or '').strip()
+        if '{n}' not in motif:
+            raise forms.ValidationError(
+                'Le motif doit contenir {n}, remplacé par le rang du serveur '
+                '(ex. serveur{n}).'
+            )
+        if '.' in motif:
+            raise forms.ValidationError(
+                'Le motif ne porte que le préfixe, sans point : le domaine de '
+                'la grappe est ajouté automatiquement.'
+            )
+        return motif
+
+    def clean_cluster_base_domain(self):
+        base = (self.cleaned_data.get('cluster_base_domain') or '').strip()
+        base = base.strip('.').lower()
+        if base.startswith('http://') or base.startswith('https://'):
+            raise forms.ValidationError(
+                "Indiquez le domaine seul, sans https:// — le schéma est "
+                'choisi par la case ci-dessous.'
+            )
+        if base and '.' not in base:
+            raise forms.ValidationError(
+                'Domaine incomplet : il faut un nom de domaine entier '
+                '(ex. exemple.fr).'
+            )
+        return base

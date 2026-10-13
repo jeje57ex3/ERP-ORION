@@ -172,6 +172,40 @@ class OrionHASettings(models.Model):
         help_text='Autoriser la bascule vers le second serveur secondaire si le premier est indisponible.',
     )
 
+    # ─── Grappe : convention de nommage ──────────────────────────────────────
+    # Raccorder un serveur demandait de saisir son adresse complète et son rang
+    # à la main, pour chaque machine. Avec une convention, les deux se
+    # déduisent : « serveur2.exemple.fr » EST le serveur de rang 2. Le rang
+    # n'est donc plus une donnée à tenir à jour séparément de l'adresse, et ces
+    # deux-là ne peuvent plus se contredire.
+    cluster_base_domain = models.CharField(
+        max_length=200, blank=True,
+        verbose_name='Domaine de la grappe',
+        help_text='Ex. exemple.fr — les serveurs y seront cherchés sous le '
+                  'motif ci-dessous.',
+    )
+
+    node_name_pattern = models.CharField(
+        max_length=60, default='serveur{n}',
+        verbose_name='Motif de nommage',
+        help_text='{n} est remplacé par le rang : serveur1, serveur2… Le rang '
+                  '1 est le serveur principal.',
+    )
+
+    cluster_max_nodes = models.PositiveSmallIntegerField(
+        default=8,
+        verbose_name='Rangs à explorer',
+        help_text='La recherche essaie les rangs 1 à N. Un rang absent est '
+                  'simplement ignoré.',
+    )
+
+    cluster_use_https = models.BooleanField(
+        default=True,
+        verbose_name='Joindre les serveurs en HTTPS',
+        help_text='À décocher pour une grappe de test en réseau local, sans '
+                  'certificat.',
+    )
+
     # ─── Retour d'un serveur (failback) ──────────────────────────────────────
     # Ce qui se passe quand un serveur tombé revient en bon état. Sans règle,
     # il revenait simplement « sain » dans la liste sans que rien ne tranche :

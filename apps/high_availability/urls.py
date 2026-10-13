@@ -1,5 +1,9 @@
 from django.urls import path
-from apps.high_availability.health import health_view, public_health_view
+from apps.high_availability.health import (
+    health_view,
+    join_check_view,
+    public_health_view,
+)
 from apps.high_availability import views
 
 app_name = 'high_availability'
@@ -8,9 +12,13 @@ urlpatterns = [
     # Health endpoints (no auth — secret header)
     path('ha/health/', health_view, name='health'),
     path('ha/public-health/', public_health_view, name='public_health'),
+    # Validation reciproque de l'adhesion a la grappe : le candidat sonde
+    # le serveur source en retour. Protege par le secret partage.
+    path('ha/join-check/', join_check_view, name='join_check'),
 
     # Super Admin UI
     path('orion-admin/ha/settings/', views.ha_settings_view, name='admin_settings'),
+    path('orion-admin/ha/grappe/', views.ha_cluster_view, name='admin_cluster'),
     path('orion-admin/ha/nodes/', views.ha_nodes_view, name='admin_nodes'),
     path('orion-admin/ha/nodes/connecter/', views.ha_connect_node_view, name='admin_connect'),
     path('orion-admin/ha/nodes/<int:pk>/', views.ha_node_detail_view, name='admin_node_detail'),

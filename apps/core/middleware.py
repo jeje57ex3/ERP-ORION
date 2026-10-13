@@ -201,6 +201,10 @@ class SetupRequiredMiddleware:
         '/media/',
         '/ha/health/',
         '/ha/public-health/',
+        # Validation reciproque entre serveurs : doit repondre meme avant
+        # que l'assistant de premier acces n'ait ete complete, sinon un
+        # serveur neuf ne peut pas etre valide pour entrer dans la grappe.
+        '/ha/join-check/',
         '/admin/',
     )
 

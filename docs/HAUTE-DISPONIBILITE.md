@@ -71,7 +71,54 @@ Les domaines de service (`ORION_LOGIN_DOMAIN`, `SIECLE_STORE_DOMAIN`…) doivent
 porter les **mêmes valeurs sur tous les serveurs** : après une bascule, c'est
 le serveur 2 qui répond pour `erp.exemple.fr`, et il doit l'accepter.
 
-### 3. Raccorder le serveur dans l'ERP
+### 3. Relier les serveurs par convention de nommage
+
+**Super Admin → Nœuds HA → Relier les serveurs.** La voie la plus courte :
+nommez vos serveurs par rang, et l'ERP les trouve seul.
+
+```
+rang 1  →  serveur1.exemple.fr   (serveur principal)
+rang 2  →  serveur2.exemple.fr
+rang 3  →  serveur3.exemple.fr
+```
+
+Un seul réglage à saisir — le **domaine de la grappe** (`exemple.fr`) — et le
+motif de nommage, `serveur{n}` par défaut. Le rang n'est plus une donnée
+séparée : `serveur2.exemple.fr` **est** le serveur de rang 2. Adresse et rang
+ne peuvent donc plus se contredire, ce qui était possible en les saisissant
+séparément.
+
+**Chercher les serveurs** explore les rangs 1 à N sans rien modifier. Un rang
+non pourvu n'est pas signalé comme un défaut : la grappe n'a pas besoin d'être
+complète.
+
+Décochez **Joindre les serveurs en HTTPS** pour une grappe de test en réseau
+local, sans certificat.
+
+#### La validation croisée
+
+Chaque candidat est validé **dans les deux sens** avant d'entrer dans la
+grappe. Le serveur source le sonde, puis lui demande de sonder le source en
+retour (`/ha/join-check/`, protégé par le secret partagé).
+
+Sans cette réciprocité, l'enregistrement ne prouve qu'un sens de la liaison —
+et le cas asymétrique est aussi courant que redoutable : le principal joint le
+secondaire, l'enregistre, l'affiche « sain », mais le secondaire ne peut pas
+joindre le principal. Règle de pare-feu unilatérale, tunnel sortant seul, DNS
+interne partiel, routage NAT. Rien ne le signale — jusqu'à la bascule, où le
+nouveau serveur actif se découvre incapable de surveiller l'ancien.
+
+Un serveur dont la liaison ne fonctionne que dans un sens est donc **écarté**,
+avec le motif exact. Un serveur d'une version antérieure, qui n'expose pas ce
+point, est distingué d'une panne de liaison et vous invite à le mettre à jour.
+
+**Raccorder les serveurs validés** refait la recherche avant d'enregistrer, puis
+pose pour chacun son adresse et son rang issus de la convention. L'opération
+est rejouable sans danger : elle remet les adresses et les rangs en accord avec
+le nommage, conserve les noms que vous avez choisis, et ne déplace **jamais**
+la main — le serveur courant ne devient actif que si aucun ne l'est.
+
+### 4. Raccorder un serveur à la main
 
 **Super Admin → Nœuds HA → Raccorder un serveur**. Trois champs suffisent :
 l'adresse du serveur (son sous-domaine), un nom d'affichage, et son rang de
@@ -105,7 +152,7 @@ avertissements, à traiter avant de compter sur ce serveur.
 La même épreuve est disponible depuis la fiche de chaque serveur déjà
 raccordé, par le bouton **Tester la liaison**.
 
-### 4. Les règles du cluster
+### 5. Les règles du cluster
 
 **Super Admin → Haute disponibilité → Paramètres** :
 
@@ -274,6 +321,12 @@ pour un 400 DisallowedHost sur `/ha/health/`.
 **Une bascule « réussie » mais les domaines ne suivent pas.** Vérifiez que
 « Déplacer les domaines à la bascule » est activé : désactivé, l'étape est
 sautée et la trace d'audit l'indique (`"skipped": true`).
+
+**« Liaison incomplète » sur la page Relier les serveurs.** Le candidat ne
+joint pas ce serveur-ci, alors que l’inverse fonctionne. Vérifiez les règles
+de pare-feu dans CE sens, et que l’adresse de ce serveur dans la convention
+(affichée en haut du tableau) est bien celle par laquelle les autres peuvent
+le joindre.
 
 **Un serveur ne se raccorde pas.** Lancez « Tester la liaison » sur la
 page de raccordement : chacun des cinq contrôles nomme sa cause et son

@@ -8,6 +8,10 @@ class HAActiveNodeWriteProtectionMiddleware:
     SAFE_PATHS = [
         '/ha/health/',
         '/ha/public-health/',
+        # La validation reciproque est un POST, et le candidat est par
+        # definition un noeud NON actif : sans cette exemption il se
+        # verrait refuser sa propre adhesion a la grappe.
+        '/ha/join-check/',
         '/orion-admin/ha/',
         '/admin/',
     ]
