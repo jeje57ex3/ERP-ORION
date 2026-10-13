@@ -112,6 +112,28 @@ for d in "${SIECLE_DOMAIN:-}" "${LUNEA_DOMAIN:-}"; do
   [ -n "$d" ] && { ALLOWED_HOSTS="$ALLOWED_HOSTS,$d"; CSRF_ORIGINS="${CSRF_ORIGINS:+$CSRF_ORIGINS,}https://$d"; CORS_ORIGINS="${CORS_ORIGINS:+$CORS_ORIGINS,}https://$d"; }
 done
 
+# ─── Identité du nœud, déduite de son sous-domaine ────────────────────────────
+# Ces trois clés n'étaient écrites nulle part : toutes les machines prenaient
+# donc les valeurs par défaut des settings, « orion-primary » et rang 1. Deux
+# conséquences graves et parfaitement silencieuses :
+#
+#   - l'adhésion à la grappe voyait partout le même identifiant, et refusait
+#     chaque nouveau serveur comme un doublon ;
+#   - la protection anti-divergence compare ORION_NODE_ID au verrou de grappe,
+#     si bien que CHAQUE serveur se croyait titulaire de la main — la
+#     protection la plus importante du module était inerte.
+#
+# La convention de nommage fournit tout : « serveur2.exemple.fr » donne
+# l'identifiant « serveur2 » et le rang 2. Sans --node-domain, on retombe
+# exactement sur les anciennes valeurs par défaut, donc aucun changement pour
+# une installation à serveur unique.
+NODE_LABEL="${NODE_DOMAIN%%.*}"
+NODE_RANK="$(printf '%s' "$NODE_LABEL" | tr -dc '0-9')"
+NODE_RANK="${NODE_RANK:-1}"
+NODE_ID="${NODE_LABEL:-orion-primary}"
+if [ "$NODE_RANK" = "1" ]; then NODE_ROLE="primary"; else NODE_ROLE="secondary"; fi
+echo "[02] Identité du nœud : $NODE_ID (rang $NODE_RANK, rôle $NODE_ROLE)"
+
 cat > "$ENV_FILE" <<EOF
 # Généré par 02-deploy-orion.sh — $(date -u +%FT%TZ)
 DJANGO_SETTINGS_MODULE=erp_btp.settings.production
@@ -144,6 +166,13 @@ CACHE_URL=redis://127.0.0.1:6379/1
 
 ORION_SECRET_ENCRYPTION_KEY=$FERNET_KEY
 ORION_HA_SECRET=$HA_SECRET
+
+# Identité de CE serveur dans la grappe. Doit être distincte sur chaque
+# machine : c'est cet identifiant que la protection anti-divergence compare au
+# verrou de grappe, et celui que les autres serveurs relèvent à l'adhésion.
+ORION_NODE_ID=$NODE_ID
+ORION_NODE_ROLE=$NODE_ROLE
+ORION_NODE_PRIORITY=$NODE_RANK
 ORION_ENV=production
 ORION_GIT_REMOTE=origin
 ORION_GIT_BRANCH=$ORION_GIT_BRANCH
