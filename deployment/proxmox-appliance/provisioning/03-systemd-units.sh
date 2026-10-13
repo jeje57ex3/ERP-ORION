@@ -77,6 +77,14 @@ sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput
 echo "[03] Peuplement du catalogue de widgets dashboard..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" seed_dashboard_widgets
 
+# Les .po sont versionnes, les .mo non : ce sont des binaires generes, qui
+# se desynchroniseraient silencieusement de leurs sources. Sans cette
+# compilation, le selecteur de langue enregistre bien la preference mais
+# aucune chaine n'est traduite, et rien dans l'interface ne le signale.
+echo "[03] Compilation des catalogues de traduction..."
+sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
+  || echo "[03] ATTENTION: compilemessages a echoue (gettext absent ?)." >&2
+
 echo "[03] Peuplement des langues (sélecteur de langue ERP)..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" seed_languages
 

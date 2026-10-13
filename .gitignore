@@ -34,6 +34,11 @@ orion-data-*.tar.gz
 orion-data-*.tar.gz.sha256
 database.sql
 
+# Catalogues compiles : generes depuis les .po par compilemessages, au
+# provisioning et a chaque mise a jour. Les versionner les laisserait
+# silencieusement en retard sur leurs sources.
+locale/*/LC_MESSAGES/*.mo
+
 # Logs & backups
 logs/
 *.log

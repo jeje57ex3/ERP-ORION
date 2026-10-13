@@ -60,6 +60,11 @@ if ! sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm; then
   fi
 fi
 
+# Recompile les catalogues : un .po mis a jour par le git pull resterait
+# sans effet tant que son .mo n'est pas regenere.
+sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
+  || echo "  ATTENTION: compilemessages a echoue, traductions inchangees."
+
 echo "[5/6] Reconstruction des frontends SIÈCLE / LUNEA / NÉOSTRUCTURA..."
 for store in siecle-store:siecle lunea-store:lunea; do
   SRC_DIR="${store%%:*}"; DEST_NAME="${store##*:}"
