@@ -114,6 +114,89 @@ reste celui d'avant — là où les domaines pointent encore. Mieux vaut une
 bascule refusée, avec un message clair, qu'un serveur déclaré actif que
 personne ne joint.
 
+## Qui prend le dessus : le rang de préséance
+
+Chaque serveur porte un **rang** (`priority`) : 1 reprend la main en priorité,
+2 est le secours, 3 le dernier recours. Quand le serveur actif tombe, c'est le
+mieux classé parmi les serveurs disponibles qui prend le dessus.
+
+Le rang est **indépendant du rôle courant**. Le rôle se déplace à chaque
+bascule ; le rang est une décision d'exploitation qui ne bouge pas. C'est ce
+qui permet à un ancien principal rétrogradé de rester désigné pour reprendre
+la main — sans quoi le rang n'aurait plus aucun sens après la première
+bascule.
+
+Trois réglages par serveur affinent la règle, dans **Serveurs** :
+
+| Réglage | Effet quand il est décoché |
+|---|---|
+| Activé | le serveur est ignoré de bout en bout |
+| Peut recevoir la main | il ne sera jamais promu, même seul survivant |
+| Promotion automatique autorisée | seul un administrateur peut le promouvoir |
+
+Le **secondaire préféré** des paramètres passe devant le rang, à condition
+d'être disponible. Pour voir l'ordre effectif et, surtout, **pourquoi** un
+serveur est écarté :
+
+```bash
+python manage.py ha_check_nodes
+```
+
+Elle affiche le bilan de chaque serveur, puis l'ordre de préséance avec le
+motif d'exclusion de chacun. `--no-failback` permet de constater sans rien
+changer.
+
+## Quand un serveur revient
+
+Un serveur qui redevient joignable ne reprend pas la main de lui-même. Ce qui
+se passe est décidé par **Au retour d'un serveur**, dans les paramètres :
+
+| Politique | Comportement |
+|---|---|
+| **Manuel** (défaut) | signale qu'un serveur mieux classé est prêt, et attend |
+| **Jamais** | le serveur promu garde la main indéfiniment |
+| **Automatique** | le mieux classé reprend la main, sous conditions |
+
+En automatique, la main n'est rendue que si **toutes** ces conditions sont
+réunies. Chacune correspond à un incident réel qu'elle évite :
+
+1. **Le revenant est strictement mieux classé** que le serveur actif. À rang
+   égal, rien ne bouge : deux serveurs de même rang se reprendraient la main
+   en boucle.
+2. **Il est stable depuis assez longtemps** (*Stabilité exigée*, 5 min par
+   défaut). Un serveur qui oscille entre marche et panne satisferait sinon le
+   contrôle à chacun de ses passages en bon état. Le compteur repart de zéro à
+   chaque chute.
+3. **Sa réplication est à jour**, dans la limite du retard toléré.
+4. **Sa base est en lecture seule.** Voir ci-dessous.
+
+### La divergence, et pourquoi elle arrête tout
+
+Si un serveur revient en **acceptant encore les écritures** alors que la main
+est passée à un autre, l'opération est refusée et signalée comme divergence.
+C'est le cas le plus dangereux : deux bases qui acceptent des écritures ne se
+fusionnent pas. Il n'existe pas de réparation automatique, seulement un choix
+à faire sur les données à perdre.
+
+Repassez la base du revenant en lecture seule et refaites-en un réplica avant
+toute autre opération.
+
+L'information vient du bilan de santé, qui lit l'état réel de MySQL
+(`@@global.read_only`, `SHOW REPLICA STATUS`). Un état **inconnu** n'est jamais
+tenu pour « inscriptible ».
+
+### Déclencher l'évaluation
+
+La règle de retour s'applique à chaque balayage de santé : le bouton
+**Vérifier les serveurs** de l'interface, ou la commande `ha_check_nodes`.
+C'est le seul moment où l'on constate qu'un serveur tombé répond de nouveau.
+Pour une surveillance continue, planifiez la commande — toutes les minutes est
+raisonnable.
+
+Pour rendre la main à la demande, utilisez la page **Bascule** en désignant le
+serveur revenu. L'opération est tracée comme un *retour*, distinct d'une
+bascule subie, dans **Événements**.
+
 ## Limite à connaître : la détection automatique
 
 La bascule **manuelle** est opérationnelle. La bascule **automatique** ne l'est
@@ -158,3 +241,11 @@ pour un 400 DisallowedHost sur `/ha/health/`.
 **Une bascule « réussie » mais les domaines ne suivent pas.** Vérifiez que
 « Déplacer les domaines à la bascule » est activé : désactivé, l'étape est
 sautée et la trace d'audit l'indique (`"skipped": true`).
+
+**Un serveur revenu ne reprend jamais la main.** `ha_check_nodes` donne le
+motif exact : rang insuffisant, stabilité trop courte, réplication en retard,
+politique sur « jamais », ou divergence détectée.
+
+**« accepte les écritures alors que la main est à … ».** Divergence : la base
+du revenant n'est pas en lecture seule. Voir la section ci-dessus — ne
+basculez pas avant de l'avoir traitée.

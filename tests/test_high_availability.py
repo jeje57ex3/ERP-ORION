@@ -388,6 +388,8 @@ def test_settings_form_valid(ha_settings):
         'max_allowed_replication_lag_seconds': 10,
         'minimum_healthy_secondaries': 1,
         'allow_failover_to_secondary_2': True,
+        'failback_policy': 'manual',
+        'failback_min_stable_seconds': 300,
         'media_sync_enabled': True,
         'database_replication_check_enabled': True,
         'cloudflare_failover_enabled': False,
@@ -409,6 +411,8 @@ def test_settings_form_rejects_auto_with_manual_confirmation(ha_settings):
         'max_allowed_replication_lag_seconds': 10,
         'minimum_healthy_secondaries': 1,
         'allow_failover_to_secondary_2': True,
+        'failback_policy': 'manual',
+        'failback_min_stable_seconds': 300,
         'media_sync_enabled': True,
         'database_replication_check_enabled': True,
         'cloudflare_failover_enabled': False,
@@ -431,6 +435,8 @@ def test_settings_form_rejects_failover_under_60s(ha_settings):
         'max_allowed_replication_lag_seconds': 10,
         'minimum_healthy_secondaries': 1,
         'allow_failover_to_secondary_2': True,
+        'failback_policy': 'manual',
+        'failback_min_stable_seconds': 300,
         'media_sync_enabled': True,
         'database_replication_check_enabled': True,
         'cloudflare_failover_enabled': False,
@@ -445,13 +451,14 @@ def test_settings_form_rejects_failover_under_60s(ha_settings):
 
 # ── Forms — OrionHANodeForm ───────────────────────────────────────────────────
 
-def test_node_form_rejects_primary_with_wrong_priority(primary_node):
+def test_node_form_rejects_active_node_without_primary_role(primary_node):
+    """Le rang n'est plus lie au role, mais l'actif doit porter le role principal."""
     data = {
         'node_id': 'orion-primary',
         'name': 'Principal',
-        'role': 'primary',
+        'role': 'secondary',
         'status': 'active',
-        'priority': 2,
+        'priority': 1,
         'is_enabled': True,
         'is_current_active': True,
         'is_failover_target': False,
@@ -459,6 +466,27 @@ def test_node_form_rejects_primary_with_wrong_priority(primary_node):
     }
     form = OrionHANodeForm(data=data, instance=primary_node)
     assert not form.is_valid()
+
+
+def test_node_form_accepts_demoted_primary_keeping_its_rank(primary_node):
+    """Cas normal apres une bascule : rang 1 conserve, role secondaire.
+
+    Les deux anciennes regles de couplage le rejetaient, rendant inediteable
+    tout serveur ayant connu une bascule.
+    """
+    data = {
+        'node_id': 'orion-primary',
+        'name': 'Principal',
+        'role': 'secondary',
+        'status': 'passive',
+        'priority': 1,
+        'is_enabled': True,
+        'is_current_active': False,
+        'is_failover_target': True,
+        'allow_auto_failover': True,
+    }
+    form = OrionHANodeForm(data=data, instance=primary_node)
+    assert form.is_valid(), form.errors
 
 
 def test_node_form_rejects_duplicate_active(primary_node, secondary_1):
@@ -773,3 +801,271 @@ def test_type_evenement_est_personnalisable(primary_node, secondary_1, ha_settin
         target_node=secondary_1, event_type='automatic_failover',
     )
     assert event.event_type == 'automatic_failover'
+
+
+# ── Préséance et retour de main ──────────────────────────────────────────────
+# Le rang de préséance (priority) est indépendant du rôle courant : le rôle se
+# déplace à chaque bascule, le rang est une décision d'exploitation.
+
+from datetime import timedelta
+
+from apps.high_availability.takeover import (
+    evaluate_returning_node,
+    precedence_order,
+    preferred_primary,
+    run_failback_to_node,
+)
+
+
+def _rendre_revenant(node, stable_depuis=3600, read_only=True):
+    """Place un serveur dans l'état d'un revenant en bon état et stable."""
+    node.status = 'healthy'
+    node.healthy_since = timezone.now() - timedelta(seconds=stable_depuis)
+    node.last_health_payload = {'read_only': read_only}
+    node.save()
+    return node
+
+
+# ── Rétrogradation : sans elle, aucun retour n'est possible ──────────────────
+
+def test_bascule_retrograde_l_ancien_principal(primary_node, secondary_1, ha_settings):
+    run_manual_failover_to_node(target_node=secondary_1)
+
+    primary_node.refresh_from_db()
+    assert primary_node.role == 'secondary'
+    assert primary_node.is_current_active is False
+    assert primary_node.status == 'passive'
+    # Il a déjà porté la main : rien ne justifie de l'écarter pour la suite.
+    assert primary_node.is_failover_target is True
+
+
+def test_le_rang_de_preseance_survit_a_la_bascule(primary_node, secondary_1, ha_settings):
+    run_manual_failover_to_node(target_node=secondary_1)
+
+    primary_node.refresh_from_db()
+    secondary_1.refresh_from_db()
+    assert primary_node.priority == 1
+    assert secondary_1.priority == 2
+    assert preferred_primary().node_id == 'orion-primary'
+
+
+def test_un_serveur_hors_ligne_reste_hors_ligne_apres_bascule(
+    primary_node, secondary_1, ha_settings,
+):
+    """Le repasser en « passif » laisserait croire qu'il est disponible."""
+    primary_node.status = 'down'
+    primary_node.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+
+    primary_node.refresh_from_db()
+    assert primary_node.status == 'down'
+
+
+def test_ancien_principal_redevient_cible_eligible(primary_node, secondary_1, ha_settings):
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+
+    assert primary_node.can_be_failover_target is True
+    assert validate_failover_target(primary_node) is True
+
+
+# ── Ordre de préséance ───────────────────────────────────────────────────────
+
+def test_preseance_classee_par_rang(primary_node, secondary_1, secondary_2, ha_settings):
+    ordre = [ligne['node'].node_id for ligne in precedence_order()]
+    assert ordre == ['orion-primary', 'orion-secondary-1', 'orion-secondary-2']
+
+
+def test_preseance_explique_pourquoi_un_serveur_est_ecarte(
+    primary_node, secondary_1, secondary_2, ha_settings,
+):
+    secondary_1.is_failover_target = False
+    secondary_1.save()
+    secondary_2.status = 'down'
+    secondary_2.save()
+
+    par_id = {l['node'].node_id: l for l in precedence_order()}
+    assert par_id['orion-primary']['is_active'] is True
+    assert par_id['orion-primary']['eligible'] is False
+    assert 'actif' in par_id['orion-primary']['reason'].lower()
+    assert par_id['orion-secondary-1']['eligible'] is False
+    assert 'recevoir la main' in par_id['orion-secondary-1']['reason']
+    assert par_id['orion-secondary-2']['eligible'] is False
+    assert 'Hors ligne' in par_id['orion-secondary-2']['reason']
+
+
+def test_preseance_signale_le_retard_de_replication(
+    primary_node, secondary_1, ha_settings,
+):
+    ha_settings.max_allowed_replication_lag_seconds = 10
+    ha_settings.save()
+    secondary_1.replication_lag_seconds = 45
+    secondary_1.save()
+
+    ligne = [l for l in precedence_order() if l['node'].pk == secondary_1.pk][0]
+    assert ligne['eligible'] is False
+    assert '45' in ligne['reason']
+
+
+def test_promotion_automatique_interdite_ecarte_le_serveur(
+    primary_node, secondary_1, secondary_2, ha_settings,
+):
+    """Ce drapeau existait sans être lu : le décocher ne protégeait de rien."""
+    secondary_1.allow_auto_failover = False
+    secondary_1.save()
+
+    assert services.select_best_failover_target().node_id == 'orion-secondary-1'
+    assert services.select_best_failover_target(automatic=True).node_id == 'orion-secondary-2'
+
+
+# ── healthy_since : la stabilité, pas la fraîcheur du battement ──────────────
+
+def test_healthy_since_pose_au_premier_bon_etat(secondary_1):
+    assert secondary_1.healthy_since is None
+    services.update_node_from_health(secondary_1, {'status': 'healthy'})
+    assert secondary_1.healthy_since is not None
+
+
+def test_healthy_since_non_ecrase_aux_bilans_suivants(secondary_1):
+    services.update_node_from_health(secondary_1, {'status': 'healthy'})
+    premier = secondary_1.healthy_since
+    services.update_node_from_health(secondary_1, {'status': 'healthy'})
+    assert secondary_1.healthy_since == premier
+
+
+def test_healthy_since_remis_a_zero_quand_le_serveur_tombe(secondary_1):
+    services.update_node_from_health(secondary_1, {'status': 'healthy'})
+    assert secondary_1.healthy_since is not None
+    services.update_node_from_health(secondary_1, {'status': 'down'})
+    assert secondary_1.healthy_since is None
+
+
+# ── Politique de retour ──────────────────────────────────────────────────────
+
+def test_retour_jamais_laisse_la_main_au_promu(primary_node, secondary_1, ha_settings):
+    ha_settings.failback_policy = 'never'
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['failback'] is False
+    assert decision['proposed'] is False
+    assert 'jamais' in decision['reason']
+
+
+def test_retour_manuel_propose_sans_agir(primary_node, secondary_1, ha_settings):
+    ha_settings.failback_policy = 'manual'
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['proposed'] is True
+    assert decision['failback'] is False
+    secondary_1.refresh_from_db()
+    assert secondary_1.is_current_active is True
+
+
+def test_retour_automatique_rend_la_main(primary_node, secondary_1, ha_settings):
+    ha_settings.failback_policy = 'automatic'
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['failback'] is True
+
+    primary_node.refresh_from_db()
+    secondary_1.refresh_from_db()
+    assert primary_node.is_current_active is True
+    assert primary_node.role == 'primary'
+    assert secondary_1.is_current_active is False
+    assert secondary_1.role == 'secondary'
+
+
+def test_retour_refuse_a_un_serveur_moins_bien_classe(
+    primary_node, secondary_1, secondary_2, ha_settings,
+):
+    ha_settings.failback_policy = 'automatic'
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    secondary_2.refresh_from_db()
+    _rendre_revenant(secondary_2)
+
+    decision = evaluate_returning_node(secondary_2)
+    assert decision['failback'] is False
+    assert 'moins bien classé' in decision['reason']
+
+
+def test_retour_refuse_a_un_serveur_qui_oscille(primary_node, secondary_1, ha_settings):
+    ha_settings.failback_policy = 'automatic'
+    ha_settings.failback_min_stable_seconds = 600
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node, stable_depuis=30)
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['failback'] is False
+    assert 'stable depuis 30' in decision['reason']
+
+
+def test_retour_refuse_si_la_replication_est_en_retard(
+    primary_node, secondary_1, ha_settings,
+):
+    ha_settings.failback_policy = 'automatic'
+    ha_settings.max_allowed_replication_lag_seconds = 10
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+    primary_node.replication_lag_seconds = 120
+    primary_node.save()
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['failback'] is False
+    assert '120' in decision['reason']
+
+
+def test_revenant_inscriptible_est_signale_comme_divergence(
+    primary_node, secondary_1, ha_settings,
+):
+    """Deux bases acceptant des écritures ne se fusionnent pas : on alerte,
+    on ne bascule jamais."""
+    ha_settings.failback_policy = 'automatic'
+    ha_settings.save()
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node, read_only=False)
+
+    decision = evaluate_returning_node(primary_node)
+    assert decision['split_brain_suspected'] is True
+    assert decision['failback'] is False
+    assert 'lecture seule' in decision['reason']
+
+    secondary_1.refresh_from_db()
+    assert secondary_1.is_current_active is True
+
+
+def test_etat_inconnu_n_est_pas_tenu_pour_inscriptible(secondary_1):
+    """« read_only » absent du bilan ne doit pas valoir « inscriptible »."""
+    secondary_1.last_health_payload = {}
+    assert secondary_1.claims_to_be_writable is False
+
+
+def test_retour_trace_comme_un_retour_et_non_une_bascule(
+    primary_node, secondary_1, ha_settings,
+):
+    run_manual_failover_to_node(target_node=secondary_1)
+    primary_node.refresh_from_db()
+    _rendre_revenant(primary_node)
+
+    event = run_failback_to_node(target_node=primary_node)
+    assert event.event_type == 'manual_failback'
+    assert event.status == 'success'
+    assert event.to_node == primary_node
