@@ -88,8 +88,29 @@ reste cohérente.
 
 Depuis l'interface (**Super Admin → Mises à jour**) ou en ligne de commande.
 Sur l'appliance, `scripts/update_orion.sh` traite l'OS, Docker, Node, Python
-puis l'applicatif, et **se répare lui-même** : si le mécanisme Django échoue,
-il effectue `git pull`, migrations et collecte des statiques, puis réessaie.
+puis l'applicatif.
+
+**Ne dépendez pas de l'interface pour vous mettre à jour.** La première
+instruction du mécanisme applicatif est une lecture en base
+(`SystemUpdateSettings`) : il est donc indisponible exactement quand il
+servirait le plus — base injoignable, migration cassée, Django qui ne démarre
+pas, ou simplement `update_enabled` à faux. D'où trois modes :
+
+| Commande | Comportement |
+|---|---|
+| `update_orion.sh` | mécanisme applicatif, repli direct s'il échoue, puis nouvelle tentative pour restaurer la trace d'audit |
+| `update_orion.sh --direct` | `git pull`, migrations, statiques et builds **sans Django** — aucune dépendance à la base ni au mécanisme applicatif |
+| `update_orion.sh --django-only` | mécanisme applicatif seul, sans repli |
+
+Le mode par défaut conserve ce que l'interface apporte — trace `SystemUpdateRun`,
+point de rollback, vérifications post-update. Le mode `--direct` est la voie de
+survie : c'est celui à utiliser quand l'ERP est en panne.
+
+Depuis l'hyperviseur, sans session SSH dans la VM :
+
+```bash
+qm guest exec <vmid> -- /bin/bash -c '/opt/orion/scripts/update_orion.sh --direct'
+```
 
 Après un `git pull` manuel, **redémarrez les services** : gunicorn garde
 l'ancien code en mémoire, et une migration non appliquée laisse la base
