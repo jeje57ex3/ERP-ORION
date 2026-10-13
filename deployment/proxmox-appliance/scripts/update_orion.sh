@@ -146,6 +146,30 @@ rafraichir_scripts() {
 }
 rafraichir_scripts || echo "  ATTENTION: rafraichissement des scripts echoue." >&2
 
+# Rafraichit aussi les unites systemd, pour la meme raison que les scripts :
+# elles n'arrivaient que par le provisioning (03-systemd-units.sh), donc un
+# correctif apporte a orion-backend.service n'atteignait jamais une appliance
+# deja installee. Constate douloureusement : le prefixe ExecStartPre=- qui
+# empeche un script de confort de rendre l'ERP indemarrable n'aurait pas pu
+# etre livre par une mise a jour.
+#
+# Un cp suffit ici, contrairement aux scripts : systemd relit les unites au
+# daemon-reload et ne tient pas de descripteur ouvert sur le fichier. Le
+# depot est la source de verite, le provisioning les copiant deja telles
+# quelles, sans rendu de variables.
+rafraichir_unites_systemd() {
+  local source_unites="$ORION_HOME/backend/deployment/proxmox-appliance/systemd"
+  if [ ! -d "$source_unites" ]; then
+    echo "  unites systemd absentes du depot — ignorees."
+    return 0
+  fi
+  cp "$source_unites"/*.service /etc/systemd/system/ 2>/dev/null || true
+  cp "$source_unites"/*.timer   /etc/systemd/system/ 2>/dev/null || true
+  systemctl daemon-reload
+  echo "  unites systemd rafraichies depuis le depot."
+}
+rafraichir_unites_systemd || echo "  ATTENTION: rafraichissement des unites echoue." >&2
+
 # Recompile les catalogues : un .po mis a jour par le git pull resterait
 # sans effet tant que son .mo n'est pas regenere.
 sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
