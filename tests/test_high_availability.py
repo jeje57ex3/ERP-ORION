@@ -507,31 +507,39 @@ def test_node_form_rejects_duplicate_active(primary_node, secondary_1):
 
 # ── Views — permissions ───────────────────────────────────────────────────────
 
-def test_settings_view_requires_superuser(client, staff_user):
+def test_settings_view_requires_superuser(client, staff_user, entreprise):
+    """super_admin_required redirige, il ne renvoie pas 403.
+
+    Le test affirmait un 403 que le decorateur n'a jamais produit : il
+    redirige vers le tableau de bord avec un message, par choix
+    d'ergonomie. On eprouve donc la propriete de securite -- la page
+    n'est pas servie -- plutot qu'un code de statut imaginaire.
+    """
     client.force_login(staff_user)
     response = client.get('/orion-admin/ha/settings/')
-    assert response.status_code == 403
+    assert response.status_code == 302
+    assert '/orion-admin/ha/' not in response.url
 
 
-def test_settings_view_accessible_to_superuser(client, superuser):
+def test_settings_view_accessible_to_superuser(client, superuser, entreprise):
     client.force_login(superuser)
     response = client.get('/orion-admin/ha/settings/')
     assert response.status_code == 200
 
 
-def test_nodes_view_accessible_to_superuser(client, superuser, primary_node):
+def test_nodes_view_accessible_to_superuser(client, superuser, primary_node, entreprise):
     client.force_login(superuser)
     response = client.get('/orion-admin/ha/nodes/')
     assert response.status_code == 200
 
 
-def test_failover_view_accessible_to_superuser(client, superuser):
+def test_failover_view_accessible_to_superuser(client, superuser, entreprise):
     client.force_login(superuser)
     response = client.get('/orion-admin/ha/failover/')
     assert response.status_code == 200
 
 
-def test_events_view_accessible_to_superuser(client, superuser):
+def test_events_view_accessible_to_superuser(client, superuser, entreprise):
     client.force_login(superuser)
     response = client.get('/orion-admin/ha/events/')
     assert response.status_code == 200
@@ -1069,3 +1077,433 @@ def test_retour_trace_comme_un_retour_et_non_une_bascule(
     assert event.event_type == 'manual_failback'
     assert event.status == 'success'
     assert event.to_node == primary_node
+
+
+# ── Raccordement d'un serveur et diagnostic de liaison ──────────────────────
+# Six causes très différentes donnent le même symptôme — « le serveur ne
+# répond pas ». Le diagnostic doit les distinguer, et surtout proposer le bon
+# remède : c'est toute sa raison d'être.
+
+import requests
+
+from apps.high_availability.connection import (
+    diagnose_node_connection,
+    normaliser_base_url,
+    prochain_rang_libre,
+)
+
+
+class _FausseReponse:
+    def __init__(self, status_code=200, donnees=None, texte=''):
+        self.status_code = status_code
+        self._donnees = donnees
+        self._texte = texte
+
+    def json(self):
+        if self._donnees is None:
+            raise ValueError('pas du JSON')
+        return self._donnees
+
+
+def _etape(resultat, nom):
+    for etape in resultat['steps']:
+        if etape['name'] == nom:
+            return etape
+    return None
+
+
+SANTE_PUBLIQUE = {'status': 'healthy', 'node_id': 'orion-secondary-9', 'role': 'secondary'}
+SANTE_PRIVEE = {
+    'status': 'healthy', 'node_id': 'orion-secondary-9', 'role': 'secondary',
+    'database': 'ok', 'database_role': 'replica', 'read_only': True,
+    'replication_lag_seconds': 2,
+}
+
+
+@pytest.fixture
+def dns_resolvable(monkeypatch):
+    monkeypatch.setattr(
+        'apps.high_availability.connection.socket.getaddrinfo',
+        lambda *a, **k: [('AF_INET', None, None, '', ('203.0.113.9', 0))],
+    )
+
+
+@pytest.fixture
+def secret_pose(settings):
+    settings.ORION_HA_SECRET = 'secret-partage-de-test'
+    return settings
+
+
+def _brancher_http(monkeypatch, par_chemin):
+    """Remplace requests.get par une table chemin -> réponse (ou exception)."""
+    appels = []
+
+    def faux_get(url, **kwargs):
+        appels.append((url, kwargs))
+        for fragment, reponse in par_chemin.items():
+            if fragment in url:
+                if isinstance(reponse, Exception):
+                    raise reponse
+                return reponse
+        raise AssertionError(f'URL non prévue par le test : {url}')
+
+    monkeypatch.setattr('apps.high_availability.connection.requests.get', faux_get)
+    return appels
+
+
+# ── normaliser_base_url ──────────────────────────────────────────────────────
+
+@pytest.mark.parametrize('brut,url,hote', [
+    ('serveur2.exemple.fr', 'https://serveur2.exemple.fr', 'serveur2.exemple.fr'),
+    ('https://serveur2.exemple.fr/', 'https://serveur2.exemple.fr', 'serveur2.exemple.fr'),
+    ('http://Serveur2.Exemple.FR:9000', 'http://Serveur2.Exemple.FR:9000', 'serveur2.exemple.fr'),
+    ('', '', ''),
+])
+def test_normaliser_base_url(brut, url, hote):
+    assert normaliser_base_url(brut) == (url, hote)
+
+
+def test_adresse_vide_est_refusee_sans_appel_reseau(db):
+    resultat = diagnose_node_connection('')
+    assert resultat['ok'] is False
+    assert resultat['identity_ok'] is False
+    assert _etape(resultat, 'Adresse du serveur')['ok'] is False
+
+
+# ── Liaison complète ─────────────────────────────────────────────────────────
+
+def test_liaison_complete_releve_l_identifiant(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    """L'identifiant vient du serveur, jamais d'une saisie : c'est lui que
+    compare la protection en écriture."""
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    resultat = diagnose_node_connection('serveur2.exemple.fr')
+
+    assert resultat['ok'] is True
+    assert resultat['identity_ok'] is True
+    assert resultat['node_id'] == 'orion-secondary-9'
+    assert resultat['payload']['replication_lag_seconds'] == 2
+    assert all(e['ok'] for e in resultat['steps'])
+
+
+def test_le_secret_local_est_envoye_en_entete(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    appels = _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    diagnose_node_connection('serveur2.exemple.fr')
+
+    prive = [a for a in appels if '/ha/health/' in a[0]][0]
+    assert prive[1]['headers']['X-Orion-HA-Secret'] == 'secret-partage-de-test'
+
+
+# ── Les six causes, distinguées ──────────────────────────────────────────────
+
+def test_nom_qui_ne_resout_pas(db, monkeypatch):
+    import socket as vrai_socket
+    monkeypatch.setattr(
+        'apps.high_availability.connection.socket.getaddrinfo',
+        lambda *a, **k: (_ for _ in ()).throw(vrai_socket.gaierror('introuvable')),
+    )
+    resultat = diagnose_node_connection('serveur-inexistant.exemple.fr')
+    etape = _etape(resultat, 'Résolution DNS')
+    assert etape['ok'] is False
+    assert 'orthographe' in etape['remedy']
+
+
+def test_connexion_refusee_pointe_vers_un_service_arrete(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': requests.exceptions.ConnectionError('refused'),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'orion-backend' in etape['remedy']
+
+
+def test_delai_depasse_pointe_vers_un_pare_feu(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': requests.exceptions.ConnectTimeout('timeout'),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'pare-feu' in etape['remedy']
+
+
+def test_certificat_invalide_est_nomme(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': requests.exceptions.SSLError('bad cert'),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'Certificat' in etape['detail']
+
+
+def test_400_renvoie_vers_allowed_hosts(db, monkeypatch, dns_resolvable):
+    """Le piège documenté : le serveur rejette son propre nom de domaine."""
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(400),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'ORION_NODE_DOMAIN' in etape['remedy']
+    assert 'ALLOWED_HOSTS' in etape['remedy']
+
+
+def test_404_signale_que_ce_n_est_pas_un_orion(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {'/ha/public-health/': _FausseReponse(404)})
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'mettez-le à jour' in etape['remedy']
+
+
+def test_502_distingue_le_proxy_de_l_application(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {'/ha/public-health/': _FausseReponse(502)})
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'Nginx est debout' in etape['remedy']
+
+
+def test_530_renvoie_au_connecteur_cloudflare(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {'/ha/public-health/': _FausseReponse(530)})
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'cloudflared' in etape['remedy']
+
+
+def test_reponse_non_json_signale_un_autre_service(db, monkeypatch, dns_resolvable):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, donnees=None, texte='<html>'),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Joignabilité')
+    assert etape['ok'] is False
+    assert 'JSON' in etape['detail']
+
+
+# ── Secret partagé ───────────────────────────────────────────────────────────
+
+def test_secret_different_est_nomme_precisement(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(403),
+    })
+    resultat = diagnose_node_connection('serveur2.exemple.fr')
+    etape = _etape(resultat, 'Secret partagé')
+    assert etape['ok'] is False
+    assert 'ORION_HA_SECRET' in etape['remedy']
+    # L'identité reste exploitable : le raccordement demeure possible.
+    assert resultat['identity_ok'] is True
+    assert resultat['ok'] is False
+
+
+def test_secret_local_absent_est_signale_cote_local(
+    db, monkeypatch, dns_resolvable, settings,
+):
+    settings.ORION_HA_SECRET = 'CHANGE_ME'
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Secret partagé')
+    assert etape['ok'] is False
+    assert 'MÊME valeur' in etape['remedy']
+
+
+# ── Identité ─────────────────────────────────────────────────────────────────
+
+def test_identifiant_deja_pris_est_refuse(
+    db, monkeypatch, dns_resolvable, secret_pose, secondary_1,
+):
+    """Deux serveurs de même identifiant : la protection en écriture ne
+    saurait plus lequel a la main."""
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, {**SANTE_PUBLIQUE, 'node_id': secondary_1.node_id}),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    resultat = diagnose_node_connection('serveur2.exemple.fr')
+    etape = _etape(resultat, 'Identité du serveur')
+    assert etape['ok'] is False
+    assert resultat['identity_ok'] is False
+    assert secondary_1.name in etape['detail']
+
+
+def test_tester_un_serveur_deja_enregistre_ne_signale_pas_son_propre_id(
+    db, monkeypatch, dns_resolvable, secret_pose, secondary_1,
+):
+    secondary_1.base_url = 'https://serveur2.exemple.fr'
+    secondary_1.save()
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, {**SANTE_PUBLIQUE, 'node_id': secondary_1.node_id}),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    resultat = diagnose_node_connection(secondary_1.base_url, node=secondary_1)
+    assert resultat['identity_ok'] is True
+
+
+def test_serveur_sans_identifiant_renvoie_vers_orion_node_id(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, {'status': 'healthy', 'role': 'secondary'}),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Identité du serveur')
+    assert etape['ok'] is False
+    assert 'ORION_NODE_ID' in etape['remedy']
+
+
+# ── État de la base ──────────────────────────────────────────────────────────
+
+def test_secondaire_inscriptible_est_signale(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, {**SANTE_PRIVEE, 'read_only': False}),
+    })
+    resultat = diagnose_node_connection('serveur2.exemple.fr')
+    etape = _etape(resultat, 'Base de données')
+    assert etape['ok'] is False
+    assert 'diverger' in etape['remedy']
+    # Grave, mais la fiche du serveur reste enregistrable.
+    assert resultat['identity_ok'] is True
+
+
+def test_base_injoignable_est_signalee(db, monkeypatch, dns_resolvable, secret_pose):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, {**SANTE_PRIVEE, 'database': 'error'}),
+    })
+    etape = _etape(diagnose_node_connection('serveur2.exemple.fr'), 'Base de données')
+    assert etape['ok'] is False
+    assert 'MySQL' in etape['remedy']
+
+
+# ── prochain_rang_libre ──────────────────────────────────────────────────────
+
+def test_prochain_rang_sur_cluster_vide(db):
+    assert prochain_rang_libre() == 1
+
+
+def test_prochain_rang_suit_le_dernier(primary_node, secondary_1, secondary_2):
+    assert prochain_rang_libre() == 4
+
+
+# ── Vues de raccordement ─────────────────────────────────────────────────────
+
+@pytest.fixture
+def entreprise(db):
+    """Une Company doit exister, sinon SetupRequiredMiddleware renvoie toute
+    requête vers /setup/ — cause des 302 qui rendaient les tests de vues HA
+    inopérants : ils affirmaient un 200 et recevaient une redirection."""
+    from apps.core.models import Company
+    return Company.objects.create(name='Entreprise de test')
+
+
+def test_page_de_raccordement_accessible(client, superuser, entreprise):
+    client.force_login(superuser)
+    reponse = client.get('/orion-admin/ha/nodes/connecter/')
+    assert reponse.status_code == 200
+    assert 'Raccorder' in reponse.content.decode()
+
+
+def test_page_des_serveurs_propose_le_raccordement(
+    client, superuser, entreprise, primary_node,
+):
+    client.force_login(superuser)
+    corps = client.get('/orion-admin/ha/nodes/').content.decode()
+    assert '/orion-admin/ha/nodes/connecter/' in corps
+
+
+def test_test_de_liaison_ne_cree_aucun_serveur(
+    client, superuser, entreprise, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/nodes/connecter/', {
+        'action': 'test',
+        'base_url': 'serveur2.exemple.fr',
+        'name': 'Serveur 2',
+        'priority': 2,
+    })
+    assert reponse.status_code == 200
+    assert OrionHANode.objects.count() == 0
+    assert 'orion-secondary-9' in reponse.content.decode()
+
+
+def test_raccordement_cree_le_serveur_avec_l_identifiant_distant(
+    client, superuser, entreprise, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/nodes/connecter/', {
+        'action': 'connect',
+        'base_url': 'serveur2.exemple.fr',
+        'name': 'Serveur 2',
+        'priority': 2,
+        'is_failover_target': 'on',
+        'allow_auto_failover': 'on',
+    })
+    assert reponse.status_code == 302
+
+    node = OrionHANode.objects.get()
+    assert node.node_id == 'orion-secondary-9'
+    assert node.name == 'Serveur 2'
+    assert node.base_url == 'https://serveur2.exemple.fr'
+    assert node.role == 'secondary'
+    assert node.priority == 2
+    assert node.is_current_active is False
+    assert node.is_failover_target is True
+    # Le bilan de santé obtenu pendant le test est repris : pas de serveur
+    # tout neuf affiché « inconnu » alors qu'on vient de le joindre.
+    assert node.replication_lag_seconds == 2
+    assert node.healthy_since is not None
+
+
+def test_raccordement_refuse_si_l_identite_est_douteuse(
+    client, superuser, entreprise, monkeypatch, dns_resolvable, secret_pose,
+):
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(400),
+    })
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/nodes/connecter/', {
+        'action': 'connect',
+        'base_url': 'serveur2.exemple.fr',
+        'name': 'Serveur 2',
+        'priority': 2,
+    })
+    assert reponse.status_code == 200
+    assert OrionHANode.objects.count() == 0
+    assert 'ORION_NODE_DOMAIN' in reponse.content.decode()
+
+
+def test_test_depuis_la_fiche_d_un_serveur(
+    client, superuser, entreprise, secondary_1, monkeypatch, dns_resolvable, secret_pose,
+):
+    secondary_1.base_url = 'https://serveur2.exemple.fr'
+    secondary_1.save()
+    _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, {**SANTE_PUBLIQUE, 'node_id': secondary_1.node_id}),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    client.force_login(superuser)
+    reponse = client.post(f'/orion-admin/ha/nodes/{secondary_1.pk}/', {'action': 'test'})
+
+    assert reponse.status_code == 200
+    assert 'Secret partagé' in reponse.content.decode()
+    # Un test ne modifie rien.
+    secondary_1.refresh_from_db()
+    assert secondary_1.base_url == 'https://serveur2.exemple.fr'

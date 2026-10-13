@@ -101,3 +101,41 @@ class OrionHANodeForm(forms.ModelForm):
                 raise forms.ValidationError('Un autre serveur est déjà marqué comme actif.')
 
         return cleaned_data
+
+
+class OrionHAConnectForm(forms.Form):
+    """Raccordement d'un serveur au cluster : le strict nécessaire.
+
+    L'identifiant du nœud n'y figure pas, volontairement. Il est relevé sur le
+    serveur distant, seule source qui ne puisse pas se désynchroniser de son
+    ORION_NODE_ID — et un identifiant saisi à la main qui en diffère donne un
+    serveur qui refuse toutes les écritures sans que rien ne l'explique.
+    """
+
+    base_url = forms.CharField(
+        label='Adresse du serveur',
+        max_length=200,
+        help_text='Son sous-domaine propre, par exemple serveur2.exemple.fr. '
+                  'Le https:// est ajouté si vous l\'omettez.',
+    )
+    name = forms.CharField(label='Nom affiché', max_length=180)
+    priority = forms.IntegerField(
+        label='Rang de préséance',
+        min_value=1,
+        help_text='1 reprend la main en priorité. Indépendant du rôle courant.',
+    )
+    region = forms.CharField(label='Emplacement', max_length=80, required=False)
+    is_failover_target = forms.BooleanField(
+        label='Peut recevoir la main', required=False, initial=True,
+    )
+    allow_auto_failover = forms.BooleanField(
+        label='Promotion automatique autorisée', required=False, initial=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # La feuille de style ne cible nommément que text/email/tel : un champ
+        # entier, rendu en <input type="number">, resterait sans habillage.
+        for champ in self.fields.values():
+            if not isinstance(champ.widget, forms.CheckboxInput):
+                champ.widget.attrs.setdefault('class', 'orion-form-control')
