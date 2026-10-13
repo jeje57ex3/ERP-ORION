@@ -1087,6 +1087,7 @@ def test_retour_trace_comme_un_retour_et_non_une_bascule(
 import requests
 
 from apps.high_availability.connection import (
+    chemin_ignore,
     diagnose_node_connection,
     normaliser_base_url,
     prochain_rang_libre,
@@ -1157,10 +1158,50 @@ def _brancher_http(monkeypatch, par_chemin):
     ('serveur2.exemple.fr', 'https://serveur2.exemple.fr', 'serveur2.exemple.fr'),
     ('https://serveur2.exemple.fr/', 'https://serveur2.exemple.fr', 'serveur2.exemple.fr'),
     ('http://Serveur2.Exemple.FR:9000', 'http://Serveur2.Exemple.FR:9000', 'serveur2.exemple.fr'),
+    # URL d'une page de l'ERP, collee depuis la barre d'adresse : le chemin
+    # doit etre ecarte, sinon la sonde interroge
+    # .../orion-admin/ha/nodes/2/ha/public-health/ et renvoie un 404 que le
+    # diagnostic imputait a tort a la version du serveur distant.
+    ('https://login.exemple.fr/orion-admin/ha/nodes/2',
+     'https://login.exemple.fr', 'login.exemple.fr'),
+    ('https://login.exemple.fr/orion-admin/ha/nodes/2/?x=1',
+     'https://login.exemple.fr', 'login.exemple.fr'),
     ('', '', ''),
 ])
 def test_normaliser_base_url(brut, url, hote):
     assert normaliser_base_url(brut) == (url, hote)
+
+
+@pytest.mark.parametrize('brut,attendu', [
+    ('serveur2.exemple.fr', ''),
+    ('https://serveur2.exemple.fr', ''),
+    ('https://serveur2.exemple.fr/', ''),
+    ('https://login.exemple.fr/orion-admin/ha/nodes/2', '/orion-admin/ha/nodes/2'),
+    ('https://login.exemple.fr/a/b/?x=1', '/a/b?x=1'),
+])
+def test_chemin_ignore(brut, attendu):
+    assert chemin_ignore(brut) == attendu
+
+
+def test_url_de_page_sonde_la_bonne_adresse_et_le_signale(
+    db, monkeypatch, dns_resolvable, secret_pose,
+):
+    """Le chemin colle est ecarte, la sonde atteint la bonne URL, et
+    l'exploitant est averti au lieu d'etre envoye sur une fausse piste."""
+    appels = _brancher_http(monkeypatch, {
+        '/ha/public-health/': _FausseReponse(200, SANTE_PUBLIQUE),
+        '/ha/health/': _FausseReponse(200, SANTE_PRIVEE),
+    })
+    resultat = diagnose_node_connection(
+        'https://login.exemple.fr/orion-admin/ha/nodes/2'
+    )
+
+    assert appels[0][0] == 'https://login.exemple.fr/ha/public-health/'
+    assert resultat['identity_ok'] is True
+    etape = _etape(resultat, 'Adresse du serveur')
+    assert etape['ok'] is True
+    assert '/orion-admin/ha/nodes/2' in etape['remedy']
+    assert 'pas celle d' in etape['remedy']
 
 
 def test_adresse_vide_est_refusee_sans_appel_reseau(db):
