@@ -31,14 +31,43 @@ DELAI_SECONDES = 6
 
 
 def normaliser_base_url(brut):
-    """Retourne (url normalisée, hôte). Accepte un nom nu, sans schéma."""
-    valeur = (brut or '').strip().rstrip('/')
+    """Retourne (origine, hôte). Le chemin est volontairement écarté.
+
+    L'adresse d'un nœud est une ORIGINE, pas une page : elle sert de préfixe à
+    « /ha/health/ ». Coller l'URL d'une page de l'ERP — réflexe naturel de qui
+    copie sa barre d'adresse — produisait sinon une sonde absurde du genre
+    « …/orion-admin/ha/nodes/2/ha/public-health/ », un 404, et un message
+    accusant le serveur distant d'être antérieur au module de haute
+    disponibilité au lieu de désigner la saisie. Constaté en production.
+
+    Un déploiement sous sous-chemin n'existe pas : les URL de l'ERP sont
+    montées à la racine. Écarter le chemin est donc toujours correct, et
+    `chemin_ignore()` permet de le signaler plutôt que de le faire en silence.
+    """
+    valeur = (brut or '').strip()
     if not valeur:
         return '', ''
     if '://' not in valeur:
         valeur = f'https://{valeur}'
     decoupe = urlsplit(valeur)
-    return valeur, (decoupe.hostname or '').strip('.').lower()
+    hote = (decoupe.hostname or '').strip('.').lower()
+    if not hote:
+        return '', ''
+    return f'{decoupe.scheme}://{decoupe.netloc}', hote
+
+
+def chemin_ignore(brut):
+    """Partie de l'adresse saisie qui a été écartée, vide s'il n'y en a pas."""
+    valeur = (brut or '').strip()
+    if not valeur:
+        return ''
+    if '://' not in valeur:
+        valeur = f'https://{valeur}'
+    decoupe = urlsplit(valeur)
+    reste = decoupe.path.rstrip('/')
+    if decoupe.query:
+        reste = f'{reste}?{decoupe.query}'
+    return reste
 
 
 def _etape(nom, ok, detail, remede=''):
@@ -140,7 +169,20 @@ def diagnose_node_connection(base_url, node=None):
         return {'steps': etapes, 'payload': None, 'node_id': '', 'ok': False,
                 'identity_ok': False, 'url': url}
 
-    etapes.append(_etape('Adresse du serveur', True, f'{url} (hôte : {hote})'))
+    # Signalé, pas corrigé en silence : l'exploitant doit savoir que le champ
+    # attend une origine, sinon il recollera la même URL de page la fois
+    # suivante.
+    ecarte = chemin_ignore(base_url)
+    if ecarte:
+        etapes.append(_etape(
+            'Adresse du serveur', True,
+            f'{url} (hôte : {hote})',
+            f'Le chemin « {ecarte} » a été ignoré : ce champ attend l\'adresse '
+            "d'un serveur, pas celle d'une page. Corrigez-le pour éviter toute "
+            'ambiguïté.',
+        ))
+    else:
+        etapes.append(_etape('Adresse du serveur', True, f'{url} (hôte : {hote})'))
 
     # ── Résolution du nom ────────────────────────────────────────────────────
     try:
