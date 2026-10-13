@@ -22,6 +22,7 @@ apt-get install -y --no-install-recommends \
   fail2ban ufw \
   qemu-guest-agent \
   jq unzip \
+  gettext \
   default-mysql-client
 
 echo "[01] QEMU Guest Agent..."
