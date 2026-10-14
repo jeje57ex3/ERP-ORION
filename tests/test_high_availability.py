@@ -2441,3 +2441,192 @@ def test_commande_sync_media_explique_son_refus(mesh, settings, primary_node, se
     sortie = StringIO()
     call_command('ha_sync_media', stdout=sortie)
     assert "n'est pas l'actif" in sortie.getvalue()
+
+
+# ── Page du réseau privé ─────────────────────────────────────────────────────
+# Tout ceci n'existait qu'en ligne de commande, et les deux réglages
+# (sous-réseau, port) n'étaient exposés dans aucun formulaire.
+
+from apps.high_availability import mesh_service
+from apps.high_availability.mesh import parse_wg_dump
+
+TAB = chr(9)
+
+
+def _dump_wg(pairs):
+    """Construit une sortie `wg show dump` : en-tête d'interface puis pairs."""
+    lignes = [TAB.join(['cle-privee', 'cle-publique-locale', '51820', 'off'])]
+    for p in pairs:
+        lignes.append(TAB.join([
+            p['cle'], '(none)', p.get('endpoint', '(none)'),
+            p.get('allowed', ''), str(p.get('poignee', 0)),
+            str(p.get('rx', 0)), str(p.get('tx', 0)), '25',
+        ]))
+    return chr(10).join(lignes) + chr(10)
+
+
+def _etat_fige(pairs=(), active=True, raison=''):
+    return lambda: {
+        'active': active, 'raison': raison, 'interface': {},
+        'pairs': parse_wg_dump(_dump_wg(list(pairs)))['pairs'] if pairs else [],
+    }
+
+
+def test_dump_vide_ne_casse_pas():
+    assert parse_wg_dump('') == {'interface': {}, 'pairs': []}
+    assert parse_wg_dump(None) == {'interface': {}, 'pairs': []}
+
+
+def test_dump_lit_l_interface_et_les_pairs():
+    donnees = parse_wg_dump(_dump_wg([
+        {'cle': 'AAA=', 'endpoint': '203.0.113.9:51820',
+         'allowed': '10.10.0.2/32', 'poignee': 1760000000, 'rx': 120, 'tx': 80},
+    ]))
+    assert donnees['interface']['public_key'] == 'cle-publique-locale'
+    assert donnees['interface']['listen_port'] == '51820'
+    assert len(donnees['pairs']) == 1
+
+    pair = donnees['pairs'][0]
+    assert pair['public_key'] == 'AAA='
+    assert pair['endpoint'] == '203.0.113.9:51820'
+    assert pair['allowed_ips'] == '10.10.0.2/32'
+    assert pair['a_repondu'] is True
+    assert pair['rx'] == 120
+
+
+def test_pair_sans_poignee_de_main_n_a_jamais_repondu():
+    """« Déclaré » et « fonctionne » sont deux choses différentes.
+
+    Les confondre fait croire à une liaison là où il n'y a qu'une déclaration
+    — faux positif qui ne se découvre qu'au moment de la bascule.
+    """
+    donnees = parse_wg_dump(_dump_wg([
+        {'cle': 'BBB=', 'allowed': '10.10.0.3/32', 'poignee': 0},
+    ]))
+    assert donnees['pairs'][0]['a_repondu'] is False
+    assert donnees['pairs'][0]['endpoint'] == ''
+
+
+def test_dump_ignore_une_ligne_tronquee():
+    texte = _dump_wg([{'cle': 'CCC=', 'allowed': '10.10.0.2/32', 'poignee': 1}])
+    texte += 'ligne-incomplete' + chr(10)
+    assert len(parse_wg_dump(texte)['pairs']) == 1
+
+
+def test_tableau_des_pairs_distingue_les_trois_etats(
+    mesh, settings, primary_node, secondary_1, secondary_2, monkeypatch,
+):
+    settings.ORION_NODE_PRIORITY = 1
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige([
+        {'cle': 'AAA=', 'endpoint': '203.0.113.9:51820',
+         'allowed': '10.10.0.2/32', 'poignee': 1760000000},
+    ]))
+    resultat = mesh_service.tableau_des_pairs(mesh)
+    par_rang = {l['rang']: l for l in resultat['lignes']}
+
+    assert par_rang[2]['etat'] == 'ok'
+    assert par_rang[3]['etat'] == 'absent'
+    assert 'Jamais déclaré' in par_rang[3]['detail']
+
+
+def test_tableau_des_pairs_signale_un_pair_muet(
+    mesh, settings, primary_node, secondary_1, monkeypatch,
+):
+    settings.ORION_NODE_PRIORITY = 1
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige([
+        {'cle': 'AAA=', 'allowed': '10.10.0.2/32', 'poignee': 0},
+    ]))
+    ligne = mesh_service.tableau_des_pairs(mesh)['lignes'][0]
+    assert ligne['etat'] == 'muet'
+    assert 'pare-feu' in ligne['detail']
+
+
+def test_page_reseau_prive_accessible(client, superuser, entreprise, mesh, monkeypatch):
+    monkeypatch.setattr(
+        mesh_service, 'etat_interface',
+        _etat_fige(active=False, raison="WireGuard n'est pas installé sur ce serveur."),
+    )
+    client.force_login(superuser)
+    reponse = client.get('/orion-admin/ha/reseau-prive/')
+    assert reponse.status_code == 200
+
+    corps = reponse.content.decode()
+    assert 'Réseau privé' in corps
+    # Adresse déduite du rang de ce serveur, affichée sans rien saisir.
+    assert '10.10.0.1' in corps
+
+
+def test_page_enregistre_les_reglages(client, superuser, entreprise, mesh, monkeypatch):
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=False))
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'save', 'mesh_subnet': '10.20.0.0/24', 'mesh_port': 51821,
+    })
+    assert reponse.status_code == 302
+
+    mesh.refresh_from_db()
+    assert mesh.mesh_subnet == '10.20.0.0/24'
+    assert mesh.mesh_port == 51821
+
+
+def test_page_refuse_un_sous_reseau_public(client, superuser, entreprise, mesh, monkeypatch):
+    """Une plage publique détournerait du trafic qui ne nous appartient pas."""
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=False))
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'save', 'mesh_subnet': '8.8.8.0/24', 'mesh_port': 51820,
+    })
+    assert reponse.status_code == 200
+    assert 'plage privée' in reponse.content.decode()
+
+    mesh.refresh_from_db()
+    assert mesh.mesh_subnet == '10.10.0.0/24'
+
+
+def test_page_refuse_une_cle_qui_n_en_est_pas_une(
+    client, superuser, entreprise, mesh, monkeypatch,
+):
+    """Une clé invalide écrite dans la configuration laisserait wg-quick
+    échouer et l'interface inactive, sans rapport apparent avec la saisie."""
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=False))
+    appels = []
+    monkeypatch.setattr(
+        mesh_service, 'ajouter_pair',
+        lambda *a, **k: appels.append(a) or (True, 'ok'),
+    )
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'add-peer', 'rang': 2,
+        'cle_publique': 'ssh-ed25519 AAAAC3Nz pas-une-cle-wireguard',
+    })
+    assert reponse.status_code == 200
+    assert appels == []
+    assert '44 caractères' in reponse.content.decode()
+
+
+def test_page_declare_un_pair_valide(client, superuser, entreprise, mesh, monkeypatch):
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=False))
+    appels = []
+    monkeypatch.setattr(
+        mesh_service, 'ajouter_pair',
+        lambda *a, **k: appels.append(a) or (True, 'Pair de rang 2 ajoute.'),
+    )
+    client.force_login(superuser)
+    cle = 'A' * 43 + '='
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'add-peer', 'rang': 2, 'cle_publique': cle,
+        'endpoint': 'serveur2.exemple.fr:51820',
+    })
+    assert reponse.status_code == 302
+    assert appels == [(2, cle, 'serveur2.exemple.fr:51820')]
+
+
+def test_script_absent_est_dit_clairement(monkeypatch):
+    def _absent(*a, **k):
+        raise FileNotFoundError()
+
+    monkeypatch.setattr(mesh_service.subprocess, 'run', _absent)
+    ok, sortie = mesh_service.initialiser()
+    assert ok is False
+    assert 'introuvable' in sortie
+    assert 'mise à jour' in sortie

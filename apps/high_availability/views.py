@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.high_availability import mesh_service
 from apps.high_availability.cluster import explorer_grappe, raccorder_grappe
 from apps.high_availability.connection import (
     diagnose_node_connection,
@@ -9,6 +10,8 @@ from apps.high_availability.connection import (
 )
 from apps.high_availability.forms import (
     OrionHAClusterForm,
+    OrionHAMeshForm,
+    OrionHAPeerForm,
     OrionHAConnectForm,
     OrionHANodeForm,
     OrionHASettingsForm,
@@ -219,6 +222,75 @@ def ha_cluster_view(request):
         'settings_obj': settings_obj,
         'exploration': exploration,
         'nodes': OrionHANode.objects.all().order_by('priority'),
+    })
+
+@super_admin_required
+def ha_mesh_view(request):
+    """Reseau prive entre serveurs, pilote depuis l'interface.
+
+    Tout ceci n'existait qu'en ligne de commande, et les deux reglages
+    (sous-reseau, port) n'etaient exposes nulle part : impossible de les
+    changer autrement qu'en base.
+
+    L'echange de cles reste manuel et le restera : aucune des deux cles
+    n'existe avant que les deux machines soient installees, et aucune ne peut
+    etre devinee par l'une pour l'autre. La page se contente de rendre cet
+    echange lisible -- elle affiche la cle a copier, et accepte celle d'en
+    face.
+    """
+    settings_obj = OrionHASettings.get_solo()
+    action = request.POST.get('action', '') if request.method == 'POST' else ''
+
+    form = OrionHAMeshForm(instance=settings_obj)
+    form_pair = OrionHAPeerForm()
+
+    if action == 'save':
+        form = OrionHAMeshForm(request.POST, instance=settings_obj)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.updated_by = request.user
+            obj.save()
+            messages.success(request, 'Reglages du reseau prive enregistres.')
+            return redirect('high_availability:admin_mesh')
+
+    elif action == 'add-peer':
+        form_pair = OrionHAPeerForm(request.POST)
+        if form_pair.is_valid():
+            ok, sortie = mesh_service.ajouter_pair(
+                form_pair.cleaned_data['rang'],
+                form_pair.cleaned_data['cle_publique'],
+                form_pair.cleaned_data.get('endpoint') or '',
+            )
+            if ok:
+                messages.success(request, sortie)
+                return redirect('high_availability:admin_mesh')
+            messages.error(request, sortie)
+
+    elif action in ('init', 'hosts', 'up', 'media-key'):
+        operations = {
+            'init': mesh_service.initialiser,
+            'hosts': mesh_service.poser_hosts,
+            'up': mesh_service.activer,
+            'media-key': mesh_service.cle_media,
+        }
+        ok, sortie = operations[action]()
+        # La sortie est affichee telle quelle : « init » et « media-key »
+        # contiennent la cle publique a copier, qui n'a d'interet que vue.
+        if ok:
+            messages.success(request, sortie)
+        else:
+            messages.error(request, sortie)
+        return redirect('high_availability:admin_mesh')
+
+    pairs = mesh_service.tableau_des_pairs(settings_obj)
+
+    return render(request, 'high_availability/admin_mesh.html', {
+        'form': form,
+        'form_pair': form_pair,
+        'settings_obj': settings_obj,
+        'local': mesh_service.contexte_local(settings_obj),
+        'etat': pairs['etat'],
+        'lignes': pairs['lignes'],
     })
 
 @super_admin_required

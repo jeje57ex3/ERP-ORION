@@ -192,3 +192,93 @@ class OrionHAClusterForm(forms.ModelForm):
                 '(ex. exemple.fr).'
             )
         return base
+
+
+class OrionHAMeshForm(forms.ModelForm):
+    """Réglages du réseau privé : un sous-réseau, un port.
+
+    Ces deux champs existaient sur le modèle sans être exposés nulle part :
+    impossible de les changer autrement qu'en base. Le reste de la
+    configuration WireGuard se déduit du rang du serveur.
+    """
+
+    class Meta:
+        model = OrionHASettings
+        fields = ['mesh_subnet', 'mesh_port']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for champ in self.fields.values():
+            champ.widget.attrs.setdefault('class', 'orion-form-control')
+
+    def clean_mesh_subnet(self):
+        import ipaddress
+
+        brut = (self.cleaned_data.get('mesh_subnet') or '').strip()
+        try:
+            reseau = ipaddress.ip_network(brut, strict=False)
+        except ValueError:
+            raise forms.ValidationError(
+                'Sous-réseau illisible. Attendu : une notation CIDR comme '
+                '10.10.0.0/24.'
+            )
+        if not reseau.is_private:
+            raise forms.ValidationError(
+                'Utilisez une plage privée (10.x, 172.16-31.x, 192.168.x) : '
+                'une plage publique détournerait du trafic qui ne vous '
+                'appartient pas.'
+            )
+        if reseau.num_addresses < 4:
+            raise forms.ValidationError(
+                f'{reseau} ne laisse aucune place pour des serveurs. '
+                'Élargissez le préfixe.'
+            )
+        return str(reseau)
+
+    def clean_mesh_port(self):
+        port = self.cleaned_data.get('mesh_port') or 0
+        if not (1024 <= port <= 65535):
+            raise forms.ValidationError(
+                'Choisissez un port entre 1024 et 65535.'
+            )
+        return port
+
+
+class OrionHAPeerForm(forms.Form):
+    """Déclaration d'un pair WireGuard.
+
+    L'adresse privée n'est pas demandée : elle se déduit du rang. Demander les
+    deux permettrait de les saisir en désaccord.
+    """
+
+    rang = forms.IntegerField(
+        label='Rang du serveur', min_value=1,
+        help_text='Son rang dans la grappe : 2 pour serveur2, 3 pour serveur3…',
+    )
+    cle_publique = forms.CharField(
+        label='Clé publique WireGuard',
+        help_text="Affichée par « Initialiser » sur l'autre serveur.",
+    )
+    endpoint = forms.CharField(
+        label='Adresse publique et port', required=False,
+        help_text='Ex. serveur2.exemple.fr:51820. Facultatif si ce serveur-ci '
+                  'est derrière un NAT et que l\'autre initie la liaison.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for champ in self.fields.values():
+            champ.widget.attrs.setdefault('class', 'orion-form-control')
+
+    def clean_cle_publique(self):
+        cle = (self.cleaned_data.get('cle_publique') or '').strip()
+        # Une clé WireGuard est 32 octets en base64, soit 44 caractères finissant
+        # par « = ». Le contrôle évite d'écrire dans la configuration une ligne
+        # que wg-quick refusera ensuite, en laissant l'interface inactive.
+        if len(cle) != 44 or not cle.endswith('='):
+            raise forms.ValidationError(
+                'Une clé publique WireGuard fait 44 caractères et se termine '
+                "par « = ». Vérifiez que vous n'avez pas collé autre chose, "
+                "comme une clé SSH ou la sortie complète d'une commande."
+            )
+        return cle

@@ -113,6 +113,54 @@ def config_locale(settings_obj=None):
     }
 
 
+def parse_wg_dump(texte):
+    """Analyse la sortie de `wg show <iface> dump`.
+
+    Format : la première ligne décrit l'interface, les suivantes un pair
+    chacune, en colonnes séparées par des tabulations.
+
+    `latest-handshake` est la valeur qui compte : un pair déclaré mais dont la
+    poignée de main vaut 0 n'a JAMAIS répondu. C'est l'exacte différence entre
+    « configuré » et « fonctionne », et la confondre fait croire à une liaison
+    là où il n'y a qu'une déclaration — précisément le genre de faux positif
+    qu'on ne découvre qu'au moment de la bascule.
+    """
+    lignes = [l for l in (texte or '').splitlines() if l.strip()]
+    if not lignes:
+        return {'interface': {}, 'pairs': []}
+
+    champs = lignes[0].split('\t')
+    interface = {
+        'public_key': champs[1] if len(champs) > 1 else '',
+        'listen_port': champs[2] if len(champs) > 2 else '',
+    }
+
+    pairs = []
+    for ligne in lignes[1:]:
+        c = ligne.split('\t')
+        if len(c) < 5:
+            continue
+
+        def _entier(valeur):
+            try:
+                return int(valeur)
+            except (TypeError, ValueError):
+                return 0
+
+        poignee = _entier(c[4])
+        pairs.append({
+            'public_key': c[0],
+            'endpoint': '' if c[2] in ('(none)', '') else c[2],
+            'allowed_ips': '' if c[3] in ('(none)', '') else c[3],
+            'latest_handshake': poignee,
+            'a_repondu': poignee > 0,
+            'rx': _entier(c[5]) if len(c) > 5 else 0,
+            'tx': _entier(c[6]) if len(c) > 6 else 0,
+        })
+
+    return {'interface': interface, 'pairs': pairs}
+
+
 def pairs_attendus(settings_obj=None):
     """Pairs que CE serveur devrait avoir : tous les autres rangs connus.
 
