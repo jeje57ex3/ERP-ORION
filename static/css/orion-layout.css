@@ -32,7 +32,7 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
-  background: var(--orion-sidebar);
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
   color: #f8f5ef;
   display: flex;
   flex-direction: column;

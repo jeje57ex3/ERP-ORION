@@ -151,7 +151,7 @@
 }
 
 [data-theme="dark"] .orion-sidebar {
-  background: var(--sidebar-bg);
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
 }
 
 [data-theme="dark"] .orion-navbar,

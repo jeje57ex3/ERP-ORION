@@ -9,7 +9,7 @@
   left: 0;
   width: var(--orion-sidebar-width, 245px);
   height: 100vh;
-  background: linear-gradient(180deg, var(--orion-sidebar-bg-dark, #1C120A) 0%, var(--orion-sidebar-bg, #2B2118) 100%);
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
   color: var(--orion-light-text, #F8F3EA);
   display: flex;
   flex-direction: column;

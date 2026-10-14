@@ -11,7 +11,7 @@
   left: 0;
   width: var(--od-sidebar-w, 245px);
   height: 100vh;
-  background: linear-gradient(180deg, var(--od-sidebar-bg, #1C120A) 0%, var(--od-sidebar-bg2, #2B2118) 100%);
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
   display: flex;
   flex-direction: column;
   z-index: 1050;

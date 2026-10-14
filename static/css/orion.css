@@ -11,11 +11,26 @@
   --orion-text:          #2B2118;
   --orion-gold-glow:     rgba(198, 161, 91, 0.25);
   --orion-divider:       rgba(198, 161, 91, 0.2);
+
+  /* Fond unique de la barre de menu. Il existait TROIS apparences selon
+     le gabarit de la page : #0F0A06 plat pour .erp-sidebar (que le
+     !important ci-dessous imposait), le degrade #1C120A -> #2B2118 pour
+     .orion-sidebar, et #14110f pour .orion-sidebar-v2. Trois gabarits de
+     mise en page differents, donc une couleur qui changeait en naviguant.
+
+     Unifie sur la variante la plus CLAIRE des trois, mesuree a la
+     luminance relative : le degrade est entierement plus clair que les
+     deux tons plats. Aucune couleur nouvelle n est introduite.
+
+     Defini ICI et une seule fois : c est la duplication de --sidebar-bg,
+     declaree a deux valeurs differentes dans deux feuilles, qui a produit
+     la divergence. */
+  --orion-menu-bg: linear-gradient(180deg, #1C120A 0%, #2B2118 100%);
 }
 
 /* ─── Sidebar ──────────────────────────────────────────────── */
 .erp-sidebar {
-  background: var(--sidebar-bg, var(--orion-primary)) !important;
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%)) !important;
   border-right: 1px solid var(--orion-divider) !important;
 }
 
