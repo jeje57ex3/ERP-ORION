@@ -141,6 +141,33 @@ services applicatifs (backend, frontends SIÈCLE/LUNEA si un domaine Login a
 été fourni, supervision `orion-health.timer`) démarrent seuls, ~3-8 min après
 le premier boot selon la taille des paquets à installer.
 
+Le provisioning est orchestré par un seul script,
+`provisioning/00-provisionner.sh`, qui enchaîne les étapes dans l'ordre,
+**continue** si l'une échoue, et termine par une vérification complète. À la
+fin, le message d'accueil de la console (`/etc/motd`) dit ce qui s'est
+réellement passé : « appliance prête », ou la liste des étapes en échec. Ne
+pas se fier à autre chose — l'ERP peut démarrer et renvoyer 500 sur toutes ses
+pages si une étape intermédiaire a manqué.
+
+```bash
+# Verdict du provisioning (aussi affiché à la connexion console)
+qm guest exec <vmid> -- /bin/cat /etc/motd
+
+# Récapitulatif étape par étape
+qm guest exec <vmid> -- /bin/cat /opt/orion/logs/provisioning.txt
+
+# Revérifier à tout moment (après une mise à jour, un changement de domaine...)
+qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-verifier.sh
+```
+
+`orion-verifier.sh` contrôle ce qu'un navigateur constate — les pages
+répondent-elles ? — et non ce que les scripts croient avoir fait : services,
+ports, schéma de base, présence de `staticfiles.json` (sans lui, toutes les
+pages renvoient 500), réponses HTTP, sonde de haute disponibilité sous le vrai
+nom d'hôte, modèle IA téléchargé, et dépôt git lisible. Il distingue les
+défauts bloquants des composants simplement non installés, et sort en erreur
+seulement dans le premier cas.
+
 Une fois le provisioning terminé, **ouvrir un navigateur** sur le domaine
 Login (ou directement sur l'IP de la VM, même sans DNS configuré — le vhost
 Login répond en `default_server`) : la page affiche automatiquement
@@ -219,7 +246,13 @@ initie une connexion sortante, aucun port entrant public n'est requis).
 
 ## Dépannage
 
+La **première** commande à lancer devant un symptôme (502, 500, page
+blanche) : elle nomme la cause au lieu de la laisser deviner.
+
 ```bash
+# Vérification complète — à lancer en premier
+sudo bash /opt/orion/scripts/orion-verifier.sh
+
 # Statut général
 sudo /opt/orion/scripts/orion-dashboard.sh
 

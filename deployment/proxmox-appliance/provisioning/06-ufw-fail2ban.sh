@@ -3,7 +3,10 @@
 # Pare-feu (UFW) + protection anti-bruteforce (fail2ban).
 
 set -euo pipefail
-exec >> /var/log/orion-provision.log 2>&1
+# shellcheck source=lib/commun.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/commun.sh"
+ORION_ETAPE='06'
+journaliser_vers_fichier_et_console
 
 echo "=== [06] UFW / fail2ban — $(date -u +%FT%TZ) ==="
 

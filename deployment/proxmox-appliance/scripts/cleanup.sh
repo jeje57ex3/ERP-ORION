@@ -5,7 +5,22 @@ set -euo pipefail
 
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
-[ -f "$ENV_FILE" ] && { set -a; . "$ENV_FILE"; set +a; }
+# commun.sh : lecture du .env sans l'executer, et $HOME garanti. Une seule
+# valeur a espaces non citee suffisait a tuer ce script sur un
+# « -n: command not found » (exit 127) qui ne nommait ni la cle ni le fichier.
+ICI_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for _candidat in \
+  "$ICI_SCRIPT/commun.sh" \
+  /opt/orion/scripts/commun.sh \
+  /opt/orion/backend/deployment/proxmox-appliance/provisioning/lib/commun.sh
+do
+  if [ -f "$_candidat" ]; then . "$_candidat"; break; fi
+done
+if ! declare -f charger_env >/dev/null 2>&1; then
+  echo "ERREUR: commun.sh introuvable (attendu dans /opt/orion/scripts/)." >&2
+  exit 1
+fi
+[ -f "$ENV_FILE" ] && charger_env "$ENV_FILE" || true
 RETENTION="${ORION_BACKUP_RETENTION_DAYS:-14}"
 LOG_RETENTION_DAYS=30
 

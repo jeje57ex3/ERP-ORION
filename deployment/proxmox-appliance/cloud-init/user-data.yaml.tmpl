@@ -62,17 +62,19 @@ __PAYLOAD_B64__
 runcmd:
   - [ mkdir, -p, /opt/orion-appliance ]
   - [ bash, -c, "tar xzf /opt/orion-appliance/payload.tar.gz -C /opt/orion-appliance" ]
-  - [ bash, -c, "chmod +x /opt/orion-appliance/provisioning/*.sh /opt/orion-appliance/scripts/*.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; set +a; /opt/orion-appliance/provisioning/01-system-packages.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/build-info.env; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/02-deploy-orion.sh" ]
-  # 07 avant 03 : /opt/orion/scripts/wait_for_port.sh (utilisé par les
-  # ExecStartPre des services orion-backend/orion-frontend) doit exister
-  # avant que 03 ne démarre ces services.
-  - [ bash, -c, "/opt/orion-appliance/provisioning/07-backup-cron.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/03-systemd-units.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/04-nginx-config.sh" ]
-  - [ bash, -c, "set -a; . /opt/orion-appliance/deploy-info.env; set +a; /opt/orion-appliance/provisioning/05-cloudflared-config.sh" ]
-  - [ bash, -c, "/opt/orion-appliance/provisioning/06-ufw-fail2ban.sh" ]
-  - [ bash, -c, "echo 'Orion ERP Appliance — provisioning terminé. Rendez-vous sur https://<votre-domaine>/ (ou l’IP de la VM) pour créer votre compte administrateur.' > /etc/motd" ]
+  # UNE seule ligne : tout le provisioning est orchestré par
+  # provisioning/00-provisionner.sh. Auparavant, chaque étape avait sa ligne
+  # ici, avec son propre « set -a; . build-info.env; . deploy-info.env » —
+  # c'est-à-dire que ces fichiers étaient EXÉCUTÉS, et l'ordre réel des étapes
+  # (07 avant 03) ne tenait qu'à un commentaire YAML. Trois pannes en sont
+  # venues ; voir l'en-tête de 00-provisionner.sh.
+  #
+  # « bash <chemin> » et non le chemin seul : un script arrivé en 100644
+  # (git conserve le mode) échouerait en « command not found ».
+  - [ bash, -c, "bash /opt/orion-appliance/provisioning/00-provisionner.sh" ]
 
-final_message: "Orion ERP Appliance prête — ouvrez votre navigateur sur le domaine (ou l'IP) de la VM pour créer votre compte administrateur."
+# Volontairement sobre : l'état réel de l'installation est écrit dans
+# /etc/motd par 00-provisionner.sh, d'après ce qu'il a vérifié. Annoncer
+# « prête » sans l'avoir vérifié envoie l'exploitant chercher la panne dans
+# son navigateur, à plusieurs étapes de sa cause — c'est ce qui s'est produit.
+final_message: "Orion ERP — provisioning terminé. Connectez-vous à la console de la VM : le message d'accueil indique l'état de l'installation et, le cas échéant, ce qui a échoué."

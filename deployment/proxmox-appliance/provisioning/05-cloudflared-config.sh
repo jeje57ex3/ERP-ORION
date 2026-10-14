@@ -6,7 +6,10 @@
 # plus tard, voir PROXMOX.md).
 
 set -euo pipefail
-exec >> /var/log/orion-provision.log 2>&1
+# shellcheck source=lib/commun.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/commun.sh"
+ORION_ETAPE='05'
+journaliser_vers_fichier_et_console
 
 echo "=== [05] Cloudflare Tunnel — $(date -u +%FT%TZ) ==="
 
