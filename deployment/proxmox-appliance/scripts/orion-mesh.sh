@@ -22,6 +22,7 @@
 #   orion-mesh.sh init                              Pose la configuration locale
 #   orion-mesh.sh pubkey                            Clé publique à donner aux autres
 #   orion-mesh.sh add-peer RANG CLE [ENDPOINT]      Déclare un pair
+#   orion-mesh.sh remove-peer RANG                  Retire un pair
 #   orion-mesh.sh hosts                             Résolution privée des noms
 #   orion-mesh.sh media-key                         Clé SSH de synchro des médias
 #   orion-mesh.sh trust RANG "CLE"                  Accepte la clé SSH d'un pair
@@ -44,7 +45,7 @@ CLE_PRIVEE="/etc/wireguard/$IFACE.key"
 CLE_PUBLIQUE="/etc/wireguard/$IFACE.pub"
 MARQUEUR="# --- orion-mesh ---"
 
-usage() { sed -n '2,33p' "$0"; exit "${1:-0}"; }
+usage() { sed -n '2,34p' "$0"; exit "${1:-0}"; }
 
 exiger_root() {
   [ "$(id -u)" -eq 0 ] || { echo "ERREUR: à lancer en root." >&2; exit 1; }
@@ -216,6 +217,49 @@ print(adresse_overlay(OrionHASettings.get_solo(), $rang))
   rm -f "$CONF.avant-pair"
 }
 
+# Retirer un pair manquait, et son absence enfermait : « init » conserve
+# volontairement les blocs [Peer] existants, donc un pair fautif survivait a
+# toute reinitialisation et laissait l'interface refusee indefiniment. Seule
+# issue : editer /etc/wireguard a la main.
+cmd_remove_peer() {
+  exiger_root
+  local rang="${1:-}"
+  [ -n "$rang" ] || { echo "Usage: remove-peer RANG" >&2; exit 2; }
+  [ -f "$CONF" ] || { echo "ERREUR: $CONF introuvable." >&2; exit 1; }
+
+  if ! grep -q "^# Pair de rang $rang\$" "$CONF"; then
+    echo "[mesh] Aucun pair de rang $rang declare — rien a faire."
+    return 0
+  fi
+
+  cp "$CONF" "$CONF.avant-retrait"
+
+  # Supprime du commentaire de rang jusqu'a la fin du bloc : la ligne vide, le
+  # commentaire du pair suivant, ou la fin du fichier. Le marqueur de rang est
+  # pose par add-peer, c'est donc une ancre fiable.
+  awk -v rang="$rang" '
+    $0 == "# Pair de rang " rang { dans_bloc = 1; next }
+    dans_bloc && (/^$/ || /^# Pair de rang /) { dans_bloc = 0 }
+    !dans_bloc { print }
+  ' "$CONF" > "$CONF.nouveau"
+
+  mv -f "$CONF.nouveau" "$CONF"
+  chmod 600 "$CONF"
+  echo "[mesh] Pair de rang $rang retire."
+
+  if systemctl is-active --quiet "wg-quick@$IFACE"; then
+    if systemctl restart "wg-quick@$IFACE"; then
+      echo "[mesh] $IFACE recharge."
+    else
+      echo "ERREUR: $IFACE ne redemarre pas malgre le retrait." >&2
+      journal_wg
+      exit 1
+    fi
+  else
+    echo "[mesh] Interface arretee — lancez « up » pour la demarrer."
+  fi
+}
+
 cmd_hosts() {
   exiger_root
   local lignes
@@ -361,6 +405,7 @@ case "${1:-}" in
   init)      shift; cmd_init "$@" ;;
   pubkey)    shift; cmd_pubkey "$@" ;;
   add-peer)  shift; cmd_add_peer "$@" ;;
+  remove-peer) shift; cmd_remove_peer "$@" ;;
   hosts)     shift; cmd_hosts "$@" ;;
   media-key) shift; cmd_media_key "$@" ;;
   trust)     shift; cmd_trust "$@" ;;
