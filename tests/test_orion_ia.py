@@ -441,3 +441,129 @@ def test_le_libelle_injecte_dans_le_script_est_echappe():
     )
     assert '\\u0022' in rendu
     assert 'const M = "Page \\u0022x\\u0022 (Mod)";' == rendu
+
+
+# ── Messages du moteur local ────────────────────────────────────────────────
+# L'utilisateur a reçu « 404 Client Error: Not Found for url:
+# http://localhost:11434/api/chat ». Ce message ne dit ni ce qui manque ni
+# quoi faire. Or un 404 d'Ollama ne signifie PAS que le point d'entrée est
+# absent : il signifie que le MODÈLE demandé n'est pas téléchargé.
+
+import requests as _requests
+
+from apps.orion_ai.providers import LocalAIProvider
+
+
+class _Reponse:
+    def __init__(self, status_code=200, donnees=None, texte=''):
+        self.status_code = status_code
+        self._donnees = donnees
+        self.text = texte
+
+    def json(self):
+        if self._donnees is None:
+            raise ValueError('pas du JSON')
+        return self._donnees
+
+
+def _brancher(monkeypatch, reponse):
+    def faux_post(url, **kwargs):
+        if isinstance(reponse, Exception):
+            raise reponse
+        return reponse
+
+    monkeypatch.setattr(
+        'apps.orion_ai.providers.http_requests.post', faux_post,
+    )
+
+
+def _interroger():
+    return LocalAIProvider().generate(
+        messages=[{'role': 'user', 'content': 'bonjour'}],
+        model='qwen2.5:3b-instruct',
+    )
+
+
+def test_un_modele_absent_est_nomme_avec_la_commande(monkeypatch):
+    """Le cas réellement rencontré : Ollama tourne, le modèle manque."""
+    _brancher(monkeypatch, _Reponse(404, {'error': 'model not found'}))
+
+    with pytest.raises(AIProviderError) as erreur:
+        _interroger()
+
+    message = str(erreur.value)
+    assert 'qwen2.5:3b-instruct' in message
+    assert "n'est pas téléchargé" in message
+    assert 'orion-ai.sh pull' in message
+    # Et surtout, plus de jargon HTTP brut.
+    assert '404 Client Error' not in message
+
+
+def test_un_moteur_injoignable_renvoie_vers_le_diagnostic(monkeypatch):
+    _brancher(monkeypatch, _requests.exceptions.ConnectionError('refused'))
+
+    with pytest.raises(AIProviderError) as erreur:
+        _interroger()
+
+    message = str(erreur.value)
+    assert 'ne répond pas' in message
+    assert 'orion-ai.sh status' in message
+
+
+def test_un_delai_depasse_evoque_la_memoire(monkeypatch):
+    """Sur une petite VM, c'est la cause la plus fréquente."""
+    _brancher(monkeypatch, _requests.exceptions.Timeout('trop long'))
+
+    with pytest.raises(AIProviderError) as erreur:
+        _interroger()
+
+    assert 'mémoire' in str(erreur.value)
+
+
+def test_une_autre_erreur_http_reprend_le_detail_du_moteur(monkeypatch):
+    _brancher(monkeypatch, _Reponse(500, {'error': 'out of memory'}))
+
+    with pytest.raises(AIProviderError) as erreur:
+        _interroger()
+
+    message = str(erreur.value)
+    assert '500' in message
+    assert 'out of memory' in message
+
+
+def test_une_reponse_non_json_est_dite_clairement(monkeypatch):
+    """Cas d'un autre service écoutant sur ce port."""
+    _brancher(monkeypatch, _Reponse(200, donnees=None, texte='<html>'))
+
+    with pytest.raises(AIProviderError) as erreur:
+        _interroger()
+
+    assert 'Ollama' in str(erreur.value)
+
+
+def test_une_reponse_valide_est_rendue(monkeypatch):
+    _brancher(monkeypatch, _Reponse(200, {
+        'message': {'content': 'Bonjour.'},
+        'prompt_eval_count': 12,
+        'eval_count': 4,
+    }))
+
+    resultat = _interroger()
+    assert resultat['content'] == 'Bonjour.'
+    assert resultat['provider'] == 'local'
+    assert resultat['token_input'] == 12
+    assert resultat['token_output'] == 4
+
+
+def test_le_script_verifie_le_telechargement():
+    """Un pull interrompu laissait Ollama debout sans le modèle, et l'ERP
+    répondait un 404 que rien n'expliquait."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    script = (Path(settings.BASE_DIR) / 'deployment' / 'proxmox-appliance'
+              / 'scripts' / 'orion-ai.sh').read_text(encoding='utf-8')
+    assert 'if ! ollama pull' in script
+    assert 'api/tags' in script
+    assert 'orion-ai.sh pull' in script

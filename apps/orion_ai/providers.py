@@ -114,13 +114,48 @@ class LocalAIProvider(BaseAIProvider):
                 },
                 timeout=120,
             )
-            response.raise_for_status()
         except http_requests.exceptions.ConnectionError:
-            raise AIProviderError(f"Impossible de se connecter à l'IA locale : {base_url}")
+            raise AIProviderError(
+                f"Le moteur local ne répond pas sur {base_url}. "
+                'Sur le serveur : /opt/orion/scripts/orion-ai.sh status'
+            )
         except http_requests.exceptions.Timeout:
-            raise AIProviderError("Délai d'attente dépassé pour l'IA locale.")
+            raise AIProviderError(
+                "Délai d'attente dépassé par le moteur local. Le modèle est "
+                'peut-être en cours de chargement, ou la machine manque de '
+                'mémoire — réessayez, puis vérifiez la RAM disponible avec '
+                'orion-ai.sh status.'
+            )
 
-        data = response.json()
+        # Un 404 ici ne veut PAS dire que le point d'entrée est absent : Ollama
+        # répond 404 quand le MODÈLE demandé n'est pas téléchargé. Sans cette
+        # distinction, l'utilisateur recevait
+        # « 404 Client Error: Not Found for url: .../api/chat », qui ne dit ni
+        # ce qui manque ni quoi faire — constaté en production.
+        if response.status_code == 404:
+            raise AIProviderError(
+                f"Le modèle « {model} » n'est pas téléchargé sur ce serveur. "
+                'Lancez : /opt/orion/scripts/orion-ai.sh pull ' + model
+            )
+
+        if response.status_code >= 400:
+            detail = ''
+            try:
+                detail = (response.json() or {}).get('error', '')
+            except ValueError:
+                detail = (response.text or '')[:200]
+            raise AIProviderError(
+                f'Le moteur local a refusé la requête (HTTP '
+                f'{response.status_code}){" : " + detail if detail else "."}'
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            raise AIProviderError(
+                'Réponse illisible du moteur local : du JSON était attendu. '
+                f'{base_url} sert-il bien Ollama ?'
+            )
 
         return {
             'content': data.get('message', {}).get('content', ''),
