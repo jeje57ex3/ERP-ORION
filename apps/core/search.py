@@ -1,110 +1,182 @@
-"""
-Global search across company data.
-Queries use the active company DB alias (set by middleware/router).
-"""
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.db.models import Q
+"""Recherche globale dans les données de l'entreprise active.
 
+Filtrage par entreprise, explicitement. L'isolation ne peut pas être laissée
+au routeur de base : celui-ci n'aiguille vers une base dédiée que les
+entreprises dont `database_created` est vrai. Les autres partagent la base
+`default`, et une requête sans filtre y verrait les clients, devis et
+chantiers des entreprises voisines. Le filtre explicite est correct dans les
+deux topologies, et c'est le même que celui employé partout ailleurs dans
+l'ERP, la clé étrangère `company`.
+
+Les échecs sont journalisés et non avalés. La version précédente enveloppait
+chaque recherche dans un `except Exception: return []`, ce qui a masqué un
+défaut pendant tout ce temps : `_search_btp` importait `apps.btp.models.Project`,
+un modèle qui n'existe pas — il s'appelle `BTPProject`. Les chantiers étaient
+donc introuvables, sans que rien ne le signale.
+"""
+
+import logging
+
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+
+logger = logging.getLogger(__name__)
 
 RESULT_LIMIT = 5
 
 
-def _search_crm(q):
+def _entreprise_active(request):
+    return getattr(request, 'current_company', None)
+
+
+def _collecter(nom_source, fonction, q, company):
+    """Exécute une recherche en journalisant son échec plutôt qu'en l'ignorant.
+
+    Un module absent est normal — tous les modules ne sont pas installés
+    partout — mais une erreur de requête ou de nom de modèle doit laisser une
+    trace, sinon la recherche devient silencieusement incomplète.
+    """
     try:
-        from apps.crm.models import Customer
-        return [
-            {
-                'type': 'client', 'label': 'Client',
-                'icon': 'bi-person', 'color': 'primary',
-                'url': f'/crm/clients/{c.pk}/',
-                'title': c.name,
-                'subtitle': c.email or '',
-            }
-            for c in Customer.objects.filter(
-                Q(name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q)
-            )[:RESULT_LIMIT]
-        ]
-    except Exception:
+        return fonction(q, company)
+    except ImportError:
+        return []
+    except Exception as exc:
+        logger.warning('Recherche globale — source « %s » en échec : %s', nom_source, exc)
         return []
 
 
-def _search_sales(q):
+def _search_crm(q, company):
+    from apps.crm.models import Customer
+
+    return [
+        {
+            'type': 'client', 'label': 'Client',
+            'icon': 'bi-person', 'color': 'primary',
+            'url': f'/crm/clients/{c.pk}/',
+            'title': c.name,
+            'subtitle': c.email or '',
+        }
+        for c in Customer.objects.filter(
+            Q(company=company),
+            Q(name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q),
+        )[:RESULT_LIMIT]
+    ]
+
+
+def _search_sales(q, company):
+    from apps.sales.models import Invoice, Quote
+
     results = []
-    try:
-        from apps.sales.models import Invoice, Quote
-        for inv in Invoice.objects.filter(
-            Q(number__icontains=q) | Q(subject__icontains=q)
-        )[:RESULT_LIMIT]:
-            results.append({
-                'type': 'facture', 'label': 'Facture',
-                'icon': 'bi-receipt', 'color': 'success',
-                'url': f'/sales/factures/{inv.pk}/',
-                'title': inv.number,
-                'subtitle': inv.subject or '',
-            })
-        for quote in Quote.objects.filter(
-            Q(number__icontains=q) | Q(subject__icontains=q)
-        )[:RESULT_LIMIT]:
-            results.append({
-                'type': 'devis', 'label': 'Devis',
-                'icon': 'bi-file-earmark-text', 'color': 'warning',
-                'url': f'/sales/devis/{quote.pk}/',
-                'title': quote.number,
-                'subtitle': quote.subject or '',
-            })
-    except Exception:
-        pass
+    for inv in Invoice.objects.filter(
+        Q(company=company),
+        Q(number__icontains=q) | Q(subject__icontains=q),
+    )[:RESULT_LIMIT]:
+        results.append({
+            'type': 'facture', 'label': 'Facture',
+            'icon': 'bi-receipt', 'color': 'success',
+            'url': f'/sales/factures/{inv.pk}/',
+            'title': inv.number,
+            'subtitle': inv.subject or '',
+        })
+    for quote in Quote.objects.filter(
+        Q(company=company),
+        Q(number__icontains=q) | Q(subject__icontains=q),
+    )[:RESULT_LIMIT]:
+        results.append({
+            'type': 'devis', 'label': 'Devis',
+            'icon': 'bi-file-earmark-text', 'color': 'warning',
+            'url': f'/sales/devis/{quote.pk}/',
+            'title': quote.number,
+            'subtitle': quote.subject or '',
+        })
     return results
 
 
-def _search_btp(q):
-    try:
-        from apps.btp.models import Project
-        return [
-            {
-                'type': 'chantier', 'label': 'Chantier',
-                'icon': 'bi-building-gear', 'color': 'info',
-                'url': f'/btp/chantiers/{p.pk}/',
-                'title': p.name,
-                'subtitle': getattr(p, 'reference', '') or '',
-            }
-            for p in Project.objects.filter(
-                Q(name__icontains=q) | Q(reference__icontains=q)
-            )[:RESULT_LIMIT]
-        ]
-    except Exception:
-        return []
+def _search_btp(q, company):
+    # BTPProject, et non Project : ce dernier n'existe pas, et l'import ratait
+    # en silence derriere un except trop large.
+    from apps.btp.models import BTPProject
+
+    return [
+        {
+            'type': 'chantier', 'label': 'Chantier',
+            'icon': 'bi-building-gear', 'color': 'info',
+            'url': f'/btp/chantiers/{p.pk}/',
+            'title': p.name,
+            'subtitle': p.code or '',
+        }
+        for p in BTPProject.objects.filter(
+            Q(company=company),
+            Q(name__icontains=q) | Q(code__icontains=q),
+        )[:RESULT_LIMIT]
+    ]
 
 
-def _search_inventory(q):
-    try:
-        from apps.inventory.models import Product
-        return [
-            {
-                'type': 'produit', 'label': 'Produit',
-                'icon': 'bi-box-seam', 'color': 'secondary',
-                'url': f'/inventory/produits/{p.pk}/',
-                'title': p.name,
-                'subtitle': p.reference or '',
-            }
-            for p in Product.objects.filter(
-                Q(name__icontains=q) | Q(reference__icontains=q)
-            )[:RESULT_LIMIT]
-        ]
-    except Exception:
+def _search_inventory(q, company):
+    from apps.inventory.models import Product
+
+    return [
+        {
+            'type': 'produit', 'label': 'Produit',
+            'icon': 'bi-box-seam', 'color': 'secondary',
+            'url': f'/inventory/produits/{p.pk}/',
+            'title': p.name,
+            'subtitle': p.reference or '',
+        }
+        for p in Product.objects.filter(
+            Q(company=company),
+            Q(name__icontains=q) | Q(reference__icontains=q),
+        )[:RESULT_LIMIT]
+    ]
+
+
+SOURCES = (
+    ('crm', _search_crm),
+    ('ventes', _search_sales),
+    ('btp', _search_btp),
+    ('stock', _search_inventory),
+)
+
+
+def chercher(q, company):
+    """Résultats de toutes les sources, pour cette entreprise seulement."""
+    if len(q) < 2 or company is None:
         return []
+
+    resultats = []
+    for nom, fonction in SOURCES:
+        resultats += _collecter(nom, fonction, q, company)
+    return resultats
 
 
 @login_required
 def global_search(request):
+    """Recherche globale, en JSON pour la palette et en HTML pour la page.
+
+    La palette de commandes appelle cette vue avec `format=json`. La version
+    précédente rendait TOUJOURS le gabarit HTML : la palette recevait donc du
+    HTML, `response.json()` échouait, et l'utilisateur voyait un champ qui ne
+    répondait jamais. Le gabarit, de son côté, interrogeait « /search/ » en
+    dur alors que cette vue est montée sous « /dashboard/search/ » — deux
+    défauts superposés, chacun suffisant à tout casser.
+    """
     q = request.GET.get('q', '').strip()
-    results = []
-    if len(q) >= 2:
-        results += _search_crm(q)
-        results += _search_sales(q)
-        results += _search_btp(q)
-        results += _search_inventory(q)
+    company = _entreprise_active(request)
+    results = chercher(q, company)
+
+    veut_json = (
+        request.GET.get('format') == 'json'
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+
+    if veut_json:
+        return JsonResponse({
+            'query': q,
+            'count': len(results),
+            'results': results,
+        })
 
     return render(request, 'core/search_results.html', {
         'query': q,

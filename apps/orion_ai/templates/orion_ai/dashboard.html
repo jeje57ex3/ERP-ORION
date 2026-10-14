@@ -148,6 +148,20 @@ const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 // un guillemet casserait le script -- ou y injecterait du code.
 const MODULE_COURANT = "{{ module_courant|escapejs }}";
 
+// Question venue de la barre de recherche. Pre-remplie et non envoyee :
+// l'utilisateur relit, complete, puis decide.
+const QUESTION_INITIALE = "{{ question_initiale|escapejs }}";
+if (QUESTION_INITIALE) {
+  const champ = document.getElementById('chat-input');
+  if (champ) {
+    champ.value = QUESTION_INITIALE;
+    champ.focus();
+    // Curseur en fin de texte, pour completer plutot que de tout
+    // reecrire.
+    champ.setSelectionRange(champ.value.length, champ.value.length);
+  }
+}
+
 function appendMessage(role, content, extra) {
   const container = document.getElementById('chat-messages');
   const div = document.createElement('div');
