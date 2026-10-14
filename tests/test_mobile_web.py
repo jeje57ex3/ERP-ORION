@@ -495,3 +495,50 @@ def test_l_agent_de_service_est_enregistre_depuis_la_page(connecte):
     corps = connecte.get('/m/').content.decode()
     assert 'serviceWorker' in corps
     assert '/m/sw.js' in corps
+
+
+# ── Un seul bouton de menu sur telephone ────────────────────────────────────
+
+def test_les_deux_points_de_rupture_du_menu_coincident():
+    """Le bouton de menu du haut est masque exactement la ou la barre basse
+    apparait.
+
+    A un pixel d'ecart, il existerait une largeur ou aucun des deux
+    n'apparait et le menu deviendrait inatteignable -- defaut bien pire que
+    la redondance corrigee. Ce test echoue si quelqu'un deplace l'un des deux
+    sans l'autre.
+    """
+    import re
+    from pathlib import Path
+
+    from django.conf import settings
+
+    def rupture(fichier, selecteur, propriete):
+        chemin = Path(settings.BASE_DIR) / 'static' / 'css' / fichier
+        texte = re.sub(r'/\*.*?\*/', '', chemin.read_text(encoding='utf-8'), flags=re.S)
+        trouve = None
+        for bloc in re.finditer(r'@media\s*\(max-width:\s*(\d+)px\)\s*\{(.*?)\n\}', texte, re.S):
+            if selecteur in bloc.group(2) and propriete in bloc.group(2):
+                trouve = int(bloc.group(1))
+        return trouve
+
+    barre_basse = rupture('orion-design-system.css', '.mobile-action-bar', 'display: flex')
+    bouton_haut = rupture('orion-responsive.css', '.erp-navbar .sidebar-toggle', 'display: none')
+
+    assert barre_basse, "point de rupture de la barre basse introuvable"
+    assert bouton_haut, "le bouton du haut n'est masque nulle part"
+    assert barre_basse == bouton_haut, (
+        f'barre basse a {barre_basse}px mais bouton du haut masque a '
+        f'{bouton_haut}px : il reste une largeur sans aucun bouton de menu'
+    )
+
+
+def test_le_bouton_du_haut_subsiste_sur_ordinateur():
+    """Il sert alors a replier la barre laterale : le supprimer purement
+    aurait casse cet usage."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    gabarit = (Path(settings.BASE_DIR) / 'templates' / 'erp_base.html').read_text(encoding='utf-8')
+    assert 'id="sidebarToggle"' in gabarit
