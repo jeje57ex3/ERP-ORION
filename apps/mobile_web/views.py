@@ -250,11 +250,23 @@ def manifeste(request):
                        "et accès à l'ERP.",
         'lang': 'fr',
         'dir': 'ltr',
-        # start_url ET scope sur /m/ : l'application s'ouvre sur l'accueil
-        # telephone, et la navigation hors de /m/ repasse dans le navigateur
-        # plutot que de pieger l'utilisateur en plein ecran dans tout l'ERP.
+        # L'application s'ouvre sur l'accueil telephone, mais sa portee
+        # couvre TOUT l'ERP : « Interface complete » reste donc en plein
+        # ecran, sans la barre d'adresse du navigateur. Une portee limitee a
+        # /m/ aurait rouvert ces pages dans le navigateur.
+        #
+        # A ne pas confondre avec la portee de l'agent de service, qui reste
+        # volontairement limitee a /m/ (il est servi depuis /m/sw.js). Les
+        # deux sont independantes, et c'est ce qui permet d'avoir le plein
+        # ecran partout SANS jamais mettre en cache les pages de l'ERP, dont
+        # les donnees changent a chaque instant.
+        #
+        # Consequence a connaitre : sans barre d'adresse, il n'y a plus de
+        # recours par l'URL si une page echoue. La barre d'action basse de
+        # l'ERP (<= 768px) et le bouton retour du systeme restent les voies
+        # de sortie.
         'start_url': '/m/',
-        'scope': '/m/',
+        'scope': '/',
         'display': 'standalone',
         'orientation': 'portrait-primary',
         'background_color': '#14110f',

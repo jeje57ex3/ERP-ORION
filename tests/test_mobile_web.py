@@ -399,11 +399,34 @@ def test_le_manifeste_est_servi(client):
     assert data['start_url'] == '/m/'
 
 
-def test_la_portee_du_manifeste_se_limite_a_la_version_telephone(client):
-    """Une portee sur « / » piegerait l'utilisateur en plein ecran dans tout
-    l'ERP, sans barre de navigateur pour en sortir."""
+def test_la_portee_du_manifeste_couvre_tout_l_erp(client):
+    """« Interface complete » doit rester en plein ecran, sans barre
+    d'adresse.
+
+    Une portee limitee a /m/ aurait rouvert ces pages dans le navigateur,
+    barre d'adresse comprise. Le start_url reste sur /m/ : l'application
+    s'ouvre sur l'accueil telephone.
+    """
     data = json.loads(client.get('/m/manifest.webmanifest').content)
-    assert data['scope'] == '/m/'
+    assert data['scope'] == '/'
+    assert data['start_url'] == '/m/'
+
+
+def test_la_portee_de_l_agent_de_service_reste_limitee(client):
+    """L'invariant qui compte maintenant que le manifeste couvre tout l'ERP.
+
+    Les deux portees sont independantes : celle du manifeste decide du plein
+    ecran, celle de l'agent de service decide de ce qui est mis en cache.
+    L'agent est servi depuis /m/sw.js, donc sa portee s'arrete a /m/ -- et
+    les pages de l'ERP, dont les donnees changent a chaque instant, ne sont
+    jamais servies depuis un cache.
+    """
+    from django.urls import reverse
+
+    assert reverse('mobile_web:agent_de_service') == '/m/sw.js'
+    code = client.get('/m/sw.js').content.decode()
+    assert "startsWith('/m/')" in code
+    assert 'if (!dansPortee && !estStatique) { return; }' in code
 
 
 def test_le_manifeste_declare_les_deux_tailles_exigees(client):
