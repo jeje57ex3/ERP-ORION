@@ -95,7 +95,23 @@ EOF
   [ "$pret" -eq 1 ] || { echo "ERREUR: Ollama ne répond pas sur $HOTE." >&2; exit 1; }
 
   echo "[ia] Téléchargement du modèle $modele (plusieurs minutes)..."
-  ollama pull "$modele"
+  if ! ollama pull "$modele"; then
+    echo "ERREUR: le téléchargement de $modele a échoué." >&2
+    echo "        Vérifiez le nom du modèle et l accès réseau sortant." >&2
+    exit 1
+  fi
+
+  # Le téléchargement est vérifié, pas supposé. Un pull interrompu laisse
+  # Ollama debout mais sans le modèle, et l ERP répond alors un 404 sur
+  # /api/chat -- message qui ne désigne pas la cause. Mieux vaut l apprendre
+  # ici, maintenant.
+  if ! curl -fsS "http://$HOTE/api/tags" 2>/dev/null | grep -q "\"$modele\""; then
+    echo "ERREUR: $modele n apparaît pas dans les modèles installés." >&2
+    echo "        Le téléchargement a été interrompu. Relancez :" >&2
+    echo "        orion-ai.sh pull $modele" >&2
+    exit 1
+  fi
+  echo "[ia] Modèle $modele présent et vérifié."
 
   if command -v ufw >/dev/null 2>&1; then
     # Refus explicite, par principe de défense en profondeur : même si
