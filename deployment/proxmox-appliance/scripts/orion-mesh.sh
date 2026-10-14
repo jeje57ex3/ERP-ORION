@@ -152,10 +152,32 @@ from apps.high_availability.models import OrionHASettings
 print(adresse_overlay(OrionHASettings.get_solo(), $rang))
 ")" || { echo "ERREUR: rang $rang hors du sous-réseau privé." >&2; exit 1; }
 
+  # Les deux saisies qui produisent une configuration que WireGuard refuse, et
+  # dont wg-quick ne dit rien d'exploitable. Les refuser ici est la seule
+  # facon d'obtenir un message qui designe la cause.
+  if [ "$rang" = "${ORION_MESH_RANK:-}" ]; then
+    echo "ERREUR: le rang $rang est celui de CE serveur." >&2
+    echo "        Indiquez le rang de l'AUTRE serveur." >&2
+    exit 1
+  fi
+
+  if [ -f "$CLE_PUBLIQUE" ] && [ "$cle" = "$(cat "$CLE_PUBLIQUE")" ]; then
+    echo "ERREUR: cette cle publique est celle de CE serveur." >&2
+    echo "        WireGuard refuse un pair portant la cle de l'interface, et" >&2
+    echo "        l'interface reste alors arretee." >&2
+    echo "        Copiez la cle affichee sur l'AUTRE serveur." >&2
+    exit 1
+  fi
+
   if grep -q "PublicKey = $cle" "$CONF"; then
     echo "[mesh] Ce pair est déjà déclaré — rien à faire."
     return 0
   fi
+
+  # Sauvegarde avant modification : une configuration refusee laisserait
+  # sinon l'interface arretee, donc TOUS les serveurs injoignables, pour une
+  # simple faute de frappe dans une cle.
+  cp "$CONF" "$CONF.avant-pair"
 
   {
     echo ""
@@ -174,7 +196,24 @@ print(adresse_overlay(OrionHASettings.get_solo(), $rang))
   } >> "$CONF"
 
   echo "[mesh] Pair de rang $rang ajouté ($adresse/32)."
-  systemctl is-active --quiet "wg-quick@$IFACE" && cmd_up || true
+
+  # Si l'interface tournait, on la recharge — et on REVIENT EN ARRIÈRE si elle
+  # refuse la nouvelle configuration. Sans ce retour, ajouter un pair fautif
+  # laissait l'interface morte et coupait les liaisons qui fonctionnaient.
+  if systemctl is-active --quiet "wg-quick@$IFACE"; then
+    if systemctl restart "wg-quick@$IFACE"; then
+      echo "[mesh] $IFACE rechargé."
+    else
+      mv -f "$CONF.avant-pair" "$CONF"
+      systemctl restart "wg-quick@$IFACE" >/dev/null 2>&1 || true
+      echo "ERREUR: WireGuard a refusé cette configuration." >&2
+      echo "        Le pair a été retiré et l'état précédent restauré." >&2
+      journal_wg
+      exit 1
+    fi
+  fi
+
+  rm -f "$CONF.avant-pair"
 }
 
 cmd_hosts() {
@@ -272,7 +311,26 @@ print(adresse_overlay(OrionHASettings.get_solo(), $rang))
   echo "[mesh] Clé du serveur de rang $rang acceptée, restreinte à $adresse."
 }
 
-cmd_up()   { exiger_root; systemctl restart "wg-quick@$IFACE"; echo "[mesh] $IFACE actif."; }
+journal_wg() {
+  echo "--- journal de wg-quick@$IFACE ---" >&2
+  journalctl -u "wg-quick@$IFACE" -n 20 --no-pager 2>/dev/null >&2 || true
+}
+
+# Le resultat du restart est teste EXPLICITEMENT, sans compter sur `set -e` :
+# celui-ci est suspendu dans une fonction des que son code de retour est teste
+# -- par `&&`, `||`, `if` ou `!`. C'est pourquoi cette fonction annoncait
+# « actif » alors que le demarrage venait d'echouer, constate en production.
+# Et un message de succes sur un echec est pire que pas de message.
+cmd_up() {
+  exiger_root
+  if systemctl restart "wg-quick@$IFACE"; then
+    echo "[mesh] $IFACE actif."
+    return 0
+  fi
+  echo "ERREUR: wg-quick@$IFACE n'a pas demarre." >&2
+  journal_wg
+  return 1
+}
 cmd_down() { exiger_root; systemctl stop "wg-quick@$IFACE" || true; echo "[mesh] $IFACE arrêté."; }
 
 cmd_status() {

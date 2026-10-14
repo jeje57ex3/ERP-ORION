@@ -265,13 +265,30 @@ class OrionHAPeerForm(forms.Form):
                   'est derrière un NAT et que l\'autre initie la liaison.',
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, rang_local=None, cle_locale='', **kwargs):
+        self.rang_local = str(rang_local or '')
+        self.cle_locale = (cle_locale or '').strip()
         super().__init__(*args, **kwargs)
         for champ in self.fields.values():
             champ.widget.attrs.setdefault('class', 'orion-form-control')
 
+    def clean_rang(self):
+        rang = self.cleaned_data.get('rang')
+        if self.rang_local and str(rang) == self.rang_local:
+            raise forms.ValidationError(
+                f'Le rang {rang} est celui de CE serveur. Indiquez le rang de '
+                "l'AUTRE serveur."
+            )
+        return rang
+
     def clean_cle_publique(self):
         cle = (self.cleaned_data.get('cle_publique') or '').strip()
+        if self.cle_locale and cle == self.cle_locale:
+            raise forms.ValidationError(
+                'Cette clé est celle de CE serveur. WireGuard refuse un pair '
+                "portant la clé de l'interface, et l'interface resterait "
+                "arrêtée. Copiez la clé affichée sur l'AUTRE serveur."
+            )
         # Une clé WireGuard est 32 octets en base64, soit 44 caractères finissant
         # par « = ». Le contrôle évite d'écrire dans la configuration une ligne
         # que wg-quick refusera ensuite, en laissant l'interface inactive.

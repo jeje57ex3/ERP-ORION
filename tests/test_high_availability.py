@@ -2715,3 +2715,88 @@ def test_les_arguments_ne_sont_jamais_concatenes(monkeypatch):
     commande = vues['commande']
     assert 'CLE= ; rm -rf /' in commande
     assert not any(isinstance(a, str) and a.startswith('add-peer 2') for a in commande)
+
+
+# ── Refus de se déclarer soi-même comme pair ────────────────────────────────
+# WireGuard refuse un pair portant la clé de l'interface, et l'interface reste
+# alors arrêtée — donc TOUS les serveurs injoignables, pour une clé collée au
+# mauvais endroit. La page affichant la clé locale juste au-dessus du
+# formulaire, c'est l'erreur naturelle.
+
+from apps.high_availability.forms import OrionHAPeerForm
+
+CLE_VALIDE = 'A' * 43 + '='
+AUTRE_CLE = 'B' * 43 + '='
+
+
+def test_formulaire_refuse_notre_propre_rang():
+    form = OrionHAPeerForm(
+        data={'rang': 1, 'cle_publique': AUTRE_CLE},
+        rang_local='1', cle_locale=CLE_VALIDE,
+    )
+    assert not form.is_valid()
+    assert 'CE serveur' in str(form.errors['rang'])
+
+
+def test_formulaire_refuse_notre_propre_cle():
+    form = OrionHAPeerForm(
+        data={'rang': 2, 'cle_publique': CLE_VALIDE},
+        rang_local='1', cle_locale=CLE_VALIDE,
+    )
+    assert not form.is_valid()
+    # Portion sans apostrophe : Django rend form.errors en HTML et echappe
+    # les apostrophes en &#x27;, qu'aucune recherche litterale ne retrouve.
+    assert 'WireGuard refuse un pair' in str(form.errors['cle_publique'])
+
+
+def test_formulaire_accepte_un_vrai_pair():
+    form = OrionHAPeerForm(
+        data={'rang': 2, 'cle_publique': AUTRE_CLE, 'endpoint': 'h:51820'},
+        rang_local='1', cle_locale=CLE_VALIDE,
+    )
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data['rang'] == 2
+
+
+def test_formulaire_sans_contexte_local_reste_utilisable():
+    """Avant toute initialisation, la clé locale n'existe pas encore."""
+    form = OrionHAPeerForm(data={'rang': 2, 'cle_publique': AUTRE_CLE})
+    assert form.is_valid(), form.errors
+
+
+def test_page_refuse_notre_propre_cle(client, superuser, entreprise, mesh, monkeypatch):
+    """Bout en bout : rien n'est écrit, et le message désigne la cause."""
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=True))
+    monkeypatch.setattr(mesh_service, 'cle_publique_locale', lambda: CLE_VALIDE)
+    appels = []
+    monkeypatch.setattr(
+        mesh_service, 'ajouter_pair',
+        lambda *a, **k: appels.append(a) or (True, 'ok'),
+    )
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'add-peer', 'rang': 2, 'cle_publique': CLE_VALIDE,
+    })
+
+    assert reponse.status_code == 200
+    assert appels == []
+    assert 'WireGuard refuse un pair' in reponse.content.decode()
+
+
+def test_page_refuse_notre_propre_rang(client, superuser, entreprise, mesh, monkeypatch, settings):
+    settings.ORION_NODE_PRIORITY = 1
+    monkeypatch.setattr(mesh_service, 'etat_interface', _etat_fige(active=True))
+    monkeypatch.setattr(mesh_service, 'cle_publique_locale', lambda: CLE_VALIDE)
+    appels = []
+    monkeypatch.setattr(
+        mesh_service, 'ajouter_pair',
+        lambda *a, **k: appels.append(a) or (True, 'ok'),
+    )
+    client.force_login(superuser)
+    reponse = client.post('/orion-admin/ha/reseau-prive/', {
+        'action': 'add-peer', 'rang': 1, 'cle_publique': AUTRE_CLE,
+    })
+
+    assert reponse.status_code == 200
+    assert appels == []
+    assert 'CE serveur' in reponse.content.decode()

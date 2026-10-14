@@ -254,7 +254,17 @@ def ha_mesh_view(request):
             return redirect('high_availability:admin_mesh')
 
     elif action == 'add-peer':
-        form_pair = OrionHAPeerForm(request.POST)
+        # Le rang et la cle de CE serveur lui sont passes pour qu'il refuse les
+        # deux saisies qui produisent une configuration que WireGuard rejette
+        # -- avec, a la cle, une interface arretee et un message qui ne
+        # designe pas la cause. La page affichant la cle locale juste au-dessus
+        # du formulaire, la coller ici est l'erreur naturelle.
+        local_courant = mesh_service.contexte_local(settings_obj)
+        form_pair = OrionHAPeerForm(
+            request.POST,
+            rang_local=local_courant['config'].get('ORION_MESH_RANK'),
+            cle_locale=local_courant['cle_publique'],
+        )
         if form_pair.is_valid():
             ok, sortie = mesh_service.ajouter_pair(
                 form_pair.cleaned_data['rang'],
