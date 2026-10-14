@@ -217,3 +217,22 @@
     background: transparent;
   }
 }
+
+/* --- Telephone : un seul bouton de menu ---------------------------------
+
+   Le bouton de menu du haut est redondant sur telephone : la barre
+   d action basse porte deja son bouton « Menu » (#mobileSidebarToggle),
+   et les deux ouvrent le MEME tiroir. Deux controles identiques a
+   l ecran laissent croire qu ils font des choses differentes.
+
+   Masque au MEME point de rupture que celui qui revele la barre basse
+   (max-width: 768px, voir .mobile-action-bar dans
+   orion-design-system.css). A un pixel d ecart, il existerait une
+   largeur ou aucun des deux n apparait et le menu deviendrait
+   inatteignable -- defaut bien pire que la redondance corrigee.
+
+   Au-dessus de 768px il reste : il est alors le seul controle, et sert
+   a replier la barre laterale sur ordinateur. */
+@media (max-width: 768px) {
+  .erp-navbar .sidebar-toggle { display: none; }
+}
