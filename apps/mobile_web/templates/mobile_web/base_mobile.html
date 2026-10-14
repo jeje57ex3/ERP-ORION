@@ -6,6 +6,22 @@
      iPhone recents, donc inaccessible au pouce. {% endcomment %}
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1C120A">
+
+  {% comment %} Installation sur le telephone.
+
+     Le manifeste suffit a Android pour proposer l installation. iOS ne
+     le lit que partiellement : il lui faut en propre apple-touch-icon,
+     sans quoi l icone de l ecran d accueil est une capture floue de la
+     page, et apple-mobile-web-app-capable pour ouvrir en plein ecran.
+     Omettre ces deux balises donne une installation visiblement ratee
+     sur iPhone. {% endcomment %}
+  <link rel="manifest" href="{% url 'mobile_web:manifeste' %}">
+  <link rel="apple-touch-icon" href="{% static 'mobile_web/icons/orion-192.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'mobile_web/icons/orion-192.png' %}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Orion">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>{% block title %}Orion mobile{% endblock %}</title>
 
   {% comment %} Styles embarques, volontairement. Les 17 feuilles du bureau pesent
@@ -132,5 +148,35 @@
   </a>
 </nav>
 
+<script>
+  // L agent de service n est disponible qu en HTTPS (ou sur localhost) :
+  // en HTTP nu le navigateur le refuse, et l application reste une page
+  // web ordinaire. On echoue donc en silence plutot que de lever.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register("{% url 'mobile_web:agent_de_service' %}")
+        .catch(function () { /* HTTP nu, navigation privee : sans effet */ });
+    });
+  }
+
+  // Android emet cet evenement quand l installation est possible. iOS ne
+  // l emet jamais : le bouton reste donc cache, et la documentation
+  // explique le geste manuel par Partager > Sur l ecran d accueil.
+  var invite = null;
+  var boutonInstall = document.getElementById('installer');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    invite = e;
+    if (boutonInstall) { boutonInstall.style.display = 'block'; }
+  });
+  if (boutonInstall) {
+    boutonInstall.addEventListener('click', function () {
+      if (!invite) { return; }
+      invite.prompt();
+      invite = null;
+      boutonInstall.style.display = 'none';
+    });
+  }
+</script>
 </body>
 </html>

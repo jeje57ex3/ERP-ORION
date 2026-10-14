@@ -378,3 +378,120 @@ def test_le_module_hote_est_toujours_affiche():
     source = inspect.getsource(filter_nav_modules)
     assert "'dashboard'" in source
     assert 'always_show' in source
+
+
+# ── Installation sur le telephone ───────────────────────────────────────────
+# Ce qui transforme trois pages en application : un manifeste et un agent de
+# service. Les erreurs y sont invisibles depuis un telephone, d'ou ces
+# verifications.
+
+import json
+
+
+def test_le_manifeste_est_servi(client):
+    """Sans manifeste, aucun navigateur ne propose l'installation."""
+    reponse = client.get('/m/manifest.webmanifest')
+    assert reponse.status_code == 200
+
+    data = json.loads(reponse.content)
+    assert data['name']
+    assert data['display'] == 'standalone'
+    assert data['start_url'] == '/m/'
+
+
+def test_la_portee_du_manifeste_se_limite_a_la_version_telephone(client):
+    """Une portee sur « / » piegerait l'utilisateur en plein ecran dans tout
+    l'ERP, sans barre de navigateur pour en sortir."""
+    data = json.loads(client.get('/m/manifest.webmanifest').content)
+    assert data['scope'] == '/m/'
+
+
+def test_le_manifeste_declare_les_deux_tailles_exigees(client):
+    """192 et 512 : sans elles, l'installation est refusee."""
+    data = json.loads(client.get('/m/manifest.webmanifest').content)
+    tailles = {icone['sizes'] for icone in data['icons']}
+    assert '192x192' in tailles
+    assert '512x512' in tailles
+
+
+def test_le_manifeste_declare_une_icone_recadrable(client):
+    """Android recadre l'icone selon le lanceur ; sans « maskable » elle est
+    posee dans un carre blanc."""
+    data = json.loads(client.get('/m/manifest.webmanifest').content)
+    assert any(i.get('purpose') == 'maskable' for i in data['icons'])
+
+
+def test_les_icones_existent_reellement(client):
+    """Un manifeste qui pointe vers une icone absente fait echouer
+    l'installation sans rien expliquer."""
+    from pathlib import Path
+
+    from django.conf import settings
+
+    for nom in ('orion-192.png', 'orion-512.png', 'orion-maskable-512.png'):
+        chemin = Path(settings.BASE_DIR) / 'static' / 'mobile_web' / 'icons' / nom
+        assert chemin.is_file(), f'icone absente : {nom}'
+        assert chemin.stat().st_size > 500
+
+
+def test_l_agent_de_service_est_servi_en_javascript(client):
+    reponse = client.get('/m/sw.js')
+    assert reponse.status_code == 200
+    assert 'javascript' in reponse['Content-Type']
+
+
+def test_l_agent_de_service_n_est_jamais_mis_en_cache(client):
+    """C'est ce fichier qui decide de tout le reste : une version figee dans
+    le navigateur empecherait toute correction."""
+    reponse = client.get('/m/sw.js')
+    assert 'no-store' in reponse['Cache-Control']
+
+
+def test_l_agent_de_service_ne_met_pas_les_envois_en_cache(client):
+    """Un POST mis en cache serait une photo perdue, ou envoyee deux fois."""
+    code = client.get('/m/sw.js').content.decode()
+    assert "requete.method !== 'GET'" in code
+
+
+def test_l_agent_de_service_laisse_l_erp_complet_au_reseau(client):
+    """Les pages de l'ERP dependent de donnees qui changent : les servir
+    depuis un cache afficherait des chiffres perimes."""
+    code = client.get('/m/sw.js').content.decode()
+    assert "startsWith('/m/')" in code
+    assert 'if (!dansPortee && !estStatique) { return; }' in code
+
+
+def test_l_agent_de_service_prefere_le_reseau_pour_les_pages(client):
+    """Reseau d'abord, cache en filet : une liste de chantiers servie depuis
+    le cache serait perimee et trompeuse."""
+    code = client.get('/m/sw.js').content.decode()
+    # Le fetch precede le recours au cache dans la branche des pages.
+    assert code.index('fetch(requete)') < code.index("caches.match('/m/hors-ligne/')")
+
+
+def test_la_page_hors_ligne_repond(client):
+    reponse = client.get('/m/hors-ligne/')
+    assert reponse.status_code == 200
+    assert 'Hors ligne' in reponse.content.decode()
+
+
+def test_la_page_hors_ligne_ne_promet_pas_de_garder_les_photos(client):
+    """Promettre une file d'attente hors ligne qui n'existe pas ferait perdre
+    des photos en silence."""
+    corps = client.get('/m/hors-ligne/').content.decode()
+    assert 'pas conserv' in corps
+
+
+def test_ios_recoit_ce_qu_il_exige(connecte):
+    """iOS ne lit le manifeste que partiellement : sans apple-touch-icon
+    l'icone est une capture floue de la page."""
+    corps = connecte.get('/m/').content.decode()
+    assert 'rel="apple-touch-icon"' in corps
+    assert 'apple-mobile-web-app-capable' in corps
+    assert 'rel="manifest"' in corps
+
+
+def test_l_agent_de_service_est_enregistre_depuis_la_page(connecte):
+    corps = connecte.get('/m/').content.decode()
+    assert 'serviceWorker' in corps
+    assert '/m/sw.js' in corps

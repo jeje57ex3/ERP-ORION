@@ -53,6 +53,45 @@ savoir ce qui est passé.
 Le bouton se verrouille pendant l'envoi. Sur un réseau mobile, plusieurs
 photos prennent du temps, et un second appui créerait des doublons.
 
+## L'installer comme une application
+
+La version téléphone est une **application installable**. Une fois posée
+sur l'écran d'accueil, elle a son icône, s'ouvre en plein écran sans barre
+de navigateur, et démarre instantanément — la coquille est gardée sur le
+téléphone.
+
+**Android** : un bouton *Installer sur l'écran d'accueil* apparaît sur
+l'accueil quand le navigateur le permet. Sinon, menu ⋮ puis *Ajouter à
+l'écran d'accueil*.
+
+**iPhone** : Safari n'offre pas de bouton ; le geste est manuel — bouton
+Partager, puis *Sur l'écran d'accueil*. C'est une limite d'iOS, pas un
+oubli.
+
+Un raccourci **Photo** est proposé par appui long sur l'icône, sur Android.
+
+### Ce qui fonctionne sans réseau
+
+La coquille de l'application s'ouvre, et une page explique la situation.
+Mais **les photos ne sont pas conservées hors ligne** : prenez-les avec
+l'appareil photo du téléphone, puis envoyez-les depuis l'application quand
+le réseau revient.
+
+Je ne l'ai pas fait à moitié volontairement : une file d'attente hors ligne
+mal faite perd des photos **en silence**, ce qui est pire que de ne pas en
+avoir. C'est l'étape suivante naturelle, et elle mérite d'être faite
+correctement.
+
+Les pages de l'ERP complet, elles, restent servies par le réseau : leurs
+chiffres changent à chaque instant, et les servir depuis un cache
+afficherait des données périmées sans le dire.
+
+### L'installation exige HTTPS
+
+Les navigateurs refusent d'installer une application servie en HTTP nu. Sur
+un domaine Cloudflare la condition est remplie ; en accès par adresse IP
+locale, la page reste utilisable mais ne s'installe pas.
+
 ## Cloisonnement
 
 La liste des chantiers ne contient que ceux de l'entreprise active. Une liste
@@ -72,11 +111,18 @@ navigateur seulement**, et le lien est construit côté client : l'ERP n'émet
 aucune redirection, ce qui écarte toute redirection ouverte. Seuls `http` et
 `https` sont ouverts.
 
-## Ce que cette version n'est pas
+## L'ancienne application native a été retirée
 
-Ce n'est pas l'application mobile native. Le dépôt contient aussi un projet
-Flutter et son arrière-plan (`apps/mobile_app`, `apps/mobile_interface`) :
-appareils enregistrés, authentification à deux facteurs, scan de QR,
-inventaire, opérations hors ligne, distribution d'APK. Ce travail n'est ni
-versionné ni branché, et les deux voies peuvent coexister — la version web
-couvre le besoin immédiat sans dépendre d'une chaîne de compilation Android.
+Le dépôt contenait un projet Flutter et son arrière-plan Django
+(`apps/mobile_app`, `apps/mobile_interface`), jamais versionnés ni
+branchés : 2,3 Go dont 2,1 Go d'artefacts de compilation. Ils ont été
+retirés.
+
+Les **sources** ont été archivées au préalable, car rien n'était suivi par
+git et la suppression aurait été définitive :
+
+```
+Downloads/orion-ancienne-app-mobile-<date>.tar.gz
+```
+
+35 fichiers Dart et 51 fichiers Python y figurent, artefacts exclus.

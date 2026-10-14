@@ -218,3 +218,154 @@ def _enregistrer(request, donnees, fichiers, entreprise):
         total += 1
 
     return total
+
+
+# ─── Installation sur le telephone (PWA) ─────────────────────────────────────
+# Ce qui transforme les trois pages en application : un manifeste, qui donne
+# nom et icone au lanceur et ouvre la page en plein ecran, et un agent de
+# service, qui garde la coquille en cache pour un demarrage instantane.
+#
+# Servis par des VUES et non comme fichiers statiques, pour deux raisons :
+# l'agent de service doit etre servi depuis /m/ pour que sa portee couvre ces
+# pages -- un fichier place a la racine du domaine prendrait tout l'ERP dans
+# sa portee -- et les deux restent ainsi versionnes avec le code qu'ils
+# decrivent, sans dependre d'une recollecte des statiques.
+
+from django.http import HttpResponse, JsonResponse
+from django.templatetags.static import static as url_statique
+
+# Change A CHAQUE modification de la coquille : un agent de service ne se
+# remplace que si son contenu differe. Oublier de l'incrementer laisse les
+# telephones sur l'ancienne version, indefiniment.
+VERSION_CACHE = 'orion-m-v1'
+
+
+def manifeste(request):
+    """Manifeste d'application. Sans lui, aucun navigateur ne propose
+    l'installation."""
+    return JsonResponse({
+        'name': 'Orion ERP',
+        'short_name': 'Orion',
+        'description': "Interface téléphone d'Orion ERP : photos de chantier "
+                       "et accès à l'ERP.",
+        'lang': 'fr',
+        'dir': 'ltr',
+        # start_url ET scope sur /m/ : l'application s'ouvre sur l'accueil
+        # telephone, et la navigation hors de /m/ repasse dans le navigateur
+        # plutot que de pieger l'utilisateur en plein ecran dans tout l'ERP.
+        'start_url': '/m/',
+        'scope': '/m/',
+        'display': 'standalone',
+        'orientation': 'portrait-primary',
+        'background_color': '#14110f',
+        'theme_color': '#1C120A',
+        'icons': [
+            {
+                'src': url_statique('mobile_web/icons/orion-192.png'),
+                'sizes': '192x192', 'type': 'image/png', 'purpose': 'any',
+            },
+            {
+                'src': url_statique('mobile_web/icons/orion-512.png'),
+                'sizes': '512x512', 'type': 'image/png', 'purpose': 'any',
+            },
+            {
+                # « maskable » : Android recadre l'icone selon le lanceur.
+                'src': url_statique('mobile_web/icons/orion-maskable-512.png'),
+                'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable',
+            },
+        ],
+        'shortcuts': [
+            {
+                'name': 'Prendre une photo',
+                'short_name': 'Photo',
+                'url': '/m/photo/',
+                'icons': [{
+                    'src': url_statique('mobile_web/icons/orion-192.png'),
+                    'sizes': '192x192',
+                }],
+            },
+        ],
+    }, json_dumps_params={'ensure_ascii': False})
+
+
+# Agent de service. Volontairement court et lisible : un agent de service
+# fautif est quasi impossible a diagnostiquer depuis un telephone, et il
+# survit a un rechargement de page.
+AGENT_DE_SERVICE = """
+const CACHE = '%(version)s';
+const COQUILLE = ['/m/', '/m/hors-ligne/'];
+
+self.addEventListener('install', (e) => {
+  // On precharge la coquille, et on prend la main sans attendre la fermeture
+  // des onglets : sinon une correction n'arrive qu'au prochain demarrage.
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(COQUILLE)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((noms) => Promise.all(noms.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  const requete = e.request;
+
+  // Seules les lectures sont servies depuis le cache. Un POST mis en cache
+  // serait une photo perdue ou envoyee deux fois.
+  if (requete.method !== 'GET') { return; }
+
+  const url = new URL(requete.url);
+  if (url.origin !== self.location.origin) { return; }
+
+  // Hors de /m/, on ne touche a rien : l'ERP complet doit rester servi par le
+  // reseau, ses pages dependant de donnees qui changent a chaque instant.
+  const dansPortee = url.pathname.startsWith('/m/');
+  const estStatique = url.pathname.startsWith('/static/');
+  if (!dansPortee && !estStatique) { return; }
+
+  if (estStatique) {
+    // Les statiques portent un nom hache : le cache ne peut pas devenir
+    // obsolete, on le prefere donc au reseau.
+    e.respondWith(
+      caches.match(requete).then((trouve) => trouve || fetch(requete).then((rep) => {
+        if (rep.ok) { caches.open(CACHE).then((c) => c.put(requete, rep.clone())); }
+        return rep;
+      }))
+    );
+    return;
+  }
+
+  // Pages de /m/ : le reseau d'abord, car elles affichent des donnees de
+  // l'ERP -- une liste de chantiers servie depuis le cache serait perimee et
+  // trompeuse. Le cache ne sert que de filet quand le reseau manque.
+  e.respondWith(
+    fetch(requete)
+      .then((rep) => {
+        if (rep.ok) { caches.open(CACHE).then((c) => c.put(requete, rep.clone())); }
+        return rep;
+      })
+      .catch(() => caches.match(requete).then((trouve) => trouve || caches.match('/m/hors-ligne/')))
+  );
+});
+"""
+
+
+def agent_de_service(request):
+    reponse = HttpResponse(
+        AGENT_DE_SERVICE % {'version': VERSION_CACHE},
+        content_type='application/javascript; charset=utf-8',
+    )
+    # Jamais mis en cache par le navigateur : c'est ce fichier qui decide de
+    # tout le reste, et une version figee empecherait toute correction.
+    reponse['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return reponse
+
+
+def hors_ligne(request):
+    """Page servie quand le reseau manque. Sans elle, l'application affiche
+    l'erreur brute du navigateur, qui ne dit pas quoi faire."""
+    return render(request, 'mobile_web/hors_ligne.html', {
+        'page_title': 'Hors ligne',
+    })
