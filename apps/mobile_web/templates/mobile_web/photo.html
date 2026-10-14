@@ -1,0 +1,98 @@
+{% extends "mobile_web/base_mobile.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Prendre une photo" %}{% endblock %}
+{% block entete %}{% trans "Photo" %}{% endblock %}
+{% block retour %}<a class="retour" href="{% url 'mobile_web:accueil' %}">‹</a>{% endblock %}
+
+{% block contenu %}
+<form method="post" enctype="multipart/form-data" id="formulaire">
+  {% csrf_token %}
+
+  {% comment %} Deux entrées distinctes, et c'est voulu.
+
+     « capture=environment » ouvre directement l'appareil photo arrière, sans
+     passer par la galerie : c'est le geste attendu sur un chantier. Mais cet
+     attribut interdit de choisir une photo déjà prise, et il est ignoré sur
+     un ordinateur. D'où la seconde entrée, qui ouvre la galerie et accepte
+     plusieurs fichiers.
+
+     Un seul champ aurait obligé à choisir entre les deux usages. {% endcomment %}
+  <div class="carte">
+    <label for="prise">{% trans "Prendre maintenant" %}</label>
+    <input type="file" id="prise" name="photos"
+           accept="image/*" capture="environment" style="display:none">
+    <button class="bouton" type="button"
+            onclick="document.getElementById('prise').click()">
+      ⊙ {% trans "Ouvrir l'appareil photo" %}
+    </button>
+
+    <label for="galerie" style="margin-top:18px">{% trans "Ou choisir des photos" %}</label>
+    <input type="file" id="galerie" name="photos"
+           accept="image/*" multiple style="display:none">
+    <button class="bouton secondaire" type="button"
+            onclick="document.getElementById('galerie').click()">
+      ▤ {% trans "Parcourir la galerie" %}
+    </button>
+
+    <p class="aide" id="choix">
+      {% blocktrans with max=photos_max %}Aucune photo choisie. {{ max }} au maximum, 12 Mo chacune.{% endblocktrans %}
+    </p>
+  </div>
+
+  <div class="carte">
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.name == 'visible_client' %}
+        <label style="display:flex;align-items:center;gap:10px;font-weight:400;margin:0">
+          {{ field }} <span>{% trans "Oui" %}</span>
+        </label>
+      {% else %}
+        {{ field }}
+      {% endif %}
+      {% if field.help_text %}<p class="aide">{{ field.help_text }}</p>{% endif %}
+      {% if field.errors %}<p class="aide" style="color:var(--m-err)">{{ field.errors|first }}</p>{% endif %}
+    {% endfor %}
+  </div>
+
+  <button class="bouton" type="submit" id="envoyer">{% trans "Enregistrer dans l'ERP" %}</button>
+  <p class="aide">
+    {% trans "La photo rejoint les documents du chantier choisi, ou les documents généraux de l'entreprise." %}
+  </p>
+</form>
+
+<script>
+  var zoneChoix = document.getElementById('choix');
+  var bouton = document.getElementById('envoyer');
+  var MAX = {{ photos_max }};
+
+  function decrire(entree) {
+    var n = entree.files ? entree.files.length : 0;
+    if (!n) { return; }
+    // Les deux entrees portent le meme nom : le navigateur enverrait les
+    // deux lots. On vide l'autre pour que le compte affiche corresponde a ce
+    // qui part reellement.
+    ['prise', 'galerie'].forEach(function (id) {
+      if (id !== entree.id) { document.getElementById(id).value = ''; }
+    });
+    if (n > MAX) {
+      zoneChoix.textContent = n + ' photos choisies, seules les ' + MAX + ' premieres seront envoyees.';
+      zoneChoix.style.color = 'var(--m-err)';
+    } else {
+      zoneChoix.textContent = n + (n > 1 ? ' photos pretes a envoyer.' : ' photo prete a envoyer.');
+      zoneChoix.style.color = 'var(--m-ok)';
+    }
+  }
+
+  ['prise', 'galerie'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { decrire(this); });
+  });
+
+  // Un envoi de plusieurs photos depuis un reseau mobile prend du temps. Sans
+  // ce verrou, un second appui renvoie tout et cree des doublons.
+  document.getElementById('formulaire').addEventListener('submit', function () {
+    bouton.disabled = true;
+    bouton.textContent = '{% trans "Envoi en cours…" %}';
+  });
+</script>
+{% endblock %}

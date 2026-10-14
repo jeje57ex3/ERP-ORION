@@ -1,0 +1,66 @@
+{% extends "mobile_web/base_mobile.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Serveurs" %}{% endblock %}
+{% block entete %}{% trans "Serveurs" %}{% endblock %}
+{% block retour %}<a class="retour" href="{% url 'mobile_web:accueil' %}">‹</a>{% endblock %}
+
+{% block contenu %}
+<div class="carte">
+  <b>{% trans "Serveur actuel" %}</b>
+  <p class="sous">{{ ici }}</p>
+</div>
+
+{% if noeuds %}
+  <p class="aide" style="margin-bottom:10px">
+    {% trans "Serveurs de la grappe. Ouvrir l'un d'eux vous demandera de vous y connecter." %}
+  </p>
+  {% for noeud in noeuds %}
+    <a class="action" href="{{ noeud.base_url }}" rel="noopener">
+      <span class="ico">{% if noeud.is_current_active %}●{% else %}○{% endif %}</span>
+      <span class="txt">
+        <b>{{ noeud.name }}</b>
+        <span class="sous">
+          {% trans "Rang" %} {{ noeud.priority }} · {{ noeud.get_status_display }}
+          {% if noeud.is_current_active %} · {% trans "actif" %}{% endif %}
+        </span>
+      </span>
+      <span class="fleche">›</span>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="alerte info">
+    {% trans "Aucun serveur enregistré dans la grappe. Un seul serveur est en service, ou la haute disponibilité n'est pas configurée." %}
+  </div>
+{% endif %}
+
+{% comment %} Adresse libre, gardee UNIQUEMENT dans le navigateur. Aucune redirection
+   n'est emise par le serveur : le lien est construit cote client, ce qui
+   ecarte toute redirection ouverte depuis l'ERP. {% endcomment %}
+<div class="carte" style="margin-top:16px">
+  <b>{% trans "Autre adresse" %}</b>
+  <p class="sous">{% trans "Mémorisée sur ce téléphone seulement." %}</p>
+  <label for="adresse">{% trans "Adresse du serveur" %}</label>
+  <input type="text" id="adresse" inputmode="url" autocapitalize="none"
+         placeholder="https://erp.exemple.fr">
+  <button class="bouton secondaire" type="button" id="ouvrir">{% trans "Ouvrir" %}</button>
+</div>
+
+<script>
+  var champ = document.getElementById('adresse');
+  try { champ.value = localStorage.getItem('orion_serveur') || ''; } catch (e) {}
+
+  document.getElementById('ouvrir').addEventListener('click', function () {
+    var saisie = (champ.value || '').trim();
+    if (!saisie) { return; }
+    if (!/^https?:\/\//i.test(saisie)) { saisie = 'https://' + saisie; }
+    // Seuls http et https : une adresse en javascript: ou data: ne doit pas
+    // pouvoir etre ouverte depuis ce bouton.
+    var url;
+    try { url = new URL(saisie); } catch (e) { return; }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') { return; }
+    try { localStorage.setItem('orion_serveur', saisie); } catch (e) {}
+    window.location.href = url.href;
+  });
+</script>
+{% endblock %}

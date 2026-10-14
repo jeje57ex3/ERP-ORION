@@ -117,6 +117,8 @@ urlpatterns = [
 
     # ── Intelligence Artificielle ─────────────────────────────────────────────
     path('', include('apps.orion_ai.urls', namespace='orion_ai')),
+    # Interface telephone : pages concues pour le pouce, et prise de photo.
+    path('', include('apps.mobile_web.urls', namespace='mobile_web')),
 
     # ── Amélioration continue PDCA ────────────────────────────────────────────
     path('', include('apps.continuous_improvement.urls', namespace='continuous_improvement')),
