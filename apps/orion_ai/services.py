@@ -65,7 +65,12 @@ def build_messages_for_provider(conversation, ai_settings, user_message, company
     # fiables sur un petit modèle local : il oublie de s'en servir, ou invente
     # les arguments. La recherche déterministe, elle, aboutit toujours — et
     # les adresses qu'elle fournit sortent du résolveur d'URL, donc existent.
-    grounding = contexte_pour_question(user_message)
+    grounding = contexte_pour_question(
+        user_message,
+        user=user,
+        company=company,
+        module_courant=getattr(conversation, 'context_module', '') or '',
+    )
     if grounding:
         system_prompt += '\n\n' + grounding
 

@@ -38,8 +38,18 @@ def assistant_dashboard(request):
         status='pending',
     )[:10]
 
+    # D'ou la question est posee. L'icone de la barre du haut transmet le nom
+    # de route ; on le traduit en libelle de menu, le seul qui ait du sens
+    # pour l'utilisateur comme pour le modele.
+    from apps.orion_ai.knowledge import page_depuis_route
+    module_courant = page_depuis_route(
+        request.GET.get('module', ''), user=request.user, company=company,
+    )
+
     return render(request, 'orion_ai/dashboard.html', {
         'ai_settings': ai_settings,
+        'module_courant': module_courant,
+        'retour_url': request.GET.get('depuis', ''),
         'recent_conversations': recent_conversations,
         'pending_actions': pending_actions,
         'page_title': 'Assistant Orion IA',

@@ -191,6 +191,16 @@
           </ul>
         </div>
 
+        <!-- Demander à Orion -->
+        {% if orion_ai_available %}
+        <a class="navbar-icon-btn"
+           href="{% url 'orion_ai:assistant_dashboard' %}?module={{ request.resolver_match.view_name|default:'' }}&amp;depuis={{ request.path|urlencode }}"
+           title="{% blocktrans with nom=orion_ai_name %}Demander à {{ nom }}{% endblocktrans %}{% if orion_ai_local_only %} — {% trans 'traitement local uniquement' %}{% endif %}"
+           aria-label="{% blocktrans with nom=orion_ai_name %}Demander à {{ nom }}{% endblocktrans %}">
+          <i class="bi bi-stars"></i>
+        </a>
+        {% endif %}
+
         <!-- Sélecteur de langue -->
         <div class="dropdown d-none d-lg-block">
           <button class="navbar-icon-btn" type="button" data-bs-toggle="dropdown" aria-label="{% trans 'Changer de langue' %}" id="erpLangToggle">

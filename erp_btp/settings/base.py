@@ -170,6 +170,7 @@ TEMPLATES = [
                 'apps.access_control.context_processors.available_modules',
                 'apps.access_control.context_processors.current_company_permissions',
                 'apps.core.context_processors.brand_context',
+                'apps.orion_ai.context_processors.orion_ai_context',
             ],
         },
     },

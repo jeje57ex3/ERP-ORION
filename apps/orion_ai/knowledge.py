@@ -79,17 +79,43 @@ def mots_utiles(question):
 
 # ─── Pages de l'interface ────────────────────────────────────────────────────
 
-@lru_cache(maxsize=1)
-def index_pages():
-    """Pages du menu, avec leur adresse réelle résolue.
+def index_pages(user=None, company=None):
+    """Pages du menu visibles PAR CET UTILISATEUR, adresses résolues.
 
-    Importé tardivement : ce module est chargé par l'enregistrement des outils,
-    lui-même atteint au démarrage, et `context_processors` touche aux modèles.
+    Deux raisons de ne rien mémoriser ici, et les deux ont été des défauts
+    réels de la première version :
+
+    - Le menu est filtré par utilisateur et par entreprise
+      (`filter_nav_modules`). Un index unique et partagé envoyait un
+      utilisateur ordinaire vers des pages Super Admin qu'il ne peut pas
+      ouvrir : un guidage qui mène à un refus d'accès est pire qu'un silence.
+    - Les 139 libellés du menu sont des traductions paresseuses. Les résoudre
+      une fois pour toutes figeait la langue du premier appel pour tout le
+      processus — un utilisateur en espagnol donnait des libellés espagnols
+      aux suivants.
+
+    Le coût est négligeable : 129 entrées et autant de `reverse()`, que Django
+    résout depuis ses propres caches. Les adresses, elles, ne dépendent ni de
+    l'utilisateur ni de la langue — le projet n'utilise pas `i18n_patterns`.
+
+    Import tardif : ce module est chargé par l'enregistrement des outils,
+    atteint au démarrage, et `context_processors` touche aux modèles.
     """
     from apps.core.context_processors import NAV_MODULES
 
+    modules_visibles = NAV_MODULES
+    if user is not None:
+        try:
+            from apps.private_saas.permissions import filter_nav_modules
+            modules_visibles = filter_nav_modules(NAV_MODULES, company, user=user)
+        except Exception:
+            # Filtrage indisponible : on retombe sur le menu complet plutôt
+            # que de ne rien proposer. Orion reste alors un guide, et les
+            # permissions de la page refuseront l'accès de toute façon.
+            modules_visibles = NAV_MODULES
+
     pages = []
-    for module in NAV_MODULES:
+    for module in modules_visibles:
         titre_module = str(module.get('label') or module.get('name') or '')
 
         # Un module porte souvent SA propre adresse en plus de ses enfants :
@@ -126,14 +152,14 @@ def index_pages():
     return tuple(pages)
 
 
-def chercher_pages(question, limite=RESULTATS_MAX):
+def chercher_pages(question, limite=RESULTATS_MAX, user=None, company=None):
     """Pages correspondant à la question, les mieux notées d'abord."""
     mots = mots_utiles(question)
     if not mots:
         return []
 
     notes = []
-    for page in index_pages():
+    for page in index_pages(user=user, company=company):
         note = sum(1 for mot in mots if mot in page['recherche'])
         # Le libellé pèse double : « Disques » dans le nom de la page est un
         # signal plus fort que le même mot dans celui du module.
@@ -145,10 +171,10 @@ def chercher_pages(question, limite=RESULTATS_MAX):
     return [page for _, page in notes[:limite]]
 
 
-def lister_modules():
+def lister_modules(user=None, company=None):
     """Modules de navigation et nombre de pages de chacun."""
     par_module = {}
-    for page in index_pages():
+    for page in index_pages(user=user, company=company):
         par_module.setdefault(page['module'], []).append(page['libelle'])
     return [
         {'module': nom, 'pages': sorted(pages), 'nombre': len(pages)}
@@ -226,14 +252,17 @@ def chercher_documentation(question, limite=3):
 
 
 def vider_index():
-    """Oublie les index. Utile aux tests, et après une mise à jour du code."""
-    index_pages.cache_clear()
+    """Oublie l'index documentaire. Utile aux tests et après une mise à jour.
+
+    L'index des pages n'est plus mémorisé : il dépend de l'utilisateur et de
+    la langue.
+    """
     index_documentation.cache_clear()
 
 
 # ─── Ancrage des réponses ────────────────────────────────────────────────────
 
-def contexte_pour_question(question):
+def contexte_pour_question(question, user=None, company=None, module_courant=''):
     """Faits vérifiés à donner au modèle avant qu'il réponde.
 
     C'est la pièce qui tient la promesse « guider dans l'interface ». Un petit
@@ -245,13 +274,20 @@ def contexte_pour_question(question):
     formuler, et le prompt lui interdit d'ajouter des pages qui n'y figurent
     pas.
     """
-    pages = chercher_pages(question)
+    pages = chercher_pages(question, user=user, company=company)
     docs = chercher_documentation(question)
 
-    if not pages and not docs:
+    if not pages and not docs and not module_courant:
         return ''
 
     morceaux = ['FAITS VÉRIFIÉS SUR CETTE INSTALLATION', '']
+
+    # D'où la question est posée. « Comment je fais ça ? » n'a de sens que
+    # rapporté à la page ouverte, et sans cette ligne le modèle demande des
+    # précisions que l'interface connaissait déjà.
+    if module_courant:
+        morceaux.append(f"L'utilisateur consulte actuellement : {module_courant}")
+        morceaux.append('')
 
     if pages:
         morceaux.append('Pages existantes du menu, avec leur adresse réelle :')
@@ -268,3 +304,22 @@ def contexte_pour_question(question):
             morceaux.append('')
 
     return '\n'.join(morceaux).strip()
+
+
+def page_depuis_route(view_name, user=None, company=None):
+    """Libelle de page correspondant a un nom de route, ou ''.
+
+    L'icone de la barre du haut transmet le nom de route de la page ouverte
+    (ex. « crm:customer_list »). Un nom de route n'a aucun sens pour
+    l'utilisateur, ni d'ailleurs pour un modele de langue : il est traduit ici
+    en libelle de menu, celui-la meme qui s'affiche a l'ecran.
+
+    Rien n'est inventé : si la route n'est pas une entree de menu, on rend une
+    chaine vide plutot qu'un nom approximatif.
+    """
+    if not view_name:
+        return ''
+    for page in index_pages(user=user, company=company):
+        if page['url_name'] == view_name:
+            return f"{page['libelle']} ({page['module']})"
+    return ''
