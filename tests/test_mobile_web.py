@@ -344,3 +344,37 @@ def test_aucune_redirection_n_est_emise_par_le_serveur(connecte):
     # Seuls http et https sont ouverts : une adresse javascript: ne doit pas
     # pouvoir être déclenchée depuis ce bouton.
     assert "url.protocol !== 'http:'" in corps
+
+
+# ── Decouvrabilite dans le menu ─────────────────────────────────────────────
+
+def test_l_entree_de_menu_est_visible_des_non_administrateurs(db):
+    """Placee d'abord dans le module Super Admin, l'entree restait invisible
+    pour les chefs de chantier -- ceux qui ont justement besoin de la page
+    photo."""
+    from apps.core.context_processors import NAV_MODULES
+    from apps.private_saas.permissions import filter_nav_modules
+
+    class Simple:
+        is_superuser = False
+
+    def hote(modules):
+        for module in modules:
+            for entree in module.get('children') or []:
+                if entree.get('url_name') == 'mobile_web:accueil':
+                    return module['id']
+        return None
+
+    assert hote(NAV_MODULES) == 'dashboard'
+    assert hote(filter_nav_modules(NAV_MODULES, None, user=Simple())) == 'dashboard'
+
+
+def test_le_module_hote_est_toujours_affiche():
+    """« dashboard » figure dans always_show : l'entree ne depend donc d'aucun
+    module active pour l'entreprise."""
+    from apps.private_saas.permissions import filter_nav_modules
+    import inspect
+
+    source = inspect.getsource(filter_nav_modules)
+    assert "'dashboard'" in source
+    assert 'always_show' in source
