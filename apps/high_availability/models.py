@@ -46,7 +46,16 @@ class OrionHANode(models.Model):
                   'recours. Indépendant du rôle courant.',
     )
 
-    is_enabled = models.BooleanField(default=True)
+    is_enabled = models.BooleanField(
+        default=True,
+        verbose_name='Serveur actif dans la grappe',
+        help_text='Décoché, ce serveur est retiré de la grappe : il n’est '
+                  'plus interrogé, ne peut plus recevoir la main, et ne '
+                  'compte plus dans la majorité requise pour une bascule '
+                  'automatique. C’est ainsi qu’on retire un serveur — le '
+                  'laisser simplement éteint le garde dans le décompte, et '
+                  'peut bloquer les écritures sur le survivant.',
+    )
     is_current_active = models.BooleanField(default=False)
     is_failover_target = models.BooleanField(
         default=False,
@@ -295,6 +304,59 @@ class OrionHASettings(models.Model):
     split_brain_protection_enabled = models.BooleanField(default=True)
     maintenance_mode_enabled = models.BooleanField(default=False)
 
+    # ─── Élection : arbitrage de la bascule automatique ──────────────────────
+    # La bascule automatique décidait sur la seule vue du serveur qui
+    # l'exécute : « je ne joins plus le principal, donc je prends la main ».
+    # Lors d'une coupure réseau, chaque serveur isolé tient ce raisonnement en
+    # même temps — et deux serveurs se croient actifs. C'est la divergence
+    # (split-brain), et elle est bien pire qu'une panne : deux bases acceptent
+    # des écritures qu'aucune réconciliation automatique ne pourra fusionner.
+    #
+    # Un candidat doit donc obtenir la voix d'une MAJORITÉ des serveurs, et
+    # chaque serveur ne vote qu'une fois par époque. Deux candidats ne peuvent
+    # alors pas réunir une majorité dans la même époque : c'est la propriété
+    # de sûreté d'une élection de chef, et c'est ce qui rend la divergence
+    # structurellement impossible plutôt que simplement improbable.
+    election_epoch = models.PositiveIntegerField(
+        default=0,
+        help_text="Numéro d'élection de CE serveur, strictement croissant.",
+    )
+
+    vote_epoch = models.PositiveIntegerField(
+        default=0,
+        help_text='Époque de la dernière voix accordée par ce serveur.',
+    )
+
+    vote_node_id = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text='Candidat à qui ce serveur a accordé sa voix.',
+    )
+
+    vote_at = models.DateTimeField(null=True, blank=True)
+
+    # ─── Clôture du serveur actif privé de majorité ──────────────────────────
+    # Exiger une majorité pour PROMOUVOIR interdit à une minorité d'élire un
+    # nouveau chef. Cela ne suffit pourtant pas : le serveur DÉJÀ actif qui se
+    # retrouve du mauvais côté d'une coupure continue, lui, de se croire actif
+    # et d'accepter des écritures. Pendant ce temps, la majorité en élit un
+    # autre — légitimement. Deux serveurs écrivent alors, et c'est la
+    # divergence par un autre chemin.
+    #
+    # D'où cette clôture : le serveur actif vérifie périodiquement qu'il voit
+    # encore une majorité de la grappe. S'il ne la voit plus, il refuse les
+    # écritures jusqu'à la retrouver. Perdre l'écriture sur le serveur isolé
+    # est le prix à payer, et c'est le bon : une indisponibilité s'attend et se
+    # répare, une divergence se répare à la main, ligne par ligne.
+    quorum_perdu = models.BooleanField(
+        default=False,
+        verbose_name='Majorité perdue',
+        help_text='Posé automatiquement : ce serveur actif ne voit plus une '
+                  'majorité de la grappe, et refuse donc les écritures.',
+    )
+
+    quorum_perdu_depuis = models.DateTimeField(null=True, blank=True)
+
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -359,6 +421,7 @@ class OrionHAFailoverEvent(models.Model):
         ('success', 'Succès'),
         ('failed', 'Échec'),
         ('cancelled', 'Annulé'),
+        ('refused', 'Refusé faute de majorité'),
     ]
 
     event_type = models.CharField(max_length=60, choices=EVENT_TYPE_CHOICES)

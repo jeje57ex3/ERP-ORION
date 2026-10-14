@@ -1,11 +1,22 @@
 {% extends "mobile_web/base_mobile.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block title %}{% trans "Prendre une photo" %}{% endblock %}
 {% block entete %}{% trans "Photo" %}{% endblock %}
 {% block retour %}<a class="retour" href="{% url 'mobile_web:accueil' %}">‹</a>{% endblock %}
 
 {% block contenu %}
+{% comment %} Bandeau de la file d'attente. Masque par defaut : il
+   n'apparait que lorsqu'il a quelque chose a dire, pour ne pas occuper la
+   place d'un ecran de telephone a ne rien signaler. {% endcomment %}
+<div class="carte" id="bandeau-file" style="display:none">
+  <p class="aide" id="texte-file" style="margin:0"></p>
+  <button class="bouton secondaire" type="button" id="renvoyer"
+          style="margin-top:12px;display:none">
+    {% trans "Renvoyer maintenant" %}
+  </button>
+</div>
+
 <form method="post" enctype="multipart/form-data" id="formulaire">
   {% csrf_token %}
 
@@ -94,5 +105,136 @@
     bouton.disabled = true;
     bouton.textContent = '{% trans "Envoi en cours…" %}';
   });
+</script>
+
+{% trans "Enregistrer dans l'ERP" as libelle_envoi %}
+<script src="{% static 'js/orion-file-photos.js' %}"></script>
+<script>
+  // ── File d'attente hors ligne ───────────────────────────────────────────
+  // Un chantier n'a pas toujours de reseau. Sans file, la photo prise dans un
+  // sous-sol etait perdue : le formulaire echouait, et la seule facon de la
+  // renvoyer etait de la reprendre -- ce qui suppose d'etre encore devant le
+  // sujet.
+  (function () {
+    var File = window.OrionFilePhotos;
+    if (!File) { return; }   // navigateur sans IndexedDB : formulaire normal
+
+    var formulaire = document.getElementById('formulaire');
+    var bandeau = document.getElementById('bandeau-file');
+    var texte = document.getElementById('texte-file');
+    var boutonRenvoi = document.getElementById('renvoyer');
+    var URL_PHOTO = '{% url "mobile_web:photo" %}';
+
+    function annoncer(message, couleur, proposerRenvoi) {
+      texte.textContent = message;
+      texte.style.color = couleur || '';
+      bandeau.style.display = message ? 'block' : 'none';
+      boutonRenvoi.style.display = proposerRenvoi ? 'inline-block' : 'none';
+    }
+
+    function rafraichir() {
+      return File.compter().then(function (n) {
+        if (!n) { annoncer('', '', false); return 0; }
+        annoncer(
+          n === 1
+            ? '1 photo en attente de reseau.'
+            : n + ' photos en attente de reseau.',
+          'var(--m-err)',
+          navigator.onLine
+        );
+        return n;
+      }).catch(function () { return 0; });
+    }
+
+    function champsDuFormulaire() {
+      var champs = {};
+      var donnees = new FormData(formulaire);
+      donnees.forEach(function (valeur, nom) {
+        // Les fichiers sont stockes a part ; le jeton CSRF est relu au moment
+        // du renvoi, car celui-ci aurait pu changer entre-temps.
+        if (typeof valeur === 'string' && nom !== 'csrfmiddlewaretoken') {
+          champs[nom] = valeur;
+        }
+      });
+      return champs;
+    }
+
+    function photosChoisies() {
+      var lot = [];
+      ['prise', 'galerie'].forEach(function (id) {
+        var entree = document.getElementById(id);
+        if (entree && entree.files) {
+          for (var i = 0; i < entree.files.length && lot.length < MAX; i += 1) {
+            lot.push(entree.files[i]);
+          }
+        }
+      });
+      return lot;
+    }
+
+    function vider() {
+      if (!navigator.onLine) { return Promise.resolve(); }
+      annoncer('Renvoi en cours…', '', false);
+      return File.vider(URL_PHOTO).then(function (bilan) {
+        if (bilan.envoyes) {
+          annoncer(
+            bilan.envoyes === 1
+              ? '1 photo en attente a ete enregistree.'
+              : bilan.envoyes + ' photos en attente ont ete enregistrees.',
+            'var(--m-ok)', false
+          );
+        }
+        if (bilan.refuses) {
+          // Un refus du serveur est definitif : le dire, plutot que de
+          // laisser l'envoi disparaitre sans explication.
+          annoncer(
+            (bilan.messages[0] || 'Envoi refuse par le serveur.')
+              + ' (' + bilan.refuses + ' retire' + (bilan.refuses > 1 ? 's' : '')
+              + ' de la file)',
+            'var(--m-err)', false
+          );
+        }
+        if (!bilan.envoyes && !bilan.refuses) { return rafraichir(); }
+        return window.setTimeout(rafraichir, 4000);
+      }).catch(function () { return rafraichir(); });
+    }
+
+    // Interception de l'envoi : hors ligne, on met de cote au lieu d'echouer.
+    formulaire.addEventListener('submit', function (evenement) {
+      if (navigator.onLine) { return; }   // en ligne : envoi normal
+      var lot = photosChoisies();
+      if (!lot.length) { return; }        // rien a mettre de cote
+
+      evenement.preventDefault();
+      File.deposer(champsDuFormulaire(), lot).then(function () {
+        formulaire.reset();
+        zoneChoix.textContent = 'Aucune photo choisie.';
+        zoneChoix.style.color = '';
+        bouton.disabled = false;
+        bouton.textContent = '{{ libelle_envoi|escapejs }}';
+        annoncer(
+          'Hors ligne : photo mise en attente. Elle partira au retour du reseau.',
+          'var(--m-err)', false
+        );
+        return rafraichir();
+      }).catch(function () {
+        // Mise en file impossible (mode prive, stockage refuse) : il vaut
+        // mieux un echec visible qu'une photo silencieusement perdue.
+        bouton.disabled = false;
+        bouton.textContent = '{{ libelle_envoi|escapejs }}';
+        annoncer(
+          'Hors ligne, et la mise en attente a echoue sur ce telephone. '
+            + 'Reessayez quand le reseau revient.',
+          'var(--m-err)', false
+        );
+      });
+    });
+
+    boutonRenvoi.addEventListener('click', vider);
+    // Le retour du reseau, et l'ouverture de la page : les deux moments ou un
+    // envoi en attente peut enfin passer.
+    window.addEventListener('online', vider);
+    rafraichir().then(function (n) { if (n && navigator.onLine) { vider(); } });
+  }());
 </script>
 {% endblock %}

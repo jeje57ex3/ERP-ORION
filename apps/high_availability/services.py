@@ -140,6 +140,18 @@ def check_all_ha_nodes(apply_failback=True):
     # Import tardif : takeover importe failover, qui importe ce module.
     from apps.high_availability.takeover import evaluate_returning_node
 
+    # Le balayage vient de sonder tout le monde : c'est le moment exact ou
+    # l'on sait si CE serveur, s'il est l'actif, voit encore une majorite. Sans
+    # ce controle, un actif isole continue d'accepter des ecritures pendant que
+    # la majorite en elit un autre.
+    try:
+        from apps.high_availability.election import verifier_quorum_local
+        verifier_quorum_local(results)
+    except Exception:
+        # La surveillance ne doit pas echouer sur ce controle : son defaut
+        # laisserait le reste du bilan sans valeur.
+        pass
+
     for resultat in results:
         if not resultat['ok']:
             continue

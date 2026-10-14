@@ -49,7 +49,9 @@ def audit_ai_event(*, company, user, event_type, title, description='', payload=
     )
 
 
-def build_messages_for_provider(conversation, ai_settings, user_message, company=None, user=None, brand_key=''):
+def build_messages_for_provider(conversation, ai_settings, user_message,
+                                company=None, user=None, brand_key='',
+                                exclure_message_id=None):
     system_prompt = build_system_prompt(ai_settings, user=user, company=company)
 
     memory_context = get_memory_context(
@@ -76,12 +78,41 @@ def build_messages_for_provider(conversation, ai_settings, user_message, company
 
     messages = [{'role': 'system', 'content': system_prompt}]
 
+    # La question courante est DEJA enregistree en base quand cette fonction
+    # est appelee : sans cette exclusion, elle figurait dans l'historique PUIS
+    # etait ajoutee une seconde fois en fin de liste. Chaque requete envoyait
+    # donc la question en double -- des jetons de prompt payes pour rien a
+    # chaque echange, et un modele qui voyait la demande repetee.
+    anciens = conversation.messages.exclude(role='system')
+    if exclure_message_id is not None:
+        anciens = anciens.exclude(pk=exclure_message_id)
+
     history = list(
-        conversation.messages
-        .exclude(role='system')
-        .order_by('-created_at')[:ai_settings.max_history_messages]
+        anciens.order_by('-created_at')[:ai_settings.max_history_messages]
     )
     history = list(reversed(history))
+
+    # Budget en CARACTERES, en plus du nombre de messages. Sur un petit modele
+    # en CPU, c'est l'evaluation du prompt qui domine le temps de reponse, et
+    # elle croit avec la longueur -- pas avec le nombre de messages. Vingt
+    # messages courts coutent moins que trois longs. Sans ce budget, une
+    # conversation ralentissait a mesure qu'elle avancait, sans que rien ne
+    # l'explique a l'utilisateur.
+    #
+    # On garde les plus RECENTS : ce sont eux qui portent le contexte utile.
+    budget = getattr(ai_settings, 'max_history_chars', 0) or 0
+    if budget:
+        retenus = []
+        total = 0
+        for msg in reversed(history):
+            if msg.role not in ('user', 'assistant'):
+                continue
+            taille = len(msg.content or '')
+            if retenus and total + taille > budget:
+                break
+            retenus.append(msg)
+            total += taille
+        history = list(reversed(retenus))
 
     for msg in history:
         if msg.role in ('user', 'assistant'):
@@ -106,6 +137,22 @@ def create_or_get_conversation(*, company, user, conversation_id=None, title='No
         context_module=context_module,
         brand_key=brand_key,
     )
+
+
+def _avec_mesures(response):
+    """Joint les durees mesurees a la charge brute conservee du message.
+
+    Elles sont la seule facon de regler le temps de reponse sans deviner :
+    « lent » ne dit pas s'il faut garder le modele en memoire, raccourcir le
+    prompt ou plafonner la reponse, et ce sont trois remedes differents. Les
+    conserver par message permet de le voir apres coup, y compris sur un
+    ralentissement passe.
+    """
+    brut = dict(response.get('raw') or {})
+    mesures = response.get('timings')
+    if mesures:
+        brut['mesures_orion'] = mesures
+    return brut
 
 
 @transaction.atomic
@@ -138,7 +185,7 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         brand_key=brand_key,
     )
 
-    OrionAIMessage.objects.create(
+    message_utilisateur = OrionAIMessage.objects.create(
         conversation=conversation,
         role='user',
         content=clean_prompt,
@@ -151,6 +198,9 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         company=company,
         user=user,
         brand_key=brand_key,
+        # Deja enregistree juste au-dessus : l'exclure de l'historique evite
+        # de l'envoyer deux fois.
+        exclure_message_id=message_utilisateur.pk,
     )
 
     # Le verrou de l'entreprise est transmis au fabricant de fournisseur :
@@ -161,11 +211,25 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         local_only=ai_settings.local_only,
     )
 
+    # Reglages de temps de reponse, propres au moteur local : garder le modele
+    # en memoire, plafonner la generation, borner la fenetre de contexte. Les
+    # fournisseurs externes n'ont pas ces notions -- les leur passer
+    # leverait une TypeError, et un **kwargs complaisant les avalerait en
+    # silence, ce qui est pire : on ne saurait pas que le reglage est inerte.
+    options_locales = {}
+    if ai_settings.default_provider == 'local':
+        options_locales = {
+            'keep_alive_minutes': ai_settings.keep_alive_minutes,
+            'max_output_tokens': ai_settings.max_output_tokens,
+            'context_window_tokens': ai_settings.context_window_tokens,
+        }
+
     try:
         response = provider.generate(
             messages=messages,
             model=ai_settings.default_model,
             temperature=ai_settings.temperature,
+            **options_locales,
         )
     except AIProviderError as exc:
         # Le moteur local absent est LE cas d'echec courant, et « connexion
@@ -188,7 +252,7 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         model=response['model'],
         token_input=response.get('token_input', 0),
         token_output=response.get('token_output', 0),
-        raw_payload=redact_payload(response.get('raw', {})),
+        raw_payload=redact_payload(_avec_mesures(response)),
     )
 
     update_fields = ['updated_at']
@@ -219,6 +283,169 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         'answer': assistant_msg.content,
         'provider': response['provider'],
         'model': response['model'],
+    }
+
+
+def envoyer_message_en_flux(*, request, prompt, conversation_id=None,
+                            context_module='', brand_key=''):
+    """Même échange que send_ai_message, rendu au fur et à mesure.
+
+    Le temps total ne change pas : ce qui change est le temps avant le PREMIER
+    mot. Sans flux, l'utilisateur attend la réponse entière — vingt ou trente
+    secondes pendant lesquelles rien ne bouge, et pendant lesquelles il ne
+    peut pas distinguer un assistant qui réfléchit d'un assistant en panne.
+
+    Produit des dictionnaires, à sérialiser par la vue :
+      {'delta': '...'} pour chaque morceau de texte,
+      puis {'fin': True, 'conversation_id': …, 'message_id': …, 'mesures': …}.
+
+    Volontairement PAS décoré de @transaction.atomic, contrairement à
+    send_ai_message : la génération dure des dizaines de secondes, et tenir
+    une transaction ouverte pendant tout ce temps bloquerait des lignes et
+    consommerait une connexion pour rien. Les écritures sont donc faites en
+    deux temps courts — la question avant, la réponse après.
+    """
+    user = request.user
+    company = get_request_company(request)
+
+    if not can_use_ai(user):
+        raise PermissionError("Vous n'avez pas accès à l'assistant IA.")
+
+    ai_settings = get_ai_settings(company)
+
+    if not ai_settings.ai_enabled or not getattr(settings, 'ORION_AI_ENABLED', False):
+        raise RuntimeError(
+            "L'assistant IA est désactivé. Activez ORION_AI_ENABLED dans la "
+            'configuration.'
+        )
+
+    valid, error_message = validate_user_prompt(prompt)
+    if not valid:
+        raise ValueError(error_message)
+
+    if len(prompt) > ai_settings.max_input_chars:
+        raise ValueError(
+            f'Message trop long (max {ai_settings.max_input_chars} caractères).'
+        )
+
+    clean_prompt = (
+        redact_sensitive_text(prompt) if ai_settings.redact_sensitive_data
+        else prompt
+    )
+
+    provider = get_ai_provider(
+        ai_settings.default_provider,
+        local_only=ai_settings.local_only,
+    )
+
+    # Seul le moteur local sait diffuser ici. Pour les autres, on rend la
+    # réponse d'un bloc plutôt que d'échouer : le flux est un confort, et son
+    # absence ne doit pas priver de l'assistant.
+    if not hasattr(provider, 'generate_stream'):
+        resultat = send_ai_message(
+            request=request, prompt=prompt, conversation_id=conversation_id,
+            context_module=context_module, brand_key=brand_key,
+        )
+        yield {'delta': resultat['answer']}
+        yield {
+            'fin': True,
+            'conversation_id': resultat['conversation_id'],
+            'message_id': resultat['message_id'],
+            'provider': resultat['provider'],
+            'model': resultat['model'],
+            'mesures': {},
+        }
+        return
+
+    with transaction.atomic():
+        conversation = create_or_get_conversation(
+            company=company,
+            user=user,
+            conversation_id=conversation_id,
+            context_module=context_module,
+            brand_key=brand_key,
+        )
+        message_utilisateur = OrionAIMessage.objects.create(
+            conversation=conversation,
+            role='user',
+            content=clean_prompt,
+        )
+
+    messages = build_messages_for_provider(
+        conversation,
+        ai_settings,
+        clean_prompt,
+        company=company,
+        user=user,
+        brand_key=brand_key,
+        exclure_message_id=message_utilisateur.pk,
+    )
+
+    morceaux = []
+    dernier = {}
+    for evenement in provider.generate_stream(
+        messages=messages,
+        model=ai_settings.default_model,
+        temperature=ai_settings.temperature,
+        keep_alive_minutes=ai_settings.keep_alive_minutes,
+        max_output_tokens=ai_settings.max_output_tokens,
+        context_window_tokens=ai_settings.context_window_tokens,
+    ):
+        if evenement.get('fin'):
+            dernier = evenement
+            break
+        texte = evenement.get('delta') or ''
+        if texte:
+            morceaux.append(texte)
+            yield {'delta': texte}
+
+    # La redaction s'applique au texte COMPLET, et non morceau par morceau :
+    # un secret coupe en deux jetons ne serait reconnu par aucun des deux.
+    # C'est pourquoi le texte diffusé est brut et le texte CONSERVÉ expurgé --
+    # la diffusion va à l'auteur de la question, qui a déjà ce qu'il a tapé.
+    contenu = redact_sensitive_text(''.join(morceaux))
+
+    with transaction.atomic():
+        assistant_msg = OrionAIMessage.objects.create(
+            conversation=conversation,
+            role='assistant',
+            content=contenu,
+            provider=dernier.get('provider', 'local'),
+            model=dernier.get('model', ai_settings.default_model),
+            token_input=dernier.get('token_input', 0),
+            token_output=dernier.get('token_output', 0),
+            raw_payload=redact_payload(_avec_mesures(dernier)),
+        )
+
+        update_fields = ['updated_at']
+        if conversation.title == 'Nouvelle conversation':
+            conversation.title = clean_prompt[:80]
+            update_fields.append('title')
+        conversation.updated_at = timezone.now()
+        conversation.save(update_fields=update_fields)
+
+    if ai_settings.log_conversations:
+        audit_ai_event(
+            company=company,
+            user=user,
+            event_type='chat_message',
+            title='Message IA (flux)',
+            description=clean_prompt[:220],
+            payload={
+                'conversation_id': conversation.id,
+                'provider': dernier.get('provider', 'local'),
+                'model': dernier.get('model', ai_settings.default_model),
+            },
+            request=request,
+        )
+
+    yield {
+        'fin': True,
+        'conversation_id': conversation.id,
+        'message_id': assistant_msg.id,
+        'provider': dernier.get('provider', 'local'),
+        'model': dernier.get('model', ai_settings.default_model),
+        'mesures': dernier.get('timings') or {},
     }
 
 

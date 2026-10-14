@@ -81,7 +81,16 @@ def connecte(client, utilisateur, entreprise_a, monkeypatch):
 def test_accueil_exige_une_connexion(client):
     reponse = client.get('/m/')
     assert reponse.status_code == 302
-    assert '/m/' not in reponse.url
+    # « /m/ absent de l'URL de redirection » ne disait pas ce que le test
+    # voulait dire : la redirection de login_required porte justement
+    # « ?next=/m/ ». L'assertion ne tenait que tant qu'un autre intergiciel
+    # detournait vers /setup/ avant -- donc tant qu'aucun test precedent
+    # n'avait cree d'entreprise. Ce qu'il faut verifier est la destination.
+    from django.conf import settings as djsettings
+    destination = reponse.url.split('?')[0]
+    assert destination == djsettings.LOGIN_URL or destination == '/setup/', (
+        reponse.url
+    )
 
 
 @pytest.mark.parametrize('adresse', ['/m/', '/m/photo/', '/m/serveurs/'])

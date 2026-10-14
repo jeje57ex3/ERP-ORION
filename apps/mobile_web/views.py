@@ -22,10 +22,13 @@ choisir le chantier d'une autre entreprise serait une fuite de données.
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from apps.mobile_web.forms import PhotoMobileForm
+from apps.mobile_web.models import EnvoiPhotoMobile
 
 PHOTOS_MAX = 10
 TAILLE_MAX_OCTETS = 12 * 1024 * 1024  # 12 Mo par photo
@@ -113,6 +116,18 @@ def _verifier_photo(fichier):
     return ''
 
 
+def _appel_de_la_file(request):
+    """L'envoi vient-il de la file d'attente plutôt que du formulaire ?
+
+    La file a besoin d'une réponse exploitable par du code — un JSON disant si
+    la photo est passée — là où le formulaire attend une page. Un seul point
+    d'entrée pour les deux : dupliquer la vue dupliquerait aussi le
+    cloisonnement par entreprise et les contrôles de fichier, c'est-à-dire
+    exactement ce qu'il ne faut pas voir diverger.
+    """
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
 @login_required
 def photo(request):
     """Prend une ou plusieurs photos et les range dans l'ERP."""
@@ -128,34 +143,92 @@ def photo(request):
             'rubrique': 'photo',
         })
 
+    depuis_la_file = _appel_de_la_file(request)
+    cle = (request.POST.get('cle_envoi') or '').strip()[:64]
+
+    # Un envoi déjà enregistré ne doit pas l'être deux fois. La file ne peut
+    # pas savoir si une coupure est survenue avant ou APRÈS l'enregistrement :
+    # sans ce contrôle, toute réponse perdue donnerait une photo en double.
+    if cle:
+        deja = EnvoiPhotoMobile.objects.filter(cle=cle).first()
+        if deja is not None:
+            if depuis_la_file:
+                return JsonResponse({
+                    'statut': 'deja_recu',
+                    'photos': deja.photos,
+                    'message': 'Envoi déjà enregistré.',
+                })
+            messages.info(request, 'Cet envoi avait déjà été enregistré.')
+            return redirect('mobile_web:photo')
+
     form = PhotoMobileForm(request.POST, chantiers=chantiers)
     fichiers = request.FILES.getlist('photos')[:PHOTOS_MAX]
+    erreurs = []
 
     if not entreprise:
-        messages.error(
-            request,
-            "Aucune entreprise active : impossible de savoir où ranger la photo.",
+        erreurs.append(
+            "Aucune entreprise active : impossible de savoir où ranger la photo."
         )
     elif not fichiers:
-        messages.error(request, 'Aucune photo reçue. Prenez ou choisissez une image.')
-    elif form.is_valid():
-        refus = [m for m in (_verifier_photo(f) for f in fichiers) if m]
-        if refus:
-            for message in refus:
-                messages.error(request, message)
-        else:
-            enregistrees = _enregistrer(request, form.cleaned_data, fichiers, entreprise)
-            # Zero enregistrement n'est pas un succes. _enregistrer a deja
-            # pose l'erreur ; annoncer « 0 photo enregistree » par-dessus,
-            # puis rediriger, faisait croire a une reussite et masquait la
-            # cause -- un chantier refuse, par exemple.
-            if enregistrees:
-                messages.success(
-                    request,
-                    'Photo enregistrée.' if enregistrees == 1
-                    else f'{enregistrees} photos enregistrées.',
-                )
-                return redirect('mobile_web:photo')
+        erreurs.append('Aucune photo reçue. Prenez ou choisissez une image.')
+    elif not form.is_valid():
+        for nom_champ, liste in form.errors.items():
+            if not liste:
+                continue
+            champ = form.fields.get(nom_champ)
+            libelle = getattr(champ, 'label', '') or nom_champ
+            erreurs.append('%s : %s' % (libelle, liste[0]))
+    else:
+        erreurs.extend(m for m in (_verifier_photo(f) for f in fichiers) if m)
+
+    if not erreurs:
+        enregistrees = _enregistrer(
+            request, form.cleaned_data, fichiers, entreprise)
+        # Zero enregistrement n'est pas un succes. _enregistrer a deja
+        # pose l'erreur ; annoncer « 0 photo enregistree » par-dessus,
+        # puis rediriger, faisait croire a une reussite et masquait la
+        # cause -- un chantier refuse, par exemple.
+        if enregistrees:
+            if cle:
+                try:
+                    EnvoiPhotoMobile.objects.create(
+                        cle=cle, company=entreprise,
+                        user=request.user if request.user.is_authenticated else None,
+                        photos=enregistrees,
+                    )
+                except IntegrityError:
+                    # Deux envois simultanés de la même clé : le premier a
+                    # gagné, et c'est sans conséquence — la trace existe.
+                    pass
+            if depuis_la_file:
+                return JsonResponse({'statut': 'enregistre',
+                                     'photos': enregistrees})
+            messages.success(
+                request,
+                'Photo enregistrée.' if enregistrees == 1
+                else f'{enregistrees} photos enregistrées.',
+            )
+            return redirect('mobile_web:photo')
+        erreurs.append("La photo n'a pas pu être enregistrée.")
+
+    if depuis_la_file:
+        # _enregistrer signale ses refus par le cadre de messages de Django,
+        # invisible pour un appel de la file : sans cette récupération, le
+        # téléphone n'affichait qu'un « La photo n'a pas pu être enregistrée »
+        # générique là où le serveur avait dit « Chantier inconnu pour cette
+        # entreprise ». Le motif précis est ce qui permet de corriger.
+        for message in messages.get_messages(request):
+            if message.level_tag in ('error', 'warning')                     and str(message) not in erreurs:
+                erreurs.append(str(message))
+
+        # 422 et non 400 : la requête est bien formée, c'est son contenu que le
+        # serveur refuse. La file doit distinguer ce refus définitif d'une
+        # panne de réseau, qu'elle doit au contraire réessayer.
+        return JsonResponse({'statut': 'refuse', 'erreurs': erreurs},
+                            status=422)
+
+    for message in erreurs:
+        messages.error(request, message)
 
     return render(request, 'mobile_web/photo.html', {
         'form': form,

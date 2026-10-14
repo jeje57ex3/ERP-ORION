@@ -19,6 +19,11 @@ urlpatterns = [
 
     # API REST
     path('api/v1/orion-ai/chat/', api.ai_chat_api, name='api_chat'),
+    # Meme echange, rendu au fur et a mesure. L'adresse d'origine est
+    # conservee : les appels internes et tout client existant continuent de
+    # recevoir une reponse d'un bloc.
+    path('api/v1/orion-ai/chat/flux/', api.ai_chat_stream_api,
+         name='api_chat_stream'),
     path('api/v1/orion-ai/conversations/', api.ai_conversations_api, name='api_conversations'),
     path('api/v1/orion-ai/conversations/<int:pk>/', api.ai_conversation_detail_api, name='api_conversation_detail'),
     path('api/v1/orion-ai/actions/', api.ai_proposed_actions_api, name='api_actions'),

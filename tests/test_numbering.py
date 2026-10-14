@@ -18,8 +18,11 @@ class TestNextNumber(TestCase):
             quote_prefix='DEV',
             order_prefix='CMD',
         )
-        CompanySettings.objects.create(
-            company=self.company,
+        # CompanySettings existe deja : apps/core/signals.py le cree sur le
+        # post_save de Company. Un create() ici leve IntegrityError (contrainte
+        # unique sur company_id), et c'est ce qui faisait echouer tout ce
+        # fichier. Defaut present depuis le commit initial.
+        CompanySettings.objects.filter(company=self.company).update(
             next_invoice_number=1,
             next_quote_number=1,
             next_order_number=1,

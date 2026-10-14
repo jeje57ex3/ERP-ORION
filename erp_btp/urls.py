@@ -6,6 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
+from django.views.generic import RedirectView
 from django.conf.urls.i18n import set_language
 from apps.private_saas.views import company_switcher
 from apps.core.setup_views import setup_wizard
@@ -89,7 +90,18 @@ urlpatterns = [
     path('qualite/', include('apps.quality_incidents.urls', namespace='quality_incidents')),
 
     # ── Phase 3 — Intelligence & API ─────────────────────────────────────────
-    path('assistant/', include('apps.orion_assistant.urls', namespace='orion_assistant')),
+    # /assistant/ etait l'ancien module orion_assistant, remplace par orion_ai
+    # (surensemble strict : memes conversations, plus les outils, la memoire et
+    # l'audit). L'adresse est conservee en redirection : des liens et des
+    # favoris la portent deja. Redirection TEMPORAIRE (302) et non permanente :
+    # un 301 serait mis en cache par les navigateurs sans moyen de revenir.
+    path(
+        'assistant/',
+        RedirectView.as_view(
+            pattern_name='orion_ai:assistant_dashboard', permanent=False,
+        ),
+        name='assistant_redirection',
+    ),
     path('analytique/', include('apps.predictive_analytics.urls', namespace='predictive_analytics')),
     path('webhooks/', include('apps.api_webhooks.urls', namespace='api_webhooks')),
     path('integrations/', include('apps.integration_center.urls', namespace='integration_center')),
