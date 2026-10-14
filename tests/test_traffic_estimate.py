@@ -82,13 +82,14 @@ class TestTrafficEstimateModel(TestCase):
 
     def test_add_manual_traffic_estimate_via_service(self):
         from apps.competitor_intelligence.services.traffic_estimator import add_manual_traffic_estimate
+        # Le parametre s'appelle « visitors_monthly », et « created_by »
+        # n'existe pas sur ce chemin.
         est = add_manual_traffic_estimate(
-            company=self.company,
-            competitor=self.competitor,
-            site=self.site,
-            monthly_visitors=75000,
+            self.company,
+            self.competitor,
+            75000,
             confidence_score=6,
-            created_by=self.user,
+            site=self.site,
         )
         self.assertIsNotNone(est.pk)
         self.assertEqual(est.estimated_monthly_visitors, 75000)
@@ -128,7 +129,9 @@ class TestTrafficEstimateModel(TestCase):
             source_type='manual',
             confidence_score=7,
         )
-        result = compare_competitor_traffic(self.company)
+        # La comparaison porte sur une SELECTION de concurrents, comme les
+        # rapports : l'ecran laisse cocher lesquels.
+        result = compare_competitor_traffic(self.company, [self.competitor])
         self.assertIsInstance(result, list)
 
     def test_daily_visitors_calculated(self):

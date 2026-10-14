@@ -33,11 +33,17 @@ class TestCompanyModule(TestCase):
         """enable() active le module et met à jour enabled_at."""
         from apps.private_saas.models import CompanyModule
         from django.utils import timezone
+        from django.contrib.auth.models import User
+
         mod = CompanyModule()
         mod.is_enabled = False
         mod.save = MagicMock()
 
-        user = MagicMock()
+        # Un vrai utilisateur : « enabled_by » est une cle etrangere, et
+        # Django refuse d'y affecter un MagicMock (« must be a User
+        # instance »). La simulation ne faisait pas gagner de temps ici --
+        # elle empechait simplement le test de s'executer.
+        user = User.objects.create_user('activateur', password='x')
         mod.enable(user=user)
 
         self.assertTrue(mod.is_enabled)

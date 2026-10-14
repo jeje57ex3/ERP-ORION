@@ -543,5 +543,14 @@ def report_income_statement(request):
     })
 
 
+@login_required
 def index(request):
+    """Entree du module comptable, qui redirige vers le tableau de bord.
+
+    @login_required n'y figurait pas : un visiteur anonyme recevait donc
+    l'adresse interne du tableau de bord au lieu d'etre renvoye vers la
+    connexion. Sans consequence grave -- la cible, elle, est protegee -- mais
+    toutes les autres entrees de l'ERP se comportent autrement, et une
+    exception non motivee finit par etre prise pour la regle.
+    """
     return redirect('accounting:dashboard')

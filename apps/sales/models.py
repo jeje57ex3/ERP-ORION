@@ -189,6 +189,45 @@ class Invoice(models.Model):
             except Invoice.DoesNotExist:
                 pass
 
+    def save(self, *args, **kwargs):
+        """Refuse la modification d'une facture payée ou annulée.
+
+        Cette règle existait dans `clean()`, et ne s'appliquait jamais : Django
+        n'appelle `clean()` que par `full_clean()`, c'est-à-dire depuis un
+        formulaire. Tout code appelant `invoice.save()` la contournait donc
+        entièrement — la garde ne protégeait que la saisie à l'écran.
+
+        Ce n'était pas théorique : `sales.views.invoice_send` remet le statut
+        à « envoyée » et enregistre, sans regarder l'état courant. Sur une
+        facture payée, elle la faisait repasser en « envoyée » tout en
+        laissant `amount_paid` à son montant — une facture encaissée qui
+        réapparaît comme impayée.
+
+        `JournalEntry` applique la même règle, et l'applique vraiment, en
+        appelant `full_clean()` dans son `save()`. Ici on ne valide QUE cette
+        règle, et non tous les champs : un `full_clean()` complet sur chaque
+        enregistrement de facture changerait le comportement de toute la
+        chaîne de facturation, ce qui dépasse l'intention.
+
+        `forcer=True` laisse passer les transitions internes légitimes — par
+        exemple le rattachement d'un PDF après encaissement.
+        """
+        forcer = kwargs.pop('forcer', False)
+        if self.pk and not forcer:
+            ancien_statut = (
+                Invoice.objects.filter(pk=self.pk)
+                .values_list('status', flat=True)
+                .first()
+            )
+            if ancien_statut in self.LOCKED_STATUSES:
+                libelle = dict(self.STATUS_CHOICES).get(
+                    ancien_statut, ancien_statut)
+                raise ValidationError(
+                    f"Impossible de modifier une facture {libelle.lower()}. "
+                    "Émettez un avoir pour corriger."
+                )
+        super().save(*args, **kwargs)
+
     def mark_sent(self):
         if self.status != 'draft':
             raise ValidationError("Seule une facture brouillon peut être envoyée.")

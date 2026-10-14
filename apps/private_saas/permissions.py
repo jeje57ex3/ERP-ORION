@@ -5,16 +5,24 @@ from .models import ALL_MODULE_CODES
 
 
 def company_has_module(company, module_code: str) -> bool:
-    """Vérifie si un module est activé pour une entreprise."""
-    if company is None:
-        return True
-    try:
-        from .models import CompanyModule
-        return CompanyModule.objects.filter(
-            company=company, module_code=module_code, is_enabled=True
-        ).exists()
-    except Exception:
-        return True
+    """Vérifie si un module est activé pour une entreprise.
+
+    Délègue à `module_access.company_has_module`, qui est la source de vérité
+    employée par les décorateurs d'accès. Les deux implémentations avaient
+    divergé sur le cas le plus important : sans entreprise, celle-ci répondait
+    True — « pas d'entreprise, pas de filtre » — là où celle du contrôle
+    d'accès répond False. Deux réponses opposées à la même question, et c'est
+    la permissive qui alimentait le menu : un utilisateur sans entreprise
+    active se voyait proposer tous les modules, y compris ceux que son
+    exploitant n'a pas souscrits.
+
+    Sans entreprise, aucune donnée métier ne peut être cloisonnée : refuser
+    est la seule réponse cohérente.
+    """
+    from apps.private_saas.module_access import (
+        company_has_module as _module_actif,
+    )
+    return _module_actif(company, module_code)
 
 
 def user_can_access_module(user, company, module_code: str) -> bool:
@@ -77,10 +85,29 @@ def filter_nav_modules(nav_modules: list, company, user=None) -> list:
     activés pour l'entreprise.
     Les super admins voient tout. Les entrées sans module_code mappé sont conservées.
     """
-    if user and user.is_superuser:
-        return nav_modules
+    est_super_admin = bool(user and getattr(user, 'is_superuser', False))
 
     if company is None:
+        # Sans entreprise active, cette fonction renvoyait la liste ENTIERE.
+        # Consequence : un utilisateur ordinaire voyait le menu Super Admin,
+        # et tous les modules metier que son exploitant n'a pas souscrits.
+        # On applique donc les memes regles qu'avec une entreprise, en
+        # considerant qu'aucun module metier n'est actif -- ce qui est le cas,
+        # puisqu'il n'y a pas d'entreprise pour les activer.
+        always_show = {'dashboard', 'erp_overview', 'settings'}
+        super_admin_only = {'private_saas'}
+        sans_entreprise = []
+        for module in nav_modules:
+            mid = module.get('id', '')
+            if mid in super_admin_only or module.get('super_admin_only'):
+                if est_super_admin:
+                    sans_entreprise.append(module)
+                continue
+            if mid in always_show:
+                sans_entreprise.append(module)
+        return sans_entreprise
+
+    if est_super_admin:
         return nav_modules
 
     try:

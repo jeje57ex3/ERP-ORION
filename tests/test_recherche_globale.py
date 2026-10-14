@@ -367,17 +367,57 @@ def test_une_page_hors_permissions_n_est_pas_proposee(client, utilisateur, monke
     assert [r for r in data['results'] if r['type'] == 'page'] == []
 
 
-def test_les_pages_restent_trouvables_sans_entreprise_active(client, utilisateur, monkeypatch):
-    """Sans entreprise résolue, les données métier sont hors de portée — mais
-    priver l'utilisateur des pages rendrait la recherche entièrement
-    inutile."""
+def test_sans_entreprise_active_seules_les_pages_ouvrables_sont_proposees(
+        client, utilisateur, monkeypatch):
+    """Sans entreprise résolue, la recherche répond encore — mais seulement
+    avec les pages que l'utilisateur peut réellement ouvrir.
+
+    Ce test attendait d'abord l'inverse : que TOUTES les pages restent
+    proposées, au motif que priver l'utilisateur des pages rendrait la
+    recherche inutile. C'était un mauvais compromis, et il contredisait la
+    règle posée juste au-dessus (voir
+    test_une_page_hors_permissions_n_est_pas_proposee) : proposer une page
+    qu'on ne peut pas ouvrir est pire qu'un silence, car l'utilisateur la
+    cherche, clique, et se voit refuser l'accès.
+
+    Or sans entreprise active, les pages de module SONT refusées : le
+    décorateur d'accès interroge `company_has_module`, qui répond False faute
+    d'entreprise. Les proposer serait donc promettre des portes fermées.
+
+    Ce qui reste, et qui suffit à ce que la recherche garde son utilité : les
+    pages toujours visibles — tableau de bord, vue générale, paramètres.
+    """
     from apps.core import search
 
     client.force_login(utilisateur)
     monkeypatch.setattr(search, '_entreprise_active', lambda requete: None)
 
     data = json.loads(
-        client.get('/dashboard/search/', {'q': 'disques', 'format': 'json'}).content
+        client.get('/dashboard/search/',
+                   {'q': 'telephone', 'format': 'json'}).content
     )
-    assert any(r['type'] == 'page' for r in data['results'])
+    pages = [r for r in data['results'] if r['type'] == 'page']
+    assert pages, 'la recherche ne doit pas devenir muette'
+    # Aucune donnée métier : il n'y a pas d'entreprise pour les cloisonner.
     assert all(r['type'] == 'page' for r in data['results'])
+
+
+def test_sans_entreprise_les_pages_de_module_ne_sont_pas_proposees(
+        client, utilisateur, monkeypatch):
+    """Contre-épreuve du test précédent : une page de module, elle, disparaît.
+
+    Sans elle, le test ci-dessus passerait même si toutes les pages étaient
+    proposées — ce qui était précisément le défaut.
+    """
+    from apps.core import search
+
+    client.force_login(utilisateur)
+    monkeypatch.setattr(search, '_entreprise_active', lambda requete: None)
+
+    data = json.loads(
+        client.get('/dashboard/search/',
+                   {'q': 'clients', 'format': 'json'}).content
+    )
+    modules = {r.get('subtitle', '') for r in data['results']
+               if r['type'] == 'page'}
+    assert 'CRM' not in modules, modules
