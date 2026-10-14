@@ -49,6 +49,11 @@ def assistant_dashboard(request):
     return render(request, 'orion_ai/dashboard.html', {
         'ai_settings': ai_settings,
         'module_courant': module_courant,
+        # Question venue de la barre de recherche de l'ERP. Pre-remplie, pas
+        # envoyee d'office : l'utilisateur relit et complete avant d'engager
+        # une reponse, et un envoi automatique sur simple clic serait une
+        # surprise.
+        'question_initiale': request.GET.get('q', '').strip()[:500],
         'retour_url': request.GET.get('depuis', ''),
         'recent_conversations': recent_conversations,
         'pending_actions': pending_actions,

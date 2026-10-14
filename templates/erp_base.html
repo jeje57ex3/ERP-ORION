@@ -426,6 +426,34 @@
   var empty   = document.getElementById('globalSearchModalEmpty');
   if (!input || !modal) return;
 
+  // Echappement obligatoire : la requete ET les valeurs de la base etaient
+  // injectees brutes dans innerHTML. Un nom de client contenant du HTML
+  // s'executait donc a l'affichage des resultats -- une faille stockee, pas
+  // seulement un defaut d'affichage.
+  function echapper(valeur) {
+    var d = document.createElement('div');
+    d.textContent = (valeur === null || valeur === undefined) ? '' : String(valeur);
+    return d.innerHTML;
+  }
+
+  // Entree vers Orion, en tete des resultats. Conditionnee a la
+  // disponibilite REELLE de l'IA : un raccourci qui mene a « assistant
+  // desactive » est une promesse non tenue a chaque recherche.
+  var ORION_DISPONIBLE = {% if orion_ai_available %}true{% else %}false{% endif %};
+  var ORION_URL = '{% url "orion_ai:assistant_dashboard" %}';
+  var ORION_NOM = '{{ orion_ai_name|default:"Orion"|escapejs }}';
+
+  function enteteOrion(q) {
+    if (!ORION_DISPONIBLE) { return ''; }
+    var lien = ORION_URL + '?q=' + encodeURIComponent(q);
+    return '<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">{% trans "Demander" %}</small></div>'
+      + '<a href="' + lien + '" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item">'
+      + '<span class="me-3 fs-5" style="color:#C6A15B"><i class="bi bi-stars"></i></span>'
+      + '<span><span class="d-block fw-medium text-dark">' + echapper(ORION_NOM) + '</span>'
+      + '<span class="d-block small text-muted">&laquo;&nbsp;' + echapper(q) + '&nbsp;&raquo;</span>'
+      + '</span></a>';
+  }
+
   var timer;
   input.addEventListener('input', function() {
     clearTimeout(timer);
@@ -436,16 +464,17 @@
       return;
     }
     timer = setTimeout(function() {
-      fetch('/search/?q=' + encodeURIComponent(q) + '&format=json', {
+      fetch('{% url "core:search" %}?q=' + encodeURIComponent(q) + '&format=json', {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(data) {
         if (!data || !data.results || data.results.length === 0) {
-          results.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>{% trans "Aucun résultat pour" %} "<strong>' + q + '</strong>"</div>';
+          results.innerHTML = enteteOrion(q)
+            + '<div class="text-center text-muted py-4 small"><i class="bi bi-search fs-2 d-block mb-2 opacity-25"></i>{% trans "Aucun résultat pour" %} "<strong>' + echapper(q) + '</strong>"</div>';
           return;
         }
-        var html = '';
+        var html = enteteOrion(q);
         var byType = {};
         data.results.forEach(function(r) {
           if (!byType[r.label]) byType[r.label] = [];
@@ -453,13 +482,13 @@
         });
         Object.entries(byType).forEach(function(entry) {
           var label = entry[0], items = entry[1];
-          html += '<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">' + label + '</small></div>';
+          html += '<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">' + echapper(label) + '</small></div>';
           items.forEach(function(item) {
             html += '<a href="' + item.url + '" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item" style="transition:background .15s" onmouseover="this.style.background=\'rgba(var(--bs-primary-rgb),.07)\'" onmouseout="this.style.background=\'\'">'
               + '<span class="me-3 fs-5 text-' + (item.color || 'secondary') + '"><i class="bi ' + (item.icon || 'bi-dot') + '"></i></span>'
               + '<span>'
-              + '<span class="d-block fw-medium text-dark">' + item.title + '</span>'
-              + (item.subtitle ? '<span class="d-block small text-muted">' + item.subtitle + '</span>' : '')
+              + '<span class="d-block fw-medium text-dark">' + echapper(item.title) + '</span>'
+              + (item.subtitle ? '<span class="d-block small text-muted">' + echapper(item.subtitle) + '</span>' : '')
               + '</span></a>';
           });
         });
