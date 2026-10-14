@@ -8,7 +8,11 @@
 # navigateur (/setup/).
 
 set -euo pipefail
-exec >> /var/log/orion-provision.log 2>&1
+
+# shellcheck source=lib/commun.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/commun.sh"
+ORION_ETAPE='03'
+journaliser_vers_fichier_et_console
 
 echo "=== [03] Unités systemd + démarrage des services — $(date -u +%FT%TZ) ==="
 
@@ -21,29 +25,20 @@ MANAGE="$ORION_HOME/backend/manage.py"
 cp "$PAYLOAD_DIR"/systemd/*.service "$PAYLOAD_DIR"/systemd/*.timer /etc/systemd/system/
 systemctl daemon-reload
 
-# ─── Normalisation du .env avant sourçage ──────────────────────────────────────
-# Une valeur contenant des espaces sans guillemets rend le sourçage shell
-# fatal ET opaque : bash lit « VAR=sudo » puis tente d'exécuter la commande
-# « -n », d'où « -n: command not found » et un exit 127 qui ne nomme ni la clé
-# ni le fichier. python-decouple tolérant la forme nue, le défaut est
-# invisible côté Django — il a pourtant empêché tout le provisionnement d'une
-# VM neuve, et le symptôme observé (toutes les pages en 500) n'avait aucun
-# rapport apparent.
+# ─── Lecture du .env, sans l'exécuter ─────────────────────────────────────────
+# L'étape sourçait ce fichier (« set -a; . .env »), c'est-à-dire qu'elle en
+# EXÉCUTAIT le contenu. Une seule valeur à espaces non citée
+# (ORION_UPDATE_CELERY_RESTART_COMMAND=sudo -n ...) a donc tué le
+# provisioning d'une VM neuve en exit 127, sur un « -n: command not found »
+# qui ne nommait ni la clé ni le fichier, et dont le symptôme final — toutes
+# les pages en 500 — n'avait aucun rapport apparent.
 #
-# Cible volontairement étroite : seules les clés *_COMMAND, dont la valeur est
-# par nature une ligne de commande. Aucune autre valeur n'est réécrite. Répare
-# au passage les installations déjà en place.
-normaliser_env() {
-  local fichier="$1"
-  grep -qE '^[A-Za-z_]*_COMMAND=[^"]*[[:space:]]' "$fichier" || return 0
-  sed -i -E 's/^([A-Za-z_]*_COMMAND)=([^"].*)$/\1="\2"/' "$fichier"
-  echo "[03] .env normalisé : valeurs de commande protégées par des guillemets."
-}
+# normaliser_env (lib/commun.sh) répare les installations déjà en place ;
+# charger_env rend l'accident structurellement impossible pour les suivantes.
 normaliser_env "$ENV_FILE"
+charger_env "$ENV_FILE"
 
 # ─── Infrastructure MySQL / Redis ──────────────────────────────────────────────
-set -a; . "$ENV_FILE"; set +a
-
 echo "[03] Démarrage MySQL / Redis..."
 systemctl enable --now orion-db-stack.service
 "$PAYLOAD_DIR/scripts/wait_for_port.sh" 127.0.0.1 6379 60
@@ -105,7 +100,20 @@ fi
 
 echo "[03] Collecte des fichiers statiques..."
 sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput \
-  || echo "[03] ATTENTION: collectstatic a échoué." >&2
+  || retenir_defaut "collectstatic a échoué."
+
+# Vérifié et non supposé : le stockage à manifeste
+# (CompressedManifestStaticFilesStorage) lève une erreur à chaque {% static %}
+# sans entrée dans staticfiles.json. Ce fichier manquant, TOUTE page de l'ERP
+# renvoie 500 et les statiques 404 -- c'est exactement la panne constatée, et
+# son symptôme ne désignait rien de ce qui l'avait causée : trois étapes
+# séparaient la cause de l'effet.
+MANIFESTE="$ORION_HOME/backend/staticfiles/staticfiles.json"
+if [ -s "$MANIFESTE" ]; then
+  dire "statiques collectés : $(find "$ORION_HOME/backend/staticfiles" -type f | wc -l) fichiers, manifeste présent."
+else
+  retenir_defaut "staticfiles.json absent -- toutes les pages renverraient 500. Rejouez : sudo -u orion -E $VENV_PY $MANAGE collectstatic --noinput"
+fi
 
 if [ "$MIGRATE_OK" -eq 1 ]; then
   echo "[03] Peuplement du catalogue de widgets dashboard..."
@@ -199,6 +207,7 @@ fi
 systemctl enable --now orion-health.timer
 
 if [ "$MIGRATE_OK" -ne 1 ]; then
+  retenir_defaut "schéma de base absent : migrate a échoué 8 fois."
   echo "[03] ÉCHEC : le schéma de base n’a pas été créé. Les services sont" >&2
   echo "[03] démarrés mais l’ERP est inutilisable. Rejouez :" >&2
   echo "[03]   sudo -u orion -E $VENV_PY $MANAGE migrate --noinput" >&2
@@ -206,4 +215,6 @@ if [ "$MIGRATE_OK" -ne 1 ]; then
   exit 1
 fi
 
-echo "[03] Terminé."
+# Un récapitulatif groupé : chaque anomalie tolérée plus haut est répétée ici,
+# au lieu d'être noyée au milieu de centaines de lignes de journal.
+verdict_etape

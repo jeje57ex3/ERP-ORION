@@ -43,6 +43,23 @@ if ! base64 -d "$WORK_DIR/payload.b64" | tar tz >/dev/null 2>&1; then
   exit 1
 fi
 
+# Le payload contient-il ce dont le provisioning a besoin ? Une image
+# construite sans ces fichiers produit une VM qui démarre, exécute une ligne de
+# cloud-init, et ne provisionne RIEN — en silence. Le contrôle coûte une
+# seconde ici, contre un déploiement entier à refaire plus tard.
+echo "[20] Vérification du contenu du payload..."
+CONTENU="$(base64 -d "$WORK_DIR/payload.b64" | tar tz 2>/dev/null)"
+for requis in   provisioning/00-provisionner.sh   provisioning/lib/commun.sh   provisioning/08-verification.sh   scripts/orion-verifier.sh   scripts/wait_for_port.sh   scripts/refresh_allowed_hosts.sh
+do
+  if ! printf '%s
+' "$CONTENU" | grep -qx "./$requis"      && ! printf '%s
+' "$CONTENU" | grep -qx "$requis"; then
+    echo "[20] ERREUR: $requis absent du payload — le provisioning échouerait." >&2
+    exit 1
+  fi
+done
+echo "[20] Payload complet."
+
 # Version pré-indentée (6 espaces par ligne) pour insertion directe dans le
 # bloc YAML "content: |" du template — voir user-data.yaml.tmpl.
 awk '{ print "      " $0 }' "$WORK_DIR/payload.b64" > "$WORK_DIR/payload.b64.indented"

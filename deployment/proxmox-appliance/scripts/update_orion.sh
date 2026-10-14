@@ -21,6 +21,21 @@
 
 set -euo pipefail
 
+# commun.sh : $HOME garanti (la CLI Ollama et git en dependent, et
+# « qm guest exec » n'en definit aucun), lecture du .env sans l'executer,
+# verifications. Suit les scripts dans /opt/orion/scripts.
+ICI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for candidat in   "$ICI/commun.sh"   /opt/orion/scripts/commun.sh   /opt/orion/backend/deployment/proxmox-appliance/provisioning/lib/commun.sh
+do
+  if [ -f "$candidat" ]; then . "$candidat"; break; fi
+done
+if ! declare -f charger_env >/dev/null 2>&1; then
+  echo "ERREUR: commun.sh introuvable — mise a jour interrompue." >&2
+  echo "  Attendu dans /opt/orion/scripts/commun.sh" >&2
+  exit 1
+fi
+ORION_ETAPE='maj'
+
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
 VENV_PY="$ORION_HOME/backend/.venv/bin/python"
@@ -39,18 +54,13 @@ done
 
 [ -f "$ENV_FILE" ] || { echo "ERREUR: $ENV_FILE introuvable — appliance non configurée."; exit 1; }
 
-# Une valeur contenant des espaces sans guillemets rend ce sourçage fatal et
-# opaque : bash lit « VAR=sudo » puis tente d'exécuter « -n », d'où un
-# « -n: command not found » et un exit 127 qui ne nomme ni la clé ni le
-# fichier. La mise à jour échouait donc avant même de commencer, sur une
-# appliance par ailleurs saine. Seules les clés *_COMMAND sont corrigées :
-# leur valeur est par nature une ligne de commande.
-if grep -qE '^[A-Za-z_]*_COMMAND=[^"]*[[:space:]]' "$ENV_FILE"; then
-  sed -i -E 's/^([A-Za-z_]*_COMMAND)=([^"].*)$/\1="\2"/' "$ENV_FILE"
-  echo "  .env normalisé : valeurs de commande protégées par des guillemets."
-fi
-
-set -a; . "$ENV_FILE"; set +a
+# Le .env etait SOURCE, c'est-a-dire execute : une seule valeur a espaces non
+# citee rendait la mise a jour fatale et opaque (« -n: command not found »,
+# exit 127, sans nommer ni la cle ni le fichier) sur une appliance par
+# ailleurs saine. normaliser_env repare le fichier en place, charger_env le lit
+# sans jamais interpreter une valeur.
+normaliser_env "$ENV_FILE"
+charger_env "$ENV_FILE"
 
 echo "======================================"
 echo " Mise à jour Orion ERP Appliance"
@@ -142,6 +152,11 @@ rafraichir_scripts() {
   sas="$(mktemp -d)"
   cp "$source_scripts"/*.sh "$sas"/ 2>/dev/null || true
   cp "$source_scripts"/*.py "$sas"/ 2>/dev/null || true
+  # commun.sh vit dans provisioning/lib, pas dans scripts/ : sans cette ligne,
+  # les scripts rafraichis trouveraient une bibliotheque plus ancienne qu'eux
+  # -- ou pas de bibliotheque du tout sur une appliance installee avant son
+  # introduction, et refuseraient alors de s'executer.
+  cp "$ORION_HOME/backend/deployment/proxmox-appliance/provisioning/lib/commun.sh"      "$sas"/commun.sh 2>/dev/null || true
 
   local poses=0
   for fichier in "$sas"/*; do
@@ -229,6 +244,28 @@ sleep 3
 systemctl --no-pager status orion-backend.service orion-frontend.service \
   siecle-frontend.service lunea-frontend.service --lines=0 || true
 
+# Verifie ce qu'un navigateur verrait, au lieu d'annoncer un succes sur la
+# seule foi des commandes passees. Une mise a jour peut laisser l'ERP en 500
+# (statiques non recollectes) ou en 502 (service qui ne redemarre pas) : les
+# deux se sont produits, et dans les deux cas le script s'etait declare
+# termine.
 echo ""
-echo "Mise à jour terminée."
+echo "[verification] Etat de l'installation apres mise a jour..."
+VERIFICATEUR="$ORION_HOME/scripts/orion-verifier.sh"
+if [ -f "$VERIFICATEUR" ]; then
+  if bash "$VERIFICATEUR"; then
+    echo ""
+    echo "Mise a jour terminee — installation verifiee."
+  else
+    echo ""
+    echo "ATTENTION: la mise a jour est passee mais la verification signale des" >&2
+    echo "defauts (detail ci-dessus). Rollback applicatif si necessaire :" >&2
+    echo "  sudo -u orion $VENV_PY $MANAGE rollback_system_update" >&2
+    exit 1
+  fi
+else
+  echo ""
+  echo "Mise à jour terminée."
+  echo "  (orion-verifier.sh absent — rien n'a ete verifie)"
+fi
 echo "En cas de problème : sudo -u orion $VENV_PY $MANAGE rollback_system_update"

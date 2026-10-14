@@ -18,6 +18,21 @@ set -euo pipefail
 
 ORION_HOME="${ORION_HOME:-/opt/orion}"
 ENV_FILE="$ORION_HOME/backend/.env"
+# commun.sh : lecture du .env sans l'executer, et $HOME garanti. Une seule
+# valeur a espaces non citee suffisait a tuer ce script sur un
+# « -n: command not found » (exit 127) qui ne nommait ni la cle ni le fichier.
+ICI_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for _candidat in \
+  "$ICI_SCRIPT/commun.sh" \
+  /opt/orion/scripts/commun.sh \
+  /opt/orion/backend/deployment/proxmox-appliance/provisioning/lib/commun.sh
+do
+  if [ -f "$_candidat" ]; then . "$_candidat"; break; fi
+done
+if ! declare -f charger_env >/dev/null 2>&1; then
+  echo "ERREUR: commun.sh introuvable (attendu dans /opt/orion/scripts/)." >&2
+  exit 1
+fi
 COMPOSE_FILE="$ORION_HOME/docker/docker-compose.yml"
 UPLOADS_DIR="$ORION_HOME/uploads"
 BACKUP_DIR="$ORION_HOME/backups"
@@ -49,7 +64,10 @@ die()  { echo -e "  \033[31m[ERREUR]\033[0m $*" >&2; exit 1; }
 [ -f "$ENV_FILE" ] || die "$ENV_FILE introuvable — l'appliance n'est pas configurée."
 [ -f "$COMPOSE_FILE" ] || die "$COMPOSE_FILE introuvable — stack Docker absente."
 
-set -a; . "$ENV_FILE"; set +a
+charger_env "$ENV_FILE" || {
+  echo "ERREUR: $ENV_FILE illisible — import abandonne." >&2
+  exit 1
+}
 DB_NAME="${DB_NAME:-orion_core}"
 DB_USER="${DB_USER:-orion}"
 [ -n "${DB_PASSWORD:-}" ] || die "DB_PASSWORD absent de $ENV_FILE"

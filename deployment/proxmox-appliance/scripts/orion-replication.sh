@@ -29,6 +29,21 @@ set -euo pipefail
 
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
+# commun.sh : lecture du .env sans l'executer, et $HOME garanti. Une seule
+# valeur a espaces non citee suffisait a tuer ce script sur un
+# « -n: command not found » (exit 127) qui ne nommait ni la cle ni le fichier.
+ICI_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for _candidat in \
+  "$ICI_SCRIPT/commun.sh" \
+  /opt/orion/scripts/commun.sh \
+  /opt/orion/backend/deployment/proxmox-appliance/provisioning/lib/commun.sh
+do
+  if [ -f "$_candidat" ]; then . "$_candidat"; break; fi
+done
+if ! declare -f charger_env >/dev/null 2>&1; then
+  echo "ERREUR: commun.sh introuvable (attendu dans /opt/orion/scripts/)." >&2
+  exit 1
+fi
 VENV_PY="$ORION_HOME/backend/.venv/bin/python"
 MANAGE="$ORION_HOME/backend/manage.py"
 COMPOSE="$ORION_HOME/docker/docker-compose.yml"
@@ -46,7 +61,7 @@ charger_env() {
   if grep -qE '^[A-Za-z_]*_COMMAND=[^"]*[[:space:]]' "$ENV_FILE"; then
     sed -i -E 's/^([A-Za-z_]*_COMMAND)=([^"].*)$/\1="\2"/' "$ENV_FILE"
   fi
-  set -a; . "$ENV_FILE"; set +a
+  charger_env "$ENV_FILE"
 }
 
 adresse_privee_du_rang() {

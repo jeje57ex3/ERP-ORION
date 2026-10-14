@@ -5,7 +5,10 @@
 # un server_name .invalid pour ce vhost précis, sans faire planter nginx -t.
 
 set -euo pipefail
-exec >> /var/log/orion-provision.log 2>&1
+# shellcheck source=lib/commun.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/commun.sh"
+ORION_ETAPE='04'
+journaliser_vers_fichier_et_console
 
 echo "=== [04] Nginx — $(date -u +%FT%TZ) ==="
 

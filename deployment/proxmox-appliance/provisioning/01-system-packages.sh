@@ -4,11 +4,13 @@
 # Idempotent : peut être relancé sans effet de bord.
 
 set -euo pipefail
-exec > >(tee -a /var/log/orion-provision.log) 2>&1
+# shellcheck source=lib/commun.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/commun.sh"
+ORION_ETAPE='01'
+journaliser_vers_fichier_et_console
 
 echo "=== [01] Paquets système — $(date -u +%FT%TZ) ==="
 
-export DEBIAN_FRONTEND=noninteractive
 
 echo "[01] apt-get update..."
 apt-get update -y
