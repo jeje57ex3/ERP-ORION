@@ -23,6 +23,12 @@
 
 set -euo pipefail
 
+# La CLI Ollama panique avec « $HOME is not defined » quand la variable
+# manque -- et « qm guest exec » n en definit aucune, ce qui est le mode
+# d acces normal a cette appliance. Constate en production. La garde vaut
+# pour toutes les commandes du script, y compris l installateur officiel.
+export HOME="${HOME:-/root}"
+
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
 MODELE_DEFAUT="qwen2.5:3b-instruct"
@@ -42,6 +48,44 @@ modele_configure() {
 
 ram_libre_mo() {
   awk '/MemAvailable/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0
+}
+
+telecharger_modele() {
+  local modele="$1"
+
+  # Par l API du demon et non par la CLI. Deux raisons : « ollama pull »
+  # panique sans $HOME, et c est de toute facon le demon qui telecharge et
+  # stocke le modele -- passer par son API supprime toute dependance a
+  # l environnement de la CLI et a l utilisateur qui la lance.
+  #
+  # stream:false attend la fin sans rien afficher. C est assume : sous
+  # « qm guest exec » la sortie est de toute maniere retenue jusqu a la fin
+  # de la commande, une progression ne serait donc pas visible.
+  echo "[ia] Telechargement de $modele par l API du demon (plusieurs minutes, sans affichage)..."
+
+  local reponse
+  if ! reponse="$(curl -fsS --max-time 3000 -X POST "http://$HOTE/api/pull"       -H 'Content-Type: application/json'       -d "{\"model\": \"$modele\", \"name\": \"$modele\", \"stream\": false}" 2>&1)"; then
+    echo "ERREUR: le telechargement de $modele a echoue." >&2
+    echo "        $reponse" >&2
+    return 1
+  fi
+
+  if echo "$reponse" | grep -q '"error"'; then
+    echo "ERREUR: le demon a refuse le telechargement :" >&2
+    echo "        $reponse" >&2
+    return 1
+  fi
+
+  # Verifie, pas suppose : un telechargement interrompu laisse le demon debout
+  # sans le modele, et l ERP repond alors un 404 sur /api/chat -- message qui
+  # ne designe pas la cause.
+  if ! curl -fsS "http://$HOTE/api/tags" 2>/dev/null | grep -q "\"$modele\""; then
+    echo "ERREUR: $modele n apparait pas dans les modeles installes." >&2
+    echo "        Relancez : orion-ai.sh pull $modele" >&2
+    return 1
+  fi
+
+  echo "[ia] Modele $modele present et verifie."
 }
 
 cmd_install() {
@@ -94,24 +138,7 @@ EOF
   done
   [ "$pret" -eq 1 ] || { echo "ERREUR: Ollama ne répond pas sur $HOTE." >&2; exit 1; }
 
-  echo "[ia] Téléchargement du modèle $modele (plusieurs minutes)..."
-  if ! ollama pull "$modele"; then
-    echo "ERREUR: le téléchargement de $modele a échoué." >&2
-    echo "        Vérifiez le nom du modèle et l accès réseau sortant." >&2
-    exit 1
-  fi
-
-  # Le téléchargement est vérifié, pas supposé. Un pull interrompu laisse
-  # Ollama debout mais sans le modèle, et l ERP répond alors un 404 sur
-  # /api/chat -- message qui ne désigne pas la cause. Mieux vaut l apprendre
-  # ici, maintenant.
-  if ! curl -fsS "http://$HOTE/api/tags" 2>/dev/null | grep -q "\"$modele\""; then
-    echo "ERREUR: $modele n apparaît pas dans les modèles installés." >&2
-    echo "        Le téléchargement a été interrompu. Relancez :" >&2
-    echo "        orion-ai.sh pull $modele" >&2
-    exit 1
-  fi
-  echo "[ia] Modèle $modele présent et vérifié."
+  telecharger_modele "$modele" || exit 1
 
   if command -v ufw >/dev/null 2>&1; then
     # Refus explicite, par principe de défense en profondeur : même si
@@ -163,7 +190,7 @@ cmd_pull() {
   exiger_root
   local modele="${1:-}"
   [ -n "$modele" ] || { echo "Usage: pull MODELE" >&2; exit 2; }
-  ollama pull "$modele"
+  telecharger_modele "$modele" || exit 1
 }
 
 cmd_test() {

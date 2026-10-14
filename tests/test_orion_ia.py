@@ -564,6 +564,18 @@ def test_le_script_verifie_le_telechargement():
 
     script = (Path(settings.BASE_DIR) / 'deployment' / 'proxmox-appliance'
               / 'scripts' / 'orion-ai.sh').read_text(encoding='utf-8')
-    assert 'if ! ollama pull' in script
+    # Par l'API du demon, et non par la CLI : « ollama pull » panique sans
+    # $HOME, or « qm guest exec » n'en definit aucun -- c'est le mode d'acces
+    # normal a cette appliance.
+    assert '/api/pull' in script
+    # Les lignes de COMMANDE, pas les commentaires : le script explique
+    # justement pourquoi il n'appelle plus « ollama pull ».
+    appels = [
+        l.strip() for l in script.splitlines()
+        if l.strip().startswith('ollama pull')
+    ]
+    assert appels == [], f'appel CLI subsistant : {appels}'
+    assert 'export HOME=' in script
+    # Le telechargement est verifie, pas suppose.
     assert 'api/tags' in script
     assert 'orion-ai.sh pull' in script
