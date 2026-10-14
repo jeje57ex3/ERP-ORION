@@ -83,6 +83,31 @@ outils, ou invente leurs arguments. Le modèle ne sert qu'à formuler.
 Quand rien ne correspond, le contexte est vide et Orion répond qu'elle ne sait
 pas — ce qui est la bonne réponse.
 
+## L'appeler depuis n'importe quelle page
+
+Une icone en forme d'etoiles figure dans la barre du haut, a cote du
+selecteur de langue. Elle n'apparait que si Orion peut reellement
+repondre : fonctionnalite activee sur le serveur, activee pour
+l'entreprise, et droit accorde a l'utilisateur. Un bouton qui menerait a
+« assistant desactive » serait une promesse non tenue a chaque page.
+
+Elle transmet **la page d'ou vous l'appelez**. « Comment je fais ca ? »
+n'a de sens que rapporte a l'ecran ouvert, et sans cette information
+Orion demanderait des precisions que l'interface connaissait deja. Le nom
+de route est traduit en libelle de menu, le seul qui ait du sens pour vous
+comme pour le modele.
+
+## Ce qu'Orion ne propose pas
+
+**Les pages que vous ne pouvez pas ouvrir.** Le menu etant filtre par
+utilisateur et par entreprise, Orion applique le meme filtre : elle ne vous
+enverra pas vers une page Super Admin si vous n'y avez pas droit. Un
+guidage qui mene a un refus d'acces est pire qu'un silence.
+
+**Les modules absents du menu.** Un module atteignable seulement en tapant
+son adresse est invisible pour elle. C'est voulu : le guidage porte sur ce
+que l'on peut cliquer.
+
 ## Ce qu'Orion sait faire
 
 Douze outils sont enregistrés, classés par risque et soumis aux permissions de
