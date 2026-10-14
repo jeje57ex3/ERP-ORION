@@ -23,10 +23,34 @@ from apps.high_availability.mesh import (
     parse_wg_dump,
 )
 
-SCRIPT = '/opt/orion/scripts/orion-mesh.sh'
+SCRIPT_DEPLOYE = '/opt/orion/scripts/orion-mesh.sh'
 IFACE = 'orion0'
 CLE_PUBLIQUE = f'/etc/wireguard/{IFACE}.pub'
 DELAI_SECONDES = 120
+
+
+def _chemin_script():
+    """Premier chemin existant : la copie déployée, puis celle du dépôt.
+
+    La page et le script viennent du MÊME dépôt mais arrivent par deux chemins
+    différents : le code applicatif par `git pull`, les scripts par la mise à
+    jour qui les recopie dans /opt/orion/scripts. Un `git pull` seul laisse
+    donc une page toute neuve qui pilote un script absent — constaté en
+    production, tous les boutons répondant « command not found », message qui
+    ne désigne évidemment pas la cause.
+
+    Le repli sur la copie du dépôt supprime la classe d'erreur : le script est
+    forcément là, puisqu'il est livré par le même commit que la page qui
+    l'appelle.
+    """
+    depot = os.path.join(
+        str(settings.BASE_DIR), 'deployment', 'proxmox-appliance', 'scripts',
+        'orion-mesh.sh',
+    )
+    for chemin in (SCRIPT_DEPLOYE, depot):
+        if os.path.exists(chemin):
+            return chemin
+    return ''
 
 
 def _prefixe_sudo():
@@ -39,16 +63,27 @@ def _prefixe_sudo():
 
 def _executer(*arguments, delai=DELAI_SECONDES):
     """Lance orion-mesh.sh et retourne (succès, sortie lisible)."""
-    commande = _prefixe_sudo() + [SCRIPT, *arguments]
+    chemin = _chemin_script()
+    if not chemin:
+        return False, (
+            "Le script du réseau privé est introuvable, ni dans "
+            f'{SCRIPT_DEPLOYE} ni dans le dépôt. Ce serveur ne semble pas être '
+            'une appliance Orion.'
+        )
+
+    # Lancé PAR bash, et non exécuté directement : ni le bit exécutable ni la
+    # forme du shebang n'entrent alors en jeu. Les deux ont déjà cassé ce
+    # genre d'appel — un fichier versionné sans bit d'exécution, un shebang
+    # terminé par un retour chariot — avec à chaque fois un message qui
+    # désignait tout sauf la cause.
+    commande = _prefixe_sudo() + ['bash', chemin, *arguments]
     try:
         proc = subprocess.run(
             commande, capture_output=True, text=True, timeout=delai,
         )
     except FileNotFoundError:
         return False, (
-            f"{SCRIPT} est introuvable. Ce serveur n'est pas une appliance "
-            'Orion, ou ses scripts n\'ont pas été rafraîchis : lancez une '
-            'mise à jour.'
+            "Ni bash ni sudo n'ont pu être lancés sur ce serveur."
         )
     except subprocess.TimeoutExpired:
         return False, f'Le script a dépassé {delai} s.'

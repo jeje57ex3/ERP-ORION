@@ -2621,12 +2621,97 @@ def test_page_declare_un_pair_valide(client, superuser, entreprise, mesh, monkey
     assert appels == [(2, cle, 'serveur2.exemple.fr:51820')]
 
 
-def test_script_absent_est_dit_clairement(monkeypatch):
+def test_bash_injoignable_est_dit_clairement(monkeypatch):
+    monkeypatch.setattr(mesh_service.os.path, 'exists', lambda chemin: True)
+
     def _absent(*a, **k):
         raise FileNotFoundError()
 
     monkeypatch.setattr(mesh_service.subprocess, 'run', _absent)
     ok, sortie = mesh_service.initialiser()
     assert ok is False
+    assert 'bash' in sortie
+
+
+# ── Résolution du script d'exploitation ─────────────────────────────────────
+# La page et le script viennent du même dépôt mais arrivent par deux chemins
+# différents : le code par `git pull`, les scripts par la mise à jour qui les
+# recopie dans /opt/orion/scripts. Un `git pull` seul laissait donc une page
+# neuve pilotant un script absent, et tous les boutons répondaient
+# « command not found » — message qui ne désigne pas la cause.
+
+def test_repli_sur_la_copie_du_depot(monkeypatch):
+    """Le script est forcément là : il est livré par le même commit que la
+    page qui l'appelle."""
+    monkeypatch.setattr(
+        mesh_service.os.path, 'exists',
+        lambda chemin: 'deployment' in chemin,
+    )
+    chemin = mesh_service._chemin_script()
+    assert chemin
+    assert 'deployment' in chemin
+    assert chemin.endswith('orion-mesh.sh')
+
+
+def test_la_copie_deployee_a_la_priorite(monkeypatch):
+    """Celle de /opt/orion/scripts est la version d'exploitation : elle gagne."""
+    monkeypatch.setattr(mesh_service.os.path, 'exists', lambda chemin: True)
+    assert mesh_service._chemin_script() == mesh_service.SCRIPT_DEPLOYE
+
+
+def test_aucun_script_donne_un_message_utile(monkeypatch):
+    monkeypatch.setattr(mesh_service.os.path, 'exists', lambda chemin: False)
+    ok, sortie = mesh_service.initialiser()
+    assert ok is False
     assert 'introuvable' in sortie
-    assert 'mise à jour' in sortie
+    assert 'appliance Orion' in sortie
+
+
+def test_le_script_est_lance_PAR_bash(monkeypatch):
+    """Ni le bit exécutable ni la forme du shebang n'entrent alors en jeu.
+
+    Les deux ont déjà cassé ce genre d'appel : un fichier versionné sans bit
+    d'exécution, un shebang terminé par un retour chariot.
+    """
+    monkeypatch.setattr(mesh_service.os.path, 'exists', lambda chemin: True)
+    vues = {}
+
+    class _Proc:
+        returncode = 0
+        stdout = 'fait'
+        stderr = ''
+
+    def _faux_run(commande, **kwargs):
+        vues['commande'] = commande
+        return _Proc()
+
+    monkeypatch.setattr(mesh_service.subprocess, 'run', _faux_run)
+    ok, _ = mesh_service.initialiser()
+
+    assert ok is True
+    commande = vues['commande']
+    assert 'bash' in commande
+    assert commande[commande.index('bash') + 1] == mesh_service.SCRIPT_DEPLOYE
+    assert commande[-1] == 'init'
+
+
+def test_les_arguments_ne_sont_jamais_concatenes(monkeypatch):
+    """Une clé publique est une saisie extérieure : passée en argument séparé,
+    elle ne peut pas être interprétée comme du shell."""
+    monkeypatch.setattr(mesh_service.os.path, 'exists', lambda chemin: True)
+    vues = {}
+
+    class _Proc:
+        returncode = 0
+        stdout = ''
+        stderr = ''
+
+    monkeypatch.setattr(
+        mesh_service.subprocess, 'run',
+        lambda commande, **k: (vues.update(commande=commande), _Proc())[1],
+    )
+    mesh_service.ajouter_pair(2, 'CLE= ; rm -rf /', 'hote:51820')
+
+    commande = vues['commande']
+    assert 'CLE= ; rm -rf /' in commande
+    assert not any(isinstance(a, str) and a.startswith('add-peer 2') for a in commande)
