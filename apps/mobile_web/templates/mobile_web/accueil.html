@@ -40,6 +40,13 @@
   <span class="fleche">›</span>
 </a>
 
+{% comment %} Cache par defaut : Android le revele quand l installation
+   est possible, iOS n emet jamais cet evenement -- le geste y est
+   manuel, par Partager puis Sur l ecran d accueil. {% endcomment %}
+<button class="bouton" type="button" id="installer" style="display:none">
+  {% trans "Installer sur l'écran d'accueil" %}
+</button>
+
 <p class="aide">
   {% trans "Cette interface est servie par le serveur lui-même : rien à installer, et aucune donnée ne transite ailleurs." %}
 </p>

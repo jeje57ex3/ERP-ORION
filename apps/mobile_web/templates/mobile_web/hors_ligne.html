@@ -1,0 +1,25 @@
+{% extends "mobile_web/base_mobile.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Hors ligne" %}{% endblock %}
+{% block entete %}{% trans "Hors ligne" %}{% endblock %}
+
+{% block contenu %}
+<div class="alerte err">
+  {% trans "Pas de réseau. Cette page a besoin du serveur pour s'afficher." %}
+</div>
+
+<div class="carte">
+  <b>{% trans "Ce que vous pouvez faire" %}</b>
+  <p class="sous">
+    {% trans "Les photos ne sont pas conservées hors ligne : prenez-les avec l'appareil photo du téléphone, puis envoyez-les depuis cette application quand le réseau revient." %}
+  </p>
+</div>
+
+<button class="bouton" type="button" onclick="location.reload()">
+  {% trans "Réessayer" %}
+</button>
+<a class="bouton secondaire" href="{% url 'mobile_web:accueil' %}" style="text-align:center;line-height:54px;text-decoration:none">
+  {% trans "Accueil" %}
+</a>
+{% endblock %}
