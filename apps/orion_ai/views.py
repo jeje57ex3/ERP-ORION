@@ -136,16 +136,40 @@ def ai_settings_view(request):
 
     if request.method == 'POST':
         ai_settings.ai_enabled = request.POST.get('ai_enabled') == 'on'
-        ai_settings.default_provider = request.POST.get('default_provider', 'openai')
-        ai_settings.default_model = request.POST.get('default_model', 'gpt-4.1-mini')
+
+        # Les valeurs de repli etaient codees en dur sur « openai » et
+        # « gpt-4.1-mini » : un champ absent du formulaire REVENAIT donc
+        # silencieusement a un fournisseur externe, et le verrou local
+        # refusait ensuite chaque requete. Le repli est desormais la valeur
+        # courante -- un champ manquant conserve ce qui est en place au lieu
+        # de le remplacer par autre chose.
+        ai_settings.local_only = request.POST.get('local_only') == 'on'
+        ai_settings.default_provider = request.POST.get(
+            'default_provider', ai_settings.default_provider,
+        )
+        ai_settings.default_model = request.POST.get(
+            'default_model', ai_settings.default_model,
+        )
         ai_settings.allow_tools = request.POST.get('allow_tools') == 'on'
         ai_settings.allow_erp_read_tools = request.POST.get('allow_erp_read_tools') == 'on'
         ai_settings.allow_erp_write_tools = request.POST.get('allow_erp_write_tools') == 'on'
         ai_settings.allow_dangerous_actions = request.POST.get('allow_dangerous_actions') == 'on'
         ai_settings.log_conversations = request.POST.get('log_conversations') == 'on'
         ai_settings.redact_sensitive_data = request.POST.get('redact_sensitive_data') == 'on'
-        ai_settings.ai_name = request.POST.get('ai_name', 'Assistant Orion')
+        ai_settings.ai_name = request.POST.get('ai_name', ai_settings.ai_name)
         ai_settings.system_prompt_extra = request.POST.get('system_prompt_extra', '')
+        from apps.orion_ai.providers import FOURNISSEURS_EXTERNES
+        if ai_settings.local_only and ai_settings.default_provider in FOURNISSEURS_EXTERNES:
+            messages.error(
+                request,
+                f'Le fournisseur « {ai_settings.default_provider} » est externe, '
+                'alors que le traitement local uniquement est demandé. '
+                'Choisissez le fournisseur local, ou levez ce verrou en '
+                "connaissance de cause : les données de l'entreprise "
+                'partiraient alors chez un tiers.',
+            )
+            return redirect('orion_ai:admin_ai_settings')
+
         ai_settings.updated_by = request.user
         ai_settings.save()
 

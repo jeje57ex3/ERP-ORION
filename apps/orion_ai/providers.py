@@ -132,7 +132,33 @@ class LocalAIProvider(BaseAIProvider):
         }
 
 
-def get_ai_provider(provider_name):
+FOURNISSEURS_EXTERNES = ('openai', 'anthropic')
+
+
+def get_ai_provider(provider_name, local_only=None):
+    """Fournisseur demandé, sauf si le verrou local l'interdit.
+
+    `local_only` est une INTERDICTION, pas une préférence. « Répondre
+    uniquement en local » est une propriété de confidentialité : les devis,
+    les clients, les factures et l'état du système ne doivent jamais quitter
+    la machine. Un réglage par défaut se change par inadvertance — un appel
+    externe serait alors fait sans que personne le remarque, et les données
+    seraient déjà parties. Le refus est donc ici, au seul endroit par lequel
+    tout appel passe.
+
+    `local_only=None` retombe sur ORION_AI_LOCAL_ONLY, vrai par défaut.
+    """
+    if local_only is None:
+        local_only = getattr(settings, 'ORION_AI_LOCAL_ONLY', True)
+
+    if local_only and provider_name in FOURNISSEURS_EXTERNES:
+        raise AIProviderError(
+            f'Le fournisseur « {provider_name} » est externe, et le traitement '
+            'local uniquement est activé : aucune donnée ne doit quitter ce '
+            'serveur. Choisissez le fournisseur local, ou levez '
+            'explicitement ce verrou dans les paramètres IA.'
+        )
+
     if provider_name == 'openai':
         return OpenAIProvider()
     if provider_name == 'anthropic':

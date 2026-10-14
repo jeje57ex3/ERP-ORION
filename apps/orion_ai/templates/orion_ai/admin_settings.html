@@ -34,6 +34,18 @@
         <input type="text" name="ai_name" value="{{ ai_settings.ai_name }}" class="orion-input" style="width:100%;max-width:400px">
       </div>
 
+      <div style="grid-column:span 2;padding:12px;border-radius:6px;background:var(--orion-info-bg,#eef4ff)">
+        <label style="font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="local_only" {% if ai_settings.local_only %}checked{% endif %}>
+          Traitement local uniquement
+        </label>
+        <p style="font-size:12px;margin:6px 0 0;opacity:.8">
+          Interdit tout fournisseur externe. Les devis, clients, factures et
+          l’état du système ne quittent jamais ce serveur. Décocher cette case
+          autorise l’envoi de ces données à un tiers.
+        </p>
+      </div>
+
       <div>
         <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Fournisseur IA par défaut</label>
         <select name="default_provider" class="orion-input" style="width:100%">

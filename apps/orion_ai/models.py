@@ -22,13 +22,30 @@ class OrionAISettings(models.Model):
 
     ai_enabled = models.BooleanField(default=True)
 
+    # Le verrou local n'est pas un defaut mais une INTERDICTION. « Repondre
+    # uniquement en local » est une propriete de confidentialite : les donnees
+    # d'entreprise -- devis, clients, factures, sante systeme -- ne doivent
+    # jamais quitter la machine. Un simple reglage par defaut se change par
+    # inadvertance ; ici, choisir un fournisseur externe est refuse tant que
+    # ce verrou est pose.
+    local_only = models.BooleanField(
+        default=True,
+        verbose_name='Traitement local uniquement',
+        help_text="Interdit tout fournisseur externe. Les données de "
+                  "l'entreprise ne quittent jamais le serveur.",
+    )
+
     default_provider = models.CharField(
         max_length=40,
         choices=PROVIDER_CHOICES,
-        default='openai',
+        default='local',
     )
 
-    default_model = models.CharField(max_length=120, default='gpt-4.1-mini')
+    default_model = models.CharField(
+        max_length=120,
+        default='qwen2.5:3b-instruct',
+        help_text='Modele servi par Ollama sur ce serveur.',
+    )
 
     temperature = models.DecimalField(max_digits=4, decimal_places=2, default=0.20)
 
@@ -47,7 +64,7 @@ class OrionAISettings(models.Model):
 
     redact_sensitive_data = models.BooleanField(default=True)
 
-    ai_name = models.CharField(max_length=120, default='Assistant Orion')
+    ai_name = models.CharField(max_length=120, default='Orion')
 
     system_prompt_extra = models.TextField(blank=True)
 

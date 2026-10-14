@@ -416,14 +416,16 @@ ORION_SECRET_ENCRYPTION_KEY = config('ORION_SECRET_ENCRYPTION_KEY', default='')
 
 # ─── Intelligence Artificielle Orion ─────────────────────────────────────────
 ORION_AI_ENABLED                        = config('ORION_AI_ENABLED',                        default=False, cast=bool)
-ORION_AI_DEFAULT_PROVIDER               = config('ORION_AI_DEFAULT_PROVIDER',               default='openai')
-ORION_AI_DEFAULT_MODEL                  = config('ORION_AI_DEFAULT_MODEL',                  default='gpt-4.1-mini')
+# Local par defaut ET par interdiction : voir OrionAISettings.local_only.
+ORION_AI_LOCAL_ONLY                     = config('ORION_AI_LOCAL_ONLY',                     default=True,  cast=bool)
+ORION_AI_DEFAULT_PROVIDER               = config('ORION_AI_DEFAULT_PROVIDER',               default='local')
+ORION_AI_DEFAULT_MODEL                  = config('ORION_AI_DEFAULT_MODEL',                  default='qwen2.5:3b-instruct')
 ORION_AI_MAX_INPUT_CHARS                = config('ORION_AI_MAX_INPUT_CHARS',                default=20000, cast=int)
 ORION_AI_MAX_HISTORY_MESSAGES           = config('ORION_AI_MAX_HISTORY_MESSAGES',           default=20,    cast=int)
 ORION_AI_LOG_CONVERSATIONS              = config('ORION_AI_LOG_CONVERSATIONS',              default=True,  cast=bool)
 ORION_AI_ALLOW_TOOLS                    = config('ORION_AI_ALLOW_TOOLS',                    default=True,  cast=bool)
 ORION_AI_ALLOW_DANGEROUS_ACTIONS        = config('ORION_AI_ALLOW_DANGEROUS_ACTIONS',        default=False, cast=bool)
-ORION_AI_SYSTEM_NAME                    = config('ORION_AI_SYSTEM_NAME',                    default='Assistant Orion')
+ORION_AI_SYSTEM_NAME                    = config('ORION_AI_SYSTEM_NAME',                    default='Orion')
 ORION_AI_SUPPORT_EMAIL                  = config('ORION_AI_SUPPORT_EMAIL',                  default='')
 
 OPENAI_API_KEY      = config('OPENAI_API_KEY',      default='')

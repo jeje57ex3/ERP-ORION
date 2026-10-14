@@ -242,3 +242,62 @@ def update_shop_maintenance(*, company, user, brand_key, enabled, message='', **
         }
     except Exception as exc:
         return {'ok': False, 'error': str(exc)}
+
+
+# ─── Guidage dans l'interface ────────────────────────────────────────────────
+# Ces outils lisent la navigation et la documentation, jamais les donnees
+# metier : ils n'ont donc aucun besoin du contexte d'entreprise, et sont sans
+# risque. Ils sont enregistres comme les autres pour apparaitre dans
+# l'inventaire des capacites et rester appelables explicitement, mais le fil
+# de conversation s'appuie surtout sur la recherche deterministe faite avant
+# l'appel au modele (voir knowledge.contexte_pour_question).
+
+@register_ai_tool(
+    name='trouver_page',
+    description="Trouve les pages du menu correspondant a une question, avec leur adresse reelle.",
+    is_write_action=False,
+)
+def trouver_page(*, company, user, question='', **kwargs):
+    from apps.orion_ai.knowledge import chercher_pages
+
+    pages = chercher_pages(question)
+    return {
+        'question': question,
+        'nombre': len(pages),
+        'pages': [
+            {'libelle': p['libelle'], 'module': p['module'], 'adresse': p['url']}
+            for p in pages
+        ],
+    }
+
+
+@register_ai_tool(
+    name='lister_modules_interface',
+    description="Liste les modules du menu et leurs pages, tels que l'interface les affiche.",
+    is_write_action=False,
+)
+def lister_modules_interface(*, company, user, **kwargs):
+    from apps.orion_ai.knowledge import lister_modules
+
+    modules = lister_modules()
+    return {
+        'nombre_modules': len(modules),
+        'nombre_pages': sum(m['nombre'] for m in modules),
+        'modules': modules,
+    }
+
+
+@register_ai_tool(
+    name='chercher_documentation',
+    description='Cherche une reponse dans la documentation versionnee avec cette version du code.',
+    is_write_action=False,
+)
+def chercher_documentation_outil(*, company, user, question='', **kwargs):
+    from apps.orion_ai.knowledge import chercher_documentation
+
+    sections = chercher_documentation(question)
+    return {
+        'question': question,
+        'nombre': len(sections),
+        'sections': sections,
+    }
