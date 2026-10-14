@@ -260,7 +260,7 @@ def update_shop_maintenance(*, company, user, brand_key, enabled, message='', **
 def trouver_page(*, company, user, question='', **kwargs):
     from apps.orion_ai.knowledge import chercher_pages
 
-    pages = chercher_pages(question)
+    pages = chercher_pages(question, user=user, company=company)
     return {
         'question': question,
         'nombre': len(pages),
@@ -279,7 +279,7 @@ def trouver_page(*, company, user, question='', **kwargs):
 def lister_modules_interface(*, company, user, **kwargs):
     from apps.orion_ai.knowledge import lister_modules
 
-    modules = lister_modules()
+    modules = lister_modules(user=user, company=company)
     return {
         'nombre_modules': len(modules),
         'nombre_pages': sum(m['nombre'] for m in modules),

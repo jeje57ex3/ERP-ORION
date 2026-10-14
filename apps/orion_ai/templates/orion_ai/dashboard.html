@@ -143,6 +143,10 @@
 <script>
 let currentConversationId = null;
 const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+// escapejs et non une interpolation nue : le libelle vient d'un parametre
+// d'URL, donc d'une saisie exterieure. Sans echappement, un libelle contenant
+// un guillemet casserait le script -- ou y injecterait du code.
+const MODULE_COURANT = "{{ module_courant|escapejs }}";
 
 function appendMessage(role, content, extra) {
   const container = document.getElementById('chat-messages');
@@ -189,6 +193,9 @@ async function sendMessage() {
       body: JSON.stringify({
         prompt,
         conversation_id: currentConversationId,
+        // Page d'ou la question est posee : « comment je fais ca ? » n'a de
+        // sens que rapporte a l'ecran ouvert.
+        context_module: MODULE_COURANT,
       }),
     });
     const data = await resp.json();

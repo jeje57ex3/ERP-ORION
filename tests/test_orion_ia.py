@@ -269,3 +269,175 @@ def test_une_recherche_sans_ligature_trouve_la_page_qui_en_a_une():
     pages = knowledge.chercher_pages('noeuds ha')
     assert pages
     assert any('HA' in p['libelle'] for p in pages)
+
+
+# ── Périmètre de l'utilisateur ──────────────────────────────────────────────
+# Le menu est filtré par utilisateur et par entreprise. Un index unique et
+# partagé envoyait un utilisateur ordinaire vers des pages Super Admin qu'il
+# ne peut pas ouvrir : un guidage qui mène à un refus d'accès est pire qu'un
+# silence.
+
+from django.template import Context, Template
+
+from apps.orion_ai.context_processors import orion_ai_context
+
+
+@pytest.fixture
+def entreprise(db):
+    from apps.core.models import Company
+    return Company.objects.create(name='Entreprise de test')
+
+
+@pytest.fixture
+def super_admin(django_user_model):
+    return django_user_model.objects.create_superuser(
+        username='chef', email='chef@test.fr', password='x',
+    )
+
+
+@pytest.fixture
+def utilisateur_simple(django_user_model):
+    return django_user_model.objects.create_user(
+        username='simple', email='simple@test.fr', password='x',
+    )
+
+
+def test_le_filtrage_par_utilisateur_est_sollicite(super_admin, monkeypatch):
+    """Un super admin voit tout, mais le filtre doit bien être appelé."""
+    vus = {}
+
+    def faux_filtre(modules, company, user=None):
+        vus['appele'] = True
+        vus['user'] = user
+        return modules
+
+    monkeypatch.setattr(
+        'apps.private_saas.permissions.filter_nav_modules', faux_filtre,
+    )
+    knowledge.index_pages(user=super_admin)
+    assert vus['appele'] is True
+    assert vus['user'] is super_admin
+
+
+def test_un_filtre_restrictif_reduit_les_pages(utilisateur_simple, monkeypatch):
+    monkeypatch.setattr(
+        'apps.private_saas.permissions.filter_nav_modules',
+        lambda modules, company, user=None: [],
+    )
+    assert knowledge.index_pages(user=utilisateur_simple) == ()
+
+
+def test_un_filtre_en_panne_ne_prive_pas_du_guidage(utilisateur_simple, monkeypatch):
+    """Orion reste un guide si le filtrage échoue : les permissions de la page
+    refuseront l'accès de toute façon, alors que ne rien proposer serait une
+    régression silencieuse."""
+    def filtre_casse(modules, company, user=None):
+        raise RuntimeError('indisponible')
+
+    monkeypatch.setattr(
+        'apps.private_saas.permissions.filter_nav_modules', filtre_casse,
+    )
+    assert len(knowledge.index_pages(user=utilisateur_simple)) > 50
+
+
+def test_sans_utilisateur_l_index_reste_complet():
+    """Les appels internes sans contexte utilisateur ne doivent pas se
+    retrouver avec un index vide."""
+    assert len(knowledge.index_pages()) > 50
+
+
+def test_les_libelles_ne_sont_pas_figes_dans_une_langue():
+    """Les 139 libellés du menu sont des traductions paresseuses : les
+    mémoriser figeait la langue du premier appel pour tout le processus."""
+    from django.utils import translation
+
+    with translation.override('fr'):
+        fr = {p['url_name']: p['libelle'] for p in knowledge.index_pages()}
+    with translation.override('en'):
+        en = {p['url_name']: p['libelle'] for p in knowledge.index_pages()}
+
+    # Les adresses ne bougent pas (pas d'i18n_patterns dans ce projet).
+    assert set(fr) == set(en)
+    # Au moins un libellé doit différer, sinon la traduction n'est pas prise
+    # en compte du tout.
+    assert any(fr[cle] != en[cle] for cle in fr), 'aucun libelle traduit'
+
+
+# ── Page d'où la question est posée ─────────────────────────────────────────
+
+def test_route_connue_traduite_en_libelle():
+    libelle = knowledge.page_depuis_route('core:dashboard')
+    assert libelle
+    assert '(' in libelle  # « Libellé (Module) »
+
+
+def test_route_inconnue_ne_rend_rien():
+    """Rien n'est inventé : un nom approximatif tromperait le modèle."""
+    assert knowledge.page_depuis_route('module:inexistant') == ''
+    assert knowledge.page_depuis_route('') == ''
+
+
+def test_le_contexte_signale_la_page_ouverte():
+    contexte = knowledge.contexte_pour_question(
+        'comment je fais ça', module_courant='Disques & stockage (Super Admin)',
+    )
+    assert 'consulte actuellement' in contexte
+    assert 'Disques & stockage' in contexte
+
+
+def test_la_page_ouverte_suffit_a_produire_un_contexte():
+    """« Comment je fais ça ? » ne correspond à aucune page, mais savoir d'où
+    la question vient reste utile."""
+    contexte = knowledge.contexte_pour_question('aide', module_courant='Clients (CRM)')
+    assert contexte
+    assert 'Clients' in contexte
+
+
+# ── Icône de la barre du haut ───────────────────────────────────────────────
+
+def _requete(rf, user):
+    requete = rf.get('/dashboard/')
+    requete.user = user
+    return requete
+
+
+def test_icone_absente_si_l_ia_est_desactivee(rf, super_admin, settings):
+    settings.ORION_AI_ENABLED = False
+    assert orion_ai_context(_requete(rf, super_admin))['orion_ai_available'] is False
+
+
+def test_icone_absente_pour_un_visiteur(rf, settings):
+    from django.contrib.auth.models import AnonymousUser
+
+    settings.ORION_AI_ENABLED = True
+    assert orion_ai_context(_requete(rf, AnonymousUser()))['orion_ai_available'] is False
+
+
+def test_icone_presente_quand_tout_est_reuni(rf, super_admin, settings, db):
+    settings.ORION_AI_ENABLED = True
+    contexte = orion_ai_context(_requete(rf, super_admin))
+    assert contexte['orion_ai_available'] is True
+    assert contexte['orion_ai_name']
+    assert 'orion_ai_local_only' in contexte
+
+
+def test_le_processeur_ne_casse_jamais_les_pages(rf, super_admin, settings, monkeypatch):
+    """Un processeur de contexte qui lève rend l'ERP ENTIÈREMENT inutilisable,
+    pour un bouton. Il doit donc échouer en silence."""
+    settings.ORION_AI_ENABLED = True
+    monkeypatch.setattr(
+        'apps.orion_ai.permissions.can_use_ai',
+        lambda user: (_ for _ in ()).throw(RuntimeError('base non migree')),
+    )
+    assert orion_ai_context(_requete(rf, super_admin))['orion_ai_available'] is False
+
+
+def test_le_libelle_injecte_dans_le_script_est_echappe():
+    """Le libellé vient d'un paramètre d'URL, donc d'une saisie extérieure.
+    Sans échappement, un guillemet casserait le script — ou y injecterait du
+    code."""
+    rendu = Template('const M = "{{ module_courant|escapejs }}";').render(
+        Context({'module_courant': 'Page "x" (Mod)'}),
+    )
+    assert '\\u0022' in rendu
+    assert 'const M = "Page \\u0022x\\u0022 (Mod)";' == rendu
