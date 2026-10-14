@@ -39,6 +39,27 @@ def utilisateur(django_user_model):
 
 
 @pytest.fixture
+def super_admin(django_user_model):
+    return django_user_model.objects.create_superuser(
+        username='patron', email='p@test.fr', password='motdepasse-test',
+    )
+
+@pytest.fixture
+def connecte_admin(client, super_admin, entreprise_a, monkeypatch):
+    """Super administrateur : il voit toutes les pages du menu.
+
+    Un compte ordinaire dont l'entreprise n'a aucun module active ne voit
+    que les modules toujours affiches -- et « Disques » releve du Super
+    Admin. Le filtrage est donc correct, et ces tests doivent employer un
+    compte qui a reellement acces aux pages cherchees.
+    """
+    client.force_login(super_admin)
+    from apps.core import search
+    monkeypatch.setattr(search, '_entreprise_active', lambda requete: entreprise_a)
+    return client
+
+
+@pytest.fixture
 def connecte(client, utilisateur, entreprise_a, monkeypatch):
     client.force_login(utilisateur)
     from apps.core import search
@@ -182,7 +203,7 @@ def test_une_source_en_echec_est_journalisee_et_non_avalee(connecte, caplog):
     temps. Les echecs laissent desormais une trace."""
     from apps.core import search
 
-    def source_cassee(q, company):
+    def source_cassee(q, company, user=None):
         raise ValueError('colonne absente')
 
     original = search.SOURCES
@@ -201,7 +222,7 @@ def test_un_module_absent_ne_fait_pas_de_bruit(connecte, caplog):
     normale et ne doit pas remplir le journal."""
     from apps.core import search
 
-    def source_absente(q, company):
+    def source_absente(q, company, user=None):
         raise ImportError('module non installe')
 
     original = search.SOURCES
@@ -290,3 +311,73 @@ def test_orion_pre_remplit_la_question_sans_l_envoyer(client, django_user_model,
     assert 'champ.value = QUESTION_INITIALE' in gabarit
     # Aucun envoi automatique.
     assert 'sendMessage()' not in gabarit.split('QUESTION_INITIALE')[-1][:400]
+
+
+# ── Les pages de l'interface, et pas seulement les données métier ───────────
+# La recherche ne couvrait que clients, devis, factures, chantiers, produits.
+# Chercher « disques » ou « paramètres IA » ne renvoyait donc rien, alors que
+# ce sont des demandes au moins aussi fréquentes que la recherche d'un client.
+
+def test_une_page_de_l_interface_est_trouvable(connecte_admin):
+    data = json.loads(
+        connecte_admin.get('/dashboard/search/', {'q': 'disques', 'format': 'json'}).content
+    )
+    pages = [r for r in data['results'] if r['type'] == 'page']
+    assert pages, 'aucune page trouvee'
+    assert pages[0]['url'].startswith('/')
+    assert pages[0]['subtitle']  # le module dont elle depend
+
+
+def test_les_pages_viennent_en_tete(connecte_admin, entreprise_a):
+    """Quand on cherche « disques », on veut la page — pas un client dont le
+    nom contiendrait ces lettres."""
+    _client(entreprise_a, 'Disques Dupont')
+    data = json.loads(
+        connecte_admin.get('/dashboard/search/', {'q': 'disques', 'format': 'json'}).content
+    )
+    types = [r['type'] for r in data['results']]
+    assert types[0] == 'page'
+    assert 'client' in types, 'le client doit rester trouvable'
+
+
+def test_toute_page_proposee_a_une_adresse_reelle(connecte_admin):
+    """Les adresses viennent du résolveur d'URL : une page proposée existe."""
+    from apps.orion_ai.knowledge import index_pages
+
+    connues = {p['url'] for p in index_pages()}
+    data = json.loads(
+        connecte_admin.get('/dashboard/search/', {'q': 'parametres', 'format': 'json'}).content
+    )
+    for resultat in data['results']:
+        if resultat['type'] == 'page':
+            assert resultat['url'] in connues
+
+
+def test_une_page_hors_permissions_n_est_pas_proposee(client, utilisateur, monkeypatch):
+    """Proposer une page que l'utilisateur ne peut pas ouvrir est pire qu'un
+    silence : il la cherche, et se voit refuser l'accès."""
+    client.force_login(utilisateur)
+    monkeypatch.setattr(
+        'apps.private_saas.permissions.filter_nav_modules',
+        lambda modules, company, user=None: [],
+    )
+    data = json.loads(
+        client.get('/dashboard/search/', {'q': 'disques', 'format': 'json'}).content
+    )
+    assert [r for r in data['results'] if r['type'] == 'page'] == []
+
+
+def test_les_pages_restent_trouvables_sans_entreprise_active(client, utilisateur, monkeypatch):
+    """Sans entreprise résolue, les données métier sont hors de portée — mais
+    priver l'utilisateur des pages rendrait la recherche entièrement
+    inutile."""
+    from apps.core import search
+
+    client.force_login(utilisateur)
+    monkeypatch.setattr(search, '_entreprise_active', lambda requete: None)
+
+    data = json.loads(
+        client.get('/dashboard/search/', {'q': 'disques', 'format': 'json'}).content
+    )
+    assert any(r['type'] == 'page' for r in data['results'])
+    assert all(r['type'] == 'page' for r in data['results'])
