@@ -303,7 +303,33 @@ se contredire.
 
 ### Monter le réseau privé
 
-Sur **chaque** serveur :
+**Super Admin → Réseau privé.** La page affiche l’identité privée de ce
+serveur — rang, nom, adresse déduite — sa clé publique à copier, et l’état
+de chaque liaison. Trois boutons suffisent : **Initialiser**, **Poser les
+noms privés**, **Activer**.
+
+Le tableau des liaisons distingue trois états, et la distinction compte :
+
+| État | Ce que cela veut dire |
+|---|---|
+| Non déclaré | la clé de ce serveur n’a jamais été saisie ici |
+| Sans réponse | déclaré, mais aucune poignée de main : pare-feu, endpoint, ou absence de déclaration réciproque |
+| Établie | la liaison fonctionne réellement |
+
+« Déclaré » et « fonctionne » se ressemblent de loin et n’ont ni la même
+cause ni le même remède. Les confondre fait croire à une liaison là où il
+n’y a qu’une déclaration.
+
+L’échange de clés reste manuel, et le restera : aucune des deux clés
+n’existe avant que les deux machines soient installées, et aucune ne peut
+être devinée par l’une pour l’autre. La page rend cet échange lisible, elle
+ne le supprime pas. Déclarez la clé obtenue **des deux côtés** : chacun doit
+connaître l’autre.
+
+#### En ligne de commande
+
+Les mêmes opérations, pour qui préfère le shell ou doit intervenir avant que
+l’interface soit joignable. Sur **chaque** serveur :
 
 ```bash
 /opt/orion/scripts/orion-mesh.sh init

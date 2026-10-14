@@ -19,6 +19,7 @@ urlpatterns = [
     # Super Admin UI
     path('orion-admin/ha/settings/', views.ha_settings_view, name='admin_settings'),
     path('orion-admin/ha/grappe/', views.ha_cluster_view, name='admin_cluster'),
+    path('orion-admin/ha/reseau-prive/', views.ha_mesh_view, name='admin_mesh'),
     path('orion-admin/ha/nodes/', views.ha_nodes_view, name='admin_nodes'),
     path('orion-admin/ha/nodes/connecter/', views.ha_connect_node_view, name='admin_connect'),
     path('orion-admin/ha/nodes/<int:pk>/', views.ha_node_detail_view, name='admin_node_detail'),

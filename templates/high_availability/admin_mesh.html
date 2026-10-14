@@ -1,0 +1,231 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="orion-record-page">
+
+  <div class="orion-record-header">
+    <div class="orion-record-header-left">
+      <p class="orion-record-ref">{% trans "Super Admin · Haute disponibilité" %}</p>
+      <h1 class="orion-record-title">{% trans "Réseau privé entre serveurs" %}</h1>
+    </div>
+    <div class="orion-record-toolbar">
+      <a class="orion-btn" href="{% url 'high_availability:admin_cluster' %}">{% trans "Relier les serveurs" %}</a>
+      <a class="orion-btn" href="{% url 'high_availability:admin_nodes' %}">{% trans "Serveurs" %}</a>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% elif msg.tags == 'success' %}success{% else %}info{% endif %}">
+        <pre style="margin:0;white-space:pre-wrap;font-size:12px;">{{ msg }}</pre>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if not etat.active %}
+    <div class="orion-alert warning">
+      {{ etat.raison }}
+      {% trans "L'échange de clés est manuel et le reste : aucune des deux clés n'existe avant que les deux machines soient installées." %}
+    </div>
+  {% endif %}
+
+  <div class="orion-record-grid">
+
+    {# ── Ce serveur ───────────────────────────────────────────────────────── #}
+    <div class="orion-record-panel">
+      <div class="orion-record-panel-header">
+        <h3 class="orion-record-panel-title">{% trans "Ce serveur" %}</h3>
+      </div>
+      <div class="orion-record-panel-body">
+        {% if local.erreur %}
+          <div class="orion-alert danger">{{ local.erreur }}</div>
+        {% else %}
+          <table class="orion-table">
+            <tbody>
+              <tr><td>{% trans "Identifiant" %}</td><td><code>{{ local.node_id|default:"—" }}</code></td></tr>
+              <tr><td>{% trans "Rang" %}</td><td><strong>{{ local.config.ORION_MESH_RANK }}</strong></td></tr>
+              <tr><td>{% trans "Nom privé" %}</td><td><code>{{ local.config.ORION_MESH_HOST|default:"—" }}</code></td></tr>
+              <tr><td>{% trans "Adresse privée" %}</td><td><code>{{ local.config.ORION_MESH_ADDRESS }}</code></td></tr>
+              <tr><td>{% trans "Sous-réseau" %}</td><td><code>{{ local.config.ORION_MESH_SUBNET }}</code></td></tr>
+              <tr><td>{% trans "Port UDP" %}</td><td><code>{{ local.config.ORION_MESH_PORT }}</code></td></tr>
+              <tr>
+                <td>{% trans "Interface" %}</td>
+                <td>
+                  {% if etat.active %}
+                    <span class="orion-badge success dot">{% trans "Active" %}</span>
+                  {% else %}
+                    <span class="orion-badge danger dot">{% trans "Inactive" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        {% endif %}
+
+        <p class="orion-text-muted" style="font-size:12px;margin-bottom:4px;">
+          {% trans "Clé publique à communiquer aux autres serveurs" %}
+        </p>
+        {% if local.cle_publique %}
+          <pre style="font-size:11px;white-space:pre-wrap;word-break:break-all;background:var(--orion-bg-subtle,#f6f6f6);padding:8px;border-radius:4px;">{{ local.cle_publique }}</pre>
+        {% else %}
+          <p class="orion-text-muted" style="font-size:12px;">
+            {% trans "Pas encore de clé — lancez « Initialiser »." %}
+          </p>
+        {% endif %}
+
+        <form method="post" style="margin-top:12px;">
+          {% csrf_token %}
+          <div class="orion-form-actions">
+            <button type="submit" name="action" value="init" class="orion-btn primary">
+              {% trans "Initialiser" %}
+            </button>
+            <button type="submit" name="action" value="hosts" class="orion-btn">
+              {% trans "Poser les noms privés" %}
+            </button>
+            <button type="submit" name="action" value="up" class="orion-btn">
+              {% trans "Activer" %}
+            </button>
+          </div>
+          <p class="orion-text-muted" style="font-size:12px;margin-top:8px;">
+            {% trans "« Initialiser » installe WireGuard, pose l'adresse déduite du rang, ouvre le port au pare-feu et génère la clé. Rejouable : les clés existantes sont conservées." %}
+          </p>
+        </form>
+      </div>
+    </div>
+
+    {# ── Réglages ─────────────────────────────────────────────────────────── #}
+    <div class="orion-record-panel">
+      <div class="orion-record-panel-header">
+        <h3 class="orion-record-panel-title">{% trans "Réglages" %}</h3>
+      </div>
+      <div class="orion-record-panel-body">
+        <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+          {% trans "L'adresse de chaque serveur est son rang dans ce sous-réseau : rang 2 donne 10.10.0.2. Il n'y a donc rien d'autre à saisir, et le rang ne peut pas contredire l'adresse." %}
+        </p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="orion-form-row">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <p style="font-size:12px;margin:4px 0 0;color:var(--orion-danger);">{{ field.errors|first }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <div class="orion-form-actions">
+            <button type="submit" name="action" value="save" class="orion-btn">
+              {% trans "Enregistrer" %}
+            </button>
+          </div>
+        </form>
+
+        <hr style="margin:16px 0;border:0;border-top:1px solid var(--orion-border-light,#e5e5e5);">
+
+        <p class="orion-text-muted" style="font-size:12px;">
+          {% trans "La synchronisation des fichiers passe par ssh. Générez la clé du compte, puis déclarez celle des autres serveurs." %}
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          <div class="orion-form-actions">
+            <button type="submit" name="action" value="media-key" class="orion-btn">
+              {% trans "Clé de synchronisation des fichiers" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Déclarer un pair ───────────────────────────────────────────────────── #}
+  <div class="orion-record-panel" style="margin-top:12px;">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Déclarer un autre serveur" %}</h3>
+    </div>
+    <div class="orion-record-panel-body">
+      <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+        {% trans "Collez la clé publique affichée par « Initialiser » sur l'autre serveur. À faire des deux côtés : chacun doit connaître l'autre." %}
+      </p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="orion-record-grid cols-3">
+          {% for field in form_pair %}
+            <div class="orion-form-row">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="orion-text-muted" style="font-size:12px;margin:4px 0 0;">{{ field.help_text }}</p>
+              {% endif %}
+              {% if field.errors %}
+                <p style="font-size:12px;margin:4px 0 0;color:var(--orion-danger);">{{ field.errors|first }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="orion-form-actions">
+          <button type="submit" name="action" value="add-peer" class="orion-btn primary">
+            {% trans "Déclarer ce serveur" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── État des liaisons ──────────────────────────────────────────────────── #}
+  <div class="orion-record-panel" style="margin-top:12px;">
+    <div class="orion-record-panel-header">
+      <h3 class="orion-record-panel-title">{% trans "Liaisons" %}</h3>
+    </div>
+    <div class="orion-record-panel-body">
+      <p class="orion-text-muted" style="font-size:12px;margin-top:0;">
+        {% trans "« Déclaré » et « fonctionne » sont deux choses différentes : un pair sans poignée de main n'a jamais répondu." %}
+      </p>
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th>{% trans "Rang" %}</th>
+            <th>{% trans "Serveur" %}</th>
+            <th>{% trans "Adresse privée" %}</th>
+            <th>{% trans "État" %}</th>
+            <th>{% trans "Détail" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ligne in lignes %}
+          <tr>
+            <td><strong>{{ ligne.rang }}</strong></td>
+            <td>
+              {{ ligne.hote|default:ligne.node_id }}<br>
+              <code style="font-size:11px;">{{ ligne.node_id }}</code>
+            </td>
+            <td><code>{{ ligne.adresse }}</code></td>
+            <td>
+              {% if ligne.etat == 'ok' %}
+                <span class="orion-badge success dot">{% trans "Établie" %}</span>
+              {% elif ligne.etat == 'muet' %}
+                <span class="orion-badge warning dot">{% trans "Sans réponse" %}</span>
+              {% else %}
+                <span class="orion-badge neutral dot">{% trans "Non déclaré" %}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;">{{ ligne.detail }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="orion-text-muted">
+              {% trans "Aucun autre serveur dans la grappe. Raccordez-les d'abord depuis « Relier les serveurs »." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
