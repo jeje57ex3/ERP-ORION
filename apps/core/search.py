@@ -31,7 +31,7 @@ def _entreprise_active(request):
     return getattr(request, 'current_company', None)
 
 
-def _collecter(nom_source, fonction, q, company):
+def _collecter(nom_source, fonction, q, company, user):
     """Exécute une recherche en journalisant son échec plutôt qu'en l'ignorant.
 
     Un module absent est normal — tous les modules ne sont pas installés
@@ -39,7 +39,7 @@ def _collecter(nom_source, fonction, q, company):
     trace, sinon la recherche devient silencieusement incomplète.
     """
     try:
-        return fonction(q, company)
+        return fonction(q, company, user)
     except ImportError:
         return []
     except Exception as exc:
@@ -47,7 +47,7 @@ def _collecter(nom_source, fonction, q, company):
         return []
 
 
-def _search_crm(q, company):
+def _search_crm(q, company, user=None):
     from apps.crm.models import Customer
 
     return [
@@ -65,7 +65,7 @@ def _search_crm(q, company):
     ]
 
 
-def _search_sales(q, company):
+def _search_sales(q, company, user=None):
     from apps.sales.models import Invoice, Quote
 
     results = []
@@ -94,7 +94,7 @@ def _search_sales(q, company):
     return results
 
 
-def _search_btp(q, company):
+def _search_btp(q, company, user=None):
     # BTPProject, et non Project : ce dernier n'existe pas, et l'import ratait
     # en silence derriere un except trop large.
     from apps.btp.models import BTPProject
@@ -114,7 +114,7 @@ def _search_btp(q, company):
     ]
 
 
-def _search_inventory(q, company):
+def _search_inventory(q, company, user=None):
     from apps.inventory.models import Product
 
     return [
@@ -132,7 +132,35 @@ def _search_inventory(q, company):
     ]
 
 
+def _search_pages(q, company, user=None):
+    """Pages de l'interface, et non seulement les donnees metier.
+
+    La recherche ne couvrait que clients, devis, factures, chantiers et
+    produits. Chercher « disques », « sauvegarde » ou « parametres IA » ne
+    renvoyait donc rien -- alors que ce sont des demandes au moins aussi
+    frequentes que la recherche d'un client.
+
+    L'index reutilise celui construit pour Orion : les libelles viennent du
+    menu affiche, les adresses du resolveur d'URL, et le tout est filtre par
+    les permissions de l'utilisateur. Une page qu'il ne peut pas ouvrir ne lui
+    est donc pas proposee.
+    """
+    from apps.orion_ai.knowledge import chercher_pages
+
+    return [
+        {
+            'type': 'page', 'label': 'Page',
+            'icon': 'bi-window-stack', 'color': 'dark',
+            'url': page['url'],
+            'title': page['libelle'],
+            'subtitle': page['module'],
+        }
+        for page in chercher_pages(q, user=user, company=company)
+    ]
+
+
 SOURCES = (
+    ('pages', _search_pages),
     ('crm', _search_crm),
     ('ventes', _search_sales),
     ('btp', _search_btp),
@@ -140,14 +168,22 @@ SOURCES = (
 )
 
 
-def chercher(q, company):
-    """Résultats de toutes les sources, pour cette entreprise seulement."""
-    if len(q) < 2 or company is None:
+def chercher(q, company, user=None):
+    """Résultats de toutes les sources.
+
+    Une entreprise active est exigée pour les données métier, mais PAS pour
+    les pages : un utilisateur sans entreprise résolue doit tout de même
+    pouvoir retrouver une page de l'interface, sinon la recherche lui est
+    entièrement inutile.
+    """
+    if len(q) < 2:
         return []
 
     resultats = []
     for nom, fonction in SOURCES:
-        resultats += _collecter(nom, fonction, q, company)
+        if nom != 'pages' and company is None:
+            continue
+        resultats += _collecter(nom, fonction, q, company, user)
     return resultats
 
 
@@ -164,7 +200,7 @@ def global_search(request):
     """
     q = request.GET.get('q', '').strip()
     company = _entreprise_active(request)
-    results = chercher(q, company)
+    results = chercher(q, company, user=request.user)
 
     veut_json = (
         request.GET.get('format') == 'json'
