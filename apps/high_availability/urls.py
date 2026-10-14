@@ -3,6 +3,7 @@ from apps.high_availability.health import (
     health_view,
     join_check_view,
     public_health_view,
+    vote_view,
 )
 from apps.high_availability import views
 
@@ -15,6 +16,11 @@ urlpatterns = [
     # Validation reciproque de l'adhesion a la grappe : le candidat sonde
     # le serveur source en retour. Protege par le secret partage.
     path('ha/join-check/', join_check_view, name='join_check'),
+    # Voix accordee a un candidat lors d'une bascule automatique. C'est ce
+    # point d'entree qui rend cette bascule sure : sans majorite, un serveur
+    # isole par une coupure reseau se promouvait sur sa seule vue, en meme
+    # temps que les autres isoles. Protege par le secret partage.
+    path('ha/vote/', vote_view, name='vote'),
 
     # Super Admin UI
     path('orion-admin/ha/settings/', views.ha_settings_view, name='admin_settings'),

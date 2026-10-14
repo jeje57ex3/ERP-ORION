@@ -21,7 +21,11 @@ class TestJournalEntryRobustness(TestCase):
             name='Accounting Test Co', slug='accounting-test-co',
             status='active', is_active=True,
         )
-        CompanySettings.objects.create(company=self.company)
+        # CompanySettings existe deja : apps/core/signals.py le cree sur le
+        # post_save de Company. Un create() ici leve IntegrityError (contrainte
+        # unique sur company_id), et c'est ce qui faisait echouer tout ce
+        # fichier. Defaut present depuis le commit initial.
+        CompanySettings.objects.get_or_create(company=self.company)
         self.user = User.objects.create_user('accountant', password='pass123')
 
     def _make_entry(self, balanced=True):
@@ -98,7 +102,11 @@ class TestInvoicePaymentRobustness(TestCase):
             name='Invoice Test Co', slug='invoice-test-co',
             status='active', is_active=True,
         )
-        CompanySettings.objects.create(company=self.company)
+        # CompanySettings existe deja : apps/core/signals.py le cree sur le
+        # post_save de Company. Un create() ici leve IntegrityError (contrainte
+        # unique sur company_id), et c'est ce qui faisait echouer tout ce
+        # fichier. Defaut present depuis le commit initial.
+        CompanySettings.objects.get_or_create(company=self.company)
         self.user = User.objects.create_user('salesperson', password='pass123')
 
     def _make_invoice(self):

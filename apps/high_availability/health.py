@@ -191,3 +191,47 @@ def public_health_view(request):
         'node_id': payload['node_id'],
         'role': payload['role'],
     })
+
+
+@csrf_exempt
+def vote_view(request):
+    """Accorde — ou refuse — la voix de CE serveur à un candidat.
+
+    `csrf_exempt` est nécessaire et sans danger, pour la même raison que
+    join_check_view : l'appelant est un autre serveur, sans cookie de session.
+    L'autorisation repose entièrement sur l'en-tête de secret partagé, vérifié
+    avant toute écriture.
+
+    Ce point d'entrée est ce qui rend la bascule automatique sûre. Sans lui,
+    un serveur isolé par une coupure réseau se promouvait sur sa seule vue, en
+    même temps que tous les autres isolés : deux serveurs actifs, deux bases
+    acceptant des écritures, et aucune réconciliation automatique possible.
+
+    La décision elle-même vit dans election.accorder_une_voix : une voix par
+    époque, persistée avant d'être annoncée.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'detail': 'POST attendu'}, status=405)
+    if not _check_ha_secret(request):
+        return HttpResponseForbidden('Forbidden')
+
+    from apps.high_availability.election import accorder_une_voix
+    from apps.high_availability.services import get_active_node
+
+    # Le candidat demande une voix parce qu'il ne joint plus le principal.
+    # Ce serveur-ci ne le croit pas sur parole : il regarde SA propre vue.
+    # C'est ce désaccord possible qui protège une grappe saine d'un serveur
+    # momentanément isolé.
+    actif = get_active_node()
+    primaire_injoignable = bool(
+        actif is None or actif.is_stale or actif.status == 'down'
+    )
+
+    resultat = accorder_une_voix(
+        epoque=request.POST.get('epoch'),
+        candidat_id=request.POST.get('candidate_id'),
+        primaire_injoignable=primaire_injoignable,
+    )
+    resultat['node_id'] = getattr(settings, 'ORION_NODE_ID', '')
+    resultat['primaire_injoignable'] = primaire_injoignable
+    return JsonResponse(resultat)

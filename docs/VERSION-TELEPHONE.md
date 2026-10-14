@@ -53,6 +53,45 @@ savoir ce qui est passé.
 Le bouton se verrouille pendant l'envoi. Sur un réseau mobile, plusieurs
 photos prennent du temps, et un second appui créerait des doublons.
 
+### Hors réseau : la photo attend
+
+Un chantier n'a pas toujours de réseau — sous-sol, parking, zone blanche.
+La photo prise sans connexion n'est plus perdue : elle est mise en attente sur
+le téléphone, et part au retour du réseau.
+
+Ce qui se passe, concrètement :
+
+| Moment | Ce que voit l'utilisateur |
+|---|---|
+| Envoi hors réseau | « Hors ligne : photo mise en attente. Elle partira au retour du réseau. » |
+| Pendant l'attente | « 2 photos en attente de réseau. », avec un bouton **Renvoyer maintenant** |
+| Retour du réseau | le renvoi part seul, puis « 2 photos en attente ont été enregistrées. » |
+| Refus du serveur | le motif est affiché, et l'envoi sort de la file |
+
+Le renvoi est tenté à trois moments : au retour du réseau, à l'ouverture de la
+page, et sur appui du bouton.
+
+**Pas de doublon.** C'est le point le plus délicat, et il ne va pas de soi. La
+file ne peut pas savoir si une coupure est survenue *avant* ou *après*
+l'enregistrement côté serveur : une réponse perdue — le cas banal sur un
+chantier — laisse la photo enregistrée et la file persuadée du contraire. Elle
+la renverrait, et le chantier aurait deux fois la même photo, précisément dans
+la situation de réseau instable qui justifie la file.
+
+Chaque envoi porte donc une **clé** générée par le téléphone. Le serveur la
+retient, et reconnaît un envoi déjà reçu au lieu de le refaire. Un renvoi en
+double est alors sans conséquence.
+
+**Un refus n'est pas réessayé.** Un envoi que le serveur refuse — chantier
+inconnu, fichier invalide — sort de la file, avec son motif affiché. Le
+réessayer indéfiniment ne le ferait pas passer, et bloquerait tous les envois
+suivants. Seules les pannes de réseau sont réessayées.
+
+Les photos en attente vivent dans IndexedDB, sur le téléphone, et nulle part
+ailleurs : elles ne traversent aucun serveur avant d'être envoyées. Sur un
+téléphone dont le stockage est refusé (navigation privée), la mise en attente
+échoue et le dit, plutôt que de laisser croire que la photo est partie.
+
 ## L'installer comme une application
 
 La version téléphone est une **application installable**. Une fois posée

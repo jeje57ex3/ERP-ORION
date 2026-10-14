@@ -318,7 +318,6 @@ NAV_MODULES = [
             {'label': _('Planification IA'), 'url_name': 'smart_planning:planning',    'icon_img': 'planification_ia.png', 'icon': 'ti-calendar-event'},
             {'label': _('Analytique'),       'url_name': 'predictive_analytics:dashboard', 'icon_img': 'analytique_ia.png', 'icon': 'ti-trending-up'},
             {'label': _('Documents IA'),     'url_name': 'smart_documents:list',       'icon_img': 'documents_ia.png', 'icon': 'ti-file-ai'},
-            {'label': _('Assistant Orion'),  'url_name': 'orion_assistant:list',       'icon_img': 'assistant_orion.png', 'icon': 'ti-sparkles'},
         ],
     },
     {

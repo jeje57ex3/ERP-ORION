@@ -419,18 +419,61 @@ peut provenir d'une bascule précédente, où l'autre serveur a reçu des
 téléversements ; la place gagnée ne vaudrait pas ce qu'on risquerait de
 perdre.
 
-## Limite à connaître : la détection automatique
+## La bascule automatique : élection par majorité
 
-La bascule **manuelle** est opérationnelle. La bascule **automatique** ne l'est
-pas, et c'est délibéré.
+La bascule **manuelle** est opérationnelle depuis le début. La bascule
+**automatique** l'est désormais aussi, mais seulement à partir de **trois
+serveurs** — et cette condition n'est pas une limite d'implémentation, c'est
+le fond du problème.
 
-À deux serveurs, il n'existe pas de majorité. Si le lien entre eux se coupe
-sans qu'aucun ne soit tombé, chacun conclut que l'autre est mort et se
-promeut : deux bases divergentes, des écritures des deux côtés, et une fusion
-impossible. C'est le *split brain*.
+### Pourquoi une majorité est nécessaire
 
-Une détection fiable demande un arbitre extérieur aux deux serveurs. Deux
-voies :
+Un serveur qui ne joint plus le principal ne peut pas savoir lequel des deux
+cas suivants il observe :
+
+- le principal est réellement tombé ;
+- le réseau s'est coupé, et c'est lui-même qui est isolé.
+
+Les deux lui apparaissent exactement de la même façon. S'il se promeut sur
+cette seule vue, alors lors d'une coupure réseau **chaque** serveur isolé tient
+le même raisonnement au même moment : deux serveurs actifs, deux bases
+acceptant des écritures, des devis et des factures différents portant les mêmes
+numéros. Aucune réconciliation automatique n'existe pour cela ; la réparation
+se fait à la main, ligne par ligne.
+
+La règle qui l'empêche : **un candidat ne prend la main que s'il obtient la
+voix d'une majorité stricte des serveurs déclarés, et chaque serveur n'accorde
+qu'une voix par élection.** Deux majorités d'un même ensemble ont forcément un
+serveur en commun, et celui-ci n'a voté qu'une fois : deux candidats ne peuvent
+donc pas gagner la même élection. La divergence devient structurellement
+impossible, au lieu d'être simplement improbable.
+
+| Serveurs déclarés | Voix nécessaires | Bascule automatique |
+|---|---|---|
+| 2 | 2 | impossible — le serveur tombé devrait voter |
+| 3 | 2 | oui, si un second serveur répond |
+| 4 | 3 | oui, si deux autres répondent |
+| 5 | 3 | oui, si deux autres répondent |
+
+Le dénominateur est le nombre de serveurs **déclarés**, jamais le nombre de
+serveurs joignables : calculer la majorité sur ce qu'un serveur voit lui
+permettrait de former à lui seul « la majorité » de son propre isolement.
+
+En revanche, un serveur **désactivé** ne compte pas : il est retiré de la
+grappe par votre décision, le balayage de santé ne l'interroge plus, et il ne
+peut plus recevoir la main. C'est ce qui permet de réduire une grappe sans
+l'immobiliser.
+
+> **Pour retirer un serveur, décochez `Serveur actif dans la grappe` au lieu
+> de le laisser éteint.** Un serveur simplement éteint reste déclaré, et
+> continue donc d'être compté dans la majorité : une grappe de trois serveurs
+> dont deux sont éteints exigerait encore deux voix, et le survivant se
+> clôturerait lui-même.
+
+### À deux serveurs
+
+La bascule automatique est refusée, avec ce motif écrit dans le journal des
+événements plutôt qu'un silence. Deux voies pour l'obtenir :
 
 | | Troisième serveur témoin | Contrôles de santé Cloudflare |
 |---|---|---|
@@ -438,9 +481,72 @@ voies :
 | Coût | une machine de plus | inclus dans le Load Balancer |
 | L'ERP gère | tout | la base seulement |
 
-La seconde est recommandée : Cloudflare est déjà devant vos serveurs et reste
-debout quand l'un d'eux tombe. Laissez `Confirmation manuelle obligatoire`
-activé jusqu'à ce qu'un arbitre soit en place.
+Un témoin suffit : il n'a pas besoin de servir du trafic, seulement de
+répondre au vote. C'est la voie la plus simple si vous disposez d'une petite
+machine ailleurs.
+
+### L'autre moitié du problème : le chef isolé
+
+Exiger une majorité pour **promouvoir** interdit à une minorité d'élire un
+nouveau chef. Cela ne suffit pas, et il faut le savoir : le serveur **déjà
+actif** qui se retrouve du mauvais côté d'une coupure continue, lui, de se
+croire actif et d'accepter des écritures — tandis que la majorité, de l'autre
+côté, en élit légitimement un autre. Deux serveurs écrivent alors, par un
+chemin que l'élection seule ne ferme pas.
+
+D'où la **clôture** : à chaque balayage de santé, le serveur actif vérifie
+qu'il voit encore une majorité de la grappe. S'il ne la voit plus, il refuse
+les écritures jusqu'à la retrouver, avec ce message :
+
+> Ce serveur Orion ne voit plus une majorité de la grappe : écriture refusée
+> pour éviter deux serveurs actifs. Elle reprendra automatiquement au retour de
+> la majorité.
+
+La lecture reste possible, et la reprise est automatique — aucune intervention
+n'est nécessaire quand le réseau revient.
+
+Perdre l'écriture sur le serveur isolé est le prix de cette garantie, et c'est
+le bon prix : une indisponibilité s'attend, s'explique et se répare en
+rétablissant le réseau. Une divergence, elle, se répare à la main, ligne par
+ligne, en choisissant quelle facture garder.
+
+La clôture ne s'applique pas à **deux** serveurs : le remède y serait pire que
+le mal, puisqu'une simple coupure du lien rendrait inutilisable le seul serveur
+qui fonctionne. À deux serveurs, la protection repose sur la confirmation
+manuelle.
+
+### Activation
+
+Trois réglages, dans cet ordre :
+
+1. `Bascule activée` — déjà vrai par défaut ;
+2. décocher `Confirmation manuelle obligatoire` ;
+3. cocher `Bascule automatique activée`.
+
+Et sur chaque serveur secondaire, `Promotion automatique autorisée` : un
+serveur dont la case est décochée ne sera jamais promu sans intervention
+humaine, même s'il est le mieux classé.
+
+Tant que `Confirmation manuelle obligatoire` reste cochée, rien ne se déclenche
+tout seul — c'est la valeur par défaut, et elle convient à une installation à
+deux serveurs.
+
+### Lire un refus
+
+Chaque élection perdue est journalisée avec le détail des voix : qui a voté
+pour, qui a refusé et pourquoi, l'époque, et le nombre de voix requises. Une
+bascule qui ne se produit pas sans que rien ne dise pourquoi serait aussi
+gênante qu'une bascule à tort : on ne saurait pas si le mécanisme a jugé, ou
+s'il dort.
+
+Les refus les plus fréquents :
+
+| Motif | Ce qu'il faut faire |
+|---|---|
+| « impossible avec 2 serveur(s) » | ajouter un témoin, ou basculer à la main |
+| « pas de majorité » | les autres serveurs ne répondent pas : vérifier le réseau privé |
+| « le serveur principal reste joignable » | un seul serveur le croit tombé — c'est lui qui est isolé |
+| « aucun serveur éligible » | `Promotion automatique autorisée` décochée partout, ou retard de réplication trop élevé |
 
 ## Diagnostic
 

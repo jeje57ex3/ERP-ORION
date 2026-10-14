@@ -21,7 +21,11 @@ class TestStockService(TestCase):
             name='Stock Test Co', slug='stock-test-co',
             status='active', is_active=True,
         )
-        CompanySettings.objects.create(company=self.company)
+        # CompanySettings existe deja : apps/core/signals.py le cree sur le
+        # post_save de Company. Un create() ici leve IntegrityError (contrainte
+        # unique sur company_id), et c'est ce qui faisait echouer tout ce
+        # fichier. Defaut present depuis le commit initial.
+        CompanySettings.objects.get_or_create(company=self.company)
         self.user = User.objects.create_user('storekeeper', password='pass123')
 
     def _make_product(self, qty=100):

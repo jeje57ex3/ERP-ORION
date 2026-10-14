@@ -33,10 +33,12 @@ from apps.crm.models import Customer, Prospect
 # CompanySettings.objects.create(company=co) juste après Company.objects.create(),
 # alors qu'un signal post_save (apps.core.signals.create_company_settings)
 # en crée déjà un via get_or_create — IntegrityError garanti (contrainte
-# unique sur company_id). Bug préexistant dans conftest.py, pas de notre
-# fait ni de notre périmètre : on le contourne localement à ce fichier en
-# redéfinissant ces deux fixtures sans l'appel redondant, plutôt que de
-# corriger l'infrastructure de test partagée sans l'accord de l'utilisateur.
+# unique sur company_id).
+#
+# Ce défaut est désormais corrigé dans conftest.py : la fixture partagée met
+# les valeurs à jour au lieu de recréer la ligne. Les fixtures locales
+# ci-dessous restent valides et sont conservées telles quelles — elles
+# portent d'autres particularités propres à ce fichier.
 
 @pytest.fixture
 def company(db):
