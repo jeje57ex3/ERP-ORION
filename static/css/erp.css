@@ -100,7 +100,7 @@ h1, h2, h3, h4, h5, h6 {
 .erp-sidebar {
   width: var(--sidebar-width);
   min-height: 100vh;
-  background-color: var(--sidebar-bg);
+  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
   display: flex;
   flex-direction: column;
   position: fixed;
