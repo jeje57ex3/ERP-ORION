@@ -111,6 +111,7 @@ LOCAL_APPS = [
 
     # ── Intelligence Artificielle ─────────────────────────────────────────────
     'apps.orion_ai.apps.OrionAIConfig',
+    'apps.mobile_web.apps.MobileWebConfig',
 
     # ── Amélioration continue PDCA ────────────────────────────────────────────
     'apps.continuous_improvement.apps.ContinuousImprovementConfig',

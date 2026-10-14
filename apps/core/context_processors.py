@@ -408,6 +408,7 @@ NAV_MODULES = [
             {'label': _('Nœuds HA'),           'url_name': 'high_availability:admin_nodes',    'icon_img': 'noeuds_ha.png', 'icon': 'ti-sitemap'},
             {'label': _('Relier serveurs'),    'url_name': 'high_availability:admin_cluster',  'icon_img': 'noeuds_ha.png', 'icon': 'ti-binary-tree'},
             {'label': _('Réseau privé'),       'url_name': 'high_availability:admin_mesh',     'icon_img': 'noeuds_ha.png', 'icon': 'ti-shield-lock'},
+            {'label': _('Version téléphone'),  'url_name': 'mobile_web:accueil',               'icon_img': 'noeuds_ha.png', 'icon': 'ti-device-mobile'},
             {'label': _('Basculement HA'),     'url_name': 'high_availability:admin_failover', 'icon_img': 'basculement_ha.png', 'icon': 'ti-arrows-left-right'},
             {'label': _('Paramètres'),         'url_name': 'private_saas:saas_settings',       'icon_img': 'params_saas.png', 'icon': 'ti-adjustments'},
             {'label': _('IA — Paramètres'),    'url_name': 'orion_ai:admin_ai_settings',      'icon_img': 'ia_params_audit.png', 'icon': 'ti-robot'},

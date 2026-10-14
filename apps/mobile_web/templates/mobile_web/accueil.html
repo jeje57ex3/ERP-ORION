@@ -1,0 +1,46 @@
+{% extends "mobile_web/base_mobile.html" %}
+{% load i18n %}
+
+{% block title %}Orion mobile{% endblock %}
+{% block entete %}{% trans "Orion mobile" %}{% endblock %}
+
+{% block contenu %}
+{% if entreprise %}
+  <p class="sous" style="margin-bottom:16px">{{ entreprise.name }}</p>
+{% else %}
+  <div class="alerte err">
+    {% trans "Aucune entreprise active. Les photos ne pourront pas être rangées." %}
+  </div>
+{% endif %}
+
+<a class="action" href="{% url 'mobile_web:photo' %}">
+  <span class="ico">⊙</span>
+  <span class="txt">
+    <b>{% trans "Prendre une photo" %}</b>
+    <span class="sous">{% trans "Pour un chantier ou les documents généraux" %}</span>
+  </span>
+  <span class="fleche">›</span>
+</a>
+
+<a class="action" href="{% url 'mobile_web:serveurs' %}">
+  <span class="ico">⌸</span>
+  <span class="txt">
+    <b>{% trans "Changer de serveur" %}</b>
+    <span class="sous">{% trans "Ouvrir l'interface d'un autre serveur Orion" %}</span>
+  </span>
+  <span class="fleche">›</span>
+</a>
+
+<a class="action" href="/dashboard/">
+  <span class="ico">▤</span>
+  <span class="txt">
+    <b>{% trans "Interface complète" %}</b>
+    <span class="sous">{% trans "Tout l'ERP, mis en page pour petit écran" %}</span>
+  </span>
+  <span class="fleche">›</span>
+</a>
+
+<p class="aide">
+  {% trans "Cette interface est servie par le serveur lui-même : rien à installer, et aucune donnée ne transite ailleurs." %}
+</p>
+{% endblock %}

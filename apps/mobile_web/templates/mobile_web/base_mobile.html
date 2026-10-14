@@ -1,0 +1,136 @@
+{% load i18n static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  {% comment %} viewport-fit=cover : sans lui, la barre du bas reste sous l'encoche des
+     iPhone recents, donc inaccessible au pouce. {% endcomment %}
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1C120A">
+  <title>{% block title %}Orion mobile{% endblock %}</title>
+
+  {% comment %} Styles embarques, volontairement. Les 17 feuilles du bureau pesent
+     lourd sur un reseau mobile et sont concues pour un grand ecran : les
+     charger pour trois pages reviendrait a servir une mise en page de bureau
+     retrecie, ce que l'on cherche precisement a eviter. {% endcomment %}
+  <style>
+    :root {
+      --m-fond: #14110f;
+      --m-carte: #1F1A15;
+      --m-bord: rgba(198,161,91,.22);
+      --m-or: #C6A15B;
+      --m-texte: #F8F3EA;
+      --m-doux: rgba(248,243,234,.62);
+      --m-ok: #4ADE80;
+      --m-err: #F87171;
+      /* Hauteur de la barre basse + marge de securite de l'appareil. */
+      --m-barre: calc(62px + env(safe-area-inset-bottom, 0px));
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0 0 var(--m-barre);
+      background: var(--m-fond);
+      color: var(--m-texte);
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      /* 16px minimum : en dessous, iOS zoome automatiquement a la mise au
+         point d'un champ et la page devient inutilisable. */
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; gap: 12px;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+      background: linear-gradient(180deg, #1C120A 0%, #2B2118 100%);
+      border-bottom: 1px solid var(--m-bord);
+    }
+    header h1 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
+    header .retour {
+      color: var(--m-or); text-decoration: none; font-size: 22px;
+      min-width: 44px; min-height: 44px; display: grid; place-items: center;
+      margin-left: -10px;
+    }
+    main { padding: 16px; max-width: 640px; margin: 0 auto; }
+    .carte {
+      background: var(--m-carte); border: 1px solid var(--m-bord);
+      border-radius: 14px; padding: 16px; margin-bottom: 14px;
+    }
+    .sous { color: var(--m-doux); font-size: 13.5px; margin: 4px 0 0; }
+    /* 48px de haut minimum : une cible plus petite se rate au pouce. */
+    .action {
+      display: flex; align-items: center; gap: 14px;
+      min-height: 64px; padding: 14px 16px;
+      background: var(--m-carte); border: 1px solid var(--m-bord);
+      border-radius: 14px; margin-bottom: 12px;
+      color: var(--m-texte); text-decoration: none;
+    }
+    .action:active { background: #272019; }
+    .action .ico { font-size: 26px; width: 34px; text-align: center; }
+    .action .txt { flex: 1; }
+    .action .txt b { display: block; font-size: 16px; }
+    .action .fleche { color: var(--m-or); font-size: 20px; }
+    label { display: block; font-size: 13.5px; font-weight: 600; margin: 14px 0 6px; }
+    input[type=text], textarea, select {
+      width: 100%; padding: 13px 14px; font-size: 16px;
+      background: #171310; color: var(--m-texte);
+      border: 1px solid var(--m-bord); border-radius: 10px;
+    }
+    .bouton {
+      display: block; width: 100%; min-height: 54px;
+      font-size: 17px; font-weight: 600;
+      background: var(--m-or); color: #1C120A;
+      border: 0; border-radius: 12px; margin-top: 18px;
+    }
+    .bouton:active { opacity: .85; }
+    .bouton.secondaire { background: transparent; color: var(--m-or); border: 1px solid var(--m-bord); }
+    .alerte { padding: 12px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 14.5px; }
+    .alerte.ok { background: rgba(74,222,128,.12); color: var(--m-ok); }
+    .alerte.err { background: rgba(248,113,113,.12); color: var(--m-err); }
+    .alerte.info { background: rgba(198,161,91,.12); color: var(--m-or); }
+    .aide { color: var(--m-doux); font-size: 12.5px; margin: 6px 0 0; }
+    nav.barre {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      display: flex; background: #1C120A;
+      border-top: 1px solid var(--m-bord);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    nav.barre a {
+      flex: 1; text-align: center; padding: 9px 0 7px;
+      color: var(--m-doux); text-decoration: none; font-size: 11px;
+    }
+    nav.barre a.actif { color: var(--m-or); }
+    nav.barre a span { display: block; font-size: 22px; line-height: 1.1; }
+  </style>
+</head>
+<body>
+
+<header>
+  {% block retour %}{% endblock %}
+  <h1>{% block entete %}Orion{% endblock %}</h1>
+</header>
+
+<main>
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alerte {% if msg.tags == 'error' %}err{% elif msg.tags == 'success' %}ok{% else %}info{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% block contenu %}{% endblock %}
+</main>
+
+<nav class="barre">
+  <a href="{% url 'mobile_web:accueil' %}" class="{% if rubrique == 'accueil' %}actif{% endif %}">
+    <span>⌂</span>{% trans "Accueil" %}
+  </a>
+  <a href="{% url 'mobile_web:photo' %}" class="{% if rubrique == 'photo' %}actif{% endif %}">
+    <span>⊙</span>{% trans "Photo" %}
+  </a>
+  <a href="{% url 'mobile_web:serveurs' %}" class="{% if rubrique == 'serveurs' %}actif{% endif %}">
+    <span>⌸</span>{% trans "Serveurs" %}
+  </a>
+  <a href="/dashboard/">
+    <span>▤</span>{% trans "ERP complet" %}
+  </a>
+</nav>
+
+</body>
+</html>
