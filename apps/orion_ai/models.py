@@ -52,6 +52,55 @@ class OrionAISettings(models.Model):
     max_input_chars = models.PositiveIntegerField(default=20000)
     max_history_messages = models.PositiveIntegerField(default=20)
 
+    # ─── Temps de réponse ────────────────────────────────────────────────────
+    # Sur un petit modèle en CPU — le cas de l'appliance — le temps de réponse
+    # se décompose en trois parts, et chacune a son réglage ici :
+    #
+    #   1. le CHARGEMENT du modèle en mémoire. Ollama le décharge après un
+    #      délai d'inactivité ; la requête suivante attend alors plusieurs
+    #      secondes qu'il remonte du disque. C'est ce qui rend l'assistant
+    #      « parfois très lent » sans raison apparente.
+    #   2. l'ÉVALUATION DU PROMPT, proportionnelle à sa longueur. C'est elle
+    #      qui fait ralentir une conversation à mesure qu'elle avance.
+    #   3. la GÉNÉRATION, proportionnelle à la longueur de la réponse.
+    #
+    # Les trois durées sont mesurées à chaque échange et conservées dans la
+    # charge brute du message (voir LocalAIProvider) : le réglage se fait sur
+    # des chiffres, pas sur une impression.
+    keep_alive_minutes = models.PositiveIntegerField(
+        default=30,
+        verbose_name='Garder le modèle en mémoire (minutes)',
+        help_text='Évite de le recharger depuis le disque à chaque question '
+                  'après une période calme — c’est la cause la plus courante '
+                  'des réponses très lentes. 0 = décharger aussitôt (libère '
+                  'la mémoire, au prix de quelques secondes par question).',
+    )
+
+    max_output_tokens = models.PositiveIntegerField(
+        default=600,
+        verbose_name='Longueur maximale de la réponse (jetons)',
+        help_text='Plafond de génération. Sans plafond, une réponse bavarde '
+                  'se paie en secondes d’attente. 600 jetons ≈ 450 mots, '
+                  'largement assez pour guider dans une interface.',
+    )
+
+    context_window_tokens = models.PositiveIntegerField(
+        default=4096,
+        verbose_name='Fenêtre de contexte (jetons)',
+        help_text='Taille allouée au contexte. Plus grande, elle consomme '
+                  'de la mémoire et ralentit chaque requête ; trop petite, '
+                  'elle tronque les faits fournis au modèle.',
+    )
+
+    max_history_chars = models.PositiveIntegerField(
+        default=4000,
+        verbose_name='Historique transmis (caractères)',
+        help_text='Budget de longueur pour les messages précédents, en plus '
+                  'de leur nombre. C’est la longueur, non le nombre, qui '
+                  'détermine le temps d’évaluation du prompt. 0 = aucun '
+                  'plafond de longueur.',
+    )
+
     allow_tools = models.BooleanField(default=True)
     allow_erp_read_tools = models.BooleanField(default=True)
     allow_erp_write_tools = models.BooleanField(default=False)

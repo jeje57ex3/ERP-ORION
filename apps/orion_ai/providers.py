@@ -97,21 +97,59 @@ class AnthropicProvider(BaseAIProvider):
 
 
 class LocalAIProvider(BaseAIProvider):
-    def generate(self, *, messages, model, temperature=0.2, tools=None):
+    """Moteur local (Ollama).
+
+    Le temps de réponse se décompose en trois parts, et les trois sont
+    renseignées ici — plutôt que laissées aux valeurs par défaut :
+
+      1. **Chargement du modèle.** Ollama le décharge après un délai
+         d'inactivité (5 min par défaut), et la requête suivante attend
+         plusieurs secondes qu'il remonte du disque. C'est ce qui rendait
+         l'assistant « parfois très lent » sans raison visible. `keep_alive`
+         le garde résident.
+      2. **Évaluation du prompt**, proportionnelle à sa longueur. `num_ctx`
+         borne l'allocation ; le budget d'historique, lui, est appliqué en
+         amont (voir services.build_messages_for_provider).
+      3. **Génération**, proportionnelle à la longueur de la réponse.
+         `num_predict` en pose le plafond : sans lui, une réponse bavarde se
+         paie en secondes d'attente.
+
+    Les durées mesurées par Ollama sont renvoyées dans `timings`, et
+    conservées avec le message. Le réglage se fait ainsi sur des chiffres.
+    """
+
+    def generate(self, *, messages, model, temperature=0.2, tools=None,
+                 keep_alive_minutes=None, max_output_tokens=None,
+                 context_window_tokens=None):
         base_url = getattr(settings, 'LOCAL_AI_BASE_URL', 'http://localhost:11434')
         url = base_url.rstrip('/') + '/api/chat'
+
+        options = {'temperature': float(temperature)}
+        if max_output_tokens:
+            options['num_predict'] = int(max_output_tokens)
+        if context_window_tokens:
+            options['num_ctx'] = int(context_window_tokens)
+
+        charge = {
+            'model': model,
+            'messages': messages,
+            'stream': False,
+            'options': options,
+        }
+        if keep_alive_minutes is not None:
+            # Format accepté par Ollama : « 30m », ou 0 pour décharger
+            # aussitôt. Passer un entier nu serait interprété en SECONDES,
+            # et « 30 » garderait le modèle une demi-minute au lieu d'une
+            # demi-heure — l'inverse de l'effet recherché.
+            charge['keep_alive'] = (
+                f'{int(keep_alive_minutes)}m' if int(keep_alive_minutes) > 0
+                else 0
+            )
 
         try:
             response = http_requests.post(
                 url,
-                json={
-                    'model': model,
-                    'messages': messages,
-                    'stream': False,
-                    'options': {
-                        'temperature': float(temperature),
-                    },
-                },
+                json=charge,
                 timeout=120,
             )
         except http_requests.exceptions.ConnectionError:
@@ -157,13 +195,139 @@ class LocalAIProvider(BaseAIProvider):
                 f'{base_url} sert-il bien Ollama ?'
             )
 
+        # Ollama chiffre lui-meme chaque part du temps, en nanosecondes. Les
+        # exposer evite de regler a l'aveugle : « lent » ne dit pas s'il faut
+        # garder le modele en memoire, raccourcir le prompt ou plafonner la
+        # reponse -- et ce sont trois remedes differents.
+        def _ms(cle):
+            valeur = data.get(cle)
+            return round(valeur / 1_000_000) if isinstance(valeur, (int, float)) else None
+
+        jetons_sortie = data.get('eval_count', 0) or 0
+        duree_generation = _ms('eval_duration')
         return {
             'content': data.get('message', {}).get('content', ''),
             'raw': data,
             'provider': 'local',
             'model': model,
             'token_input': data.get('prompt_eval_count', 0),
-            'token_output': data.get('eval_count', 0),
+            'token_output': jetons_sortie,
+            'timings': {
+                'total_ms': _ms('total_duration'),
+                'chargement_modele_ms': _ms('load_duration'),
+                'evaluation_prompt_ms': _ms('prompt_eval_duration'),
+                'generation_ms': duree_generation,
+                'jetons_par_seconde': (
+                    round(jetons_sortie / (duree_generation / 1000), 1)
+                    if duree_generation and jetons_sortie else None
+                ),
+            },
+        }
+
+
+    def generate_stream(self, *, messages, model, temperature=0.2,
+                        keep_alive_minutes=None, max_output_tokens=None,
+                        context_window_tokens=None):
+        """Même requête, mais rendue au fur et à mesure.
+
+        C'est le gain de confort le plus important sur un petit modèle en CPU,
+        et il ne vient d'aucune accélération : le temps total ne change pas.
+        Ce qui change, c'est le temps avant le PREMIER mot. Sans flux,
+        l'utilisateur attend la réponse entière — vingt ou trente secondes
+        pendant lesquelles rien ne bouge, et pendant lesquelles il ne sait pas
+        si l'assistant réfléchit ou s'il est en panne. Avec le flux, les
+        premiers mots arrivent en une ou deux secondes et le reste défile.
+
+        Produit des dictionnaires : {'delta': '...'} pour chaque morceau de
+        texte, puis un dernier {'fin': True, 'timings': {...}, ...}.
+        """
+        base_url = getattr(settings, 'LOCAL_AI_BASE_URL', 'http://localhost:11434')
+        url = base_url.rstrip('/') + '/api/chat'
+
+        options = {'temperature': float(temperature)}
+        if max_output_tokens:
+            options['num_predict'] = int(max_output_tokens)
+        if context_window_tokens:
+            options['num_ctx'] = int(context_window_tokens)
+
+        charge = {
+            'model': model,
+            'messages': messages,
+            'stream': True,
+            'options': options,
+        }
+        if keep_alive_minutes is not None:
+            charge['keep_alive'] = (
+                f'{int(keep_alive_minutes)}m' if int(keep_alive_minutes) > 0
+                else 0
+            )
+
+        try:
+            reponse = http_requests.post(
+                url, json=charge, timeout=180, stream=True,
+            )
+        except http_requests.exceptions.ConnectionError:
+            raise AIProviderError(
+                f"Le moteur local ne répond pas sur {base_url}. "
+                'Sur le serveur : /opt/orion/scripts/orion-ai.sh status'
+            )
+
+        if reponse.status_code == 404:
+            raise AIProviderError(
+                f"Le modèle « {model} » n'est pas téléchargé sur ce serveur. "
+                'Lancez : /opt/orion/scripts/orion-ai.sh pull ' + model
+            )
+        if reponse.status_code >= 400:
+            raise AIProviderError(
+                'Le moteur local a refusé la requête (HTTP %s).'
+                % reponse.status_code
+            )
+
+        import json as _json
+
+        dernier = {}
+        for ligne in reponse.iter_lines(decode_unicode=True):
+            if not ligne:
+                continue
+            try:
+                morceau = _json.loads(ligne)
+            except ValueError:
+                # Une ligne illisible ne doit pas interrompre un flux par
+                # ailleurs valide : Ollama en émet une par jeton, et perdre
+                # la réponse entière pour une seule serait disproportionné.
+                continue
+
+            texte = (morceau.get('message') or {}).get('content') or ''
+            if texte:
+                yield {'delta': texte}
+
+            if morceau.get('done'):
+                dernier = morceau
+                break
+
+        def _ms(cle):
+            valeur = dernier.get(cle)
+            return round(valeur / 1_000_000) if isinstance(valeur, (int, float)) else None
+
+        jetons_sortie = dernier.get('eval_count', 0) or 0
+        duree_generation = _ms('eval_duration')
+        yield {
+            'fin': True,
+            'raw': dernier,
+            'provider': 'local',
+            'model': model,
+            'token_input': dernier.get('prompt_eval_count', 0),
+            'token_output': jetons_sortie,
+            'timings': {
+                'total_ms': _ms('total_duration'),
+                'chargement_modele_ms': _ms('load_duration'),
+                'evaluation_prompt_ms': _ms('prompt_eval_duration'),
+                'generation_ms': duree_generation,
+                'jetons_par_seconde': (
+                    round(jetons_sortie / (duree_generation / 1000), 1)
+                    if duree_generation and jetons_sortie else None
+                ),
+            },
         }
 
 

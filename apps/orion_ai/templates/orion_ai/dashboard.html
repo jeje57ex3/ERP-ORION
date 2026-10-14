@@ -179,6 +179,8 @@ function appendMessage(role, content, extra) {
   div.appendChild(p);
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+  // Rendu pour que le flux puisse y ajouter les morceaux au fur et a mesure.
+  return p;
 }
 
 function setLoading(loading) {
@@ -200,8 +202,16 @@ async function sendMessage() {
   input.value = '';
   setLoading(true);
 
+  // La reponse apparait des le premier mot. Le temps total est le meme ; ce
+  // qui change est l'attente AVANT de voir quoi que ce soit -- vingt a trente
+  // secondes pendant lesquelles rien ne bougeait, et pendant lesquelles on ne
+  // pouvait pas distinguer un assistant qui reflechit d'un assistant en panne.
+  const zone = appendMessage('assistant', '');
+  const conteneur = document.getElementById('chat-messages');
+  let recu = '';
+
   try {
-    const resp = await fetch('{% url "orion_ai:api_chat" %}', {
+    const resp = await fetch('{% url "orion_ai:api_chat_stream" %}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
       body: JSON.stringify({
@@ -212,19 +222,84 @@ async function sendMessage() {
         context_module: MODULE_COURANT,
       }),
     });
-    const data = await resp.json();
-    if (resp.ok) {
-      currentConversationId = data.conversation_id;
-      appendMessage('assistant', data.answer);
-    } else {
-      appendMessage('assistant', '⚠️ Erreur : ' + (data.error || 'Impossible de contacter l\'IA.'));
+
+    if (!resp.ok || !resp.body) {
+      // Repli sur la reponse d'un bloc : un proxy qui ne laisse pas passer le
+      // flux ne doit pas priver de l'assistant.
+      const data = await resp.json().catch(function () { return {}; });
+      zone.textContent = resp.ok
+        ? (data.answer || '')
+        : '⚠️ Erreur : ' + (data.error || "Impossible de contacter l'IA.");
+      return;
+    }
+
+    const lecteur = resp.body.getReader();
+    const decodeur = new TextDecoder();
+    let reste = '';
+
+    for (;;) {
+      const { value, done } = await lecteur.read();
+      if (done) break;
+      reste += decodeur.decode(value, { stream: true });
+
+      // NDJSON : un objet par ligne. La derniere ligne peut etre incomplete,
+      // on la garde pour le tour suivant -- l'analyser tronquee ferait perdre
+      // des mots au milieu de la reponse.
+      const lignes = reste.split('\n');
+      reste = lignes.pop();
+
+      for (const ligne of lignes) {
+        if (!ligne.trim()) continue;
+        let evenement;
+        try { evenement = JSON.parse(ligne); } catch (e) { continue; }
+
+        if (evenement.erreur) {
+          zone.textContent = '⚠️ Erreur : ' + evenement.erreur;
+          continue;
+        }
+        if (evenement.delta) {
+          recu += evenement.delta;
+          zone.textContent = recu;
+          conteneur.scrollTop = conteneur.scrollHeight;
+        }
+        if (evenement.fin) {
+          currentConversationId = evenement.conversation_id;
+          afficherMesures(zone, evenement.mesures);
+        }
+      }
     }
   } catch (e) {
-    appendMessage('assistant', '⚠️ Erreur réseau. Vérifiez votre connexion.');
+    if (!recu) {
+      zone.textContent = '⚠️ Erreur reseau. Verifiez votre connexion.';
+    }
   } finally {
     setLoading(false);
     document.getElementById('chat-messages').scrollTop = 999999;
   }
+}
+
+// Les durees mesurees par le moteur, discretement, sous la reponse. « Lent »
+// ne dit pas s'il faut garder le modele en memoire, raccourcir le prompt ou
+// plafonner la reponse : ce sont trois remedes differents, et ces trois
+// chiffres disent lequel s'applique.
+function afficherMesures(zone, mesures) {
+  if (!mesures || !mesures.total_ms) return;
+  const parts = [];
+  if (mesures.chargement_modele_ms > 200) {
+    parts.push('chargement ' + (mesures.chargement_modele_ms / 1000).toFixed(1) + ' s');
+  }
+  if (mesures.evaluation_prompt_ms) {
+    parts.push('lecture ' + (mesures.evaluation_prompt_ms / 1000).toFixed(1) + ' s');
+  }
+  if (mesures.jetons_par_seconde) {
+    parts.push(mesures.jetons_par_seconde + ' jetons/s');
+  }
+  if (!parts.length) return;
+
+  const ligne = document.createElement('div');
+  ligne.style.cssText = 'font-size:11px;color:var(--orion-text-muted);margin-top:8px;opacity:.75';
+  ligne.textContent = (mesures.total_ms / 1000).toFixed(1) + ' s — ' + parts.join(', ');
+  zone.parentElement.appendChild(ligne);
 }
 
 async function confirmAction(actionId) {

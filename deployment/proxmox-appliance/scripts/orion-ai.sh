@@ -16,6 +16,7 @@
 #   orion-ai.sh install [MODELE]   Installe Ollama et télécharge le modèle
 #   orion-ai.sh status             Service, modèles présents, RAM disponible
 #   orion-ai.sh test [QUESTION]    Interroge le moteur et mesure le temps
+#   orion-ai.sh bench [MODELE]     Mesure le débit réel et le qualifie
 #   orion-ai.sh models             Modèles téléchargés
 #   orion-ai.sh pull MODELE        Télécharge un autre modèle
 #   orion-ai.sh stop | start       Arrête / démarre le service
@@ -34,7 +35,9 @@ ENV_FILE="$ORION_HOME/backend/.env"
 MODELE_DEFAUT="qwen2.5:3b-instruct"
 HOTE="127.0.0.1:11434"
 
-usage() { sed -n '2,21p' "$0"; exit "${1:-0}"; }
+# Les lignes 2 a 22 de ce fichier SONT le texte d'aide : ajouter une commande
+# ci-dessus demande d'etendre cette plage, sinon la derniere ligne disparait.
+usage() { sed -n '2,22p' "$0"; exit "${1:-0}"; }
 
 exiger_root() { [ "$(id -u)" -eq 0 ] || { echo "ERREUR: à lancer en root." >&2; exit 1; }; }
 
@@ -222,6 +225,67 @@ EOF
   echo "Temps de réponse : $((fin - debut)) s"
 }
 
+cmd_bench() {
+  # Mesure le debit reel de ce serveur, et le compare a ce qui est confortable.
+  #
+  # C'est la seule question que les reglages de l'ERP ne peuvent pas trancher :
+  # garder le modele en memoire, plafonner la reponse et raccourcir le prompt
+  # aident, mais si la machine ne produit que 3 jetons par seconde, aucun
+  # reglage ne rendra l'assistant agreable -- il faut un modele plus petit.
+  local modele="${1:-$MODELE_DEFAUT}"
+  echo "[ia] Mesure sur « $modele »..."
+  echo "[ia] Deux passes : la premiere inclut le chargement du modele."
+
+  local passe reponse
+  for passe in 1 2; do
+    if ! reponse="$(curl -fsS --max-time 300 -X POST "http://$HOTE/api/chat"         -H 'Content-Type: application/json'         -d "{\"model\": \"$modele\", \"stream\": false, \"options\": {\"num_predict\": 120}, \"messages\": [{\"role\": \"user\", \"content\": \"Explique en trois phrases a quoi sert un devis.\"}]}" 2>&1)"; then
+      echo "[ia] ERREUR : le moteur n'a pas repondu. Verifiez : orion-ai.sh status" >&2
+      return 1
+    fi
+    if printf '%s' "$reponse" | grep -q '"error"'; then
+      echo "[ia] ERREUR : $(printf '%s' "$reponse" | tr ',' '
+' | grep '"error"' | cut -d'"' -f4)" >&2
+      return 1
+    fi
+
+    # Durees en nanosecondes dans la reponse d'Ollama.
+    local charge evalue genere jetons
+    charge="$(printf '%s' "$reponse" | tr ',' '
+' | grep '"load_duration"' | tr -dc '0-9')"
+    evalue="$(printf '%s' "$reponse" | tr ',' '
+' | grep '"prompt_eval_duration"' | tr -dc '0-9')"
+    genere="$(printf '%s' "$reponse" | tr ',' '
+' | grep '"eval_duration"' | grep -v prompt | tr -dc '0-9')"
+    jetons="$(printf '%s' "$reponse" | tr ',' '
+' | grep '"eval_count"' | tr -dc '0-9')"
+
+    printf '[ia] passe %s : chargement %s s, lecture du prompt %s s, generation %s s
+'       "$passe"       "$(awk "BEGIN{printf \"%.1f\", ${charge:-0}/1000000000}")"       "$(awk "BEGIN{printf \"%.1f\", ${evalue:-0}/1000000000}")"       "$(awk "BEGIN{printf \"%.1f\", ${genere:-0}/1000000000}")"
+
+    if [ "$passe" = '2' ] && [ -n "${genere:-}" ] && [ -n "${jetons:-}" ]        && [ "${genere:-0}" -gt 0 ]; then
+      local debit
+      debit="$(awk "BEGIN{printf \"%.1f\", $jetons/($genere/1000000000)}")"
+      echo ""
+      echo "[ia] Debit : $debit jetons/seconde."
+      # Reperes : en dessous de 8 jetons/s, une reponse de 300 jetons demande
+      # plus de 35 secondes -- le flux la rend lisible, mais l'attente reste.
+      awk -v d="$debit" 'BEGIN{
+        if (d >= 20) print "[ia] Confortable : les reponses arrivent sans attente notable.";
+        else if (d >= 8) print "[ia] Acceptable avec le flux active : les premiers mots arrivent vite,
+[ia] la fin defile. Rien a changer.";
+        else print "[ia] LENT. Aucun reglage ne compensera ce debit. Essayez un modele
+[ia] plus petit : orion-ai.sh pull qwen2.5:1.5b-instruct
+[ia] puis selectionnez-le dans Parametres IA.";
+      }'
+    fi
+  done
+
+  echo ""
+  echo "[ia] Si le chargement de la passe 1 depasse 2 s, augmentez"
+  echo "[ia] « Garder le modele en memoire » dans Parametres IA : c'est la cause"
+  echo "[ia] la plus courante d'une reponse isolee tres lente."
+}
+
 cmd_stop()  { exiger_root; systemctl stop ollama;  echo "[ia] Moteur arrêté."; }
 cmd_start() { exiger_root; systemctl start ollama; echo "[ia] Moteur démarré."; }
 
@@ -231,6 +295,7 @@ case "${1:-}" in
   models)  shift; cmd_models "$@" ;;
   pull)    shift; cmd_pull "$@" ;;
   test)    shift; cmd_test "$@" ;;
+  bench)   shift; cmd_bench "$@" ;;
   stop)    shift; cmd_stop "$@" ;;
   start)   shift; cmd_start "$@" ;;
   -h|--help|'') usage 0 ;;

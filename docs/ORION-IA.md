@@ -141,6 +141,74 @@ puis redémarrez `orion-backend`. Le reste se règle dans **Super Admin →
 IA — Paramètres** : nom, modèle, outils autorisés, journalisation, rédaction
 des secrets.
 
+## Temps de réponse
+
+Sur un petit modèle en CPU — le cas de l'appliance — le temps d'une réponse se
+décompose en trois parts. Chacune a son remède, et « c'est lent » ne dit pas
+laquelle est en cause :
+
+| Part | Ce qui la fait grossir | Le réglage |
+|---|---|---|
+| Chargement du modèle | une période calme : Ollama le décharge | **Garder le modèle en mémoire** |
+| Lecture du prompt | la longueur de la conversation | **Historique transmis** |
+| Génération | la longueur de la réponse | **Longueur maximale de la réponse** |
+
+Les trois durées sont **mesurées à chaque échange** et affichées sous la
+réponse, par exemple :
+
+```
+4,2 s — lecture 0,8 s, 23 jetons/s
+```
+
+Le réglage se fait donc sur des chiffres. Les trois réglages sont dans
+`Paramètres IA`.
+
+### La réponse apparaît au fur et à mesure
+
+Elle s'écrit mot à mot plutôt que d'apparaître d'un bloc à la fin. Le temps
+total est le même : ce qui change est l'attente **avant de voir quelque
+chose** — une à deux secondes au lieu de vingt ou trente. Pendant ces trente
+secondes de silence, rien ne distinguait un assistant qui réfléchit d'un
+assistant en panne.
+
+Si un intermédiaire réseau empêche le flux de passer, l'interface retombe
+automatiquement sur la réponse d'un bloc : l'assistant reste utilisable.
+
+### Un gaspillage corrigé
+
+La question était envoyée **deux fois** au modèle à chaque échange : une fois
+dans l'historique (elle y est enregistrée avant la construction du prompt) et
+une fois en fin de liste. Des jetons de prompt payés pour rien à chaque
+message, et un modèle qui voyait la demande répétée.
+
+### Mesurer la machine, pas seulement les réglages
+
+Aucun réglage ne compense un débit insuffisant. Pour le connaître :
+
+```bash
+qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-ai.sh bench
+```
+
+Deux passes — la première inclut le chargement — puis un verdict :
+
+| Débit mesuré | Ce que cela donne |
+|---|---|
+| 20 jetons/s et plus | confortable, aucune attente notable |
+| 8 à 20 jetons/s | acceptable : les premiers mots arrivent vite, la fin défile |
+| moins de 8 jetons/s | trop lent. Prenez un modèle plus petit |
+
+Pour un modèle plus petit :
+
+```bash
+qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-ai.sh pull qwen2.5:1.5b-instruct
+```
+
+puis sélectionnez-le dans `Paramètres IA`. Un modèle de 1,5 milliard de
+paramètres répond environ deux fois plus vite qu'un 3 milliards, au prix de
+réponses un peu plus sommaires — acceptable pour guider dans une interface,
+puisque les faits viennent de l'ERP et non du modèle (voir « Pourquoi Orion
+n'invente pas de page »).
+
 ## Diagnostic
 
 **« Le moteur local ne répond pas ».** Ollama est arrêté ou absent :

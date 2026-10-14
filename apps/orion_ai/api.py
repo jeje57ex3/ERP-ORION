@@ -1,3 +1,6 @@
+import json
+
+from django.http import StreamingHttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -11,7 +14,11 @@ from apps.orion_ai.serializers import (
     OrionAIConversationSerializer,
     OrionAIProposedActionSerializer,
 )
-from apps.orion_ai.services import send_ai_message, get_request_company
+from apps.orion_ai.services import (
+    envoyer_message_en_flux,
+    get_request_company,
+    send_ai_message,
+)
 
 
 @api_view(['POST'])
@@ -36,6 +43,55 @@ def ai_chat_api(request):
         return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as exc:
         return Response({'error': f'Erreur IA : {exc}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_chat_stream_api(request):
+    """Même échange, rendu au fur et à mesure.
+
+    Le temps total ne change pas : ce qui change est le temps avant le premier
+    mot. Sans flux, l'utilisateur attendait la réponse entière sans rien voir
+    bouger — et sans pouvoir distinguer un assistant qui réfléchit d'un
+    assistant en panne.
+
+    Format : NDJSON, un objet JSON par ligne. Choisi plutôt que Server-Sent
+    Events parce qu'il traverse sans encombre un proxy qui ne connaît pas
+    text/event-stream, et se lit avec le même `fetch` que le reste de cette
+    interface — nginx et le tunnel Cloudflare sont tous deux sur le chemin.
+    """
+    serializer = OrionAIChatRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    def lignes():
+        try:
+            for evenement in envoyer_message_en_flux(
+                request=request,
+                prompt=data['prompt'],
+                conversation_id=data.get('conversation_id'),
+                context_module=data.get('context_module', ''),
+                brand_key=data.get('brand_key', ''),
+            ):
+                yield json.dumps(evenement, ensure_ascii=False) + '\n'
+        except (PermissionError, ValueError, RuntimeError) as exc:
+            # Le code HTTP est deja parti (200) des le premier octet : une
+            # erreur survenue en cours de flux ne peut plus etre signalee
+            # autrement que DANS le flux. Sans cette ligne, l'interface
+            # resterait sur une reponse tronquee sans explication.
+            yield json.dumps({'erreur': str(exc)}, ensure_ascii=False) + '\n'
+        except Exception as exc:  # noqa: BLE001
+            yield json.dumps(
+                {'erreur': f'Erreur IA : {exc}'}, ensure_ascii=False) + '\n'
+
+    reponse = StreamingHttpResponse(
+        lignes(), content_type='application/x-ndjson; charset=utf-8')
+    # Sans cet en-tete, nginx tamponne la reponse et la delivre d'un bloc :
+    # le flux fonctionnerait cote Django et l'utilisateur ne verrait toujours
+    # rien avant la fin, c'est-a-dire exactement le defaut qu'on corrige.
+    reponse['X-Accel-Buffering'] = 'no'
+    reponse['Cache-Control'] = 'no-cache'
+    return reponse
 
 
 @api_view(['GET'])
