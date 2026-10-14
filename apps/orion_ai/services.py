@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.orion_ai.knowledge import contexte_pour_question
 from apps.orion_ai.memory import get_memory_context
 from apps.orion_ai.models import (
     OrionAIAuditLog,
@@ -58,6 +59,15 @@ def build_messages_for_provider(conversation, ai_settings, user_message, company
     )
     if memory_context:
         system_prompt += '\n\n' + memory_context
+
+    # Faits vérifiés, cherchés AVANT l'appel au modèle plutôt que laissés à
+    # son initiative. Les appels d'outils décidés par le modèle sont peu
+    # fiables sur un petit modèle local : il oublie de s'en servir, ou invente
+    # les arguments. La recherche déterministe, elle, aboutit toujours — et
+    # les adresses qu'elle fournit sortent du résolveur d'URL, donc existent.
+    grounding = contexte_pour_question(user_message)
+    if grounding:
+        system_prompt += '\n\n' + grounding
 
     messages = [{'role': 'system', 'content': system_prompt}]
 
@@ -138,13 +148,30 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
         brand_key=brand_key,
     )
 
-    provider = get_ai_provider(ai_settings.default_provider)
-
-    response = provider.generate(
-        messages=messages,
-        model=ai_settings.default_model,
-        temperature=ai_settings.temperature,
+    # Le verrou de l'entreprise est transmis au fabricant de fournisseur :
+    # c'est lui qui refuse, parce que tout appel passe par la. Le verifier
+    # ici seulement laisserait d'autres chemins d'appel le contourner.
+    provider = get_ai_provider(
+        ai_settings.default_provider,
+        local_only=ai_settings.local_only,
     )
+
+    try:
+        response = provider.generate(
+            messages=messages,
+            model=ai_settings.default_model,
+            temperature=ai_settings.temperature,
+        )
+    except AIProviderError as exc:
+        # Le moteur local absent est LE cas d'echec courant, et « connexion
+        # impossible » ne dit pas quoi faire. On nomme le remede.
+        if ai_settings.default_provider == 'local':
+            raise RuntimeError(
+                f"{exc} Le moteur local ne répond pas. Sur l'appliance : "
+                '/opt/orion/scripts/orion-ai.sh status, puis '
+                '/opt/orion/scripts/orion-ai.sh install si besoin.'
+            ) from exc
+        raise
 
     assistant_content = redact_sensitive_text(response['content'])
 
