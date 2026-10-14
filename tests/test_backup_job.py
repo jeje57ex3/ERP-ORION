@@ -57,7 +57,8 @@ class TestBackupJobModel(TestCase):
 
     def test_file_size_display_mb(self):
         job = BackupJob(file_size=5 * 1024 * 1024)
-        self.assertIn('MB', job.file_size_display)
+        # L'interface est en francais : « Mo », et non « MB ».
+        self.assertIn('Mo', job.file_size_display)
 
     def test_status_color_success(self):
         job = BackupJob(status='success')
@@ -69,7 +70,10 @@ class TestBackupJobModel(TestCase):
 
     def test_status_color_running(self):
         job = BackupJob(status='running')
-        self.assertEqual(job.status_color, 'warning')
+        # « running » est bleu (primary) ; « warning » est la couleur de
+        # « cancelled ». Les confondre afficherait une execution en cours
+        # comme un incident.
+        self.assertEqual(job.status_color, 'primary')
 
     def test_status_icon_success(self):
         job = BackupJob(status='success')
@@ -77,7 +81,8 @@ class TestBackupJobModel(TestCase):
 
     def test_duration_display_none(self):
         job = BackupJob(duration_seconds=None)
-        self.assertEqual(job.duration_display, '-')
+        # Tiret cadratin, comme partout dans l'ERP pour « non renseigne ».
+        self.assertEqual(job.duration_display, '—')
 
     def test_duration_display_seconds(self):
         job = BackupJob(duration_seconds=45)

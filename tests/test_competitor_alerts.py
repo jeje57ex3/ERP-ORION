@@ -77,7 +77,10 @@ class TestCompetitorAlertModel(TestCase):
 
     def test_severity_color_critical(self):
         alert = CompetitorAlert(severity='critical')
-        self.assertEqual(alert.severity_color, 'danger')
+        # « high » porte deja « danger » (rouge) : « critical » doit s'en
+        # distinguer visuellement, sinon les deux niveaux ne hierarchisent
+        # rien a l'ecran.
+        self.assertEqual(alert.severity_color, 'dark')
 
     def test_severity_icon_exists(self):
         for severity in ['low', 'medium', 'high', 'critical']:
@@ -142,10 +145,11 @@ class TestAlertService(TestCase):
 
     def test_create_price_drop_alert(self):
         from apps.competitor_intelligence.services.alert_service import create_price_drop_alert
+        # La fonction derive l'entreprise et le concurrent DU PRODUIT :
+        # on ne peut donc pas lui passer une entreprise incoherente avec
+        # le produit, ce qui etait possible avec l'ancienne signature.
         alert = create_price_drop_alert(
-            company=self.company,
-            competitor=self.competitor,
-            product=self.product,
+            self.product,
             old_price=Decimal('100.00'),
             new_price=Decimal('75.00'),
         )
@@ -155,9 +159,7 @@ class TestAlertService(TestCase):
     def test_create_price_increase_alert(self):
         from apps.competitor_intelligence.services.alert_service import create_price_increase_alert
         alert = create_price_increase_alert(
-            company=self.company,
-            competitor=self.competitor,
-            product=self.product,
+            self.product,
             old_price=Decimal('75.00'),
             new_price=Decimal('100.00'),
         )
@@ -166,21 +168,18 @@ class TestAlertService(TestCase):
 
     def test_create_new_product_alert(self):
         from apps.competitor_intelligence.services.alert_service import create_new_product_alert
-        alert = create_new_product_alert(
-            company=self.company,
-            competitor=self.competitor,
-            product=self.product,
-        )
+        alert = create_new_product_alert(self.competitor, self.product)
         self.assertIsNotNone(alert.pk)
         self.assertEqual(alert.alert_type, 'new_product')
 
     def test_create_promotion_alert(self):
         from apps.competitor_intelligence.services.alert_service import create_promotion_alert
-        alert = create_promotion_alert(
-            company=self.company,
-            competitor=self.competitor,
-            product=self.product,
-            discount_percent=Decimal('30.00'),
-        )
+        # La remise n'est plus un argument : elle est lue sur le produit,
+        # seule source exacte. La passer a part permettait d'annoncer une
+        # remise differente de celle enregistree.
+        self.product.discount_percent = Decimal('30.00')
+        self.product.save()
+        alert = create_promotion_alert(self.product)
         self.assertIsNotNone(alert.pk)
-        self.assertEqual(alert.alert_type, 'promotion')
+        # Le type declare par le service est « new_promotion ».
+        self.assertEqual(alert.alert_type, 'new_promotion')

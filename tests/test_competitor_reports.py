@@ -39,10 +39,17 @@ class TestExcelReportGeneration(TestCase):
 
     def test_generate_excel_report_returns_bytes(self):
         from apps.competitor_intelligence.services.report_service import generate_competitor_excel_report
+        # Les rapports portent sur une SELECTION de concurrents, pas sur
+        # tous ceux de l'entreprise : l'ecran laisse cocher lesquels.
+        # D'ou le second argument, que ces tests omettaient.
         try:
-            result = generate_competitor_excel_report(self.company)
-            self.assertIsInstance(result, bytes)
-            self.assertGreater(len(result), 0)
+            result = generate_competitor_excel_report(
+                self.company, [self.competitor.id])
+            # Un tampon, et non des octets : c'est ce que les vues et les
+            # taches passent directement a la reponse HTTP.
+            octets = result.getvalue()
+            self.assertIsInstance(octets, bytes)
+            self.assertGreater(len(octets), 0)
         except ImportError:
             self.skipTest('openpyxl non installe')
 
@@ -57,8 +64,9 @@ class TestExcelReportGeneration(TestCase):
             currency='EUR',
         )
         try:
-            result = generate_competitor_excel_report(self.company)
-            self.assertIsInstance(result, bytes)
+            result = generate_competitor_excel_report(
+                self.company, [self.competitor.id])
+            self.assertGreater(len(result.getvalue()), 0)
         except ImportError:
             self.skipTest('openpyxl non installe')
 
@@ -74,8 +82,9 @@ class TestExcelReportGeneration(TestCase):
             created_by=self.user,
         )
         try:
-            result = generate_competitor_excel_report(self.company)
-            self.assertIsInstance(result, bytes)
+            result = generate_competitor_excel_report(
+                self.company, [self.competitor.id])
+            self.assertGreater(len(result.getvalue()), 0)
         except ImportError:
             self.skipTest('openpyxl non installe')
 
@@ -85,8 +94,9 @@ class TestExcelReportGeneration(TestCase):
             name='Empty Report SA', slug='empty-report-sa', status='active', is_active=True
         )
         try:
-            result = generate_competitor_excel_report(empty_company)
-            self.assertIsInstance(result, bytes)
+            result = generate_competitor_excel_report(empty_company, [])
+            # Sans concurrent, le classeur doit rester un fichier valide.
+            self.assertGreater(len(result.getvalue()), 0)
         except ImportError:
             self.skipTest('openpyxl non installe')
 
@@ -110,17 +120,22 @@ class TestPdfReportGeneration(TestCase):
     def test_generate_pdf_report_returns_bytes(self):
         from apps.competitor_intelligence.services.report_service import generate_competitor_pdf_report
         try:
-            result = generate_competitor_pdf_report(self.company)
-            self.assertIsInstance(result, bytes)
-            self.assertGreater(len(result), 0)
+            result = generate_competitor_pdf_report(
+                self.company, [self.competitor.id])
+            octets = result.getvalue()
+            self.assertIsInstance(octets, bytes)
+            self.assertGreater(len(octets), 0)
         except ImportError:
             self.skipTest('reportlab non installe')
 
     def test_pdf_starts_with_pdf_header(self):
         from apps.competitor_intelligence.services.report_service import generate_competitor_pdf_report
         try:
-            result = generate_competitor_pdf_report(self.company)
-            self.assertTrue(result.startswith(b'%PDF'), 'Le PDF doit commencer par %PDF')
+            result = generate_competitor_pdf_report(
+                self.company, [self.competitor.id])
+            self.assertTrue(
+                result.getvalue().startswith(b'%PDF'),
+                'Le PDF doit commencer par %PDF')
         except ImportError:
             self.skipTest('reportlab non installe')
 
@@ -143,7 +158,10 @@ class TestMarketPositionReport(TestCase):
     def test_market_position_report_structure(self):
         from apps.competitor_intelligence.services.report_service import generate_market_position_report
         result = generate_market_position_report(self.company)
-        expected_keys = ['company', 'competitors_count', 'generated_at']
+        expected_keys = [
+            'competitors_count', 'products_tracked', 'avg_market_price',
+            'ranking',
+        ]
         for key in expected_keys:
             self.assertIn(key, result, f"Cle '{key}' manquante dans le rapport")
 

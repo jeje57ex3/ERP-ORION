@@ -55,27 +55,67 @@ class TestDomainUniqueness(TestCase):
     """Vérifie qu'un domaine ne peut pas être utilisé par deux entreprises."""
 
     def test_same_domain_two_companies_rejected(self):
-        """Un domaine identique sur deux entreprises différentes doit être rejeté."""
-        from apps.websites.forms_domains import clean_domain_input, DomainCreateForm
-        from django.core.exceptions import ValidationError
+        """Un domaine deja utilise par une entreprise est refuse a une autre.
 
-        with patch('apps.websites.models.WebsiteDomain.objects') as mock_qs:
-            mock_qs.filter.return_value.exists.return_value = True
+        Ce test ne verifiait rien : il posait des simulations de
+        « WebsiteDomain.objects » et se terminait sur un commentaire disant
+        que la propriete etait « testee indirectement ». Il plantait au
+        passage, Django refusant de filtrer sur un MagicMock d'entreprise.
 
-            company = MagicMock(pk=2)
-            form = DomainCreateForm(company=company, data={
-                'domain': 'monsite.fr',
-                'domain_type': 'root',
-                'target_type': 'website',
-                'force_https': True,
-                'redirect_www': False,
-            })
-            # Le formulaire doit être invalide si le domaine existe déjà
-            # (même si appartient à une autre company)
-            # Note: DomainCreateForm.clean() vérifie WebsiteDomain.objects.filter(domain=...).exists()
-            # Donc ce test valide que la contrainte globale est bien vérifiée
-            mock_qs.filter.return_value = MagicMock(exists=lambda: True)
-            # Form invalidity is checked via clean() — testée indirectement
+        Reecrit sur de vraies lignes, il eprouve la propriete annoncee : un
+        domaine est unique dans TOUT Orion ERP, et non par entreprise. C'est
+        necessaire -- deux entreprises revendiquant le meme nom d'hote
+        rendraient la resolution ambigue, et la premiere requete entrante
+        trancherait au hasard.
+        """
+        from apps.core.models import Company
+        from apps.websites.forms_domains import DomainCreateForm
+        from apps.websites.models import Website, WebsiteDomain
+
+        premiere = Company.objects.create(name='Premiere SA', slug='premiere-sa')
+        seconde = Company.objects.create(name='Seconde SA', slug='seconde-sa')
+
+        site_premiere = Website.objects.create(
+            company=premiere, name='Site Premiere')
+        WebsiteDomain.objects.create(
+            domain='monsite.fr', website=site_premiere, company=premiere)
+
+        site_seconde = Website.objects.create(
+            company=seconde, name='Site Seconde')
+        form = DomainCreateForm(company=seconde, data={
+            'domain': 'monsite.fr',
+            'website': site_seconde.pk,
+            'domain_type': 'root',
+            'target_type': 'website',
+            'force_https': True,
+            'redirect_www': False,
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('monsite.fr', str(form.errors))
+
+    def test_domaine_libre_est_accepte(self):
+        """Contre-epreuve : sans collision, le formulaire doit passer.
+
+        Sans elle, le test precedent passerait aussi si le formulaire
+        refusait TOUT domaine.
+        """
+        from apps.core.models import Company
+        from apps.websites.forms_domains import DomainCreateForm
+        from apps.websites.models import Website
+
+        entreprise = Company.objects.create(name='Libre SA', slug='libre-sa')
+        site = Website.objects.create(company=entreprise, name='Site Libre')
+
+        form = DomainCreateForm(company=entreprise, data={
+            'domain': 'encore-libre.fr',
+            'website': site.pk,
+            'domain_type': 'root',
+            'target_type': 'website',
+            'force_https': True,
+            'redirect_www': False,
+        })
+        self.assertTrue(form.is_valid(), form.errors)
 
 
 class TestDomainViewAuthRequired(TestCase):

@@ -5,8 +5,19 @@ Service principal de gestion des concurrents.
 
 
 def create_competitor(company, name, website_url='', industry='', country='France', description='', created_by=None):
-    from apps.competitor_intelligence.models import Competitor
-    return Competitor.objects.create(
+    """Cree un concurrent, et son site principal si une URL est fournie.
+
+    Le site n'etait pas cree : un concurrent enregistre avec son adresse se
+    retrouvait sans aucun site a surveiller, donc jamais scanne. Rien ne le
+    signalait a l'ecran -- la fiche existait, la veille ne se declenchait
+    simplement pas. Or fournir l'adresse, c'est precisement demander qu'elle
+    soit suivie.
+
+    Idempotent par construction : un site identique n'est pas duplique.
+    """
+    from apps.competitor_intelligence.models import Competitor, CompetitorSite
+
+    competitor = Competitor.objects.create(
         company=company,
         name=name,
         website_url=website_url,
@@ -15,6 +26,15 @@ def create_competitor(company, name, website_url='', industry='', country='Franc
         description=description,
         created_by=created_by,
     )
+
+    if website_url:
+        CompetitorSite.objects.get_or_create(
+            competitor=competitor,
+            site_url=website_url,
+            defaults={'site_type': 'main_site'},
+        )
+
+    return competitor
 
 
 def get_competitor_summary(competitor):

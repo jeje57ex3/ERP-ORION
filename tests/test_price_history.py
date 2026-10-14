@@ -72,11 +72,12 @@ class TestPriceHistoryModel(TestCase):
 
     def test_update_price_history_via_service(self):
         from apps.competitor_intelligence.services.price_tracker import update_price_history
+        # L'entreprise se deduit du produit, et la devise vit sur le produit :
+        # les passer a part permettait d'enregistrer un historique attribue a
+        # une autre entreprise que celle du produit.
         update_price_history(
-            company=self.company,
-            product=self.product,
-            new_price=Decimal('85.00'),
-            currency='EUR',
+            self.product,
+            Decimal('85.00'),
             availability='in_stock',
         )
         latest = CompetitorPriceHistory.objects.filter(competitor_product=self.product).order_by('-checked_at').first()
@@ -84,30 +85,37 @@ class TestPriceHistoryModel(TestCase):
 
     def test_detect_price_change_decrease(self):
         from apps.competitor_intelligence.services.price_tracker import detect_price_change
-        self._add_history(Decimal('100.00'), days_ago=1)
-        changed, direction, pct = detect_price_change(self.product, Decimal('80.00'))
-        self.assertTrue(changed)
-        self.assertIn(direction, ['decrease', 'down', 'baisse'])
+        # La fonction compare au prix COURANT du produit (100,00), et non a
+        # son historique ; elle renvoie desormais l'alerte creee, ou None.
+        alerte = detect_price_change(self.product, Decimal('80.00'))
+        self.assertIsNotNone(alerte)
+        self.assertEqual(alerte.alert_type, 'price_drop')
 
     def test_detect_price_change_increase(self):
         from apps.competitor_intelligence.services.price_tracker import detect_price_change
-        self._add_history(Decimal('80.00'), days_ago=1)
-        changed, direction, pct = detect_price_change(self.product, Decimal('100.00'))
-        self.assertTrue(changed)
-        self.assertIn(direction, ['increase', 'up', 'hausse'])
+        self.product.price = Decimal('80.00')
+        self.product.save()
+        alerte = detect_price_change(self.product, Decimal('100.00'))
+        self.assertIsNotNone(alerte)
+        self.assertEqual(alerte.alert_type, 'price_increase')
 
     def test_detect_no_price_change(self):
         from apps.competitor_intelligence.services.price_tracker import detect_price_change
-        self._add_history(Decimal('100.00'), days_ago=1)
-        changed, direction, pct = detect_price_change(self.product, Decimal('100.00'))
-        self.assertFalse(changed)
+        # Prix inchange : aucune alerte, donc None. C'est la propriete utile --
+        # alerter sur un prix identique noierait les vraies variations.
+        self.assertIsNone(detect_price_change(self.product, Decimal('100.00')))
 
     def test_calculate_price_index(self):
         from apps.competitor_intelligence.services.price_tracker import calculate_price_index
         self._add_history(Decimal('100.00'))
-        index = calculate_price_index(self.company, Decimal('90.00'))
-        self.assertIsNotNone(index)
-        self.assertIsInstance(index, (int, float, Decimal))
+        # Le second argument est une CATEGORIE, pas un prix : le passer en
+        # Decimal filtrait sur « 90.00 » et ne trouvait rien. Et le retour est
+        # un dictionnaire de metriques, pas un nombre.
+        index = calculate_price_index(self.company)
+        self.assertIsInstance(index, dict)
+        self.assertIn('competitor_avg', index)
+        self.assertIn('products_tracked', index)
+        self.assertEqual(index['products_tracked'], 1)
 
     def test_multiple_products_price_history(self):
         product2 = CompetitorProduct.objects.create(

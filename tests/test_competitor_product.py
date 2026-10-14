@@ -111,14 +111,18 @@ class TestAddProductManually(TestCase):
 
     def test_add_product_manually_via_service(self):
         from apps.competitor_intelligence.services.product_tracker import add_competitor_product_manually
+        # Les champs du produit passent par un dictionnaire, celui que le
+        # formulaire produit (form.cleaned_data) -- et non par des arguments
+        # nommes. « site » et « created_by » n'y figurent pas : ni le
+        # formulaire ni le service ne les proposent sur ce chemin.
         p = add_competitor_product_manually(
-            company=self.company,
-            competitor=self.competitor,
-            site=self.site,
-            name='Manuel Widget',
-            price=Decimal('199.00'),
-            currency='EUR',
-            created_by=self.user,
+            self.company,
+            self.competitor,
+            {
+                'name': 'Manuel Widget',
+                'price': Decimal('199.00'),
+                'currency': 'EUR',
+            },
         )
         self.assertIsNotNone(p.pk)
         self.assertEqual(p.name, 'Manuel Widget')
@@ -127,13 +131,13 @@ class TestAddProductManually(TestCase):
         from apps.competitor_intelligence.services.product_tracker import add_competitor_product_manually
         from apps.competitor_intelligence.models import CompetitorPriceHistory
         p = add_competitor_product_manually(
-            company=self.company,
-            competitor=self.competitor,
-            site=self.site,
-            name='History Widget',
-            price=Decimal('299.00'),
-            currency='EUR',
-            created_by=self.user,
+            self.company,
+            self.competitor,
+            {
+                'name': 'History Widget',
+                'price': Decimal('299.00'),
+                'currency': 'EUR',
+            },
         )
         history = CompetitorPriceHistory.objects.filter(competitor_product=p)
         self.assertGreaterEqual(history.count(), 1)

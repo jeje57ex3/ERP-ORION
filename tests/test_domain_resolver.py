@@ -41,7 +41,6 @@ class TestResolveDomain(TestCase):
         assert result is None
 
     @patch('apps.websites.services.domain_resolver.cache')
-    @patch('apps.websites.services.domain_resolver.WebsiteDomain' if False else 'apps.websites.services.domain_resolver.cache')
     def test_cache_hit_none_sentinel(self, mock_cache):
         mock_cache.get.return_value = '__none__'
         result = resolve_domain('nonexistent.fr')
@@ -80,10 +79,11 @@ class TestGetCompanyForDomain(TestCase):
 
     def test_returns_company_when_found(self):
         mock_domain = MagicMock()
-        mock_domain.website.company = MagicMock(name='Mon Entreprise')
         with patch('apps.websites.services.domain_resolver.resolve_domain', return_value=mock_domain):
             result = get_company_for_domain('monsite.fr')
-            assert result == mock_domain.website.company
+            # L'entreprise est portee par le DOMAINE, pas par le site : un
+            # domaine peut etre rattache a une entreprise sans site.
+            assert result == mock_domain.company
 
 
 class TestGetTargetForDomain(TestCase):

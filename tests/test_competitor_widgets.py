@@ -23,8 +23,8 @@ class TestAvailableWidgets(TestCase):
     def test_all_expected_widgets_present(self):
         expected = [
             'price_index', 'traffic_estimate', 'product_gap',
-            'competitor_alerts', 'market_position', 'multi_site_comparison',
-            'top_products', 'price_change',
+            'competitor_alerts', 'market_position', 'multi_site',
+            'top_products', 'price_changes',
         ]
         for key in expected:
             self.assertIn(key, AVAILABLE_WIDGETS, f"Widget '{key}' manquant dans AVAILABLE_WIDGETS")
@@ -47,10 +47,12 @@ class TestPriceIndexWidget(TestCase):
 
     def test_price_index_widget_render(self):
         from apps.competitor_intelligence.widgets import PriceIndexWidget
-        widget = PriceIndexWidget(company=self.company)
         request = self.factory.get('/')
         request.user = self.user
-        context = widget.get_context(request)
+        # La requete se passe au constructeur : le widget la retient, et
+        # get_context() n'en prend plus d'argument.
+        widget = PriceIndexWidget(company=self.company, request=request)
+        context = widget.get_context()
         self.assertIsNotNone(context)
 
     def test_price_index_widget_has_title(self):
@@ -77,10 +79,12 @@ class TestTrafficEstimateWidget(TestCase):
 
     def test_traffic_estimate_widget_render(self):
         from apps.competitor_intelligence.widgets import TrafficEstimateWidget
-        widget = TrafficEstimateWidget(company=self.company)
         request = self.factory.get('/')
         request.user = self.user
-        context = widget.get_context(request)
+        # La requete se passe au constructeur : le widget la retient, et
+        # get_context() n'en prend plus d'argument.
+        widget = TrafficEstimateWidget(company=self.company, request=request)
+        context = widget.get_context()
         self.assertIsNotNone(context)
 
 
@@ -103,10 +107,12 @@ class TestCompetitorAlertsWidget(TestCase):
 
     def test_alerts_widget_empty(self):
         from apps.competitor_intelligence.widgets import CompetitorAlertsWidget
-        widget = CompetitorAlertsWidget(company=self.company)
         request = self.factory.get('/')
         request.user = self.user
-        context = widget.get_context(request)
+        # La requete se passe au constructeur : le widget la retient, et
+        # get_context() n'en prend plus d'argument.
+        widget = CompetitorAlertsWidget(company=self.company, request=request)
+        context = widget.get_context()
         self.assertIn('alerts', context)
 
     def test_alerts_widget_with_data(self):
@@ -119,10 +125,12 @@ class TestCompetitorAlertsWidget(TestCase):
             message='Test',
             severity='high',
         )
-        widget = CompetitorAlertsWidget(company=self.company)
         request = self.factory.get('/')
         request.user = self.user
-        context = widget.get_context(request)
+        # La requete se passe au constructeur : le widget la retient, et
+        # get_context() n'en prend plus d'argument.
+        widget = CompetitorAlertsWidget(company=self.company, request=request)
+        context = widget.get_context()
         self.assertGreaterEqual(len(context['alerts']), 1)
 
 
@@ -139,8 +147,10 @@ class TestMarketPositionWidget(TestCase):
 
     def test_market_position_widget_render(self):
         from apps.competitor_intelligence.widgets import MarketPositionWidget
-        widget = MarketPositionWidget(company=self.company)
         request = self.factory.get('/')
         request.user = self.user
-        context = widget.get_context(request)
+        # La requete se passe au constructeur : le widget la retient, et
+        # get_context() n'en prend plus d'argument.
+        widget = MarketPositionWidget(company=self.company, request=request)
+        context = widget.get_context()
         self.assertIn('market_data', context)

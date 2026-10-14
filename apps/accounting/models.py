@@ -216,9 +216,18 @@ class JournalEntry(models.Model):
                 entry=rev, account=line.account, label=line.label,
                 debit=line.credit, credit=line.debit,
             )
-        self.status = 'reversed'
-        self.reversed_entry = rev
-        self.save()
+        # Un « update » de queryset, et non self.save() : clean() interdit toute
+        # modification d'une ecriture validee, et c'est voulu -- une ecriture
+        # comptable validee est immuable. Mais self.save() passait par cette
+        # garde, qui refusait donc l'extourne elle-meme : la seule facon
+        # legitime de corriger une ecriture validee etait impossible.
+        #
+        # validate() emploie deja ce motif, pour la meme raison. Un update ne
+        # passe ni par save() ni par full_clean().
+        JournalEntry.objects.filter(pk=self.pk).update(
+            status='reversed', reversed_entry=rev,
+        )
+        self.refresh_from_db()
         return rev
 
 

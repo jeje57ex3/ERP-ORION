@@ -14,10 +14,27 @@ class TestCompanyHasModule(TestCase):
         self.assertTrue(user_can_access_module(user, None, 'crm'))
         self.assertTrue(user_can_access_module(user, None, 'btp'))
 
-    def test_no_company_returns_true(self):
-        """Sans entreprise, pas de filtre — retourne True."""
+    def test_no_company_refuse_tout_module(self):
+        """Sans entreprise, aucun module n'est accessible.
+
+        Ce test attendait l'inverse — « pas d'entreprise, pas de filtre,
+        retourne True » — et ce fichier contenait donc deux intentions
+        contradictoires : celle-ci ouvrait tout, tandis que
+        test_non_superuser_no_super_admin exigeait que le menu Super Admin
+        reste masque.
+
+        Trois raisons de trancher pour le refus :
+
+          - « module_access.company_has_module », qui alimente les
+            decorateurs d'acces, repond deja False dans ce cas. Deux reponses
+            opposees a la meme question, c'etait le vrai defaut ;
+          - sans entreprise, aucune donnee metier ne peut etre cloisonnee :
+            ouvrir n'a pas de sens dans un ERP multi-entreprises ;
+          - ouvrir faisait proposer au menu tous les modules, y compris ceux
+            que l'exploitant n'a pas souscrits.
+        """
         from apps.private_saas.permissions import company_has_module
-        self.assertTrue(company_has_module(None, 'crm'))
+        self.assertFalse(company_has_module(None, 'crm'))
 
     def test_unauthenticated_denied(self):
         """Un utilisateur non authentifié est refusé."""
@@ -27,21 +44,45 @@ class TestCompanyHasModule(TestCase):
 
     def test_enabled_module_allowed(self):
         """Un module activé est accessible."""
+        from apps.core.models import Company
+        from apps.private_saas.models import CompanyModule
         from apps.private_saas.permissions import company_has_module
-        company = MagicMock(pk=1)
-        with patch('apps.private_saas.permissions.CompanyModule') as mock_cm:
-            mock_cm.objects.filter.return_value.exists.return_value = True
-            result = company_has_module(company, 'crm')
-            self.assertTrue(result)
+
+        # De vraies lignes, et non un gestionnaire simulé : la propriété à
+        # éprouver est que seul un module « is_enabled » passe, et une
+        # simulation la rendrait vraie par construction.
+        company = Company.objects.create(name='Modules SA', slug='modules-sa')
+        CompanyModule.objects.create(
+            company=company, module_code='crm', module_name='CRM',
+            is_enabled=True,
+        )
+        self.assertTrue(company_has_module(company, 'crm'))
 
     def test_disabled_module_blocked(self):
         """Un module désactivé n'est pas accessible."""
+        from apps.core.models import Company
+        from apps.private_saas.models import CompanyModule
         from apps.private_saas.permissions import company_has_module
-        company = MagicMock(pk=1)
-        with patch('apps.private_saas.permissions.CompanyModule') as mock_cm:
-            mock_cm.objects.filter.return_value.exists.return_value = False
-            result = company_has_module(company, 'btp')
-            self.assertFalse(result)
+
+        company = Company.objects.create(name='Modules SA', slug='modules-sa')
+        CompanyModule.objects.create(
+            company=company, module_code='btp', module_name='BTP',
+            is_enabled=False,
+        )
+        self.assertFalse(company_has_module(company, 'btp'))
+
+    def test_module_jamais_declare_est_refuse(self):
+        """Un module absent de la table n'est pas accessible non plus.
+
+        Distinct du cas « désactivé » : l'absence de ligne et une ligne à
+        faux doivent donner le même refus, sans quoi activer un module
+        reviendrait à oublier de le déclarer.
+        """
+        from apps.core.models import Company
+        from apps.private_saas.permissions import company_has_module
+
+        company = Company.objects.create(name='Vide SA', slug='vide-sa')
+        self.assertFalse(company_has_module(company, 'ecommerce'))
 
 
 class TestFilterNavModules(TestCase):

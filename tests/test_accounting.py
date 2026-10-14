@@ -116,7 +116,7 @@ class TestInvoicePaymentRobustness(TestCase):
 
         customer = Customer.objects.create(
             company=self.company, name='Client Test',
-            customer_type='company', status='active',
+            customer_type='company',
         )
         return Invoice.objects.create(
             company=self.company, customer=customer,
