@@ -70,6 +70,31 @@ oubli.
 
 Un raccourci **Photo** est proposé par appui long sur l'icône, sur Android.
 
+### Plein écran partout, barre d'adresse comprise
+
+L'application couvre **tout l'ERP** : *Interface complète* s'affiche en
+plein écran, sans la barre d'adresse du navigateur. Elle s'ouvre toujours
+sur l'accueil téléphone.
+
+Deux portées distinctes rendent cela possible sans contrepartie :
+
+| Portée | Étendue | Ce qu'elle décide |
+|---|---|---|
+| Manifeste | tout le site | le plein écran |
+| Agent de service | `/m/` seulement | ce qui est gardé en cache |
+
+Les pages de l'ERP restent donc **toujours servies par le réseau** : leurs
+chiffres changent à chaque instant, et les servir depuis un cache
+afficherait des données périmées sans le dire.
+
+À savoir : sans barre d'adresse, il n'y a plus de recours par l'URL si une
+page échoue. La barre d'action basse de l'ERP et le bouton retour du
+téléphone restent les voies de sortie.
+
+**Après cette mise à jour, désinstallez puis réinstallez l'application.** Un
+changement de portée du manifeste n'est pas toujours repris par une
+application déjà posée sur l'écran d'accueil.
+
 ### Ce qui fonctionne sans réseau
 
 La coquille de l'application s'ouvre, et une page explique la situation.
@@ -82,15 +107,18 @@ mal faite perd des photos **en silence**, ce qui est pire que de ne pas en
 avoir. C'est l'étape suivante naturelle, et elle mérite d'être faite
 correctement.
 
-Les pages de l'ERP complet, elles, restent servies par le réseau : leurs
-chiffres changent à chaque instant, et les servir depuis un cache
-afficherait des données périmées sans le dire.
-
 ### L'installation exige HTTPS
 
 Les navigateurs refusent d'installer une application servie en HTTP nu. Sur
 un domaine Cloudflare la condition est remplie ; en accès par adresse IP
 locale, la page reste utilisable mais ne s'installe pas.
+
+### Un seul bouton de menu
+
+Sur téléphone, le bouton de menu du haut est masqué : la barre d'action
+basse de l'ERP porte déjà le sien, et les deux ouvraient le même tiroir.
+Au-delà de 768 px il réapparaît, étant alors le seul contrôle et servant à
+replier la barre latérale.
 
 ## Cloisonnement
 
