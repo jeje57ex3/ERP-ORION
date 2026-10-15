@@ -12,6 +12,9 @@
   </div>
   {% if action == 'edit' %}
   <div class="orion-page-actions">
+    <a href="{% url 'sales:quote_template_editor' modele.pk %}" class="orion-btn primary">
+      <i class="bi bi-bounding-box me-1"></i>Placer les cadres
+    </a>
     <a href="{% url 'sales:quote_template_grid' modele.pk %}" class="orion-btn" target="_blank">
       <i class="bi bi-grid-3x3 me-1"></i>Grille de calage
     </a>
@@ -43,6 +46,13 @@
   {% if action == 'edit' %}
   <div class="orion-card mb-4">
     <h2 style="font-size:16px;margin:0 0 6px">Valeurs à écrire sur le PDF</h2>
+    <p style="color:var(--orion-text-muted);font-size:13px">
+      <strong>Le plus simple est de passer par
+      <a href="{% url 'sales:quote_template_editor' modele.pk %}">Placer les
+      cadres</a></strong> : on y pose les cadres sur la page, et la conversion
+      est faite pour vous. Ce tableau reste utile pour un réglage au point
+      près, ou pour relire ce qui a été placé.
+    </p>
     <p style="color:var(--orion-text-muted);font-size:13px">
       Les positions sont en points PDF, comptées depuis le <strong>bas</strong>
       de la page — comme le format lui-même les compte. Ouvrez la

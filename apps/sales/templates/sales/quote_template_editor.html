@@ -1,0 +1,143 @@
+{% extends "erp_base.html" %}
+{% load static %}
+
+{% block title %}Placer les cadres — {{ modele.name }}{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'sales:quote_template_list' %}">Modèles de devis</a> ›
+      <a href="{% url 'sales:quote_template_edit' modele.pk %}">{{ modele.name }}</a>
+    </p>
+    <h1 class="orion-page-title">Placer les cadres</h1>
+  </div>
+  <div class="orion-page-actions">
+    <span id="etat-enregistrement" class="etat"></span>
+    <a href="{% url 'sales:quote_template_preview' modele.pk %}" class="orion-btn" target="_blank">
+      <i class="bi bi-eye me-1"></i>Aperçu
+    </a>
+    <button type="button" class="orion-btn primary" id="bouton-enregistrer">
+      <i class="bi bi-check-lg me-1"></i>Enregistrer les cadres
+    </button>
+  </div>
+</div>
+
+{% if not pages %}
+<div class="orion-card">
+  <p style="margin:0;color:var(--orion-danger)">
+    Impossible de lire ce PDF. Déposez un fichier valide depuis
+    <a href="{% url 'sales:quote_template_edit' modele.pk %}">la fiche du modèle</a>.
+  </p>
+</div>
+{% else %}
+
+<div id="editeur-cadres"
+     data-echelle="{{ echelle }}"
+     data-csrf="{{ csrf_token }}"
+     data-url-enregistrer="{% url 'sales:quote_template_save_frames' modele.pk %}"
+     data-url-image="{{ url_image }}"
+     data-pages="{{ pages_json }}"
+     data-valeurs="{{ valeurs_json }}"
+     data-cadres="{{ cadres_json }}"
+     class="editeur-devis">
+
+  <aside class="editeur-colonne">
+    <div class="orion-card">
+      <h2 class="editeur-titre">Valeurs</h2>
+      <p class="aide">Cliquez pour poser un cadre sur la page.</p>
+      <div id="palette-valeurs" class="palette">
+        {% for valeur in valeurs %}
+        <button type="button" class="orion-btn sm palette-bouton" data-cle="{{ valeur.cle }}">
+          {{ valeur.libelle }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <h2 class="editeur-titre">Cadre sélectionné</h2>
+      <div id="inspecteur"></div>
+    </div>
+
+    <div class="orion-card">
+      <h2 class="editeur-titre">Raccourcis</h2>
+      <ul class="aide" style="padding-left:18px;margin:0">
+        <li>Flèches : déplacer d'un point</li>
+        <li>Maj + flèches : dix points</li>
+        <li>Suppr : retirer le cadre</li>
+        <li>Coin bas-droit : redimensionner</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="editeur-page">
+    {% if pages|length > 1 %}
+    <div class="orion-card" style="margin-bottom:12px">
+      <label for="choix-page">Page</label>
+      <select id="choix-page" class="form-select" style="max-width:160px;display:inline-block">
+        {% for page in pages %}
+        <option value="{{ page.numero }}">Page {{ page.numero }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div id="zone-page" class="zone-page">
+      {% comment %} L'image est rendue cote serveur a une echelle CONNUE : la
+         conversion pixels -> points est donc exacte, et non approchee comme
+         elle le serait sur un PDF affiche par le navigateur a un zoom qu'on
+         ne maitrise pas. {% endcomment %}
+      <img id="image-page" alt="Page du modèle"
+           src="{% url 'sales:quote_template_page_image' modele.pk 1 %}">
+    </div>
+  </main>
+</div>
+
+<style>
+  .editeur-devis { display:flex; gap:18px; align-items:flex-start }
+  .editeur-colonne { width:290px; flex:0 0 290px; display:flex; flex-direction:column; gap:12px }
+  .editeur-page { flex:1; min-width:0; overflow:auto }
+  .editeur-titre { font-size:14px; margin:0 0 8px; font-weight:600 }
+  .palette { display:flex; flex-wrap:wrap; gap:6px }
+  .palette-bouton { font-size:12px }
+  .aide { font-size:12px; color:var(--orion-text-muted) }
+
+  .zone-page { position:relative; display:inline-block; line-height:0;
+               box-shadow:0 2px 12px rgba(0,0,0,.25); touch-action:none }
+  .zone-page img { display:block; max-width:none }
+
+  .cadre { position:absolute; box-sizing:border-box;
+           border:1.5px dashed rgba(201,162,77,.9);
+           background:rgba(201,162,77,.14); cursor:move }
+  .cadre.actif { border-style:solid; border-color:#c9a24d;
+                 background:rgba(201,162,77,.26);
+                 box-shadow:0 0 0 2px rgba(201,162,77,.35) }
+  .cadre-libelle { position:absolute; top:-17px; left:-1px; font-size:10px;
+                   line-height:16px; padding:0 5px; white-space:nowrap;
+                   background:#c9a24d; color:#1a1208; border-radius:3px 3px 0 0 }
+  .cadre-poignee { position:absolute; right:-5px; bottom:-5px; width:11px;
+                   height:11px; background:#c9a24d; border:1px solid #1a1208;
+                   border-radius:2px; cursor:nwse-resize }
+
+  #inspecteur label { display:block; font-size:12px; margin-bottom:8px }
+  #inspecteur input[type=number], #inspecteur input[type=text],
+  #inspecteur select { width:100%; font-size:13px; padding:4px 6px }
+  #inspecteur input[type=checkbox] { width:auto; margin-right:6px }
+  .inspecteur-titre { font-weight:600; font-size:13px; margin-bottom:10px;
+                      color:var(--orion-accent) }
+
+  .etat { font-size:12px; margin-right:10px; color:var(--orion-text-muted) }
+  .etat.en-attente { color:#c9a24d }
+  .etat.ok { color:var(--orion-success, #4caf50) }
+  .etat.erreur { color:var(--orion-danger, #e05252) }
+
+  @media (max-width: 1100px) {
+    .editeur-devis { flex-direction:column }
+    .editeur-colonne { width:100%; flex:1 1 auto }
+  }
+</style>
+
+<script src="{% static 'js/orion-cadres-devis.js' %}"></script>
+{% endif %}
+{% endblock %}

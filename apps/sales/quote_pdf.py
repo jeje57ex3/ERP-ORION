@@ -151,6 +151,34 @@ def _texte_du_champ(champ, valeurs):
     return f'{champ.prefixe}{valeur}{champ.suffixe}'
 
 
+def _police(champ):
+    return 'Helvetica-Bold' if champ.gras else 'Helvetica'
+
+
+def _taille_qui_tient(feuille, champ, texte):
+    """La plus grande taille qui tient dans la largeur du cadre.
+
+    Un nom de client long dépassait du cadre et chevauchait ce qui se trouve à
+    côté — sur un devis, la colonne voisine. Réduire est préférable à
+    déborder : le texte reste lisible et reste chez lui.
+
+    La réduction s'arrête à 5 points. En dessous, le texte serait illisible et
+    mieux vaut un débordement visible qu'une ligne qu'on ne peut pas lire :
+    l'exploitant doit pouvoir constater que son cadre est trop petit.
+    """
+    largeur_cadre = float(champ.largeur or 0)
+    taille = int(champ.taille or 10)
+    if largeur_cadre <= 0:
+        return taille
+
+    police = _police(champ)
+    while taille > 5:
+        if feuille.stringWidth(texte, police, taille) <= largeur_cadre:
+            return taille
+        taille -= 1
+    return taille
+
+
 def _page_de_texte(champs, valeurs, largeur, hauteur):
     """Une page transparente ne portant que le texte à superposer."""
     from reportlab.pdfgen import canvas
@@ -163,17 +191,30 @@ def _page_de_texte(champs, valeurs, largeur, hauteur):
         if not texte:
             continue
 
-        police = 'Helvetica-Bold' if champ.gras else 'Helvetica'
-        feuille.setFont(police, champ.taille)
+        taille = _taille_qui_tient(feuille, champ, texte)
+        feuille.setFont(_police(champ), taille)
 
-        x = float(champ.x)
-        y = float(champ.y)
-        if champ.alignement == 'right':
-            feuille.drawRightString(x, y, texte)
-        elif champ.alignement == 'center':
-            feuille.drawCentredString(x, y, texte)
+        gauche = float(champ.x)
+        bas = float(champ.y)
+        largeur_cadre = float(champ.largeur or 0)
+        hauteur_cadre = float(champ.hauteur or 0)
+
+        # La ligne de base, et non le bord du cadre : poser le texte sur « bas »
+        # le ferait reposer sur le bord inferieur, jambages compris, et il
+        # paraitrait decale vers le bas par rapport au cadre dessine a l'ecran.
+        # On le centre verticalement, en tenant compte de la descente.
+        if hauteur_cadre > 0:
+            ligne_de_base = bas + (hauteur_cadre - taille) / 2 + taille * 0.22
         else:
-            feuille.drawString(x, y, texte)
+            ligne_de_base = bas
+
+        if champ.alignement == 'right':
+            feuille.drawRightString(gauche + largeur_cadre, ligne_de_base, texte)
+        elif champ.alignement == 'center':
+            feuille.drawCentredString(
+                gauche + largeur_cadre / 2, ligne_de_base, texte)
+        else:
+            feuille.drawString(gauche, ligne_de_base, texte)
 
     feuille.save()
     tampon.seek(0)
@@ -378,3 +419,83 @@ def devis_exemple(company):
         total_ttc=Decimal('14880.00'),
     )
     return quote
+
+
+# ─── Rendu d'une page en image, pour l'éditeur visuel ────────────────────────
+
+ECHELLE_EDITEUR = 2.0
+"""Pixels par point PDF dans l'éditeur.
+
+2.0 donne 144 dpi : net à l'écran, et une page A4 tient en ~1191x1684 pixels,
+soit une trentaine de kilo-octets en PNG. Un rapport entier simplifie aussi la
+conversion que fait l'éditeur — et une conversion simple est une conversion
+qu'on peut vérifier de tête.
+"""
+
+
+def rendre_page_en_png(template, numero_page=1, echelle=ECHELLE_EDITEUR):
+    """Une page du modèle, en PNG, pour servir de fond à l'éditeur.
+
+    Rendu côté serveur plutôt que par un visionneur JavaScript embarqué :
+    pypdfium2 est une roue pure, sans dépendance système, donc installable sur
+    une appliance hors ligne — là où embarquer pdf.js ajouterait un mégaoctet
+    de JavaScript à maintenir. Et l'échelle est connue exactement, ce qui rend
+    la conversion pixels → points exacte plutôt qu'approchée.
+    """
+    import pypdfium2 as pdfium
+
+    octets = _octets_du_modele(template)
+    try:
+        document = pdfium.PdfDocument(io.BytesIO(octets))
+    except Exception as exc:
+        # pypdfium2 leve PdfiumError, pas ModeleDevisError : sans cette
+        # traduction, un fichier corrompu faisait repondre 500 a l'ecran de
+        # placement au lieu de dire ce qui n'allait pas.
+        raise ModeleDevisError(
+            'Le modèle « %s » n’est pas un PDF lisible (%s).'
+            % (template.name, exc)
+        ) from exc
+    try:
+        if numero_page < 1 or numero_page > len(document):
+            raise ModeleDevisError(
+                'Le modèle « %s » n’a pas de page %s.'
+                % (template.name, numero_page)
+            )
+        page = document[numero_page - 1]
+        image = page.render(scale=echelle).to_pil()
+        sortie = io.BytesIO()
+        image.save(sortie, format='PNG')
+        sortie.seek(0)
+        return sortie, float(page.get_width()), float(page.get_height())
+    finally:
+        document.close()
+
+
+def dimensions_des_pages(template):
+    """Largeur et hauteur de chaque page, en points.
+
+    L'éditeur en a besoin pour convertir : il travaille en pixels depuis le
+    HAUT, le PDF compte en points depuis le BAS.
+    """
+    import pypdfium2 as pdfium
+
+    # Toute defaillance rend une liste VIDE, et l'ecran l'interprete comme
+    # « ce PDF n'est pas lisible » -- un fichier corrompu ne doit pas faire
+    # echouer la page, mais le dire.
+    try:
+        octets = _octets_du_modele(template)
+        document = pdfium.PdfDocument(io.BytesIO(octets))
+    except Exception:
+        return []
+
+    try:
+        return [
+            {
+                'numero': index + 1,
+                'largeur': float(document[index].get_width()),
+                'hauteur': float(document[index].get_height()),
+            }
+            for index in range(len(document))
+        ]
+    finally:
+        document.close()

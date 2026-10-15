@@ -62,9 +62,9 @@
           {% if not detail.modele.is_active %}<span class="orion-badge neutral">Inactif</span>{% endif %}
         </td>
         <td style="white-space:nowrap">
-          <a href="{% url 'sales:quote_template_grid' detail.modele.pk %}"
-             class="orion-btn sm" target="_blank" title="Quadrillage coté pour relever les coordonnées">
-            <i class="bi bi-grid-3x3"></i> Grille
+          <a href="{% url 'sales:quote_template_editor' detail.modele.pk %}"
+             class="orion-btn sm primary" title="Poser les cadres sur la page">
+            <i class="bi bi-bounding-box"></i> Cadres
           </a>
           <a href="{% url 'sales:quote_template_preview' detail.modele.pk %}"
              class="orion-btn sm" target="_blank" title="Rempli avec des valeurs d'exemple">
