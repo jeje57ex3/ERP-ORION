@@ -9,7 +9,7 @@
   <div class="orion-orion-card-body p-0">
     <div class="table-responsive">
       <table class="orion-table erp-table mb-0">
-        <thead><tr><th>{% trans 'Utilisateur' %}</th><th>{% trans 'Rôle' %}</th><th>{% trans 'Email' %}</th><th>{% trans 'Statut' %}</th><th></th></tr></thead>
+        <thead><tr><th>{% trans 'Utilisateur' %}</th><th>{% trans 'Rôle' %}</th><th>{% trans 'Email' %}</th><th>{% trans 'Salarié' %}</th><th>{% trans 'Statut' %}</th><th></th></tr></thead>
         <tbody>
           {% for u in users %}
           <tr>
@@ -26,6 +26,20 @@
             </td>
             <td><span class="status-badge status-primary">{{ u.profile.get_role_display }}</span></td>
             <td>{{ u.email }}</td>
+            {# Rendre le rattachement visible ici : c'est la seule page ou l'on
+               voit les comptes ensemble, donc le seul endroit ou un oubli de
+               liaison se remarque avant qu'il ne gene quelqu'un. #}
+            <td>
+              {% with employee=u.employee_profile %}{% if employee %}
+                <span class="small">{{ employee.full_name }}</span>
+              {% elif u.profile.without_employee_record %}
+                <span class="small text-muted">{% trans 'Sans fiche salarié' %}</span>
+              {% elif u.is_superuser or u.is_staff or u.profile.role in 'superadmin,admin' %}
+                <span class="small text-muted">—</span>
+              {% else %}
+                <span class="status-badge status-warning">{% trans 'À rattacher' %}</span>
+              {% endif %}{% endwith %}
+            </td>
             <td>
               {% if u.is_active %}<span class="status-badge status-success">{% trans 'Actif' %}</span>
               {% else %}<span class="status-badge status-danger">{% trans 'Inactif' %}</span>{% endif %}
@@ -33,7 +47,7 @@
             <td><a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-xs btn-outline-primary">{% trans 'Voir' %}</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-center py-4 text-muted">{% trans 'Aucun utilisateur' %}</td></tr>
+          <tr><td colspan="6" class="text-center py-4 text-muted">{% trans 'Aucun utilisateur' %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

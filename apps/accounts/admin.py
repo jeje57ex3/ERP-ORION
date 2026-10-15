@@ -9,7 +9,7 @@ class UserProfileInline(admin.StackedInline):
     extra = 0
     filter_horizontal = ['companies']
     fieldsets = (
-        ('Profil', {'fields': ('role', 'phone', 'mobile', 'job_title', 'department', 'avatar', 'bio')}),
+        ('Profil', {'fields': ('role', 'without_employee_record', 'phone', 'mobile', 'job_title', 'department', 'avatar', 'bio')}),
         ('Entreprises', {'fields': ('companies', 'current_company')}),
         ('Préférences', {'fields': ('language', 'timezone', 'items_per_page', 'email_notifications')}),
     )
@@ -21,13 +21,23 @@ class UserModulePermissionInline(admin.TabularInline):
 
 
 def get_employee_link(obj):
-    """Colonne salarié lié dans l'admin utilisateur."""
+    """Colonne salarié lié dans l'admin utilisateur.
+
+    Le point d'alerte ne doit apparaître que pour un rattachement OUBLIÉ :
+    un compte déclaré sans fiche salarié est un état normal, et le signaler
+    apprendrait à ignorer le signal.
+    """
     try:
         emp = obj.employee_profile
         return f'{emp.full_name} (#{emp.pk})'
     except Exception:
         if obj.is_superuser or obj.is_staff:
             return '— admin —'
+        from apps.accounts.services.user_employee_link_service import (
+            is_user_exempt_from_employee_link,
+        )
+        if is_user_exempt_from_employee_link(obj):
+            return '— sans fiche salarié —'
         return '⚠ Aucun salarié'
 get_employee_link.short_description = 'Salarié lié'
 

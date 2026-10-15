@@ -4,9 +4,17 @@ Service de liaison utilisateur ↔ salarié.
 
 Règles :
 - superuser, is_staff, rôle superadmin/admin → exemptés (pas besoin de fiche salarié)
+- profil marqué « compte sans fiche salarié » → exempté lui aussi
 - tous les autres utilisateurs internes → doivent avoir une fiche Employee liée
 - un Employee ne peut être lié qu'à un seul User (OneToOne côté Employee)
 - un User ne peut être lié qu'à un seul Employee
+
+Tous les comptes ne sont pas des salariés : un prestataire, un
+expert-comptable externe, un compte de service ont besoin d'accéder à l'ERP
+sans figurer au registre du personnel. Le profil porte donc une case
+`without_employee_record` qui distingue ce choix délibéré d'un OUBLI de
+rattachement -- distinction que perdrait une simple suppression de la
+validation.
 """
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -28,11 +36,13 @@ def is_user_exempt_from_employee_link(user):
     if getattr(user, 'is_staff', False):
         return True
     try:
-        if user.profile.role in EXEMPT_ROLES:
-            return True
+        profil = user.profile
     except Exception:
-        pass
-    return False
+        return False
+    # Case cochee a la creation du compte : l'absence de fiche est voulue.
+    if getattr(profil, 'without_employee_record', False):
+        return True
+    return profil.role in EXEMPT_ROLES
 
 
 def user_requires_employee(user):
@@ -106,6 +116,18 @@ def link_user_to_employee(user, employee):
         employee.last_name = user.last_name
 
     employee.save()
+
+    # Le compte a désormais une fiche : la déclaration « sans fiche salarié »
+    # devient fausse. La laisser exempterait définitivement ce compte des
+    # contrôles de rattachement, alors qu'il est rattaché.
+    try:
+        profil = user.profile
+    except Exception:
+        profil = None
+    if profil is not None and profil.without_employee_record:
+        profil.without_employee_record = False
+        profil.save(update_fields=['without_employee_record'])
+
     return employee
 
 

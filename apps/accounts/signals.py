@@ -62,6 +62,30 @@ def on_user_login_failed(sender, credentials, request, **kwargs):
     logger.warning("Connexion echouee: '%s' depuis %s", username, _get_ip(request))
 
 
+@receiver(post_save, sender='hr.Employee')
+def clear_without_employee_flag(sender, instance, **kwargs):
+    """Un compte qui reçoit une fiche salarié n'est plus « sans fiche ».
+
+    Le formulaire RH rattache un compte en écrivant directement
+    Employee.user, sans passer par link_user_to_employee : sans ce signal, la
+    case restée cochée exempterait définitivement des contrôles un compte
+    pourtant rattaché.
+    """
+    if not instance.user_id:
+        return
+    try:
+        profil = instance.user.profile
+    except Exception:
+        return
+    if profil.without_employee_record:
+        profil.without_employee_record = False
+        profil.save(update_fields=['without_employee_record'])
+        logger.info(
+            "Compte %s rattache a un salarie : marque 'sans fiche salarie' retiree",
+            instance.user.username,
+        )
+
+
 @receiver(post_save, sender=User)
 def auto_create_employee_for_non_admin(sender, instance, created, **kwargs):
     """
