@@ -16,4 +16,10 @@ urlpatterns = [
     path('raccourcis/<int:pk>/supprimer/', views.ShortcutDeleteView.as_view(), name='shortcut_delete'),
     path('sauvegarder-disposition/', views.SaveDashboardLayoutView.as_view(), name='save_layout'),
     path('reinitialiser/', views.ResetDashboardView.as_view(), name='reset'),
+    # Application PC : l'installeur est depose sur le serveur, pas versionne
+    # (180 Mo). Le nom du fichier passe dans l'adresse, mais n'est JAMAIS
+    # joint au chemin du repertoire -- il est compare aux fichiers presents.
+    path('version-pc/', views.version_pc, name='version_pc'),
+    path('version-pc/telecharger/<str:nom>/', views.version_pc_telecharger,
+         name='version_pc_telecharger'),
 ]

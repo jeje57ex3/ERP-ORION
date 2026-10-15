@@ -2,10 +2,11 @@
 apps/dashboard/views.py — Vues du dashboard personnalisable Orion ERP
 """
 import json
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import TemplateView
 
@@ -280,3 +281,55 @@ class ResetDashboardView(LoginRequiredMixin, View):
         reset_user_dashboard(request.user, request.current_company)
         messages.success(request, 'Votre dashboard a été réinitialisé.')
         return redirect('dashboard:home')
+
+
+# ─── Application PC ──────────────────────────────────────────────────────────
+
+@login_required
+def version_pc(request):
+    """Propose l'installeur de l'application de bureau.
+
+    L'installeur pèse environ 180 Mo : il n'est pas versionné et ne voyage pas
+    avec le code. Il est déposé sur le serveur, et cette page le propose —
+    ou dit clairement qu'il n'y est pas, plutôt que d'offrir un lien mort.
+    """
+    from apps.dashboard.version_pc import installeurs_disponibles, repertoire
+
+    installeurs = installeurs_disponibles()
+    return render(request, 'dashboard/version_pc.html', {
+        'page_title': 'Version PC',
+        'installeurs': installeurs,
+        # Montré quand il n'y a rien : sans le chemin exact, « déposez le
+        # fichier sur le serveur » n'est pas une instruction exécutable.
+        'repertoire': str(repertoire()),
+    })
+
+
+@login_required
+def version_pc_telecharger(request, nom):
+    """Sert un installeur déposé sur le serveur.
+
+    `FileResponse` diffuse par morceaux : charger 180 Mo en mémoire pour les
+    renvoyer serait déraisonnable. En revanche le transfert occupe un worker
+    gunicorn sur les trois de l'appliance — acceptable pour un installeur
+    récupéré une fois par poste, à savoir si plusieurs postes le prennent en
+    même temps.
+    """
+    from django.http import FileResponse, Http404
+
+    from apps.dashboard.version_pc import trouver_installeur
+
+    chemin = trouver_installeur(nom)
+    if chemin is None:
+        # Le nom demandé ne correspond à aucun fichier réellement présent. On
+        # ne dit pas lequel manque : la liste est sur la page.
+        raise Http404("Cet installeur n'est pas disponible sur ce serveur.")
+
+    reponse = FileResponse(
+        open(chemin, 'rb'),
+        as_attachment=True,
+        filename=chemin.name,
+        content_type='application/octet-stream',
+    )
+    reponse['Content-Length'] = chemin.stat().st_size
+    return reponse

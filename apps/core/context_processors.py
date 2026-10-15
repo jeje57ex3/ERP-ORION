@@ -82,6 +82,12 @@ NAV_MODULES = [
             # invisible.
             {'label': _('Version téléphone'), 'url_name': 'mobile_web:accueil',
              'icon_img': 'private_saas_dashboard.png', 'icon': 'ti-device-mobile'},
+            # A cote de la version telephone, pour la meme raison : ce module
+            # est dans always_show, donc l'entree reste visible de tous. Un
+            # employe qui veut l'application sur son poste n'a pas a passer
+            # par un administrateur.
+            {'label': _('Version PC'), 'url_name': 'dashboard:version_pc',
+             'icon_img': 'private_saas_dashboard.png', 'icon': 'ti-device-desktop'},
         ],
     },
     {

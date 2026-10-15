@@ -1,0 +1,86 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Version PC" %} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">{% trans "Mon dashboard" %}</p>
+    <h1 class="orion-page-title">{% trans "Version PC" %}</h1>
+  </div>
+</div>
+
+<div class="orion-card mb-4">
+  <p style="margin:0;color:var(--orion-text-muted)">
+    {% blocktrans %}L'application PC ouvre Orion ERP dans sa propre fenêtre, comme
+    une application installée : pas d'onglet de navigateur, pas de barre
+    d'adresse. Elle ne duplique rien — l'ERP et vos données restent sur le
+    serveur, et l'application s'y connecte.{% endblocktrans %}
+  </p>
+</div>
+
+{% if installeurs %}
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>{% trans "Installation" %}</th>
+        <th>{% trans "Fichier" %}</th>
+        <th>{% trans "Taille" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for installeur in installeurs %}
+      <tr>
+        <td>
+          <strong>{{ installeur.titre }}</strong>
+          {% if installeur.precision %}
+          {% comment %} La precision n'est pas decorative : confondre les deux
+             installeurs fait echouer l'installation sur un poste ou l'employe
+             n'est pas administrateur -- cas courant en entreprise. {% endcomment %}
+          <div style="font-size:12px;color:var(--orion-text-muted)">{{ installeur.precision }}</div>
+          {% endif %}
+        </td>
+        <td style="font-family:monospace;font-size:12px">{{ installeur.nom }}</td>
+        <td>{{ installeur.taille }}</td>
+        <td>
+          <a class="orion-btn primary"
+             href="{% url 'dashboard:version_pc_telecharger' installeur.nom %}">
+            <i class="bi bi-download me-1"></i>{% trans "Télécharger" %}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="orion-card mt-4">
+  <h2 style="font-size:15px;margin:0 0 8px">{% trans "Après l'installation" %}</h2>
+  <p style="margin:0;color:var(--orion-text-muted);font-size:13px">
+    {% blocktrans %}Au premier démarrage, l'application demande l'adresse de votre
+    serveur Orion — la même que celle de votre navigateur — puis vos
+    identifiants habituels.{% endblocktrans %}
+  </p>
+</div>
+
+{% else %}
+<div class="orion-card">
+  <h2 style="font-size:15px;margin:0 0 10px">
+    <i class="bi bi-info-circle me-1"></i>{% trans "Aucun installeur déposé sur ce serveur" %}
+  </h2>
+  <p style="color:var(--orion-text-muted);font-size:13px">
+    {% blocktrans %}L'installeur pèse environ 180 Mo : il n'est pas livré avec le
+    code et doit être déposé sur le serveur. Placez-le dans ce répertoire, il
+    apparaîtra ici aussitôt :{% endblocktrans %}
+  </p>
+  <pre style="background:var(--orion-surface-2);padding:12px;border-radius:8px;font-size:12px;overflow:auto;margin:0 0 12px">{{ repertoire }}</pre>
+  <p style="color:var(--orion-text-muted);font-size:13px;margin:0">
+    {% blocktrans %}Les fichiers reconnus portent l'extension .exe, .msi, .zip,
+    .dmg, .AppImage ou .deb. Le plus récent est proposé en premier.{% endblocktrans %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

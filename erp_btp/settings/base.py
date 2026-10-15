@@ -238,6 +238,12 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Ou l'installeur de l'application PC est attendu. Sous MEDIA_ROOT par defaut :
+# c'est le volume persistant de l'appliance (/opt/orion/uploads), donc un
+# emplacement qui survit aux mises a jour et qui est deja sauvegarde. Un
+# chemin hors de ce volume serait perdu au premier redeploiement.
+ORION_DESKTOP_DIR = config('ORION_DESKTOP_DIR', default='')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Crispy Forms ─────────────────────────────────────────────────────────────
