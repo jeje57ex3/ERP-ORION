@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.orion_ai.models import (
     OrionAIAuditLog,
@@ -77,6 +78,65 @@ def conversations_view(request):
         'conversations': conversations,
         'page_title': 'Conversations IA',
     })
+
+
+@login_required
+@require_POST
+def conversation_delete_view(request, pk):
+    """Supprime une conversation, definitivement.
+
+    `require_POST` n'est pas une formalite : en GET, un lien de suppression
+    est declenche par tout ce qui parcourt les pages -- prechargement du
+    navigateur, antivirus, indexeur -- et l'historique disparaitrait sans que
+    personne ait clique.
+    """
+    from apps.orion_ai.services import supprimer_conversation
+
+    try:
+        bilan = supprimer_conversation(request=request, conversation_id=pk)
+    except PermissionError as exc:
+        messages.error(request, str(exc))
+        return redirect('core:dashboard')
+    except OrionAIConversation.DoesNotExist:
+        # Volontairement le meme message que pour une conversation d'autrui :
+        # distinguer « inexistante » de « pas a vous » revelerait l'existence
+        # des conversations des autres.
+        messages.error(request, 'Conversation introuvable.')
+        return redirect('orion_ai:conversations')
+
+    texte = f'Conversation « {bilan["titre"]} » supprimée'
+    if bilan['messages']:
+        texte += f' ({bilan["messages"]} message(s))'
+    if bilan['actions_en_attente']:
+        texte += (
+            f' — {bilan["actions_en_attente"]} action(s) proposée(s) en '
+            'attente ont été abandonnées'
+        )
+    messages.success(request, texte + '.')
+    return redirect('orion_ai:conversations')
+
+
+@login_required
+@require_POST
+def conversations_clear_view(request):
+    """Efface tout l'historique IA de l'utilisateur courant."""
+    from apps.orion_ai.services import supprimer_toutes_les_conversations
+
+    try:
+        bilan = supprimer_toutes_les_conversations(request=request)
+    except PermissionError as exc:
+        messages.error(request, str(exc))
+        return redirect('core:dashboard')
+
+    if not bilan['conversations']:
+        messages.info(request, 'Aucune conversation à supprimer.')
+    else:
+        messages.success(
+            request,
+            f'{bilan["conversations"]} conversation(s) et '
+            f'{bilan["messages"]} message(s) supprimés.',
+        )
+    return redirect('orion_ai:conversations')
 
 
 @login_required

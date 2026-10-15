@@ -1,0 +1,110 @@
+{% extends "erp_base.html" %}
+
+{% block title %}{{ page_title }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'sales:quote_template_list' %}">Modèles de devis</a>
+    </p>
+    <h1 class="orion-page-title">{{ page_title }}</h1>
+  </div>
+  {% if action == 'edit' %}
+  <div class="orion-page-actions">
+    <a href="{% url 'sales:quote_template_grid' modele.pk %}" class="orion-btn" target="_blank">
+      <i class="bi bi-grid-3x3 me-1"></i>Grille de calage
+    </a>
+    <a href="{% url 'sales:quote_template_preview' modele.pk %}" class="orion-btn primary" target="_blank">
+      <i class="bi bi-eye me-1"></i>Aperçu
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="orion-card mb-4">
+    {% for field in form %}
+    <div class="mb-3">
+      <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}
+      <div style="font-size:12px;color:var(--orion-text-muted);margin-top:4px">{{ field.help_text }}</div>
+      {% endif %}
+      {% if field.errors %}
+      <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ field.errors|first }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if action == 'edit' %}
+  <div class="orion-card mb-4">
+    <h2 style="font-size:16px;margin:0 0 6px">Valeurs à écrire sur le PDF</h2>
+    <p style="color:var(--orion-text-muted);font-size:13px">
+      Les positions sont en points PDF, comptées depuis le <strong>bas</strong>
+      de la page — comme le format lui-même les compte. Ouvrez la
+      <a href="{% url 'sales:quote_template_grid' modele.pk %}" target="_blank">grille de calage</a> :
+      elle imprime ce repère sur votre modèle, il n'y a plus qu'à lire les deux
+      nombres à l'endroit voulu.
+      {% if pages %}Ce modèle a {{ pages }} page{{ pages|pluralize }}.{% endif %}
+    </p>
+
+    {% if champs_pdf %}
+    {% comment %} Un PDF prepare comme formulaire porte des champs nommes : les
+       montrer evite de faire chercher des coordonnees pour rien. {% endcomment %}
+    <div class="orion-card" style="background:var(--orion-surface-2);margin-bottom:14px">
+      <strong style="font-size:13px">Ce PDF contient des champs de formulaire :</strong>
+      <div style="font-size:12px;color:var(--orion-text-muted);margin-top:4px">
+        {{ champs_pdf|join:", " }}
+      </div>
+    </div>
+    {% endif %}
+
+    {{ formset.management_form }}
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>Valeur</th><th>Page</th><th>X</th><th>Y</th>
+          <th>Taille</th><th>Gras</th><th>Alignement</th>
+          <th>Avant</th><th>Après</th><th>Retirer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sous_formulaire in formset %}
+        <tr>
+          {% for champ_cache in sous_formulaire.hidden_fields %}{{ champ_cache }}{% endfor %}
+          <td>{{ sous_formulaire.cle }}</td>
+          <td style="width:70px">{{ sous_formulaire.page }}</td>
+          <td style="width:90px">{{ sous_formulaire.x }}</td>
+          <td style="width:90px">{{ sous_formulaire.y }}</td>
+          <td style="width:80px">{{ sous_formulaire.taille }}</td>
+          <td style="text-align:center">{{ sous_formulaire.gras }}</td>
+          <td style="width:110px">{{ sous_formulaire.alignement }}</td>
+          <td style="width:100px">{{ sous_formulaire.prefixe }}</td>
+          <td style="width:100px">{{ sous_formulaire.suffixe }}</td>
+          <td style="text-align:center">
+            {% if sous_formulaire.instance.pk %}{{ sous_formulaire.DELETE }}{% endif %}
+          </td>
+        </tr>
+        {% if sous_formulaire.errors %}
+        <tr><td colspan="10" style="color:var(--orion-danger);font-size:12px">
+          {% for erreurs in sous_formulaire.errors.values %}{{ erreurs|first }} {% endfor %}
+        </td></tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="orion-page-actions">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-check-lg me-1"></i>Enregistrer
+    </button>
+    <a href="{% url 'sales:quote_template_list' %}" class="orion-btn">Annuler</a>
+  </div>
+</form>
+{% endblock %}

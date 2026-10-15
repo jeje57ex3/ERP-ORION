@@ -16,6 +16,14 @@
     <a href="{% url 'orion_ai:assistant_dashboard' %}" class="orion-btn">
       <i class="bi bi-plus-lg me-1"></i>Nouvelle conversation
     </a>
+    <form method="post" action="{% url 'orion_ai:conversation_delete' conversation.id %}"
+          style="display:inline"
+          onsubmit="return confirm('Supprimer définitivement cette conversation et tous ses messages ?{% if pending_actions %} {{ pending_actions|length }} action(s) proposée(s) en attente seront abandonnées.{% endif %}')">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn danger">
+        <i class="bi bi-trash me-1"></i>Supprimer
+      </button>
+    </form>
   </div>
 </div>
 

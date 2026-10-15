@@ -412,6 +412,11 @@ class OrionAIAuditLog(models.Model):
         ('action_blocked', 'Action bloquée'),
         ('safety_block', 'Blocage sécurité'),
         ('settings_changed', 'Paramètres modifiés'),
+        # La suppression d'une conversation efface son contenu pour de bon.
+        # L'evenement garde la trace du GESTE -- qui, quand, combien de
+        # messages -- sans retenir ce qui a ete dit : conserver le contenu
+        # d'une conversation supprimee viderait la suppression de son sens.
+        ('conversation_deleted', 'Conversation supprimée'),
     ]
 
     company = models.ForeignKey(

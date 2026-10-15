@@ -278,3 +278,146 @@ class InvoiceLine(models.Model):
         self.total_ht = pu * self.quantity
         self.total_tva = self.total_ht * self.vat_rate / 100
         super().save(*args, **kwargs)
+
+
+# ─── Modèles de devis : un PDF fourni, des valeurs injectées ─────────────────
+
+class QuoteTemplate(models.Model):
+    """Un modèle de devis : le PDF de l'exploitant, et où écrire dessus.
+
+    La structure du devis — en-tête, logo, mise en page, conditions générales,
+    mentions légales — est fournie telle quelle, sous forme de PDF. Orion n'en
+    redessine rien : il écrit par-dessus les seules valeurs qui changent d'un
+    devis à l'autre (numéro de client, nom, date, montants).
+
+    C'est délibérément l'inverse d'un générateur de PDF. Redessiner la mise en
+    page supposerait de reproduire une charte graphique dans du code, de la
+    maintenir à chaque changement, et d'expliquer pourquoi le rendu diffère de
+    l'original. Superposer laisse le document tel que son auteur l'a voulu, au
+    pixel près.
+    """
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='quote_templates')
+
+    name = models.CharField('Nom du modèle', max_length=200)
+    description = models.TextField('Description', blank=True)
+
+    pdf = models.FileField(
+        'PDF du modèle',
+        upload_to='devis/modeles/',
+        help_text='Votre devis vierge, mis en page comme vous le souhaitez. '
+                  'Orion écrira les valeurs par-dessus, sans rien redessiner.',
+    )
+
+    is_active = models.BooleanField('Actif', default=True)
+
+    is_default = models.BooleanField(
+        'Modèle par défaut', default=False,
+        help_text='Utilisé quand aucun modèle n’est précisé.',
+    )
+
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='created_quote_templates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Modèle de devis'
+        verbose_name_plural = 'Modèles de devis'
+        ordering = ['-is_default', 'name']
+        constraints = [
+            # Deux modèles du même nom dans une entreprise rendraient le choix
+            # ambigu à l'écran comme dans les journaux.
+            models.UniqueConstraint(
+                fields=['company', 'name'],
+                name='devis_modele_nom_unique_par_entreprise',
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            # Un seul modèle par défaut : sans cette exclusion, « le » modèle
+            # par défaut dépendrait de l'ordre de tri, donc du hasard.
+            QuoteTemplate.objects.filter(
+                company=self.company, is_default=True,
+            ).exclude(pk=self.pk).update(is_default=False)
+
+
+class QuoteTemplateField(models.Model):
+    """Un emplacement sur le PDF, et la valeur à y écrire.
+
+    Les coordonnées sont en POINTS PDF depuis le coin bas-gauche de la page,
+    comme le format lui-même les compte. Ce n'est pas l'intuition d'un
+    utilisateur, qui mesure depuis le haut : d'où la grille de calage
+    téléchargeable (voir services.generer_grille_de_calage), qui imprime ce
+    repère sur le modèle pour qu'on y lise directement les valeurs.
+    """
+
+    CLES = [
+        ('numero_devis',   'Numéro du devis'),
+        ('date',           'Date du devis'),
+        ('validite',       'Date de validité'),
+        ('numero_client',  'Numéro de client'),
+        ('nom_client',     'Nom du client'),
+        ('contact_client', 'Nom et prénom du contact'),
+        ('adresse_client', 'Adresse du client'),
+        ('email_client',   'Email du client'),
+        ('telephone_client', 'Téléphone du client'),
+        ('objet',          'Objet du devis'),
+        ('total_ht',       'Total HT'),
+        ('total_tva',      'Total TVA'),
+        ('total_ttc',      'Total TTC'),
+        ('delai_paiement', 'Délai de paiement (jours)'),
+        ('commercial',     'Commercial'),
+    ]
+
+    ALIGNEMENTS = [
+        ('left',   'À gauche'),
+        ('right',  'À droite'),
+        ('center', 'Centré'),
+    ]
+
+    template = models.ForeignKey(
+        QuoteTemplate, on_delete=models.CASCADE, related_name='fields')
+
+    cle = models.CharField('Valeur à écrire', max_length=40, choices=CLES)
+
+    page = models.PositiveIntegerField(
+        'Page', default=1,
+        help_text='1 pour la première page.',
+    )
+
+    x = models.DecimalField(
+        'Position horizontale (pt)', max_digits=7, decimal_places=2)
+    y = models.DecimalField(
+        'Position verticale (pt)', max_digits=7, decimal_places=2,
+        help_text='Comptée depuis le BAS de la page, comme le format PDF.',
+    )
+
+    taille = models.PositiveIntegerField('Taille du texte (pt)', default=10)
+    gras = models.BooleanField('Gras', default=False)
+    alignement = models.CharField(
+        'Alignement', max_length=10, choices=ALIGNEMENTS, default='left')
+
+    prefixe = models.CharField(
+        'Texte avant', max_length=40, blank=True,
+        help_text='Exemple : « N° » ou « Client : ».',
+    )
+    suffixe = models.CharField(
+        'Texte après', max_length=40, blank=True,
+        help_text='Exemple : « € » ou « jours ».',
+    )
+
+    class Meta:
+        verbose_name = 'Champ de modèle de devis'
+        verbose_name_plural = 'Champs de modèle de devis'
+        ordering = ['page', '-y', 'x']
+
+    def __str__(self):
+        return f'{self.get_cle_display()} (p.{self.page})'

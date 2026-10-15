@@ -23,6 +23,7 @@ version imaginaire du logiciel.
 | Répartir sur plusieurs serveurs, un seul domaine | [HAUTE-DISPONIBILITE.md](HAUTE-DISPONIBILITE.md) |
 | Utiliser l'IA locale Orion | [ORION-IA.md](ORION-IA.md) |
 | Travailler depuis un téléphone | [VERSION-TELEPHONE.md](VERSION-TELEPHONE.md) |
+| Faire sortir les devis sur votre propre papier à en-tête | [MODELES-DE-DEVIS.md](MODELES-DE-DEVIS.md) |
 
 ## Ce qui compose l'application
 
