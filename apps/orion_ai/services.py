@@ -449,6 +449,115 @@ def envoyer_message_en_flux(*, request, prompt, conversation_id=None,
     }
 
 
+def supprimer_conversation(*, request, conversation_id):
+    """Supprime une conversation et tout ce qu'elle contient.
+
+    Suppression REELLE, et non un statut « supprimee » : une conversation avec
+    Orion porte des devis, des noms de clients, des montants. La garder
+    indefiniment en base, invisible mais intacte, ne serait pas une
+    suppression -- et c'est ce que le statut `deleted` du modele laissait
+    croire, alors que rien ne le posait jamais. Les messages, appels d'outils
+    et actions proposees partent en cascade.
+
+    Deux garde-fous, tous deux necessaires :
+
+      - l'entreprise ET l'utilisateur sont filtres. Filtrer la seule
+        entreprise laisserait un collegue supprimer les conversations d'un
+        autre en devinant un identifiant ; filtrer le seul utilisateur
+        laisserait passer un identifiant d'une autre entreprise ;
+      - une action PROPOSEE encore en attente est comptee et annoncee.
+        Supprimer la conversation qui l'a proposee l'abandonne, ce qui est
+        legitime -- mais doit etre dit, et non subi.
+
+    La trace d'audit garde le geste sans garder le contenu.
+    """
+    user = request.user
+    company = get_request_company(request)
+
+    if not can_use_ai(user):
+        raise PermissionError("Vous n'avez pas accès à l'assistant IA.")
+
+    conversation = (
+        OrionAIConversation.objects
+        .filter(id=conversation_id, company=company, user=user)
+        .first()
+    )
+    if conversation is None:
+        raise OrionAIConversation.DoesNotExist(
+            'Conversation introuvable, ou elle ne vous appartient pas.'
+        )
+
+    # Releve AVANT la suppression : apres, il n'y a plus rien a compter.
+    titre = conversation.title
+    nombre_messages = conversation.messages.count()
+    actions_en_attente = conversation.proposed_actions.filter(
+        status='pending').count()
+
+    with transaction.atomic():
+        conversation.delete()
+        audit_ai_event(
+            company=company,
+            user=user,
+            event_type='conversation_deleted',
+            title='Conversation supprimée',
+            description=titre[:220],
+            payload={
+                'conversation_id': conversation_id,
+                'messages': nombre_messages,
+                'actions_en_attente_abandonnees': actions_en_attente,
+            },
+            request=request,
+        )
+
+    return {
+        'titre': titre,
+        'messages': nombre_messages,
+        'actions_en_attente': actions_en_attente,
+    }
+
+
+def supprimer_toutes_les_conversations(*, request):
+    """Supprime toutes les conversations de CET utilisateur dans CETTE entreprise.
+
+    Volontairement limitee a ses propres conversations, meme pour un
+    administrateur : « effacer mon historique » est une demande courante,
+    « effacer celui de tout le monde » en est une autre, et la confondre avec
+    la premiere serait un accident irreversible.
+    """
+    user = request.user
+    company = get_request_company(request)
+
+    if not can_use_ai(user):
+        raise PermissionError("Vous n'avez pas accès à l'assistant IA.")
+
+    conversations = OrionAIConversation.objects.filter(
+        company=company, user=user)
+
+    nombre = conversations.count()
+    if not nombre:
+        return {'conversations': 0, 'messages': 0}
+
+    nombre_messages = OrionAIMessage.objects.filter(
+        conversation__in=conversations).count()
+
+    with transaction.atomic():
+        conversations.delete()
+        audit_ai_event(
+            company=company,
+            user=user,
+            event_type='conversation_deleted',
+            title='Historique IA effacé',
+            description=f'{nombre} conversation(s) supprimée(s).',
+            payload={
+                'conversations': nombre,
+                'messages': nombre_messages,
+            },
+            request=request,
+        )
+
+    return {'conversations': nombre, 'messages': nombre_messages}
+
+
 def propose_ai_action(*, conversation, title, description, action_code, arguments):
     action = OrionAIProposedAction.objects.create(
         conversation=conversation,

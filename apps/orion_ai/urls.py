@@ -10,6 +10,13 @@ urlpatterns = [
     path('erp/assistant/', views.assistant_dashboard, name='assistant_dashboard'),
     path('erp/assistant/conversations/', views.conversations_view, name='conversations'),
     path('erp/assistant/conversations/<int:pk>/', views.conversation_detail_view, name='conversation_detail'),
+    # Suppression : en POST uniquement, d'ou des adresses distinctes plutot
+    # qu'une methode sur l'adresse de detail -- un formulaire HTML ne sait
+    # emettre que GET ou POST.
+    path('erp/assistant/conversations/<int:pk>/supprimer/',
+         views.conversation_delete_view, name='conversation_delete'),
+    path('erp/assistant/conversations/tout-supprimer/',
+         views.conversations_clear_view, name='conversations_clear'),
     path('erp/assistant/memoire/', views.ai_memory_view, name='memory'),
     path('erp/assistant/parametres/', views.ai_user_settings_view, name='user_settings'),
 

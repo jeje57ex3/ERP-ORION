@@ -64,14 +64,22 @@ def quote_create(request):
     company = request.current_company
     if request.method == 'POST':
         form = QuoteForm(request.POST)
+        # Le client doit etre borne a l'entreprise A LA VALIDATION aussi, et
+        # pas seulement a l'affichage : sans cette ligne, un identifiant forge
+        # dans la requete designait le client d'une AUTRE entreprise, et le
+        # devis lui etait rattache. C'est la regle centrale de cet ERP.
+        form.fields['customer'].queryset = Customer.objects.filter(
+            company=company, is_active=True)
         if form.is_valid():
             quote = form.save(commit=False)
             quote.company = company
             quote.created_by = request.user
-            # Génère le numéro
-            last = Quote.objects.filter(company=company).count()
-            prefix = getattr(company, 'quote_prefix', 'DEV') or 'DEV'
-            quote.number = f'{prefix}-{str(last + 1).zfill(4)}'
+            # Numerotation atomique (SELECT FOR UPDATE), et non un comptage.
+            # « count() + 1 » donnait le meme numero a deux devis crees en
+            # meme temps, et recyclait un numero deja emis apres une
+            # suppression -- sur un document comptable, c'est inacceptable.
+            from apps.core.numbering import next_number
+            quote.number = next_number(company, 'quote') or ''
             quote.save()
             messages.success(request, f'Devis {quote.number} créé avec succès.')
             return redirect('sales:quote_detail', pk=quote.pk)

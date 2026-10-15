@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_quote_templates as modeles
 
 app_name = 'sales'
 
@@ -9,6 +10,25 @@ urlpatterns = [
     # Devis
     path('devis/', views.quote_list, name='quote_list'),
     path('devis/nouveau/', views.quote_create, name='quote_create'),
+    # Modeles de devis : le PDF de l'exploitant, sur lequel Orion superpose
+    # les valeurs. Place avant « devis/<int:pk>/ » : « devis/modeles/ »
+    # serait sinon capture comme un identifiant.
+    path('devis/modeles/', modeles.quote_template_list,
+         name='quote_template_list'),
+    path('devis/modeles/nouveau/', modeles.quote_template_create,
+         name='quote_template_create'),
+    path('devis/modeles/<int:pk>/', modeles.quote_template_edit,
+         name='quote_template_edit'),
+    path('devis/modeles/<int:pk>/supprimer/', modeles.quote_template_delete,
+         name='quote_template_delete'),
+    path('devis/modeles/<int:pk>/grille/', modeles.quote_template_grid,
+         name='quote_template_grid'),
+    path('devis/modeles/<int:pk>/apercu/', modeles.quote_template_preview,
+         name='quote_template_preview'),
+    path('devis/depuis-modele/', modeles.quote_create_from_template,
+         name='quote_create_from_template'),
+    path('devis/<int:pk>/pdf/', modeles.quote_pdf_download,
+         name='quote_pdf'),
     path('devis/<int:pk>/', views.quote_detail, name='quote_detail'),
     path('devis/<int:pk>/modifier/', views.quote_edit, name='quote_edit'),
     path('devis/<int:pk>/supprimer/', views.quote_delete, name='quote_delete'),

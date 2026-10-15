@@ -1,0 +1,45 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Nouveau devis depuis un modèle — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Devis</p>
+    <h1 class="orion-page-title">Nouveau devis depuis un modèle</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'sales:quote_template_list' %}" class="orion-btn">
+      <i class="bi bi-gear me-1"></i>Gérer les modèles
+    </a>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="orion-card mb-4" style="max-width:640px">
+    {% for field in form %}
+    <div class="mb-3">
+      <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+      <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ field.errors|first }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <p style="color:var(--orion-text-muted);font-size:13px;margin:0">
+      Le numéro et la date sont attribués automatiquement. Le modèle fournit la
+      mise en page du PDF ; les lignes du devis restent à saisir ensuite.
+    </p>
+  </div>
+
+  <div class="orion-page-actions">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-plus-lg me-1"></i>Créer le devis
+    </button>
+    <a href="{% url 'sales:quote_list' %}" class="orion-btn">Annuler</a>
+  </div>
+</form>
+{% endblock %}

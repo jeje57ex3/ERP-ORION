@@ -1,0 +1,93 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Modèles de devis — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Devis</p>
+    <h1 class="orion-page-title">Modèles de devis</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'sales:quote_template_create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-lg me-1"></i>Nouveau modèle
+    </a>
+  </div>
+</div>
+
+<div class="orion-card mb-4">
+  <p class="mb-0" style="color:var(--orion-text-muted)">
+    Déposez votre devis vierge en PDF — mis en page comme vous le souhaitez,
+    avec votre en-tête et vos conditions. Orion n'y redessine rien : il écrit
+    par-dessus les seules valeurs qui changent d'un devis à l'autre, à
+    l'emplacement que vous indiquez.
+  </p>
+</div>
+
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>Modèle</th>
+        <th>Pages</th>
+        <th>Valeurs placées</th>
+        <th>État</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for detail in details %}
+      <tr>
+        <td>
+          <a href="{% url 'sales:quote_template_edit' detail.modele.pk %}"
+             style="font-weight:500;text-decoration:none;color:var(--orion-text)">
+            <i class="bi bi-file-earmark-text me-2" style="color:var(--orion-muted)"></i>{{ detail.modele.name }}
+          </a>
+          {% if detail.modele.description %}
+          <div style="font-size:12px;color:var(--orion-text-muted)">{{ detail.modele.description|truncatechars:90 }}</div>
+          {% endif %}
+        </td>
+        <td>{{ detail.pages|default:"—" }}</td>
+        <td>
+          {% if detail.champs %}
+          {{ detail.champs }}
+          {% else %}
+          {% comment %} Un modele sans champ produit un PDF vierge : le dire
+             ici evite de le decouvrir sur un devis envoye. {% endcomment %}
+          <span class="orion-badge warning">aucune — le devis sortirait vierge</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if detail.modele.is_default %}<span class="orion-badge success">Par défaut</span>{% endif %}
+          {% if not detail.modele.is_active %}<span class="orion-badge neutral">Inactif</span>{% endif %}
+        </td>
+        <td style="white-space:nowrap">
+          <a href="{% url 'sales:quote_template_grid' detail.modele.pk %}"
+             class="orion-btn sm" target="_blank" title="Quadrillage coté pour relever les coordonnées">
+            <i class="bi bi-grid-3x3"></i> Grille
+          </a>
+          <a href="{% url 'sales:quote_template_preview' detail.modele.pk %}"
+             class="orion-btn sm" target="_blank" title="Rempli avec des valeurs d'exemple">
+            <i class="bi bi-eye"></i> Aperçu
+          </a>
+          <a href="{% url 'sales:quote_template_edit' detail.modele.pk %}" class="orion-btn sm">Modifier</a>
+          <form method="post" action="{% url 'sales:quote_template_delete' detail.modele.pk %}"
+                style="display:inline"
+                onsubmit="return confirm('Supprimer le modèle « {{ detail.modele.name|escapejs }} » ?')">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;color:var(--orion-muted);padding:40px">
+          Aucun modèle.
+          <a href="{% url 'sales:quote_template_create' %}">Déposer votre devis vierge en PDF →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -115,6 +115,7 @@ NAV_MODULES = [
         'color': '#2563EB',
         'children': [
             {'label': _('Devis'),      'url_name': 'sales:quote_list',   'icon_img': 'devis_vente.png', 'icon': 'ti-file-text'},
+            {'label': _('Modèles de devis'), 'url_name': 'sales:quote_template_list', 'icon_img': 'devis_vente.png', 'icon': 'ti-file-symlink'},
             {'label': _('Commandes'),  'url_name': 'sales:order_list',   'icon_img': 'commandes_vente.png', 'icon': 'ti-shopping-bag'},
             {'label': _('Factures'),   'url_name': 'sales:invoice_list', 'icon_img': 'factures_vente.png', 'icon': 'ti-receipt-2'},
         ],

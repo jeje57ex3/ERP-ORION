@@ -141,6 +141,43 @@ puis redémarrez `orion-backend`. Le reste se règle dans **Super Admin →
 IA — Paramètres** : nom, modèle, outils autorisés, journalisation, rédaction
 des secrets.
 
+## Supprimer une conversation
+
+Depuis **Conversations**, chaque ligne porte un bouton de suppression ; la page
+d'une conversation en porte un aussi. Un bouton **Effacer l'historique**
+supprime toutes vos conversations d'un coup.
+
+La suppression est **définitive**. Elle efface la conversation, ses messages,
+les appels d'outils et les actions proposées qui en découlaient. Ce n'est pas
+un simple masquage : une conversation avec Orion porte des devis, des noms de
+clients et des montants, et les garder indéfiniment en base — invisibles mais
+intacts — ne serait pas une suppression.
+
+Ce qui en reste : une ligne dans le **journal d'audit IA**, indiquant qui a
+supprimé quoi et quand, avec le titre et le nombre de messages. Le contenu des
+messages, lui, ne survit pas — le conserver viderait la suppression de son
+sens.
+
+| Règle | Pourquoi |
+|---|---|
+| Vous ne supprimez que **vos** conversations | Dans votre entreprise, et les vôtres seules : « effacer mon historique » n'est pas « effacer celui de tout le monde » |
+| Une confirmation est demandée | L'action ne peut pas être annulée |
+| Jamais par simple visite d'adresse | Un lien de suppression en GET est déclenché par un préchargement de navigateur, un antivirus ou un indexeur — l'historique disparaîtrait sans que personne ait cliqué |
+
+Si des **actions proposées** étaient en attente dans la conversation, la
+supprimer les abandonne. Leur nombre est annoncé dans la confirmation puis
+dans le message de résultat, plutôt que de les voir disparaître en silence.
+
+Par l'API, pour un client externe :
+
+```
+DELETE /api/v1/orion-ai/conversations/<id>/
+```
+
+Les mêmes règles s'appliquent : la vérification de propriété et la trace
+d'audit vivent dans le service, pas dans l'écran — sans quoi l'une des deux
+voies finirait par oublier un garde-fou.
+
 ## Temps de réponse
 
 Sur un petit modèle en CPU — le cas de l'appliance — le temps d'une réponse se

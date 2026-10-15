@@ -12,6 +12,16 @@
     <a href="{% url 'orion_ai:assistant_dashboard' %}" class="orion-btn primary">
       <i class="bi bi-plus-lg me-1"></i>Nouvelle conversation
     </a>
+    {% if conversations %}
+    <form method="post" action="{% url 'orion_ai:conversations_clear' %}"
+          style="display:inline"
+          onsubmit="return confirm('Effacer TOUT votre historique IA ? Cette action est définitive et ne peut pas être annulée.')">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn" title="Supprime toutes vos conversations">
+        <i class="bi bi-trash3 me-1"></i>Effacer l'historique
+      </button>
+    </form>
+    {% endif %}
   </div>
 </div>
 
@@ -47,8 +57,18 @@
         <td>{{ conv.context_module|default:"—" }}</td>
         <td>{{ conv.brand_key|upper|default:"—" }}</td>
         <td>{{ conv.updated_at|date:"d/m/Y H:i" }}</td>
-        <td>
+        <td style="white-space:nowrap">
           <a href="{% url 'orion_ai:conversation_detail' conv.id %}" class="orion-btn sm">Ouvrir</a>
+          {% comment %} Un formulaire POST, et non un lien : en GET, une
+             suppression est declenchee par tout ce qui parcourt les pages --
+             prechargement du navigateur, antivirus, indexeur. {% endcomment %}
+          <form method="post" action="{% url 'orion_ai:conversation_delete' conv.id %}"
+                style="display:inline" onsubmit="return confirm('Supprimer définitivement « {{ conv.title|truncatechars:40|escapejs }} » et tous ses messages ?')">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm danger" title="Supprimer définitivement">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
         </td>
       </tr>
       {% empty %}

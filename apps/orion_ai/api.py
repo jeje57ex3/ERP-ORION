@@ -106,7 +106,7 @@ def ai_conversations_api(request):
     return Response(OrionAIConversationSerializer(conversations, many=True).data)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def ai_conversation_detail_api(request, pk):
     company = get_request_company(request)
@@ -114,6 +114,27 @@ def ai_conversation_detail_api(request, pk):
         conversation = OrionAIConversation.objects.get(id=pk, company=company, user=request.user)
     except OrionAIConversation.DoesNotExist:
         return Response({'error': 'Conversation introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        # La regle de propriete et la trace d'audit vivent dans le service,
+        # et non ici : l'ecran et l'API doivent supprimer de la meme facon,
+        # sans quoi l'une des deux voies finira par oublier un garde-fou.
+        from apps.orion_ai.services import supprimer_conversation
+        try:
+            bilan = supprimer_conversation(request=request, conversation_id=pk)
+        except PermissionError as exc:
+            return Response({'error': str(exc)},
+                            status=status.HTTP_403_FORBIDDEN)
+        except OrionAIConversation.DoesNotExist:
+            return Response({'error': 'Conversation introuvable.'},
+                            status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'supprimee': True,
+            'titre': bilan['titre'],
+            'messages': bilan['messages'],
+            'actions_en_attente_abandonnees': bilan['actions_en_attente'],
+        })
+
     return Response(OrionAIConversationDetailSerializer(conversation).data)
 
 

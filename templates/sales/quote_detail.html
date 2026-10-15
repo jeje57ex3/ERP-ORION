@@ -25,6 +25,7 @@
       <a href="{% url 'sales:quote_accept' quote.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-check-circle me-1"></i>{% trans "Accepter" %}</a>
       <a href="{% url 'sales:quote_convert_order' quote.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-arrow-right-circle me-1"></i>{% trans "Convertir en commande" %}</a>
       {% endif %}
+      <a href="{% url 'sales:quote_pdf' quote.pk %}" class="orion-btn sm" target="_blank"><i class="bi bi-file-earmark-pdf me-1"></i>{% trans "PDF" %}</a>
       <a href="{% url 'sales:quote_edit' quote.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
       <a href="{% url 'sales:quote_delete' quote.pk %}" class="btn btn-outline-danger orion-btn sm"><i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}</a>
       <a href="{% url 'sales:quote_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
