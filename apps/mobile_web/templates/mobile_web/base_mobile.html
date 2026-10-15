@@ -64,6 +64,31 @@
       min-width: 44px; min-height: 44px; display: grid; place-items: center;
       margin-left: -10px;
     }
+    /* Sélecteur de langue. En <details> plutôt qu'en JavaScript : ce
+       gabarit est autonome -- ni Bootstrap ni police d'icônes -- et un menu
+       natif fonctionne hors ligne, sans rien à charger. */
+    .langues { position: relative; }
+    .langues > summary {
+      list-style: none; cursor: pointer;
+      min-width: 44px; min-height: 44px;
+      display: grid; place-items: center;
+      color: var(--m-or); font-size: 20px;
+    }
+    .langues > summary::-webkit-details-marker { display: none; }
+    .langues[open] > summary { background: rgba(201,162,77,.14); border-radius: 10px; }
+    .langues .liste {
+      position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+      min-width: 190px; padding: 6px;
+      background: var(--m-carte); border: 1px solid var(--m-bord);
+      border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    }
+    .langues .liste a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 8px;
+      color: var(--m-texte); text-decoration: none; font-size: 15px;
+    }
+    .langues .liste a.actuelle { color: var(--m-or); font-weight: 600; }
+
     main { padding: 16px; max-width: 640px; margin: 0 auto; }
     .carte {
       background: var(--m-carte); border: 1px solid var(--m-bord);
@@ -121,6 +146,22 @@
 <header>
   {% block retour %}{% endblock %}
   <h1>{% block entete %}Orion{% endblock %}</h1>
+  {% comment %} Masqué s'il n'y a rien à choisir : une icône qui ouvre un menu
+     vide est pire que pas d'icône. {% endcomment %}
+  {% if erp_languages %}
+  <details class="langues">
+    <summary role="button" aria-label="{% trans 'Changer de langue' %}" title="{% trans 'Changer de langue' %}">&#127760;</summary>
+    <div class="liste">
+      {% for lang in erp_languages %}
+      <a href="{% url 'core:set_user_language' %}?lang={{ lang.code }}&amp;next={{ request.path|urlencode }}"
+         class="{% if lang.is_current %}actuelle{% endif %}">
+        {% if lang.flag_icon %}<span aria-hidden="true">{{ lang.flag_icon }}</span>{% endif %}
+        <span>{{ lang.native_name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
 </header>
 
 <main>

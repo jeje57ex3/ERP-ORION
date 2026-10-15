@@ -201,8 +201,18 @@
         </a>
         {% endif %}
 
-        <!-- Sélecteur de langue -->
-        <div class="dropdown d-none d-lg-block">
+        {% comment %} Sélecteur de langue.
+
+           « d-none d-lg-block » le masquait en dessous de 992 px : l'icône
+           disparaissait donc sur téléphone, alors que le bouton de thème
+           juste à côté y reste visible. Rien ne justifiait cette exception --
+           changer de langue est au moins aussi utile sur un téléphone, et
+           aucune autre voie ne le permettait depuis un petit écran.
+
+           Le bouton « Créer » garde son « d-none d-lg-block », lui : la barre
+           d'action du bas en offre l'équivalent. {% endcomment %}
+        {% if erp_languages %}
+        <div class="dropdown">
           <button class="navbar-icon-btn" type="button" data-bs-toggle="dropdown" aria-label="{% trans 'Changer de langue' %}" id="erpLangToggle">
             <i class="bi bi-translate"></i>
           </button>
@@ -218,6 +228,7 @@
             {% endfor %}
           </ul>
         </div>
+        {% endif %}
 
         <!-- Dark mode toggle -->
         <button class="navbar-icon-btn" id="themeToggle" title="{% trans 'Changer de thème' %}">
