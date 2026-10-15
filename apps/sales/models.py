@@ -394,11 +394,20 @@ class QuoteTemplateField(models.Model):
     )
 
     x = models.DecimalField(
-        'Position horizontale (pt)', max_digits=7, decimal_places=2)
+        'Bord gauche du cadre (pt)', max_digits=7, decimal_places=2)
     y = models.DecimalField(
-        'Position verticale (pt)', max_digits=7, decimal_places=2,
-        help_text='Comptée depuis le BAS de la page, comme le format PDF.',
+        'Bord bas du cadre (pt)', max_digits=7, decimal_places=2,
+        help_text='Comptée depuis le BAS de la page, comme le format PDF. '
+                  'L’éditeur visuel s’en occupe.',
     )
+
+    largeur = models.DecimalField(
+        'Largeur du cadre (pt)', max_digits=7, decimal_places=2, default=160,
+        help_text='Le texte est écrit DANS ce cadre, et réduit s’il n’y tient '
+                  'pas.',
+    )
+    hauteur = models.DecimalField(
+        'Hauteur du cadre (pt)', max_digits=7, decimal_places=2, default=16)
 
     taille = models.PositiveIntegerField('Taille du texte (pt)', default=10)
     gras = models.BooleanField('Gras', default=False)

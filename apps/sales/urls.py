@@ -21,6 +21,16 @@ urlpatterns = [
          name='quote_template_edit'),
     path('devis/modeles/<int:pk>/supprimer/', modeles.quote_template_delete,
          name='quote_template_delete'),
+    # Editeur visuel : on pose les cadres sur la page, et la machine fait la
+    # conversion en points PDF -- elle ne se trompe pas de sens.
+    path('devis/modeles/<int:pk>/cadres/', modeles.quote_template_editor,
+         name='quote_template_editor'),
+    path('devis/modeles/<int:pk>/cadres/enregistrer/',
+         modeles.quote_template_save_frames,
+         name='quote_template_save_frames'),
+    path('devis/modeles/<int:pk>/page/<int:page>.png',
+         modeles.quote_template_page_image,
+         name='quote_template_page_image'),
     path('devis/modeles/<int:pk>/grille/', modeles.quote_template_grid,
          name='quote_template_grid'),
     path('devis/modeles/<int:pk>/apercu/', modeles.quote_template_preview,

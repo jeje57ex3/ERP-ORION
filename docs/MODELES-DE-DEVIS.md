@@ -17,14 +17,30 @@ générales, mentions légales. Le fichier est vérifié à l'envoi : une extens
 `.pdf` sur un fichier qui n'en est pas un est refusée tout de suite, et non à
 la première génération de devis.
 
-**2. Relevez les positions.** Bouton **Grille de calage** : il vous rend votre
-modèle avec un quadrillage coté imprimé dessus. Vous lisez les deux nombres à
-l'endroit où vous voulez une valeur, et vous les saisissez. Une fois.
+**2. Placez les cadres.** Bouton **Cadres**. Votre PDF s'affiche tel qu'il
+est. À gauche, la liste des valeurs : cliquez « Nom du client », un cadre
+apparaît, glissez-le à sa place, étirez-le par le coin bas-droit.
 
-> Les coordonnées d'un PDF se comptent en **points** depuis le coin **bas**
-> gauche — ce n'est pas l'intuition, qui mesure depuis le haut. La grille
-> existe précisément pour vous éviter de le deviner : sans elle, placer
-> quinze champs demande quinze séries d'essais.
+| Geste | Effet |
+|---|---|
+| Glisser le cadre | le déplacer |
+| Coin bas-droit | le redimensionner |
+| Flèches | déplacer d'un point |
+| Maj + flèches | dix points |
+| Suppr | retirer le cadre |
+
+Un panneau à droite règle la taille du texte, le gras, l'alignement et les
+textes avant/après. **Enregistrez une fois** : chaque devis sortira rempli.
+
+> Les coordonnées d'un PDF se comptent en points depuis le coin **bas**
+> gauche, alors que l'écran mesure depuis le haut. Les deux axes verticaux
+> sont inversés, et c'est exactement ce que l'éditeur fait pour vous — une
+> erreur de sens imprimerait en bas ce que vous avez posé en haut, et ne se
+> verrait qu'au premier devis envoyé.
+
+La **grille de calage** reste disponible : elle imprime un quadrillage coté
+sur votre modèle, utile pour relire un placement ou régler au point près dans
+le tableau de coordonnées. Vous n'en avez pas besoin pour placer.
 
 **3. Vérifiez.** Bouton **Aperçu** : votre modèle rempli de valeurs d'exemple.
 On règle un modèle avant d'avoir un devis — prévisualiser avec de vraies
@@ -53,6 +69,13 @@ aligné à gauche, un total déborde de sa colonne.
 
 Un champ dont la valeur est vide **n'imprime rien**, pas même son texte avant :
 « Client : » suivi du vide ferait croire à une donnée perdue.
+
+## Si le texte dépasse du cadre
+
+Il est **réduit** pour y tenir, plutôt que de déborder sur ce qui se trouve à
+côté — une colonne voisine, sur un devis. La réduction s'arrête à 5 points :
+en dessous, le texte serait illisible, et un débordement visible vaut mieux
+qu'une ligne qu'on ne peut pas lire. Si cela arrive, agrandissez le cadre.
 
 ## Les montants
 
@@ -92,7 +115,10 @@ de quarante lignes sur un modèle d'une page. Dites-le si vous en avez besoin.
 
 | Symptôme | Cause |
 |---|---|
-| Le PDF sort vierge, sans aucune valeur | aucun champ placé — la liste des modèles le signale |
+| Le PDF sort vierge, sans aucune valeur | aucun cadre placé — la liste des modèles le signale |
+| Une valeur sort au mauvais endroit | le cadre a été posé ailleurs : rouvrez **Cadres**, l'aperçu montre le résultat réel |
+| « Ce PDF n'est pas lisible » | le fichier est corrompu ou n'est pas un PDF ; redéposez-le |
+| Le texte est plus petit que prévu | il ne tenait pas dans le cadre et a été réduit ; agrandissez le cadre |
 | Une valeur manque | son champ est placé sur une page que le modèle n'a pas ; la génération le dit en nommant la page |
 | « Aucun modèle de devis actif » | aucun modèle, ou tous décochés `Actif` |
 | Un carré noir à la place d'un caractère | un texte avant/après contient un caractère hors WinAnsi (un tiret cadratin, une espace fine) |

@@ -16,6 +16,10 @@ reportlab==4.2.2
 # fournis par l'exploitant, sur lesquels Orion superpose les valeurs.
 # reportlab sait ecrire un PDF, pas en relire un.
 pypdf==4.3.1
+# Rendu d'une page PDF en image, pour placer les cadres a l'ecran sur le vrai
+# document. Roue pure, sans dependance systeme (ni poppler ni cairo) : une
+# appliance hors ligne l'installe sans rien d'autre.
+pypdfium2==4.30.0
 django-import-export==4.1.1
 django-simple-history==3.7.0
 django-guardian==2.4.0
