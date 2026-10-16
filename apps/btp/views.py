@@ -46,12 +46,16 @@ def project_detail(request, pk):
     situations = project.situations.all().order_by('-period_end')
     timesheets = project.timesheets.all()[:20]
     phases = project.phases.all()
+    # select_related sur les deux FK affichees : sans cela, une ligne par
+    # achat part en requete pour le fournisseur et pour l'article.
+    supplies = project.supplies.select_related('supplier', 'material')
     ctx = {
         'project': project,
         'quotes': quotes,
         'situations': situations,
         'timesheets': timesheets,
         'phases': phases,
+        'supplies': supplies,
         'tab': request.GET.get('tab', 'info'),
     }
     return render(request, 'btp/project_detail.html', ctx)

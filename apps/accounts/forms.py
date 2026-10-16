@@ -57,8 +57,17 @@ class UserCreateForm(forms.ModelForm):
         queryset=None,
         required=False,
         label='Salarié lié',
-        help_text='Obligatoire pour les rôles non administrateurs.',
+        help_text='Obligatoire pour les rôles non administrateurs, '
+                  'sauf si la case ci-dessous est cochée.',
         widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
+    without_employee_record = forms.BooleanField(
+        required=False,
+        label='Ce compte ne correspond à aucun salarié',
+        help_text='Prestataire, expert-comptable externe, client, compte de '
+                  'service. À cocher pour créer le compte sans fiche salarié.',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
     )
 
     class Meta:
@@ -81,17 +90,32 @@ class UserCreateForm(forms.ModelForm):
             self.fields['employee'].initial = employee_prefill
 
     def clean(self):
+        """Un compte non administrateur est rattaché, ou déclaré non salarié.
+
+        Les deux ensemble sont contradictoires et le dire vaut mieux que
+        choisir en silence : cochée, la case ferait ignorer un salarié
+        sélectionné exprès, et l'administrateur croirait la liaison faite.
+        """
         cleaned = super().clean()
         role = cleaned.get('role', 'user')
         employee = cleaned.get('employee')
+        sans_salarie = cleaned.get('without_employee_record')
         exempt_roles = ('superadmin', 'admin')
-        is_staff = False  # formulaire de création
-        is_superuser = False
-        if role not in exempt_roles and not is_staff and not is_superuser:
-            if not employee:
-                raise ValidationError(
-                    'Un utilisateur non administrateur doit être lié à un salarié.'
-                )
+
+        if employee and sans_salarie:
+            self.add_error(
+                'without_employee_record',
+                'Un salarié est sélectionné : décochez cette case, ou retirez '
+                'le salarié.'
+            )
+        elif role not in exempt_roles and not employee and not sans_salarie:
+            # Ni rattachement ni déclaration : c'est l'oubli que l'on veut
+            # continuer d'attraper.
+            self.add_error(
+                'employee',
+                'Un utilisateur non administrateur doit être lié à un salarié, '
+                'ou déclaré sans fiche salarié en cochant la case ci-dessous.'
+            )
         return cleaned
 
     def clean_password2(self):

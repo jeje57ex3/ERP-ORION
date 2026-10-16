@@ -1,6 +1,7 @@
 ﻿from django.urls import path
 from . import views
 from . import guided_quote_erp_views as gq
+from . import views_materials as vm
 
 app_name = 'btp'
 
@@ -61,5 +62,33 @@ urlpatterns = [
     path('pointages/<int:pk>/', views.timesheet_detail, name='timesheet_detail'),
     path('pointages/<int:pk>/valider/', views.timesheet_validate, name='timesheet_validate'),
     path('pointages/<int:pk>/refuser/', views.timesheet_reject, name='timesheet_reject'),
-    path('pointages/valider-selection/', views.timesheet_validate_bulk, name='timesheet_validate_bulk'),]
+    path('pointages/valider-selection/', views.timesheet_validate_bulk, name='timesheet_validate_bulk'),
+
+    # Catalogue des materiaux et fournitures
+    path('materiaux/', vm.material_list, name='material_list'),
+    path('materiaux/nouveau/', vm.material_create, name='material_create'),
+    path('materiaux/<int:pk>/modifier/', vm.material_edit,
+         name='material_edit'),
+    path('materiaux/<int:pk>/supprimer/', vm.material_delete,
+         name='material_delete'),
+
+    # Fournitures et materiel achetes pour un chantier
+    path('chantiers/<int:project_pk>/fournitures/ajouter/',
+         vm.project_supply_create, name='project_supply_create'),
+    path('fournitures/<int:pk>/modifier/', vm.project_supply_edit,
+         name='project_supply_edit'),
+    path('fournitures/<int:pk>/supprimer/', vm.project_supply_delete,
+         name='project_supply_delete'),
+    path('chantiers/<int:pk>/reporter-fournitures/',
+         vm.project_report_supplies, name='project_report_supplies'),
+
+    # Lignes de devis BTP. « lignes » n'etant pas un entier, ces adresses
+    # ne peuvent pas etre capturees par « devis/<int:pk>/ » plus haut.
+    path('devis/<int:quote_pk>/lignes/ajouter/', vm.quote_line_create,
+         name='quote_line_create'),
+    path('devis/lignes/<int:pk>/modifier/', vm.quote_line_edit,
+         name='quote_line_edit'),
+    path('devis/lignes/<int:pk>/supprimer/', vm.quote_line_delete,
+         name='quote_line_delete'),
+]
 

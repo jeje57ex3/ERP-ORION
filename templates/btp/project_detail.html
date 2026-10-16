@@ -30,6 +30,7 @@
     <a href="?tab=quotes" class="erp-tab {% if tab == 'quotes' %}active{% endif %}"><i class="bi bi-file-text me-1"></i>{% blocktrans with c=quotes.count %}Devis ({{ c }}){% endblocktrans %}</a>
     <a href="?tab=situations" class="erp-tab {% if tab == 'situations' %}active{% endif %}"><i class="bi bi-graph-up me-1"></i>{% trans "Situations" %}</a>
     <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>{% trans "Pointage" %}</a>
+    <a href="?tab=supplies" class="erp-tab {% if tab == 'supplies' %}active{% endif %}"><i class="bi bi-box-seam me-1"></i>{% blocktrans with c=supplies.count %}Fournitures ({{ c }}){% endblocktrans %}</a>
   </div>
 </div>
 {% endblock %}
@@ -114,6 +115,83 @@
   </div>
 </div>
 
+{% elif tab == 'supplies' %}
+<div class="erp-card">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h6 class="card-title mb-0"><i class="bi bi-box-seam me-1 text-primary"></i>{% trans "Fournitures et matériel achetés" %}</h6>
+    <div class="d-flex gap-2">
+      <a href="{% url 'btp:material_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-list-ul me-1"></i>{% trans "Catalogue" %}</a>
+      <a href="{% url 'btp:project_supply_create' project.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une fourniture" %}</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table erp-table mb-0">
+      <thead>
+        <tr>
+          <th>{% trans "Date" %}</th>
+          <th>{% trans "Désignation" %}</th>
+          <th>{% trans "Fournisseur" %}</th>
+          <th class="text-end">{% trans "Qté" %}</th>
+          <th class="text-end">{% trans "PU achat HT" %}</th>
+          <th class="text-end">{% trans "Total HT" %}</th>
+          <th>{% trans "Justificatif" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for achat in supplies %}
+        <tr>
+          <td class="small">{{ achat.purchase_date|date:"d/m/Y" }}</td>
+          <td>
+            <div class="small">{{ achat.description }}</div>
+            <div class="text-muted" style="font-size:.7rem">
+              {% if achat.reference %}{{ achat.reference }}{% endif %}
+              {% if achat.material %} · {% trans "catalogue" %}{% else %} · {% trans "hors catalogue" %}{% endif %}
+            </div>
+          </td>
+          <td class="small text-muted">{{ achat.supplier.name|default:"—" }}</td>
+          <td class="text-end small">{{ achat.quantity|floatformat:3 }} {{ achat.unit }}</td>
+          <td class="text-end small">{{ achat.unit_price|floatformat:2 }} €</td>
+          <td class="text-end small fw-semibold">{{ achat.total_ht|floatformat:2 }} €</td>
+          <td class="small text-muted">{{ achat.invoice_reference|default:"—" }}</td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'btp:project_supply_edit' achat.pk %}" class="orion-btn sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+              {% comment %} POST et non lien : un GET destructeur se declenche
+                 au survol, a l'indexation ou au passage d'un antivirus. {% endcomment %}
+              <form method="post" action="{% url 'btp:project_supply_delete' achat.pk %}" onsubmit="return confirm('{% trans "Retirer cet achat du chantier ?" %}')">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn danger sm" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4 small">{% blocktrans %}Aucune fourniture enregistrée. Les achats saisis ici rendent le coût de ce chantier vérifiable, pièce par pièce.{% endblocktrans %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if supplies %}
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 p-3 border-top">
+    <div class="small text-muted" style="max-width:46ch">
+      {% blocktrans %}Le « coût réel » du chantier est saisi à la main et contient
+      peut-être déjà de la main-d'œuvre ou de la sous-traitance. Il n'est donc pas
+      modifié tout seul.{% endblocktrans %}
+      <form method="post" action="{% url 'btp:project_report_supplies' project.pk %}" class="mt-2" onsubmit="return confirm('{% blocktrans with a=project.actual_cost|floatformat:2 b=project.total_fournitures|floatformat:2 %}Remplacer le coût réel ({{ a }} €) par le total des fournitures ({{ b }} €) ?{% endblocktrans %}')">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn sm"><i class="bi bi-arrow-right-circle me-1"></i>{% trans "Reporter ce total dans le coût réel" %}</button>
+      </form>
+    </div>
+    <table class="totals-table" style="min-width:260px">
+      <tr><td class="text-muted">{% trans "Total fournitures HT" %}</td><td class="text-end fw-semibold">{{ project.total_fournitures|floatformat:2 }} €</td></tr>
+      <tr><td class="text-muted">{% trans "Coût réel enregistré HT" %}</td><td class="text-end">{{ project.actual_cost|floatformat:2 }} €</td></tr>
+      <tr class="total-row"><td>{% trans "Budget prévu HT" %}</td><td class="text-end">{{ project.estimated_budget|floatformat:2 }} €</td></tr>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
 {% else %}
 <div class="row g-3">
   <div class="col-12 col-md-4">
@@ -132,6 +210,18 @@
     <div class="kpi-card" style="--kpi-color:#F59E0B">
       <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
       <div class="kpi-body"><div class="kpi-value">{{ project.invoiced_amount|floatformat:0 }} €</div><div class="kpi-label">{% trans "Facturé HT" %}</div></div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    {% comment %} Distinct du cout reel, et pas confondu avec lui : l'un est
+       saisi a la main et peut contenir de la main-d'oeuvre, l'autre est la
+       somme des achats justifies. {% endcomment %}
+    <div class="kpi-card" style="--kpi-color:#6366F1">
+      <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ project.total_fournitures|floatformat:0 }} €</div>
+        <div class="kpi-label"><a href="?tab=supplies" class="text-decoration-none text-reset">{% trans "Fournitures et matériel HT" %}</a></div>
+      </div>
     </div>
   </div>
 

@@ -51,6 +51,22 @@ class UserProfile(models.Model):
         related_name='current_users', verbose_name='Entreprise courante'
     )
     role = models.CharField('Rôle', max_length=20, choices=ROLE_CHOICES, default='user')
+
+    # Rattachement RH
+    #
+    # Un compte non administrateur est normalement lie a une fiche salarie :
+    # c'est ce qui permet de savoir qui est la personne dans l'entreprise
+    # (conges, pointages, documents). Mais tous les comptes ne sont pas des
+    # salaries -- prestataire, expert-comptable externe, interimaire, compte
+    # de service. Cette case dit que l'absence de fiche est VOULUE, et non un
+    # oubli : sans elle, retirer la validation rendrait les deux cas
+    # indiscernables.
+    without_employee_record = models.BooleanField(
+        'Compte sans fiche salarié', default=False,
+        help_text="Compte qui ne correspond à aucun salarié : prestataire, "
+                  "expert-comptable externe, client, compte de service."
+    )
+
     phone = models.CharField('Téléphone', max_length=20, blank=True)
     mobile = models.CharField('Mobile', max_length=20, blank=True)
     avatar = models.ImageField('Avatar', upload_to='avatars/', blank=True, null=True)

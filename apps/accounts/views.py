@@ -83,12 +83,15 @@ def user_list(request):
     """Liste des utilisateurs (admin seulement)."""
     company = request.current_company
 
+    # employee_profile est charge avec le reste : sans cela, la colonne de
+    # rattachement couterait une requete par ligne.
     if request.user.is_superuser:
-        users = User.objects.select_related('profile').order_by('username')
+        users = User.objects.select_related(
+            'profile', 'employee_profile').order_by('username')
     elif company and request.user.profile.role in ['admin', 'manager']:
         users = User.objects.filter(
             profile__companies=company
-        ).select_related('profile').order_by('username')
+        ).select_related('profile', 'employee_profile').order_by('username')
     else:
         messages.error(request, 'Accès refusé.')
         return redirect('core:dashboard')
@@ -127,10 +130,16 @@ def user_create(request):
     if form.is_valid():
         user = form.save()
         # Rôle et entreprise
+        profil = user.profile
         if company:
-            user.profile.companies.add(company)
-        user.profile.role = form.cleaned_data.get('role', 'user')
-        user.profile.save()
+            profil.companies.add(company)
+        profil.role = form.cleaned_data.get('role', 'user')
+        # Enregistre AVANT la liaison : si la liaison échoue, le compte reste
+        # dans un état cohérent, et un compte déclaré sans salarié n'est pas
+        # signalé à tort comme un rattachement oublié.
+        profil.without_employee_record = bool(
+            form.cleaned_data.get('without_employee_record'))
+        profil.save()
 
         # Liaison salarié
         employee = form.cleaned_data.get('employee')
@@ -140,6 +149,10 @@ def user_create(request):
                 messages.success(request, f'Utilisateur "{user.username}" créé et lié à {employee.full_name}.')
             except Exception as exc:
                 messages.warning(request, f'Utilisateur créé mais liaison salarié échouée : {exc}')
+        elif profil.without_employee_record:
+            messages.success(
+                request,
+                f'Utilisateur "{user.username}" créé, sans fiche salarié.')
         else:
             messages.success(request, f'Utilisateur "{user.username}" créé.')
 

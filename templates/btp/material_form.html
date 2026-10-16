@@ -1,0 +1,147 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'btp:material_list' %}" class="text-muted small text-decoration-none">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Matériaux et fournitures" %}
+  </a>
+  <h4 class="fw-bold mt-1">{{ page_title }}</h4>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-tag me-1"></i>{% trans "L'article" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.kind.label }}</label>
+              {{ form.kind }}
+              {{ form.kind.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.reference.label }}</label>
+              {{ form.reference }}
+              {{ form.reference.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.unit.label }}</label>
+              {{ form.unit }}
+              {{ form.unit.errors }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.name.label }} *</label>
+              {{ form.name }}
+              {{ form.name.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.category.label }}</label>
+              {{ form.category }}
+              {{ form.category.errors }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.description.label }}</label>
+              {{ form.description }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-cash-coin me-1"></i>{% trans "Les deux prix" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <p class="small text-muted">
+            {% blocktrans %}Le prix d'achat sert au coût des chantiers. Le prix de
+            vente sert aux lignes de devis. Les deux sont nécessaires : avec un
+            seul, il faut choisir entre suivre sa marge et chiffrer un devis.{% endblocktrans %}
+          </p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.purchase_price.label }}</label>
+              {{ form.purchase_price }}
+              <div class="form-text">{{ form.purchase_price.help_text }}</div>
+              {{ form.purchase_price.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.sale_price.label }}</label>
+              {{ form.sale_price }}
+              <div class="form-text">{{ form.sale_price.help_text }}</div>
+              {{ form.sale_price.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.vat_rate.label }}</label>
+              {{ form.vat_rate }}
+              {{ form.vat_rate.errors }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-truck me-1"></i>{% trans "Approvisionnement" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.supplier.label }}</label>
+              {{ form.supplier }}
+              {{ form.supplier.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.supplier_reference.label }}</label>
+              {{ form.supplier_reference }}
+              {{ form.supplier_reference.errors }}
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  {% trans "Actif — proposé dans les devis et les fournitures de chantier" %}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="orion-btn primary">
+          <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}
+        </button>
+        {% if action == 'create' %}
+        {% comment %} On alimente un catalogue par lots, pas un article a la
+           fois : revenir a la liste entre chaque saisie coute un clic de
+           retour a chaque fois. {% endcomment %}
+        <button type="submit" name="enchainer" value="1" class="orion-btn">
+          <i class="bi bi-plus-lg me-1"></i>{% trans "Enregistrer et en ajouter un autre" %}
+        </button>
+        {% endif %}
+        <a href="{% url 'btp:material_list' %}" class="btn btn-outline-secondary">
+          {% trans "Annuler" %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
