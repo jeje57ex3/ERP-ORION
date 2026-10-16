@@ -1,0 +1,143 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'btp:project_detail' project.pk %}?tab=supplies"
+     class="text-muted small text-decoration-none">
+    <i class="bi bi-arrow-left me-1"></i>{{ project.name }}
+  </a>
+  <h4 class="fw-bold mt-1">{{ page_title }}</h4>
+  <p class="text-muted small mb-0">
+    {% blocktrans %}Un achat réellement fait pour ce chantier, au prix payé.
+    C'est ce qui rend son coût vérifiable.{% endblocktrans %}
+  </p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-box-seam me-1"></i>{% trans "Ce qui a été acheté" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.material.label }}</label>
+              {{ form.material }}
+              <div class="form-text">{{ form.material.help_text }}</div>
+              {{ form.material.errors }}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">{{ form.description.label }}</label>
+              {{ form.description }}
+              <div class="form-text">
+                {% trans "Se remplit depuis l'article choisi si vous la laissez vide." %}
+              </div>
+              {{ form.description.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.reference.label }}</label>
+              {{ form.reference }}
+              {{ form.reference.errors }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-calculator me-1"></i>{% trans "Quantité et prix payé" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">{{ form.quantity.label }}</label>
+              {{ form.quantity }}
+              {{ form.quantity.errors }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">{{ form.unit.label }}</label>
+              {{ form.unit }}
+              {{ form.unit.errors }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">{{ form.unit_price.label }}</label>
+              {{ form.unit_price }}
+              <div class="form-text">
+                {% trans "Prix réellement payé — remise du négoce comprise." %}
+              </div>
+              {{ form.unit_price.errors }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">{{ form.vat_rate.label }}</label>
+              {{ form.vat_rate }}
+              {{ form.vat_rate.errors }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-receipt me-1"></i>{% trans "Justificatif" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.supplier.label }}</label>
+              {{ form.supplier }}
+              {{ form.supplier.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.purchase_date.label }}</label>
+              {{ form.purchase_date }}
+              {{ form.purchase_date.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.invoice_reference.label }}</label>
+              {{ form.invoice_reference }}
+              <div class="form-text">
+                {% trans "Pour retrouver la pièce le jour où le montant est contesté." %}
+              </div>
+              {{ form.invoice_reference.errors }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="orion-btn primary">
+          <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}
+        </button>
+        {% if action == 'create' %}
+        <button type="submit" name="enchainer" value="1" class="orion-btn">
+          <i class="bi bi-plus-lg me-1"></i>{% trans "Enregistrer et en ajouter un autre" %}
+        </button>
+        {% endif %}
+        <a href="{% url 'btp:project_detail' project.pk %}?tab=supplies"
+           class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

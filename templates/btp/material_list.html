@@ -1,0 +1,153 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Matériaux et fournitures" %} — Orion ERP{% endblock %}
+
+{% block content %}
+{% with active_subnav='materials' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-box-seam text-primary me-2"></i>{% trans "Matériaux et fournitures" %}
+  </h4>
+  <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
+    <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
+  </a>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" class="form-control form-control-sm"
+               placeholder="{% trans 'Désignation, référence, catégorie…' %}"
+               value="{{ q }}">
+      </div>
+      <div class="col-md-3">
+        <select name="kind" class="form-select form-select-sm">
+          <option value="">{% trans "Matériaux et fournitures" %}</option>
+          {% for valeur, libelle in kind_choices %}
+          <option value="{{ valeur }}" {% if kind == valeur %}selected{% endif %}>{{ libelle }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="category" class="form-select form-select-sm">
+          <option value="">{% trans "Toutes les catégories" %}</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="orion-btn primary sm flex-grow-1">
+          <i class="bi bi-funnel me-1"></i>{% trans "Filtrer" %}
+        </button>
+        <a href="?" class="orion-btn sm" title="{% trans 'Tout afficher' %}">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="orion-card">
+  {% if articles %}
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>{% trans "Désignation" %}</th>
+          <th>{% trans "Nature" %}</th>
+          <th>{% trans "Unité" %}</th>
+          <th class="text-end">{% trans "Achat HT" %}</th>
+          <th class="text-end">{% trans "Vente HT" %}</th>
+          <th class="text-end">{% trans "Marge" %}</th>
+          <th>{% trans "Fournisseur" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+        <tr {% if not article.is_active %}class="text-muted"{% endif %}>
+          <td>
+            <div class="fw-semibold small">{{ article.name }}</div>
+            <div class="text-muted" style="font-size:.7rem">
+              {% if article.reference %}{{ article.reference }}{% endif %}
+              {% if article.category %} · {{ article.category }}{% endif %}
+              {% if not article.is_active %} · <em>{% trans "désactivé" %}</em>{% endif %}
+            </div>
+          </td>
+          <td><span class="orion-badge neutral">{{ article.get_kind_display }}</span></td>
+          <td class="small text-muted">{{ article.unit }}</td>
+          <td class="text-end small">{{ article.purchase_price|floatformat:2 }} €</td>
+          <td class="text-end small fw-semibold">
+            {{ article.sale_price|floatformat:2 }} €
+            {% if not article.sale_price %}
+            {% comment %} Sans prix de vente, piocher cet article dans un devis
+               y poserait une ligne a 0 EUR. Le dire ici, ou la donnee se
+               corrige, plutot qu'au moment ou le devis part chez le client. {% endcomment %}
+            <div class="text-danger" style="font-size:.68rem">
+              <i class="bi bi-exclamation-triangle"></i> {% trans "à renseigner" %}
+            </div>
+            {% endif %}
+          </td>
+          <td class="text-end small">
+            {% if article.marge == None %}
+              <span class="text-muted">—</span>
+            {% elif article.marge < 0 %}
+              <span class="text-danger fw-semibold">{{ article.marge|floatformat:0 }} %</span>
+            {% else %}
+              {{ article.marge|floatformat:0 }} %
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ article.supplier.name|default:"—" }}
+            {% if article.supplier_reference %}
+            <div style="font-size:.68rem">{{ article.supplier_reference }}</div>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'btp:material_edit' article.pk %}"
+                 class="orion-btn sm" title="{% trans 'Modifier' %}">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% comment %} POST et non lien : un GET destructeur se declenche
+                 au survol, a l'indexation ou au passage d'un antivirus. {% endcomment %}
+              <form method="post" action="{% url 'btp:material_delete' article.pk %}"
+                    onsubmit="return confirm('{% trans "Retirer cet article du catalogue ?" %}')">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn danger sm"
+                        title="{% trans 'Supprimer' %}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="orion-empty">
+    <div class="orion-empty-icon"><i class="bi bi-box-seam"></i></div>
+    <div class="orion-empty-title">
+      {% if q or kind or category %}{% trans "Aucun article ne correspond" %}
+      {% else %}{% trans "Catalogue vide" %}{% endif %}
+    </div>
+    <div class="orion-empty-text">
+      {% if q or kind or category %}
+        {% trans "Élargissez la recherche, ou ajoutez cet article au catalogue." %}
+      {% else %}
+        {% blocktrans %}Les articles saisis ici se retrouvent à deux endroits : dans
+        les fournitures d'un chantier, au prix d'achat, et dans les lignes d'un
+        devis BTP, au prix de vente.{% endblocktrans %}
+      {% endif %}
+    </div>
+    <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
+      {% trans "Ajouter un article" %}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

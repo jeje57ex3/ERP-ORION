@@ -1,6 +1,8 @@
 """
 apps/btp/models.py — Chantiers BTP, Devis, Situations, Pointage
 """
+from decimal import Decimal
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -72,6 +74,20 @@ class BTPProject(models.Model):
         return 0
 
     @property
+    def total_fournitures(self):
+        """Somme HT des fournitures et matériel achetés pour ce chantier.
+
+        Volontairement une propriété, et non un report automatique dans
+        `actual_cost` : ce champ est saisi à la main et peut déjà contenir
+        autre chose — main-d'œuvre, sous-traitance, location de matériel.
+        L'écraser à chaque achat détruirait une donnée que personne n'a
+        demandé de remplacer. Le report est une action explicite
+        (`btp:project_report_supplies`).
+        """
+        return self.supplies.aggregate(
+            total=models.Sum('total_ht'))['total'] or Decimal('0')
+
+    @property
     def completion_rate(self):
         if not self.start_date or not self.end_date:
             return 0
@@ -121,6 +137,147 @@ class WorkLibrary(models.Model):
         return f'{self.code} — {self.name}' if self.code else self.name
 
 
+class Material(models.Model):
+    """Matériau ou fourniture du catalogue BTP.
+
+    Distinct de WorkLibrary, qui porte des OUVRAGES — une prestation
+    complète, main-d'œuvre comprise, facturée au m² ou au ml. Ici ce sont les
+    articles qu'on ACHÈTE : un sac de ciment, une gaine, une boîte de vis.
+    Les deux ne se mélangent pas dans un devis et n'ont pas le même prix de
+    référence.
+
+    **Deux prix, et c'est la raison d'être de ce modèle.** `purchase_price`
+    est ce que l'entreprise paie — il sert au coût du chantier. `sale_price`
+    est ce qu'elle facture — il sert à la ligne de devis. Un seul prix
+    forcerait à choisir entre suivre sa marge et chiffrer un devis.
+
+    `purchase_price`, `supplier` et la marge sont des données INTERNES :
+    elles n'ont rien à faire dans un devis remis au client, ni dans le
+    portail client.
+    """
+
+    KIND_CHOICES = [
+        ('material', 'Matériau'),
+        ('supply', 'Fourniture'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='btp_materials')
+    kind = models.CharField('Nature', max_length=20, choices=KIND_CHOICES,
+                            default='material')
+    reference = models.CharField('Référence', max_length=30, blank=True)
+    name = models.CharField('Désignation', max_length=300)
+    category = models.CharField('Catégorie', max_length=100, blank=True)
+    unit = models.CharField('Unité', max_length=20, default='u')
+
+    purchase_price = models.DecimalField(
+        "Prix d'achat HT", max_digits=12, decimal_places=4, default=0,
+        help_text="Ce que vous payez. Sert au coût du chantier.")
+    sale_price = models.DecimalField(
+        'Prix de vente HT', max_digits=12, decimal_places=4, default=0,
+        help_text='Ce que vous facturez. Repris dans les lignes de devis.')
+    vat_rate = models.DecimalField('TVA %', max_digits=5, decimal_places=2,
+                                   default=20)
+
+    supplier = models.ForeignKey(
+        'purchases.Supplier', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='btp_materials', verbose_name='Fournisseur habituel')
+    supplier_reference = models.CharField('Réf. fournisseur', max_length=100,
+                                          blank=True)
+
+    description = models.TextField('Détail', blank=True)
+    is_active = models.BooleanField('Actif', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Matériau / fourniture'
+        verbose_name_plural = 'Matériaux et fournitures'
+        ordering = ['category', 'name']
+        # L'unicite de la reference par entreprise est verifiee dans le
+        # FORMULAIRE, pas ici. Une reference peut rester vide, et une
+        # contrainte unique conditionnelle serait IGNOREE par MySQL et
+        # MariaDB, qui ne connaissent pas les index partiels : appliquee en
+        # test (SQLite) et absente en production -- le pire des deux.
+
+    def __str__(self):
+        return f'{self.reference} — {self.name}' if self.reference else self.name
+
+    @property
+    def marge(self):
+        """Marge en %, ou None si aucun prix d'achat n'est renseigné.
+
+        None et pas 0 : sans prix d'achat la marge est inconnue, pas nulle.
+        Afficher « 0 % » laisserait croire qu'on vend à prix coûtant.
+        """
+        if not self.purchase_price:
+            return None
+        return ((self.sale_price - self.purchase_price)
+                / self.purchase_price) * 100
+
+
+class ProjectSupply(models.Model):
+    """Fourniture ou matériel acheté pour un chantier.
+
+    Une ligne = un achat réel, pas une prévision. Le prix enregistré est
+    celui payé, recopié au moment de la saisie : si le catalogue change de
+    prix six mois plus tard, le coût du chantier ne doit pas bouger
+    rétroactivement. C'est pourquoi `description`, `unit` et `unit_price`
+    sont stockés ici, et pas seulement lus à travers `material`.
+
+    `material` peut rester vide : un achat d'appoint chez le négoce du coin
+    n'a pas à entrer au catalogue pour être compté.
+    """
+
+    project = models.ForeignKey(BTPProject, on_delete=models.CASCADE,
+                                related_name='supplies')
+    material = models.ForeignKey(
+        Material, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='project_supplies', verbose_name='Article du catalogue')
+
+    description = models.CharField('Désignation', max_length=300)
+    reference = models.CharField('Référence', max_length=30, blank=True)
+    quantity = models.DecimalField('Quantité', max_digits=12,
+                                   decimal_places=3, default=1)
+    unit = models.CharField('Unité', max_length=20, default='u')
+    unit_price = models.DecimalField("Prix d'achat unitaire HT",
+                                     max_digits=12, decimal_places=4,
+                                     default=0)
+    vat_rate = models.DecimalField('TVA %', max_digits=5, decimal_places=2,
+                                   default=20)
+    total_ht = models.DecimalField('Total HT', max_digits=14,
+                                   decimal_places=2, default=0)
+
+    supplier = models.ForeignKey(
+        'purchases.Supplier', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='btp_project_supplies', verbose_name='Fournisseur')
+    purchase_date = models.DateField("Date d'achat", default=timezone.now)
+    invoice_reference = models.CharField('N° facture / bon de livraison',
+                                         max_length=60, blank=True)
+    notes = models.TextField('Notes', blank=True)
+
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                   blank=True,
+                                   related_name='btp_supplies_saisies')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Fourniture de chantier'
+        verbose_name_plural = 'Fournitures et matériel de chantier'
+        ordering = ['-purchase_date', '-id']
+
+    def __str__(self):
+        return f'{self.description} — {self.project.name}'
+
+    def save(self, *args, **kwargs):
+        self.total_ht = (self.quantity or 0) * (self.unit_price or 0)
+        super().save(*args, **kwargs)
+
+    @property
+    def total_tva(self):
+        return self.total_ht * self.vat_rate / 100
+
+
 class BTPQuote(models.Model):
     """Devis BTP."""
     STATUS_CHOICES = [
@@ -155,12 +312,38 @@ class BTPQuote(models.Model):
     def __str__(self):
         return f'{self.number or "DEV-BTP"} — {self.customer.name}'
 
+    def calculate_totals(self):
+        """Recalcule les totaux depuis les lignes.
+
+        Les lignes de section sont exclues : elles portent un intitulé de
+        sous-total, pas un montant à additionner. Les compter doublerait le
+        devis.
+
+        Ce modèle stockait déjà total_ht / total_tva / total_ttc sans que
+        rien ne les calcule jamais : un devis BTP affichait 0 € quelles que
+        soient ses lignes.
+        """
+        lignes = [ligne for ligne in self.lines.all() if not ligne.is_section]
+        self.total_ht = sum((ligne.total_ht for ligne in lignes),
+                            Decimal('0'))
+        self.total_tva = sum(
+            (ligne.total_ht * ligne.vat_rate / 100 for ligne in lignes),
+            Decimal('0'))
+        self.total_ttc = self.total_ht + self.total_tva
+        self.save(update_fields=['total_ht', 'total_tva', 'total_ttc'])
+
 
 class BTPQuoteLine(models.Model):
     """Ligne de devis BTP."""
     quote = models.ForeignKey(BTPQuote, on_delete=models.CASCADE, related_name='lines')
     phase = models.ForeignKey(BTPPhase, on_delete=models.SET_NULL, null=True, blank=True)
     work_item = models.ForeignKey(WorkLibrary, on_delete=models.SET_NULL, null=True, blank=True)
+    # D'ou vient la ligne : un ouvrage, un article du catalogue, ou rien du
+    # tout (saisie libre). SET_NULL et pas CASCADE : retirer un article du
+    # catalogue ne doit pas effacer une ligne d'un devis deja envoye.
+    material = models.ForeignKey(
+        Material, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='quote_lines', verbose_name='Article du catalogue')
     description = models.TextField('Désignation')
     unit = models.CharField('Unité', max_length=20, default='m²')
     quantity = models.DecimalField('Quantité', max_digits=12, decimal_places=3, default=0)
