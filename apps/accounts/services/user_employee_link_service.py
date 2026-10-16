@@ -64,6 +64,76 @@ def get_user_employee(user):
 
 
 # ---------------------------------------------------------------------------
+# Salariés rattachables, et pourquoi il n'y en a pas
+# ---------------------------------------------------------------------------
+
+def salaries_rattachables(company):
+    """Les salariés de cette entreprise qu'on peut encore lier à un compte.
+
+    Trois conditions, et chacune en exclut pour une raison différente :
+    l'entreprise (Employee.company), l'activité (is_active), et le fait de
+    ne pas être DÉJÀ lié — `Employee.user` est un OneToOne, un salarié ne
+    peut donc pas porter deux comptes.
+    """
+    from apps.hr.models import Employee
+
+    if company is None:
+        # Sans entreprise courante, lister les salariés de TOUTES les
+        # sociétés : c'est ce que faisait l'écran, et c'était une fuite.
+        # Mieux vaut une liste vide, que le diagnostic explique.
+        return Employee.objects.none()
+    return Employee.objects.filter(
+        company=company, is_active=True, user__isnull=True,
+    ).order_by('last_name', 'first_name')
+
+
+def diagnostic_rattachement(company):
+    """Pourquoi la liste des salariés est vide, quand elle l'est.
+
+    Un `<select>` vide sans un mot d'explication envoie chercher la cause
+    dans la base de données. Les trois raisons n'ont pas du tout le même
+    remède : créer des fiches salarié, changer d'entreprise courante, ou
+    constater que tout le monde a déjà un compte.
+
+    Retourne un dict, toujours les mêmes clés, pour que le gabarit n'ait
+    pas à tester l'existence de chacune.
+    """
+    from apps.hr.models import Employee
+
+    infos = {
+        'cause': None,
+        'rattachables': 0,
+        'deja_rattaches': 0,
+        'desactives': 0,
+        'total': 0,
+        'company': company,
+    }
+
+    if company is None:
+        infos['cause'] = 'sans_entreprise'
+        return infos
+
+    tous = Employee.objects.filter(company=company)
+    infos['total'] = tous.count()
+    infos['rattachables'] = salaries_rattachables(company).count()
+    infos['desactives'] = tous.filter(is_active=False).count()
+    infos['deja_rattaches'] = tous.filter(
+        is_active=True, user__isnull=False).count()
+
+    if infos['rattachables']:
+        return infos
+    if infos['total'] == 0:
+        infos['cause'] = 'aucun_salarie'
+    elif infos['deja_rattaches'] and not infos['desactives']:
+        infos['cause'] = 'tous_rattaches'
+    elif infos['desactives'] and not infos['deja_rattaches']:
+        infos['cause'] = 'tous_desactives'
+    else:
+        infos['cause'] = 'rattaches_ou_desactives'
+    return infos
+
+
+# ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
 
