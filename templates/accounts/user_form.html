@@ -7,6 +7,86 @@
     <div class="card erp-card">
       <div class="orion-orion-card-header"><h5 class="card-title mb-0">{{ page_title }}</h5></div>
       <div class="orion-orion-card-body">
+
+        {% comment %} Pourquoi la liste des salaries est vide.
+
+           Un <select> vide sans un mot d'explication envoie chercher la
+           cause dans la base : trois conditions filtrent cette liste
+           (l'entreprise, is_active, et le fait de ne pas etre deja lie), et
+           chacune a un remede different. {% endcomment %}
+        {% if diagnostic_salaries.cause %}
+        <div class="alert alert-warning" role="alert">
+          <div class="fw-semibold mb-1">
+            <i class="bi bi-info-circle me-1"></i>{% trans "Aucun salarié à rattacher pour le moment" %}
+          </div>
+
+          {% if diagnostic_salaries.cause == 'sans_entreprise' %}
+            <p class="mb-2 small">
+              {% blocktrans %}Aucune entreprise n'est active sur votre session, et la
+              liste des salariés dépend d'elle. Choisissez une entreprise dans le
+              sélecteur en haut de page, puis revenez ici.{% endblocktrans %}
+            </p>
+
+          {% elif diagnostic_salaries.cause == 'aucun_salarie' %}
+            <p class="mb-2 small">
+              {% blocktrans with nom=diagnostic_salaries.company.name %}Aucune fiche
+              salarié n'existe pour « {{ nom }} ». Créez-les d'abord : un compte se
+              rattache à une fiche, il ne la crée pas.{% endblocktrans %}
+            </p>
+            <a href="{% url 'hr:employee_create' %}" class="orion-btn primary sm">
+              <i class="bi bi-person-plus me-1"></i>{% trans "Créer une fiche salarié" %}
+            </a>
+
+          {% elif diagnostic_salaries.cause == 'tous_rattaches' %}
+            <p class="mb-2 small">
+              {% blocktrans count n=diagnostic_salaries.deja_rattaches %}Le seul
+              salarié de cette entreprise a déjà un compte utilisateur.{% plural %}Les
+              {{ n }} salariés de cette entreprise ont déjà un compte
+              utilisateur.{% endblocktrans %}
+              {% blocktrans %}Une fiche salarié ne peut porter qu'un seul compte, elles
+              sont donc toutes retirées de la liste.{% endblocktrans %}
+            </p>
+            <div class="d-flex gap-2 flex-wrap">
+              <a href="{% url 'hr:employee_list' %}" class="orion-btn sm">
+                <i class="bi bi-people me-1"></i>{% trans "Voir les salariés" %}
+              </a>
+              <a href="{% url 'hr:employee_create' %}" class="orion-btn sm">
+                <i class="bi bi-person-plus me-1"></i>{% trans "Créer une fiche salarié" %}
+              </a>
+            </div>
+
+          {% elif diagnostic_salaries.cause == 'tous_desactives' %}
+            <p class="mb-2 small">
+              {% blocktrans count n=diagnostic_salaries.desactives %}La seule fiche
+              salarié de cette entreprise est désactivée.{% plural %}Les {{ n }} fiches
+              salarié de cette entreprise sont désactivées.{% endblocktrans %}
+              {% blocktrans %}Réactivez celle qui vous intéresse pour pouvoir y
+              rattacher un compte.{% endblocktrans %}
+            </p>
+            <a href="{% url 'hr:employee_list' %}" class="orion-btn sm">
+              <i class="bi bi-people me-1"></i>{% trans "Voir les salariés" %}
+            </a>
+
+          {% else %}
+            <p class="mb-2 small">
+              {% blocktrans with nom=diagnostic_salaries.company.name total=diagnostic_salaries.total lies=diagnostic_salaries.deja_rattaches inactifs=diagnostic_salaries.desactives %}« {{ nom }} »
+              compte {{ total }} fiche(s) salarié : {{ lies }} ont déjà un compte et
+              {{ inactifs }} sont désactivées. Il n'en reste donc aucune à
+              rattacher.{% endblocktrans %}
+            </p>
+            <a href="{% url 'hr:employee_list' %}" class="orion-btn sm">
+              <i class="bi bi-people me-1"></i>{% trans "Voir les salariés" %}
+            </a>
+          {% endif %}
+
+          <p class="mb-0 mt-2 small text-muted">
+            {% blocktrans %}Vous pouvez aussi créer ce compte sans fiche salarié, en
+            cochant la case prévue plus bas — pour un prestataire, un
+            expert-comptable externe ou un compte de service.{% endblocktrans %}
+          </p>
+        </div>
+        {% endif %}
+
         <form method="post">
           {% csrf_token %}
           {{ form|crispy }}

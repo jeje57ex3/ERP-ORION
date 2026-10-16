@@ -102,6 +102,20 @@ def user_list(request):
     })
 
 
+def _entier_ou_none(valeur):
+    """Convertit un parametre d'URL en entier, ou rend None.
+
+    Filtrer sur pk='abc' leve ValueError AVANT toute requete : .first() ne
+    rattrape rien, c'est la preparation du filtre qui echoue. L'ancien code
+    s'en sortait par un « except Exception » large ; en le retirant j'ai
+    casse ce cas, et un test l'a attrape.
+    """
+    try:
+        return int(valeur)
+    except (TypeError, ValueError):
+        return None
+
+
 @login_required
 def user_create(request):
     """Créer un utilisateur avec liaison salarié obligatoire pour les non-admins."""
@@ -112,14 +126,16 @@ def user_create(request):
     company = getattr(request, 'current_company', None)
 
     # Pré-sélection d'un salarié depuis ?employee=<pk>
+    #
+    # Le filtre d'entreprise manquait : « ?employee=<pk> » désignant le
+    # salarié d'une AUTRE société le pré-sélectionnait, et affichait son nom.
+    # La validation l'aurait refusé ensuite, mais le nom avait déjà fuité.
     employee_prefill = None
-    employee_pk = request.GET.get('employee')
-    if employee_pk:
-        try:
-            from apps.hr.models import Employee
-            employee_prefill = Employee.objects.get(pk=employee_pk, user__isnull=True)
-        except Exception:
-            pass
+    employee_pk = _entier_ou_none(request.GET.get('employee'))
+    if employee_pk and company:
+        from apps.hr.models import Employee
+        employee_prefill = Employee.objects.filter(
+            pk=employee_pk, company=company, user__isnull=True).first()
 
     form = UserCreateForm(
         request.POST or None,
@@ -162,6 +178,7 @@ def user_create(request):
         'form': form,
         'page_title': 'Nouvel utilisateur',
         'employee_prefill': employee_prefill,
+        'diagnostic_salaries': form.diagnostic_salaries,
     })
 
 

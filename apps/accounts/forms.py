@@ -77,15 +77,18 @@ class UserCreateForm(forms.ModelForm):
     def __init__(self, *args, company=None, employee_prefill=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company = company
-        from apps.hr.models import Employee
-        if company:
-            self.fields['employee'].queryset = Employee.objects.filter(
-                company=company, is_active=True, user__isnull=True,
-            ).order_by('last_name', 'first_name')
-        else:
-            self.fields['employee'].queryset = Employee.objects.filter(
-                is_active=True, user__isnull=True,
-            ).order_by('last_name', 'first_name')
+
+        # Une seule source pour la liste et pour son diagnostic : deux
+        # filtres écrits séparément finissent par ne plus dire la même
+        # chose, et l'écran expliquerait alors une liste qui n'est pas
+        # celle qu'il affiche.
+        from apps.accounts.services.user_employee_link_service import (
+            diagnostic_rattachement,
+            salaries_rattachables,
+        )
+        self.fields['employee'].queryset = salaries_rattachables(company)
+        self.diagnostic_salaries = diagnostic_rattachement(company)
+
         if employee_prefill:
             self.fields['employee'].initial = employee_prefill
 
