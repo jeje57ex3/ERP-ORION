@@ -15,7 +15,10 @@ class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
         fields = ['customer', 'subject', 'issue_date', 'validity_date', 'delivery_date',
-                  'payment_terms', 'discount_rate', 'notes', 'internal_notes', 'salesperson', 'status']
+                  'payment_terms', 'discount_rate',
+                  'cout_materiels', 'cout_fournitures', 'cout_main_oeuvre',
+                  'taches_principales',
+                  'notes', 'internal_notes', 'salesperson', 'status']
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
             'subject': forms.TextInput(attrs={'class': 'form-control'}),
@@ -24,6 +27,13 @@ class QuoteForm(forms.ModelForm):
             'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'payment_terms': forms.NumberInput(attrs={'class': 'form-control'}),
             'discount_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'cout_materiels': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'cout_fournitures': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'cout_main_oeuvre': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'taches_principales': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 5,
+                'placeholder': 'Une tache par ligne :\nDepose de l-ancien revetement\nRagreage du support\nPose du carrelage',
+            }),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'internal_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'salesperson': forms.Select(attrs={'class': 'form-select'}),
@@ -110,7 +120,7 @@ class QuoteTemplateFieldForm(forms.ModelForm):
     class Meta:
         model = QuoteTemplateField
         fields = ['cle', 'page', 'x', 'y', 'taille', 'gras', 'alignement',
-                  'prefixe', 'suffixe']
+                  'couleur', 'multiligne', 'prefixe', 'suffixe']
         widgets = {
             'cle': forms.Select(attrs={'class': 'form-select form-select-sm'}),
             'page': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'min': 1}),
@@ -119,6 +129,8 @@ class QuoteTemplateFieldForm(forms.ModelForm):
             'taille': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'min': 4, 'max': 72}),
             'gras': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'alignement': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'couleur': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'multiligne': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'prefixe': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
             'suffixe': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
         }

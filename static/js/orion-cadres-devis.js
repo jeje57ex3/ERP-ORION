@@ -25,6 +25,7 @@
   var CSRF = racine.dataset.csrf;
   var PAGES = JSON.parse(racine.dataset.pages || '[]');
   var VALEURS = JSON.parse(racine.dataset.valeurs || '[]');
+  var COULEURS = JSON.parse(racine.dataset.couleurs || '[]');
 
   var cadres = JSON.parse(racine.dataset.cadres || '[]');
   var pageCourante = 1;
@@ -86,7 +87,15 @@
 
       var etiquette = document.createElement('span');
       etiquette.className = 'cadre-libelle';
-      etiquette.textContent = libelleDe(cadre.cle);
+
+      var pastille = document.createElement('span');
+      pastille.className = 'cadre-pastille';
+      pastille.style.background = cadre.couleur || '#000000';
+      pastille.title = 'Couleur du texte imprime';
+      etiquette.appendChild(pastille);
+
+      etiquette.appendChild(document.createTextNode(
+        libelleDe(cadre.cle) + (cadre.multiligne ? ' (multiligne)' : '')));
       element.appendChild(etiquette);
 
       var poignee = document.createElement('span');
@@ -98,6 +107,15 @@
     });
 
     rendreInspecteur();
+  }
+
+  function optionsCouleurs() {
+    // Construites depuis la liste du modele, transmise par le gabarit : une
+    // liste recopiee ici finirait par proposer une couleur que
+    // l'enregistrement refuse.
+    return COULEURS.map(function (c) {
+      return '<option value="' + c.valeur + '">' + c.libelle + '</option>';
+    }).join('');
   }
 
   function rendreInspecteur() {
@@ -122,6 +140,11 @@
       + '    <option value="center">Centré</option>'
       + '    <option value="right">À droite</option>'
       + '  </select></label>'
+      + '<label>Couleur du texte'
+      + '  <select id="i-couleur">' + optionsCouleurs() + '</select></label>'
+      + '<label><input type="checkbox" id="i-multiligne"'
+      + (selection.multiligne ? ' checked' : '')
+      + '> Texte sur plusieurs lignes</label>'
       + '<label>Texte avant'
       + '  <input type="text" id="i-prefixe" maxlength="40" value="'
       + (selection.prefixe || '').replace(/"/g, '&quot;') + '"></label>'
@@ -137,6 +160,20 @@
       + 'Retirer ce cadre</button>';
 
     document.getElementById('i-align').value = selection.alignement || 'left';
+    document.getElementById('i-couleur').value = selection.couleur || '#000000';
+
+    document.getElementById('i-couleur')
+      .addEventListener('change', function () {
+        selection.couleur = this.value;
+        marquerModifie();
+        dessiner();
+      });
+    document.getElementById('i-multiligne')
+      .addEventListener('change', function () {
+        selection.multiligne = this.checked;
+        marquerModifie();
+        dessiner();
+      });
 
     document.getElementById('i-taille').addEventListener('input', function () {
       selection.taille = parseInt(this.value, 10) || 10;
@@ -188,6 +225,8 @@
       taille: 10,
       gras: false,
       alignement: 'left',
+      couleur: '#000000',
+      multiligne: false,
       prefixe: '',
       suffixe: '',
       x: (page.largeur - 160) / 2,

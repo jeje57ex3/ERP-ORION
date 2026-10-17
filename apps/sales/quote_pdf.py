@@ -55,6 +55,65 @@ def _format_date(valeur):
     return valeur.strftime('%d/%m/%Y') if valeur else ''
 
 
+def _format_taux(valeur):
+    """« 20 % », « 5,5 % » : sans décimale inutile, virgule française.
+
+    « 20,00 % » sur un devis se lit comme une précision affectée, et
+    « 20.0 % » comme un montant anglais.
+    """
+    nombre = Decimal(str(valeur or 0)).normalize()
+    texte = format(nombre, 'f')
+    # Le rognage ne vaut QUE pour la partie decimale. Applique sans
+    # condition, il transformait « 20 » en « 2 » et « 10 » en « 1 » :
+    # un taux faux imprime sur un devis. Attrape a la verification.
+    if '.' in texte:
+        texte = texte.rstrip('0').rstrip('.')
+    texte = texte or '0'
+    return texte.replace('.', ',') + '\u00a0%'
+
+
+def _taux_tva_appliques(quote):
+    """Le ou les taux de TVA réellement appliqués par les lignes.
+
+    Lu sur les lignes, et non saisi : c'est le taux APPLIQUÉ qui est
+    demandé, et seules les lignes le portent (QuoteLine.vat_rate). Un champ
+    saisi à part pourrait contredire le calcul, et c'est le document remis
+    au client qui mentirait.
+
+    Plusieurs taux sur un même devis sont courants en BTP — 10 % en
+    rénovation, 20 % en neuf. Ils sont alors tous nommés : n'en afficher
+    qu'un ferait du devis une pièce inexacte.
+
+    Les lignes de sous-total et de texte sont exclues : elles ne portent pas
+    de TVA, leur taux par défaut ferait apparaître un 20 % imaginaire.
+    """
+    if quote.pk:
+        taux = sorted({
+            Decimal(str(ligne.vat_rate or 0))
+            for ligne in quote.lines.all()
+            if ligne.line_type not in ('subtotal', 'text')
+        })
+        if taux:
+            return ' / '.join(_format_taux(t) for t in taux)
+
+    # Repli : le taux effectif, deduit des totaux.
+    #
+    # Deux cas l'empruntent. Le devis d'EXEMPLE de l'apercu de modele n'est
+    # pas enregistre : interroger ses lignes leve « instance needs to have a
+    # primary key » et fait tomber l'ecran qui sert justement a regler les
+    # cadres -- constate avant livraison. Et un devis reel sans ligne mais
+    # avec des totaux saisis ailleurs doit afficher quelque chose.
+    #
+    # Le melange de taux n'est pas un risque ici : s'il y avait des lignes,
+    # le chemin ci-dessus les aurait nommees une a une.
+    total_ht = Decimal(str(quote.total_ht or 0))
+    total_tva = Decimal(str(quote.total_tva or 0))
+    if total_ht <= 0 or total_tva <= 0:
+        return ''
+    return _format_taux(
+        (total_tva / total_ht * 100).quantize(Decimal('0.01')))
+
+
 def valeurs_du_devis(quote):
     """Les valeurs injectables, prêtes à écrire.
 
@@ -94,7 +153,22 @@ def valeurs_du_devis(quote):
         'objet': quote.subject or '',
         'total_ht': _format_montant(quote.total_ht),
         'total_tva': _format_montant(quote.total_tva),
+        'taux_tva': _taux_tva_appliques(quote),
         'total_ttc': _format_montant(quote.total_ttc),
+        # Les trois couts a zero n'impriment rien : un cadre sans valeur
+        # reste vide (voir _texte_du_champ). « 0,00 EUR » de materiel sur un
+        # devis de maconnerie serait lu comme une erreur, pas comme un
+        # champ non renseigne.
+        'cout_materiels': (
+            _format_montant(quote.cout_materiels)
+            if quote.cout_materiels else ''),
+        'cout_fournitures': (
+            _format_montant(quote.cout_fournitures)
+            if quote.cout_fournitures else ''),
+        'cout_main_oeuvre': (
+            _format_montant(quote.cout_main_oeuvre)
+            if quote.cout_main_oeuvre else ''),
+        'taches_principales': (quote.taches_principales or '').strip(),
         'delai_paiement': str(quote.payment_terms or ''),
         'commercial': nom_commercial,
     }
@@ -155,6 +229,61 @@ def _police(champ):
     return 'Helvetica-Bold' if champ.gras else 'Helvetica'
 
 
+def _couleur(champ):
+    """La couleur du texte, en composantes 0–1 pour reportlab.
+
+    Tolère une valeur absente ou mal formée en retombant sur le noir : un
+    réglage douteux ne doit pas faire échouer la génération d'un devis.
+    """
+    brut = (getattr(champ, 'couleur', '') or '#000000').lstrip('#')
+    if len(brut) != 6:
+        brut = '000000'
+    try:
+        rouge, vert, bleu = (int(brut[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        rouge = vert = bleu = 0
+    return rouge / 255.0, vert / 255.0, bleu / 255.0
+
+
+def _lignes_du_cadre(feuille, champ, texte, taille):
+    """Découpe le texte en lignes qui tiennent dans la largeur du cadre.
+
+    Les retours à la ligne saisis sont respectés — une liste de tâches est
+    écrite une par ligne, et les recoller en un paragraphe perdrait
+    l'information. Chaque paragraphe est ensuite coupé aux espaces.
+
+    Un mot plus long que le cadre est laissé sur sa ligne et dépassera : le
+    couper au milieu rendrait une référence illisible, et le débordement se
+    voit — donc se corrige.
+    """
+    police = _police(champ)
+    largeur = float(champ.largeur or 0)
+    lignes = []
+
+    for paragraphe in texte.splitlines():
+        paragraphe = paragraphe.strip()
+        if not paragraphe:
+            lignes.append('')
+            continue
+        if largeur <= 0:
+            lignes.append(paragraphe)
+            continue
+
+        courante = ''
+        for mot in paragraphe.split():
+            essai = f'{courante} {mot}'.strip()
+            if feuille.stringWidth(essai, police, taille) <= largeur:
+                courante = essai
+            else:
+                if courante:
+                    lignes.append(courante)
+                courante = mot
+        if courante:
+            lignes.append(courante)
+
+    return lignes
+
+
 def _taille_qui_tient(feuille, champ, texte):
     """La plus grande taille qui tient dans la largeur du cadre.
 
@@ -179,6 +308,57 @@ def _taille_qui_tient(feuille, champ, texte):
     return taille
 
 
+INTERLIGNE = 1.22
+"""Hauteur d'une ligne, en multiples de la taille du texte.
+
+1,0 collerait les lignes jambages contre accents ; au-dela de 1,3 une liste
+de taches se disperse et ne se lit plus comme un bloc.
+"""
+
+
+def _ecrire_ligne(feuille, champ, texte, gauche, ligne_de_base, largeur):
+    """Une ligne, posee selon l'alignement du cadre."""
+    if champ.alignement == 'right':
+        feuille.drawRightString(gauche + largeur, ligne_de_base, texte)
+    elif champ.alignement == 'center':
+        feuille.drawCentredString(gauche + largeur / 2, ligne_de_base, texte)
+    else:
+        feuille.drawString(gauche, ligne_de_base, texte)
+
+
+def _ecrire_multiligne(feuille, champ, texte, gauche, bas, largeur, hauteur):
+    """Un bloc de texte, rempli du HAUT du cadre vers le bas.
+
+    Du haut, et non centre : une liste de taches doit commencer sous le
+    coût de main-d'oeuvre, a un endroit previsible. Centree verticalement,
+    elle se deplacerait a chaque tache ajoutee.
+
+    La taille est reduite tant que le bloc depasse la hauteur du cadre,
+    jusqu'a 5 points. En dessous, on laisse deborder : un debordement se
+    voit et se corrige, un texte de 3 points ne se lit pas.
+    """
+    taille = int(champ.taille or 10)
+    while True:
+        lignes = _lignes_du_cadre(feuille, champ, texte, taille)
+        besoin = len(lignes) * taille * INTERLIGNE
+        if taille <= 5 or hauteur <= 0 or besoin <= hauteur:
+            break
+        taille -= 1
+
+    feuille.setFont(_police(champ), taille)
+
+    # La premiere ligne de base est sous le haut du cadre, de la hauteur
+    # d'une majuscule : la poser SUR le haut ferait sortir le texte du
+    # cadre dessine a l'ecran.
+    haut = bas + hauteur if hauteur > 0 else bas
+    ligne_de_base = haut - taille
+    for ligne in lignes:
+        if ligne:
+            _ecrire_ligne(feuille, champ, ligne, gauche, ligne_de_base,
+                          largeur)
+        ligne_de_base -= taille * INTERLIGNE
+
+
 def _page_de_texte(champs, valeurs, largeur, hauteur):
     """Une page transparente ne portant que le texte à superposer."""
     from reportlab.pdfgen import canvas
@@ -191,13 +371,20 @@ def _page_de_texte(champs, valeurs, largeur, hauteur):
         if not texte:
             continue
 
-        taille = _taille_qui_tient(feuille, champ, texte)
-        feuille.setFont(_police(champ), taille)
-
         gauche = float(champ.x)
         bas = float(champ.y)
         largeur_cadre = float(champ.largeur or 0)
         hauteur_cadre = float(champ.hauteur or 0)
+
+        feuille.setFillColorRGB(*_couleur(champ))
+
+        if getattr(champ, 'multiligne', False):
+            _ecrire_multiligne(feuille, champ, texte, gauche, bas,
+                               largeur_cadre, hauteur_cadre)
+            continue
+
+        taille = _taille_qui_tient(feuille, champ, texte)
+        feuille.setFont(_police(champ), taille)
 
         # La ligne de base, et non le bord du cadre : poser le texte sur « bas »
         # le ferait reposer sur le bord inferieur, jambages compris, et il
@@ -208,13 +395,8 @@ def _page_de_texte(champs, valeurs, largeur, hauteur):
         else:
             ligne_de_base = bas
 
-        if champ.alignement == 'right':
-            feuille.drawRightString(gauche + largeur_cadre, ligne_de_base, texte)
-        elif champ.alignement == 'center':
-            feuille.drawCentredString(
-                gauche + largeur_cadre / 2, ligne_de_base, texte)
-        else:
-            feuille.drawString(gauche, ligne_de_base, texte)
+        _ecrire_ligne(feuille, champ, texte, gauche, ligne_de_base,
+                      largeur_cadre)
 
     feuille.save()
     tampon.seek(0)
@@ -417,6 +599,18 @@ def devis_exemple(company):
         total_ht=Decimal('12400.00'),
         total_tva=Decimal('2480.00'),
         total_ttc=Decimal('14880.00'),
+        # Renseignes, sinon les cadres de la decomposition resteraient
+        # vides a l'apercu -- et l'on ne pourrait pas verifier leur
+        # placement, qui est la seule raison d'etre de cet ecran.
+        cout_materiels=Decimal('5200.00'),
+        cout_fournitures=Decimal('1450.00'),
+        cout_main_oeuvre=Decimal('5750.00'),
+        taches_principales=(
+            'Depose de l’ancien revetement de sol\n'
+            'Ragreage et preparation du support\n'
+            'Pose du carrelage grand format\n'
+            'Joints et finitions, evacuation des gravats'
+        ),
     )
     return quote
 
