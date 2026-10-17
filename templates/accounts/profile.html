@@ -72,6 +72,36 @@
               <label class="form-label">{% trans 'Avatar' %}</label>
               <input type="file" name="avatar" class="form-control" accept="image/*">
             </div>
+            {# La signature est reprise automatiquement sur les devis que
+               cette personne etablit : elle se depose une fois ici, et non
+               a chaque devis. #}
+            <div class="col-12">
+              <label class="form-label">{% trans 'Signature' %}</label>
+              {% if request.user.profile.signature %}
+              <div class="mb-2 p-2 border rounded bg-white" style="max-width:280px">
+                <img src="{{ request.user.profile.signature.url }}"
+                     alt="{% trans 'Signature enregistrée' %}"
+                     style="max-width:100%;max-height:70px;object-fit:contain">
+              </div>
+              {% endif %}
+              <input type="file" name="signature" class="form-control"
+                     accept="image/png,image/jpeg,image/webp">
+              <div class="form-text">
+                {% blocktrans %}Reprise automatiquement sur les devis que vous
+                établissez, à l'endroit où le cadre « Signature » est posé sur le
+                modèle. Un PNG à fond transparent donne le meilleur résultat : un
+                fond blanc masquerait ce qui se trouve dessous.{% endblocktrans %}
+              </div>
+              {% if request.user.profile.signature %}
+              <div class="form-check mt-2">
+                <input type="checkbox" name="signature-clear" class="form-check-input"
+                       id="signature-clear">
+                <label class="form-check-label small" for="signature-clear">
+                  {% trans 'Retirer la signature enregistrée' %}
+                </label>
+              </div>
+              {% endif %}
+            </div>
             <div class="col-12">
               <button type="submit" class="orion-btn primary">
                 <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}

@@ -21,6 +21,15 @@ from decimal import Decimal
 
 from django.utils import timezone
 
+CLES_IMAGE = {'signature'}
+"""Les cles dont la valeur est une IMAGE et non du texte.
+
+Recopiee de QuoteTemplateField.CLES_IMAGE, et gardee ici pour que ce module
+reste eprouvable sans toucher aux modeles -- c'est ce qui permet de tester
+le dessin avec de simples objets en memoire. Un test verifie que les deux
+listes concordent.
+"""
+
 
 # ─── Les valeurs disponibles ─────────────────────────────────────────────────
 
@@ -55,12 +64,24 @@ def _format_date(valeur):
     return valeur.strftime('%d/%m/%Y') if valeur else ''
 
 
-def _format_taux(valeur):
-    """« 20 % », « 5,5 % » : sans décimale inutile, virgule française.
+def _format_nombre(valeur):
+    """Un nombre sans décimale inutile, virgule française.
 
-    « 20,00 % » sur un devis se lit comme une précision affectée, et
-    « 20.0 % » comme un montant anglais.
+    « 40 » et non « 40,000 » pour une quantité, « 5,5 » et non « 5,50 »
+    pour un taux. Sur un devis, les zéros de remplissage se lisent comme
+    une précision affectée.
     """
+    nombre = Decimal(str(valeur or 0)).normalize()
+    texte = format(nombre, 'f')
+    # Le rognage ne vaut QUE pour la partie decimale. Applique sans
+    # condition, il transformait « 20 » en « 2 » et « 10 » en « 1 ».
+    if '.' in texte:
+        texte = texte.rstrip('0').rstrip('.')
+    return (texte or '0').replace('.', ',')
+
+
+def _format_taux(valeur):
+    """« 20 % », « 5,5 % » : sans décimale inutile, virgule française."""
     nombre = Decimal(str(valeur or 0)).normalize()
     texte = format(nombre, 'f')
     # Le rognage ne vaut QUE pour la partie decimale. Applique sans
@@ -112,6 +133,80 @@ def _taux_tva_appliques(quote):
         return ''
     return _format_taux(
         (total_tva / total_ht * 100).quantize(Decimal('0.01')))
+
+
+def _detail_des_lignes(quote, nature):
+    """Un bloc de texte : une ligne par article, avec quantité et PU HT.
+
+    Le séparateur est le tiret cadratin et le signe multiplié — tous deux
+    présents dans WinAnsi, contrairement à U+202F qui s'imprimait en carré
+    noir. Vérifié par un test qui rend réellement la page.
+
+    Le « € » est écrit dans la ligne, et non laissé au suffixe du cadre :
+    le suffixe ne peut se placer qu'à la fin du bloc entier, pas après
+    chaque montant.
+    """
+    if not quote.pk:
+        # Le devis d'exemple de l'apercu n'est pas enregistre : interroger
+        # ses lignes leverait « instance needs to have a primary key » et
+        # ferait tomber l'ecran qui sert a regler les cadres. Deja paye une
+        # fois sur le taux de TVA.
+        return ''
+
+    lignes = [
+        ligne for ligne in quote.detail_lines.all()
+        if ligne.nature == nature
+    ]
+    return '\n'.join(
+        '%s \u2014 %s %s \u00d7 %s\u00a0\u20ac' % (
+            ligne.designation,
+            _format_nombre(ligne.quantity),
+            ligne.unit,
+            _format_montant(ligne.unit_price),
+        )
+        for ligne in lignes
+    )
+
+
+def images_du_devis(quote):
+    """Les valeurs qui sont des IMAGES, et non du texte.
+
+    Pour l'instant la seule est la signature, prise sur le compte de la
+    personne qui établit le devis — le commercial s'il est renseigné, sinon
+    l'auteur. La même règle que pour le nom du commercial, afin que le nom
+    imprimé et la signature apposée désignent toujours la même personne.
+
+    Les octets sont lus une fois et gardés en mémoire : un FieldFile refermé
+    ne se réouvre pas, et reportlab lit son image au moment du dessin, bien
+    après.
+    """
+    auteur = quote.salesperson or quote.created_by
+    fichier = None
+    if auteur is not None:
+        try:
+            fichier = auteur.profile.signature or None
+        except Exception:
+            fichier = None
+
+    return {'signature': _octets_de_l_image(fichier)}
+
+
+def _octets_de_l_image(fichier):
+    """Les octets d'un fichier image, ou None.
+
+    Tolérant par construction : une signature manquante, supprimée du
+    disque ou illisible ne doit pas empêcher l'édition d'un devis. Le cadre
+    reste alors vide, ce qui se voit — plutôt qu'une erreur 500 au moment
+    d'imprimer.
+    """
+    if not fichier:
+        return None
+    try:
+        with fichier.open('rb') as flux:
+            octets = flux.read()
+    except Exception:
+        return None
+    return io.BytesIO(octets) if octets else None
 
 
 def valeurs_du_devis(quote):
@@ -169,8 +264,16 @@ def valeurs_du_devis(quote):
             _format_montant(quote.cout_main_oeuvre)
             if quote.cout_main_oeuvre else ''),
         'taches_principales': (quote.taches_principales or '').strip(),
+        'designation_materiels': _detail_des_lignes(quote, 'materiel'),
+        'designation_fournitures': _detail_des_lignes(quote, 'fourniture'),
         'delai_paiement': str(quote.payment_terms or ''),
         'commercial': nom_commercial,
+        # La signature est une IMAGE : sa valeur texte reste vide pour que
+        # le chemin texte n'ecrive rien, et le dessin la prend dans
+        # images_du_devis(). La cle figure tout de meme ici, car chaque cle
+        # placable doit avoir une entree -- sinon un cadre poserait une
+        # valeur inexistante.
+        'signature': '',
     }
 
 
@@ -359,14 +462,47 @@ def _ecrire_multiligne(feuille, champ, texte, gauche, bas, largeur, hauteur):
         ligne_de_base -= taille * INTERLIGNE
 
 
-def _page_de_texte(champs, valeurs, largeur, hauteur):
-    """Une page transparente ne portant que le texte à superposer."""
+def _dessiner_image(feuille, flux, gauche, bas, largeur, hauteur):
+    """Pose l'image DANS le cadre, en gardant ses proportions.
+
+    preserveAspectRatio, et c'est le point : une signature etiree a la
+    largeur du cadre ne ressemble plus a la signature de personne. Elle est
+    donc inscrite dans le cadre et centree, quitte a laisser du vide.
+
+    mask='auto' honore la transparence d'un PNG : sans lui, un fond
+    transparent devient blanc et masque le modele en dessous.
+    """
+    from reportlab.lib.utils import ImageReader
+
+    if largeur <= 0 or hauteur <= 0:
+        return
+    try:
+        flux.seek(0)
+        image = ImageReader(flux)
+    except Exception:
+        # Un fichier illisible ne doit pas empecher d'editer le devis.
+        return
+    feuille.drawImage(image, gauche, bas, width=largeur, height=hauteur,
+                      mask='auto', preserveAspectRatio=True, anchor='c')
+
+
+def _page_de_texte(champs, valeurs, largeur, hauteur, images=None):
+    """Une page transparente ne portant que ce qui se superpose au modèle."""
     from reportlab.pdfgen import canvas
 
+    images = images or {}
     tampon = io.BytesIO()
     feuille = canvas.Canvas(tampon, pagesize=(largeur, hauteur))
 
     for champ in champs:
+        if champ.cle in CLES_IMAGE:
+            flux = images.get(champ.cle)
+            if flux is not None:
+                _dessiner_image(
+                    feuille, flux, float(champ.x), float(champ.y),
+                    float(champ.largeur or 0), float(champ.hauteur or 0))
+            continue
+
         texte = _texte_du_champ(champ, valeurs)
         if not texte:
             continue
@@ -398,6 +534,18 @@ def _page_de_texte(champs, valeurs, largeur, hauteur):
         _ecrire_ligne(feuille, champ, texte, gauche, ligne_de_base,
                       largeur_cadre)
 
+    # showPage() AVANT save(), et sans condition : un canvas sur lequel rien
+    # n'a ete dessine produit un document de ZERO page, et le fusionneur
+    # fait « PdfReader(calque).pages[0] » -- donc IndexError, et toute la
+    # generation du devis echoue.
+    #
+    # L'appelant filtrait deja les champs sans valeur, mais ce filtre ne
+    # peut pas tout prevoir : une signature dont le fichier existe mais ne
+    # se decode pas passe le filtre, puis ne dessine rien. Mesure faite :
+    # showPage() donne exactement une page dans les quatre cas (avec ou sans
+    # dessin, avec ou sans appel prealable). La garantie est donc ici, et
+    # non plus suspendue a la vigilance du filtre.
+    feuille.showPage()
     feuille.save()
     tampon.seek(0)
     return tampon
@@ -417,6 +565,7 @@ def remplir_modele(quote, template, champs=None):
     from pypdf import PdfReader, PdfWriter
 
     valeurs = valeurs_du_devis(quote)
+    images = images_du_devis(quote)
     if champs is None:
         champs = list(template.fields.all())
     else:
@@ -444,15 +593,23 @@ def remplir_modele(quote, template, champs=None):
         # Verifie : un canvas reportlab sur lequel rien n'est dessine produit
         # un document de ZERO page, et « pages[0] » levait alors IndexError --
         # toute la generation echouait pour un client sans code ni email.
+        # Les champs PORTEURS DE VALEUR : un texte non vide, OU une image
+        # disponible. Le filtre ne regardait que le texte, et la signature
+        # -- dont la valeur texte est vide par construction -- aurait ete
+        # ecartee ici sans jamais etre dessinee.
         champs_de_la_page = [
             c for c in champs
-            if c.page == index and _texte_du_champ(c, valeurs)
+            if c.page == index and (
+                images.get(c.cle) is not None if c.cle in CLES_IMAGE
+                else _texte_du_champ(c, valeurs)
+            )
         ]
         if champs_de_la_page:
             boite = page.mediabox
             texte = _page_de_texte(
                 champs_de_la_page, valeurs,
                 float(boite.width), float(boite.height),
+                images=images,
             )
             page.merge_page(PdfReader(texte).pages[0])
         ecrivain.add_page(page)

@@ -40,11 +40,14 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = [
             'phone', 'mobile', 'job_title', 'department',
-            'avatar', 'bio', 'language', 'items_per_page',
+            'avatar', 'signature', 'bio', 'language', 'items_per_page',
             'email_notifications',
         ]
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 3}),
+            'signature': forms.ClearableFileInput(attrs={
+                'accept': 'image/png,image/jpeg,image/webp',
+            }),
         }
 
 
