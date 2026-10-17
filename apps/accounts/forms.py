@@ -38,16 +38,18 @@ class UserForm(forms.ModelForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
+        # La signature n'est PAS ici : elle se trace dans un cadre et
+        # s'enregistre par sa propre adresse (accounts:signature_save), qui
+        # verifie notamment qu'un cadre vide n'est pas accepte. La laisser
+        # aussi dans ce formulaire ferait deux chemins d'ecriture pour le
+        # meme champ, dont un sans ce controle.
         fields = [
             'phone', 'mobile', 'job_title', 'department',
-            'avatar', 'signature', 'bio', 'language', 'items_per_page',
+            'avatar', 'bio', 'language', 'items_per_page',
             'email_notifications',
         ]
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 3}),
-            'signature': forms.ClearableFileInput(attrs={
-                'accept': 'image/png,image/jpeg,image/webp',
-            }),
         }
 
 

@@ -561,12 +561,22 @@ def test_sans_signature_le_devis_se_genere_quand_meme(devis, modele,
     assert tampon.read(5).startswith(b'%PDF')
 
 
-def test_le_profil_permet_de_deposer_sa_signature(connecte):
+def test_le_profil_permet_d_enregistrer_sa_signature(connecte):
+    """La signature se TRACE dans un cadre ; elle ne se televerse plus.
+
+    Ce test visait le champ fichier du formulaire de profil. La signature a
+    ete sortie de ce formulaire pour avoir sa propre adresse, qui refuse un
+    cadre vide -- deux chemins d'ecriture, dont un sans ce controle,
+    auraient fini par laisser passer une signature invisible. Le detail du
+    trace est eprouve dans tests/test_signature_tracee.py.
+    """
     from apps.accounts.forms import UserProfileForm
 
-    assert 'signature' in UserProfileForm.base_fields
+    assert 'signature' not in UserProfileForm.base_fields
+
     corps = connecte.get(reverse('accounts:profile')).content.decode()
-    assert 'name="signature"' in corps
+    assert 'toile-signature' in corps
+    assert reverse('accounts:signature_save') in corps
 
 
 # ═══ COHÉRENCE ══════════════════════════════════════════════════════════════

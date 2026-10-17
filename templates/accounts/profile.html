@@ -76,39 +76,83 @@
                cette personne etablit : elle se depose une fois ici, et non
                a chaque devis. #}
             <div class="col-12">
-              <label class="form-label">{% trans 'Signature' %}</label>
-              {% if request.user.profile.signature %}
-              <div class="mb-2 p-2 border rounded bg-white" style="max-width:280px">
-                <img src="{{ request.user.profile.signature.url }}"
-                     alt="{% trans 'Signature enregistrée' %}"
-                     style="max-width:100%;max-height:70px;object-fit:contain">
-              </div>
-              {% endif %}
-              <input type="file" name="signature" class="form-control"
-                     accept="image/png,image/jpeg,image/webp">
-              <div class="form-text">
-                {% blocktrans %}Reprise automatiquement sur les devis que vous
-                établissez, à l'endroit où le cadre « Signature » est posé sur le
-                modèle. Un PNG à fond transparent donne le meilleur résultat : un
-                fond blanc masquerait ce qui se trouve dessous.{% endblocktrans %}
-              </div>
-              {% if request.user.profile.signature %}
-              <div class="form-check mt-2">
-                <input type="checkbox" name="signature-clear" class="form-check-input"
-                       id="signature-clear">
-                <label class="form-check-label small" for="signature-clear">
-                  {% trans 'Retirer la signature enregistrée' %}
-                </label>
-              </div>
-              {% endif %}
-            </div>
-            <div class="col-12">
               <button type="submit" class="orion-btn primary">
                 <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}
               </button>
             </div>
           </div>
         </form>
+
+        {# La signature se trace, elle ne se televerse plus.
+
+           Hors du formulaire de profil, et c'est necessaire : elle
+           s'enregistre par sa propre adresse, qui verifie qu'un cadre vide
+           n'est pas accepte. Une toile vierge produit un PNG parfaitement
+           valide et entierement transparent -- enregistre, l'ecran dirait
+           « signature enregistree » alors que les devis sortiraient sans
+           rien a l'emplacement prevu. #}
+        <hr class="my-4">
+
+        <div id="cadre-signature"
+             data-url-enregistrer="{% url 'accounts:signature_save' %}"
+             data-csrf="{{ csrf_token }}">
+          <label class="form-label fw-semibold">{% trans 'Signature' %}</label>
+          <p class="form-text mt-0">
+            {% blocktrans %}Tracez votre signature dans le cadre, au doigt ou à la
+            souris. Elle sera reprise automatiquement sur les devis que vous
+            établissez, à l'endroit où le cadre « Signature » est posé sur votre
+            modèle.{% endblocktrans %}
+          </p>
+
+          <div class="signature-apercu mb-3" {% if not request.user.profile.signature %}hidden{% endif %}>
+            <div class="small text-muted mb-1">{% trans 'Signature enregistrée' %}</div>
+            <div class="p-2 border rounded bg-white" style="max-width:280px">
+              <img id="signature-apercu"
+                   src="{% if request.user.profile.signature %}{{ request.user.profile.signature.url }}{% endif %}"
+                   alt="{% trans 'Signature enregistrée' %}"
+                   style="max-width:100%;max-height:70px;object-fit:contain">
+            </div>
+          </div>
+
+          {# touch-action:none, sinon le doigt fait defiler la page au lieu
+             de tracer. Le fond est en damier clair pour qu'on voie que la
+             toile est TRANSPARENTE, et non blanche. #}
+          <canvas id="toile-signature" width="900" height="300"
+                  style="width:100%;max-width:450px;height:150px;
+                         touch-action:none;cursor:crosshair;
+                         border:1.5px dashed var(--orion-border,#c9c4bb);
+                         border-radius:10px;
+                         background-image:linear-gradient(45deg,#f1efea 25%,transparent 25%,transparent 75%,#f1efea 75%),linear-gradient(45deg,#f1efea 25%,transparent 25%,transparent 75%,#f1efea 75%);
+                         background-size:14px 14px;
+                         background-position:0 0,7px 7px"></canvas>
+
+          <div class="d-flex gap-2 align-items-center flex-wrap mt-2">
+            <button type="button" id="signature-enregistrer" class="orion-btn primary sm">
+              <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer la signature' %}
+            </button>
+            <button type="button" id="signature-effacer" class="orion-btn sm">
+              <i class="bi bi-eraser me-1"></i>{% trans 'Effacer le cadre' %}
+            </button>
+            {% if request.user.profile.signature %}
+            {# POST et non lien : un GET destructeur se declenche au survol,
+               a l'indexation ou au passage d'un antivirus. #}
+            <form method="post" action="{% url 'accounts:signature_delete' %}"
+                  onsubmit="return confirm('{% trans "Retirer la signature enregistrée ?" %}')">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn danger sm">
+                <i class="bi bi-trash me-1"></i>{% trans 'Retirer' %}
+              </button>
+            </form>
+            {% endif %}
+            <span id="signature-etat" class="signature-etat small"></span>
+          </div>
+        </div>
+
+        <style>
+          .signature-etat.ok { color: var(--orion-success, #16a34a) }
+          .signature-etat.erreur { color: var(--orion-danger, #b43b3b) }
+        </style>
+        <script src="{% static 'js/orion-signature.js' %}"></script>
       </div>
     </div>
   </div>
