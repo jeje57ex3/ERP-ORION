@@ -25,6 +25,48 @@
           </div>
         </div>
       </div>
+      {# Decomposition du chiffrage. Elle N'ENTRE PAS dans le total, qui
+         vient des lignes : ces montants disent comment le prix est compose.
+         Les additionner ici doublerait le devis. #}
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header">
+          <h6 class="card-title"><i class="bi bi-diagram-3 me-1 text-primary"></i>{% trans "Décomposition du chiffrage" %}</h6>
+        </div>
+        <div class="p-3">
+          <p class="small text-muted">
+            {% blocktrans %}Ces montants s'impriment sur le devis à l'endroit où vous
+            avez posé leur cadre. Ils n'entrent pas dans le total, qui reste calculé
+            depuis les lignes.{% endblocktrans %}
+          </p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Coût global matériels HT" %}</label>
+              {{ form.cout_materiels }}
+              {{ form.cout_materiels.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Coût fournitures HT" %}</label>
+              {{ form.cout_fournitures }}
+              {{ form.cout_fournitures.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Coût main d'œuvre HT" %}</label>
+              {{ form.cout_main_oeuvre }}
+              {{ form.cout_main_oeuvre.errors }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Tâches principales" %}</label>
+              {{ form.taches_principales }}
+              <div class="form-text">
+                {% blocktrans %}Une tâche par ligne. Elles s'impriment sous le coût de
+                main-d'œuvre, dans le cadre « Tâches principales » — qui doit être
+                coché « plusieurs lignes » dans l'éditeur de cadres.{% endblocktrans %}
+              </div>
+              {{ form.taches_principales.errors }}
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="erp-card mb-3">
         <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
         <div class="p-3">

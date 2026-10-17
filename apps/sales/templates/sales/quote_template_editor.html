@@ -40,6 +40,7 @@
      data-pages="{{ pages_json }}"
      data-valeurs="{{ valeurs_json }}"
      data-cadres="{{ cadres_json }}"
+     data-couleurs="{{ couleurs_json }}"
      class="editeur-devis">
 
   <aside class="editeur-colonne">
@@ -126,6 +127,13 @@
   #inspecteur input[type=checkbox] { width:auto; margin-right:6px }
   .inspecteur-titre { font-weight:600; font-size:13px; margin-bottom:10px;
                       color:var(--orion-accent) }
+
+  /* La pastille dit de quelle couleur le texte s'imprimera. Un cadre blanc
+     pose sur un bandeau blanc est sinon indiscernable d'un cadre noir, et
+     l'on ne comprend pas pourquoi « rien ne s'affiche ». */
+  .cadre-pastille { display:inline-block; width:8px; height:8px;
+                    border-radius:50%; border:1px solid rgba(0,0,0,.45);
+                    margin-right:4px; vertical-align:middle }
 
   .etat { font-size:12px; margin-right:10px; color:var(--orion-text-muted) }
   .etat.en-attente { color:#c9a24d }

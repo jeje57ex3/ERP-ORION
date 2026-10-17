@@ -298,6 +298,8 @@ def quote_template_editor(request, pk):
             'taille': champ.taille,
             'gras': champ.gras,
             'alignement': champ.alignement,
+            'couleur': champ.couleur,
+            'multiligne': champ.multiligne,
             'prefixe': champ.prefixe,
             'suffixe': champ.suffixe,
         }
@@ -307,6 +309,14 @@ def quote_template_editor(request, pk):
     valeurs = [
         {'cle': cle, 'libelle': str(libelle)}
         for cle, libelle in QuoteTemplateField.CLES
+    ]
+
+    # Les couleurs viennent du MODELE, pas d'une liste recopiee dans le
+    # JavaScript : deux listes finissent par differer, et l'ecran
+    # proposerait alors une couleur que l'enregistrement refuse.
+    couleurs = [
+        {'valeur': valeur, 'libelle': str(libelle)}
+        for valeur, libelle in QuoteTemplateField.COULEURS
     ]
 
     # Un gabarit d'adresse avec un jeton a substituer cote navigateur : le
@@ -324,6 +334,7 @@ def quote_template_editor(request, pk):
         'cadres_json': json.dumps(cadres, ensure_ascii=False),
         'pages_json': json.dumps(pages, ensure_ascii=False),
         'valeurs_json': json.dumps(valeurs, ensure_ascii=False),
+        'couleurs_json': json.dumps(couleurs, ensure_ascii=False),
         'valeurs': valeurs,
         'url_image': url_image,
     })
@@ -356,6 +367,10 @@ def quote_template_save_frames(request, pk):
 
     cles_connues = {cle for cle, _ in QuoteTemplateField.CLES}
     alignements = {'left', 'right', 'center'}
+    # L'enregistrement REMPLACE tous les cadres. La couleur et le multiligne
+    # doivent donc voyager avec eux : les laisser au seul formulaire les
+    # ferait effacer au premier passage par l'editeur visuel.
+    couleurs = {valeur for valeur, _ in QuoteTemplateField.COULEURS}
     nombre_pages = len(dimensions_des_pages(modele)) or 1
 
     a_creer = []
@@ -406,6 +421,11 @@ def quote_template_save_frames(request, pk):
                 cadre.get('alignement')
                 if cadre.get('alignement') in alignements else 'left'
             ),
+            couleur=(
+                cadre.get('couleur')
+                if cadre.get('couleur') in couleurs else '#000000'
+            ),
+            multiligne=bool(cadre.get('multiligne')),
             prefixe=str(cadre.get('prefixe') or '')[:40],
             suffixe=str(cadre.get('suffixe') or '')[:40],
         ))

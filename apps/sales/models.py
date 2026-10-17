@@ -1,6 +1,8 @@
 """
 apps/sales/models.py — Devis, Commandes, Factures, Avoirs
 """
+from decimal import Decimal
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -32,6 +34,34 @@ class Quote(models.Model):
     internal_notes = models.TextField('Notes internes', blank=True)
     payment_terms = models.PositiveIntegerField('Délai paiement (j)', default=30)
     discount_rate = models.DecimalField('Remise globale %', max_digits=5, decimal_places=2, default=0)
+
+    # ── Décomposition du chiffrage ────────────────────────────────────────────
+    #
+    # Saisis, et non calculés : les lignes d'un devis Ventes ne portent pas
+    # de quoi distinguer un matériau d'une fourniture ni d'une heure de
+    # main-d'œuvre (QuoteLine.line_type ne connaît que produit, service,
+    # sous-total et texte). Les déduire reviendrait à inventer une
+    # classification, et un devis remis au client afficherait alors des
+    # montants que personne n'a validés.
+    #
+    # Ils ne sont PAS additionnés dans les totaux : le total vient des
+    # lignes. Ces trois champs expliquent comment le prix est composé, ils
+    # ne le fabriquent pas — les compter deux fois doublerait le devis.
+    cout_materiels = models.DecimalField(
+        'Coût global matériels HT', max_digits=12, decimal_places=2, default=0,
+        help_text='Pour affichage sur le devis. N’entre pas dans le total, '
+                  'qui vient des lignes.')
+    cout_fournitures = models.DecimalField(
+        'Coût fournitures HT', max_digits=12, decimal_places=2, default=0,
+        help_text='Pour affichage sur le devis.')
+    cout_main_oeuvre = models.DecimalField(
+        'Coût main d’œuvre HT', max_digits=12, decimal_places=2, default=0,
+        help_text='Pour affichage sur le devis.')
+    taches_principales = models.TextField(
+        'Tâches principales', blank=True,
+        help_text='Une tâche par ligne. Elles s’impriment sous le coût de '
+                  'main-d’œuvre, dans le cadre prévu à cet effet.')
+
     total_ht = models.DecimalField('Total HT', max_digits=12, decimal_places=2, default=0)
     total_tva = models.DecimalField('Total TVA', max_digits=12, decimal_places=2, default=0)
     total_ttc = models.DecimalField('Total TTC', max_digits=12, decimal_places=2, default=0)
@@ -79,9 +109,18 @@ class QuoteLine(models.Model):
         ordering = ['order']
 
     def save(self, *args, **kwargs):
-        pu_after_discount = self.unit_price * (1 - self.discount_rate / 100)
-        self.total_ht = pu_after_discount * self.quantity
-        self.total_tva = self.total_ht * self.vat_rate / 100
+        # Tout en Decimal, et ces conversions ont une raison precise : le
+        # defaut Python d'un DecimalField est l'ENTIER 0. « 0 / 100 » donne
+        # alors un float, « 1 - 0.0 » reste un float, et « Decimal * float »
+        # leve TypeError. Une ligne creee sans remise explicite -- le cas
+        # courant -- ne pouvait donc pas etre enregistree du tout.
+        remise = Decimal(str(self.discount_rate or 0))
+        prix = Decimal(str(self.unit_price or 0))
+        quantite = Decimal(str(self.quantity or 0))
+        taux = Decimal(str(self.vat_rate or 0))
+        prix_remise = prix * (Decimal('1') - remise / Decimal('100'))
+        self.total_ht = prix_remise * quantite
+        self.total_tva = self.total_ht * taux / Decimal('100')
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -274,9 +313,18 @@ class InvoiceLine(models.Model):
         ordering = ['order']
 
     def save(self, *args, **kwargs):
-        pu = self.unit_price * (1 - self.discount_rate / 100)
-        self.total_ht = pu * self.quantity
-        self.total_tva = self.total_ht * self.vat_rate / 100
+        # Tout en Decimal, et ces conversions ont une raison precise : le
+        # defaut Python d'un DecimalField est l'ENTIER 0. « 0 / 100 » donne
+        # alors un float, « 1 - 0.0 » reste un float, et « Decimal * float »
+        # leve TypeError. Une ligne creee sans remise explicite -- le cas
+        # courant -- ne pouvait donc pas etre enregistree du tout.
+        remise = Decimal(str(self.discount_rate or 0))
+        prix = Decimal(str(self.unit_price or 0))
+        quantite = Decimal(str(self.quantity or 0))
+        taux = Decimal(str(self.vat_rate or 0))
+        prix_remise = prix * (Decimal('1') - remise / Decimal('100'))
+        self.total_ht = prix_remise * quantite
+        self.total_tva = self.total_ht * taux / Decimal('100')
         super().save(*args, **kwargs)
 
 
@@ -372,9 +420,23 @@ class QuoteTemplateField(models.Model):
         ('objet',          'Objet du devis'),
         ('total_ht',       'Total HT'),
         ('total_tva',      'Total TVA'),
+        ('taux_tva',       'Taux de TVA appliqué (%)'),
         ('total_ttc',      'Total TTC'),
+        ('cout_materiels', 'Coût global matériels'),
+        ('cout_fournitures', 'Coût fournitures'),
+        ('cout_main_oeuvre', 'Coût main d’œuvre'),
+        ('taches_principales', 'Tâches principales (plusieurs lignes)'),
         ('delai_paiement', 'Délai de paiement (jours)'),
         ('commercial',     'Commercial'),
+    ]
+
+    COULEURS = [
+        ('#000000', 'Noir'),
+        ('#FFFFFF', 'Blanc'),
+        ('#444444', 'Gris foncé'),
+        ('#B43B3B', 'Rouge'),
+        ('#1F4E79', 'Bleu'),
+        ('#C6A15B', 'Doré'),
     ]
 
     ALIGNEMENTS = [
@@ -413,6 +475,17 @@ class QuoteTemplateField(models.Model):
     gras = models.BooleanField('Gras', default=False)
     alignement = models.CharField(
         'Alignement', max_length=10, choices=ALIGNEMENTS, default='left')
+
+    couleur = models.CharField(
+        'Couleur du texte', max_length=7, choices=COULEURS, default='#000000',
+        help_text='Le blanc sert à écrire sur un bandeau sombre du modèle — '
+                  'sur fond blanc, le texte serait invisible.')
+
+    multiligne = models.BooleanField(
+        'Texte sur plusieurs lignes', default=False,
+        help_text='Pour une liste de tâches ou une note : le texte est coupé '
+                  'à la largeur du cadre et rempli du haut vers le bas. '
+                  'Sinon il tient sur une seule ligne, réduite si besoin.')
 
     prefixe = models.CharField(
         'Texte avant', max_length=40, blank=True,
