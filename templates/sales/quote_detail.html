@@ -83,6 +83,53 @@
       </div>
     </div>
 
+      {% comment %} Le detail des materiels et fournitures, tel qu'il
+       s'imprimera dans ses deux cadres. Affiche ici pour qu'on puisse le
+       relire sans passer en modification. {% endcomment %}
+    {% if detail_materiels or detail_fournitures %}
+    <div class="erp-card mb-3">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Détail des matériels et fournitures" %}</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table erp-table mb-0">
+          <thead>
+            <tr>
+              <th>{% trans "Nature" %}</th>
+              <th>{% trans "Désignation" %}</th>
+              <th class="text-end">{% trans "Quantité" %}</th>
+              <th class="text-end">{% trans "PU HT" %}</th>
+              <th class="text-end">{% trans "Total HT" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ligne in detail_materiels %}
+            <tr>
+              <td><span class="orion-badge neutral">{% trans "Matériel" %}</span></td>
+              <td class="small">{{ ligne.designation }}</td>
+              <td class="text-end small">{{ ligne.quantity|floatformat:"-3" }} {{ ligne.unit }}</td>
+              <td class="text-end small">{{ ligne.unit_price|floatformat:2 }} €</td>
+              <td class="text-end small fw-semibold">{{ ligne.total_ht|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+            {% for ligne in detail_fournitures %}
+            <tr>
+              <td><span class="orion-badge neutral">{% trans "Fourniture" %}</span></td>
+              <td class="small">{{ ligne.designation }}</td>
+              <td class="text-end small">{{ ligne.quantity|floatformat:"-3" }} {{ ligne.unit }}</td>
+              <td class="text-end small">{{ ligne.unit_price|floatformat:2 }} €</td>
+              <td class="text-end small fw-semibold">{{ ligne.total_ht|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 small text-muted border-top">
+        {% blocktrans %}Ce détail justifie le prix auprès du client. Il n'entre pas
+        dans le total, qui vient des lignes de prestation.{% endblocktrans %}
+      </div>
+    </div>
+    {% endif %}
     {% if quote.notes %}
     <div class="erp-card mb-3">
       <div class="orion-orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes client" %}</h6></div>

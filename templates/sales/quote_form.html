@@ -67,6 +67,63 @@
           </div>
         </div>
       </div>
+      {# Le detail des materiels et fournitures. Disponible a la
+         MODIFICATION seulement : un formset a besoin d'un devis existant
+         auquel rattacher ses lignes. #}
+      {% if detail %}
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header">
+          <h6 class="card-title"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Détail des matériels et fournitures" %}</h6>
+        </div>
+        <div class="p-3">
+          <p class="small text-muted">
+            {% blocktrans %}Ces lignes s'impriment sur le devis dans les cadres
+            « Détail des matériels » et « Détail des fournitures ». Elles n'entrent
+            pas dans le total, qui vient des lignes de prestation.{% endblocktrans %}
+          </p>
+          {{ detail.management_form }}
+          {% if detail.non_form_errors %}
+          <div class="alert alert-danger">{{ detail.non_form_errors }}</div>
+          {% endif %}
+          <div class="table-responsive">
+            <table class="table erp-table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width:130px">{% trans "Nature" %}</th>
+                  <th style="width:200px">{% trans "Article du catalogue" %}</th>
+                  <th>{% trans "Désignation" %}</th>
+                  <th style="width:100px">{% trans "Quantité" %}</th>
+                  <th style="width:90px">{% trans "Unité" %}</th>
+                  <th style="width:120px">{% trans "PU HT" %}</th>
+                  <th style="width:60px">{% trans "Retirer" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in detail %}
+                <tr>
+                  {{ ligne.id }}
+                  <td>{{ ligne.nature }}{{ ligne.nature.errors }}</td>
+                  <td>{{ ligne.material }}{{ ligne.material.errors }}</td>
+                  <td>{{ ligne.designation }}{{ ligne.designation.errors }}</td>
+                  <td>{{ ligne.quantity }}</td>
+                  <td>{{ ligne.unit }}</td>
+                  <td>{{ ligne.unit_price }}</td>
+                  <td class="text-center">
+                    {% if ligne.instance.pk %}{{ ligne.DELETE }}{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="form-text mt-2">
+            {% blocktrans %}Choisir un article du catalogue remplit la désignation,
+            l'unité et le prix de vente — tous restent modifiables. Laissez une ligne
+            vide pour ne rien ajouter.{% endblocktrans %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
       <div class="erp-card mb-3">
         <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-chat-text me-1 text-primary"></i>{% trans "Notes" %}</h6></div>
         <div class="p-3">

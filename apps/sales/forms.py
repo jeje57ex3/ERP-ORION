@@ -1,9 +1,12 @@
 """apps/sales/forms.py — Formulaires Ventes"""
+from decimal import Decimal
+
 from django import forms
 from .models import (
     Invoice,
     InvoiceLine,
     Quote,
+    QuoteDetailLine,
     QuoteLine,
     QuoteTemplate,
     QuoteTemplateField,
@@ -39,6 +42,117 @@ class QuoteForm(forms.ModelForm):
             'salesperson': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
+
+
+class QuoteDetailLineForm(forms.ModelForm):
+    """Un matériel ou une fourniture détaillé sur le devis.
+
+    **La nature n'a pas de valeur par défaut dans ce formulaire, et c'est
+    délibéré.** Avec un défaut, une ligne de fourniture laissée par
+    inattention sur « Matériel » irait dans le mauvais bloc du devis sans
+    que rien ne le signale. Un choix vide oblige à trancher, et ce qui est
+    affiché est ce qui sera enregistré — l'article du catalogue ne vient
+    jamais contredire en silence le menu que l'on voit.
+    """
+
+    class Meta:
+        model = QuoteDetailLine
+        fields = ['nature', 'material', 'designation', 'quantity', 'unit',
+                  'unit_price']
+        widgets = {
+            'nature': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'material': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'designation': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.001'}),
+            'unit': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.0001'}),
+        }
+
+    def __init__(self, *args, company=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.company = company
+
+        from apps.btp.models import Material
+        # Borne a l'entreprise dans __init__, donc a la VALIDATION et pas
+        # seulement a l'affichage : restreindre le seul affichage laisse
+        # accepter un identifiant forge.
+        self.fields['material'].queryset = (
+            Material.objects.filter(company=company, is_active=True)
+            if company is not None else Material.objects.none()
+        )
+        self.fields['material'].required = False
+        self.fields['material'].label = 'Article du catalogue'
+
+        # Pas de choix par defaut : voir la docstring.
+        self.fields['nature'].choices = (
+            [('', '— choisir —')] + list(QuoteDetailLine.NATURES))
+
+        # Une ligne NEUVE ne doit porter aucune valeur initiale.
+        #
+        # Un defaut de modele (quantity=1, unit='u') devient valeur
+        # initiale du formulaire. Le formset compare alors la ligne vide
+        # envoyee a cette initiale, la croit MODIFIEE, la valide, et
+        # reclame une designation pour une ligne que personne n'a
+        # remplie -- l'enregistrement du devis entier echouait sur une
+        # ligne laissee vide expres. Constate par un test.
+        # Mesure : avec les defauts du modele, changed_data valait
+        # ['unit_price'] (initiale 0) pour une ligne entierement vide.
+        # On neutralise TOUS les champs plutot qu'une liste : un futur
+        # champ dote d'un defaut rouvrirait sinon le meme piege.
+        if not self.instance.pk:
+            for nom in self.fields:
+                self.initial[nom] = ''
+
+        # Deduits de l'article choisi : les exiger obligerait a retaper ce
+        # que le catalogue sait deja. Les laisser obligatoires rendrait la
+        # deduction inatteignable -- un champ vide echoue avant clean().
+        for nom in ('designation', 'unit', 'unit_price', 'quantity'):
+            self.fields[nom].required = False
+
+    def clean(self):
+        donnees = super().clean()
+
+        # Une ligne entierement vide est une ligne non remplie du formset :
+        # elle ne doit ni etre enregistree ni produire d'erreur.
+        if not self.has_changed():
+            return donnees
+
+        article = donnees.get('material')
+        if article:
+            if not (donnees.get('designation') or '').strip():
+                donnees['designation'] = article.name
+            if not (donnees.get('unit') or '').strip():
+                donnees['unit'] = article.unit
+            if not donnees.get('unit_price'):
+                # Prix de VENTE : ce bloc est imprime sur le devis remis au
+                # client. Le prix d'achat y exposerait la marge.
+                donnees['unit_price'] = article.sale_price
+
+        if not (donnees.get('designation') or '').strip():
+            self.add_error(
+                'designation',
+                'Indiquez une désignation, ou choisissez un article du '
+                'catalogue.')
+        if not donnees.get('nature'):
+            self.add_error('nature', 'Matériel ou fourniture ?')
+
+        if donnees.get('quantity') is None:
+            donnees['quantity'] = Decimal('1')
+        if donnees.get('unit_price') is None:
+            donnees['unit_price'] = Decimal('0')
+        if not (donnees.get('unit') or '').strip():
+            donnees['unit'] = 'u'
+
+        return donnees
+
+
+QuoteDetailLineFormSet = forms.inlineformset_factory(
+    Quote,
+    QuoteDetailLine,
+    form=QuoteDetailLineForm,
+    extra=3,
+    can_delete=True,
+)
 
 
 class SalesOrderForm(forms.ModelForm):

@@ -52,10 +52,15 @@ def quote_detail(request, pk):
     company = request.current_company
     quote = get_object_or_404(Quote, pk=pk, company=company)
     lines = quote.lines.all()
+    # select_related sur l'article : sans lui, une requete par ligne part
+    # chercher le nom du materiau pour l'afficher.
+    detail = quote.detail_lines.select_related('material')
     return render(request, 'sales/quote_detail.html', {
         'page_title': f'Devis {quote.number or pk}',
         'quote': quote,
         'lines': lines,
+        'detail_materiels': [d for d in detail if d.nature == 'materiel'],
+        'detail_fournitures': [d for d in detail if d.nature == 'fourniture'],
     })
 
 
@@ -99,21 +104,40 @@ def quote_create(request):
 
 @login_required
 def quote_edit(request, pk):
+    from apps.sales.forms import QuoteDetailLineFormSet
+
     company = request.current_company
     quote = get_object_or_404(Quote, pk=pk, company=company)
+
+    # Le detail des materiels et fournitures s'edite ICI, par un formset :
+    # on ajoute, modifie et supprime en un seul envoi. Des vues separees
+    # demanderaient trois chemins pour un tableau que l'on remplit d'un
+    # trait.
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = QuoteForm(request.POST, instance=quote)
-        if form.is_valid():
+        # Borne A LA VALIDATION, et pas seulement a l'affichage. Cette ligne
+        # manquait ici alors qu'elle existait a la creation : un identifiant
+        # forge rattachait le devis au client d'une AUTRE entreprise.
+        form.fields['customer'].queryset = clients
+        detail = QuoteDetailLineFormSet(
+            request.POST, instance=quote, form_kwargs={'company': company})
+        if form.is_valid() and detail.is_valid():
             form.save()
+            detail.save()
             messages.success(request, 'Devis mis à jour.')
             return redirect('sales:quote_detail', pk=quote.pk)
     else:
         form = QuoteForm(instance=quote)
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
+        detail = QuoteDetailLineFormSet(
+            instance=quote, form_kwargs={'company': company})
 
     return render(request, 'sales/quote_form.html', {
         'page_title': f'Modifier devis {quote.number}',
         'form': form,
+        'detail': detail,
         'quote': quote,
         'action': 'edit',
     })

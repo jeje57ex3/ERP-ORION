@@ -217,19 +217,38 @@
     // deplacable. Le poser a (0,0) l'enverrait dans un coin, souvent hors du
     // champ de vision apres defilement.
     var page = pageActuelle();
+
+    // Une signature et un bloc de detail ne naissent pas a la taille d'une
+    // ligne de texte : 160x16 obligerait a redimensionner a chaque pose, et
+    // une image inscrite dans 16 points de haut serait illisible.
+    var cle = bouton.dataset.cle;
+    var largeur = 160;
+    var hauteur = 16;
+    var multiligne = false;
+    if (cle === 'signature') {
+      largeur = 150;
+      hauteur = 55;
+    } else if (cle === 'taches_principales'
+               || cle === 'designation_materiels'
+               || cle === 'designation_fournitures') {
+      largeur = 300;
+      hauteur = 80;
+      multiligne = true;
+    }
+
     var cadre = {
-      cle: bouton.dataset.cle,
+      cle: cle,
       page: pageCourante,
-      largeur: 160,
-      hauteur: 16,
+      largeur: largeur,
+      hauteur: hauteur,
       taille: 10,
       gras: false,
       alignement: 'left',
       couleur: '#000000',
-      multiligne: false,
+      multiligne: multiligne,
       prefixe: '',
       suffixe: '',
-      x: (page.largeur - 160) / 2,
+      x: (page.largeur - largeur) / 2,
       y: page.hauteur / 2,
     };
     cadres.push(cadre);

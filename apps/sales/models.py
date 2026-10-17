@@ -127,6 +127,68 @@ class QuoteLine(models.Model):
         return self.description[:50]
 
 
+class QuoteDetailLine(models.Model):
+    """Un matériau ou une fourniture détaillé sur le devis.
+
+    Distinct de QuoteLine, et pour une raison de fond : QuoteLine porte ce
+    qui est FACTURÉ — son total entre dans le prix. Ces lignes-ci portent le
+    DÉTAIL de ce qui sera mis en œuvre, imprimé pour justifier le prix
+    auprès du client. Les mélanger ferait entrer le détail dans le total, et
+    doublerait le devis.
+
+    La nature est portée par la ligne et non déduite de l'article : un achat
+    hors catalogue doit pouvoir être classé, et l'on peut vouloir compter en
+    fourniture un article catalogué comme matériau.
+    """
+
+    NATURES = [
+        ('materiel', 'Matériel'),
+        ('fourniture', 'Fourniture'),
+    ]
+
+    quote = models.ForeignKey(
+        Quote, on_delete=models.CASCADE, related_name='detail_lines')
+    # Sans valeur par defaut, et c'est delibere : il n'existe pas de nature
+    # « par defaut » pour un article. Un defaut au modele se propage en
+    # valeur initiale du formulaire, le formset considere alors la ligne
+    # vide comme MODIFIEE, la valide, et reclame une designation pour une
+    # ligne que personne n'a remplie. Constate par un test.
+    nature = models.CharField('Nature', max_length=20, choices=NATURES,
+                              blank=True)
+
+    # Le catalogue BTP sert de source : il distingue deja materiau et
+    # fourniture, et porte designation, unite et prix de vente. En creer un
+    # second obligerait a tenir les deux a jour.
+    #
+    # SET_NULL et pas CASCADE : retirer un article du catalogue ne doit pas
+    # effacer une ligne d'un devis deja envoye.
+    material = models.ForeignKey(
+        'btp.Material', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='quote_detail_lines',
+        verbose_name='Article du catalogue')
+
+    designation = models.CharField('Désignation', max_length=300)
+    quantity = models.DecimalField('Quantité', max_digits=12,
+                                   decimal_places=3, default=1)
+    unit = models.CharField('Unité', max_length=20, default='u')
+    unit_price = models.DecimalField('Prix unitaire HT', max_digits=12,
+                                     decimal_places=4, default=0)
+    order = models.PositiveIntegerField('Ordre', default=0)
+
+    class Meta:
+        verbose_name = 'Détail matériel / fourniture'
+        verbose_name_plural = 'Détail matériels et fournitures'
+        ordering = ['nature', 'order', 'id']
+
+    def __str__(self):
+        return f'{self.designation} ({self.get_nature_display()})'
+
+    @property
+    def total_ht(self):
+        return (Decimal(str(self.quantity or 0))
+                * Decimal(str(self.unit_price or 0)))
+
+
 class SalesOrder(models.Model):
     """Commande client."""
     STATUS_CHOICES = [
@@ -423,12 +485,25 @@ class QuoteTemplateField(models.Model):
         ('taux_tva',       'Taux de TVA appliqué (%)'),
         ('total_ttc',      'Total TTC'),
         ('cout_materiels', 'Coût global matériels'),
+        ('designation_materiels',
+         'Détail des matériels (désignation, quantité, PU HT)'),
         ('cout_fournitures', 'Coût fournitures'),
+        ('designation_fournitures',
+         'Détail des fournitures (désignation, quantité, PU HT)'),
         ('cout_main_oeuvre', 'Coût main d’œuvre'),
         ('taches_principales', 'Tâches principales (plusieurs lignes)'),
         ('delai_paiement', 'Délai de paiement (jours)'),
         ('commercial',     'Commercial'),
+        ('signature',      'Signature (image du compte utilisateur)'),
     ]
+
+    CLES_IMAGE = {'signature'}
+    """Les clés dont la valeur est une IMAGE et non du texte.
+
+    Le dessin les traite à part : une image se met à l'échelle dans son
+    cadre en gardant ses proportions, là où un texte se réduit en taille de
+    police. Les confondre écraserait la signature à la largeur du cadre.
+    """
 
     COULEURS = [
         ('#000000', 'Noir'),

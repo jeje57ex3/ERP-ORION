@@ -70,6 +70,20 @@ class UserProfile(models.Model):
     phone = models.CharField('Téléphone', max_length=20, blank=True)
     mobile = models.CharField('Mobile', max_length=20, blank=True)
     avatar = models.ImageField('Avatar', upload_to='avatars/', blank=True, null=True)
+
+    # Signature manuscrite, numerisee une fois et reprise sur chaque devis
+    # que cette personne etablit. Porte par le PROFIL et non par le devis :
+    # une signature est un attribut de la personne, et la recopier sur
+    # chaque devis obligerait a la redeposer a chaque fois -- et a la
+    # corriger partout le jour ou elle change.
+    #
+    # Un fond transparent (PNG) est preferable : pose sur un modele de
+    # devis, un fond blanc masquerait ce qui se trouve dessous.
+    signature = models.ImageField(
+        'Signature', upload_to='signatures/', blank=True, null=True,
+        help_text='Image de votre signature, reprise automatiquement sur '
+                  'les devis que vous etablissez. Un PNG a fond '
+                  'transparent donne le meilleur resultat.')
     bio = models.TextField('Bio', blank=True)
     job_title = models.CharField('Poste', max_length=100, blank=True)
     department = models.CharField('Département', max_length=100, blank=True)
