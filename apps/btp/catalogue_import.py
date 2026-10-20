@@ -111,7 +111,17 @@ def _verifier_adresse(url):
 
 
 def telecharger(source, session=None):
-    """Les octets du fichier publié, ou CatalogueError.
+    """Les octets du fichier publié par cette source."""
+    return telecharger_url(source.url, session=session)
+
+
+def telecharger_url(url, session=None):
+    """Les octets d'une adresse publique, ou CatalogueError.
+
+    Extraite de `telecharger` pour que la DÉTECTION d'articles sur une page
+    web passe par le même contrôle : l'adresse vient de l'utilisateur dans
+    les deux cas, et c'est le serveur qui la récupère dans les deux cas.
+    Deux chemins de téléchargement, c'est un chemin qui finit sans garde.
 
     Les redirections ne sont PAS suivies automatiquement : chaque étape est
     revérifiée, sinon une adresse publique redirigeant vers `127.0.0.1`
@@ -120,7 +130,6 @@ def telecharger(source, session=None):
     import requests
 
     session = session or requests.Session()
-    url = source.url
     for _ in range(REDIRECTIONS_MAX + 1):
         _verifier_adresse(url)
         try:

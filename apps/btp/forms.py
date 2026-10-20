@@ -155,7 +155,7 @@ class MaterialForm(forms.ModelForm):
         fields = ['kind', 'reference', 'name', 'category', 'unit',
                   'purchase_price', 'sale_price', 'vat_rate',
                   'supplier', 'supplier_reference', 'description',
-                  'is_active']
+                  'prix_indicatif', 'is_active']
         widgets = {
             'kind': forms.Select(attrs={'class': 'form-select'}),
             'reference': forms.TextInput(attrs={'class': 'form-control',
@@ -178,6 +178,7 @@ class MaterialForm(forms.ModelForm):
             'supplier_reference': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control',
                                                  'rows': 2}),
+            'prix_indicatif': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

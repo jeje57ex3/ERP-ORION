@@ -1,0 +1,172 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Détecter des articles" %} — Orion ERP{% endblock %}
+
+{% block content %}
+{% with active_subnav='catalogues' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-search text-primary me-2"></i>{% trans "Détecter des matériaux et fournitures" %}
+  </h4>
+  <a href="{% url 'btp:material_list' %}" class="orion-btn">
+    <i class="bi bi-box-seam me-1"></i>{% trans "Le catalogue" %}
+  </a>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <div class="row g-3 align-items-start">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">{{ form.url.label }}</label>
+          {{ form.url }}
+          <div class="form-text">{{ form.url.help_text }}</div>
+          {{ form.url.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">{{ form.fichier.label }}</label>
+          {{ form.fichier }}
+          <div class="form-text">{{ form.fichier.help_text }}</div>
+          {{ form.fichier.errors }}
+        </div>
+      </div>
+      <button type="submit" class="orion-btn primary mt-3">
+        <i class="bi bi-search me-1"></i>{% trans "Détecter" %}
+      </button>
+    </form>
+
+    {# Ce que le detecteur sait faire, et ce qu'il ne peut pas faire. Le
+       dire ICI evite d'attribuer a une panne ce qui est une limite. #}
+    <div class="alert alert-light border mt-3 mb-0 small">
+      <div class="fw-semibold mb-1">
+        <i class="bi bi-info-circle me-1"></i>{% trans "Ce que la détection peut, et ne peut pas" %}
+      </div>
+      <p class="mb-1">
+        {% blocktrans %}Sur une page web, Orion lit les <strong>données structurées</strong>
+        que les fabricants publient pour les moteurs de recherche (JSON-LD, microdonnées,
+        OpenGraph). C'est stable et normalisé — contrairement à un découpage de la mise en
+        page, qui casse à chaque refonte du site.{% endblocktrans %}
+      </p>
+      <p class="mb-1">
+        {% blocktrans %}Beaucoup de sites affichent prix et disponibilité <strong>après</strong>
+        le chargement, par un appel que fait le navigateur. La page reçue ne contient alors
+        que la mise en page, sans les produits : Orion ne peut pas exécuter ce code et vous
+        le dira.{% endblocktrans %}
+      </p>
+      <p class="mb-0">
+        {% blocktrans %}Les prix relevés sont des <strong>repères</strong> : ils entrent au
+        catalogue marqués « prix indicatif, à confirmer », en attendant votre tarif négocié.
+        Vérifiez les conditions d'utilisation du site que vous interrogez.{% endblocktrans %}
+      </p>
+    </div>
+  </div>
+</div>
+
+{% if compte_rendu %}
+<div class="orion-card mb-3">
+  <div class="orion-orion-orion-card-body">
+    <i class="bi bi-clipboard-check me-1"></i><strong>{{ compte_rendu }}</strong>
+  </div>
+</div>
+{% endif %}
+
+{% if candidats %}
+<form method="post" action="{% url 'btp:catalogue_detection_import' %}">
+  {% csrf_token %}
+  <div class="orion-card">
+    <div class="orion-orion-orion-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="orion-card-title mb-0">
+        <i class="bi bi-check2-square me-1"></i>{% blocktrans count n=candidats|length %}1 article détecté{% plural %}{{ n }} articles détectés{% endblocktrans %}
+      </h6>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <label class="small mb-0">{% trans "Nature" %}</label>
+        <select name="nature" class="form-select form-select-sm" style="width:auto">
+          {% for valeur, libelle in natures %}
+          <option value="{{ valeur }}">{{ libelle }}</option>
+          {% endfor %}
+        </select>
+        <label class="small mb-0">{% trans "Le prix relevé est un" %}</label>
+        <select name="cible_prix" class="form-select form-select-sm" style="width:auto">
+          <option value="achat">{% trans "prix d'achat indicatif" %}</option>
+          <option value="vente">{% trans "prix de vente indicatif" %}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="orion-table">
+        <thead>
+          <tr>
+            <th style="width:40px"><input type="checkbox" id="tout-cocher" class="form-check-input"></th>
+            <th>{% trans "Référence" %}</th>
+            <th>{% trans "Désignation" %}</th>
+            <th style="width:80px">{% trans "Unité" %}</th>
+            <th class="text-end" style="width:110px">{% trans "Prix relevé" %}</th>
+            <th>{% trans "Origine" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for candidat in candidats %}
+          <tr {% if candidat.deja %}class="text-muted"{% endif %}>
+            <td>
+              {# Les doublons sont montres mais DECOCHES : les masquer ferait
+                 douter de la detection, les cocher ecraserait un prix ferme
+                 par un prix de repere. #}
+              <input type="checkbox" name="retenu" value="{{ forloop.counter0 }}"
+                     class="form-check-input ligne-detectee"
+                     {% if not candidat.deja and candidat.prix %}checked{% endif %}>
+            </td>
+            <td class="small" style="font-family:monospace">
+              {{ candidat.reference|default:"—" }}
+              <input type="hidden" name="reference_{{ forloop.counter0 }}" value="{{ candidat.reference }}">
+            </td>
+            <td class="small">
+              {{ candidat.nom }}
+              {% if candidat.deja %}
+              <span class="orion-badge neutral">{% trans "déjà au catalogue" %}</span>
+              {% endif %}
+              <input type="hidden" name="nom_{{ forloop.counter0 }}" value="{{ candidat.nom }}">
+            </td>
+            <td class="small text-muted">
+              {{ candidat.unite|default:"u" }}
+              <input type="hidden" name="unite_{{ forloop.counter0 }}" value="{{ candidat.unite }}">
+            </td>
+            <td class="text-end small {% if not candidat.prix %}text-danger{% endif %}">
+              {% if candidat.prix %}{{ candidat.prix }} €{% else %}{% trans "aucun" %}{% endif %}
+              <input type="hidden" name="prix_{{ forloop.counter0 }}" value="{{ candidat.prix }}">
+            </td>
+            <td class="text-muted" style="font-size:.7rem">{{ candidat.origine|truncatechars:60 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
+      <div class="small text-muted" style="max-width:52ch">
+        {% blocktrans %}Relisez avant d'ajouter. Les articles déjà au catalogue sont
+        décochés : un prix de repère ne doit pas écraser un prix confirmé.{% endblocktrans %}
+      </div>
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter les articles cochés" %}
+      </button>
+    </div>
+  </div>
+</form>
+
+<script>
+  (function () {
+    var tout = document.getElementById('tout-cocher');
+    if (!tout) { return; }
+    tout.addEventListener('change', function () {
+      document.querySelectorAll('.ligne-detectee').forEach(function (c) {
+        c.checked = tout.checked;
+      });
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}
