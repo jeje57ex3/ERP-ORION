@@ -1,0 +1,36 @@
+# Orion ERP — droit d'éteindre et de redémarrer le serveur depuis l'interface.
+#
+# À installer dans /etc/sudoers.d/orion-serveur, propriétaire root:root,
+# en mode 0440. Le fichier doit être validé par « visudo -c » AVANT d'être
+# mis en place : un fichier malformé dans /etc/sudoers.d/ casse sudo pour
+# TOUT LE MONDE, y compris pour le réparer.
+#
+# Pourquoi ce fichier existe : orion-backend.service tourne sous
+# « User=orion », qui n'est pas administrateur. Sans cette règle, les
+# boutons « Redémarrer » et « Éteindre » de l'écran Mises à jour échouent
+# avec « orion is not in the sudoers file » — l'écran existe, les boutons
+# s'affichent, et rien ne se passe.
+#
+# AUCUN JOKER, et c'est le point essentiel. Six lignes de commande exactes
+# sont autorisées, pas une de plus. Une règle du genre
+# « /sbin/shutdown * » laisserait passer n'importe quel argument, et
+# « /sbin/shutdown -h +1 ; rm -rf / » n'est pas un cas d'école : sudo
+# compare la commande demandée à ce motif, et un joker en fin de motif
+# accepte beaucoup plus que ce qu'on croit lui avoir accordé.
+#
+# Le délai d'une minute est donc figé ici ET dans
+# apps/system_updates/server_actions.py (DELAI_MINUTES). Un test compare
+# les deux : s'ils divergent, les boutons cessent de fonctionner sans que
+# rien ne le signale.
+#
+# Les deux chemins sont listés parce que « shutdown » se trouve dans
+# /sbin sur certaines distributions et /usr/sbin sur d'autres. Le chemin
+# ABSOLU est obligatoire : « sudo shutdown » dépendrait du PATH du
+# processus, que systemd ne garantit pas.
+
+orion ALL=(root) NOPASSWD: /sbin/shutdown -r +1
+orion ALL=(root) NOPASSWD: /sbin/shutdown -h +1
+orion ALL=(root) NOPASSWD: /sbin/shutdown -c
+orion ALL=(root) NOPASSWD: /usr/sbin/shutdown -r +1
+orion ALL=(root) NOPASSWD: /usr/sbin/shutdown -h +1
+orion ALL=(root) NOPASSWD: /usr/sbin/shutdown -c

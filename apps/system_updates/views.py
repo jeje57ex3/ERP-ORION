@@ -135,6 +135,19 @@ def rollback_confirm_view(request, pk):
     })
 
 
+def _nom_du_serveur():
+    """Le nom d'hote de cette machine, ou une mention neutre.
+
+    Jamais une exception : cet ecran sert a eteindre un serveur, il ne doit
+    pas tomber parce que la resolution du nom d'hote a echoue.
+    """
+    import socket
+    try:
+        return socket.gethostname() or 'ce serveur'
+    except OSError:
+        return 'ce serveur'
+
+
 @super_admin_required
 def server_reboot_confirm(request):
     if request.method == 'POST':
@@ -188,6 +201,10 @@ def server_shutdown_confirm(request):
         'form': form,
         'action': 'shutdown',
         'page_title': 'Éteindre le serveur',
+        # Le nom de la machine, pour que l'ecran de confirmation dise QUOI
+        # rallumer et non « votre serveur ». Un administrateur qui gere
+        # plusieurs VM a besoin du nom exact avant de couper celle-ci.
+        'nom_du_serveur': _nom_du_serveur(),
     })
 
 

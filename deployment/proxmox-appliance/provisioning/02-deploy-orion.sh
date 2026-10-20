@@ -290,4 +290,34 @@ ln -sfn "$ENV_FILE" "$ORION_HOME/docker/.env"
 
 chown -R orion:orion "$ORION_HOME"
 
+# ─── Droit d'eteindre et de redemarrer depuis l'interface ───────────────────────
+#
+# orion-backend.service tourne sous « User=orion », qui n'est pas
+# administrateur. Sans cette regle, les boutons « Redemarrer » et
+# « Eteindre » de l'ecran Mises a jour s'affichent et echouent avec
+# « orion is not in the sudoers file » : l'ecran existe, rien ne se passe.
+#
+# VALIDATION AVANT INSTALLATION, et c'est imperatif : un fichier malforme
+# dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
+# reparer. On ecrit donc dans un fichier temporaire, on le fait verifier par
+# « visudo -c », et on ne le met en place qu'ensuite.
+SUDOERS_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers/orion-serveur"
+SUDOERS_DST="/etc/sudoers.d/orion-serveur"
+
+if [ -f "$SUDOERS_SRC" ]; then
+  TMP_SUDOERS="$(mktemp)"
+  install -m 0440 -o root -g root "$SUDOERS_SRC" "$TMP_SUDOERS"
+  if visudo -c -f "$TMP_SUDOERS" >/dev/null 2>&1; then
+    install -m 0440 -o root -g root "$TMP_SUDOERS" "$SUDOERS_DST"
+    echo "[02] sudoers : $SUDOERS_DST installe (extinction/redemarrage depuis l'ERP)."
+  else
+    echo "[02] ATTENTION : $SUDOERS_SRC est refuse par visudo -c." >&2
+    echo "[02]             Non installe. Les boutons Eteindre/Redemarrer" >&2
+    echo "[02]             de l'ERP echoueront jusqu'a correction." >&2
+  fi
+  rm -f "$TMP_SUDOERS"
+else
+  echo "[02] ATTENTION : $SUDOERS_SRC introuvable, sudoers non installe." >&2
+fi
+
 echo "[02] Terminé."
