@@ -1,0 +1,148 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'btp:catalogue_source_list' %}" class="text-muted small text-decoration-none">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Catalogues web" %}
+  </a>
+  <h4 class="fw-bold mt-1">{{ page_title }}</h4>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-cloud-download me-1"></i>{% trans "Le fichier publié" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.name.label }} *</label>
+              {{ form.name }}{{ form.name.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.supplier.label }}</label>
+              {{ form.supplier }}{{ form.supplier.errors }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.url.label }} *</label>
+              {{ form.url }}
+              <div class="form-text">{{ form.url.help_text }}</div>
+              {{ form.url.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.format.label }}</label>
+              {{ form.format }}{{ form.format.errors }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.delimiteur.label }}</label>
+              {{ form.delimiteur }}
+              <div class="form-text">{{ form.delimiteur.help_text }}</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">{{ form.encodage.label }}</label>
+              {{ form.encodage }}
+              <div class="form-text">{{ form.encodage.help_text }}</div>
+            </div>
+          </div>
+          <div class="alert alert-light border mt-3 mb-0 small">
+            <i class="bi bi-shield-check me-1"></i>
+            {% blocktrans %}L'adresse doit être publique. Une adresse qui mène au
+            réseau interne de votre serveur est refusée : l'ERP irait sinon lire,
+            à votre place, des services qui ne sont pas des catalogues.{% endblocktrans %}
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-arrow-left-right me-1"></i>{% trans "Correspondance des colonnes" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <p class="small text-muted">
+            {% blocktrans %}Indiquez, pour chaque champ, le nom exact de la colonne
+            dans le fichier du fournisseur. Laissez vide ce que vous ne voulez pas
+            importer. Seule la désignation est indispensable.{% endblocktrans %}
+          </p>
+          <div class="row g-3">
+            {% for champ in form.champs_de_colonnes %}
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                {{ champ.label }}{% if champ.name == 'colonne_nom' %} *{% endif %}
+              </label>
+              {{ champ }}
+              {{ champ.errors }}
+            </div>
+            {% endfor %}
+          </div>
+          <div class="alert alert-light border mt-3 mb-0 small">
+            <i class="bi bi-info-circle me-1"></i>
+            {% blocktrans %}La référence sert à retrouver un article d'un import au
+            suivant. Sans elle, le rapprochement se fait sur la désignation — ce qui
+            marche, mais confond deux articles portant le même nom.{% endblocktrans %}
+          </div>
+        </div>
+      </div>
+
+      <div class="orion-card mb-3">
+        <div class="orion-orion-orion-card-header">
+          <h6 class="orion-card-title mb-0">
+            <i class="bi bi-sliders me-1"></i>{% trans "Comportement" %}
+          </h6>
+        </div>
+        <div class="orion-orion-orion-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.nature_par_defaut.label }}</label>
+              {{ form.nature_par_defaut }}
+              <div class="form-text">{{ form.nature_par_defaut.help_text }}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.intervalle_minutes.label }}</label>
+              {{ form.intervalle_minutes }}
+              <div class="form-text">{{ form.intervalle_minutes.help_text }}</div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  {% trans "Active — reprise par l'import programmé" %}
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-light border mt-3 mb-0 small">
+            <i class="bi bi-cash-coin me-1"></i>
+            {% blocktrans %}Le prix d'achat est toujours mis à jour depuis le
+            fournisseur. Votre prix de vente n'est jamais écrasé : il n'est rempli
+            que s'il est encore vide. Une synchronisation nocturne ne peut donc pas
+            effacer votre marge.{% endblocktrans %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="orion-btn primary">
+          <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer" %}
+        </button>
+        <a href="{% if source %}{% url 'btp:catalogue_source_detail' source.pk %}{% else %}{% url 'btp:catalogue_source_list' %}{% endif %}"
+           class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

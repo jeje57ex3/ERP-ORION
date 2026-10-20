@@ -1,0 +1,209 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ source.name }} — Orion ERP{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'btp:catalogue_source_list' %}" class="text-muted small text-decoration-none">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Catalogues web" %}
+  </a>
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-1">
+    <div>
+      <h4 class="fw-bold mb-1">{{ source.name }}</h4>
+      <div class="small text-muted" style="word-break:break-all">
+        {{ source.url }}
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {# L'ESSAI A BLANC d'abord, et ce n'est pas un hasard : une colonne mal
+         nommee produit des centaines d'articles au mauvais nom ou des prix
+         d'achat a zero, dans un catalogue qui sert ensuite a chiffrer. #}
+      <form method="post" action="{% url 'btp:catalogue_source_run' source.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="a_blanc" value="1">
+        <button type="submit" class="orion-btn primary">
+          <i class="bi bi-eyeglasses me-1"></i>{% trans "Essai à blanc" %}
+        </button>
+      </form>
+      <form method="post" action="{% url 'btp:catalogue_source_run' source.pk %}"
+            onsubmit="return confirm('{% trans "Importer maintenant ? Les articles seront créés ou mis à jour." %}')">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn">
+          <i class="bi bi-cloud-download me-1"></i>{% trans "Importer maintenant" %}
+        </button>
+      </form>
+      <form method="post" action="{% url 'btp:catalogue_source_disparus' source.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn">
+          <i class="bi bi-question-circle me-1"></i>{% trans "Articles disparus ?" %}
+        </button>
+      </form>
+      <a href="{% url 'btp:catalogue_source_edit' source.pk %}" class="orion-btn">
+        <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
+      </a>
+      {# POST et non lien : un GET destructeur se declenche au survol, a
+         l'indexation ou au passage d'un antivirus. #}
+      <form method="post" action="{% url 'btp:catalogue_source_delete' source.pk %}"
+            onsubmit="return confirm('{% trans "Supprimer cette source ? Les articles déjà importés sont conservés." %}')">
+        {% csrf_token %}
+        <button type="submit" class="orion-btn danger">
+          <i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="orion-card-title mb-0">
+          <i class="bi bi-clock-history me-1"></i>{% trans "Historique des imports" %}
+        </h6>
+      </div>
+      {% if imports %}
+      <div class="table-responsive">
+        <table class="orion-table">
+          <thead>
+            <tr>
+              <th>{% trans "Quand" %}</th>
+              <th>{% trans "Statut" %}</th>
+              <th class="text-end">{% trans "Lues" %}</th>
+              <th class="text-end">{% trans "Créés" %}</th>
+              <th class="text-end">{% trans "Modifiés" %}</th>
+              <th class="text-end">{% trans "Inchangés" %}</th>
+              <th class="text-end">{% trans "Ignorées" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for essai in imports %}
+            <tr>
+              <td class="small">
+                {{ essai.demarre_le|date:"d/m/Y H:i" }}
+                {% if essai.a_blanc %}
+                <span class="orion-badge neutral">{% trans "à blanc" %}</span>
+                {% endif %}
+                {% if essai.lance_par %}
+                <div class="text-muted" style="font-size:.68rem">{{ essai.lance_par.get_full_name|default:essai.lance_par.username }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if essai.statut == 'succes' %}
+                  <span class="orion-badge success">{{ essai.get_statut_display }}</span>
+                {% elif essai.statut == 'partiel' %}
+                  <span class="orion-badge warning">{{ essai.get_statut_display }}</span>
+                {% else %}
+                  <span class="orion-badge danger">{{ essai.get_statut_display }}</span>
+                {% endif %}
+                {% if essai.message %}
+                <div class="text-danger" style="font-size:.68rem">{{ essai.message }}</div>
+                {% endif %}
+              </td>
+              <td class="text-end small">{{ essai.lignes_lues }}</td>
+              <td class="text-end small fw-semibold">{{ essai.crees }}</td>
+              <td class="text-end small fw-semibold">{{ essai.mis_a_jour }}</td>
+              <td class="text-end small text-muted">{{ essai.inchanges }}</td>
+              <td class="text-end small {% if essai.ignores %}text-danger{% else %}text-muted{% endif %}">{{ essai.ignores }}</td>
+            </tr>
+            {% if essai.erreurs %}
+            <tr>
+              <td colspan="7" class="small text-muted" style="background:var(--orion-surface-2,#faf9f7)">
+                {% for erreur in essai.erreurs|slice:":8" %}
+                <div style="font-size:.7rem">{{ erreur }}</div>
+                {% endfor %}
+                {% if essai.erreurs|length > 8 %}
+                <div style="font-size:.7rem"><em>{% blocktrans with n=essai.erreurs|length %}… {{ n }} au total{% endblocktrans %}</em></div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 small text-muted border-top">
+        {% blocktrans %}« Beaucoup d'inchangés, quelques modifiés » est une synchro
+        rassurante. « Zéro inchangé, tout modifié » veut dire que le fichier ou la
+        correspondance des colonnes a changé : regardez avant de vous en
+        servir.{% endblocktrans %}
+      </div>
+      {% else %}
+      <div class="p-4 text-center text-muted small">
+        {% blocktrans %}Aucun import. Commencez par un essai à blanc : il lit le
+        fichier, compte ce qu'il ferait, et n'écrit rien.{% endblocktrans %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-5">
+    <div class="orion-card mb-3">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="orion-card-title mb-0">
+          <i class="bi bi-arrow-left-right me-1"></i>{% trans "Correspondance" %}
+        </h6>
+      </div>
+      <div class="orion-orion-orion-card-body">
+        <dl style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:13px;margin:0">
+          {% for champ, colonne in source.colonne_du_champ.items %}
+          <dt style="color:var(--orion-text-muted)">{{ champ }}</dt>
+          <dd style="margin:0;font-family:monospace;font-size:12px">{{ colonne }}</dd>
+          {% empty %}
+          <dd style="margin:0" class="text-danger">{% trans "Aucune colonne mappée." %}</dd>
+          {% endfor %}
+        </dl>
+        <hr>
+        <dl style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:13px;margin:0">
+          <dt style="color:var(--orion-text-muted)">{% trans "Format" %}</dt>
+          <dd style="margin:0">{{ source.get_format_display }}</dd>
+          <dt style="color:var(--orion-text-muted)">{% trans "Séparateur" %}</dt>
+          <dd style="margin:0"><code>{{ source.delimiteur|default:"deviné" }}</code></dd>
+          <dt style="color:var(--orion-text-muted)">{% trans "Encodage" %}</dt>
+          <dd style="margin:0">{{ source.encodage }}</dd>
+          <dt style="color:var(--orion-text-muted)">{% trans "Nature par défaut" %}</dt>
+          <dd style="margin:0">{{ source.get_nature_par_defaut_display }}</dd>
+          <dt style="color:var(--orion-text-muted)">{% trans "Intervalle" %}</dt>
+          <dd style="margin:0">{{ source.intervalle_minutes }} min</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-orion-orion-card-header">
+        <h6 class="orion-card-title mb-0">
+          <i class="bi bi-box-seam me-1"></i>{% blocktrans with n=nombre_articles %}Articles importés ({{ n }}){% endblocktrans %}
+        </h6>
+      </div>
+      {% if articles %}
+      <div class="table-responsive" style="max-height:340px;overflow:auto">
+        <table class="orion-table">
+          <tbody>
+            {% for article in articles %}
+            <tr>
+              <td class="small">
+                {{ article.name|truncatechars:48 }}
+                {% if article.reference %}
+                <div class="text-muted" style="font-size:.68rem">{{ article.reference }}</div>
+                {% endif %}
+              </td>
+              <td class="text-end small">{{ article.purchase_price|floatformat:2 }} €</td>
+              <td class="text-end small fw-semibold">{{ article.sale_price|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-2 small text-muted border-top text-center">
+        <a href="{% url 'btp:material_list' %}">{% trans "Voir tout le catalogue" %}</a>
+      </div>
+      {% else %}
+      <div class="p-4 text-center text-muted small">
+        {% trans "Aucun article importé depuis cette source." %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

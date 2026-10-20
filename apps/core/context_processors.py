@@ -173,6 +173,7 @@ NAV_MODULES = [
             {'label': _('Demandes guidées'),  'url_name': 'btp:guided_quote_list',   'icon': 'ti-clipboard-list'},
             {'label': _('Bibliothèque de prix'), 'url_name': 'btp:price_library_list', 'icon_img': 'prix_historique.png', 'icon': 'ti-cash'},
             {'label': _('Catalogue BTP'), 'url_name': 'btp:material_list', 'icon_img': 'produits_stock.png', 'icon': 'ti-box'},
+            {'label': _('Catalogues web'), 'url_name': 'btp:catalogue_source_list', 'icon_img': 'produits_stock.png', 'icon': 'ti-cloud-download'},
             {'label': _('Frais de déplacement'), 'url_name': 'btp:travel_settings', 'icon': 'ti-gas-station'},
             {'label': _('Pointages'),      'url_name': 'btp:timesheet_list',        'icon_img': 'pointages.png', 'icon': 'ti-clock'},
             {'label': _('Situations'),     'url_name': 'btp:situation_list',        'icon_img': 'situations.png', 'icon': 'ti-list-check'},

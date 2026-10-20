@@ -10,9 +10,14 @@
   <h4 class="fw-bold mb-0">
     <i class="bi bi-box-seam text-primary me-2"></i>{% trans "Catalogue : matériaux, fournitures et actions" %}
   </h4>
-  <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
-    <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'btp:catalogue_source_list' %}" class="orion-btn">
+      <i class="bi bi-cloud-download me-1"></i>{% trans "Catalogues web" %}
+    </a>
+    <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
+    </a>
+  </div>
 </div>
 
 <div class="orion-card mb-3">

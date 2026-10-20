@@ -196,6 +196,19 @@ class Material(models.Model):
                                           blank=True)
 
     description = models.TextField('Détail', blank=True)
+
+    # D'ou vient cet article. Renseigne seulement pour ceux qu'un import a
+    # crees : sans ce lien, impossible de dire ce qu'une source gere -- ni
+    # de signaler les articles qu'elle ne publie plus, ni d'empecher deux
+    # sources de se disputer le meme article.
+    #
+    # Chaine de caracteres pour la cible, car CatalogueSource est defini
+    # PLUS BAS dans ce module.
+    catalogue_source = models.ForeignKey(
+        'btp.CatalogueSource', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='articles',
+        verbose_name='Importé depuis')
+
     is_active = models.BooleanField('Actif', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -224,6 +237,166 @@ class Material(models.Model):
             return None
         return ((self.sale_price - self.purchase_price)
                 / self.purchase_price) * 100
+
+
+class CatalogueSource(models.Model):
+    """Un catalogue fournisseur publié sur le web, à importer dans le catalogue.
+
+    Le fournisseur met un fichier en ligne — CSV, Excel ou JSON — à une
+    adresse fixe ; l'ERP le télécharge et en met à jour les articles. Un
+    seul mécanisme sert tous les fournisseurs : ce qui change d'un à
+    l'autre, ce sont les noms de colonnes, et c'est précisément ce que
+    `colonnes` décrit.
+
+    **Pourquoi ces modèles sont ici et non dans integration_center.** Cette
+    application porte bien un `IntegrationConfig` générique et un
+    `IntegrationSyncLog`. Mais son journal ne compte que « synchronisés » et
+    « échoués », là où un import de tarifs doit distinguer les articles
+    CRÉÉS, ceux dont le PRIX A CHANGÉ et ceux qui n'ont pas bougé — c'est la
+    seule information utile après une synchro nocturne. Et elle n'a pas de
+    formulaire de création. Les modèles vivent donc à côté de `Material`,
+    leur cible, où on les trouve.
+    """
+
+    FORMATS = [
+        ('csv', 'CSV / texte séparé'),
+        ('excel', 'Excel (.xlsx)'),
+        ('json', 'JSON'),
+    ]
+
+    CHAMPS_IMPORTABLES = {
+        'reference': 'Référence',
+        'nom': 'Désignation',
+        'categorie': 'Catégorie',
+        'unite': 'Unité',
+        'prix_achat': "Prix d'achat HT",
+        'prix_vente': 'Prix de vente HT',
+        'nature': 'Nature (matériau / fourniture / action)',
+        'reference_fournisseur': 'Référence fournisseur',
+        'description': 'Détail',
+    }
+    """Ce qu'on sait importer, et le libellé de chaque champ.
+
+    `nom` est le seul indispensable : sans désignation, un article ne se
+    lit pas. `reference` est la clé de rapprochement -- sans elle, on
+    retombe sur le nom, ce qui marche mais rapproche moins sûrement.
+    """
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='catalogue_sources')
+    name = models.CharField('Nom de la source', max_length=200,
+                            help_text='Exemple : « Point P — tarifs 2026 ».')
+    url = models.URLField(
+        'Adresse du fichier', max_length=500,
+        help_text='Adresse publique du CSV, de l’Excel ou du JSON publié '
+                  'par le fournisseur.')
+    format = models.CharField('Format', max_length=10, choices=FORMATS,
+                              default='csv')
+
+    delimiteur = models.CharField(
+        'Séparateur', max_length=4, default=';',
+        help_text='Pour un CSV. Les exports français utilisent le '
+                  'point-virgule ; laissez vide pour le deviner.')
+    encodage = models.CharField(
+        'Encodage', max_length=20, default='auto',
+        help_text='« auto » essaie UTF-8 puis Windows-1252, dans cet ordre. '
+                  'Les tarifs des négoces français sont souvent en '
+                  'Windows-1252.')
+
+    colonnes = models.JSONField(
+        'Correspondance des colonnes', default=dict, blank=True,
+        help_text='Quel nom de colonne du fichier alimente quel champ.')
+
+    nature_par_defaut = models.CharField(
+        'Nature par défaut', max_length=20, choices=Material.KIND_CHOICES,
+        default='material',
+        help_text='Appliquée aux lignes dont le fichier ne dit pas la '
+                  'nature.')
+
+    supplier = models.ForeignKey(
+        'purchases.Supplier', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='catalogue_sources',
+        verbose_name='Fournisseur')
+
+    is_active = models.BooleanField('Active', default=True)
+    intervalle_minutes = models.PositiveIntegerField(
+        'Intervalle (minutes)', default=1440,
+        help_text='1440 = une fois par jour. L’import programmé ne '
+                  'repasse pas avant ce délai.')
+    derniere_execution = models.DateTimeField('Dernier import', null=True,
+                                              blank=True)
+
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                   blank=True,
+                                   related_name='catalogue_sources_creees')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Catalogue web à importer'
+        verbose_name_plural = 'Catalogues web à importer'
+        ordering = ['name']
+        unique_together = [('company', 'name')]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def colonne_du_champ(self):
+        """La correspondance, nettoyée : ni clés inconnues, ni valeurs vides."""
+        brut = self.colonnes or {}
+        return {
+            champ: str(colonne).strip()
+            for champ, colonne in brut.items()
+            if champ in self.CHAMPS_IMPORTABLES and str(colonne or '').strip()
+        }
+
+
+class CatalogueImport(models.Model):
+    """Ce qu'un import a fait. Une ligne par exécution, essais à blanc compris.
+
+    Les compteurs sont séparés parce qu'ils ne se valent pas : « 400
+    inchangés, 3 prix modifiés » est une synchro rassurante, « 0 inchangé,
+    403 modifiés » veut dire que le fichier ou la correspondance des
+    colonnes a changé, et qu'il faut regarder avant de s'en servir.
+    """
+
+    STATUTS = [
+        ('succes', 'Succès'),
+        ('partiel', 'Partiel'),
+        ('echec', 'Échec'),
+    ]
+
+    source = models.ForeignKey(CatalogueSource, on_delete=models.CASCADE,
+                               related_name='imports')
+    a_blanc = models.BooleanField(
+        'Essai à blanc', default=False,
+        help_text='Un essai à blanc lit et compte, mais n’écrit rien.')
+    statut = models.CharField('Statut', max_length=20, choices=STATUTS,
+                              default='succes')
+
+    lignes_lues = models.PositiveIntegerField('Lignes lues', default=0)
+    crees = models.PositiveIntegerField('Articles créés', default=0)
+    mis_a_jour = models.PositiveIntegerField('Articles modifiés', default=0)
+    inchanges = models.PositiveIntegerField('Inchangés', default=0)
+    ignores = models.PositiveIntegerField('Lignes ignorées', default=0)
+
+    erreurs = models.JSONField('Erreurs', default=list, blank=True)
+    message = models.CharField('Message', max_length=300, blank=True)
+
+    demarre_le = models.DateTimeField(auto_now_add=True)
+    termine_le = models.DateTimeField('Terminé le', null=True, blank=True)
+    lance_par = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+                                  blank=True,
+                                  related_name='catalogue_imports')
+
+    class Meta:
+        verbose_name = 'Import de catalogue'
+        verbose_name_plural = 'Imports de catalogue'
+        ordering = ['-demarre_le']
+
+    def __str__(self):
+        return f'{self.source.name} — {self.get_statut_display()}'
 
 
 class ProjectSupply(models.Model):
