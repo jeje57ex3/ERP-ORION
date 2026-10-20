@@ -1,0 +1,83 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Catalogues web" %} — Orion ERP{% endblock %}
+
+{% block content %}
+{% with active_subnav='materials' %}{% include 'btp/_subnav.html' %}{% endwith %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0">
+    <i class="bi bi-cloud-download text-primary me-2"></i>{% trans "Catalogues web à importer" %}
+  </h4>
+  <div class="d-flex gap-2">
+    <a href="{% url 'btp:material_list' %}" class="orion-btn">
+      <i class="bi bi-box-seam me-1"></i>{% trans "Le catalogue" %}
+    </a>
+    <a href="{% url 'btp:catalogue_source_create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une source" %}
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  {% if sources %}
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>{% trans "Source" %}</th>
+          <th>{% trans "Format" %}</th>
+          <th>{% trans "Fournisseur" %}</th>
+          <th class="text-end">{% trans "Articles" %}</th>
+          <th>{% trans "Dernier import" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in sources %}
+        <tr {% if not source.is_active %}class="text-muted"{% endif %}>
+          <td>
+            <a href="{% url 'btp:catalogue_source_detail' source.pk %}"
+               class="fw-semibold small text-decoration-none">{{ source.name }}</a>
+            <div class="text-muted" style="font-size:.7rem;word-break:break-all">
+              {{ source.url|truncatechars:70 }}
+              {% if not source.is_active %} · <em>{% trans "inactive" %}</em>{% endif %}
+            </div>
+          </td>
+          <td><span class="orion-badge neutral">{{ source.get_format_display }}</span></td>
+          <td class="small text-muted">{{ source.supplier.name|default:"—" }}</td>
+          <td class="text-end small">{{ source.articles.count }}</td>
+          <td class="small text-muted">
+            {% if source.derniere_execution %}
+              {{ source.derniere_execution|date:"d/m/Y H:i" }}
+            {% else %}
+              <em>{% trans "jamais" %}</em>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'btp:catalogue_source_detail' source.pk %}"
+               class="orion-btn sm">{% trans "Ouvrir" %}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="orion-empty">
+    <div class="orion-empty-icon"><i class="bi bi-cloud-download"></i></div>
+    <div class="orion-empty-title">{% trans "Aucune source configurée" %}</div>
+    <div class="orion-empty-text">
+      {% blocktrans %}Si votre fournisseur publie son tarif en ligne — un CSV, un
+      Excel ou un JSON à une adresse fixe — l'ERP peut le télécharger et mettre à
+      jour votre catalogue tout seul. Le prix d'achat suit le fournisseur ; votre
+      prix de vente n'est jamais écrasé.{% endblocktrans %}
+    </div>
+    <a href="{% url 'btp:catalogue_source_create' %}" class="orion-btn primary">
+      {% trans "Ajouter une source" %}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

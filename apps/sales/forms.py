@@ -119,6 +119,13 @@ class QuoteDetailLineForm(forms.ModelForm):
 
         article = donnees.get('material')
         if article:
+            if not donnees.get('nature'):
+                # COMBLE une nature laissee vide ; n'ECRASE jamais un choix
+                # visible. Le menu affiche reste ce qui sera enregistre, et
+                # oublier de le renseigner apres avoir choisi un article ne
+                # bloque plus la saisie pour rien.
+                donnees['nature'] = QuoteDetailLine.NATURE_DEPUIS_KIND.get(
+                    article.kind, '')
             if not (donnees.get('designation') or '').strip():
                 donnees['designation'] = article.name
             if not (donnees.get('unit') or '').strip():
@@ -134,7 +141,10 @@ class QuoteDetailLineForm(forms.ModelForm):
                 'Indiquez une désignation, ou choisissez un article du '
                 'catalogue.')
         if not donnees.get('nature'):
-            self.add_error('nature', 'Matériel ou fourniture ?')
+            self.add_error(
+                'nature',
+                'Matériel, fourniture ou action ? Choisir un article du '
+                'catalogue le renseigne tout seul.')
 
         if donnees.get('quantity') is None:
             donnees['quantity'] = Decimal('1')

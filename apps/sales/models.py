@@ -144,7 +144,17 @@ class QuoteDetailLine(models.Model):
     NATURES = [
         ('materiel', 'Matériel'),
         ('fourniture', 'Fourniture'),
+        ('action', 'Action'),
     ]
+
+    # La nature de la ligne et le `kind` de l'article du catalogue disent la
+    # meme chose avec des mots differents : cette table fait le pont, et
+    # permet de preremplir la nature au lieu de la laisser deviner.
+    NATURE_DEPUIS_KIND = {
+        'material': 'materiel',
+        'supply': 'fourniture',
+        'action': 'action',
+    }
 
     quote = models.ForeignKey(
         Quote, on_delete=models.CASCADE, related_name='detail_lines')
@@ -490,6 +500,8 @@ class QuoteTemplateField(models.Model):
         ('cout_fournitures', 'Coût fournitures'),
         ('designation_fournitures',
          'Détail des fournitures (désignation, quantité, PU HT)'),
+        ('designation_actions',
+         'Détail des actions (désignation, quantité, PU HT)'),
         ('cout_main_oeuvre', 'Coût main d’œuvre'),
         ('taches_principales', 'Tâches principales (plusieurs lignes)'),
         ('delai_paiement', 'Délai de paiement (jours)'),

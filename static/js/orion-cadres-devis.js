@@ -230,7 +230,8 @@
       hauteur = 55;
     } else if (cle === 'taches_principales'
                || cle === 'designation_materiels'
-               || cle === 'designation_fournitures') {
+               || cle === 'designation_fournitures'
+               || cle === 'designation_actions') {
       largeur = 300;
       hauteur = 80;
       multiligne = true;

@@ -86,10 +86,10 @@
       {% comment %} Le detail des materiels et fournitures, tel qu'il
        s'imprimera dans ses deux cadres. Affiche ici pour qu'on puisse le
        relire sans passer en modification. {% endcomment %}
-    {% if detail_materiels or detail_fournitures %}
+    {% if detail_materiels or detail_fournitures or detail_actions %}
     <div class="erp-card mb-3">
       <div class="orion-orion-card-header">
-        <h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Détail des matériels et fournitures" %}</h6>
+        <h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Matériaux, fournitures et actions" %}</h6>
       </div>
       <div class="table-responsive">
         <table class="table erp-table mb-0">
@@ -115,6 +115,15 @@
             {% for ligne in detail_fournitures %}
             <tr>
               <td><span class="orion-badge neutral">{% trans "Fourniture" %}</span></td>
+              <td class="small">{{ ligne.designation }}</td>
+              <td class="text-end small">{{ ligne.quantity|floatformat:"-3" }} {{ ligne.unit }}</td>
+              <td class="text-end small">{{ ligne.unit_price|floatformat:2 }} €</td>
+              <td class="text-end small fw-semibold">{{ ligne.total_ht|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+            {% for ligne in detail_actions %}
+            <tr>
+              <td><span class="orion-badge neutral">{% trans "Action" %}</span></td>
               <td class="small">{{ ligne.designation }}</td>
               <td class="text-end small">{{ ligne.quantity|floatformat:"-3" }} {{ ligne.unit }}</td>
               <td class="text-end small">{{ ligne.unit_price|floatformat:2 }} €</td>

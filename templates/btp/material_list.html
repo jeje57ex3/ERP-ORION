@@ -1,18 +1,23 @@
 {% extends "erp_base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Matériaux et fournitures" %} — Orion ERP{% endblock %}
+{% block title %}{% trans "Catalogue BTP" %} — Orion ERP{% endblock %}
 
 {% block content %}
 {% with active_subnav='materials' %}{% include 'btp/_subnav.html' %}{% endwith %}
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <h4 class="fw-bold mb-0">
-    <i class="bi bi-box-seam text-primary me-2"></i>{% trans "Matériaux et fournitures" %}
+    <i class="bi bi-box-seam text-primary me-2"></i>{% trans "Catalogue : matériaux, fournitures et actions" %}
   </h4>
-  <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
-    <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'btp:catalogue_source_list' %}" class="orion-btn">
+      <i class="bi bi-cloud-download me-1"></i>{% trans "Catalogues web" %}
+    </a>
+    <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
+    </a>
+  </div>
 </div>
 
 <div class="orion-card mb-3">
@@ -25,7 +30,7 @@
       </div>
       <div class="col-md-3">
         <select name="kind" class="form-select form-select-sm">
-          <option value="">{% trans "Matériaux et fournitures" %}</option>
+          <option value="">{% trans "Toutes les natures" %}</option>
           {% for valeur, libelle in kind_choices %}
           <option value="{{ valeur }}" {% if kind == valeur %}selected{% endif %}>{{ libelle }}</option>
           {% endfor %}
@@ -139,9 +144,11 @@
       {% if q or kind or category %}
         {% trans "Élargissez la recherche, ou ajoutez cet article au catalogue." %}
       {% else %}
-        {% blocktrans %}Les articles saisis ici se retrouvent à deux endroits : dans
-        les fournitures d'un chantier, au prix d'achat, et dans les lignes d'un
-        devis BTP, au prix de vente.{% endblocktrans %}
+        {% blocktrans %}Les articles saisis ici se retrouvent à trois endroits : dans
+        les fournitures d'un chantier, au prix d'achat ; dans les lignes d'un devis
+        BTP et dans le détail d'un devis Ventes, au prix de vente. Une action — poser,
+        déposer, raccorder — s'y range aussi : son prix d'achat est le coût horaire
+        interne, son prix de vente le taux facturé.{% endblocktrans %}
       {% endif %}
     </div>
     <a href="{% url 'btp:material_create' %}" class="orion-btn primary">

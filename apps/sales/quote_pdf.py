@@ -266,6 +266,7 @@ def valeurs_du_devis(quote):
         'taches_principales': (quote.taches_principales or '').strip(),
         'designation_materiels': _detail_des_lignes(quote, 'materiel'),
         'designation_fournitures': _detail_des_lignes(quote, 'fourniture'),
+        'designation_actions': _detail_des_lignes(quote, 'action'),
         'delai_paiement': str(quote.payment_terms or ''),
         'commercial': nom_commercial,
         # La signature est une IMAGE : sa valeur texte reste vide pour que

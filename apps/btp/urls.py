@@ -2,6 +2,7 @@
 from . import views
 from . import guided_quote_erp_views as gq
 from . import views_materials as vm
+from . import views_catalogue as vc
 
 app_name = 'btp'
 
@@ -71,6 +72,24 @@ urlpatterns = [
          name='material_edit'),
     path('materiaux/<int:pk>/supprimer/', vm.material_delete,
          name='material_delete'),
+
+    # Catalogues web a importer. « catalogues » avant « <int:pk> » n'est pas
+    # necessaire ici -- les deux prefixes sont distincts -- mais l'ordre des
+    # routes reste le plus lisible groupe par groupe.
+    path('catalogues/', vc.catalogue_source_list,
+         name='catalogue_source_list'),
+    path('catalogues/nouveau/', vc.catalogue_source_create,
+         name='catalogue_source_create'),
+    path('catalogues/<int:pk>/', vc.catalogue_source_detail,
+         name='catalogue_source_detail'),
+    path('catalogues/<int:pk>/modifier/', vc.catalogue_source_edit,
+         name='catalogue_source_edit'),
+    path('catalogues/<int:pk>/supprimer/', vc.catalogue_source_delete,
+         name='catalogue_source_delete'),
+    path('catalogues/<int:pk>/importer/', vc.catalogue_source_run,
+         name='catalogue_source_run'),
+    path('catalogues/<int:pk>/disparus/', vc.catalogue_source_disparus,
+         name='catalogue_source_disparus'),
 
     # Fournitures et materiel achetes pour un chantier
     path('chantiers/<int:project_pk>/fournitures/ajouter/',

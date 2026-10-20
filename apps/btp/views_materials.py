@@ -74,7 +74,7 @@ def material_list(request):
                   .distinct().order_by('category'))
 
     return render(request, 'btp/material_list.html', {
-        'page_title': 'Matériaux et fournitures',
+        'page_title': 'Catalogue : matériaux, fournitures et actions',
         'articles': articles,
         'q': q,
         'kind': kind,
