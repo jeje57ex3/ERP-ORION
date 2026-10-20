@@ -76,3 +76,48 @@ class ServerActionConfirmForm(forms.Form):
         if value != self.expected_text:
             raise forms.ValidationError(f'Tapez exactement {self.expected_text} pour confirmer.')
         return value
+
+
+class MaintenanceAnnonceForm(forms.ModelForm):
+    """Annoncer une interruption à venir.
+
+    `debut_prevu` dans le futur est le cas normal : le bandeau s'affiche
+    dès l'enregistrement et jusqu'à l'heure dite, pour que chacun termine
+    et enregistre. Une annonce au passé reste possible — on annonce parfois
+    une interruption déjà commencée — mais elle ne prévient plus personne,
+    et le formulaire le dit.
+    """
+
+    class Meta:
+        from apps.core.models import MaintenanceAnnonce
+
+        model = MaintenanceAnnonce
+        fields = ['motif', 'debut_prevu', 'duree_minutes', 'message']
+        widgets = {
+            'motif': forms.Select(attrs={'class': 'form-select'}),
+            'debut_prevu': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'),
+            'duree_minutes': forms.NumberInput(
+                attrs={'class': 'form-control', 'min': 1, 'max': 1440}),
+            'message': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 3,
+                'placeholder': 'Facultatif : ce qui change, ou qui '
+                               'contacter pendant l’interruption.'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Le champ datetime-local du navigateur n'envoie pas de secondes :
+        # sans ce format, Django refuse la valeur qu'il vient d'afficher.
+        self.fields['debut_prevu'].input_formats = [
+            '%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M', '%Y-%m-%dT%H:%M:%S',
+        ]
+
+    def clean_duree_minutes(self):
+        duree = self.cleaned_data.get('duree_minutes') or 0
+        if duree < 1:
+            raise forms.ValidationError(
+                'Indiquez une durée d’au moins une minute : elle sert à '
+                'annoncer une heure de retour.')
+        return duree

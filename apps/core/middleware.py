@@ -234,6 +234,58 @@ class SetupRequiredMiddleware:
         return redirect('/setup/')
 
 
+def _page_de_maintenance():
+    """La page 503, nourrie de l'annonce en cours s'il y en a une.
+
+    **Tolérante par construction.** Elle s'affiche justement quand le
+    serveur est en travaux : la base peut être en cours de migration, la
+    table des annonces pas encore créée, le gabarit absent d'un déploiement
+    partiel. Chacun de ces cas doit donner une page lisible, pas une
+    erreur 500 — une panne DANS la page de panne est le pire moment pour
+    découvrir une exception.
+
+    503 et non 200 : c'est le code que les navigateurs, les moteurs et les
+    sondes de surveillance comprennent comme « indisponible, réessayez »,
+    là où un 200 ferait croire au service rendu.
+    """
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+
+    contexte = {'motif': '', 'message': '', 'fin_prevue': None}
+    try:
+        from apps.core.models import MaintenanceAnnonce
+
+        annonce = MaintenanceAnnonce.courante()
+        if annonce is not None:
+            contexte = {
+                'motif': f'{annonce.get_motif_display()} en cours',
+                'message': annonce.message or '',
+                'fin_prevue': annonce.fin_prevue,
+            }
+    except Exception:
+        # Base indisponible, table absente, migration en cours : on affiche
+        # la page generique. C'est exactement la situation que cette page
+        # est censee couvrir.
+        pass
+
+    try:
+        corps = render_to_string('maintenance.html', contexte)
+    except Exception:
+        corps = (
+            '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">'
+            '<meta http-equiv="refresh" content="20">'
+            '<title>Maintenance — Orion ERP</title></head><body '
+            'style="font-family:system-ui,sans-serif;text-align:center;'
+            'padding:80px 24px">'
+            '<h1>Maintenance en cours</h1>'
+            '<p>Orion ERP est momentanément indisponible. Vos données ne '
+            'sont pas affectées. Cette page se recharge toute seule.</p>'
+            '</body></html>')
+
+    return HttpResponse(corps, status=503,
+                        content_type='text/html; charset=utf-8')
+
+
 class MaintenanceModeMiddleware:
     """Retourne 503 pendant la maintenance, sauf pour les Super Admin et chemins critiques."""
 
@@ -255,23 +307,18 @@ class MaintenanceModeMiddleware:
         if is_maintenance_mode_enabled():
             if any(request.path.startswith(p) for p in self.ALLOWED_PREFIXES):
                 return self.get_response(request)
-            user = getattr(request, 'user', None)
-            if user and user.is_authenticated and user.is_superuser:
+            # Place apres AuthenticationMiddleware, request.user existe --
+            # mais y toucher interroge la session, donc la base. Or cette
+            # page s'affiche justement quand la base peut etre en cours de
+            # migration : une exception ici ferait echouer la page de panne
+            # elle-meme. En cas de doute, on bloque : c'est le choix sur.
+            try:
+                user = getattr(request, 'user', None)
+                est_super_admin = bool(
+                    user and user.is_authenticated and user.is_superuser)
+            except Exception:
+                est_super_admin = False
+            if est_super_admin:
                 return self.get_response(request)
-            from django.http import HttpResponse
-            return HttpResponse(
-                """<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="utf-8"><title>Maintenance — Orion ERP</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8f9fa}
-.box{text-align:center;padding:60px;max-width:480px}h1{font-size:24px;font-weight:700;margin-bottom:12px}
-p{color:#6c757d;font-size:15px;line-height:1.6}</style></head>
-<body><div class="box">
-<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="1.5" style="margin-bottom:24px"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-<h1>Maintenance en cours</h1>
-<p>Orion ERP est temporairement indisponible pour une maintenance programmée.<br>Veuillez réessayer dans quelques minutes.</p>
-</div></body></html>""",
-                status=503,
-                content_type='text/html; charset=utf-8',
-            )
+            return _page_de_maintenance()
         return self.get_response(request)

@@ -29,6 +29,29 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
+
+        # Quand gunicorn ne repond pas -- redemarrage du serveur, du
+        # service, ou mise a jour qui le relance -- nginx est la SEULE
+        # chose encore debout. Sans cette page, l'utilisateur recoit le
+        # « 502 Bad Gateway » brut : un message technique qui laisse croire
+        # a une panne et pousse a appeler l'administrateur en pleine
+        # operation.
+        #
+        # Django a sa propre page de maintenance (503), servie quand il
+        # tourne encore ; celle-ci couvre le seul cas qu'il ne peut pas
+        # couvrir lui-meme : son absence.
+        error_page 502 503 504 /__redemarrage.html;
+    }
+
+    # internal : inatteignable depuis l'extérieur, seulement par
+    # error_page. Sans cela, l'adresse serait publique et l'on pourrait
+    # afficher « redemarrage en cours » sur un serveur en parfait etat.
+    location = /__redemarrage.html {
+        internal;
+        root /opt/orion/nginx;
+        try_files /redemarrage.html =502;
+        add_header Retry-After 30 always;
+        add_header Cache-Control "no-store" always;
     }
 }
 

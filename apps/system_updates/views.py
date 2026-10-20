@@ -19,6 +19,7 @@ from apps.system_updates.selectors import (
     get_update_settings,
     has_update_running,
 )
+from apps.core.maintenance import annoncer, clore_annonces
 from apps.system_updates.server_actions import (
     ServerActionError,
     cancel_scheduled_action,
@@ -149,12 +150,64 @@ def _nom_du_serveur():
 
 
 @super_admin_required
+def maintenance_annonce(request):
+    """Annoncer une interruption à venir, pour que personne ne soit surpris.
+
+    Prévenir et bloquer sont deux choses distinctes : cet écran PRÉVIENT —
+    un bandeau s'affiche pour tous. Le blocage, lui, vient du verrou de
+    maintenance, posé automatiquement par la mise à jour.
+    """
+    from apps.core.models import MaintenanceAnnonce
+    from apps.system_updates.forms import MaintenanceAnnonceForm
+
+    courante = MaintenanceAnnonce.courante()
+
+    if request.method == 'POST':
+        form = MaintenanceAnnonceForm(request.POST)
+        if form.is_valid():
+            # Une seule annonce active : deux bandeaux simultanes diraient
+            # deux choses differentes du meme evenement.
+            MaintenanceAnnonce.objects.filter(active=True).update(
+                active=False)
+            annonce = form.save(commit=False)
+            annonce.cree_par = request.user
+            annonce.save()
+            messages.success(
+                request,
+                'Annonce enregistrée : le bandeau est visible de tous les '
+                'utilisateurs dès maintenant.')
+            return redirect('system_updates:dashboard')
+    else:
+        form = MaintenanceAnnonceForm(instance=courante)
+
+    return render(request, 'system_updates/maintenance_annonce.html', {
+        'form': form,
+        'courante': courante,
+        'page_title': 'Annoncer une maintenance',
+    })
+
+
+@super_admin_required
+@require_POST
+def maintenance_annonce_annuler(request):
+    from apps.core.maintenance import clore_annonces
+
+    clore_annonces()
+    messages.success(request, 'Annonce retirée : le bandeau disparaît.')
+    return redirect('system_updates:dashboard')
+
+
+@super_admin_required
 def server_reboot_confirm(request):
     if request.method == 'POST':
         form = ServerActionConfirmForm(request.POST, expected_text='REDEMARRER')
         if form.is_valid():
             try:
                 schedule_reboot()
+                # Annonce AVANT l'arret : pendant la minute de delai, les
+                # utilisateurs voient le bandeau et peuvent enregistrer.
+                annoncer('redemarrage', duree_minutes=5,
+                         utilisateur=request.user)
                 ServerActionLog.objects.create(
                     action='reboot', status='success', executed_by=request.user,
                     message='Redémarrage programmé dans 1 minute.',
@@ -183,6 +236,10 @@ def server_shutdown_confirm(request):
         if form.is_valid():
             try:
                 schedule_shutdown()
+                annoncer('maintenance', duree_minutes=0,
+                         message='Le serveur est arrêté. Contactez '
+                                 'l’administrateur pour le rallumer.',
+                         utilisateur=request.user)
                 ServerActionLog.objects.create(
                     action='shutdown', status='success', executed_by=request.user,
                     message='Extinction programmée dans 1 minute.',
@@ -213,6 +270,9 @@ def server_shutdown_confirm(request):
 def server_action_cancel(request):
     try:
         cancel_scheduled_action()
+        # L'annonce tombe avec l'action annulee : un bandeau qui survit a
+        # son evenement fait douter de l'etat reel du serveur.
+        clore_annonces()
         ServerActionLog.objects.create(
             action='cancel', status='success', executed_by=request.user,
             message='Redémarrage/extinction programmé annulé.',

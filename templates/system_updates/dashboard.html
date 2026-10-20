@@ -22,6 +22,9 @@
       <i class="bi bi-cloud-download me-1"></i>{% trans "Lancer la mise à jour" %}
     </a>
     {% endif %}
+    <a href="{% url 'system_updates:maintenance_annonce' %}" class="orion-btn">
+      <i class="bi bi-megaphone me-1"></i>{% trans "Prévenir les utilisateurs" %}
+    </a>
     <a href="{% url 'system_updates:server_reboot' %}" class="orion-btn">
       <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Redémarrer le serveur" %}
     </a>

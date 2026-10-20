@@ -1,0 +1,112 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if motif %}{{ motif }}{% else %}{% trans "Maintenance" %}{% endif %} — Orion ERP</title>
+
+  {# La page se recharge d'elle-meme. Sans cela, l'utilisateur reste devant
+     un ecran mort et rafraichit a la main sans savoir quand essayer -- ou
+     abandonne alors que le service est revenu depuis deux minutes.
+
+     meta refresh et non JavaScript : cette page doit fonctionner meme
+     servie par nginx pendant que Django est arrete, et l'equivalent
+     statique repose sur le meme mecanisme. #}
+  <meta http-equiv="refresh" content="20">
+
+  <style>
+    :root {
+      --fond: #f6f4f0; --carte: #ffffff; --texte: #2b2620;
+      --discret: #6f675c; --accent: #c6a15b; --bord: #e4ded4;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fond: #16130f; --carte: #1e1a15; --texte: #ece7de;
+        --discret: #9c9284; --bord: #2e2820;
+      }
+    }
+    * { box-sizing: border-box }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0; min-height: 100vh; background: var(--fond);
+      color: var(--texte); display: flex; align-items: center;
+      justify-content: center; padding: 24px;
+    }
+    .carte {
+      background: var(--carte); border: 1px solid var(--bord);
+      border-radius: 16px; max-width: 520px; width: 100%;
+      padding: 40px 32px; text-align: center;
+      box-shadow: 0 2px 24px rgba(0,0,0,.05);
+    }
+    .pastille {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(198,161,91,.14); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    h1 { font-size: 21px; font-weight: 700; margin: 0 0 10px }
+    p { color: var(--discret); font-size: 14.5px; line-height: 1.65; margin: 0 0 12px }
+    .retour {
+      margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--bord);
+      font-size: 13.5px; color: var(--discret);
+    }
+    .heure { font-weight: 700; color: var(--texte) }
+    .message {
+      margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+      background: var(--fond); border: 1px solid var(--bord);
+      font-size: 13.5px; color: var(--texte); text-align: left;
+      white-space: pre-line;
+    }
+    .attente { margin-top: 18px; font-size: 12.5px; color: var(--discret) }
+    .barre {
+      height: 3px; border-radius: 3px; background: var(--bord);
+      overflow: hidden; margin-top: 14px;
+    }
+    .barre i {
+      display: block; height: 100%; width: 35%; border-radius: 3px;
+      background: var(--accent); animation: glisse 1.6s ease-in-out infinite;
+    }
+    @keyframes glisse {
+      0% { transform: translateX(-100%) } 100% { transform: translateX(300%) }
+    }
+  </style>
+</head>
+<body>
+  <div class="carte">
+    <div class="pastille">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/>
+      </svg>
+    </div>
+
+    <h1>
+      {% if motif %}{{ motif }}{% else %}{% trans "Maintenance en cours" %}{% endif %}
+    </h1>
+
+    <p>
+      {% blocktrans %}Orion ERP est momentanément indisponible. Vos données ne
+      sont pas affectées : rien n'a été perdu, et tout sera là au retour.{% endblocktrans %}
+    </p>
+
+    {% if message %}
+    <div class="message">{{ message }}</div>
+    {% endif %}
+
+    <div class="barre"><i></i></div>
+
+    {% if fin_prevue %}
+    <div class="retour">
+      {% blocktrans %}Retour prévu vers{% endblocktrans %}
+      <span class="heure">{{ fin_prevue|time:"H:i" }}</span>
+      {% blocktrans %}— une estimation, pas une garantie.{% endblocktrans %}
+    </div>
+    {% endif %}
+
+    <div class="attente">
+      {% blocktrans %}Cette page se recharge toute seule. Vous n'avez rien à
+      faire : elle laissera place à Orion dès que le service répondra.{% endblocktrans %}
+    </div>
+  </div>
+</body>
+</html>
