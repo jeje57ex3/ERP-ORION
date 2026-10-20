@@ -67,19 +67,20 @@
           </div>
         </div>
       </div>
-      {# Le detail des materiels et fournitures. Disponible a la
-         MODIFICATION seulement : un formset a besoin d'un devis existant
-         auquel rattacher ses lignes. #}
+      {# Le detail : materiaux, fournitures et actions. Disponible des la
+         CREATION -- le formset est alors construit sans instance, et ses
+         lignes sont rattachees au devis juste apres son enregistrement. #}
       {% if detail %}
       <div class="erp-card mb-3">
         <div class="orion-orion-card-header">
-          <h6 class="card-title"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Détail des matériels et fournitures" %}</h6>
+          <h6 class="card-title"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Matériaux, fournitures et actions" %}</h6>
         </div>
         <div class="p-3">
           <p class="small text-muted">
             {% blocktrans %}Ces lignes s'impriment sur le devis dans les cadres
-            « Détail des matériels » et « Détail des fournitures ». Elles n'entrent
-            pas dans le total, qui vient des lignes de prestation.{% endblocktrans %}
+            « Détail des matériels », « Détail des fournitures » et « Détail des
+            actions ». Elles n'entrent pas dans le total, qui vient des lignes de
+            prestation.{% endblocktrans %}
           </p>
           {{ detail.management_form }}
           {% if detail.non_form_errors %}

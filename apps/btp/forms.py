@@ -327,7 +327,7 @@ class BTPQuoteLineForm(forms.ModelForm):
         _rendre_deductibles(self, ('material', 'work_item', 'phase',
                                    'description', 'unit', 'unit_price',
                                    'vat_rate', 'quantity'))
-        self.fields['material'].label = 'Matériau / fourniture'
+        self.fields['material'].label = 'Article du catalogue'
         self.fields['work_item'].label = 'Ouvrage'
 
     def clean(self):

@@ -159,7 +159,17 @@ class Material(models.Model):
     KIND_CHOICES = [
         ('material', 'Matériau'),
         ('supply', 'Fourniture'),
+        ('action', 'Action'),
     ]
+    """Trois natures, dans le MEME catalogue.
+
+    L'action -- poser, déposer, raccorder -- rejoint les matériaux et les
+    fournitures plutôt que la bibliothèque d'ouvrages (WorkLibrary), parce
+    que cette dernière n'a aucun écran : son sélecteur serait vide en
+    permanence. Ici l'écran existe déjà, et les deux prix gardent un sens
+    pour une action : `purchase_price` est le coût horaire interne,
+    `sale_price` le taux facturé.
+    """
 
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, related_name='btp_materials')
@@ -191,8 +201,8 @@ class Material(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Matériau / fourniture'
-        verbose_name_plural = 'Matériaux et fournitures'
+        verbose_name = 'Article de catalogue'
+        verbose_name_plural = 'Catalogue : matériaux, fournitures, actions'
         ordering = ['category', 'name']
         # L'unicite de la reference par entreprise est verifiee dans le
         # FORMULAIRE, pas ici. Une reference peut rester vide, et une

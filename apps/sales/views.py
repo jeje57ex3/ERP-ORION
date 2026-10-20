@@ -61,43 +61,68 @@ def quote_detail(request, pk):
         'lines': lines,
         'detail_materiels': [d for d in detail if d.nature == 'materiel'],
         'detail_fournitures': [d for d in detail if d.nature == 'fourniture'],
+        'detail_actions': [d for d in detail if d.nature == 'action'],
     })
 
 
 @login_required
 def quote_create(request):
+    from django.db import transaction
+
+    from apps.sales.forms import QuoteDetailLineFormSet
+
     company = request.current_company
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = QuoteForm(request.POST)
         # Le client doit etre borne a l'entreprise A LA VALIDATION aussi, et
         # pas seulement a l'affichage : sans cette ligne, un identifiant forge
         # dans la requete designait le client d'une AUTRE entreprise, et le
         # devis lui etait rattache. C'est la regle centrale de cet ERP.
-        form.fields['customer'].queryset = Customer.objects.filter(
-            company=company, is_active=True)
-        if form.is_valid():
-            quote = form.save(commit=False)
-            quote.company = company
-            quote.created_by = request.user
-            # Numerotation atomique (SELECT FOR UPDATE), et non un comptage.
-            # « count() + 1 » donnait le meme numero a deux devis crees en
-            # meme temps, et recyclait un numero deja emis apres une
-            # suppression -- sur un document comptable, c'est inacceptable.
-            from apps.core.numbering import next_number
-            quote.number = next_number(company, 'quote') or ''
-            quote.save()
+        form.fields['customer'].queryset = clients
+
+        # Le detail -- materiaux, fournitures, actions -- se saisit DES la
+        # creation. Le formset est construit sans instance : il n'y a pas
+        # encore de devis auquel rattacher ses lignes. Elles le sont juste
+        # apres, en lui donnant l'instance enregistree : save_new() relit
+        # `self.instance` au moment d'ecrire, pas a la construction.
+        detail = QuoteDetailLineFormSet(
+            request.POST, form_kwargs={'company': company})
+
+        if form.is_valid() and detail.is_valid():
+            # Tout ou rien : un devis enregistre dont le detail echouerait
+            # ensuite partirait au client ampute de ce qui justifie son prix.
+            with transaction.atomic():
+                quote = form.save(commit=False)
+                quote.company = company
+                quote.created_by = request.user
+                # Numerotation atomique (SELECT FOR UPDATE), et non un
+                # comptage. « count() + 1 » donnait le meme numero a deux
+                # devis crees en meme temps, et recyclait un numero deja
+                # emis apres une suppression -- sur un document comptable,
+                # c'est inacceptable.
+                from apps.core.numbering import next_number
+                quote.number = next_number(company, 'quote') or ''
+                quote.save()
+
+                detail.instance = quote
+                detail.save()
+
             messages.success(request, f'Devis {quote.number} créé avec succès.')
             return redirect('sales:quote_detail', pk=quote.pk)
     else:
         form = QuoteForm()
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
         customer_pk = request.GET.get('customer')
         if customer_pk:
             form.fields['customer'].initial = customer_pk
+        detail = QuoteDetailLineFormSet(form_kwargs={'company': company})
 
     return render(request, 'sales/quote_form.html', {
         'page_title': 'Nouveau devis',
         'form': form,
+        'detail': detail,
         'action': 'create',
     })
 
