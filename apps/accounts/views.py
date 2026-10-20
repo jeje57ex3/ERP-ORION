@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 from .forms import LoginForm, UserForm, UserProfileForm, UserCreateForm
 from .models import UserProfile
@@ -76,6 +77,65 @@ def profile(request):
         'profile_form': profile_form,
         'page_title': 'Mon profil',
     })
+
+
+@login_required
+@require_POST
+def signature_save(request):
+    """Enregistre la signature tracée dans le cadre.
+
+    POST seulement : un GET qui modifie le compte se déclencherait au
+    survol d'un lien, à l'indexation ou au passage d'un antivirus.
+
+    L'ancien fichier est supprimé AVANT d'écrire le nouveau : sans cela, le
+    stockage de Django renomme le nouveau (« signature-3_a8f2.png ») et les
+    anciens s'accumulent indéfiniment sur le disque, un par
+    réenregistrement.
+    """
+    from django.core.files.base import ContentFile
+
+    from apps.accounts.signature import SignatureInvalide, decoder_signature
+
+    try:
+        octets = decoder_signature(request.POST.get('signature') or '')
+    except SignatureInvalide as exc:
+        # Le refus est renvoye tel quel : le cadre vide et le fichier
+        # illisible n'ont pas le meme remede, et « erreur » ne le dirait pas.
+        return JsonResponse({'erreur': str(exc)}, status=400)
+
+    profil = request.user.profile
+    if profil.signature:
+        try:
+            profil.signature.delete(save=False)
+        except OSError:
+            # Un fichier verrouille ou deja disparu ne doit PAS empecher
+            # d'enregistrer la nouvelle signature : la consequence a
+            # accepter est un fichier orphelin, bien preferable a un refus
+            # d'enregistrement que l'utilisateur ne saurait pas contourner.
+            # Rencontre sous Windows, ou une poignee encore ouverte fait
+            # echouer os.remove (WinError 32).
+            pass
+    profil.signature.save(f'signature-{request.user.pk}.png',
+                          ContentFile(octets), save=True)
+
+    return JsonResponse({'url': profil.signature.url,
+                         'message': 'Signature enregistrée.'})
+
+
+@login_required
+@require_POST
+def signature_delete(request):
+    """Retire la signature enregistrée.
+
+    Le fichier est supprimé du disque, et pas seulement détaché : une
+    signature manuscrite est une donnée personnelle, la laisser traîner
+    après un retrait explicite serait difficile à justifier.
+    """
+    profil = request.user.profile
+    if profil.signature:
+        profil.signature.delete(save=True)
+        messages.success(request, 'Signature retirée.')
+    return redirect('accounts:profile')
 
 
 @login_required
