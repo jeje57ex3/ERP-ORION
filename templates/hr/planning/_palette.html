@@ -1,0 +1,113 @@
+{% comment %}
+  Palette du planning, partagée par toutes ses vues.
+
+  DÉFAUT CORRIGÉ ICI. La version précédente écrivait
+  `background: var(--orion-card, #1b1b1f)` sur la colonne des noms. Or
+  `--orion-card` **n'existe nulle part** dans le système de design — la
+  vraie variable est `--orion-surface`. Le repli `#1b1b1f` s'appliquait donc
+  toujours : une cellule quasi noire, sous un texte qui héritait de
+  `--orion-text` (`#1f1b18` en thème clair). Noir sur noir, et les noms
+  des salariés illisibles.
+
+  Les états souffraient du même mal : `color: rgba(255,255,255,.35)` pour le
+  repos, et des pastels (`#7dd3fc`, `#fcd34d`, `#fca5a5`) pensés pour un
+  fond sombre. Le thème CLAIR est celui par défaut — `[data-theme="dark"]`
+  est l'exception — donc c'est en thème clair que tout était illisible.
+
+  D'où ces variables propres, définies une fois pour le clair et redéfinies
+  pour le sombre. Aucune couleur n'est écrite en dur dans les gabarits de
+  planning : une seule correction suffit désormais pour les quatre vues.
+{% endcomment %}
+<style>
+  :root {
+    /* Fond et texte de chaque état. Contraste vérifié sur fond clair :
+       le texte est toujours une version foncée de la teinte du fond. */
+    --pl-nom-fond:        var(--orion-surface);
+    --pl-nom-texte:       var(--orion-text);
+
+    --pl-travaille-fond:  transparent;
+    --pl-travaille-texte: var(--orion-text-soft, #5f5750);
+
+    --pl-repos-fond:      #ebe6de;
+    --pl-repos-texte:     #7d736a;
+
+    --pl-conge-fond:      #d6e7f1;
+    --pl-conge-texte:     #27566a;
+
+    --pl-maladie-fond:    #f7e7c6;
+    --pl-maladie-texte:   #845213;
+
+    --pl-arret-fond:      #f6d8d8;
+    --pl-arret-texte:     #8a2b2b;
+
+    --pl-grille-trait:    var(--orion-border, rgba(42, 34, 28, .12));
+    --pl-frise-fond:      #f1ece4;
+    --pl-aujourdhui:      var(--orion-accent, #b89b6b);
+  }
+
+  [data-theme="dark"] {
+    --pl-nom-fond:        var(--orion-surface);
+    --pl-nom-texte:       var(--orion-text);
+
+    --pl-travaille-fond:  rgba(255, 255, 255, .04);
+    --pl-travaille-texte: var(--orion-muted);
+
+    --pl-repos-fond:      #241a12;
+    --pl-repos-texte:     #8c7c66;
+
+    --pl-conge-fond:      #1e3b49;
+    --pl-conge-texte:     #a7d4e6;
+
+    --pl-maladie-fond:    #4a3511;
+    --pl-maladie-texte:   #f0cd82;
+
+    --pl-arret-fond:      #4d1f1f;
+    --pl-arret-texte:     #f3aaaa;
+
+    --pl-grille-trait:    var(--orion-border);
+    --pl-frise-fond:      #1b1410;
+    --pl-aujourdhui:      #c6a15b;
+  }
+
+  .pl-travaille { background: var(--pl-travaille-fond); color: var(--pl-travaille-texte) }
+  .pl-repos     { background: var(--pl-repos-fond);     color: var(--pl-repos-texte) }
+  .pl-conge     { background: var(--pl-conge-fond);     color: var(--pl-conge-texte) }
+  .pl-maladie   { background: var(--pl-maladie-fond);   color: var(--pl-maladie-texte) }
+  .pl-arret     { background: var(--pl-arret-fond);     color: var(--pl-arret-texte) }
+
+  .pl-nom {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--pl-nom-fond);
+    color: var(--pl-nom-texte);
+    text-align: left !important;
+    padding: 5px 10px !important;
+    white-space: nowrap;
+    font-size: 12.5px;
+    /* La colonne flotte au-dessus des cellules qui défilent : sans ce
+       trait, les noms se confondent avec la première colonne de jours. */
+    box-shadow: 1px 0 0 var(--pl-grille-trait);
+  }
+  .pl-nom a { color: inherit; text-decoration: none }
+  .pl-nom a:hover { text-decoration: underline }
+
+  .pl-legende span {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-right: 14px; font-size: 12px; color: var(--orion-text-soft, inherit);
+  }
+  .pl-pastille {
+    width: 15px; height: 15px; border-radius: 3px; display: inline-block;
+    border: 1px solid var(--pl-grille-trait);
+  }
+
+  .pl-selecteur-vue { display: inline-flex; border-radius: 9px; overflow: hidden;
+                      border: 1px solid var(--pl-grille-trait) }
+  .pl-selecteur-vue a {
+    padding: 4px 12px; font-size: 12.5px; text-decoration: none;
+    color: var(--orion-text-soft, inherit); background: var(--orion-surface);
+    border-right: 1px solid var(--pl-grille-trait);
+  }
+  .pl-selecteur-vue a:last-child { border-right: 0 }
+  .pl-selecteur-vue a.actif {
+    background: var(--pl-aujourdhui); color: #fff; font-weight: 600;
+  }
+</style>
