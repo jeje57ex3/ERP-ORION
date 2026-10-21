@@ -364,10 +364,10 @@
     <!-- CONTENU DE LA PAGE -->
     <main class="erp-content">
       {% if maintenance_annonce %}
-      {# PREVENIR, pas bloquer. Une annonce dont l'heure n'est pas encore
+      {% comment %} PREVENIR, pas bloquer. Une annonce dont l'heure n'est pas encore
          venue n'interrompt rien : elle avertit, pour qu'on enregistre son
          devis avant d'etre coupe. Le blocage, lui, ne vient que du fichier
-         verrou -- voir MaintenanceModeMiddleware. #}
+         verrou -- voir MaintenanceModeMiddleware. {% endcomment %}
       <div class="orion-bandeau-maintenance"
            style="background:{% if maintenance_annonce.a_commence %}#b43b3b{% else %}#c6a15b{% endif %};
                   color:#fff;padding:10px 16px;border-radius:10px;

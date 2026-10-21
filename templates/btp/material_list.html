@@ -95,8 +95,8 @@
           <td class="text-end small">
             {{ article.purchase_price|floatformat:2 }} €
             {% if article.prix_indicatif %}
-            {# Un prix de repere doit se voir : sinon un devis part avec lui
-               en le croyant ferme. #}
+            {% comment %} Un prix de repere doit se voir : sinon un devis part avec lui
+               en le croyant ferme. {% endcomment %}
             <div class="text-warning" style="font-size:.68rem">
               <i class="bi bi-hourglass-split"></i> {% trans "indicatif" %}
             </div>

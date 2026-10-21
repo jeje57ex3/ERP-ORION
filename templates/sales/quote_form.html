@@ -25,9 +25,9 @@
           </div>
         </div>
       </div>
-      {# Decomposition du chiffrage. Elle N'ENTRE PAS dans le total, qui
+      {% comment %} Decomposition du chiffrage. Elle N'ENTRE PAS dans le total, qui
          vient des lignes : ces montants disent comment le prix est compose.
-         Les additionner ici doublerait le devis. #}
+         Les additionner ici doublerait le devis. {% endcomment %}
       <div class="erp-card mb-3">
         <div class="orion-orion-card-header">
           <h6 class="card-title"><i class="bi bi-diagram-3 me-1 text-primary"></i>{% trans "Décomposition du chiffrage" %}</h6>
@@ -67,9 +67,9 @@
           </div>
         </div>
       </div>
-      {# Le detail : materiaux, fournitures et actions. Disponible des la
+      {% comment %} Le detail : materiaux, fournitures et actions. Disponible des la
          CREATION -- le formset est alors construit sans instance, et ses
-         lignes sont rattachees au devis juste apres son enregistrement. #}
+         lignes sont rattachees au devis juste apres son enregistrement. {% endcomment %}
       {% if detail %}
       <div class="erp-card mb-3">
         <div class="orion-orion-card-header">

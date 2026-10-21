@@ -72,9 +72,9 @@
               <label class="form-label">{% trans 'Avatar' %}</label>
               <input type="file" name="avatar" class="form-control" accept="image/*">
             </div>
-            {# La signature est reprise automatiquement sur les devis que
+            {% comment %} La signature est reprise automatiquement sur les devis que
                cette personne etablit : elle se depose une fois ici, et non
-               a chaque devis. #}
+               a chaque devis. {% endcomment %}
             <div class="col-12">
               <button type="submit" class="orion-btn primary">
                 <i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}
@@ -83,14 +83,14 @@
           </div>
         </form>
 
-        {# La signature se trace, elle ne se televerse plus.
+        {% comment %} La signature se trace, elle ne se televerse plus.
 
            Hors du formulaire de profil, et c'est necessaire : elle
            s'enregistre par sa propre adresse, qui verifie qu'un cadre vide
            n'est pas accepte. Une toile vierge produit un PNG parfaitement
            valide et entierement transparent -- enregistre, l'ecran dirait
            « signature enregistree » alors que les devis sortiraient sans
-           rien a l'emplacement prevu. #}
+           rien a l'emplacement prevu. {% endcomment %}
         <hr class="my-4">
 
         <div id="cadre-signature"
@@ -114,9 +114,9 @@
             </div>
           </div>
 
-          {# touch-action:none, sinon le doigt fait defiler la page au lieu
+          {% comment %} touch-action:none, sinon le doigt fait defiler la page au lieu
              de tracer. Le fond est en damier clair pour qu'on voie que la
-             toile est TRANSPARENTE, et non blanche. #}
+             toile est TRANSPARENTE, et non blanche. {% endcomment %}
           <canvas id="toile-signature" width="900" height="300"
                   style="width:100%;max-width:450px;height:150px;
                          touch-action:none;cursor:crosshair;
@@ -134,8 +134,8 @@
               <i class="bi bi-eraser me-1"></i>{% trans 'Effacer le cadre' %}
             </button>
             {% if request.user.profile.signature %}
-            {# POST et non lien : un GET destructeur se declenche au survol,
-               a l'indexation ou au passage d'un antivirus. #}
+            {% comment %} POST et non lien : un GET destructeur se declenche au survol,
+               a l'indexation ou au passage d'un antivirus. {% endcomment %}
             <form method="post" action="{% url 'accounts:signature_delete' %}"
                   onsubmit="return confirm('{% trans "Retirer la signature enregistrée ?" %}')">
               {% csrf_token %}

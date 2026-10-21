@@ -34,8 +34,8 @@
             </form>
           {% endif %}
 
-          {# total_count et non page_obj : le bouton doit rester disponible même
-             quand les filtres de la page ne laissent rien voir. #}
+          {% comment %} total_count et non page_obj : le bouton doit rester disponible même
+             quand les filtres de la page ne laissent rien voir. {% endcomment %}
           {% if total_count > 0 %}
             <form method="post" action="{% url 'notifications:delete_all' %}"
                   onsubmit="return confirm('{% trans "Supprimer définitivement toutes vos notifications ? Cette action est irréversible." %}')">

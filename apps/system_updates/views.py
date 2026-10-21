@@ -1,4 +1,4 @@
-from django.contrib import messages
+﻿from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -208,15 +208,29 @@ def server_reboot_confirm(request):
                 # utilisateurs voient le bandeau et peuvent enregistrer.
                 annoncer('redemarrage', duree_minutes=5,
                          utilisateur=request.user)
-                ServerActionLog.objects.create(
-                    action='reboot', status='success', executed_by=request.user,
-                    message='Redémarrage programmé dans 1 minute.',
-                )
+                # La trace est un confort, l'arret est deja programme.
+                # Cette ecriture etait DANS le try, mais seul
+                # ServerActionError y etait rattrape : une table absente ou
+                # une base injoignable renvoyait donc une erreur 500 juste
+                # apres le clic -- alors que le serveur allait bel et bien
+                # redemarrer. L'utilisateur voyait une panne la ou tout
+                # s'etait bien passe.
+                try:
+                    ServerActionLog.objects.create(
+                        action='reboot', status='success',
+                        executed_by=request.user, message='Redémarrage programmé dans 1 minute.',
+                    )
+                except Exception:
+                    pass
                 messages.success(request, 'Redémarrage programmé — le serveur va redémarrer dans 1 minute.')
             except ServerActionError as exc:
-                ServerActionLog.objects.create(
-                    action='reboot', status='failed', executed_by=request.user, message=str(exc),
-                )
+                try:
+                    ServerActionLog.objects.create(
+                        action='reboot', status='failed',
+                        executed_by=request.user, message=str(exc),
+                    )
+                except Exception:
+                    pass
                 messages.error(request, f'Redémarrage impossible : {exc}')
             return redirect('system_updates:dashboard')
     else:
@@ -240,15 +254,29 @@ def server_shutdown_confirm(request):
                          message='Le serveur est arrêté. Contactez '
                                  'l’administrateur pour le rallumer.',
                          utilisateur=request.user)
-                ServerActionLog.objects.create(
-                    action='shutdown', status='success', executed_by=request.user,
-                    message='Extinction programmée dans 1 minute.',
-                )
+                # La trace est un confort, l'arret est deja programme.
+                # Cette ecriture etait DANS le try, mais seul
+                # ServerActionError y etait rattrape : une table absente ou
+                # une base injoignable renvoyait donc une erreur 500 juste
+                # apres le clic -- alors que le serveur allait bel et bien
+                # redemarrer. L'utilisateur voyait une panne la ou tout
+                # s'etait bien passe.
+                try:
+                    ServerActionLog.objects.create(
+                        action='shutdown', status='success',
+                        executed_by=request.user, message='Extinction programmée dans 1 minute.',
+                    )
+                except Exception:
+                    pass
                 messages.success(request, "Extinction programmée — le serveur va s'éteindre dans 1 minute.")
             except ServerActionError as exc:
-                ServerActionLog.objects.create(
-                    action='shutdown', status='failed', executed_by=request.user, message=str(exc),
-                )
+                try:
+                    ServerActionLog.objects.create(
+                        action='shutdown', status='failed',
+                        executed_by=request.user, message=str(exc),
+                    )
+                except Exception:
+                    pass
                 messages.error(request, f'Extinction impossible : {exc}')
             return redirect('system_updates:dashboard')
     else:

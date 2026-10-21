@@ -16,9 +16,9 @@
       </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      {# L'ESSAI A BLANC d'abord, et ce n'est pas un hasard : une colonne mal
+      {% comment %} L'ESSAI A BLANC d'abord, et ce n'est pas un hasard : une colonne mal
          nommee produit des centaines d'articles au mauvais nom ou des prix
-         d'achat a zero, dans un catalogue qui sert ensuite a chiffrer. #}
+         d'achat a zero, dans un catalogue qui sert ensuite a chiffrer. {% endcomment %}
       <form method="post" action="{% url 'btp:catalogue_source_run' source.pk %}">
         {% csrf_token %}
         <input type="hidden" name="a_blanc" value="1">
@@ -42,8 +42,8 @@
       <a href="{% url 'btp:catalogue_source_edit' source.pk %}" class="orion-btn">
         <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
       </a>
-      {# POST et non lien : un GET destructeur se declenche au survol, a
-         l'indexation ou au passage d'un antivirus. #}
+      {% comment %} POST et non lien : un GET destructeur se declenche au survol, a
+         l'indexation ou au passage d'un antivirus. {% endcomment %}
       <form method="post" action="{% url 'btp:catalogue_source_delete' source.pk %}"
             onsubmit="return confirm('{% trans "Supprimer cette source ? Les articles déjà importés sont conservés." %}')">
         {% csrf_token %}

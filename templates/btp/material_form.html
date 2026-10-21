@@ -92,9 +92,9 @@
               {{ form.vat_rate.errors }}
             </div>
             <div class="col-12">
-              {# Un prix de repere doit se decocher quand le vrai tarif
+              {% comment %} Un prix de repere doit se decocher quand le vrai tarif
                  arrive : c'est le seul geste qui fait passer l'article de
-                 « a tarifer » a « ferme ». #}
+                 « a tarifer » a « ferme ». {% endcomment %}
               <div class="form-check form-switch">
                 {{ form.prix_indicatif }}
                 <label class="form-check-label" for="{{ form.prix_indicatif.id_for_label }}">
