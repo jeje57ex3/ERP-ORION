@@ -293,6 +293,7 @@ NAV_MODULES = [
             {'label': _('Congés'),         'url_name': 'hr:leave_list',    'icon_img': 'conges.png', 'icon': 'ti-calendar-check'},
             {'label': _('Arrêts de travail'), 'url_name': 'hr:stoppage_list', 'icon_img': 'conges.png', 'icon': 'ti-first-aid-kit'},
             {'label': _('Rythmes de travail'), 'url_name': 'hr:schedule_list', 'icon_img': 'conges.png', 'icon': 'ti-calendar-week'},
+            {'label': _('Habilitations'),  'url_name': 'hr:certification_expiring', 'icon_img': 'salaries.png', 'icon': 'ti-certificate'},
             {'label': _('Notes de frais'), 'url_name': 'hr:expense_list',  'icon_img': 'notes_frais.png', 'icon': 'ti-wallet'},
             {'label': _('Paie'),           'url_name': 'payroll:index',    'icon_img': 'paie.png', 'icon': 'ti-moneybag'},
         ],

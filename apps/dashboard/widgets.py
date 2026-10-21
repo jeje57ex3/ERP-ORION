@@ -1,4 +1,4 @@
-"""
+﻿"""
 dashboard/widgets.py — Chargeurs de données pour chaque widget
 Chaque fonction retourne un dict utilisable dans les templates.
 """
@@ -350,6 +350,32 @@ def get_hr_expiring_documents_data(user, company):
         ).select_related('employee').order_by('expires_at')[:10]
         return {'documents': list(docs), 'total': docs.count()}
     return _safe(load, {'documents': [], 'total': 0})
+
+
+def get_hr_expiring_certifications_data(user, company):
+    """Les habilitations expirees ou proches de l'etre.
+
+    Distinct de get_hr_expiring_documents_data, qui ne regarde que
+    EmployeePrivateDocument : les certifications sont un autre modele, et
+    aucun widget ne les remontait. Un CACES perime ne se decouvrait qu'en
+    ouvrant la fiche du salarie.
+
+    La selection vient de hr.certification_service, la MEME que l'ecran RH.
+    Deux definitions de « a surveiller » auraient diverge a la premiere
+    correction, et le widget aurait annonce un nombre que l'ecran ne
+    confirme pas -- ce qui apprend a ne plus regarder ni l'un ni l'autre.
+    """
+    def load():
+        from apps.hr.certification_service import (
+            certifications_a_surveiller, compter_par_statut,
+        )
+        lignes = certifications_a_surveiller(company)
+        return {
+            'lignes': lignes[:10],
+            'compteurs': compter_par_statut(lignes),
+            'total': len(lignes),
+        }
+    return _safe(load, {'lignes': [], 'compteurs': {}, 'total': 0})
 
 
 def get_hr_my_private_documents_data(user, company):

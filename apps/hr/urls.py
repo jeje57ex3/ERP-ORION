@@ -1,4 +1,4 @@
-from django.urls import path
+﻿from django.urls import path
 from . import views
 from . import views_planning as planning
 
@@ -56,6 +56,10 @@ urlpatterns = [
     path('salaries/<int:employee_pk>/certifications/ajouter/', views.certification_create, name='certification_create'),
     path('salaries/certification/<int:pk>/modifier/', views.certification_edit, name='certification_edit'),
     path('salaries/certification/<int:pk>/supprimer/', views.certification_delete, name='certification_delete'),
+    path('habilitations/echeances/', views.certification_expiring,
+         name='certification_expiring'),
+    path('salaries/certification/<int:pk>/document/',
+         views.certification_download, name='certification_download'),
     path('mes-competences/', views.my_skills_certifications, name='my_skills_certifications'),
 
     # Dossiers privés salariés

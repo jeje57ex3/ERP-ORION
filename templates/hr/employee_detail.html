@@ -121,7 +121,7 @@
               <td><span class="orion-badge neutral">{{ cert.get_category_display }}</span></td>
               <td class="small">
                 {{ cert.name }}
-                {% if cert.file %}<a href="{{ cert.file.url }}" target="_blank" class="ms-1" title="{% trans 'Voir le document' %}"><i class="bi bi-paperclip"></i></a>{% endif %}
+                {% if cert.file %}<a href="{% url 'hr:certification_download' cert.pk %}" class="ms-1" title="{% trans 'Telecharger le document' %}"><i class="bi bi-paperclip"></i></a>{% endif %}
               </td>
               <td class="small text-muted">{{ cert.reference|default:"—" }}</td>
               <td class="small">

@@ -44,6 +44,44 @@
   {% endif %}
   {% endwith %}
 
+{% elif code == 'hr_expiring_certifications' %}
+  {% with data=widget_data|dict_get:"hr_expiring_certifications" %}
+  {% if data.lignes %}
+  <div class="mb-2">
+    {% if data.compteurs.expiree %}
+    <span class="badge bg-danger">{{ data.compteurs.expiree }} expirée(s)</span>
+    {% endif %}
+    {% if data.compteurs.imminente %}
+    <span class="badge bg-warning text-dark">{{ data.compteurs.imminente }} sous 30 jours</span>
+    {% endif %}
+  </div>
+  <div>
+    {% for ligne in data.lignes %}
+    <div class="widget-item">
+      <div class="widget-item-icon"
+           style="{% if ligne.statut == 'expiree' %}background:#fee2e2;color:#DC2626{% else %}background:#fef3c7;color:#D97706{% endif %}">
+        <i class="bi bi-patch-exclamation"></i>
+      </div>
+      <div class="widget-item-body">
+        <div class="widget-item-title">{{ ligne.certification.employee.full_name }} — {{ ligne.certification.name }}</div>
+        <div class="widget-item-sub {% if ligne.statut == 'expiree' %}text-danger{% else %}text-warning{% endif %}">
+          {{ ligne.libelle }} — {{ ligne.certification.expiry_date|date:"d/m/Y" }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="dashboard-widget-footer">
+    <a href="/hr/habilitations/echeances/" class="small text-muted">Voir toutes les échéances →</a>
+  </div>
+  {% else %}
+  <div class="widget-empty-state">
+    <i class="bi bi-patch-check"></i>
+    <p>Aucune habilitation expirée ni proche de l'être.</p>
+  </div>
+  {% endif %}
+  {% endwith %}
+
 {% elif code == 'hr_expiring_documents' %}
   {% with data=widget_data|dict_get:"hr_expiring_documents" %}
   {% if data.documents %}

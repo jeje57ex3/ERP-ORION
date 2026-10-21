@@ -1,4 +1,4 @@
-"""
+﻿"""
 python manage.py seed_dashboard_widgets
 Crée tous les widgets du catalogue Orion ERP.
 """
@@ -252,6 +252,15 @@ WIDGETS = [
         'icon': 'bi-file-earmark-exclamation', 'color': '#F59E0B',
         'template_name': 'dashboard/partials/widget_documents.html',
         'default_width': 6, 'default_height': 4, 'order': 42,
+        'requires_permission': True, 'permission_code': 'hr',
+    },
+    {
+        'name': 'Habilitations à renouveler', 'code': 'hr_expiring_certifications',
+        'description': 'CACES, habilitations et certificats expirés ou expirant sous 90 jours.',
+        'module_code': 'hr', 'widget_type': 'list',
+        'icon': 'bi-patch-exclamation', 'color': '#DC2626',
+        'template_name': 'dashboard/partials/widget_documents.html',
+        'default_width': 6, 'default_height': 4, 'order': 43,
         'requires_permission': True, 'permission_code': 'hr',
     },
     {

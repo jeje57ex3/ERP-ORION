@@ -1,4 +1,4 @@
-"""
+﻿"""
 dashboard/services.py — Logique métier du dashboard personnalisable
 """
 from .models import DashboardProfile, DashboardWidget, UserDashboardWidget, DashboardShortcut, DashboardUserPreference
@@ -123,6 +123,7 @@ def get_dashboard_context(user, company):
         'hr_leave_requests_to_validate': wdata.get_hr_leave_requests_data,
         'hr_expenses_to_validate': wdata.get_hr_expenses_data,
         'hr_expiring_documents': wdata.get_hr_expiring_documents_data,
+        'hr_expiring_certifications': wdata.get_hr_expiring_certifications_data,
         'hr_my_private_documents': wdata.get_hr_my_private_documents_data,
         'ecommerce_orders_to_prepare': wdata.get_ecommerce_orders_data,
         'inventory_low_stock_products': wdata.get_inventory_low_stock_data,

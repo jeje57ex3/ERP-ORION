@@ -12,10 +12,35 @@ from .models import (
 from .forms import EmployeeForm, LeaveRequestForm, EmployeeSkillForm, EmployeeCertificationForm
 
 
+from apps.core.models import AuditLog
+from .certification_service import (
+    JOURS_PROCHE,
+    certifications_a_surveiller,
+    compter_par_statut,
+    peut_voir_certification,
+)
+
+
 def _is_hr_admin(request):
-    return request.user.is_superuser or (
-        hasattr(request.user, 'profile') and request.user.profile.role in ('admin', 'superadmin')
-    )
+    """Qui peut agir sur les donnees RH d'un salarie.
+
+    « hr_manager » a ete AJOUTE. Le role « Responsable RH » existe dans
+    ROLE_CHOICES et etait pourtant exclu : il ne pouvait ni saisir une
+    competence, ni enregistrer une habilitation, alors que c'est
+    exactement le role fait pour cela. Seul un administrateur general le
+    pouvait -- ce qui obligeait a donner les droits d'administration a qui
+    n'avait besoin que des siens.
+
+    getattr et non hasattr+acces : un User sans UserProfile existe
+    (createsuperuser, profil supprime a la main), et l'ancienne forme
+    levait RelatedObjectDoesNotExist sur hasattr dans certains cas de
+    cache.
+    """
+    if request.user.is_superuser:
+        return True
+    profil = getattr(request.user, 'profile', None)
+    role = getattr(profil, 'role', '') or ''
+    return role in ('admin', 'superadmin', 'hr_manager')
 
 
 @login_required
@@ -415,6 +440,104 @@ def certification_delete(request, pk):
         messages.success(request, f'Certification « {name} » supprimée.')
         return redirect('hr:employee_detail', pk=employee_pk)
     return render(request, 'hr/certification_confirm_delete.html', {'certification': cert})
+
+
+@login_required
+def certification_download(request, pk):
+    """Sert le scan d'une habilitation. La seule façon d'y accéder.
+
+    Le gabarit pointait vers « cert.file.url », soit
+    /media/employee_certifications/..., et PERSONNE ne sert /media/ en
+    production : le static(MEDIA_URL) d'erp_btp/urls.py est derriere
+    « if settings.DEBUG », nginx proxifie /media/ vers gunicorn au lieu de
+    le servir depuis le disque, et WhiteNoise ne sert que STATIC_ROOT.
+    L'envoi fonctionnait, le trombone s'affichait, et le clic rendait 404.
+
+    Le correctif facile aurait ete d'ajouter un « location /media/ » qui
+    sert le disque -- et de rendre du meme coup tous les scans de CACES
+    lisibles par quiconque devine l'URL, sans authentification. D'ou cette
+    vue, qui verifie QUI demande.
+    """
+    company = request.current_company
+    certification = get_object_or_404(
+        EmployeeCertification.objects.select_related('employee'),
+        pk=pk, employee__company=company)
+
+    if not peut_voir_certification(request.user, certification, company):
+        raise Http404
+
+    if not certification.file:
+        messages.warning(request, 'Aucun document joint à cette habilitation.')
+        return redirect('hr:employee_detail', pk=certification.employee_id)
+
+    # Trace d'acces. EmployeeDocumentAccessLog est attache a
+    # EmployeePrivateDocument par cle etrangere et ne peut pas accueillir
+    # une certification sans changement de schema ; AuditLog porte deja ce
+    # qu'il faut, et sert le meme but.
+    try:
+        AuditLog.objects.create(
+            user=request.user, company=company, action='download',
+            module='hr', model_name='EmployeeCertification',
+            object_id=str(certification.pk),
+            object_repr=f'{certification.name} — {certification.employee}'[:200],
+            description=(
+                f'Téléchargement du document de l\'habilitation '
+                f'« {certification.name} » de {certification.employee}.'),
+            ip_address=request.META.get('REMOTE_ADDR') or None,
+        )
+    except Exception:
+        pass
+
+    try:
+        return FileResponse(
+            certification.file.open('rb'), as_attachment=True,
+            filename=certification.file.name.split('/')[-1])
+    except FileNotFoundError:
+        # Le fichier a disparu du disque : restauration partielle, media non
+        # sauvegarde. Dire lequel vaut mieux qu'un 404 muet.
+        messages.error(request, (
+            f'Le document de « {certification.name} » est introuvable sur '
+            f'le serveur. La fiche le référence toujours : il a été perdu, '
+            f'pas supprimé.'))
+        return redirect('hr:employee_detail', pk=certification.employee_id)
+    except Exception:
+        raise Http404
+
+
+@login_required
+def certification_expiring(request):
+    """Les habilitations expirées ou proches de l'être, pour l'entreprise.
+
+    L'écran qui manquait. is_expired et expires_soon existaient depuis le
+    début, mais ne servaient qu'à colorer une ligne sur la fiche d'un
+    salarié : il fallait ouvrir les fiches une par une pour découvrir
+    qu'un CACES etait perime. Pour une habilitation, le besoin est
+    l'inverse -- le savoir avant que la personne arrive sur chantier.
+    """
+    company = request.current_company
+    if not _is_hr_admin(request):
+        messages.error(request, (
+            'Cet écran est réservé à l\'encadrement RH : il liste les '
+            'habilitations de tous les salariés.'))
+        return redirect('hr:my_skills_certifications')
+
+    try:
+        jours = int(request.GET.get('jours', JOURS_PROCHE))
+    except (TypeError, ValueError):
+        jours = JOURS_PROCHE
+    # Borne haute : « jours=100000 » chargerait tout l'historique et
+    # produirait une page que personne ne peut lire.
+    jours = max(0, min(jours, 365))
+
+    lignes = certifications_a_surveiller(company, jours=jours)
+
+    return render(request, 'hr/certification_expiring.html', {
+        'lignes': lignes,
+        'compteurs': compter_par_statut(lignes),
+        'jours': jours,
+        'page_title': 'Habilitations à renouveler',
+        'active_module': 'hr',
+    })
 
 
 @login_required

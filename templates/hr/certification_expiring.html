@@ -1,0 +1,155 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  L'écran qui manquait. `is_expired` et `expires_soon` existaient depuis le
+  début mais ne coloraient qu'une ligne sur la fiche d'un salarié : il
+  fallait ouvrir les fiches une par une pour découvrir qu'un CACES était
+  périmé. Pour une habilitation, le besoin est l'inverse — le savoir avant
+  que la personne arrive sur chantier.
+
+  Les compteurs sont calculés sur la liste affichée, pas par des requêtes
+  séparées : un en-tête qui annonce « 4 expirées » au-dessus d'un tableau
+  qui en montre 3 fait douter des deux.
+{% endcomment %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <h5 class="mb-0">{% trans "Habilitations à renouveler" %}</h5>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'hr:employee_list' %}" class="orion-btn sm">
+      <i class="bi bi-people me-1"></i>{% trans "Salariés" %}
+    </a>
+    <a href="{% url 'hr:planning_equipe' %}" class="orion-btn sm">
+      <i class="bi bi-calendar3 me-1"></i>{% trans "Planning" %}
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-4">
+    <div class="orion-card h-100" style="border-left:3px solid #f87171">
+      <div class="orion-orion-card-body p-3 text-center">
+        <div class="fw-bold" style="font-size:24px;color:#f87171">{{ compteurs.expiree }}</div>
+        <div class="small text-muted">{% trans "expirées" %}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="orion-card h-100" style="border-left:3px solid #fcd34d">
+      <div class="orion-orion-card-body p-3 text-center">
+        <div class="fw-bold" style="font-size:24px;color:#fcd34d">{{ compteurs.imminente }}</div>
+        <div class="small text-muted">{% trans "sous 30 jours" %}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="orion-card h-100" style="border-left:3px solid var(--orion-border)">
+      <div class="orion-orion-card-body p-3 text-center">
+        <div class="fw-bold" style="font-size:24px">{{ compteurs.proche }}</div>
+        <div class="small text-muted">{% trans "sous 90 jours" %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-card-body p-3">
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+      <label class="form-label mb-0 small fw-semibold" for="jours">
+        {% trans "Horizon de surveillance" %}
+      </label>
+      <select name="jours" id="jours" class="form-select form-select-sm"
+              style="width:auto" onchange="this.form.submit()">
+        <option value="30" {% if jours == 30 %}selected{% endif %}>{% trans "30 jours" %}</option>
+        <option value="90" {% if jours == 90 %}selected{% endif %}>{% trans "90 jours" %}</option>
+        <option value="180" {% if jours == 180 %}selected{% endif %}>{% trans "6 mois" %}</option>
+        <option value="365" {% if jours == 365 %}selected{% endif %}>{% trans "1 an" %}</option>
+      </select>
+      <span class="small text-muted">
+        {% blocktrans %}Les habilitations déjà expirées sont toujours
+        affichées, quel que soit l'horizon.{% endblocktrans %}
+      </span>
+    </form>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+    <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+      <thead>
+        <tr>
+          <th>{% trans "Salarié" %}</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Habilitation" %}</th>
+          <th>{% trans "Organisme" %}</th>
+          <th>{% trans "Expiration" %}</th>
+          <th>{% trans "État" %}</th>
+          <th style="width:130px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in lignes %}
+        <tr style="{% if ligne.statut == 'expiree' %}background:rgba(220,38,38,.08){% elif ligne.statut == 'imminente' %}background:rgba(251,191,36,.07){% endif %}">
+          <td>
+            <a href="{% url 'hr:employee_detail' ligne.certification.employee.pk %}"
+               style="color:inherit">{{ ligne.certification.employee.full_name }}</a>
+          </td>
+          <td>
+            <span class="status-badge status-secondary">{{ ligne.certification.get_category_display }}</span>
+          </td>
+          <td>
+            {{ ligne.certification.name }}
+            {% if ligne.certification.reference %}
+            <span class="text-muted">— <code style="font-size:11px">{{ ligne.certification.reference }}</code></span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ ligne.certification.issuing_body|default:"—" }}</td>
+          <td class="fw-semibold">{{ ligne.certification.expiry_date|date:"d/m/Y" }}</td>
+          <td>
+            <span class="status-badge {% if ligne.statut == 'expiree' %}status-danger{% elif ligne.statut == 'imminente' %}status-warning{% else %}status-secondary{% endif %}">
+              {{ ligne.libelle }}
+            </span>
+            <div class="small text-muted">
+              {% if ligne.jours_restants < 0 %}
+                {% blocktrans count n=ligne.jours_absolus %}depuis {{ n }} jour{% plural %}depuis {{ n }} jours{% endblocktrans %}
+              {% else %}
+                {% blocktrans count n=ligne.jours_absolus %}dans {{ n }} jour{% plural %}dans {{ n }} jours{% endblocktrans %}
+              {% endif %}
+            </div>
+          </td>
+          <td class="text-nowrap">
+            {% if ligne.certification.file %}
+            <a href="{% url 'hr:certification_download' ligne.certification.pk %}"
+               class="btn btn-xs btn-outline-secondary" title="{% trans 'Télécharger le document' %}">
+              <i class="bi bi-paperclip"></i>
+            </a>
+            {% endif %}
+            <a href="{% url 'hr:certification_edit' ligne.certification.pk %}"
+               class="btn btn-xs btn-outline-primary" title="{% trans 'Modifier' %}">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            {% blocktrans %}Aucune habilitation expirée ni proche de l'être sur
+            cet horizon. Les habilitations sans date d'expiration — un diplôme,
+            par exemple — ne figurent jamais ici.{% endblocktrans %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="small text-muted mt-3 mb-0">
+  <i class="bi bi-info-circle me-1"></i>
+  {% blocktrans %}Les habilitations désactivées et celles des salariés
+  inactifs sont exclues : une habilitation retirée ou le CACES périmé d'un
+  salarié parti ne sont pas des risques, et les laisser remonter ferait
+  grossir cette liste jusqu'à ce qu'on cesse de la lire.{% endblocktrans %}
+</p>
+{% endblock %}
