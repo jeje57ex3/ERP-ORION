@@ -26,9 +26,9 @@
             </td>
             <td><span class="status-badge status-primary">{{ u.profile.get_role_display }}</span></td>
             <td>{{ u.email }}</td>
-            {# Rendre le rattachement visible ici : c'est la seule page ou l'on
+            {% comment %} Rendre le rattachement visible ici : c'est la seule page ou l'on
                voit les comptes ensemble, donc le seul endroit ou un oubli de
-               liaison se remarque avant qu'il ne gene quelqu'un. #}
+               liaison se remarque avant qu'il ne gene quelqu'un. {% endcomment %}
             <td>
               {% with employee=u.employee_profile %}{% if employee %}
                 <span class="small">{{ employee.full_name }}</span>
@@ -46,9 +46,9 @@
             </td>
             <td class="text-nowrap">
               <a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-xs btn-outline-primary">{% trans 'Voir' %}</a>
-              {# suppression_possible est calcule par la vue : voir le
+              {% comment %} suppression_possible est calcule par la vue : voir le
                  commentaire dans user_list. Pas de bouton quand
-                 l'operation serait refusee. #}
+                 l'operation serait refusee. {% endcomment %}
               {% if u.suppression_possible %}
               <a href="{% url 'accounts:user_delete' u.pk %}" class="btn btn-xs btn-outline-danger"
                  title="{% trans 'Supprimer ce compte' %}"><i class="bi bi-trash"></i></a>

@@ -1,6 +1,8 @@
 ﻿from django.db import models
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
 from apps.core.models import Company
+from apps.documents.validators import validate_sensitive_document
 
 
 class Employee(models.Model):
@@ -41,26 +43,43 @@ class Employee(models.Model):
 
 
 class EmployeeSkill(models.Model):
+    LEVEL_CHOICES = [
+        ('beginner', _('Débutant')),
+        ('intermediate', _('Intermédiaire')),
+        ('expert', _('Expert')),
+    ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='skills')
     name = models.CharField('Compétence', max_length=100)
-    level = models.CharField('Niveau', max_length=20, choices=[('beginner', 'Débutant'), ('intermediate', 'Intermédiaire'), ('expert', 'Expert')], default='intermediate')
+    level = models.CharField('Niveau', max_length=20, choices=LEVEL_CHOICES, default='intermediate')
 
     def __str__(self):
         return f'{self.name} ({self.employee})'
 
 
 class EmployeeCertification(models.Model):
+    CATEGORY_CHOICES = [
+        ('caces', 'CACES'),
+        ('habilitation', _('Habilitation')),
+        ('certificate', _('Certificat')),
+        ('diploma', _('Diplôme')),
+        ('other', _('Autre')),
+    ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='certifications')
+    category = models.CharField('Type', max_length=20, choices=CATEGORY_CHOICES, default='certificate')
     name = models.CharField('Habilitation / Certification', max_length=200)
     reference = models.CharField('Référence', max_length=50, blank=True)
     issued_date = models.DateField('Délivrance', null=True, blank=True)
     expiry_date = models.DateField('Expiration', null=True, blank=True)
     issuing_body = models.CharField('Organisme', max_length=200, blank=True)
+    file = models.FileField(
+        'Document (scan)', upload_to='employee_certifications/', blank=True, null=True,
+        validators=[validate_sensitive_document],
+    )
     is_active = models.BooleanField('Active', default=True)
 
     class Meta:
-        verbose_name = 'Habilitation'
-        verbose_name_plural = 'Habilitations'
+        verbose_name = 'Certification'
+        verbose_name_plural = 'Certifications'
 
     def __str__(self):
         return f'{self.name} — {self.employee}'
@@ -70,6 +89,13 @@ class EmployeeCertification(models.Model):
         if self.expiry_date:
             from datetime import date
             return self.expiry_date < date.today()
+        return False
+
+    @property
+    def expires_soon(self):
+        if self.expiry_date:
+            from datetime import date, timedelta
+            return date.today() <= self.expiry_date <= date.today() + timedelta(days=30)
         return False
 
 
@@ -97,6 +123,244 @@ class LeaveRequest(models.Model):
 
     def __str__(self):
         return f'{self.employee} - {self.start_date} au {self.end_date}'
+
+
+# ─── PLANNING : RYTHME DE TRAVAIL ET ARRÊTS ──────────────────────────────────
+#
+# Deux modeles ajoutes ici, et non dans une application nouvelle : ils
+# decrivent le temps d'un SALARIE, comme LeaveRequest juste au-dessus.
+# Eparpiller les donnees de temps d'un salarie entre deux applications
+# obligerait chaque lecture du planning a joindre deux fois, et chaque
+# nouveau besoin a choisir arbitrairement un cote.
+#
+# Ce qui existait deja et n'est donc pas redit ici : les conges et la
+# maladie (LeaveRequest, avec son circuit d'approbation) et les heures
+# pointees (btp.BTPTimesheet). Le planning les LIT -- voir
+# apps/hr/planning_service.py -- au lieu d'en creer un second exemplaire :
+# deux endroits pour declarer un conge, c'est un conge sur deux qui manque
+# quelque part.
+
+
+JOURS_SEMAINE = (
+    ('monday', 'Lundi'), ('tuesday', 'Mardi'), ('wednesday', 'Mercredi'),
+    ('thursday', 'Jeudi'), ('friday', 'Vendredi'), ('saturday', 'Samedi'),
+    ('sunday', 'Dimanche'),
+)
+
+# date.weekday() rend 0 pour lundi : l'index dans ce tuple est donc
+# directement exploitable, sans table de correspondance.
+CHAMPS_PAR_JOUR = tuple(f'hours_{cle}' for cle, _libelle in JOURS_SEMAINE)
+
+
+class WorkSchedule(models.Model):
+    """Rythme hebdomadaire d'un salarie : heures prevues pour chaque jour.
+
+    Des HEURES par jour, et non une case « travaille / repos ». Le choix
+    coute le meme travail et dit beaucoup plus : un 80 % avec le mercredi
+    libre, une demi-journee le vendredi, un samedi a quatre heures. Avec
+    des booleens, la demi-journee aurait ete inexprimable, et le planning
+    aurait annonce une journee entiere.
+
+    Un jour a zero heure EST un jour de repos : la notion n'a pas besoin
+    d'un champ a elle, et ne peut donc pas contredire les heures.
+    """
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='work_schedules',
+        verbose_name='Entreprise')
+    employee = models.OneToOneField(
+        Employee, on_delete=models.CASCADE, related_name='work_schedule',
+        verbose_name='Salarié')
+
+    # 7 h du lundi au vendredi = 35 h : le temps plein legal francais, qui
+    # est le cas de la grande majorite des fiches. Un defaut juste evite
+    # d'avoir a remplir sept champs pour le salarie ordinaire.
+    hours_monday = models.DecimalField(
+        'Lundi (h)', max_digits=4, decimal_places=2, default=7)
+    hours_tuesday = models.DecimalField(
+        'Mardi (h)', max_digits=4, decimal_places=2, default=7)
+    hours_wednesday = models.DecimalField(
+        'Mercredi (h)', max_digits=4, decimal_places=2, default=7)
+    hours_thursday = models.DecimalField(
+        'Jeudi (h)', max_digits=4, decimal_places=2, default=7)
+    hours_friday = models.DecimalField(
+        'Vendredi (h)', max_digits=4, decimal_places=2, default=7)
+    hours_saturday = models.DecimalField(
+        'Samedi (h)', max_digits=4, decimal_places=2, default=0)
+    hours_sunday = models.DecimalField(
+        'Dimanche (h)', max_digits=4, decimal_places=2, default=0)
+
+    notes = models.TextField('Notes', blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Rythme de travail'
+        verbose_name_plural = 'Rythmes de travail'
+
+    def __str__(self):
+        return f'{self.employee} — {self.heures_hebdomadaires} h/semaine'
+
+    def heures_du_jour(self, jour):
+        """Heures prevues pour cette date. jour est un datetime.date."""
+        from decimal import Decimal
+        valeur = getattr(self, CHAMPS_PAR_JOUR[jour.weekday()], 0)
+        return Decimal(valeur or 0)
+
+    def est_jour_de_repos(self, jour):
+        return self.heures_du_jour(jour) == 0
+
+    @property
+    def heures_hebdomadaires(self):
+        from decimal import Decimal
+        total = sum((Decimal(getattr(self, champ) or 0)
+                     for champ in CHAMPS_PAR_JOUR), Decimal('0'))
+        return total.normalize() if total else Decimal('0')
+
+    @property
+    def jours_travailles(self):
+        """Libelles des jours effectivement travailles, dans l'ordre."""
+        return [
+            libelle
+            for (cle, libelle), champ in zip(JOURS_SEMAINE, CHAMPS_PAR_JOUR)
+            if (getattr(self, champ) or 0) > 0
+        ]
+
+    @property
+    def heures_par_jour(self):
+        """Les sept jours, dans l'ordre : [{'libelle', 'heures', 'repos'}].
+
+        Existe pour les gabarits. Django n'accepte pas
+        « {% for h in champ1,champ2,... %} » -- le tag for prend UNE
+        expression, et une liste litterale y leve une TemplateSyntaxError.
+        Enumerer les sept champs a la main dans chaque gabarit marcherait,
+        au prix d'un ordre a maintenir en double et d'un huitieme jour le
+        jour ou l'on en ajoute un.
+        """
+        from decimal import Decimal
+        return [
+            {
+                'libelle': libelle,
+                'heures': Decimal(getattr(self, champ) or 0),
+                'repos': (getattr(self, champ) or 0) == 0,
+            }
+            for (cle, libelle), champ in zip(JOURS_SEMAINE, CHAMPS_PAR_JOUR)
+        ]
+
+
+class WorkStoppage(models.Model):
+    """Arret de travail : DECLARE, pas demande.
+
+    Volontairement distinct de LeaveRequest, dont le type « maladie »
+    pouvait sembler suffire. Un arret ne s'approuve pas -- il s'impose,
+    certificat a l'appui -- et un circuit « en attente / approuve / refuse »
+    appliquerait a un fait medical la forme d'une demande. Un responsable
+    qui « refuse » un arret de travail n'a aucun sens.
+
+    Deux proprietes que LeaveRequest ne porte pas et ne doit pas porter :
+    une date de fin FACULTATIVE, parce qu'un arret initial est souvent
+    ouvert en attendant la suite, et la PROLONGATION, qui chaine les arrets
+    successifs d'un meme episode. Sans ce chainage, trois arrets de huit
+    jours se lisent comme trois absences sans rapport.
+    """
+
+    KINDS = [
+        ('maladie', 'Maladie'),
+        ('accident_travail', 'Accident du travail'),
+        ('accident_trajet', 'Accident de trajet'),
+        ('maladie_pro', 'Maladie professionnelle'),
+        ('maternite', 'Maternité'),
+        ('paternite', 'Paternité / accueil de l\'enfant'),
+        ('autre', 'Autre'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='work_stoppages',
+        verbose_name='Entreprise')
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name='work_stoppages',
+        verbose_name='Salarié')
+    kind = models.CharField('Nature', max_length=20, choices=KINDS,
+                            default='maladie')
+    start_date = models.DateField('Début')
+    end_date = models.DateField(
+        'Fin', null=True, blank=True,
+        help_text='Laisser vide si l\'arrêt est en cours sans date de reprise connue.')
+
+    certificate_date = models.DateField(
+        'Date du certificat', null=True, blank=True)
+    certificate_reference = models.CharField(
+        'Référence du certificat', max_length=100, blank=True)
+
+    prolongation_de = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='prolongations', verbose_name='Prolongation de',
+        help_text='Arrêt initial que celui-ci prolonge.')
+
+    notes = models.TextField('Notes', blank=True)
+    declared_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='declared_stoppages', verbose_name='Déclaré par')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Arrêt de travail'
+        verbose_name_plural = 'Arrêts de travail'
+        ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['company', 'start_date'],
+                         name='hr_stop_comp_start_idx'),
+            models.Index(fields=['employee', 'start_date'],
+                         name='hr_stop_empl_start_idx'),
+        ]
+
+    def __str__(self):
+        fin = self.end_date.strftime('%d/%m/%Y') if self.end_date else 'en cours'
+        return f'{self.employee} — {self.get_kind_display()} — {self.start_date:%d/%m/%Y} → {fin}'
+
+    def couvre(self, jour):
+        """Cet arret couvre-t-il cette date ?
+
+        Une fin absente signifie « toujours en cours » : l'arret couvre
+        donc tout ce qui suit son debut. Traiter l'absence de fin comme une
+        fin immediate ferait disparaitre du planning l'arret le plus
+        preoccupant, celui dont on ne connait pas le terme.
+        """
+        if jour < self.start_date:
+            return False
+        return self.end_date is None or jour <= self.end_date
+
+    def est_en_cours(self, a_la_date=None):
+        from django.utils import timezone
+        return self.couvre(a_la_date or timezone.localdate())
+
+    @property
+    def duree_jours(self):
+        """Nombre de jours calendaires, ou None si la fin est inconnue."""
+        if self.end_date is None:
+            return None
+        return (self.end_date - self.start_date).days + 1
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        erreurs = {}
+        if self.end_date and self.end_date < self.start_date:
+            erreurs['end_date'] = (
+                'La fin de l\'arrêt ne peut pas précéder son début.')
+        if self.prolongation_de_id:
+            if self.prolongation_de_id == self.pk:
+                erreurs['prolongation_de'] = (
+                    'Un arrêt ne peut pas se prolonger lui-même.')
+            else:
+                initial = self.prolongation_de
+                if initial.employee_id != self.employee_id:
+                    erreurs['prolongation_de'] = (
+                        'L\'arrêt prolongé appartient à un autre salarié.')
+                elif self.start_date < initial.start_date:
+                    erreurs['start_date'] = (
+                        'Une prolongation ne peut pas commencer avant '
+                        'l\'arrêt qu\'elle prolonge.')
+        if erreurs:
+            raise ValidationError(erreurs)
 
 
 class ExpenseReport(models.Model):

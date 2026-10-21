@@ -1,0 +1,19 @@
+{% load i18n %}
+{% comment %}
+  En-tête de mois partagé par les deux plannings. Les flèches passent
+  l'année et le mois en paramètres plutôt qu'un décalage : une URL de
+  planning doit pouvoir être copiée, mise en favori ou envoyée par message
+  et désigner toujours le même mois.
+
+  Aucun {% block %} ici : les blocs n'existent qu'en héritage, pas dans un
+  include — il serait silencieusement ignoré. Chaque page place donc ses
+  propres boutons après cet include.
+{% endcomment %}
+<div class="d-flex align-items-center gap-2">
+  <a class="orion-btn sm" href="?annee={{ nav.precedent.annee }}&amp;mois={{ nav.precedent.mois }}"
+     title="{% trans 'Mois précédent' %}"><i class="bi bi-chevron-left"></i></a>
+  <h5 class="mb-0 text-capitalize" style="min-width:11rem;text-align:center">{{ nav.libelle_mois }}</h5>
+  <a class="orion-btn sm" href="?annee={{ nav.suivant.annee }}&amp;mois={{ nav.suivant.mois }}"
+     title="{% trans 'Mois suivant' %}"><i class="bi bi-chevron-right"></i></a>
+  <a class="orion-btn sm" href="?">{% trans "Aujourd'hui" %}</a>
+</div>

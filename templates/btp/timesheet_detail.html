@@ -1,0 +1,92 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  Détail d'un pointage. La vue qui rend cette page était un `_stub`
+  renvoyant « En cours de developpement », alors que la liste proposait un
+  lien vers elle.
+{% endcomment %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="orion-card">
+      <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">
+          <i class="bi bi-clock-history me-2"></i>{% trans "Pointage" %} — {{ ts.work_date|date:"l j F Y" }}
+        </h6>
+        {% if ts.is_validated %}
+        <span class="status-badge status-success">{% trans "Validé" %}</span>
+        {% else %}
+        <span class="status-badge status-warning">{% trans "À valider" %}</span>
+        {% endif %}
+      </div>
+      <div class="orion-orion-card-body p-3">
+
+        <dl style="display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:13px;margin-bottom:0">
+          <dt class="text-muted">{% trans "Salarié" %}</dt>
+          <dd style="margin:0;font-weight:600">{{ ts.employee.get_full_name|default:ts.employee.username }}</dd>
+
+          <dt class="text-muted">{% trans "Chantier" %}</dt>
+          <dd style="margin:0">
+            {% if ts.project %}
+              <a href="{% url 'btp:project_detail' ts.project.pk %}">{{ ts.project.name }}</a>
+            {% else %}
+              <em class="text-muted">{% trans "Sans chantier" %}</em>
+              <div class="form-text">
+                {% blocktrans %}Heure qui n'appartient à aucun chantier :
+                atelier, trajet, entretien du matériel, réunion. Elle est
+                payée, et n'alourdit le coût d'aucun chantier.{% endblocktrans %}
+              </div>
+            {% endif %}
+          </dd>
+
+          <dt class="text-muted">{% trans "Heures" %}</dt>
+          <dd style="margin:0;font-weight:600">{{ ts.hours|floatformat:"-2" }} h</dd>
+
+          <dt class="text-muted">{% trans "Heures supplémentaires" %}</dt>
+          <dd style="margin:0">{% if ts.overtime_hours %}{{ ts.overtime_hours|floatformat:"-2" }} h{% else %}—{% endif %}</dd>
+
+          <dt class="text-muted">{% trans "Tâche" %}</dt>
+          <dd style="margin:0">{{ ts.task_description|default:"—" }}</dd>
+
+          <dt class="text-muted">{% trans "Notes" %}</dt>
+          <dd style="margin:0;white-space:pre-line">{{ ts.notes|default:"—" }}</dd>
+
+          <dt class="text-muted">{% trans "Validé par" %}</dt>
+          <dd style="margin:0">
+            {% if ts.validated_by %}{{ ts.validated_by.get_full_name|default:ts.validated_by.username }}
+            {% else %}<em class="text-muted">{% trans "pas encore validé" %}</em>{% endif %}
+          </dd>
+
+          <dt class="text-muted">{% trans "Saisi le" %}</dt>
+          <dd style="margin:0">{{ ts.created_at|date:"d/m/Y H:i" }}</dd>
+        </dl>
+
+        <hr style="border-color:var(--orion-border)">
+
+        <div class="d-flex gap-2 flex-wrap">
+          {% if peut_valider %}
+            {% if not ts.is_validated %}
+            <form method="post" action="{% url 'btp:timesheet_validate' ts.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn primary sm">
+                <i class="bi bi-check-lg me-1"></i>{% trans "Valider" %}
+              </button>
+            </form>
+            {% else %}
+            <form method="post" action="{% url 'btp:timesheet_reject' ts.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn sm">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Retirer la validation" %}
+              </button>
+            </form>
+            {% endif %}
+          {% endif %}
+          <a href="{% url 'btp:timesheet_list' %}" class="orion-btn sm">{% trans "Retour" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

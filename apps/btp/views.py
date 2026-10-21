@@ -2,6 +2,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum
+from django.views.decorators.http import require_POST
 
 from .models import BTPProject, BTPQuote, SituationOfWorks, BTPTimesheet
 from .forms import BTPProjectForm, BTPQuoteForm, SituationForm, BTPTimesheetForm
@@ -264,7 +265,9 @@ def timesheet_list(request):
 def timesheet_create(request):
     company = request.current_company
     if request.method == 'POST':
-        form = BTPTimesheetForm(request.POST)
+        # company= passe aussi au POST : c'est tout l'objet du bornage dans
+        # __init__. L'omettre ici reproduirait exactement la fuite corrigee.
+        form = BTPTimesheetForm(request.POST, company=company)
         if form.is_valid():
             ts = form.save(commit=False)
             ts.company = company
@@ -272,9 +275,102 @@ def timesheet_create(request):
             messages.success(request, 'Pointage enregistré.')
             return redirect('btp:timesheet_list')
     else:
-        form = BTPTimesheetForm()
-        form.fields['project'].queryset = BTPProject.objects.filter(company=company)
+        form = BTPTimesheetForm(company=company)
     return render(request, 'btp/timesheet_form.html', {'form': form, 'action': 'create'})
+
+
+# ─── Validation des pointages ─────────────────────────────────────────────────
+#
+# Ces quatre vues etaient des _stub renvoyant « En cours de developpement »,
+# alors que templates/btp/timesheet_list.html affichait de vrais boutons
+# « Valider » et « Refuser » qui pointaient dessus. Le champ is_validated
+# existait sur le modele et rien ne l'ecrivait jamais : des boutons casses,
+# et un indicateur toujours faux.
+
+
+def _peut_valider(request):
+    """Valider les heures d'autrui demande d'encadrer.
+
+    Sans ce controle, un salarie validerait ses propres heures, et la
+    validation ne vaudrait plus rien -- autant retirer la colonne.
+    """
+    if request.user.is_superuser:
+        return True
+    profil = getattr(request.user, 'profile', None)
+    role = getattr(profil, 'role', '') or ''
+    return role in ('admin', 'superadmin', 'manager', 'hr_manager')
+
+
+@login_required
+@require_POST
+def timesheet_validate(request, pk):
+    company = request.current_company
+    if not _peut_valider(request):
+        messages.error(request, 'Seul un responsable peut valider des heures.')
+        return redirect('btp:timesheet_list')
+    ts = get_object_or_404(BTPTimesheet, pk=pk, company=company)
+    ts.is_validated = True
+    ts.validated_by = request.user
+    ts.save(update_fields=['is_validated', 'validated_by'])
+    messages.success(request, 'Pointage validé.')
+    return redirect('btp:timesheet_list')
+
+
+@login_required
+@require_POST
+def timesheet_reject(request, pk):
+    """Retire la validation. Ne supprime pas le pointage.
+
+    Un pointage « refuse » doit rester visible pour etre corrige : le
+    detruire effacerait la seule trace de ce que le salarie avait declare,
+    et la discussion n'aurait plus d'objet.
+    """
+    company = request.current_company
+    if not _peut_valider(request):
+        messages.error(request, 'Seul un responsable peut refuser des heures.')
+        return redirect('btp:timesheet_list')
+    ts = get_object_or_404(BTPTimesheet, pk=pk, company=company)
+    ts.is_validated = False
+    ts.validated_by = None
+    ts.save(update_fields=['is_validated', 'validated_by'])
+    messages.info(request, 'Validation retirée : le pointage reste à corriger.')
+    return redirect('btp:timesheet_list')
+
+
+@login_required
+@require_POST
+def timesheet_validate_bulk(request):
+    company = request.current_company
+    if not _peut_valider(request):
+        messages.error(request, 'Seul un responsable peut valider des heures.')
+        return redirect('btp:timesheet_list')
+
+    # Les identifiants viennent du formulaire : le filtre sur company est
+    # ce qui empeche de valider, par identifiant forge, les heures d'une
+    # autre entreprise.
+    ids = [valeur for valeur in request.POST.getlist('timesheet_ids') if valeur.isdigit()]
+    if not ids:
+        messages.warning(request, 'Aucun pointage sélectionné.')
+        return redirect('btp:timesheet_list')
+
+    nombre = BTPTimesheet.objects.filter(
+        company=company, pk__in=ids, is_validated=False
+    ).update(is_validated=True, validated_by=request.user)
+    messages.success(request, f'{nombre} pointage(s) validé(s).')
+    return redirect('btp:timesheet_list')
+
+
+@login_required
+def timesheet_detail(request, pk):
+    company = request.current_company
+    ts = get_object_or_404(
+        BTPTimesheet.objects.select_related('project', 'employee', 'validated_by'),
+        pk=pk, company=company)
+    return render(request, 'btp/timesheet_detail.html', {
+        'ts': ts,
+        'peut_valider': _peut_valider(request),
+        'page_title': f'Pointage du {ts.work_date:%d/%m/%Y}',
+    })
 
 
 def _stub(request, *args, **kwargs):
@@ -282,8 +378,4 @@ def _stub(request, *args, **kwargs):
     return HttpResponse('<h3 style="font-family:sans-serif;padding:2rem">En cours de developpement.</h3>')
 quote_send = login_required(_stub)
 quote_convert = login_required(_stub)
-timesheet_validate = login_required(_stub)
-timesheet_reject = login_required(_stub)
-timesheet_validate_bulk = login_required(_stub)
-timesheet_detail = login_required(_stub)
 
