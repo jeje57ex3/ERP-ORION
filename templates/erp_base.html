@@ -363,6 +363,27 @@
 
     <!-- CONTENU DE LA PAGE -->
     <main class="erp-content">
+      {% if maintenance_annonce %}
+      {# PREVENIR, pas bloquer. Une annonce dont l'heure n'est pas encore
+         venue n'interrompt rien : elle avertit, pour qu'on enregistre son
+         devis avant d'etre coupe. Le blocage, lui, ne vient que du fichier
+         verrou -- voir MaintenanceModeMiddleware. #}
+      <div class="orion-bandeau-maintenance"
+           style="background:{% if maintenance_annonce.a_commence %}#b43b3b{% else %}#c6a15b{% endif %};
+                  color:#fff;padding:10px 16px;border-radius:10px;
+                  font-size:13.5px;line-height:1.55;margin-bottom:16px">
+        <i class="bi bi-{% if maintenance_annonce.a_commence %}exclamation-triangle-fill{% else %}clock-history{% endif %} me-1"></i>
+        <strong>{{ maintenance_annonce.get_motif_display }}</strong>
+        {% if maintenance_annonce.a_commence %}
+          {% blocktrans with fin=maintenance_annonce.fin_prevue|time:"H:i" %}en cours — retour prévu vers {{ fin }}.{% endblocktrans %}
+        {% else %}
+          {% blocktrans with debut=maintenance_annonce.debut_prevu|date:"d/m à H:i" duree=maintenance_annonce.duree_minutes %}prévue le {{ debut }}, pour environ {{ duree }} minutes. Enregistrez votre travail avant cette heure.{% endblocktrans %}
+        {% endif %}
+        {% if maintenance_annonce.message %}
+        <span style="opacity:.92"> — {{ maintenance_annonce.message|truncatechars:160 }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
       <!-- En-tête de page (rendu si page_title passé par la vue) -->
       {% block page_header %}
       {% if page_title %}

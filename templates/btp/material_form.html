@@ -91,6 +91,18 @@
               {{ form.vat_rate }}
               {{ form.vat_rate.errors }}
             </div>
+            <div class="col-12">
+              {# Un prix de repere doit se decocher quand le vrai tarif
+                 arrive : c'est le seul geste qui fait passer l'article de
+                 « a tarifer » a « ferme ». #}
+              <div class="form-check form-switch">
+                {{ form.prix_indicatif }}
+                <label class="form-check-label" for="{{ form.prix_indicatif.id_for_label }}">
+                  {% trans "Prix indicatif, à confirmer" %}
+                </label>
+              </div>
+              <div class="form-text">{{ form.prix_indicatif.help_text }}</div>
+            </div>
           </div>
         </div>
       </div>

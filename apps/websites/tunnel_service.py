@@ -183,6 +183,57 @@ def toggle_hostname_in_config(config_path: str, hostname: str, enabled: bool) ->
         return False, f'Erreur modification config.yml : {exc}'
 
 
+def regles_pour_publication(tunnel: "CloudflareTunnel") -> list[dict]:
+    """Les regles actives du tunnel, dans la forme attendue par l'API.
+
+    Memes regles et meme tri que generate_config_yml() : ce qui part chez
+    Cloudflare et ce qu'ecrit le config.yml local doivent decrire le meme
+    routage, sinon le comportement du site dependrait de la facon dont le
+    connecteur a ete lance.
+    """
+    return [
+        {'hostname': regle.hostname, 'service': regle.service}
+        for regle in tunnel.ingress_rules.filter(is_active=True)
+                                         .order_by('order', 'hostname')
+        if regle.hostname and regle.service
+    ]
+
+
+def publier_ingress_du_tunnel(tunnel: "CloudflareTunnel",
+                              a_blanc: bool = False) -> dict:
+    """Publie les regles du tunnel dans la configuration distante Cloudflare.
+
+    Pendant complementaire de write_config_yml() : celui-ci ne sert qu'un
+    connecteur lance avec « --config », tandis qu'un connecteur lance par
+    jeton applique la configuration distante et ignore le fichier. Les deux
+    voies existent donc, et celle-ci etait la seule absente.
+    """
+    vide = {'ajouts': [], 'modifications': [], 'inchangees': [],
+            'conserves': [], 'config': {}, 'source': '', 'avertissement': '',
+            'a_blanc': a_blanc}
+
+    account = tunnel.cloudflare_account
+    if account is None:
+        return {**vide, 'success': False, 'error': (
+            "Aucun compte Cloudflare rattaché à ce tunnel. Rattachez-le dans "
+            "« Modifier le tunnel » : la publication passe par l'API, donc "
+            "par le jeton de ce compte.")}
+    if not tunnel.tunnel_id:
+        return {**vide, 'success': False, 'error': (
+            "Ce tunnel n'a pas d'UUID renseigné — l'API ne peut pas savoir "
+            "quelle configuration écrire.")}
+
+    regles = regles_pour_publication(tunnel)
+    if not regles:
+        return {**vide, 'success': False, 'error': (
+            "Aucune règle d'ingress active sur ce tunnel : il n'y a rien à "
+            "publier. Publier une liste vide effacerait la configuration "
+            "distante, ce qui est refusé.")}
+
+    from .cloudflare_service import publier_ingress
+    return publier_ingress(account, tunnel.tunnel_id, regles, a_blanc=a_blanc)
+
+
 def install_connector_from_account(tunnel) -> tuple[bool, str]:
     """Installe et démarre le connecteur local depuis le compte Cloudflare.
 

@@ -485,3 +485,98 @@ class UserPreference(models.Model):
     def get_for_user(cls, user):
         pref, _ = cls.objects.get_or_create(user=user)
         return pref
+
+
+class MaintenanceAnnonce(models.Model):
+    """Ce qu'on annonce aux utilisateurs avant et pendant une interruption.
+
+    **Pas de rattachement à une entreprise, et c'est délibéré** — contrairement
+    à presque tout le reste de ce module. Le serveur est le même pour toutes
+    les sociétés hébergées : une mise à jour les interrompt toutes, et une
+    annonce par entreprise laisserait les autres dans le noir.
+
+    **Deux mécanismes complémentaires, et non redondants.** Le fichier
+    `maintenance.lock` est l'INTERRUPTEUR : il bloque l'accès, et il
+    fonctionne même quand la base de données est indisponible — ce qui est
+    précisément le cas pendant une migration. Cette annonce porte
+    l'INFORMATION : le motif, l'heure, la durée attendue. Fusionner les deux
+    dans la base rendrait la page de maintenance dépendante de ce qui est
+    justement en train d'être modifié.
+
+    Une annonce dont le début est à venir sert à PRÉVENIR : un bandeau
+    s'affiche, sans rien bloquer. Le blocage, lui, ne vient que du verrou.
+    """
+
+    MOTIFS = [
+        ('mise_a_jour', 'Mise à jour'),
+        ('redemarrage', 'Redémarrage du serveur'),
+        ('maintenance', 'Maintenance'),
+    ]
+
+    motif = models.CharField('Motif', max_length=20, choices=MOTIFS,
+                             default='maintenance')
+    message = models.TextField(
+        'Message aux utilisateurs', blank=True,
+        help_text='Facultatif. Ce qui s’affiche en plus du motif et de '
+                  'l’heure — par exemple ce qui change, ou qui contacter.')
+
+    debut_prevu = models.DateTimeField(
+        'Début prévu',
+        help_text='Le bandeau d’avertissement s’affiche dès maintenant, et '
+                  'jusqu’à cette heure.')
+    duree_minutes = models.PositiveIntegerField(
+        'Durée attendue (minutes)', default=15,
+        help_text='Sert à annoncer une heure de retour. Une estimation large '
+                  'vaut mieux qu’une estimation optimiste.')
+
+    active = models.BooleanField('Active', default=True)
+
+    cree_par = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='annonces_maintenance', verbose_name='Annoncée par')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Annonce de maintenance'
+        verbose_name_plural = 'Annonces de maintenance'
+        ordering = ['-debut_prevu']
+        indexes = [models.Index(fields=['active', 'debut_prevu'])]
+
+    def __str__(self):
+        return f'{self.get_motif_display()} — {self.debut_prevu:%d/%m/%Y %H:%M}'
+
+    @property
+    def fin_prevue(self):
+        from datetime import timedelta
+        return self.debut_prevu + timedelta(minutes=self.duree_minutes or 0)
+
+    @property
+    def a_commence(self):
+        from django.utils import timezone
+        return timezone.now() >= self.debut_prevu
+
+    @property
+    def est_terminee(self):
+        from django.utils import timezone
+        return timezone.now() > self.fin_prevue
+
+    @classmethod
+    def courante(cls):
+        """L'annonce à afficher, ou None.
+
+        Jamais d'exception : cette méthode est appelée depuis un processeur
+        de contexte, donc sur CHAQUE page. Une table absente — entre le
+        déploiement du code et l'application de la migration — ne doit pas
+        rendre l'ERP inaccessible.
+        """
+        from django.utils import timezone
+
+        try:
+            return (cls.objects
+                    .filter(active=True)
+                    .filter(debut_prevu__lte=timezone.now()
+                            + timezone.timedelta(days=7))
+                    .order_by('debut_prevu')
+                    .first())
+        except Exception:
+            return None

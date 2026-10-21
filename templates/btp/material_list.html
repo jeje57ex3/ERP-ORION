@@ -14,6 +14,9 @@
     <a href="{% url 'btp:catalogue_source_list' %}" class="orion-btn">
       <i class="bi bi-cloud-download me-1"></i>{% trans "Catalogues web" %}
     </a>
+    <a href="{% url 'btp:catalogue_detection' %}" class="orion-btn">
+      <i class="bi bi-search me-1"></i>{% trans "Détecter (PDF, page web)" %}
+    </a>
     <a href="{% url 'btp:material_create' %}" class="orion-btn primary">
       <i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter un article" %}
     </a>
@@ -29,6 +32,12 @@
                value="{{ q }}">
       </div>
       <div class="col-md-3">
+        <select name="indicatif" class="form-select form-select-sm">
+          <option value="">{% trans "Tous les prix" %}</option>
+          <option value="1" {% if indicatif %}selected{% endif %}>{% trans "À tarifer (prix indicatif)" %}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
         <select name="kind" class="form-select form-select-sm">
           <option value="">{% trans "Toutes les natures" %}</option>
           {% for valeur, libelle in kind_choices %}
@@ -83,7 +92,16 @@
           </td>
           <td><span class="orion-badge neutral">{{ article.get_kind_display }}</span></td>
           <td class="small text-muted">{{ article.unit }}</td>
-          <td class="text-end small">{{ article.purchase_price|floatformat:2 }} €</td>
+          <td class="text-end small">
+            {{ article.purchase_price|floatformat:2 }} €
+            {% if article.prix_indicatif %}
+            {# Un prix de repere doit se voir : sinon un devis part avec lui
+               en le croyant ferme. #}
+            <div class="text-warning" style="font-size:.68rem">
+              <i class="bi bi-hourglass-split"></i> {% trans "indicatif" %}
+            </div>
+            {% endif %}
+          </td>
           <td class="text-end small fw-semibold">
             {{ article.sale_price|floatformat:2 }} €
             {% if not article.sale_price %}

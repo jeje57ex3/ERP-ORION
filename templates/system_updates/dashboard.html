@@ -22,6 +22,9 @@
       <i class="bi bi-cloud-download me-1"></i>{% trans "Lancer la mise à jour" %}
     </a>
     {% endif %}
+    <a href="{% url 'system_updates:maintenance_annonce' %}" class="orion-btn">
+      <i class="bi bi-megaphone me-1"></i>{% trans "Prévenir les utilisateurs" %}
+    </a>
     <a href="{% url 'system_updates:server_reboot' %}" class="orion-btn">
       <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Redémarrer le serveur" %}
     </a>
@@ -29,6 +32,15 @@
       <i class="bi bi-power me-1"></i>{% trans "Éteindre le serveur" %}
     </a>
   </div>
+  {# Pas d'oubli : il n'y a PAS de bouton « Allumer », et il ne peut pas y en
+     avoir. Le dire ici evite de chercher ce qui n'existe pas. #}
+  <p class="small text-muted" style="margin:8px 0 0">
+    <i class="bi bi-info-circle me-1"></i>{% blocktrans %}Il n'y a pas de bouton
+    « Allumer » : une machine éteinte ne sert aucune page web, elle ne peut donc pas
+    recevoir cet ordre depuis Orion. Le rallumage se fait depuis la console Proxmox
+    ou l'hôte physique — l'écran d'extinction rappelle la marche à
+    suivre.{% endblocktrans %}
+  </p>
 </div>
 {% endblock %}
 

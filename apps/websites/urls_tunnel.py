@@ -21,6 +21,9 @@ urlpatterns = [
     path('<int:pk>/connecteur/jeton/',                       v.tunnel_install_token,   name='tunnel_install_token'),
     path('<int:pk>/config/telecharger/',                    v.tunnel_download_config, name='tunnel_download_config'),
 
+    # ─── Configuration distante Cloudflare ───────────────────────────────────
+    path('<int:pk>/ingress/publier/',                       v.tunnel_publish_ingress, name='tunnel_publish_ingress'),
+
     # ─── Règles d'ingress ─────────────────────────────────────────────────────
     path('<int:tunnel_pk>/regles/nouvelle/',                v.ingress_create,         name='ingress_create'),
     path('<int:tunnel_pk>/regles/<int:rule_pk>/modifier/',  v.ingress_edit,           name='ingress_edit'),

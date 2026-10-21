@@ -197,6 +197,22 @@ class Material(models.Model):
 
     description = models.TextField('Détail', blank=True)
 
+    # Un prix de REPERE, pas un prix ferme.
+    #
+    # Les prix relevés sur un site fabricant ou dans un PDF public servent à
+    # chiffrer en attendant le tarif négocié. Sans ce drapeau, rien ne
+    # distingue plus, six mois après, un prix confirmé par le fournisseur
+    # d'un prix recopié d'une page web — et un devis part avec le second en
+    # croyant le premier.
+    #
+    # Il ne bloque rien : il se voit, et il se cherche (filtre « à
+    # tarifer » sur le catalogue).
+    prix_indicatif = models.BooleanField(
+        'Prix indicatif, à confirmer', default=False,
+        help_text='Prix de repère relevé sur un site ou un PDF public, en '
+                  'attendant le tarif négocié. Décochez quand le prix est '
+                  'confirmé.')
+
     # D'ou vient cet article. Renseigne seulement pour ceux qu'un import a
     # crees : sans ce lien, impossible de dire ce qu'une source gere -- ni
     # de signaler les articles qu'elle ne publie plus, ni d'empecher deux

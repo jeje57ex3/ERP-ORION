@@ -3,6 +3,7 @@ from . import views
 from . import guided_quote_erp_views as gq
 from . import views_materials as vm
 from . import views_catalogue as vc
+from . import views_detection as vd
 
 app_name = 'btp'
 
@@ -90,6 +91,11 @@ urlpatterns = [
          name='catalogue_source_run'),
     path('catalogues/<int:pk>/disparus/', vc.catalogue_source_disparus,
          name='catalogue_source_disparus'),
+
+    # Detection assistee : un PDF ou une page, un apercu, et l'on coche.
+    path('detection/', vd.catalogue_detection, name='catalogue_detection'),
+    path('detection/importer/', vd.catalogue_detection_import,
+         name='catalogue_detection_import'),
 
     # Fournitures et materiel achetes pour un chantier
     path('chantiers/<int:project_pk>/fournitures/ajouter/',

@@ -133,13 +133,21 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'apps.core.middleware.SetupRequiredMiddleware',
-    'apps.core.middleware.MaintenanceModeMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # APRES AuthenticationMiddleware, et c'est indispensable.
+    #
+    # Il etait place juste apres SetupRequiredMiddleware, donc AVANT que
+    # request.user n'existe : son exemption « sauf les Super Admin » lisait
+    # getattr(request, 'user', None) -> None, et ne s'appliquait donc
+    # JAMAIS. Pendant une maintenance, l'administrateur se verrouillait
+    # dehors avec tout le monde -- il ne lui restait que /admin/ et
+    # /orion-admin/, exemptes par chemin. Defaut constate par un test.
+    'apps.core.middleware.MaintenanceModeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',

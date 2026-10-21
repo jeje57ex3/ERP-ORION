@@ -96,3 +96,63 @@ class CatalogueSourceForm(forms.ModelForm):
         if commit:
             source.save()
         return source
+
+
+class DetectionForm(forms.Form):
+    """Un PDF à déposer, ou une adresse de page à analyser. Pas les deux.
+
+    Pas les deux, et le refuser plutôt que choisir : trancher en silence
+    ferait analyser l'un en ignorant l'autre, et l'exploitant croirait
+    avoir obtenu le résultat du second.
+    """
+
+    url = forms.URLField(
+        label='Adresse d’une page produit',
+        required=False, max_length=500,
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://fabricant.example/produit/reference',
+        }),
+        help_text='La page d’UN produit donne un meilleur résultat qu’une '
+                  'page de catégorie.',
+    )
+
+    fichier = forms.FileField(
+        label='Ou un tarif en PDF',
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control', 'accept': 'application/pdf',
+        }),
+        help_text='Le PDF doit contenir du texte. Un document scanné ne '
+                  'porte qu’une image de la page : rien n’en sortira.',
+    )
+
+    def clean(self):
+        donnees = super().clean()
+        url = (donnees.get('url') or '').strip()
+        fichier = donnees.get('fichier')
+
+        if url and fichier:
+            self.add_error(
+                'fichier',
+                'Une adresse OU un PDF, pas les deux : indiquez ce que vous '
+                'voulez analyser.')
+        elif not url and not fichier:
+            self.add_error(
+                'url', 'Indiquez une adresse de page, ou déposez un PDF.')
+
+        if fichier:
+            nom = (getattr(fichier, 'name', '') or '').lower()
+            if not nom.endswith('.pdf'):
+                self.add_error('fichier', 'Le fichier doit être un PDF.')
+            else:
+                # L'extension ne prouve rien : un .docx renomme passerait.
+                debut = fichier.read(5)
+                fichier.seek(0)
+                if not debut.startswith(b'%PDF'):
+                    self.add_error(
+                        'fichier',
+                        'Ce fichier porte l’extension .pdf mais n’en est '
+                        'pas un.')
+
+        return donnees

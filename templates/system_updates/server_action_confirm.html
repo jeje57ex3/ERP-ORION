@@ -31,6 +31,43 @@
           {% endif %}
         </div>
 
+        {% if action != 'reboot' %}
+        {# COMMENT rallumer, dit AVANT de couper.
+
+           L'avertissement du dessus prevenait que la machine ne se
+           rallumerait pas seule ; il ne disait pas comment s'y prendre. Un
+           administrateur qui decouvre la question une fois le serveur
+           eteint n'a plus cette page pour la lui apprendre. #}
+        <div class="orion-card mb-3" style="border-color:var(--orion-border)">
+          <div style="padding:14px">
+            <h3 style="font-size:13.5px;font-weight:600;margin:0 0 8px">
+              <i class="bi bi-power me-1"></i>{% blocktrans with nom=nom_du_serveur %}Comment rallumer « {{ nom }} » ensuite{% endblocktrans %}
+            </h3>
+            <p class="small text-muted" style="margin:0 0 10px">
+              {% blocktrans %}Orion ne pourra pas le faire : une machine éteinte ne
+              sert aucune page web, elle ne peut donc pas recevoir l'ordre de
+              démarrer. Il faut passer par l'extérieur.{% endblocktrans %}
+            </p>
+            <ol class="small" style="margin:0;padding-left:20px;line-height:1.7">
+              <li>{% blocktrans %}<strong>Console Proxmox</strong> — ouvrez l'interface de
+                l'hôte, sélectionnez la machine virtuelle, puis
+                « Démarrer ».{% endblocktrans %}</li>
+              <li>{% blocktrans %}<strong>En ligne de commande sur l'hôte Proxmox</strong> —
+                <code>qm list</code> pour retrouver le numéro, puis
+                <code>qm start &lt;numéro&gt;</code>.{% endblocktrans %}</li>
+              <li>{% blocktrans %}<strong>Machine physique</strong> — le bouton d'alimentation,
+                ou la carte d'administration à distance (IPMI, iDRAC, iLO) si le
+                serveur en a une.{% endblocktrans %}</li>
+            </ol>
+            <p class="small" style="margin:10px 0 0;color:var(--orion-danger)">
+              <i class="bi bi-exclamation-triangle me-1"></i>{% blocktrans %}Vérifiez
+              MAINTENANT que vous avez cet accès. Après l'extinction, cette page ne
+              sera plus là pour vous le rappeler.{% endblocktrans %}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+
         <form method="post">
           {% csrf_token %}
           <div class="mb-4">

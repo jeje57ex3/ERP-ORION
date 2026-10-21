@@ -269,6 +269,275 @@ def fetch_tunnel_ingress(account: "CloudflareAccount", tunnel_id: str) -> dict:
         return {'success': False, 'ingress': [], 'error': str(exc)}
 
 
+def lire_configuration(account: "CloudflareAccount", tunnel_id: str) -> dict:
+    """Lit la configuration distante BRUTE d'un tunnel, sans rien filtrer.
+
+    Distincte de fetch_tunnel_ingress(), qui ne retourne que les couples
+    hostname/service pour l'affichage et JETTE tout le reste : le catch-all
+    final (entree sans hostname), les eventuels « path », et les blocs
+    « originRequest » (noTLSVerify, httpHostHeader, timeouts...). Publier
+    une configuration reconstruite a partir de cette sortie filtree
+    DETRUIRAIT ces reglages. Toute ecriture doit donc partir d'ici.
+
+    Retourne {success, config, source, error}.
+
+    config est le dictionnaire tel que Cloudflare le renvoie, ou {} quand le
+    tunnel n'a jamais eu de configuration distante -- cas legitime, a
+    distinguer d'un echec : seul success permet de trancher, et seul
+    success=True autorise une ecriture.
+
+    source vaut 'cloudflare' (configuration distante, celle que le
+    connecteur lance par jeton applique) ou 'local' (le connecteur lit son
+    propre config.yml et ignorera ce qu'on ecrit ici).
+    """
+    if not account.account_id:
+        return {'success': False, 'config': {}, 'source': '',
+                'error': "account_id manquant — testez d'abord la connexion."}
+    if not tunnel_id:
+        return {'success': False, 'config': {}, 'source': '',
+                'error': 'ID de tunnel manquant.'}
+    try:
+        import requests
+        r = requests.get(
+            f'{CF_BASE}/accounts/{account.account_id}/cfd_tunnel/{tunnel_id}/configurations',
+            headers=_headers(account.api_token),
+            timeout=15,
+        )
+        data = r.json()
+        if not data.get('success'):
+            errors = data.get('errors', [])
+            msg = errors[0].get('message', 'Erreur') if errors else 'Erreur'
+            if r.status_code in (403, 9109):
+                msg = (f'{msg} — le jeton d\'API doit porter la permission '
+                       '« Account > Cloudflare Tunnel > Edit ».')
+            return {'success': False, 'config': {}, 'source': '', 'error': msg}
+
+        # result peut etre None : tunnel existant jamais configure a distance.
+        resultat = data.get('result') or {}
+        config = resultat.get('config')
+        if not isinstance(config, dict):
+            config = {}
+        return {'success': True, 'config': config,
+                'source': resultat.get('source', '') or '', 'error': ''}
+    except Exception as exc:
+        return {'success': False, 'config': {}, 'source': '', 'error': str(exc)}
+
+
+def _normaliser_hostname(valeur: str) -> str:
+    """Forme comparable d'un nom d'hote.
+
+    Sans cela « NS.Elysiums.fr », « ns.elysiums.fr. » et
+    « https://ns.elysiums.fr » seraient vus comme trois hotes differents, et
+    publier l'un creerait un doublon au lieu de modifier l'autre. Cloudflare
+    accepterait les deux entrees ; seule la premiere servirait, et le
+    changement paraitrait sans effet.
+    """
+    hote = (valeur or '').strip().lower()
+    for prefixe in ('https://', 'http://'):
+        if hote.startswith(prefixe):
+            hote = hote[len(prefixe):]
+    return hote.rstrip('/').rstrip('.')
+
+
+def fusionner_ingress(config: dict, regles: list[dict]) -> dict:
+    """Fusionne des regles dans une configuration existante. Sans reseau.
+
+    Fonction pure, et c'est voulu : c'est la piece qui decide ce qui sera
+    ecrit, donc celle qui doit etre verifiable sans toucher a Cloudflare.
+
+    Trois garanties, dans cet ordre d'importance :
+
+    1. AUCUN hostname existant n'est supprime. Un PUT remplace la
+       configuration entiere ; ecrire la seule regle que l'on veut ajouter
+       effacerait les autres -- ici, login.elysiums.fr, c'est-a-dire l'acces
+       a l'ERP lui-meme. La fusion part donc toujours de l'existant.
+    2. Le catch-all reste en DERNIER. Cloudflare exige une regle finale sans
+       hostname ; placee avant les autres, elle les rendrait toutes mortes
+       puisque le routage s'arrete a la premiere correspondance.
+    3. Les clefs qu'on ne gere pas sont recopiees telles quelles -- les clefs
+       de tete (warp-routing...) comme celles de chaque entree (path,
+       originRequest).
+
+    Retourne {config, ajouts, modifications, inchangees, conserves}.
+    """
+    import copy
+
+    base = copy.deepcopy(config) if isinstance(config, dict) else {}
+    entrees = base.get('ingress')
+    if not isinstance(entrees, list):
+        entrees = []
+
+    nommees = [e for e in entrees if isinstance(e, dict) and e.get('hostname')]
+    # On garde le premier catch-all rencontre. S'il y en avait plusieurs, les
+    # suivants etaient de toute facon inatteignables.
+    catch_all = next(
+        (e for e in entrees if isinstance(e, dict) and not e.get('hostname')),
+        None,
+    )
+
+    ajouts, modifications, inchangees = [], [], []
+
+    for regle in regles:
+        hote = _normaliser_hostname(regle.get('hostname', ''))
+        service = (regle.get('service') or '').strip()
+        if not hote or not service:
+            continue
+
+        # Une entree porteuse d'un « path » ne vise qu'une partie du site :
+        # lui changer son service detournerait une regle qui ne nous
+        # concerne pas. On ne modifie donc que l'entree generale de cet
+        # hote, et a defaut on en ajoute une -- apres les entrees a path,
+        # qui doivent rester prioritaires.
+        cible = next(
+            (e for e in nommees
+             if _normaliser_hostname(e.get('hostname', '')) == hote
+             and not e.get('path')),
+            None,
+        )
+
+        if cible is None:
+            nommees.append({'hostname': hote, 'service': service})
+            ajouts.append({'hostname': hote, 'service': service})
+        elif (cible.get('service') or '') == service:
+            inchangees.append({'hostname': hote, 'service': service})
+        else:
+            modifications.append({
+                'hostname': hote,
+                'avant': cible.get('service') or '',
+                'apres': service,
+            })
+            cible['service'] = service
+
+    demandes = {_normaliser_hostname(r.get('hostname', '')) for r in regles}
+    conserves = [
+        {'hostname': e.get('hostname', ''), 'service': e.get('service') or ''}
+        for e in nommees
+        if _normaliser_hostname(e.get('hostname', '')) not in demandes
+    ]
+
+    if catch_all is None:
+        catch_all = {'service': 'http_status:404'}
+    base['ingress'] = nommees + [catch_all]
+
+    return {
+        'config': base,
+        'ajouts': ajouts,
+        'modifications': modifications,
+        'inchangees': inchangees,
+        'conserves': conserves,
+    }
+
+
+def publier_ingress(account: "CloudflareAccount", tunnel_id: str,
+                    regles: list[dict], a_blanc: bool = False) -> dict:
+    """Publie des regles d'ingress dans la configuration DISTANTE du tunnel.
+
+    C'est la piece qui manquait. L'ERP savait deja ecrire un config.yml
+    local et synchroniser le DNS ; mais un connecteur lance par jeton
+    (« cloudflared tunnel run --token-file ») applique la configuration
+    DISTANTE de Cloudflare et ignore totalement ce config.yml. Les noms
+    d'hote renvoyaient donc une erreur 1033 : le DNS pointait vers le
+    tunnel, et le tunnel ne savait pas quoi en faire.
+
+    L'API n'offre pas d'ajout d'une regle : seulement le remplacement de la
+    configuration entiere (PUT .../configurations). D'ou la sequence
+    lecture -> fusion -> ecriture, et le refus d'ecrire si la lecture a
+    echoue : publier a l'aveugle effacerait les regles existantes, dont
+    celle qui donne acces a l'ERP.
+
+    a_blanc=True calcule et retourne tout sans rien ecrire.
+
+    Retourne {success, error, a_blanc, source, avertissement, config,
+              ajouts, modifications, inchangees, conserves}.
+    """
+    vide = {'ajouts': [], 'modifications': [], 'inchangees': [],
+            'conserves': [], 'config': {}, 'source': '', 'avertissement': '',
+            'a_blanc': a_blanc}
+
+    if not regles:
+        return {**vide, 'success': False,
+                'error': 'Aucune règle à publier.'}
+
+    lecture = lire_configuration(account, tunnel_id)
+    if not lecture['success']:
+        # Refus delibere. Le PUT remplace tout : sans l'etat actuel sous les
+        # yeux, la seule ecriture possible serait destructrice.
+        return {**vide, 'success': False, 'error': (
+            f"Lecture de la configuration impossible : {lecture['error']} — "
+            "rien n'a été écrit. La publication remplace la configuration "
+            "entière du tunnel ; sans avoir pu lire les règles existantes, "
+            "l'écriture les supprimerait, y compris celle qui donne accès "
+            "à l'ERP.")}
+
+    avant = lecture['config']
+    fusion = fusionner_ingress(avant, regles)
+
+    # Garde-fou : la fusion ne doit jamais faire disparaitre un hote. Ce
+    # controle ne protege pas d'une erreur de l'API mais d'une erreur de
+    # notre code, dont la consequence serait la meme.
+    def _hotes(cfg):
+        entrees = cfg.get('ingress') if isinstance(cfg, dict) else None
+        return {_normaliser_hostname(e.get('hostname', ''))
+                for e in (entrees or []) if isinstance(e, dict) and e.get('hostname')}
+
+    perdus = _hotes(avant) - _hotes(fusion['config'])
+    if perdus:
+        return {**vide, 'success': False, 'error': (
+            'Publication annulée : la fusion aurait supprimé '
+            f'{", ".join(sorted(perdus))}. Rien n\'a été écrit.')}
+
+    avertissement = ''
+    if lecture['source'] == 'local':
+        avertissement = (
+            "Ce tunnel est en configuration LOCALE : son connecteur lit son "
+            "propre config.yml. La configuration écrite ici est enregistrée "
+            "chez Cloudflare mais ne sera pas appliquée tant que le "
+            "connecteur n'est pas lancé par jeton "
+            "(cloudflared tunnel run --token-file).")
+
+    resultat = {
+        'success': True, 'error': '', 'a_blanc': a_blanc,
+        'source': lecture['source'], 'avertissement': avertissement,
+        'config': fusion['config'],
+        'ajouts': fusion['ajouts'],
+        'modifications': fusion['modifications'],
+        'inchangees': fusion['inchangees'],
+        'conserves': fusion['conserves'],
+    }
+
+    if a_blanc:
+        return resultat
+
+    if not fusion['ajouts'] and not fusion['modifications']:
+        # Rien a changer : on n'ecrit pas. Un PUT inutile reste un PUT, et
+        # chaque ecriture est une occasion de casser une configuration qui
+        # fonctionne.
+        return resultat
+
+    try:
+        import requests
+        r = requests.put(
+            f'{CF_BASE}/accounts/{account.account_id}/cfd_tunnel/{tunnel_id}/configurations',
+            headers=_headers(account.api_token),
+            json={'config': fusion['config']},
+            timeout=20,
+        )
+        data = r.json()
+        if data.get('success'):
+            return resultat
+        errors = data.get('errors', [])
+        msg = errors[0].get('message', 'Erreur') if errors else 'Erreur'
+        if r.status_code == 403:
+            msg = (f'{msg} — le jeton d\'API doit porter la permission '
+                   '« Account > Cloudflare Tunnel > Edit ». En lecture seule, '
+                   'Cloudflare refuse cette écriture.')
+        return {**vide, 'success': False,
+                'error': f'Cloudflare a refusé l\'écriture : {msg}'}
+    except Exception as exc:
+        return {**vide, 'success': False,
+                'error': f'Écriture impossible : {exc}'}
+
+
 def refresh_account(account: "CloudflareAccount") -> dict:
     """
     Teste la connexion d'un compte CloudflareAccount enregistré et met à jour

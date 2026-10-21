@@ -12,6 +12,11 @@ urlpatterns = [
     path('orion-admin/system-updates/<int:pk>/logs/', views.update_logs_view, name='logs'),
     path('orion-admin/system-updates/<int:pk>/rollback/', views.rollback_confirm_view, name='rollback'),
 
+    path('orion-admin/system-updates/maintenance/annoncer/',
+         views.maintenance_annonce, name='maintenance_annonce'),
+    path('orion-admin/system-updates/maintenance/retirer/',
+         views.maintenance_annonce_annuler,
+         name='maintenance_annonce_annuler'),
     path('orion-admin/system-updates/serveur/redemarrer/', views.server_reboot_confirm, name='server_reboot'),
     path('orion-admin/system-updates/serveur/eteindre/', views.server_shutdown_confirm, name='server_shutdown'),
     path('orion-admin/system-updates/serveur/annuler/', views.server_action_cancel, name='server_action_cancel'),

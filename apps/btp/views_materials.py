@@ -65,6 +65,12 @@ def material_list(request):
         articles = articles.filter(kind=kind)
     if category:
         articles = articles.filter(category=category)
+    # « A tarifer » : les articles dont le prix est encore un repere. Sans
+    # ce filtre, retrouver ce qui attend un vrai tarif demanderait de
+    # parcourir tout le catalogue a l'oeil.
+    indicatif = request.GET.get('indicatif') == '1'
+    if indicatif:
+        articles = articles.filter(prix_indicatif=True)
 
     # Les catégories proposées au filtre sont celles réellement utilisées :
     # une liste figée se désynchronise de ce que l'entreprise saisit.
@@ -81,6 +87,7 @@ def material_list(request):
         'category': category,
         'categories': categories,
         'kind_choices': Material.KIND_CHOICES,
+        'indicatif': indicatif,
         'active_subnav': 'materials',
     })
 

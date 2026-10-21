@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redémarrage en cours — Orion ERP</title>
+
+  <!--
+    SERVIE PAR NGINX, PAS PAR DJANGO.
+
+    C'est tout l'objet de ce fichier. Pendant un redémarrage, gunicorn est
+    arrêté : Django ne peut servir aucune page, pas même sa propre page de
+    maintenance. Sans ce fichier, les utilisateurs reçoivent le « 502 Bad
+    Gateway » brut de nginx — un message technique qui laisse croire à une
+    panne, et pousse à appeler l'administrateur en pleine opération.
+
+    Elle est donc STATIQUE : aucune donnée de la base, aucune heure de
+    retour calculée. Elle ne sait rien, et elle le dit simplement.
+
+    Installée dans /opt/orion/nginx/redemarrage.html et servie par
+    « error_page 502 503 504 » — voir orion-proxmox.conf.tmpl.
+  -->
+
+  <!--
+    Rechargement automatique toutes les 10 secondes.
+
+    En meta refresh et non en JavaScript : cette page doit fonctionner dans
+    les conditions les plus pauvres, et son seul travail est de disparaître
+    d'elle-même dès que le service répond. Sans cela, l'utilisateur
+    rafraîchit à l'aveugle — ou abandonne alors que l'ERP est revenu depuis
+    deux minutes.
+  -->
+  <meta http-equiv="refresh" content="10">
+
+  <style>
+    :root {
+      --fond: #f6f4f0; --carte: #ffffff; --texte: #2b2620;
+      --discret: #6f675c; --accent: #c6a15b; --bord: #e4ded4;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fond: #16130f; --carte: #1e1a15; --texte: #ece7de;
+        --discret: #9c9284; --bord: #2e2820;
+      }
+    }
+    * { box-sizing: border-box }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0; min-height: 100vh; background: var(--fond);
+      color: var(--texte); display: flex; align-items: center;
+      justify-content: center; padding: 24px;
+    }
+    .carte {
+      background: var(--carte); border: 1px solid var(--bord);
+      border-radius: 16px; max-width: 480px; width: 100%;
+      padding: 40px 32px; text-align: center;
+      box-shadow: 0 2px 24px rgba(0,0,0,.05);
+    }
+    .pastille {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(198,161,91,.14); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .pastille svg { animation: tourne 2.4s linear infinite }
+    @keyframes tourne { to { transform: rotate(360deg) } }
+    h1 { font-size: 21px; font-weight: 700; margin: 0 0 10px }
+    p { color: var(--discret); font-size: 14.5px; line-height: 1.65; margin: 0 0 12px }
+    .barre {
+      height: 3px; border-radius: 3px; background: var(--bord);
+      overflow: hidden; margin: 18px 0 16px;
+    }
+    .barre i {
+      display: block; height: 100%; width: 35%; border-radius: 3px;
+      background: var(--accent); animation: glisse 1.6s ease-in-out infinite;
+    }
+    @keyframes glisse {
+      0% { transform: translateX(-100%) } 100% { transform: translateX(300%) }
+    }
+    .attente { font-size: 12.5px; color: var(--discret) }
+  </style>
+</head>
+<body>
+  <div class="carte">
+    <div class="pastille">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <path d="M21 12a9 9 0 11-6.2-8.56"/><path d="M21 3v6h-6"/>
+      </svg>
+    </div>
+
+    <h1>Redémarrage en cours</h1>
+
+    <p>
+      Orion ERP redémarre. L'opération prend généralement une à deux
+      minutes.
+    </p>
+    <p>
+      <strong>Vos données ne sont pas affectées.</strong> Rien n'a été
+      perdu, et tout sera là au retour.
+    </p>
+
+    <div class="barre"><i></i></div>
+
+    <div class="attente">
+      Cette page se recharge toute seule et laissera place à Orion dès que
+      le service répondra. Vous n'avez rien à faire.
+    </div>
+  </div>
+</body>
+</html>

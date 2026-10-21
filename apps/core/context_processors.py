@@ -35,7 +35,22 @@ def erp_context(request):
         'unread_notifications': [],
         'unread_count': 0,
         'erp_languages': _get_erp_languages(),
+        'maintenance_annonce': None,
     }
+
+    # L'annonce est lue AVANT le test d'authentification : une maintenance
+    # concerne aussi les pages publiques, et un visiteur du portail client
+    # a autant besoin d'etre averti qu'un salarie.
+    #
+    # courante() n'echoue jamais -- elle avale ses propres erreurs -- car
+    # elle est appelee sur CHAQUE page : une table absente entre le
+    # deploiement du code et la migration ne doit pas rendre l'ERP
+    # inaccessible.
+    try:
+        from apps.core.models import MaintenanceAnnonce
+        ctx['maintenance_annonce'] = MaintenanceAnnonce.courante()
+    except Exception:
+        pass
 
     if not request.user.is_authenticated:
         return ctx

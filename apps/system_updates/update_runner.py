@@ -8,7 +8,12 @@ from time import monotonic, time
 from django.conf import settings
 from django.utils import timezone
 
-from apps.core.maintenance import enable_maintenance_mode, disable_maintenance_mode
+from apps.core.maintenance import (
+    annoncer,
+    clore_annonces,
+    disable_maintenance_mode,
+    enable_maintenance_mode,
+)
 from apps.system_updates.git_service import build_pull_command, get_current_commit, run_command
 from apps.system_updates.health_checks import run_post_update_health_checks
 from apps.system_updates.models import SystemUpdateRun, SystemUpdateStepLog
@@ -168,6 +173,10 @@ def run_system_update(started_by=None):
     try:
         if update_settings.maintenance_mode_during_update:
             enable_maintenance_mode()
+            # Dire CE QUI se passe : la page de maintenance affichera
+            # « Mise a jour en cours » et une heure de retour, au lieu d'un
+            # « maintenance programmee » qui n'apprend rien.
+            annoncer('mise_a_jour', duree_minutes=15)
             update_run.maintenance_enabled = True
             update_run.save(update_fields=['maintenance_enabled'])
             log_step(update_run, 'maintenance_on', 'Activation maintenance', 'success',
