@@ -1,4 +1,4 @@
-"""
+﻿"""
 apps/core/company_database_service.py
 Service de gestion des bases de données dédiées par entreprise.
 Orion ERP — Architecture multi-tenant avec base séparée par entreprise.
@@ -50,6 +50,11 @@ def register_company_database(company) -> dict:
         },
         'TIME_ZONE': None,
         'CONN_MAX_AGE': 60,
+        # Meme raison que pour la base « default » -- voir le commentaire
+        # dans settings/base.py. Sans ce reglage, chaque base entreprise
+        # renvoie elle aussi une erreur 500 a la premiere requete suivant
+        # un redemarrage, et il y en a une par entreprise.
+        'CONN_HEALTH_CHECKS': True,
     }
 
     settings.DATABASES[alias] = db_config

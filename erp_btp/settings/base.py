@@ -1,4 +1,4 @@
-"""
+﻿"""
 Orion ERP — Configuration de base (partagée tous environnements)
 """
 from pathlib import Path
@@ -201,6 +201,28 @@ DATABASES = {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
         'CONN_MAX_AGE': 60,
+        # INDISPENSABLE des que CONN_MAX_AGE est non nul.
+        #
+        # Avec CONN_MAX_AGE a 60, chaque worker gunicorn garde sa connexion
+        # MySQL ouverte et la reutilise. Django appelle bien
+        # close_if_unusable_or_obsolete() au debut de chaque requete, mais
+        # -- source de Django lue -- cette methode ne teste la connexion
+        # QUE si une erreur s'est deja produite, ou si l'age depasse
+        # CONN_MAX_AGE. Une connexion coupee cote serveur, jeune et sans
+        # erreur, passe donc pour saine.
+        #
+        # Consequence constatee en production : apres un redemarrage du
+        # serveur ou de MariaDB, la PREMIERE requete de chaque worker
+        # echoue en erreur 500 (« MySQL server has gone away »). Cette
+        # erreur marque la connexion, la requete suivante la ferme, et tout
+        # revient a la normale -- d'ou un 500 qui disparait au rechargement
+        # et ne laisse aucune trace comprehensible.
+        #
+        # Avec ce reglage (Django 4.1+), Django verifie la connexion une
+        # fois par requete et se reconnecte en silence. Cout : un aller-
+        # retour leger par requete, contre une erreur 500 a chaque
+        # redemarrage.
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
