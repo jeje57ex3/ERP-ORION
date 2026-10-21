@@ -28,7 +28,7 @@
               <label class="form-label">{% trans "Document (scan)" %}</label>
               {{ form.file }}
               {% if certification and certification.file %}
-              <div class="form-text"><i class="bi bi-paperclip me-1"></i><a href="{{ certification.file.url }}" target="_blank">{% trans "Document actuel" %}</a></div>
+              <div class="form-text"><i class="bi bi-paperclip me-1"></i><a href="{% url 'hr:certification_download' certification.pk %}">{% trans "Document actuel" %}</a></div>
               {% endif %}
             </div>
             <div class="col-12"><div class="form-check">{{ form.is_active }}<label class="form-check-label ms-2">{% trans "Active" %}</label></div></div>

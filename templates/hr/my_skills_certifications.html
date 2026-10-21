@@ -54,8 +54,8 @@
             </td>
             <td class="text-end">
               {% if cert.file %}
-              <a href="{{ cert.file.url }}" target="_blank" class="orion-btn sm btn-outline-primary">
-                <i class="bi bi-download me-1"></i>{% trans "Voir" %}
+              <a href="{% url 'hr:certification_download' cert.pk %}" class="orion-btn sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i>{% trans "Telecharger" %}
               </a>
               {% endif %}
             </td>
