@@ -29,8 +29,8 @@
             {% trans "Le bandeau est affiché en doré : il prévient, il ne bloque rien." %}
           {% endif %}
         </p>
-        {# POST et non lien : un GET qui modifie l'etat se declenche au
-           survol, a l'indexation ou au passage d'un antivirus. #}
+        {% comment %} POST et non lien : un GET qui modifie l'etat se declenche au
+           survol, a l'indexation ou au passage d'un antivirus. {% endcomment %}
         <form method="post" action="{% url 'system_updates:maintenance_annonce_annuler' %}">
           {% csrf_token %}
           <button type="submit" class="orion-btn danger sm">

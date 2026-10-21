@@ -32,12 +32,12 @@
         </div>
 
         {% if action != 'reboot' %}
-        {# COMMENT rallumer, dit AVANT de couper.
+        {% comment %} COMMENT rallumer, dit AVANT de couper.
 
            L'avertissement du dessus prevenait que la machine ne se
            rallumerait pas seule ; il ne disait pas comment s'y prendre. Un
            administrateur qui decouvre la question une fois le serveur
-           eteint n'a plus cette page pour la lui apprendre. #}
+           eteint n'a plus cette page pour la lui apprendre. {% endcomment %}
         <div class="orion-card mb-3" style="border-color:var(--orion-border)">
           <div style="padding:14px">
             <h3 style="font-size:13.5px;font-weight:600;margin:0 0 8px">

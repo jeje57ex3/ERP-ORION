@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if motif %}{{ motif }}{% else %}{% trans "Maintenance" %}{% endif %} — Orion ERP</title>
 
-  {# La page se recharge d'elle-meme. Sans cela, l'utilisateur reste devant
+  {% comment %} La page se recharge d'elle-meme. Sans cela, l'utilisateur reste devant
      un ecran mort et rafraichit a la main sans savoir quand essayer -- ou
      abandonne alors que le service est revenu depuis deux minutes.
 
      meta refresh et non JavaScript : cette page doit fonctionner meme
      servie par nginx pendant que Django est arrete, et l'equivalent
-     statique repose sur le meme mecanisme. #}
+     statique repose sur le meme mecanisme. {% endcomment %}
   <meta http-equiv="refresh" content="20">
 
   <style>
