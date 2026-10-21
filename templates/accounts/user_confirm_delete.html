@@ -1,0 +1,150 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  Cette page n'affiche pas une mise en garde générique mais un INVENTAIRE :
+  ce que Django s'apprête réellement à détruire, compté par son propre
+  collecteur. Mesure faite sur ce projet, 164 relations pointent vers
+  `User` ; 135 passent à NULL (un devis garde sa ligne et perd le nom de
+  son auteur) mais 29 sont en CASCADE, dont les heures pointées sur les
+  chantiers et les comptes de fidélité des clientes.
+
+  « Êtes-vous sûr ? » ne protège de rien : on y répond par réflexe. D'où
+  l'identifiant à recopier, et la désactivation mise à portée égale — c'est
+  elle qu'il faut choisir dans presque tous les cas.
+{% endcomment %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="orion-card mb-3" style="border:1px solid rgba(220,38,38,.35)">
+      <div class="orion-orion-orion-card-header">
+        <h5 class="orion-card-title" style="color:#f87171">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% trans "Supprimer définitivement ce compte" %}
+        </h5>
+      </div>
+      <div class="orion-orion-orion-card-body">
+
+        <dl style="display:grid;grid-template-columns:140px 1fr;gap:8px 16px;font-size:13px;margin-bottom:18px">
+          <dt style="color:var(--orion-muted)">{% trans "Identifiant" %}</dt>
+          <dd style="margin:0;font-weight:600"><code>{{ user_obj.username }}</code></dd>
+          <dt style="color:var(--orion-muted)">{% trans "Nom" %}</dt>
+          <dd style="margin:0">{{ user_obj.get_full_name|default:"—" }}</dd>
+          <dt style="color:var(--orion-muted)">{% trans "Email" %}</dt>
+          <dd style="margin:0">{{ user_obj.email|default:"—" }}</dd>
+          <dt style="color:var(--orion-muted)">{% trans "Rôle" %}</dt>
+          <dd style="margin:0">{{ user_obj.profile.get_role_display|default:"—" }}</dd>
+        </dl>
+
+        {# ── L'alternative, mise avant la suppression ──────────────────── #}
+        {% if user_obj.is_active %}
+        <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="small mb-0" style="max-width:46rem">
+            <strong>{% trans "Préférez la désactivation." %}</strong>
+            {% blocktrans %}Elle ferme l'accès immédiatement et ne détruit
+            rien : un salarié parti garde ses heures pointées, une cliente
+            partie garde ses points de fidélité. La suppression ne se
+            justifie que pour un compte créé par erreur ou un doublon.{% endblocktrans %}
+          </div>
+          <form method="post" action="{% url 'accounts:user_deactivate' user_obj.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn primary sm text-nowrap">
+              <i class="bi bi-pause-circle me-1"></i>{% trans "Désactiver" %}
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+        {# ── L'inventaire réel ─────────────────────────────────────────── #}
+        {% if inventaire.sensibles %}
+        <div class="alert alert-danger">
+          <p class="fw-semibold mb-2">
+            <i class="bi bi-exclamation-octagon me-1"></i>
+            {% trans "Des données d'exploitation seraient détruites :" %}
+          </p>
+          <ul class="mb-0 small">
+            {% for ligne in inventaire.sensibles %}
+            <li><strong>{{ ligne.total }}</strong> × {{ ligne.motif }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <h6 class="fw-bold mb-2" style="font-size:13px">
+          {% blocktrans count total=inventaire.total %}{{ total }} objet lié sera supprimé{% plural %}{{ total }} objets liés seront supprimés{% endblocktrans %}
+        </h6>
+
+        {% if inventaire.lignes %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+            <thead>
+              <tr>
+                <th>{% trans "Donnée" %}</th>
+                <th class="text-end" style="width:90px">{% trans "Nombre" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ligne in inventaire.lignes %}
+              <tr>
+                <td>
+                  {% if ligne.sensible %}<i class="bi bi-exclamation-triangle-fill me-1" style="color:#f87171"></i>{% endif %}
+                  {{ ligne.nom }}
+                  <span class="text-muted">— <code style="font-size:11px">{{ ligne.label }}</code></span>
+                </td>
+                <td class="text-end fw-semibold">{{ ligne.total }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="small text-muted">
+          {% trans "Aucune donnée liée : ce compte n'a rien enregistré." %}
+        </p>
+        {% endif %}
+
+        {% if inventaire.traces_conservees %}
+        <p class="small text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          {% blocktrans count traces=inventaire.traces_conservees %}{{ traces }} autre enregistrement est conservé, en perdant seulement le nom de son auteur.{% plural %}{{ traces }} autres enregistrements sont conservés, en perdant seulement le nom de leur auteur.{% endblocktrans %}
+          {% trans "Devis, factures et mouvements de stock ne sont pas effacés." %}
+        </p>
+        {% endif %}
+
+        {# ── La confirmation par recopie ───────────────────────────────── #}
+        <hr style="border-color:var(--orion-border);margin:18px 0">
+
+        {% if erreur_confirmation %}
+        <div class="alert alert-warning small">{{ erreur_confirmation }}</div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <label class="form-label fw-semibold" style="font-size:13px" for="confirmation">
+            {% blocktrans with nom=user_obj.username %}Pour confirmer, recopiez l'identifiant <code>{{ nom }}</code>{% endblocktrans %}
+          </label>
+          <input type="text" class="form-control" id="confirmation" name="confirmation"
+                 autocomplete="off" spellcheck="false" required
+                 placeholder="{{ user_obj.username }}">
+          <div class="form-text">
+            {% trans "Cette opération est définitive et ne peut pas être annulée." %}
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="orion-btn sm"
+                    style="background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.35)">
+              <i class="bi bi-trash me-1"></i>{% trans "Supprimer définitivement" %}
+            </button>
+            <a href="{% url 'accounts:user_detail' user_obj.pk %}" class="orion-btn sm">
+              {% trans "Annuler" %}
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

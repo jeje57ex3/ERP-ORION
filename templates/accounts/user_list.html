@@ -44,7 +44,16 @@
               {% if u.is_active %}<span class="status-badge status-success">{% trans 'Actif' %}</span>
               {% else %}<span class="status-badge status-danger">{% trans 'Inactif' %}</span>{% endif %}
             </td>
-            <td><a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-xs btn-outline-primary">{% trans 'Voir' %}</a></td>
+            <td class="text-nowrap">
+              <a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-xs btn-outline-primary">{% trans 'Voir' %}</a>
+              {# suppression_possible est calcule par la vue : voir le
+                 commentaire dans user_list. Pas de bouton quand
+                 l'operation serait refusee. #}
+              {% if u.suppression_possible %}
+              <a href="{% url 'accounts:user_delete' u.pk %}" class="btn btn-xs btn-outline-danger"
+                 title="{% trans 'Supprimer ce compte' %}"><i class="bi bi-trash"></i></a>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="6" class="text-center py-4 text-muted">{% trans 'Aucun utilisateur' %}</td></tr>

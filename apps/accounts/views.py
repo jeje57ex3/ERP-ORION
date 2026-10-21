@@ -17,6 +17,12 @@ from apps.accounts.services.user_employee_link_service import (
     get_user_employee,
     is_user_exempt_from_employee_link,
 )
+from apps.accounts.services.user_deletion_service import (
+    peut_supprimer,
+    inventaire_cascade,
+    supprimer_utilisateur,
+    desactiver_utilisateur,
+)
 
 
 def login_view(request):
@@ -138,23 +144,51 @@ def signature_delete(request):
     return redirect('accounts:profile')
 
 
+def _utilisateurs_visibles(request):
+    """Les comptes que l'utilisateur courant a le droit de voir.
+
+    Extrait de user_list pour etre reutilise par user_detail et
+    user_delete. user_detail faisait un get_object_or_404(User, pk=pk) sans
+    aucun controle : n'importe quel compte connecte pouvait lire la fiche
+    d'un utilisateur d'une AUTRE entreprise en changeant le numero dans
+    l'URL. Ajouter un bouton « supprimer » sur une page non bornee aurait
+    transforme une fuite de lecture en suppression a distance.
+
+    Retourne None quand l'acces est refuse ; l'appelant redirige.
+    """
+    company = request.current_company
+    if request.user.is_superuser:
+        return User.objects.all()
+    profil = getattr(request.user, 'profile', None)
+    role = getattr(profil, 'role', '') or ''
+    if company and role in ('admin', 'manager'):
+        return User.objects.filter(profile__companies=company)
+    return None
+
+
 @login_required
 def user_list(request):
     """Liste des utilisateurs (admin seulement)."""
-    company = request.current_company
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
 
     # employee_profile est charge avec le reste : sans cela, la colonne de
     # rattachement couterait une requete par ligne.
-    if request.user.is_superuser:
-        users = User.objects.select_related(
-            'profile', 'employee_profile').order_by('username')
-    elif company and request.user.profile.role in ['admin', 'manager']:
-        users = User.objects.filter(
-            profile__companies=company
-        ).select_related('profile', 'employee_profile').order_by('username')
-    else:
-        messages.error(request, 'Accès refusé.')
-        return redirect('core:dashboard')
+    users = list(visibles.select_related(
+        'profile', 'employee_profile').order_by('username'))
+
+    # Le droit de supprimer est calcule ligne par ligne, et non deduit dans
+    # le gabarit. Les regles en jeu -- dernier super administrateur actif,
+    # cloisonnement par entreprise -- ne sont pas exprimables en template,
+    # et les y reecrire approximativement produirait des boutons qui menent
+    # a un refus. Quelques requetes de plus sur un ecran d'administration
+    # valent mieux qu'une interface dans laquelle on apprend a ne pas avoir
+    # confiance.
+    for compte in users:
+        compte.suppression_possible = peut_supprimer(
+            request.user, compte, request.current_company)[0]
 
     return render(request, 'accounts/user_list.html', {
         'users': users,
@@ -244,11 +278,95 @@ def user_create(request):
 
 @login_required
 def user_detail(request, pk):
-    user_obj = get_object_or_404(User, pk=pk)
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
+    user_obj = get_object_or_404(visibles, pk=pk)
+    # Le bouton de suppression n'est affiche que si l'operation est
+    # reellement permise : un bouton qui mene a un refus apprend a
+    # l'utilisateur a se mefier de l'interface.
+    autorise, raison = peut_supprimer(
+        request.user, user_obj, request.current_company)
     return render(request, 'accounts/user_detail.html', {
         'user_obj': user_obj,
+        'suppression_possible': autorise,
+        'suppression_refus': raison,
         'page_title': user_obj.get_full_name() or user_obj.username,
     })
+
+
+@login_required
+def user_delete(request, pk):
+    """Supprime un compte, apres confirmation de ce qui sera detruit.
+
+    La page de confirmation n'affiche pas une mise en garde generique :
+    elle dresse l'inventaire reel, obtenu du collecteur de Django. Sur ce
+    projet, 29 relations vers User sont en CASCADE -- dont les heures
+    pointees sur les chantiers et les comptes de fidelite des clientes.
+    Confirmer sans voir ces nombres reviendrait a signer a l'aveugle.
+
+    L'identifiant doit etre RECOPIE pour que la suppression se fasse. Un
+    simple « Etes-vous sur ? » se clique par reflexe ; recopier un nom
+    demande de l'avoir lu.
+    """
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
+    cible = get_object_or_404(visibles, pk=pk)
+    company = request.current_company
+
+    autorise, raison = peut_supprimer(request.user, cible, company)
+    if not autorise:
+        messages.error(request, raison)
+        return redirect('accounts:user_detail', pk=cible.pk)
+
+    erreur_confirmation = ''
+    if request.method == 'POST':
+        saisie = (request.POST.get('confirmation') or '').strip()
+        if saisie == cible.username:
+            succes, message = supprimer_utilisateur(
+                request.user, cible, company, _get_ip(request))
+            if succes:
+                messages.success(request, message)
+                return redirect('accounts:user_list')
+            messages.error(request, message)
+            return redirect('accounts:user_detail', pk=cible.pk)
+        erreur_confirmation = (
+            f'Saisie incorrecte. Recopiez exactement « {cible.username} » '
+            f'pour confirmer la suppression.')
+
+    return render(request, 'accounts/user_confirm_delete.html', {
+        'user_obj': cible,
+        'inventaire': inventaire_cascade(cible),
+        'erreur_confirmation': erreur_confirmation,
+        'page_title': f'Supprimer {cible.get_full_name() or cible.username}',
+    })
+
+
+@login_required
+@require_POST
+def user_deactivate(request, pk):
+    """Ferme l'acces sans rien detruire.
+
+    Propose a cote de la suppression, et volontairement aussi accessible :
+    dans la quasi-totalite des cas c'est ce qu'il faut faire. Un salarie
+    parti garde ses heures pointees ; une cliente partie garde ses points.
+    """
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
+    cible = get_object_or_404(visibles, pk=pk)
+
+    succes, message = desactiver_utilisateur(
+        request.user, cible, request.current_company, _get_ip(request))
+    if succes:
+        messages.success(request, message)
+    else:
+        messages.error(request, message)
+    return redirect('accounts:user_detail', pk=cible.pk)
 
 
 @login_required

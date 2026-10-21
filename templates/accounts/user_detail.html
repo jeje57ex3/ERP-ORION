@@ -51,7 +51,35 @@
           <a href="/admin/auth/user/{{ user_obj.pk }}/change/" class="orion-btn sm">
             <i class="bi bi-pencil"></i> {% trans 'Modifier' %}
           </a>
+
+          {# Desactiver avant supprimer, et dans cet ordre : c'est
+             l'operation a choisir dans presque tous les cas, puisqu'elle
+             ferme l'acces sans rien detruire. #}
+          {% if suppression_possible and user_obj.is_active %}
+          <form method="post" action="{% url 'accounts:user_deactivate' user_obj.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm">
+              <i class="bi bi-pause-circle"></i> {% trans 'Désactiver' %}
+            </button>
+          </form>
+          {% endif %}
+
+          {% if suppression_possible %}
+          <a href="{% url 'accounts:user_delete' user_obj.pk %}" class="orion-btn sm"
+             style="background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.3)">
+            <i class="bi bi-trash"></i> {% trans 'Supprimer' %}
+          </a>
+          {% endif %}
         </div>
+
+        {# Le motif du refus est ecrit, pas seulement le bouton retire :
+           sans cela l'utilisateur cherche une permission manquante alors
+           que la raison peut etre « c'est votre propre compte ». #}
+        {% if not suppression_possible and suppression_refus %}
+        <p class="small text-muted" style="margin-top:12px;margin-bottom:0">
+          <i class="bi bi-info-circle me-1"></i>{{ suppression_refus }}
+        </p>
+        {% endif %}
         {% endif %}
       </div>
     </div>
