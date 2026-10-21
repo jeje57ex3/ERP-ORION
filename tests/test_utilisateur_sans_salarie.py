@@ -321,6 +321,13 @@ def test_la_fiche_du_compte_ne_crie_pas_a_l_erreur(admin_connecte, company,
     declare = django_user_model.objects.create_user(
         username='externe-fiche', password='motdepasse-test')
     declare.profile.without_employee_record = True
+    # Rattachement a l'entreprise : il manquait, alors que le test voisin
+    # l'ajoute. user_detail ne vérifiait rien et affichait n'importe quel
+    # compte ; depuis qu'elle est cloisonnée comme user_list l'était déjà,
+    # un compte sans entreprise n'est visible que d'un super
+    # administrateur. L'assertion porte sur le message de la fiche, que ce
+    # rattachement ne change pas.
+    declare.profile.companies.add(company)
     declare.profile.save()
 
     corps = admin_connecte.get(

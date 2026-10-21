@@ -1,12 +1,21 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 
 from django.http import FileResponse, Http404
 from django.utils import timezone
-from .models import Employee, LeaveRequest, EmployeePrivateFolder, EmployeePrivateDocument, EmployeeDocumentAccessLog
-from .forms import EmployeeForm, LeaveRequestForm
+from .models import (
+    Employee, LeaveRequest, EmployeePrivateFolder, EmployeePrivateDocument, EmployeeDocumentAccessLog,
+    EmployeeSkill, EmployeeCertification,
+)
+from .forms import EmployeeForm, LeaveRequestForm, EmployeeSkillForm, EmployeeCertificationForm
+
+
+def _is_hr_admin(request):
+    return request.user.is_superuser or (
+        hasattr(request.user, 'profile') and request.user.profile.role in ('admin', 'superadmin')
+    )
 
 
 @login_required
@@ -42,7 +51,14 @@ def employee_detail(request, pk):
     company = request.current_company
     employee = get_object_or_404(Employee, pk=pk, company=company)
     leaves = employee.leave_requests.all()[:10]
-    ctx = {'employee': employee, 'leaves': leaves, 'tab': request.GET.get('tab', 'info')}
+    ctx = {
+        'employee': employee,
+        'leaves': leaves,
+        'tab': request.GET.get('tab', 'info'),
+        'skills': employee.skills.all(),
+        'certifications': employee.certifications.all(),
+        'is_hr_admin': _is_hr_admin(request),
+    }
     return render(request, 'hr/employee_detail.html', ctx)
 
 
@@ -111,7 +127,9 @@ def leave_list(request):
 def leave_create(request):
     company = request.current_company
     if request.method == 'POST':
-        form = LeaveRequestForm(request.POST)
+        # company= passe aussi au POST : c'est tout l'objet du bornage dans
+        # __init__. L'omettre ici reproduirait exactement la fuite corrigee.
+        form = LeaveRequestForm(request.POST, company=company)
         if form.is_valid():
             leave = form.save(commit=False)
             leave.company = company
@@ -119,8 +137,7 @@ def leave_create(request):
             messages.success(request, 'Demande de congé enregistrée.')
             return redirect('hr:leave_list')
     else:
-        form = LeaveRequestForm()
-        form.fields['employee'].queryset = Employee.objects.filter(company=company, is_active=True)
+        form = LeaveRequestForm(company=company)
     return render(request, 'hr/leave_form.html', {'form': form, 'action': 'create'})
 
 
@@ -287,4 +304,130 @@ def my_private_documents(request):
     )
     return render(request, 'hr/my_private_documents.html', {
         'employee': employee, 'documents': docs,
+    })
+
+
+# ─── COMPÉTENCES ET CERTIFICATIONS ────────────────────────────────────────────
+
+@login_required
+def skill_create(request, employee_pk):
+    company = request.current_company
+    employee = get_object_or_404(Employee, pk=employee_pk, company=company)
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    if request.method == 'POST':
+        form = EmployeeSkillForm(request.POST)
+        if form.is_valid():
+            skill = form.save(commit=False)
+            skill.employee = employee
+            skill.save()
+            messages.success(request, f'Compétence « {skill.name} » ajoutée.')
+            return redirect('hr:employee_detail', pk=employee_pk)
+    else:
+        form = EmployeeSkillForm()
+    return render(request, 'hr/skill_form.html', {'form': form, 'employee': employee, 'action': 'create'})
+
+
+@login_required
+def skill_edit(request, pk):
+    company = request.current_company
+    skill = get_object_or_404(EmployeeSkill, pk=pk, employee__company=company)
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=skill.employee_id)
+    if request.method == 'POST':
+        form = EmployeeSkillForm(request.POST, instance=skill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Compétence mise à jour.')
+            return redirect('hr:employee_detail', pk=skill.employee_id)
+    else:
+        form = EmployeeSkillForm(instance=skill)
+    return render(request, 'hr/skill_form.html', {'form': form, 'employee': skill.employee, 'skill': skill, 'action': 'edit'})
+
+
+@login_required
+def skill_delete(request, pk):
+    company = request.current_company
+    skill = get_object_or_404(EmployeeSkill, pk=pk, employee__company=company)
+    employee_pk = skill.employee_id
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    if request.method == 'POST':
+        name = skill.name
+        skill.delete()
+        messages.success(request, f'Compétence « {name} » supprimée.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    return render(request, 'hr/skill_confirm_delete.html', {'skill': skill})
+
+
+@login_required
+def certification_create(request, employee_pk):
+    company = request.current_company
+    employee = get_object_or_404(Employee, pk=employee_pk, company=company)
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    if request.method == 'POST':
+        form = EmployeeCertificationForm(request.POST, request.FILES)
+        if form.is_valid():
+            cert = form.save(commit=False)
+            cert.employee = employee
+            cert.save()
+            messages.success(request, f'Certification « {cert.name} » ajoutée.')
+            return redirect('hr:employee_detail', pk=employee_pk)
+    else:
+        form = EmployeeCertificationForm()
+    return render(request, 'hr/certification_form.html', {'form': form, 'employee': employee, 'action': 'create'})
+
+
+@login_required
+def certification_edit(request, pk):
+    company = request.current_company
+    cert = get_object_or_404(EmployeeCertification, pk=pk, employee__company=company)
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=cert.employee_id)
+    if request.method == 'POST':
+        form = EmployeeCertificationForm(request.POST, request.FILES, instance=cert)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Certification mise à jour.')
+            return redirect('hr:employee_detail', pk=cert.employee_id)
+    else:
+        form = EmployeeCertificationForm(instance=cert)
+    return render(request, 'hr/certification_form.html', {'form': form, 'employee': cert.employee, 'certification': cert, 'action': 'edit'})
+
+
+@login_required
+def certification_delete(request, pk):
+    company = request.current_company
+    cert = get_object_or_404(EmployeeCertification, pk=pk, employee__company=company)
+    employee_pk = cert.employee_id
+    if not _is_hr_admin(request):
+        messages.error(request, 'Action réservée aux administrateurs.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    if request.method == 'POST':
+        name = cert.name
+        cert.delete()
+        messages.success(request, f'Certification « {name} » supprimée.')
+        return redirect('hr:employee_detail', pk=employee_pk)
+    return render(request, 'hr/certification_confirm_delete.html', {'certification': cert})
+
+
+@login_required
+def my_skills_certifications(request):
+    """Vue salarié — mes compétences et certifications (lecture seule)."""
+    company = request.current_company
+    try:
+        employee = Employee.objects.get(company=company, user=request.user)
+    except Employee.DoesNotExist:
+        messages.warning(request, 'Aucun dossier salarié associé à votre compte.')
+        return redirect('core:dashboard')
+    return render(request, 'hr/my_skills_certifications.html', {
+        'employee': employee,
+        'skills': employee.skills.all(),
+        'certifications': employee.certifications.all(),
     })

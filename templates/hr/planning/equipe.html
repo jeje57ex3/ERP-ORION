@@ -1,0 +1,135 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  La grille du mois : un salarié par ligne, un jour par colonne.
+
+  Une couleur par état, et une LETTRE dans chaque case. La couleur seule
+  serait illisible pour un daltonien — et un planning d'absences qu'on ne
+  peut pas lire est un planning qu'on ne consulte pas. La légende donne la
+  correspondance.
+{% endcomment %}
+
+{% block content %}
+<style>
+  .pl-grille { border-collapse:separate; border-spacing:0; font-size:11px }
+  .pl-grille th, .pl-grille td { padding:0; text-align:center; vertical-align:middle }
+  .pl-nom { position:sticky; left:0; background:var(--orion-card,#1b1b1f); text-align:left !important;
+            padding:4px 10px !important; white-space:nowrap; z-index:2; font-size:12.5px }
+  .pl-case { width:22px; height:26px; border:1px solid rgba(255,255,255,.05); font-weight:600 }
+  .pl-travaille { background:rgba(255,255,255,.03); color:var(--orion-muted) }
+  .pl-repos     { background:rgba(255,255,255,.07); color:rgba(255,255,255,.35) }
+  .pl-conge     { background:rgba(56,189,248,.22);  color:#7dd3fc }
+  .pl-maladie   { background:rgba(251,191,36,.22);  color:#fcd34d }
+  .pl-arret     { background:rgba(220,38,38,.28);   color:#fca5a5 }
+  .pl-total     { padding:4px 10px !important; white-space:nowrap; font-size:12px }
+  .pl-legende span { display:inline-flex; align-items:center; gap:6px; margin-right:14px; font-size:12px }
+  .pl-pastille { width:14px; height:14px; border-radius:3px; display:inline-block }
+</style>
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  {% include "hr/planning/_navigation.html" %}
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'hr:leave_create' %}" class="orion-btn sm">
+      <i class="bi bi-calendar-plus me-1"></i>{% trans "Congé" %}
+    </a>
+    <a href="{% url 'hr:stoppage_create' %}" class="orion-btn sm">
+      <i class="bi bi-bandaid me-1"></i>{% trans "Arrêt de travail" %}
+    </a>
+    <a href="{% url 'btp:timesheet_create' %}" class="orion-btn sm">
+      <i class="bi bi-clock-history me-1"></i>{% trans "Pointage" %}
+    </a>
+    <a href="{% url 'hr:schedule_list' %}" class="orion-btn sm">
+      <i class="bi bi-calendar-week me-1"></i>{% trans "Rythmes" %}
+    </a>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-card-body p-3 pl-legende">
+    <span><i class="pl-pastille pl-travaille" style="border:1px solid rgba(255,255,255,.15)"></i>{% trans "Travaillé" %}</span>
+    <span><i class="pl-pastille pl-repos"></i>{% trans "Repos" %}</span>
+    <span><i class="pl-pastille pl-conge"></i>C — {% trans "Congé" %}</span>
+    <span><i class="pl-pastille pl-maladie"></i>M — {% trans "Maladie" %}</span>
+    <span><i class="pl-pastille pl-arret"></i>A — {% trans "Arrêt de travail" %}</span>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+    <table class="pl-grille w-100">
+      <thead>
+        <tr>
+          <th class="pl-nom">{% trans "Salarié" %}</th>
+          {% for jour in planning.dates %}
+          <th class="pl-case" style="font-weight:500;color:var(--orion-muted)">
+            {{ jour|date:"j" }}<br>
+            <span style="font-size:9px;opacity:.6">{{ jour|date:"D"|slice:":1" }}</span>
+          </th>
+          {% endfor %}
+          <th class="pl-total">{% trans "Pointé" %}</th>
+          <th class="pl-total">{% trans "Prévu" %}</th>
+          <th class="pl-total">{% trans "Écart" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in planning.lignes %}
+        <tr>
+          <td class="pl-nom">
+            <a href="{% url 'hr:planning_employe' ligne.employee.pk %}?annee={{ nav.annee }}&amp;mois={{ nav.mois }}"
+               style="color:inherit;text-decoration:none">{{ ligne.employee.full_name }}</a>
+            {% comment %} Un salarié sans compte utilisateur ne peut pas pointer : la
+               colonne « Pointé » restera à zéro, et sans ce signe on
+               chercherait une saisie manquante. {% endcomment %}
+            {% if ligne.sans_compte %}
+            <i class="bi bi-person-slash ms-1" style="color:var(--orion-muted)"
+               title="{% trans 'Aucun compte utilisateur : ce salarié ne peut pas pointer ses heures.' %}"></i>
+            {% endif %}
+            {% if not ligne.schedule %}
+            <i class="bi bi-exclamation-circle ms-1" style="color:#fcd34d"
+               title="{% trans 'Aucun rythme défini : lundi-vendredi de 7 h appliqué par défaut.' %}"></i>
+            {% endif %}
+          </td>
+          {% for case in ligne.cellules %}
+          <td class="pl-case pl-{{ case.etat }}" title="{{ case.date|date:'l j F' }} — {{ case.libelle_etat }}{% if case.heures_pointees %} — {{ case.heures_pointees }} h pointées{% endif %}">
+            {% if case.etat == 'arret' %}A{% elif case.etat == 'maladie' %}M{% elif case.etat == 'conge' %}C{% elif case.etat == 'travaille' and case.heures_pointees %}·{% endif %}
+          </td>
+          {% endfor %}
+          <td class="pl-total fw-semibold">{{ ligne.totaux.heures_pointees|floatformat:"-2" }} h</td>
+          <td class="pl-total text-muted">{{ ligne.totaux.heures_prevues|floatformat:"-2" }} h</td>
+          <td class="pl-total fw-semibold"
+              style="color:{% if ligne.totaux.ecart < 0 %}#fca5a5{% elif ligne.totaux.ecart > 0 %}#86efac{% else %}var(--orion-muted){% endif %}">
+            {% if ligne.totaux.ecart > 0 %}+{% endif %}{{ ligne.totaux.ecart|floatformat:"-2" }} h
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="40" class="text-center text-muted py-4">
+            {% trans "Aucun salarié actif dans cette entreprise." %}
+            <a href="{% url 'hr:employee_create' %}">{% trans "Créer une fiche salarié" %}</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% if planning.lignes %}
+      <tfoot>
+        <tr style="border-top:1px solid var(--orion-border)">
+          <td class="pl-nom fw-bold">{% trans "Total équipe" %}</td>
+          <td colspan="{{ planning.dates|length }}" class="text-muted" style="font-size:11.5px;padding:6px 10px">
+            {% blocktrans count n=planning.totaux.jours_conge %}{{ n }} jour de congé{% plural %}{{ n }} jours de congé{% endblocktrans %}
+            ·
+            {% blocktrans count n=planning.totaux.jours_arret %}{{ n }} jour d'arrêt{% plural %}{{ n }} jours d'arrêt{% endblocktrans %}
+            {% if planning.totaux.heures_sup %}
+            · {{ planning.totaux.heures_sup|floatformat:"-2" }} h {% trans "supplémentaires" %}
+            {% endif %}
+          </td>
+          <td class="pl-total fw-bold">{{ planning.totaux.heures_pointees|floatformat:"-2" }} h</td>
+          <td class="pl-total fw-bold">{{ planning.totaux.heures_prevues|floatformat:"-2" }} h</td>
+          <td class="pl-total"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

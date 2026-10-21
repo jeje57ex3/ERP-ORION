@@ -1,0 +1,173 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  Le mois d'un seul salarié, une ligne par jour. Sert aussi de « Mon
+  planning » : même gabarit, mêmes clés, et c'est voulu — deux gabarits
+  pour la même donnée divergent à la première correction.
+{% endcomment %}
+
+{% block content %}
+
+{% if sans_fiche %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-1"></i>
+  {% blocktrans %}Votre compte n'est pas rattaché à une fiche salarié : il n'a
+  donc pas de planning. C'est le cas normal d'un compte de prestataire,
+  d'expert-comptable externe ou de service. Si vous êtes salarié de
+  l'entreprise, demandez à un administrateur de rattacher votre
+  compte.{% endblocktrans %}
+</div>
+{% endif %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  {% include "hr/planning/_navigation.html" %}
+  <div class="d-flex gap-2 flex-wrap">
+    {% if peut_encadrer %}
+    <a href="{% url 'hr:planning_equipe' %}?annee={{ nav.annee }}&amp;mois={{ nav.mois }}" class="orion-btn sm">
+      <i class="bi bi-people me-1"></i>{% trans "Toute l'équipe" %}
+    </a>
+    {% endif %}
+    <a href="{% url 'btp:timesheet_create' %}" class="orion-btn sm">
+      <i class="bi bi-clock-history me-1"></i>{% trans "Pointer des heures" %}
+    </a>
+    <a href="{% url 'hr:leave_create' %}" class="orion-btn sm">
+      <i class="bi bi-calendar-plus me-1"></i>{% trans "Demander un congé" %}
+    </a>
+  </div>
+</div>
+
+{% if employee %}
+<div class="row g-3 mb-3">
+  <div class="col-12 col-lg-5">
+    <div class="orion-card h-100">
+      <div class="orion-orion-card-body p-3">
+        <h6 class="fw-bold mb-2">{{ employee.full_name }}</h6>
+        <p class="small text-muted mb-2">
+          {{ employee.job_title|default:"—" }}
+          {% if employee.department %} · {{ employee.department }}{% endif %}
+        </p>
+        {% if planning.schedule %}
+        <p class="small mb-1">
+          <i class="bi bi-calendar-week me-1"></i>
+          <strong>{{ planning.schedule.heures_hebdomadaires }} h</strong> {% trans "par semaine" %} —
+          {{ planning.schedule.jours_travailles|join:", " }}
+        </p>
+        {% else %}
+        <p class="small mb-1" style="color:#fcd34d">
+          <i class="bi bi-exclamation-circle me-1"></i>
+          {% blocktrans %}Aucun rythme défini. Le planning applique un
+          lundi-vendredi de sept heures par défaut — raisonnable, mais ce
+          n'est pas une donnée, c'est une hypothèse.{% endblocktrans %}
+          {% if peut_encadrer %}
+          <a href="{% url 'hr:schedule_create' %}">{% trans "Le définir" %}</a>
+          {% endif %}
+        </p>
+        {% endif %}
+        {% if planning.sans_compte %}
+        <p class="small text-muted mb-0">
+          <i class="bi bi-person-slash me-1"></i>
+          {% blocktrans %}Aucun compte utilisateur rattaché : ce salarié ne
+          peut pas pointer ses heures, et la colonne restera vide.{% endblocktrans %}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="orion-card h-100">
+      <div class="orion-orion-card-body p-3">
+        <div class="row text-center g-2">
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px">{{ planning.totaux.heures_pointees|floatformat:"-2" }}</div>
+            <div class="small text-muted">{% trans "heures pointées" %}</div>
+          </div>
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px">{{ planning.totaux.heures_prevues|floatformat:"-2" }}</div>
+            <div class="small text-muted">{% trans "heures prévues" %}</div>
+          </div>
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px;color:{% if planning.totaux.ecart < 0 %}#fca5a5{% elif planning.totaux.ecart > 0 %}#86efac{% else %}inherit{% endif %}">
+              {% if planning.totaux.ecart > 0 %}+{% endif %}{{ planning.totaux.ecart|floatformat:"-2" }}
+            </div>
+            <div class="small text-muted">{% trans "écart" %}</div>
+          </div>
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px">{{ planning.totaux.jours_conge }}</div>
+            <div class="small text-muted">{% trans "jours d'absence" %}</div>
+          </div>
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px;{% if planning.totaux.jours_arret %}color:#fca5a5{% endif %}">{{ planning.totaux.jours_arret }}</div>
+            <div class="small text-muted">{% trans "jours d'arrêt" %}</div>
+          </div>
+          <div class="col-4 col-md">
+            <div class="fw-bold" style="font-size:19px">{{ planning.totaux.heures_sup|floatformat:"-2" }}</div>
+            <div class="small text-muted">{% trans "heures sup." %}</div>
+          </div>
+        </div>
+        {% comment %} L'écart ne vaut que ce que vaut le pointage : le dire évite de
+           lire un « -140 h » comme une dette d'heures alors que personne
+           n'a saisi quoi que ce soit. {% endcomment %}
+        <p class="small text-muted mb-0 mt-3">
+          {% blocktrans %}L'écart compare les heures pointées aux heures
+          prévues, en ne comptant pas les jours d'absence. Un écart très
+          négatif signale le plus souvent un pointage non saisi, pas des
+          heures manquantes.{% endblocktrans %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+    <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+      <thead>
+        <tr>
+          <th style="width:130px">{% trans "Jour" %}</th>
+          <th style="width:120px">{% trans "État" %}</th>
+          <th class="text-end" style="width:80px">{% trans "Prévu" %}</th>
+          <th class="text-end" style="width:80px">{% trans "Pointé" %}</th>
+          <th>{% trans "Détail" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for jour in planning.jours %}
+        <tr style="{% if jour.etat == 'arret' %}background:rgba(220,38,38,.07){% elif jour.etat == 'maladie' %}background:rgba(251,191,36,.06){% elif jour.etat == 'conge' %}background:rgba(56,189,248,.06){% elif jour.repos %}background:rgba(255,255,255,.03){% endif %}">
+          <td class="text-capitalize">{{ jour.date|date:"D j" }}</td>
+          <td>
+            <span class="status-badge {% if jour.etat == 'arret' %}status-danger{% elif jour.etat == 'maladie' %}status-warning{% elif jour.etat == 'conge' %}status-primary{% elif jour.etat == 'repos' %}status-secondary{% else %}status-success{% endif %}">
+              {{ jour.libelle_etat }}
+            </span>
+          </td>
+          <td class="text-end text-muted">{% if jour.heures_prevues %}{{ jour.heures_prevues|floatformat:"-2" }} h{% else %}—{% endif %}</td>
+          <td class="text-end fw-semibold">{% if jour.heures_pointees %}{{ jour.heures_pointees|floatformat:"-2" }} h{% else %}—{% endif %}</td>
+          <td class="text-muted">
+            {% for arret in jour.arrets %}
+            <div><i class="bi bi-bandaid me-1"></i>{{ arret.get_kind_display }}{% if not arret.end_date %} — <em>{% trans "sans date de reprise" %}</em>{% endif %}</div>
+            {% endfor %}
+            {% for conge in jour.conges %}
+            <div><i class="bi bi-calendar-event me-1"></i>{{ conge.get_leave_type_display }}
+              {% if conge.status == 'pending' %}<span class="status-badge status-warning">{% trans "en attente" %}</span>{% endif %}
+            </div>
+            {% endfor %}
+            {% for pointage in jour.pointages %}
+            <div>
+              <i class="bi bi-clock me-1"></i>{{ pointage.hours|floatformat:"-2" }} h
+              {% if pointage.project %}— {{ pointage.project.name }}{% else %}— <em>{% trans "sans chantier" %}</em>{% endif %}
+              {% if pointage.overtime_hours %}(+{{ pointage.overtime_hours|floatformat:"-2" }} h sup.){% endif %}
+              {% if pointage.task_description %}<span class="d-block" style="padding-left:1.2rem">{{ pointage.task_description }}</span>{% endif %}
+            </div>
+            {% endfor %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Aucun jour à afficher." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

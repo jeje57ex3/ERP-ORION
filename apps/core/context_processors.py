@@ -1,4 +1,4 @@
-"""
+﻿"""
 Context processors — données injectées dans tous les templates ERP
 """
 from django.utils.translation import gettext_lazy as _
@@ -288,7 +288,11 @@ NAV_MODULES = [
         'color': '#0D9488',
         'children': [
             {'label': _('Salariés'),       'url_name': 'hr:employee_list', 'icon_img': 'salaries.png', 'icon': 'ti-id-badge'},
+            {'label': _('Planning'),       'url_name': 'hr:planning_equipe', 'icon_img': 'conges.png', 'icon': 'ti-calendar'},
+            {'label': _('Mon planning'),   'url_name': 'hr:mon_planning',  'icon_img': 'conges.png', 'icon': 'ti-calendar-user'},
             {'label': _('Congés'),         'url_name': 'hr:leave_list',    'icon_img': 'conges.png', 'icon': 'ti-calendar-check'},
+            {'label': _('Arrêts de travail'), 'url_name': 'hr:stoppage_list', 'icon_img': 'conges.png', 'icon': 'ti-first-aid-kit'},
+            {'label': _('Rythmes de travail'), 'url_name': 'hr:schedule_list', 'icon_img': 'conges.png', 'icon': 'ti-calendar-week'},
             {'label': _('Notes de frais'), 'url_name': 'hr:expense_list',  'icon_img': 'notes_frais.png', 'icon': 'ti-wallet'},
             {'label': _('Paie'),           'url_name': 'payroll:index',    'icon_img': 'paie.png', 'icon': 'ti-moneybag'},
         ],

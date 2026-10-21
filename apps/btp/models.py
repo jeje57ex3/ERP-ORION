@@ -599,7 +599,18 @@ class SituationOfWorks(models.Model):
 class BTPTimesheet(models.Model):
     """Pointage chantier."""
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='btp_timesheets')
-    project = models.ForeignKey(BTPProject, on_delete=models.CASCADE, related_name='timesheets')
+    # Chantier FACULTATIF. Il etait obligatoire, ce qui rendait inexprimable
+    # l'heure qui n'appartient a aucun chantier : atelier, entretien du
+    # materiel, trajet, reunion, formation. Ces heures existent, sont payees,
+    # et etaient donc soit absentes du pointage soit imputees a un chantier
+    # au hasard -- ce qui faussait le cout du chantier en question.
+    #
+    # Attention en lecture : ts.project peut etre None. Voir le garde dans
+    # templates/btp/timesheet_list.html.
+    project = models.ForeignKey(
+        BTPProject, on_delete=models.CASCADE, related_name='timesheets',
+        null=True, blank=True, verbose_name='Chantier',
+        help_text='Laisser vide pour une heure sans chantier (atelier, trajet, réunion).')
     employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='btp_timesheets')
     work_date = models.DateField('Date')
     hours = models.DecimalField('Heures', max_digits=5, decimal_places=2, default=8)

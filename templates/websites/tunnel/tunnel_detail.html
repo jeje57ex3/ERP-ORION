@@ -45,8 +45,8 @@
           démarré directement, sans copier de fichier d'identifiants. Son jeton sera
           récupéré par l'API.{% endblocktrans %}
         {% else %}
-          {# Sans compte rattache, seul le fichier de credentials permet de demarrer :
-             il n'existe que sur la machine ou le tunnel a ete cree. #}
+          {% comment %} Sans compte rattache, seul le fichier de credentials permet de demarrer :
+             il n'existe que sur la machine ou le tunnel a ete cree. {% endcomment %}
           {% blocktrans %}Aucun compte Cloudflare n'est rattaché à ce tunnel. Rattachez-en un pour
           pouvoir démarrer le connecteur depuis l'interface, ou lancez-le à la
           main :{% endblocktrans %}
@@ -65,9 +65,9 @@
     {% endif %}
   </div>
 
-  {# Voie de secours : l'API echoue si le jeton d'API n'a pas de portee de
+  {% comment %} Voie de secours : l'API echoue si le jeton d'API n'a pas de portee de
      compte, ou si le tunnel appartient a un autre compte Cloudflare. Le jeton
-     de connecteur, lui, ne depend d'aucune permission. #}
+     de connecteur, lui, ne depend d'aucune permission. {% endcomment %}
   <details class="mt-3">
     <summary class="small" style="cursor:pointer">
       {% trans "Coller un jeton de connecteur à la place" %}
@@ -196,14 +196,14 @@
     </div>
 
     {# Configuration distante Cloudflare #}
-    {#
+    {% comment %}
       Distincte du config.yml juste en dessous, et ce n'est pas un doublon :
       un connecteur lancé avec « --config » lit le fichier local, un
       connecteur lancé par jeton applique la configuration distante et
       ignore le fichier. Les deux voies existent ; la seconde n'avait aucun
       bouton, d'où les erreurs 1033 sur des noms d'hôte pourtant déclarés
       dans l'ERP.
-    #}
+    {% endcomment %}
     <div class="orion-card mb-3">
       <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
         <h6 class="fw-bold mb-0"><i class="bi bi-cloud-arrow-up me-2 text-info"></i>{% trans "Configuration distante Cloudflare" %}</h6>

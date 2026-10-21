@@ -113,7 +113,15 @@
               <span class="small fw-semibold">{{ ts.employee.get_full_name|default:"—" }}</span>
             </td>
             <td>
+              {% comment %} ts.project peut etre None depuis que le chantier est
+                 facultatif : « {% url %} » avec un pk vide leve
+                 NoReverseMatch et casse la page entiere, pas seulement la
+                 cellule. {% endcomment %}
+              {% if ts.project %}
               <a href="{% url 'btp:project_detail' ts.project.pk %}" class="text-muted small">{{ ts.project.name }}</a>
+              {% else %}
+              <span class="text-muted small fst-italic">Sans chantier</span>
+              {% endif %}
             </td>
             <td class="small text-muted">{{ ts.task_description|truncatechars:50|default:"—" }}</td>
             <td class="text-end small fw-semibold">

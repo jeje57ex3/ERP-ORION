@@ -1,0 +1,112 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <h5 class="mb-0">{% trans "Arrêts de travail" %}</h5>
+  <div class="d-flex gap-2">
+    <a href="{% url 'hr:planning_equipe' %}" class="orion-btn sm">
+      <i class="bi bi-calendar3 me-1"></i>{% trans "Planning" %}
+    </a>
+    <a href="{% url 'hr:stoppage_create' %}" class="orion-btn primary sm">
+      <i class="bi bi-plus me-1"></i>{% trans "Déclarer un arrêt" %}
+    </a>
+  </div>
+</div>
+
+<p class="small text-muted">
+  {% blocktrans %}Un arrêt de travail se <strong>déclare</strong>, il ne se
+  demande pas : il n'y a donc rien à approuver ni à refuser, contrairement à
+  un congé. Sa date de fin peut rester vide quand la reprise n'est pas
+  connue.{% endblocktrans %}
+</p>
+
+{% if en_cours %}
+<div class="alert alert-warning">
+  <p class="fw-semibold mb-2">
+    <i class="bi bi-bandaid me-1"></i>
+    {% blocktrans count n=en_cours|length %}{{ n }} arrêt en cours{% plural %}{{ n }} arrêts en cours{% endblocktrans %}
+  </p>
+  <ul class="small mb-0">
+    {% for arret in en_cours %}
+    <li>
+      <strong>{{ arret.employee.full_name }}</strong> — {{ arret.get_kind_display }}
+      {% trans "depuis le" %} {{ arret.start_date|date:"d/m/Y" }}
+      {% if arret.end_date %}
+        — {% trans "reprise prévue le" %} {{ arret.end_date|date:"d/m/Y" }}
+      {% else %}
+        — <em>{% trans "sans date de reprise connue" %}</em>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+    <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+      <thead>
+        <tr>
+          <th>{% trans "Salarié" %}</th>
+          <th>{% trans "Nature" %}</th>
+          <th>{% trans "Début" %}</th>
+          <th>{% trans "Fin" %}</th>
+          <th class="text-end">{% trans "Durée" %}</th>
+          <th>{% trans "Certificat" %}</th>
+          <th>{% trans "Prolongation" %}</th>
+          <th style="width:110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for arret in arrets %}
+        <tr style="{% if not arret.end_date %}background:rgba(220,38,38,.06){% endif %}">
+          <td>
+            <a href="{% url 'hr:planning_employe' arret.employee.pk %}"
+               style="color:inherit">{{ arret.employee.full_name }}</a>
+          </td>
+          <td>
+            <span class="status-badge {% if arret.kind == 'accident_travail' or arret.kind == 'maladie_pro' %}status-danger{% else %}status-warning{% endif %}">
+              {{ arret.get_kind_display }}
+            </span>
+          </td>
+          <td>{{ arret.start_date|date:"d/m/Y" }}</td>
+          <td>
+            {% if arret.end_date %}{{ arret.end_date|date:"d/m/Y" }}
+            {% else %}<em class="text-muted">{% trans "en cours" %}</em>{% endif %}
+          </td>
+          <td class="text-end">
+            {% if arret.duree_jours %}{{ arret.duree_jours }} j
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-muted">
+            {% if arret.certificate_date %}{{ arret.certificate_date|date:"d/m/Y" }}{% endif %}
+            {% if arret.certificate_reference %}<code style="font-size:11px">{{ arret.certificate_reference }}</code>{% endif %}
+            {% if not arret.certificate_date and not arret.certificate_reference %}—{% endif %}
+          </td>
+          <td class="text-muted">
+            {% if arret.prolongation_de %}
+              <i class="bi bi-arrow-return-right me-1"></i>{{ arret.prolongation_de.start_date|date:"d/m/Y" }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-nowrap">
+            <a href="{% url 'hr:stoppage_edit' arret.pk %}" class="btn btn-xs btn-outline-primary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{% url 'hr:stoppage_delete' arret.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-xs btn-outline-danger"
+                      title="{% trans 'Supprimer cet arrêt' %}"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">
+          {% trans "Aucun arrêt de travail enregistré." %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

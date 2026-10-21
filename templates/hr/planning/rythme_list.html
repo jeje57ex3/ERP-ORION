@@ -1,0 +1,93 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <h5 class="mb-0">{% trans "Rythmes de travail" %}</h5>
+  <div class="d-flex gap-2">
+    <a href="{% url 'hr:planning_equipe' %}" class="orion-btn sm">
+      <i class="bi bi-calendar3 me-1"></i>{% trans "Planning" %}
+    </a>
+    <a href="{% url 'hr:schedule_create' %}" class="orion-btn primary sm">
+      <i class="bi bi-plus me-1"></i>{% trans "Nouveau rythme" %}
+    </a>
+  </div>
+</div>
+
+<p class="small text-muted">
+  {% blocktrans %}Le rythme donne les heures prévues pour chaque jour de la
+  semaine. Un jour à zéro heure est un jour de repos : la notion n'a pas de
+  case à elle, elle découle des heures, et ne peut donc pas les
+  contredire.{% endblocktrans %}
+</p>
+
+{% if sans_rythme %}
+<div class="alert alert-warning">
+  <p class="fw-semibold mb-2">
+    <i class="bi bi-exclamation-circle me-1"></i>
+    {% blocktrans count n=sans_rythme|length %}{{ n }} salarié sans rythme défini{% plural %}{{ n }} salariés sans rythme défini{% endblocktrans %}
+  </p>
+  <p class="small mb-2">
+    {% blocktrans %}Le planning leur applique un lundi-vendredi de sept heures.
+    C'est raisonnable, mais c'est une hypothèse, pas une donnée : un temps
+    partiel apparaîtra en retard sur ses heures tous les mois.{% endblocktrans %}
+  </p>
+  <div class="d-flex flex-wrap gap-2">
+    {% for employee in sans_rythme %}
+    <a href="{% url 'hr:schedule_create' %}" class="status-badge status-warning"
+       style="text-decoration:none">{{ employee.full_name }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+    <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+      <thead>
+        <tr>
+          <th>{% trans "Salarié" %}</th>
+          <th class="text-center">L</th><th class="text-center">M</th>
+          <th class="text-center">M</th><th class="text-center">J</th>
+          <th class="text-center">V</th><th class="text-center">S</th>
+          <th class="text-center">D</th>
+          <th class="text-end">{% trans "Semaine" %}</th>
+          <th style="width:110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rythme in rythmes %}
+        <tr>
+          <td>
+            <a href="{% url 'hr:planning_employe' rythme.employee.pk %}"
+               style="color:inherit">{{ rythme.employee.full_name }}</a>
+          </td>
+          {% for jour in rythme.heures_par_jour %}
+          <td class="text-center {% if jour.repos %}text-muted{% else %}fw-semibold{% endif %}"
+              style="{% if jour.repos %}background:rgba(255,255,255,.04){% endif %}"
+              title="{{ jour.libelle }}">
+            {% if jour.repos %}—{% else %}{{ jour.heures|floatformat:"-2" }}{% endif %}
+          </td>
+          {% endfor %}
+          <td class="text-end fw-bold">{{ rythme.heures_hebdomadaires }} h</td>
+          <td class="text-nowrap">
+            <a href="{% url 'hr:schedule_edit' rythme.pk %}" class="btn btn-xs btn-outline-primary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{% url 'hr:schedule_delete' rythme.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-xs btn-outline-danger"
+                      title="{% trans 'Supprimer ce rythme' %}"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="text-center text-muted py-4">
+          {% trans "Aucun rythme défini." %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

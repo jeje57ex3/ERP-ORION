@@ -79,6 +79,22 @@ class SituationForm(forms.ModelForm):
 
 
 class BTPTimesheetForm(forms.ModelForm):
+    """Pointage d'heures.
+
+    Les listes deroulantes sont bornees dans __init__, donc a la
+    VALIDATION. Elles ne l'etaient que dans la branche GET de la vue :
+
+        form = BTPTimesheetForm()
+        form.fields['project'].queryset = BTPProject.objects.filter(...)
+
+    Au POST le formulaire etait reconstruit sans ce filtre, et un
+    identifiant de chantier recopie depuis une autre entreprise passait la
+    validation. Le pointage etait alors enregistre sous l'entreprise
+    courante en designant le chantier d'une autre -- c'est-a-dire en
+    ajoutant des heures au cout d'un chantier qui ne nous appartient pas.
+    Le champ « employee » n'etait, lui, borne nulle part.
+    """
+
     class Meta:
         model = BTPTimesheet
         fields = ['project', 'employee', 'work_date', 'hours', 'overtime_hours', 'task_description', 'notes']
@@ -91,6 +107,25 @@ class BTPTimesheetForm(forms.ModelForm):
             'task_description': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def __init__(self, *args, company=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Le chantier est facultatif : une heure d'atelier, de trajet ou de
+        # reunion n'appartient a aucun chantier, et l'imputer au hasard
+        # faussait le cout de celui qui la recevait.
+        self.fields['project'].required = False
+        self.fields['project'].empty_label = '— Sans chantier —'
+
+        if company is not None:
+            self.fields['project'].queryset = BTPProject.objects.filter(
+                company=company)
+            # Les salaries de l'entreprise, c'est-a-dire les comptes
+            # rattaches a une fiche salarie de cette entreprise.
+            from django.contrib.auth.models import User
+            self.fields['employee'].queryset = User.objects.filter(
+                employee_profile__company=company,
+                employee_profile__is_active=True,
+            ).order_by('last_name', 'first_name', 'username')
 
 
 # ─── Matériaux et fournitures ────────────────────────────────────────────────
