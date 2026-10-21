@@ -195,6 +195,54 @@
       </div>
     </div>
 
+    {# Configuration distante Cloudflare #}
+    {#
+      Distincte du config.yml juste en dessous, et ce n'est pas un doublon :
+      un connecteur lancé avec « --config » lit le fichier local, un
+      connecteur lancé par jeton applique la configuration distante et
+      ignore le fichier. Les deux voies existent ; la seconde n'avait aucun
+      bouton, d'où les erreurs 1033 sur des noms d'hôte pourtant déclarés
+      dans l'ERP.
+    #}
+    <div class="orion-card mb-3">
+      <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0"><i class="bi bi-cloud-arrow-up me-2 text-info"></i>{% trans "Configuration distante Cloudflare" %}</h6>
+        <div class="d-flex gap-2">
+          <form method="post" action="{% url 'websites:tunnel_publish_ingress' tunnel.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="apercu" value="1">
+            <button type="submit" class="orion-btn orion-btn-outline sm text-nowrap">
+              <i class="bi bi-eye me-1"></i>{% trans "Aperçu" %}
+            </button>
+          </form>
+          <form method="post" action="{% url 'websites:tunnel_publish_ingress' tunnel.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn orion-btn-primary sm text-nowrap">
+              <i class="bi bi-cloud-arrow-up me-1"></i>{% trans "Publier chez Cloudflare" %}
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="orion-orion-card-body p-3">
+        <p class="small text-muted mb-2">
+          {% blocktrans %}Écrit les règles ci-dessus dans la configuration que
+          Cloudflare sert au connecteur. <strong>Indispensable si le connecteur
+          est lancé par jeton</strong> (<code>cloudflared tunnel run
+          --token-file</code>) : dans ce mode il ignore complètement le
+          config.yml local, et un nom d'hôte sans route répond
+          <code>erreur 1033</code>.{% endblocktrans %}
+        </p>
+        <p class="small text-muted mb-0">
+          {% blocktrans %}L'API Cloudflare ne sait pas ajouter une règle : elle
+          remplace la configuration entière. La publication lit donc d'abord
+          l'existant et fusionne — <strong>aucun nom d'hôte déjà déclaré n'est
+          supprimé</strong>, même s'il ne figure pas dans l'ERP. Si la lecture
+          échoue, rien n'est écrit. Commencez par l'aperçu : il affiche
+          exactement ce qui changerait, sans rien modifier.{% endblocktrans %}
+        </p>
+      </div>
+    </div>
+
     {# Prévisualisation config.yml #}
     <div class="orion-card">
       <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">

@@ -15,6 +15,7 @@ from .tunnel_service import (
     install_connector_with_token,
     default_cloudflared_paths,
     sync_tunnel_dns, parse_config_yml,
+    publier_ingress_du_tunnel,
 )
 
 
@@ -243,6 +244,79 @@ def tunnel_write_config(request, pk):
         messages.success(request, msg)
     else:
         messages.error(request, msg)
+    return redirect('websites:tunnel_detail', pk=tunnel.pk)
+
+
+# ─── Publier l'ingress chez Cloudflare ───────────────────────────────────────
+
+@login_required
+@require_POST
+def tunnel_publish_ingress(request, pk):
+    """Ecrit les regles du tunnel dans la configuration distante Cloudflare.
+
+    Sans cela, un connecteur lance par jeton n'a aucune route : le DNS
+    pointe vers le tunnel, le tunnel ne sait pas quoi en faire, et le
+    visiteur recoit une erreur 1033. Le config.yml ecrit par l'ERP ne
+    couvre pas ce cas, puisque ce connecteur-la ne le lit pas.
+
+    Le champ « apercu » du formulaire demande un calcul a blanc : la lecture
+    et la fusion ont lieu, rien n'est ecrit. C'est la voie a prendre en
+    premier -- une publication remplace la configuration entiere du tunnel.
+    """
+    company = _company(request)
+    tunnel = get_object_or_404(CloudflareTunnel, pk=pk, company=company)
+    a_blanc = bool(request.POST.get('apercu'))
+
+    rapport = publier_ingress_du_tunnel(tunnel, a_blanc=a_blanc)
+
+    if not rapport.get('success'):
+        messages.error(request, rapport.get('error') or 'Erreur inconnue.')
+        return redirect('websites:tunnel_detail', pk=tunnel.pk)
+
+    lignes = []
+    for item in rapport.get('ajouts', []):
+        lignes.append(f"+ {item['hostname']} → {item['service']}")
+    for item in rapport.get('modifications', []):
+        lignes.append(f"~ {item['hostname']} : {item['avant']} → {item['apres']}")
+    for item in rapport.get('inchangees', []):
+        lignes.append(f"= {item['hostname']} (déjà à jour)")
+    # Les hotes conserves sont nommes explicitement : c'est la preuve que la
+    # publication n'a rien efface, et la question que l'on se pose en
+    # premier avant de cliquer.
+    for item in rapport.get('conserves', []):
+        lignes.append(f"  {item['hostname']} → {item['service']} (conservé)")
+
+    detail = ' | '.join(lignes) if lignes else 'aucune règle'
+    change = bool(rapport.get('ajouts') or rapport.get('modifications'))
+
+    if a_blanc:
+        messages.info(request, (
+            f"Aperçu — rien n'a été écrit. Après publication : {detail}"))
+    elif change:
+        messages.success(request, (
+            f"Configuration publiée chez Cloudflare. {detail}"))
+    else:
+        messages.info(request, (
+            "La configuration distante est déjà conforme : aucune écriture "
+            f"n'a été faite. {detail}"))
+
+    if rapport.get('avertissement'):
+        messages.warning(request, rapport['avertissement'])
+
+    # Une route sans enregistrement DNS reste injoignable : le visiteur
+    # n'atteint meme pas le tunnel. L'inverse du 1033, et tout aussi muet.
+    if change or a_blanc:
+        sans_dns = [
+            regle.hostname
+            for regle in tunnel.ingress_rules.filter(is_active=True, dns_synced=False)
+            if regle.hostname
+        ]
+        if sans_dns:
+            messages.warning(request, (
+                "DNS non synchronisé pour : " + ', '.join(sans_dns) +
+                " — la route existe côté tunnel mais le nom ne pointe pas "
+                "encore vers lui. Utilisez le bouton DNS de chaque règle."))
+
     return redirect('websites:tunnel_detail', pk=tunnel.pk)
 
 
