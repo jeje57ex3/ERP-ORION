@@ -52,6 +52,30 @@
             {% endfor %}
           </div>
 
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.heure_debut.label }}</label>
+              {{ form.heure_debut }}
+              <div class="form-text">{{ form.heure_debut.help_text }}</div>
+              {{ form.heure_debut.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">{{ form.pause_minutes.label }}</label>
+              {{ form.pause_minutes }}
+              <div class="form-text">{{ form.pause_minutes.help_text }}</div>
+              {{ form.pause_minutes.errors }}
+            </div>
+            <div class="col-12">
+              <p class="small text-muted mb-0">
+                {% blocktrans %}Ces deux champs ne servent qu'à la <strong>frise
+                horaire</strong> du planning, qui place la journée prévue sur
+                l'horloge. Le pointage, lui, est un total déclaré par jour : il
+                ne contient aucune heure d'arrivée, et n'est donc jamais posé
+                sur la frise.{% endblocktrans %}
+              </p>
+            </div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold">{{ form.notes.label }}</label>
             {{ form.notes }}

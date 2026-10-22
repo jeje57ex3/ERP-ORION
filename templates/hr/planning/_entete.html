@@ -1,0 +1,53 @@
+{% load i18n %}
+{% comment %}
+  Barre de navigation partagée par les quatre vues : le sélecteur de
+  granularité, les flèches, et les boutons d'action.
+
+  Les flèches passent une DATE complète, pas un décalage : une URL de
+  planning doit pouvoir être copiée, mise en favori ou envoyée par message
+  et désigner toujours la même période. Le pas suit la vue — un mois en vue
+  mois, une semaine en vue semaine, un jour pour les deux dernières.
+{% endcomment %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="pl-selecteur-vue">
+      {% for choix in nav.vues %}
+      <a href="?vue={{ choix.code }}&amp;date={{ nav.ancre|date:'Y-m-d' }}"
+         class="{% if choix.code == nav.vue %}actif{% endif %}">{{ choix.libelle }}</a>
+      {% endfor %}
+    </div>
+
+    <a class="orion-btn sm" href="?vue={{ nav.vue }}&amp;date={{ nav.precedente|date:'Y-m-d' }}"
+       title="{% trans 'Période précédente' %}"><i class="bi bi-chevron-left"></i></a>
+    <strong style="min-width:13rem;text-align:center;font-size:14.5px">{{ nav.libelle }}</strong>
+    <a class="orion-btn sm" href="?vue={{ nav.vue }}&amp;date={{ nav.suivante|date:'Y-m-d' }}"
+       title="{% trans 'Période suivante' %}"><i class="bi bi-chevron-right"></i></a>
+    <a class="orion-btn sm" href="?vue={{ nav.vue }}">{% trans "Aujourd'hui" %}</a>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'hr:leave_create' %}" class="orion-btn sm">
+      <i class="bi bi-calendar-plus me-1"></i>{% trans "Congé" %}
+    </a>
+    <a href="{% url 'hr:stoppage_create' %}" class="orion-btn sm">
+      <i class="bi bi-bandaid me-1"></i>{% trans "Arrêt" %}
+    </a>
+    <a href="{% url 'btp:timesheet_create' %}" class="orion-btn sm">
+      <i class="bi bi-clock-history me-1"></i>{% trans "Pointage" %}
+    </a>
+    <a href="{% url 'hr:schedule_list' %}" class="orion-btn sm">
+      <i class="bi bi-calendar-week me-1"></i>{% trans "Rythmes" %}
+    </a>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-card-body p-3 pl-legende">
+    <span><i class="pl-pastille pl-travaille"></i>{% trans "Travaillé" %}</span>
+    <span><i class="pl-pastille pl-repos"></i>{% trans "Repos" %}</span>
+    <span><i class="pl-pastille pl-conge"></i>C — {% trans "Congé" %}</span>
+    <span><i class="pl-pastille pl-maladie"></i>M — {% trans "Maladie" %}</span>
+    <span><i class="pl-pastille pl-arret"></i>A — {% trans "Arrêt de travail" %}</span>
+  </div>
+</div>

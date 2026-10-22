@@ -216,19 +216,154 @@ def planning_employe_vide(annee, mois):
     }
 
 
+# ─── Les quatre granularités ─────────────────────────────────────────────────
+#
+# Mois, semaine, jour, heure : QUATRE vues, UNE lecture. Toutes passent par
+# planning_intervalle(), et ne diffèrent que par les bornes qu'elles lui
+# donnent. Quatre fonctions de lecture auraient diverge a la premiere
+# correction, et le meme salarie serait apparu en conge dans une vue et au
+# travail dans une autre.
+
+VUES = ('mois', 'semaine', 'jour', 'heure')
+
+LIBELLES_VUE = {
+    'mois': 'Mois', 'semaine': 'Semaine', 'jour': 'Jour', 'heure': 'Heure',
+}
+
+# Plage affichee par la frise horaire. 6 h - 20 h couvre une journee de
+# chantier, y compris les departs tot et les fins tardives, sans ecraser la
+# frise en quatorze colonnes illisibles.
+HEURE_FRISE_DEBUT = 6
+HEURE_FRISE_FIN = 20
+
+
+def lundi_de_la_semaine(jour):
+    """Le lundi de la semaine contenant `jour`.
+
+    La semaine commence le lundi, comme le veut l'usage francais (ISO
+    8601). Partir du dimanche decalerait tout le planning d'un jour par
+    rapport a la facon dont les equipes parlent de leur semaine.
+    """
+    from datetime import timedelta
+    return jour - timedelta(days=jour.weekday())
+
+
+def bornes_de_la_vue(vue, ancre):
+    """Les bornes a afficher pour cette vue, autour de cette date.
+
+    `ancre` est la date de reference : le mois qui la contient, la semaine
+    qui la contient, ou elle-meme.
+    """
+    from datetime import timedelta
+    if vue == 'mois':
+        return bornes_du_mois(ancre.year, ancre.month)
+    if vue == 'semaine':
+        lundi = lundi_de_la_semaine(ancre)
+        return lundi, lundi + timedelta(days=6)
+    # jour et heure portent sur une seule date.
+    return ancre, ancre
+
+
+def pas_de_la_vue(vue):
+    """De combien avancent les fleches « precedent / suivant ».
+
+    Un pas de vue : un mois en vue mois, une semaine en vue semaine, un
+    jour pour les deux dernieres. Avancer d'un jour en vue mois obligerait
+    a cliquer trente fois pour changer de mois.
+    """
+    from datetime import timedelta
+    if vue == 'mois':
+        return None  # traite a part : les mois n'ont pas une duree fixe
+    return timedelta(days=7 if vue == 'semaine' else 1)
+
+
+def creneau_prevu(schedule, jour):
+    """Le créneau de présence prévu : (début, fin, heures), ou None.
+
+    Honnêteté de la frise horaire : le POINTAGE ne porte aucune heure
+    d'horloge — c'est un total déclaré par jour, et c'est un choix assumé.
+    La seule chose qu'on puisse placer sur une frise est donc le PRÉVU, lu
+    sur le rythme du salarié. Les heures réellement pointées sont affichées
+    comme un nombre, à côté, et jamais posées sur l'horloge : elles
+    donneraient une précision qui n'existe pas.
+
+    Sans rythme, on retombe sur 8 h — 15 h 00 + une heure de pause, ce qui
+    est une hypothèse que l'interface signale.
+    """
+    from datetime import datetime, timedelta
+
+    heures = (schedule.heures_du_jour(jour) if schedule
+              else (ZERO if jour.weekday() >= 5 else Decimal('7')))
+    if heures == 0:
+        return None
+
+    debut_heure = schedule.heure_debut if schedule else None
+    if debut_heure is None:
+        from datetime import time as _time
+        debut_heure = _time(8, 0)
+    pause = schedule.pause_minutes if schedule else 60
+
+    debut = datetime.combine(jour, debut_heure)
+    fin = debut + timedelta(hours=float(heures), minutes=pause or 0)
+    return {'debut': debut, 'fin': fin, 'heures': heures,
+            'pause_minutes': pause or 0}
+
+
+def position_sur_la_frise(creneau):
+    """Position et largeur du bloc, en pourcentage de la frise.
+
+    Calculé ici et non dans le gabarit : Django ne sait pas diviser, et un
+    filtre maison pour cela se tromperait aux bords — un créneau qui
+    commence avant 6 h ou finit après 20 h doit être coupé, pas débordé.
+    """
+    if creneau is None:
+        return None
+    total_minutes = (HEURE_FRISE_FIN - HEURE_FRISE_DEBUT) * 60
+    depart = creneau['debut'].hour * 60 + creneau['debut'].minute
+    arrivee = creneau['fin'].hour * 60 + creneau['fin'].minute
+    if creneau['fin'].date() > creneau['debut'].date():
+        arrivee = HEURE_FRISE_FIN * 60  # debordement sur le lendemain
+    origine = HEURE_FRISE_DEBUT * 60
+
+    gauche = max(0, depart - origine)
+    droite = min(total_minutes, arrivee - origine)
+    if droite <= gauche:
+        return None
+    return {
+        'gauche': round(gauche * 100 / total_minutes, 2),
+        'largeur': round((droite - gauche) * 100 / total_minutes, 2),
+        'coupe_avant': depart < origine,
+        'coupe_apres': arrivee > HEURE_FRISE_FIN * 60,
+    }
+
+
+def heures_de_la_frise():
+    """Les graduations de la frise, pour l'en-tete du gabarit."""
+    return list(range(HEURE_FRISE_DEBUT, HEURE_FRISE_FIN + 1))
+
+
 def planning_equipe(company, annee, mois, employees=None):
-    """Le mois de TOUTE l'équipe, en quatre requêtes.
+    """Le mois de TOUTE l'équipe. Conservée pour les appels existants.
+
+    Délègue à planning_intervalle : une seule lecture pour les quatre
+    granularités.
+    """
+    debut, fin = bornes_du_mois(annee, mois)
+    return planning_intervalle(company, debut, fin, employees=employees)
+
+
+def planning_intervalle(company, debut, fin, employees=None, vue='mois'):
+    """L'équipe sur un intervalle quelconque, en cinq requêtes.
 
     Une lecture par salarié et par jour ferait 600 requêtes pour vingt
     salariés sur trente jours. Tout est donc chargé en bloc ici, puis
-    réparti en mémoire.
+    réparti en mémoire — et le nombre de requêtes ne dépend ni de la durée
+    de l'intervalle ni du nombre de salariés.
 
-    Retourne {'debut', 'fin', 'dates', 'lignes', 'totaux'}.
+    Retourne {'debut', 'fin', 'dates', 'lignes', 'totaux', 'vue'}.
     """
     from apps.btp.models import BTPTimesheet
     from .models import Employee, LeaveRequest, WorkSchedule, WorkStoppage
-
-    debut, fin = bornes_du_mois(annee, mois)
 
     if employees is None:
         employees = list(Employee.objects.filter(
@@ -280,7 +415,8 @@ def planning_equipe(company, annee, mois, employees=None):
             cumul[cle] += ligne['totaux'][cle]
 
     return {'debut': debut, 'fin': fin, 'dates': dates,
-            'lignes': lignes, 'totaux': cumul}
+            'lignes': lignes, 'totaux': cumul, 'vue': vue,
+            'heures_frise': heures_de_la_frise()}
 
 
 def _ligne_equipe(employee, dates, schedule, conges, arrets, pointages,
@@ -324,9 +460,22 @@ def _ligne_equipe(employee, dates, schedule, conges, arrets, pointages,
         pointees = sum((Decimal(p.hours or 0) for p in du_jour), ZERO)
         sup = sum((Decimal(p.overtime_hours or 0) for p in du_jour), ZERO)
 
+        # Le creneau n'est calcule que s'il y a lieu : un jour d'absence
+        # n'a pas d'horaire a afficher, et le calculer quand meme ferait
+        # apparaitre sur la frise une presence prevue un jour d'arret.
+        creneau = None
+        if etat == 'travaille':
+            creneau = creneau_prevu(schedule, jour)
+
         cellules.append({
             'date': jour, 'etat': etat, 'libelle_etat': LIBELLES_ETAT[etat],
             'heures_pointees': pointees, 'heures_prevues': prevues_retenues,
+            'heures_sup': sup,
+            'pointages': du_jour,
+            'conges': conges_jour,
+            'arrets': arrets_jour,
+            'creneau': creneau,
+            'frise': position_sur_la_frise(creneau),
         })
 
         totaux['heures_prevues'] += prevues_retenues

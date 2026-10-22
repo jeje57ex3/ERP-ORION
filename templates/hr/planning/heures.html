@@ -1,0 +1,135 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  La frise horaire : une journée, de 6 h à 20 h, un salarié par ligne.
+
+  CE QU'ELLE MONTRE, ET CE QU'ELLE NE PEUT PAS MONTRER. Le pointage ne
+  porte aucune heure d'horloge — c'est un total déclaré par jour, et c'est
+  un choix assumé plutôt que du badgeage. La frise place donc le PRÉVU, lu
+  sur le rythme du salarié (heure de début, heures du jour, pause). Les
+  heures réellement pointées sont affichées comme un nombre, à droite, et
+  jamais posées sur l'horloge : elles donneraient une précision qui
+  n'existe pas dans les données.
+
+  Le dire plutôt que de le laisser croire — un bandeau l'explique en haut
+  de page. Une frise qui suggère « arrivé à 8 h 02 » alors que personne ne
+  l'a mesuré est pire qu'une absence de frise.
+{% endcomment %}
+
+{% block content %}
+{% include "hr/planning/_palette.html" %}
+
+<style>
+  .pl-frise { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px }
+  .pl-frise th, .pl-frise td { padding: 0; vertical-align: middle }
+  .pl-frise thead th { font-weight: 500; color: var(--orion-muted);
+                       font-size: 10.5px; padding: 4px 0; text-align: left }
+  .pl-piste {
+    position: relative; height: 34px; background: var(--pl-frise-fond);
+    border: 1px solid var(--pl-grille-trait); border-radius: 5px;
+    overflow: hidden;
+  }
+  /* Graduations horaires, en fond de piste : sans elles, un bloc flotte
+     sans repère et on ne lit plus à quelle heure il commence. */
+  .pl-piste-fond { position: absolute; inset: 0; display: flex }
+  .pl-piste-fond i {
+    flex: 1 1 0; border-right: 1px solid var(--pl-grille-trait); opacity: .45;
+  }
+  .pl-piste-fond i:last-child { border-right: 0 }
+  .pl-bloc {
+    position: absolute; top: 4px; bottom: 4px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
+    padding: 0 6px;
+  }
+  .pl-bande {
+    position: absolute; inset: 4px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .pl-chiffres { padding: 0 0 0 12px !important; white-space: nowrap;
+                 color: var(--orion-text) }
+</style>
+
+{% include "hr/planning/_entete.html" %}
+
+<div class="alert alert-light border small">
+  <i class="bi bi-info-circle me-1"></i>
+  {% blocktrans %}La frise place les heures <strong>prévues</strong>, lues sur
+  le rythme de chaque salarié. Le pointage est un total déclaré par jour : il
+  ne contient aucune heure d'arrivée ni de départ, et n'est donc pas posé sur
+  l'horloge — il figure à droite, en nombre d'heures. Pour voir des heures
+  réelles sur la frise, il faudrait passer au badgeage.{% endblocktrans %}
+</div>
+
+<div class="orion-card">
+  <div class="orion-orion-card-body p-3" style="overflow-x:auto">
+    <table class="pl-frise">
+      <thead>
+        <tr>
+          <th style="width:190px"></th>
+          <th>
+            <div style="display:flex">
+              {% for heure in planning.heures_frise %}
+              <span style="flex:1 1 0">{{ heure }}h</span>
+              {% endfor %}
+            </div>
+          </th>
+          <th style="width:150px;text-align:right;padding-right:0">
+            {% trans "Pointé / prévu" %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in planning.lignes %}
+        {% with case=ligne.cellules.0 %}
+        <tr>
+          <td class="pl-nom" style="box-shadow:none;background:transparent">
+            <a href="{% url 'hr:planning_employe' ligne.employee.pk %}?annee={{ planning.debut|date:'Y' }}&amp;mois={{ planning.debut|date:'n' }}">{{ ligne.employee.full_name }}</a>
+            {% if not ligne.schedule %}
+            <i class="bi bi-exclamation-circle ms-1" style="color:var(--orion-warning,#b7791f)"
+               title="{% trans 'Aucun rythme défini : 8 h de début et 7 h de travail supposés.' %}"></i>
+            {% endif %}
+          </td>
+          <td style="padding:4px 0">
+            <div class="pl-piste">
+              <div class="pl-piste-fond">
+                {% for heure in planning.heures_frise %}<i></i>{% endfor %}
+              </div>
+
+              {% if case.etat == 'travaille' %}
+                {% if case.frise %}
+                <div class="pl-bloc pl-travaille"
+                     style="left:{{ case.frise.gauche }}%;width:{{ case.frise.largeur }}%;
+                            background:var(--pl-conge-fond);color:var(--pl-conge-texte);
+                            border:1px solid var(--pl-grille-trait)"
+                     title="{{ case.creneau.debut|time:'H:i' }} – {{ case.creneau.fin|time:'H:i' }} ({{ case.creneau.pause_minutes }} min {% trans 'de pause' %})">
+                  {{ case.creneau.debut|time:"H:i" }} – {{ case.creneau.fin|time:"H:i" }}
+                </div>
+                {% endif %}
+              {% else %}
+                {# Absence ou repos : la journée entière, sans horaire. #}
+                <div class="pl-bande pl-{{ case.etat }}">{{ case.libelle_etat }}</div>
+              {% endif %}
+            </div>
+          </td>
+          <td class="pl-chiffres text-end">
+            <strong>{% if case.heures_pointees %}{{ case.heures_pointees|floatformat:"-2" }}{% else %}—{% endif %}</strong>
+            <span class="text-muted"> / {{ case.heures_prevues|floatformat:"-2" }} h</span>
+            {% if case.heures_sup %}
+            <span class="pl-sous text-muted">+{{ case.heures_sup|floatformat:"-2" }} h {% trans "sup." %}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="3" class="text-center text-muted py-4">
+          {% trans "Aucun salarié actif dans cette entreprise." %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

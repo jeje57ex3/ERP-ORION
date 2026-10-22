@@ -22,13 +22,22 @@ from django.views.decorators.http import require_POST
 from .forms_planning import WorkScheduleForm, WorkStoppageForm
 from .models import Employee, WorkSchedule, WorkStoppage
 from .planning_service import (
+    LIBELLES_VUE,
+    VUES,
     annee_mois_demandes,
+    bornes_de_la_vue,
+    lundi_de_la_semaine,
     mois_precedent,
     mois_suivant,
+    pas_de_la_vue,
     planning_employe_vide,
     planning_du_mois,
     planning_equipe,
+    planning_intervalle,
 )
+
+JOURS_FR = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi',
+            'dimanche')
 
 MOIS_FR = (
     'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
@@ -45,6 +54,91 @@ def _navigation(annee, mois):
         'libelle_mois': f'{MOIS_FR[mois - 1]} {annee}',
         'precedent': {'annee': precedent[0], 'mois': precedent[1]},
         'suivant': {'annee': suivant[0], 'mois': suivant[1]},
+    }
+
+
+def _vue_demandee(request):
+    """La granularité choisie, en refusant tout ce qui n'est pas prévu.
+
+    Une valeur inconnue retombe sur le mois plutôt que de lever : ?vue=xyz
+    est une URL mal tapée, pas une panne.
+    """
+    vue = (request.GET.get('vue') or 'mois').strip().lower()
+    return vue if vue in VUES else 'mois'
+
+
+def _date_ancre(request, aujourdhui=None):
+    """La date de référence, lue dans ?date=AAAA-MM-JJ, ?annee= et ?mois=.
+
+    Trois formes acceptées, et c'est volontaire : ?date= sert aux vues
+    jour et heure, ?annee=&mois= reste compatible avec les liens déjà
+    envoyés ou mis en favori depuis la vue mois. Changer la forme de l'URL
+    casserait ces liens sans rien apporter.
+    """
+    from datetime import date as _date
+
+    from django.utils import timezone
+
+    reference = aujourdhui or timezone.localdate()
+
+    brut = (request.GET.get('date') or '').strip()
+    if brut:
+        try:
+            annee, mois, jour = (int(part) for part in brut.split('-'))
+            return _date(annee, mois, jour)
+        except (TypeError, ValueError):
+            return reference
+
+    annee, mois = annee_mois_demandes(request, aujourdhui=reference)
+    # Le jour n'est pas transmis par ?annee=&mois= : on prend le 1er, sauf
+    # si le mois demande est le mois courant -- auquel cas aujourd'hui est
+    # une ancre plus utile pour les vues jour et semaine.
+    if (annee, mois) == (reference.year, reference.month):
+        return reference
+    return _date(annee, mois, 1)
+
+
+def _navigation_vue(vue, ancre, debut, fin):
+    """Les flèches et le libellé, adaptés à la granularité.
+
+    Le pas suit la vue : un mois en vue mois, une semaine en vue semaine,
+    un jour pour les deux dernières. Avancer d'un jour en vue mois
+    obligerait à cliquer trente fois pour changer de mois.
+    """
+    from datetime import date as _date
+
+    if vue == 'mois':
+        avant = mois_precedent(ancre.year, ancre.month)
+        apres = mois_suivant(ancre.year, ancre.month)
+        precedente = _date(avant[0], avant[1], 1)
+        suivante = _date(apres[0], apres[1], 1)
+        libelle = f'{MOIS_FR[ancre.month - 1]} {ancre.year}'
+    else:
+        pas = pas_de_la_vue(vue)
+        precedente = ancre - pas
+        suivante = ancre + pas
+        if vue == 'semaine':
+            lundi = lundi_de_la_semaine(ancre)
+            if debut.month == fin.month:
+                libelle = (f'{debut.day} — {fin.day} '
+                           f'{MOIS_FR[debut.month - 1]} {debut.year}')
+            else:
+                libelle = (f'{debut.day} {MOIS_FR[debut.month - 1]} — '
+                           f'{fin.day} {MOIS_FR[fin.month - 1]} {fin.year}')
+            precedente = lundi - pas
+            suivante = lundi + pas
+        else:
+            libelle = (f'{JOURS_FR[ancre.weekday()]} {ancre.day} '
+                       f'{MOIS_FR[ancre.month - 1]} {ancre.year}')
+
+    return {
+        'vue': vue,
+        'vues': [{'code': code, 'libelle': LIBELLES_VUE[code]}
+                 for code in VUES],
+        'ancre': ancre,
+        'libelle': libelle,
+        'precedente': precedente,
+        'suivante': suivante,
     }
 
 
@@ -74,13 +168,21 @@ def planning_equipe_view(request):
             'planning personnel est accessible depuis « Mon planning ».'))
         return redirect('hr:mon_planning')
 
-    annee, mois = annee_mois_demandes(request)
-    planning = planning_equipe(company, annee, mois)
+    vue = _vue_demandee(request)
+    ancre = _date_ancre(request)
+    debut, fin = bornes_de_la_vue(vue, ancre)
+    planning = planning_intervalle(company, debut, fin, vue=vue)
+    nav = _navigation_vue(vue, ancre, debut, fin)
 
-    return render(request, 'hr/planning/equipe.html', {
+    # La frise horaire montre une seule journee : au-dela, les blocs
+    # deviendraient des traits de deux pixels et ne diraient plus rien.
+    gabarit = ('hr/planning/heures.html' if vue == 'heure'
+               else 'hr/planning/equipe.html')
+
+    return render(request, gabarit, {
         'planning': planning,
-        'nav': _navigation(annee, mois),
-        'page_title': f'Planning — {MOIS_FR[mois - 1]} {annee}',
+        'nav': nav,
+        'page_title': f'Planning — {nav["libelle"]}',
         'active_module': 'hr',
     })
 

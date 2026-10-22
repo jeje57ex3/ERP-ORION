@@ -1,4 +1,6 @@
-﻿from django.db import models
+﻿from datetime import time
+
+from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from apps.core.models import Company
@@ -189,6 +191,19 @@ class WorkSchedule(models.Model):
         'Samedi (h)', max_digits=4, decimal_places=2, default=0)
     hours_sunday = models.DecimalField(
         'Dimanche (h)', max_digits=4, decimal_places=2, default=0)
+
+    # Pour la frise horaire. Le pointage ne porte AUCUNE heure d'horloge --
+    # c'est un total declare par jour, choix assume -- donc la seule chose
+    # qu'on puisse placer honnetement sur une frise est le PREVU. Ces deux
+    # champs le rendent exact au lieu de supposer un 8 h - 17 h pour tout le
+    # monde.
+    heure_debut = models.TimeField(
+        'Heure de debut', default=time(8, 0),
+        help_text="Heure d'arrivee prevue. Sert a placer la journee sur la "
+                  "frise horaire du planning.")
+    pause_minutes = models.PositiveSmallIntegerField(
+        'Pause (minutes)', default=60,
+        help_text='Pause non travaillee, retiree du temps de presence.')
 
     notes = models.TextField('Notes', blank=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -32,9 +32,14 @@ class WorkScheduleForm(forms.ModelForm):
     class Meta:
         model = WorkSchedule
         fields = ['employee'] + [f'hours_{cle}' for cle, _ in JOURS_SEMAINE] \
-            + ['notes']
+            + ['heure_debut', 'pause_minutes', 'notes']
         widgets = {
             'employee': forms.Select(attrs={'class': 'form-select'}),
+            'heure_debut': forms.TimeInput(attrs={'class': 'form-control',
+                                                  'type': 'time'}),
+            'pause_minutes': forms.NumberInput(attrs={'class': 'form-control',
+                                                      'step': '5', 'min': '0',
+                                                      'max': '240'}),
             'notes': forms.Textarea(attrs={'class': 'form-control',
                                            'rows': 2}),
             **{f'hours_{cle}': forms.NumberInput(attrs=dict(CLASSE_NOMBRE))
@@ -44,6 +49,14 @@ class WorkScheduleForm(forms.ModelForm):
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company = company
+
+        # Obligation levée AVANT la validation, sinon la déduction de
+        # clean() est inatteignable : un champ obligatoire laissé vide
+        # échoue à la validation du champ, et clean() n'est jamais appelé.
+        # Même erreur que celle commise deux fois sur les lignes de devis.
+        for nom in self.CHAMPS_A_DEFAUT:
+            self.fields[nom].required = False
+
         if self.instance.pk:
             # Le salarié d'un rythme existant ne se change pas : ce serait
             # déplacer un historique d'un salarié à l'autre. Le champ est
@@ -61,8 +74,22 @@ class WorkScheduleForm(forms.ModelForm):
                 company=company, is_active=True, work_schedule__isnull=True
             ).order_by('last_name', 'first_name')
 
+    # Champs que clean() sait remplir : le modèle porte déjà un défaut
+    # (08:00 et 60 minutes), et les laisser obligatoires ferait échouer
+    # l'enregistrement de qui vide la case — là où le défaut est la réponse
+    # évidente. Le formulaire non lié est de toute façon pré-rempli, donc
+    # rien ne change à l'écran.
+    CHAMPS_A_DEFAUT = ('heure_debut', 'pause_minutes')
+
     def clean(self):
         donnees = super().clean()
+
+        # Le défaut est lu sur le MODÈLE, pas recopié ici : deux copies
+        # divergeraient, et le formulaire finirait par contredire la base.
+        for nom in self.CHAMPS_A_DEFAUT:
+            if donnees.get(nom) in (None, ''):
+                donnees[nom] = WorkSchedule._meta.get_field(nom).get_default()
+
         heures = [donnees.get(f'hours_{cle}') or 0 for cle, _ in JOURS_SEMAINE]
         if all(valeur == 0 for valeur in heures):
             raise forms.ValidationError(
