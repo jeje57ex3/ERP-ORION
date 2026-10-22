@@ -159,6 +159,7 @@ NAV_MODULES = [
             {'label': _('Fournisseurs'), 'url_name': 'purchases:supplier_list', 'icon_img': 'fournisseurs.png', 'icon': 'ti-building'},
             {'label': _('Commandes achat'), 'url_name': 'purchases:order_list', 'icon_img': 'cmd_achat.png', 'icon': 'ti-basket'},
             {'label': _('Factures achat'), 'url_name': 'purchases:supplier_invoice_list', 'icon_img': 'factures_achat.png', 'icon': 'ti-receipt'},
+            {'label': _('Importer une facture PDF'), 'url_name': 'purchases:invoice_import', 'icon_img': 'factures_achat.png', 'icon': 'ti-file-import'},
         ],
     },
     {

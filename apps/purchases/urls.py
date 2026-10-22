@@ -1,5 +1,6 @@
-from django.urls import path
+﻿from django.urls import path
 from . import views
+from . import views_invoice_import as import_pdf
 
 app_name = 'purchases'
 
@@ -20,6 +21,16 @@ urlpatterns = [
     path('commandes/<int:pk>/modifier/', views.order_edit, name='order_edit'),
     path('commandes/<int:pk>/supprimer/', views.order_delete, name='order_delete'),
     path('commandes/<int:pk>/recevoir/', views.order_receive, name='order_receive'),
+
+    # Import d'une facture PDF : detection puis relecture avant
+    # enregistrement. Place AVANT les routes <int:pk> pour que
+    # « factures/importer/ » ne soit pas lu comme un identifiant.
+    path('factures/importer/', import_pdf.invoice_import,
+         name='invoice_import'),
+    path('factures/importer/confirmer/', import_pdf.invoice_import_confirm,
+         name='invoice_import_confirm'),
+    path('factures/<int:pk>/relire/', import_pdf.invoice_redetect,
+         name='invoice_redetect'),
 
     # Supplier Invoices
     path('factures/', views.supplier_invoice_list, name='supplier_invoice_list'),
