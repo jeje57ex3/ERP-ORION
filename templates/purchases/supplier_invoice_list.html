@@ -4,6 +4,7 @@
 {% block breadcrumb %}<li class="breadcrumb-item active">{% trans "Factures fournisseurs" %}</li>{% endblock %}
 {% block page_subtitle %}<p class="page-subtitle">{% trans "Gérez les factures reçues de vos fournisseurs." %}</p>{% endblock %}
 {% block page_actions %}
+<a href="{% url 'purchases:invoice_import' %}" class="orion-btn orion-btn-outline"><i class="bi bi-file-earmark-pdf me-1"></i>{% trans "Importer un PDF" %}</a>
 <a href="{% url 'purchases:supplier_invoice_create' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouvelle facture" %}</a>
 {% endblock %}
 

@@ -1,0 +1,166 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  L'écran de relecture. C'est lui qui rend l'import acceptable : une
+  facture crée une dette et part en comptabilité, donc l'extraction
+  propose et un humain valide.
+
+  Un formulaire ORDINAIRE, pré-rempli — pas un écran de confirmation.
+  Tout ce que la lecture a mal compris se corrige sur place, et le champ
+  qu'elle n'a pas su remplir se saisit comme d'habitude.
+{% endcomment %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+
+    {# ── Ce que la lecture a compris, et ce dont elle doute ───────────── #}
+    {% if not detection.texte_trouve %}
+    <div class="alert alert-danger">
+      <p class="fw-semibold mb-1"><i class="bi bi-file-earmark-x me-1"></i>{% trans "Aucun texte dans ce PDF" %}</p>
+      <p class="small mb-0">{{ detection.message }}</p>
+    </div>
+    {% else %}
+    <div class="alert alert-info small">
+      <i class="bi bi-info-circle me-1"></i>{{ detection.message }}
+    </div>
+    {% endif %}
+
+    {% if detection.totaux.coherent is False %}
+    <div class="alert alert-danger">
+      <p class="fw-semibold mb-1">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>{% trans "Les montants ne se recoupent pas" %}
+      </p>
+      <p class="small mb-0">{{ detection.totaux.message }}</p>
+    </div>
+    {% elif detection.totaux.deduits %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-calculator me-1"></i>{{ detection.totaux.message }}
+      {% blocktrans %}Vérifiez le montant déduit sur le PDF.{% endblocktrans %}
+    </div>
+    {% endif %}
+
+    {% if detection.fournisseur.motif == 'nom_ambigu' %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-people me-1"></i>
+      {% blocktrans %}Plusieurs fournisseurs portent un nom présent dans ce
+      PDF. Rattacher la facture au mauvais ferait payer la dette d'un autre :
+      choisissez-le vous-même ci-dessous.{% endblocktrans %}
+    </div>
+    {% elif detection.fournisseur.motif == 'nom' %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-person-check me-1"></i>
+      {% blocktrans with nom=detection.fournisseur.fournisseur.name %}Fournisseur
+      reconnu par son <strong>nom</strong> seul : « {{ nom }} ». Ni SIRET ni
+      numéro de TVA n'a été trouvé, donc ce rattachement est probable et non
+      certain.{% endblocktrans %}
+    </div>
+    {% elif detection.fournisseur.fournisseur %}
+    <div class="alert alert-success small">
+      <i class="bi bi-patch-check me-1"></i>
+      {% blocktrans with nom=detection.fournisseur.fournisseur.name motif=detection.fournisseur.motif %}Fournisseur
+      reconnu par son {{ motif }} : <strong>{{ nom }}</strong>. La clé de
+      contrôle est vérifiée.{% endblocktrans %}
+    </div>
+    {% elif detection.texte_trouve %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-person-plus me-1"></i>
+      {% blocktrans %}Aucun fournisseur de votre liste ne correspond. Choisissez-le,
+      ou créez sa fiche avant d'enregistrer la facture.{% endblocktrans %}
+      <a href="{% url 'purchases:supplier_create' %}">{% trans "Créer un fournisseur" %}</a>
+    </div>
+    {% endif %}
+
+    {# ── Le formulaire, pré-rempli ────────────────────────────────────── #}
+    <div class="orion-card">
+      <div class="orion-orion-card-header p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">
+          <i class="bi bi-pencil-square me-2"></i>{% trans "Vérifier et enregistrer" %}
+        </h6>
+        <span class="small text-muted"><i class="bi bi-paperclip me-1"></i>{{ nom_fichier }}</span>
+      </div>
+      <div class="orion-orion-card-body p-3">
+
+        <form method="post" action="{% url 'purchases:invoice_import_confirm' %}" novalidate>
+          {% csrf_token %}
+
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label fw-semibold" for="supplier">{% trans "Fournisseur" %} *</label>
+              <select name="supplier" id="supplier" class="form-select" required>
+                <option value="">{% trans "— Choisir —" %}</option>
+                {% for fournisseur in fournisseurs %}
+                <option value="{{ fournisseur.pk }}"
+                        {% if detection.fournisseur.fournisseur.pk == fournisseur.pk %}selected{% endif %}>
+                  {{ fournisseur.name }}{% if fournisseur.siret %} — {{ fournisseur.siret }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold" for="numero">{% trans "Numéro de facture" %}</label>
+              <input type="text" name="numero" id="numero" class="form-control"
+                     value="{{ valeurs.numero }}" maxlength="30">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="date_emission">{% trans "Date de facture" %} *</label>
+              <input type="date" name="date_emission" id="date_emission"
+                     class="form-control" value="{{ valeurs.date_emission }}" required>
+              <div class="form-text">{% trans "Détermine l'exercice comptable." %}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="date_echeance">{% trans "Échéance" %}</label>
+              <input type="date" name="date_echeance" id="date_echeance"
+                     class="form-control" value="{{ valeurs.date_echeance }}">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="total_ht">{% trans "Total HT" %}</label>
+              <input type="text" name="total_ht" id="total_ht" class="form-control"
+                     value="{{ valeurs.total_ht }}" inputmode="decimal">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="total_tva">{% trans "TVA" %}</label>
+              <input type="text" name="total_tva" id="total_tva" class="form-control"
+                     value="{{ valeurs.total_tva }}" inputmode="decimal">
+              {% if valeurs.taux_tva %}
+              <div class="form-text">{% blocktrans with taux=valeurs.taux_tva %}Taux lu : {{ taux }} %{% endblocktrans %}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="total_ttc">{% trans "Total TTC" %}</label>
+              <input type="text" name="total_ttc" id="total_ttc" class="form-control"
+                     value="{{ valeurs.total_ttc }}" inputmode="decimal">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="notes">{% trans "Notes" %}</label>
+              <textarea name="notes" id="notes" rows="2" class="form-control"></textarea>
+            </div>
+          </div>
+
+          {% if valeurs.siret or valeurs.numero_tva %}
+          <p class="small text-muted mt-3 mb-0">
+            <i class="bi bi-fingerprint me-1"></i>
+            {% trans "Identifiants lus sur le PDF :" %}
+            {% if valeurs.siret %}SIRET <code>{{ valeurs.siret }}</code>{% endif %}
+            {% if valeurs.numero_tva %}{% if valeurs.siret %} · {% endif %}TVA <code>{{ valeurs.numero_tva }}</code>{% endif %}
+          </p>
+          {% endif %}
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn primary">
+              <i class="bi bi-check-lg me-1"></i>{% trans "Enregistrer la facture" %}
+            </button>
+            <a href="{% url 'purchases:invoice_import' %}" class="orion-btn">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Recommencer" %}
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

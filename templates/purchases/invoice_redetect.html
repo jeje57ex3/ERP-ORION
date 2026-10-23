@@ -1,0 +1,107 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  Relecture d'une facture déjà enregistrée. Ne modifie RIEN : elle met en
+  regard ce que le détecteur lit aujourd'hui et ce qui est en base.
+
+  Sert à deux choses : vérifier un montant contesté sans ouvrir le PDF à
+  la main, et constater qu'une saisie ancienne ne correspond pas au
+  document.
+{% endcomment %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <h5 class="mb-0">
+        {% trans "Relecture du PDF" %} — {{ facture.number|default:"facture" }}
+      </h5>
+      <a href="{% url 'purchases:supplier_invoice_detail' facture.pk %}" class="orion-btn sm">
+        {% trans "Retour à la facture" %}
+      </a>
+    </div>
+
+    <div class="alert alert-info small">
+      <i class="bi bi-info-circle me-1"></i>
+      {% blocktrans %}Cet écran ne modifie rien. Il compare ce que le PDF dit
+      aujourd'hui à ce qui est enregistré.{% endblocktrans %}
+      {{ detection.message }}
+    </div>
+
+    {% if detection.totaux.coherent is False %}
+    <div class="alert alert-warning small">
+      <i class="bi bi-exclamation-triangle me-1"></i>{{ detection.totaux.message }}
+    </div>
+    {% endif %}
+
+    <div class="orion-card">
+      <div class="orion-orion-card-body p-0" style="overflow-x:auto">
+        <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+          <thead>
+            <tr>
+              <th>{% trans "Information" %}</th>
+              <th>{% trans "Lu sur le PDF" %}</th>
+              <th>{% trans "Enregistré dans l'ERP" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% comment %}
+              Chaque ligne compare une paire. Les écarts sont signalés par
+              une couleur : sans ça, il faudrait relire trois colonnes de
+              chiffres à l'œil, ce qui est exactement ce qu'on cherche à
+              éviter.
+            {% endcomment %}
+            <tr{% if detection.champs.numero and detection.champs.numero != facture.number %} class="table-warning"{% endif %}>
+              <td>{% trans "Numéro" %}</td>
+              <td>{{ detection.champs.numero|default:"—" }}</td>
+              <td>{{ facture.number|default:"—" }}</td>
+            </tr>
+            <tr{% if detection.champs.date_emission and detection.champs.date_emission != facture.issue_date %} class="table-warning"{% endif %}>
+              <td>{% trans "Date de facture" %}</td>
+              <td>{{ detection.champs.date_emission|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ facture.issue_date|date:"d/m/Y" }}</td>
+            </tr>
+            <tr{% if detection.champs.date_echeance and detection.champs.date_echeance != facture.due_date %} class="table-warning"{% endif %}>
+              <td>{% trans "Échéance" %}</td>
+              <td>{{ detection.champs.date_echeance|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ facture.due_date|date:"d/m/Y"|default:"—" }}</td>
+            </tr>
+            <tr{% if detection.champs.total_ht and detection.champs.total_ht != facture.total_ht %} class="table-warning"{% endif %}>
+              <td>{% trans "Total HT" %}</td>
+              <td>{{ detection.champs.total_ht|default:"—" }}</td>
+              <td>{{ facture.total_ht }}</td>
+            </tr>
+            <tr{% if detection.champs.total_tva and detection.champs.total_tva != facture.total_tva %} class="table-warning"{% endif %}>
+              <td>{% trans "TVA" %}</td>
+              <td>{{ detection.champs.total_tva|default:"—" }}</td>
+              <td>{{ facture.total_tva }}</td>
+            </tr>
+            <tr{% if detection.champs.total_ttc and detection.champs.total_ttc != facture.total_ttc %} class="table-warning"{% endif %}>
+              <td>{% trans "Total TTC" %}</td>
+              <td>{{ detection.champs.total_ttc|default:"—" }}</td>
+              <td>{{ facture.total_ttc }}</td>
+            </tr>
+            <tr>
+              <td>{% trans "SIRET lu" %}</td>
+              <td colspan="2"><code>{{ detection.champs.siret|default:"—" }}</code></td>
+            </tr>
+            <tr>
+              <td>{% trans "N° TVA lu" %}</td>
+              <td colspan="2"><code>{{ detection.champs.numero_tva|default:"—" }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="small text-muted mt-3 mb-0">
+      {% blocktrans %}Une ligne surlignée signale un écart entre le PDF et
+      l'enregistrement. Ce n'est pas forcément une erreur — un numéro saisi
+      autrement, une échéance négociée après coup — mais cela mérite un
+      coup d'œil.{% endblocktrans %}
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -38,6 +38,8 @@ import ipaddress
 import json
 import socket
 from decimal import Decimal, InvalidOperation
+
+from apps.core.nombres import nombre_francais
 from urllib.parse import urlparse
 
 TAILLE_MAX = 25 * 1024 * 1024
@@ -284,37 +286,12 @@ def _texte(valeur):
     return str(valeur).strip()
 
 
-def _nombre(valeur):
-    """Un prix, quelle que soit la façon dont le fournisseur l'écrit.
-
-    « 1 234,56 », « 1.234,56 », « 1234.56 », « 12,50 € » : tous lus. None
-    quand la cellule est vide ou illisible, car un prix illisible ne doit
-    pas devenir zéro — zéro est un prix, et un devis le facturerait.
-    """
-    if valeur is None or valeur == '':
-        return None
-    if isinstance(valeur, (int, float, Decimal)):
-        return Decimal(str(valeur))
-
-    texte = str(valeur)
-    garde = ''.join(c for c in texte if c.isdigit() or c in ',.-')
-    if not garde or garde in ('-', '.', ','):
-        return None
-
-    # Le dernier separateur rencontre est le separateur DECIMAL ; tous les
-    # autres sont des separateurs de milliers. C'est ce qui permet de lire
-    # « 1.234,56 » et « 1,234.56 » sans se tromper.
-    dernier_point = garde.rfind('.')
-    derniere_virgule = garde.rfind(',')
-    if dernier_point > derniere_virgule:
-        garde = garde.replace(',', '')
-    elif derniere_virgule > dernier_point:
-        garde = garde.replace('.', '').replace(',', '.')
-
-    try:
-        return Decimal(garde)
-    except InvalidOperation:
-        return None
+# La lecture des nombres vit desormais dans apps/core/nombres.py : elle
+# sert aussi a l'extraction des factures PDF, et une deuxieme copie aurait
+# diverge a la premiere correction -- l'une lisant « 1.234,56 » et l'autre
+# « 1,23456 », sur des montants qui partent en comptabilite. L'alias garde
+# les appels et les tests de ce module inchanges.
+_nombre = nombre_francais
 
 
 def _nature(valeur, defaut):

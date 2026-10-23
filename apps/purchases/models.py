@@ -1,6 +1,7 @@
 ﻿from django.db import models
 from django.contrib.auth.models import User
 from apps.core.models import Company
+from apps.documents.validators import validate_sensitive_document
 
 
 class Supplier(models.Model):
@@ -77,6 +78,17 @@ class SupplierInvoice(models.Model):
     total_ht = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_tva = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_ttc = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Le PDF d'origine, garde avec la facture.
+    #
+    # Il n'y avait aucun champ de fichier : la facture etait saisie a la
+    # main et le PDF restait dans la boite mail de celui qui l'avait recu.
+    # Or c'est la piece justificative -- celle qu'un controle reclame, et
+    # celle qu'il faut relire quand un montant est contesté.
+    fichier = models.FileField(
+        'Facture (PDF)', upload_to='supplier_invoices/', blank=True, null=True,
+        validators=[validate_sensitive_document],
+        help_text='Le PDF recu du fournisseur. Sert de piece justificative.')
+
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
