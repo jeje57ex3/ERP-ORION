@@ -121,7 +121,22 @@
           {% else %}<span class="badge bg-light text-muted border">{{ q.status }}</span>{% endif %}
         </td>
         <td class="small text-muted">{{ q.created_at|date:"d/m/Y" }}</td>
-        <td><a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Voir" %}</a></td>
+        <td class="text-nowrap">
+          <a href="{% url 'btp:guided_quote_detail' q.pk %}" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Voir" %}</a>
+          {% if q.status != 'archived' %}
+          <form method="post" action="{% url 'btp:guided_quote_archive' q.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm"
+                    title="{% trans 'Archiver : sort des listes actives sans rien supprimer' %}">
+              <i class="bi bi-archive"></i>
+            </button>
+          </form>
+          {% endif %}
+          <a href="{% url 'btp:guided_quote_delete' q.pk %}"
+             class="orion-btn orion-btn-outline orion-orion-btn sm"
+             style="color:var(--orion-danger,#b43b3b)"
+             title="{% trans 'Supprimer definitivement' %}"><i class="bi bi-trash"></i></a>
+        </td>
       </tr>
       {% endfor %}
       </tbody>
