@@ -21,6 +21,24 @@
       <button type="submit" name="action" value="create_quote" class="orion-btn primary orion-btn sm"><i class="bi bi-file-earmark-text me-1"></i>{% trans "Créer devis" %}</button>
     </form>
     {% endif %}
+
+    {% comment %}
+      Archiver avant supprimer, et dans cet ordre : l'archivage sort la
+      demande des listes actives sans detruire les photos et documents que
+      le client a fournis -- et qu'il ne renverra pas.
+    {% endcomment %}
+    {% if quote.status != 'archived' %}
+    <form method="post" action="{% url 'btp:guided_quote_archive' quote.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn orion-btn-outline orion-btn sm">
+        <i class="bi bi-archive me-1"></i>{% trans "Archiver" %}
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'btp:guided_quote_delete' quote.pk %}" class="orion-btn orion-btn-outline orion-btn sm"
+       style="color:var(--orion-danger,#b43b3b)">
+      <i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}
+    </a>
   </div>
 </div>
 
@@ -162,7 +180,7 @@
     <div class="bg-white border rounded-3 p-4 mb-3">
       <h6 class="fw-bold mb-3">{% trans "Liens ERP" %}</h6>
       {% if quote.btp_project %}<a href="{% url 'btp:project_detail' quote.btp_project.pk %}" class="btn btn-outline-success orion-btn sm w-100 mb-2"><i class="bi bi-building me-1"></i>{% blocktrans with name=quote.btp_project.name %}Chantier : {{ name }}{% endblocktrans %}</a>{% endif %}
-      {% if quote.btp_quote %}<a href="{% url 'btp:quote_detail' quote.btp_quote.pk %}" class="btn btn-outline-primary orion-btn sm w-100"><i class="bi bi-file-earmark-text me-1"></i>{% blocktrans with ref=quote.btp_quote.reference %}Devis : {{ ref }}{% endblocktrans %}</a>{% endif %}
+      {% if quote.btp_quote %}<a href="{% url 'btp:quote_detail' quote.btp_quote.pk %}" class="btn btn-outline-primary orion-btn sm w-100"><i class="bi bi-file-earmark-text me-1"></i>{% blocktrans with ref=quote.btp_quote.number %}Devis : {{ ref }}{% endblocktrans %}</a>{% endif %}
     </div>
     {% endif %}
 

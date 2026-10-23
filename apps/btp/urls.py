@@ -37,6 +37,10 @@ urlpatterns = [
     # â”€â”€â”€ Demandes guidÃ©es â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     path('demandes-guidees/', gq.guided_quote_list, name='guided_quote_list'),
     path('demandes-guidees/<int:pk>/', gq.guided_quote_detail, name='guided_quote_detail'),
+    path('demandes-guidees/<int:pk>/supprimer/', gq.guided_quote_delete,
+         name='guided_quote_delete'),
+    path('demandes-guidees/<int:pk>/archiver/', gq.guided_quote_archive,
+         name='guided_quote_archive'),
 
     # BibliothÃ¨que de prix Ã©lectricitÃ©
     path('frais-deplacement/', gq.travel_settings, name='travel_settings'),

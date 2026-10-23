@@ -1,4 +1,4 @@
-"""
+﻿"""
 Vues ERP pour gérer les demandes guidées, la bibliothèque de prix
 et le tableau de bord responsable chantier.
 """
@@ -9,6 +9,7 @@ from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.views.decorators.http import require_POST
 from .models import (
     GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem,
     ElectricityPriceLibrary, BTPProject, ClientConversation, ClientMessage,
@@ -335,6 +336,111 @@ def price_library_delete(request, pk):
         messages.success(request, f'Poste « {name} » supprimé.')
         return redirect('btp:price_library_list')
     return render(request, 'btp/price_library_confirm_delete.html', {'item': item})
+
+
+# ─── SUPPRESSION ET ARCHIVAGE D'UNE DEMANDE GUIDEE ───────────────────────────
+#
+# Supprimer une demande n'est pas supprimer une ligne. Mesure faite, la
+# cascade emporte :
+#
+#   btp.GuidedQuotePhoto          les photos envoyees par le client
+#   btp.GuidedQuoteDocument       les documents qu'il a joints
+#   btp.GuidedQuoteEstimate       le pre-devis, et ses lignes
+#   configurator.ConfiguratorSubmission   sa saisie d'origine
+#
+# Ce sont des pieces que le client a fournies et qu'il ne renverra pas. En
+# revanche le devis et le chantier eventuellement crees SURVIVENT : la cle
+# est portee par la demande, pas l'inverse. On perd donc la tracabilite --
+# pourquoi ce devis a ete fait, et sur quelles photos -- pas le travail.
+#
+# D'ou l'archivage, propose a cote et d'abord : le statut « archived »
+# existe deja dans le modele, il sort la demande des listes actives sans
+# rien detruire.
+
+
+def _inventaire_demande(demande):
+    """Ce qui serait reellement detruit avec cette demande.
+
+    Utilise le collecteur de Django -- celui de la page de confirmation de
+    l'admin -- et non un comptage a la main : une relation ajoutee plus
+    tard serait comptee sans que personne n'y pense, alors qu'un comptage
+    ecrit en dur resterait silencieusement faux.
+    """
+    from django.contrib.admin.utils import NestedObjects
+    from django.db import router
+
+    collecteur = NestedObjects(
+        using=router.db_for_write(demande.__class__, instance=demande))
+    collecteur.collect([demande])
+
+    lignes = []
+    total = 0
+    for modele, objets in collecteur.data.items():
+        if modele is demande.__class__:
+            # La demande elle-meme n'est pas une perte collaterale : c'est
+            # l'objet de l'operation.
+            continue
+        nombre = len(objets)
+        total += nombre
+        lignes.append({
+            'label': modele._meta.label,
+            'nom': str(modele._meta.verbose_name_plural).capitalize(),
+            'total': nombre,
+        })
+    lignes.sort(key=lambda ligne: (-ligne['total'], ligne['label']))
+    return {'lignes': lignes, 'total': total}
+
+
+@login_required
+def guided_quote_delete(request, pk):
+    """Supprime une demande guidee, apres avoir montre ce qui disparait.
+
+    Page de confirmation sur GET, suppression sur POST. Un GET qui
+    detruirait se declencherait au survol d'un lien, a l'indexation, ou au
+    passage d'un antivirus qui suit les liens d'une page.
+    """
+    company = _company(request)
+    demande = get_object_or_404(GuidedQuoteRequest, pk=pk, company=company)
+
+    if request.method == 'POST':
+        reference = demande.reference or f'#{demande.pk}'
+        nom = demande.client_last_name or ''
+        inventaire = _inventaire_demande(demande)
+        demande.delete()
+        messages.success(request, (
+            f'Demande « {reference} » {nom} supprimée, avec '
+            f'{inventaire["total"]} élément(s) lié(s).'))
+        return redirect('btp:guided_quote_list')
+
+    return render(request, 'btp/guided_quote_confirm_delete.html', {
+        'demande': demande,
+        'inventaire': _inventaire_demande(demande),
+        'page_title': f'Supprimer la demande {demande.reference or demande.pk}',
+    })
+
+
+@login_required
+@require_POST
+def guided_quote_archive(request, pk):
+    """Sort la demande des listes actives sans rien detruire.
+
+    L'operation a preferer dans presque tous les cas : une demande sans
+    suite garde ses photos et sa trace, et une demande archivee par erreur
+    se retrouve en filtrant sur « Archivée ».
+    """
+    company = _company(request)
+    demande = get_object_or_404(GuidedQuoteRequest, pk=pk, company=company)
+
+    if demande.status == 'archived':
+        messages.info(request, 'Cette demande était déjà archivée.')
+        return redirect('btp:guided_quote_list')
+
+    demande.status = 'archived'
+    demande.save(update_fields=['status'])
+    messages.success(request, (
+        f'Demande « {demande.reference or demande.pk} » archivée : elle '
+        f'sort des listes actives et rien n\'a été supprimé.'))
+    return redirect('btp:guided_quote_list')
 
 
 # ─── GESTION HEURES CHANTIER ──────────────────────────────────────────────────

@@ -1,0 +1,146 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% comment %}
+  Confirmation de suppression d'une demande guidée.
+
+  Elle dresse l'inventaire réel — obtenu du collecteur de Django — plutôt
+  qu'une mise en garde générique. Les photos et documents détruits ici ont
+  été fournis par le client : il ne les renverra pas.
+
+  L'archivage est proposé AVANT, et c'est l'opération à choisir dans
+  presque tous les cas : le statut « Archivée » existe déjà et sort la
+  demande des listes actives sans rien détruire.
+{% endcomment %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="orion-card" style="border:1px solid rgba(220,38,38,.35)">
+      <div class="orion-orion-card-header p-3 border-bottom">
+        <h6 class="fw-bold mb-0" style="color:#f87171">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% trans "Supprimer définitivement cette demande" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body p-3">
+
+        <dl style="display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:13px;margin-bottom:18px">
+          <dt class="text-muted">{% trans "Référence" %}</dt>
+          <dd style="margin:0;font-weight:600"><code>{{ demande.reference|default:demande.pk }}</code></dd>
+          <dt class="text-muted">{% trans "Client" %}</dt>
+          <dd style="margin:0">
+            {{ demande.client_first_name }} {{ demande.client_last_name }}
+            {% if demande.client_email %}<span class="text-muted">— {{ demande.client_email }}</span>{% endif %}
+          </dd>
+          <dt class="text-muted">{% trans "Type" %}</dt>
+          <dd style="margin:0">{{ demande.get_request_type_display }}</dd>
+          <dt class="text-muted">{% trans "Statut" %}</dt>
+          <dd style="margin:0"><span class="status-badge status-primary">{{ demande.get_status_display }}</span></dd>
+          <dt class="text-muted">{% trans "Reçue le" %}</dt>
+          <dd style="margin:0">{{ demande.created_at|date:"d/m/Y H:i" }}</dd>
+        </dl>
+
+        {# ── L'alternative, mise avant ──────────────────────────────────── #}
+        {% if demande.status != 'archived' %}
+        <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="small mb-0" style="max-width:44rem">
+            <strong>{% trans "Préférez l'archivage." %}</strong>
+            {% blocktrans %}Il sort la demande des listes actives et ne détruit
+            rien : les photos du client, ses documents et la trace de la
+            demande restent. Une demande archivée se retrouve en filtrant sur
+            « Archivée ».{% endblocktrans %}
+          </div>
+          <form method="post" action="{% url 'btp:guided_quote_archive' demande.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn primary sm text-nowrap">
+              <i class="bi bi-archive me-1"></i>{% trans "Archiver" %}
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+        {# ── Ce qui a été créé depuis cette demande, et qui survit ──────── #}
+        {% if demande.btp_quote or demande.btp_project %}
+        <div class="alert alert-warning">
+          <p class="fw-semibold mb-2">
+            <i class="bi bi-link-45deg me-1"></i>{% trans "Cette demande a donné lieu à du travail" %}
+          </p>
+          <ul class="small mb-2">
+            {% if demande.btp_quote %}
+            <li>{% trans "Devis" %} <strong>{{ demande.btp_quote }}</strong></li>
+            {% endif %}
+            {% if demande.btp_project %}
+            <li>{% trans "Chantier" %} <strong>{{ demande.btp_project }}</strong></li>
+            {% endif %}
+          </ul>
+          <p class="small mb-0">
+            {% blocktrans %}Ils ne seront <strong>pas</strong> supprimés — la
+            demande les désigne, pas l'inverse. Mais vous perdez la traçabilité :
+            pourquoi ce devis a été établi, et sur quelles photos.{% endblocktrans %}
+          </p>
+        </div>
+        {% endif %}
+
+        {# ── L'inventaire réel ──────────────────────────────────────────── #}
+        <h6 class="fw-bold mb-2" style="font-size:13px">
+          {% blocktrans count total=inventaire.total %}{{ total }} élément lié sera supprimé{% plural %}{{ total }} éléments liés seront supprimés{% endblocktrans %}
+        </h6>
+
+        {% if inventaire.lignes %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0" style="font-size:12.5px">
+            <thead>
+              <tr>
+                <th>{% trans "Donnée" %}</th>
+                <th class="text-end" style="width:90px">{% trans "Nombre" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ligne in inventaire.lignes %}
+              <tr>
+                <td>
+                  {{ ligne.nom }}
+                  <span class="text-muted">— <code style="font-size:11px">{{ ligne.label }}</code></span>
+                </td>
+                <td class="text-end fw-semibold">{{ ligne.total }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-muted">
+          <i class="bi bi-camera me-1"></i>
+          {% blocktrans %}Les photos et documents ont été fournis par le
+          client : il ne les renverra pas.{% endblocktrans %}
+        </p>
+        {% else %}
+        <p class="small text-muted">
+          {% trans "Aucune donnée liée : cette demande ne porte ni photo, ni document, ni pré-devis." %}
+        </p>
+        {% endif %}
+
+        <hr style="border-color:var(--orion-border);margin:18px 0">
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <p class="small text-muted">
+            {% trans "Cette opération est définitive et ne peut pas être annulée." %}
+          </p>
+          <div class="d-flex gap-2">
+            <button type="submit" class="orion-btn sm"
+                    style="background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.35)">
+              <i class="bi bi-trash me-1"></i>{% trans "Supprimer définitivement" %}
+            </button>
+            <a href="{% url 'btp:guided_quote_detail' demande.pk %}" class="orion-btn sm">
+              {% trans "Annuler" %}
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
