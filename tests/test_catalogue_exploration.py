@@ -759,3 +759,91 @@ def test_la_liste_reprend_ou_elle_s_etait_arretee(monkeypatch):
                    deja_vues=['https://hager.com/fr/catalogue/produits/a'],
                    delai=0, dormir=lambda d: None)
     assert appels == ['https://hager.com/fr/catalogue/produits/b']
+
+
+# ── 10. L'écriture au fil de l'eau ──────────────────────────────────────────
+#
+# DÉFAUT CONSTATÉ, ET COÛTEUX. Le résultat n'était rendu qu'à la fin du
+# parcours : un passage de 1 519 pages Legrand a été interrompu, et tout a
+# été perdu — pas une ligne, pas même l'état de reprise. Vingt minutes de
+# requêtes pour rien.
+#
+# Ce n'était pas qu'un délai d'attente mal choisi : un parcours de vingt
+# minutes DOIT rendre ses résultats au fur et à mesure, parce qu'il est
+# assez long pour être interrompu. Le rappel `au_fil` est appelé dès qu'une
+# fiche est lue, et l'appelant l'écrit immédiatement.
+
+def test_le_rappel_est_appele_des_qu_une_fiche_est_lue(faux_reseau):
+    """Et non à la fin : c'est toute la différence."""
+    from apps.btp.catalogue_crawl import explorer
+
+    vus = []
+    candidats, _visitees, _m = explorer(
+        'https://hager.com/fr/catalogue/gamme', delai=0,
+        dormir=lambda d: None, au_fil=vus.append)
+
+    assert len(vus) == len(candidats) == 2
+    assert sorted(c['reference'] for c in vus) == ['NFN216', 'NRN425']
+
+
+def test_le_rappel_precede_la_fin_du_parcours(faux_reseau):
+    """Mesure du grain : le premier candidat est rendu AVANT le second.
+
+    Si le rappel n'était appelé qu'une fois la boucle terminée, les deux
+    arriveraient ensemble et une interruption au milieu perdrait tout.
+    """
+    from apps.btp.catalogue_crawl import explorer
+
+    ordre = []
+
+    def au_fil(candidat):
+        ordre.append(('candidat', candidat['reference']))
+
+    def journal(url, genre, detail):
+        ordre.append((genre, url.rsplit('/', 1)[-1]))
+
+    explorer('https://hager.com/fr/catalogue/gamme', delai=0,
+             dormir=lambda d: None, journal=journal, au_fil=au_fil)
+
+    genres = [g for g, _ in ordre]
+    # Un candidat est rendu entre deux pages, pas après toutes.
+    premier = genres.index('candidat')
+    assert 'produit' in genres[premier:], (
+        'le rappel doit être appelé pendant le parcours, pas après')
+    assert genres.count('candidat') == 2
+
+
+def test_le_rappel_est_appele_aussi_par_le_sitemap(faux_sitemap):
+    from apps.btp.catalogue_crawl import explorer_sitemap
+
+    vus = []
+    explorer_sitemap('https://hager.com/fr/catalogue/produits/nrn425-x',
+                     delai=0, dormir=lambda d: None, au_fil=vus.append)
+    assert len(vus) == 2
+
+
+def test_le_rappel_est_appele_aussi_par_la_liste(monkeypatch):
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    monkeypatch.setattr(
+        catalogue_crawl, 'telecharger_url',
+        lambda url, session=None: HTML_HAGER.encode('utf-8'))
+
+    vus = []
+    explorer_liste(['https://hager.com/fr/catalogue/produits/a'], delai=0,
+                   dormir=lambda d: None, au_fil=vus.append)
+    assert len(vus) == 1
+
+
+def test_les_trois_parcours_acceptent_le_rappel():
+    """Un parcours ajouté sans `au_fil` reperdrait tout en silence."""
+    import inspect
+
+    from apps.btp.catalogue_crawl import (
+        explorer, explorer_liste, explorer_sitemap,
+    )
+
+    for fonction in (explorer, explorer_liste, explorer_sitemap):
+        parametres = inspect.signature(fonction).parameters
+        assert 'au_fil' in parametres, fonction.__name__

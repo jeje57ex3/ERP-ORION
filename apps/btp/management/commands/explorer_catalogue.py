@@ -144,6 +144,34 @@ class Command(BaseCommand):
                 genre, ' ')
             self.stdout.write(f'  {etiquette} [{vus[0]:>4}] {detail[:70]}')
 
+        # ── Écriture AU FIL DE L'EAU ─────────────────────────────────────
+        #
+        # DÉFAUT CONSTATÉ, et coûteux. Le CSV n'était écrit qu'à la fin :
+        # un parcours de 1 519 pages Legrand a été interrompu, et tout a
+        # été perdu — pas une ligne, pas même l'état de reprise. Vingt
+        # minutes de requêtes pour rien.
+        #
+        # Chaque fiche est donc écrite dès qu'elle est lue, et le fichier
+        # est vidé sur le disque à chaque ligne : une interruption ne coûte
+        # plus que la fiche en cours.
+        flux_csv = plume_csv = None
+        ecrites = [0]
+
+        def au_fil(candidat):
+            if plume_csv is None:
+                return
+            self._ligne_csv(plume_csv, candidat, configuration)
+            flux_csv.flush()
+            ecrites[0] += 1
+
+        if vers_csv:
+            import csv as _csv
+
+            flux_csv = open(vers_csv, 'w', encoding='utf-8-sig', newline='')
+            plume_csv = _csv.writer(flux_csv, delimiter=';')
+            plume_csv.writerow(self.COLONNES_CSV)
+            flux_csv.flush()
+
         # Le sitemap est prefere des que le site en declare un : ramper
         # dans la navigation ne marche pas, mesure faite -- chaque page
         # porte le menu complet, et un parcours parti de la gamme Celiane
@@ -165,15 +193,31 @@ class Command(BaseCommand):
                 candidats, visitees, message = explorer_liste(
                     adresses, pages_max=options['pages'],
                     produits_max=options['produits'], delai=options['delai'],
-                    deja_vues=deja_vues, journal=journal)
+                    deja_vues=deja_vues, journal=journal, au_fil=au_fil)
             else:
                 parcours = explorer_sitemap if par_sitemap else explorer
                 candidats, visitees, message = parcours(
                     options['url'], pages_max=options['pages'],
                     produits_max=options['produits'], delai=options['delai'],
-                    deja_vues=deja_vues, journal=journal)
+                    deja_vues=deja_vues, journal=journal, au_fil=au_fil)
         except ExplorationError as exc:
+            if flux_csv:
+                flux_csv.close()
             raise CommandError(str(exc))
+        except KeyboardInterrupt:
+            # Interruption volontaire : le CSV garde tout ce qui a été lu,
+            # et le message dit combien. C'est le cas d'usage normal d'un
+            # parcours borné à la main.
+            if flux_csv:
+                flux_csv.close()
+            self.stdout.write('')
+            self.stdout.write(self.style.WARNING(
+                f'Interrompu — {ecrites[0]} ligne(s) déjà écrite(s) dans '
+                f'{vers_csv}.' if vers_csv else 'Interrompu.'))
+            return
+        finally:
+            if flux_csv and not flux_csv.closed:
+                flux_csv.close()
 
         self.stdout.write('')
         self.stdout.write(message)
@@ -214,10 +258,9 @@ class Command(BaseCommand):
             # Les colonnes portent les intitulés que la source de catalogue
             # attend : le fichier se dépose sans avoir à redéfinir la
             # correspondance.
-            lignes = self._ecrire_csv(vers_csv, candidats, configuration)
             self.stdout.write('')
             self.stdout.write(self.style.SUCCESS(
-                f'{lignes} ligne(s) écrite(s) dans {vers_csv}'))
+                f'{ecrites[0]} ligne(s) écrite(s) dans {vers_csv}'))
             self._ecrire_etat(chemin_etat, visitees)
             self.stdout.write(
                 f'État enregistré : {len(visitees)} page(s) vue(s). '
@@ -261,42 +304,33 @@ class Command(BaseCommand):
 
     # ── L'export CSV ─────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _ecrire_csv(chemin, candidats, configuration):
-        """Écrit les candidats dans un CSV déposable tel quel.
+    COLONNES_CSV = ['Reference', 'Designation', 'Prix HT',
+                    'Prix indicatif', 'EAN', 'Source', 'Fabricant']
 
-        Le prix TTC est ramené en HT ici par la MÊME fonction que l'import
+    @staticmethod
+    def _ligne_csv(plume, candidat, configuration):
+        """Écrit une fiche. Appelée au fil du parcours, pas à la fin.
+
+        Le prix TTC est ramené en HT par la MÊME fonction que l'import
         direct : deux conversions auraient divergé, et le CSV n'aurait pas
         donné le même prix que la voie base.
-
-        En utf-8-sig, parce qu'Excel ouvre un CSV utf-8 sans BOM en
-        latin-1 et affiche « DÃ©signation ».
         """
-        import csv
-
         from ...catalogue_crawl import _en_ht
 
-        with open(chemin, 'w', encoding='utf-8-sig', newline='') as flux:
-            plume = csv.writer(flux, delimiter=';')
-            plume.writerow(['Reference', 'Designation', 'Prix HT',
-                            'Prix indicatif', 'EAN', 'Source', 'Fabricant'])
-            ecrites = 0
-            for candidat in candidats:
-                nom = (candidat.get('nom') or '').strip()
-                if not nom:
-                    continue
-                prix = _en_ht(candidat.get('prix'), candidat.get('prix_ht'))
-                plume.writerow([
-                    candidat.get('reference') or '',
-                    nom,
-                    '' if prix is None else f'{prix}',
-                    'oui' if prix is not None else 'non',
-                    candidat.get('ean') or '',
-                    candidat.get('url') or '',
-                    configuration['nom'],
-                ])
-                ecrites += 1
-        return ecrites
+        nom = (candidat.get('nom') or '').strip()
+        if not nom:
+            return False
+        prix = _en_ht(candidat.get('prix'), candidat.get('prix_ht'))
+        plume.writerow([
+            candidat.get('reference') or '',
+            nom,
+            '' if prix is None else f'{prix}',
+            'oui' if prix is not None else 'non',
+            candidat.get('ean') or '',
+            candidat.get('url') or '',
+            configuration['nom'],
+        ])
+        return True
 
     # ── L'état de reprise ────────────────────────────────────────────────────
 

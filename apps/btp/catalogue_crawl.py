@@ -478,7 +478,7 @@ def fiches_du_sitemap(configuration, dormir=time.sleep, delai=0.5,
 def explorer_sitemap(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
                      produits_max=PRODUITS_MAX_PAR_DEFAUT,
                      delai=DELAI_PAR_DEFAUT, deja_vues=(), journal=None,
-                     dormir=time.sleep):
+                     dormir=time.sleep, au_fil=None):
     """Parcourt les fiches declarees par le sitemap du site de `depart`.
 
     Rend (candidats, visitees, message), comme `explorer`, pour que la
@@ -524,6 +524,13 @@ def explorer_sitemap(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
         candidat = extracteur(octets.decode('utf-8', errors='replace'), url)
         if candidat and candidat.get('nom'):
             candidats.append(candidat)
+            # Ecrit IMMEDIATEMENT par l'appelant. Un parcours de 1 700
+            # fiches dure une vingtaine de minutes : assez pour etre
+            # interrompu, et tout perdre si le resultat n'etait rendu qu'a
+            # la fin. Constate -- 1 519 pages parcourues, zero ligne
+            # ecrite, meme pas l'etat de reprise.
+            if au_fil:
+                au_fil(candidat)
             if journal:
                 journal(url, 'produit', candidat['nom'])
         elif journal:
@@ -540,7 +547,7 @@ def explorer_sitemap(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
 def explorer_liste(urls, pages_max=PAGES_MAX_PAR_DEFAUT,
                    produits_max=PRODUITS_MAX_PAR_DEFAUT,
                    delai=DELAI_PAR_DEFAUT, deja_vues=(), journal=None,
-                   dormir=time.sleep):
+                   dormir=time.sleep, au_fil=None):
     """Visite une liste d'adresses fournie, sans rien decouvrir.
 
     Seule voie pour Soprema. Mesure faite : leur page /produits ne porte
@@ -591,6 +598,13 @@ def explorer_liste(urls, pages_max=PAGES_MAX_PAR_DEFAUT,
             octets.decode('utf-8', errors='replace'), url)
         if candidat and candidat.get('nom'):
             candidats.append(candidat)
+            # Ecrit IMMEDIATEMENT par l'appelant. Un parcours de 1 700
+            # fiches dure une vingtaine de minutes : assez pour etre
+            # interrompu, et tout perdre si le resultat n'etait rendu qu'a
+            # la fin. Constate -- 1 519 pages parcourues, zero ligne
+            # ecrite, meme pas l'etat de reprise.
+            if au_fil:
+                au_fil(candidat)
             if journal:
                 journal(url, 'produit', candidat['nom'])
         elif journal:
@@ -634,7 +648,7 @@ def liens_de(html, base, motif):
 
 def explorer(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
              produits_max=PRODUITS_MAX_PAR_DEFAUT, delai=DELAI_PAR_DEFAUT,
-             deja_vues=(), journal=None, dormir=time.sleep):
+             deja_vues=(), journal=None, dormir=time.sleep, au_fil=None):
     """Parcourt à partir de `depart` et rend (candidats, visitees, message).
 
     `deja_vues` permet de REPRENDRE : un catalogue complet se parcourt en
@@ -689,6 +703,13 @@ def explorer(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
 
         if candidat and candidat.get('nom'):
             candidats.append(candidat)
+            # Ecrit IMMEDIATEMENT par l'appelant. Un parcours de 1 700
+            # fiches dure une vingtaine de minutes : assez pour etre
+            # interrompu, et tout perdre si le resultat n'etait rendu qu'a
+            # la fin. Constate -- 1 519 pages parcourues, zero ligne
+            # ecrite, meme pas l'etat de reprise.
+            if au_fil:
+                au_fil(candidat)
             if journal:
                 journal(url, 'produit', candidat['nom'])
         elif journal:
