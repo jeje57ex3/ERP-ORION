@@ -657,3 +657,105 @@ def test_un_site_sans_sitemap_le_dit(monkeypatch):
     with pytest.raises(ExplorationError) as echec:
         explorer_sitemap('https://www.soprema.fr/produits-et-systemes/x')
     assert 'sitemap' in str(echec.value)
+
+
+# ── 9. Le mode « liste d'adresses » ─────────────────────────────────────────
+#
+# Seule voie pour Soprema. Mesure faite, et sans appel :
+#   /sitemap.xml renvoie une IMAGE PNG (octets 89 50 4e 47), sur
+#   www.soprema.fr comme sur particuliers.soprema.fr ;
+#   /produits ne porte QU'UN lien produit — la liste est construite par le
+#   navigateur ;
+#   /produits-et-systemes répond 404 sur www.
+#
+# Il n'y a donc rien à énumérer automatiquement. Les fiches individuelles,
+# elles, se lisent très bien : code 00105879, désignation complète. D'où ce
+# mode, qui part d'une liste d'adresses fournie.
+
+def test_la_liste_fournie_est_visitee(monkeypatch):
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    pages = {
+        'https://particuliers.soprema.fr/produits/a': HTML_SOPREMA,
+        'https://hager.com/fr/catalogue/produits/b': HTML_HAGER,
+    }
+    monkeypatch.setattr(
+        catalogue_crawl, 'telecharger_url',
+        lambda url, session=None: pages[url].encode('utf-8'))
+
+    candidats, vues, message = explorer_liste(
+        list(pages), delai=0, dormir=lambda d: None)
+    assert len(candidats) == 2
+    assert 'Liste fournie' in message
+
+
+def test_la_liste_peut_melanger_les_fabricants(monkeypatch):
+    """Le site est déterminé adresse par adresse, pas une fois pour toutes."""
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    pages = {
+        'https://particuliers.soprema.fr/produits/a': HTML_SOPREMA,
+        'https://hager.com/fr/catalogue/produits/b': HTML_HAGER,
+    }
+    monkeypatch.setattr(
+        catalogue_crawl, 'telecharger_url',
+        lambda url, session=None: pages[url].encode('utf-8'))
+
+    candidats, _vues, _m = explorer_liste(list(pages), delai=0,
+                                          dormir=lambda d: None)
+    references = sorted(c['reference'] for c in candidats)
+    assert references == ['00105879', 'NRN425']
+
+
+def test_une_adresse_refusee_ne_perd_pas_les_autres(monkeypatch):
+    """Une ligne Schneider au milieu d'une liste ne doit pas tout arrêter."""
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    monkeypatch.setattr(
+        catalogue_crawl, 'telecharger_url',
+        lambda url, session=None: HTML_HAGER.encode('utf-8'))
+
+    candidats, _vues, message = explorer_liste(
+        ['https://www.se.com/fr/fr/product/A9F74210/',
+         'https://hager.com/fr/catalogue/produits/b'],
+        delai=0, dormir=lambda d: None)
+    assert [c['reference'] for c in candidats] == ['NRN425']
+    assert 'refusee' in message
+
+
+def test_les_lignes_vides_et_commentees_sont_ignorees(monkeypatch):
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    appels = []
+
+    def telecharger(url, session=None):
+        appels.append(url)
+        return HTML_HAGER.encode('utf-8')
+
+    monkeypatch.setattr(catalogue_crawl, 'telecharger_url', telecharger)
+    explorer_liste(['', '   ', '# un commentaire',
+                    'https://hager.com/fr/catalogue/produits/b'],
+                   delai=0, dormir=lambda d: None)
+    assert appels == ['https://hager.com/fr/catalogue/produits/b']
+
+
+def test_la_liste_reprend_ou_elle_s_etait_arretee(monkeypatch):
+    from apps.btp import catalogue_crawl
+    from apps.btp.catalogue_crawl import explorer_liste
+
+    appels = []
+
+    def telecharger(url, session=None):
+        appels.append(url)
+        return HTML_HAGER.encode('utf-8')
+
+    monkeypatch.setattr(catalogue_crawl, 'telecharger_url', telecharger)
+    explorer_liste(['https://hager.com/fr/catalogue/produits/a',
+                    'https://hager.com/fr/catalogue/produits/b'],
+                   deja_vues=['https://hager.com/fr/catalogue/produits/a'],
+                   delai=0, dormir=lambda d: None)
+    assert appels == ['https://hager.com/fr/catalogue/produits/b']

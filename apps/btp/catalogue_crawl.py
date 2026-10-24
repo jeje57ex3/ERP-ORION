@@ -537,6 +537,72 @@ def explorer_sitemap(depart, pages_max=PAGES_MAX_PAR_DEFAUT,
     return candidats, vues, message + '.'
 
 
+def explorer_liste(urls, pages_max=PAGES_MAX_PAR_DEFAUT,
+                   produits_max=PRODUITS_MAX_PAR_DEFAUT,
+                   delai=DELAI_PAR_DEFAUT, deja_vues=(), journal=None,
+                   dormir=time.sleep):
+    """Visite une liste d'adresses fournie, sans rien decouvrir.
+
+    Seule voie pour Soprema. Mesure faite : leur page /produits ne porte
+    QU'UN lien produit -- la liste est construite par le navigateur -- et
+    /sitemap.xml renvoie une image PNG, sur les deux domaines. Il n'y a
+    donc rien a enumerer automatiquement, alors que les fiches
+    individuelles, elles, se lisent tres bien.
+
+    Le site de chaque adresse est determine separement : une liste peut
+    melanger des fabricants.
+
+    Rend (candidats, visitees, message), comme les autres parcours.
+    """
+    vues = set(deja_vues)
+    candidats = []
+    pages = 0
+    refuses = []
+
+    for url in urls:
+        if pages >= pages_max or len(candidats) >= produits_max:
+            break
+        url = (url or '').strip()
+        if not url or url.startswith('#') or url in vues:
+            continue
+
+        try:
+            configuration = site_de(url)
+        except ExplorationError as exc:
+            refuses.append(str(exc)[:80])
+            vues.add(url)
+            if journal:
+                journal(url, 'echec', str(exc))
+            continue
+
+        if delai and pages:
+            dormir(delai)
+        try:
+            octets = telecharger_url(url)
+        except CatalogueError as exc:
+            vues.add(url)
+            if journal:
+                journal(url, 'echec', str(exc))
+            continue
+
+        pages += 1
+        vues.add(url)
+        candidat = configuration['extracteur'](
+            octets.decode('utf-8', errors='replace'), url)
+        if candidat and candidat.get('nom'):
+            candidats.append(candidat)
+            if journal:
+                journal(url, 'produit', candidat['nom'])
+        elif journal:
+            journal(url, 'echec', 'aucune donnee exploitable')
+
+    message = (f'Liste fournie : {pages} adresse(s) lue(s), '
+               f'{len(candidats)} produit(s) trouve(s)')
+    if refuses:
+        message += f', {len(refuses)} adresse(s) refusee(s)'
+    return candidats, vues, message + '.'
+
+
 # ─── Le parcours ──────────────────────────────────────────────────────────────
 
 MOTIF_LIEN = re.compile(r'<a[^>]+href=["\']([^"\'#]+)', re.IGNORECASE)

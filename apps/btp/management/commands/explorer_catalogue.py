@@ -27,8 +27,16 @@ class Command(BaseCommand):
             'Soprema) et crée les articles correspondants.')
 
     def add_arguments(self, parser):
-        parser.add_argument('url', help='Adresse de départ : une page de '
-                                       'gamme ou de catégorie.')
+        parser.add_argument('url', nargs='?', default='',
+                            help='Adresse de départ : une page de gamme ou '
+                                 'de catégorie. Inutile avec --urls.')
+        parser.add_argument(
+            '--urls', default='',
+            help='Fichier d\'adresses de fiches, une par ligne (les lignes '
+                 'vides et celles commençant par # sont ignorées). Seule '
+                 'voie pour Soprema, dont la liste de produits est '
+                 'construite par le navigateur et dont /sitemap.xml renvoie '
+                 'une image.')
         parser.add_argument('--entreprise', default='',
                             help='Slug de l\'entreprise. Inutile avec '
                                  '--csv, qui n\'ecrit pas en base.')
@@ -69,8 +77,8 @@ class Command(BaseCommand):
         from apps.purchases.models import Supplier
 
         from ...catalogue_crawl import (
-            ExplorationError, explorer, explorer_sitemap, importer_candidats,
-            site_de,
+            ExplorationError, explorer, explorer_liste, explorer_sitemap,
+            importer_candidats, site_de,
         )
 
         # Le mode CSV ne touche pas la base : il sert précisément quand la
@@ -87,20 +95,41 @@ class Command(BaseCommand):
                 raise CommandError(
                     f'Aucune entreprise de slug « {options["entreprise"]} ».')
 
+        # ── Mode liste d'adresses ────────────────────────────────────────
+        adresses = []
+        if options['urls']:
+            if not os.path.isfile(options['urls']):
+                raise CommandError(
+                    f'Fichier d\'adresses introuvable : {options["urls"]}')
+            with open(options['urls'], encoding='utf-8-sig') as flux:
+                adresses = [ligne.strip() for ligne in flux
+                            if ligne.strip() and not ligne.startswith('#')]
+            if not adresses:
+                raise CommandError(
+                    f'{options["urls"]} ne contient aucune adresse.')
+        elif not options['url']:
+            raise CommandError(
+                'Donnez une adresse de départ, ou --urls <fichier>.')
+
+        # Le site est determine sur la premiere adresse : une liste peut en
+        # melanger plusieurs, et chaque adresse est reclassee a la volee.
+        reference = options['url'] or adresses[0]
         try:
-            configuration = site_de(options['url'])
+            configuration = site_de(reference)
         except ExplorationError as exc:
             # Le refus nomme la cause : « Schneider ne sert pas ses fiches
             # en HTML » est actionnable, « échec » ne l'est pas.
             raise CommandError(str(exc))
 
-        chemin_etat = options['etat'] or self._chemin_etat(options['url'])
+        chemin_etat = options['etat'] or self._chemin_etat(reference)
         deja_vues = self._lire_etat(chemin_etat)
 
         a_blanc = not options['ecrire']
         self.stdout.write(
             f'site     : {configuration["nom"]}\n'
-            f'départ   : {options["url"]}\n'
+            f'départ   : {reference}'
+            + (f' ({len(adresses)} adresse(s) fournies)' if adresses else '')
+            + '\n'
             f'état     : {chemin_etat} ({len(deja_vues)} page(s) déjà vue(s))\n'
             f'bornes   : {options["pages"]} page(s), {options["produits"]} '
             f'produit(s), {options["delai"]} s entre requêtes\n'
@@ -121,18 +150,28 @@ class Command(BaseCommand):
         # se retrouvait quatorze pages plus loin dans les tableaux
         # electriques sans avoir vu une seule fiche.
         mode = options['mode']
-        par_sitemap = (mode == 'sitemap' or
-                       (mode == 'auto' and configuration.get('sitemap')))
+        par_liste = bool(adresses)
+        par_sitemap = (not par_liste
+                       and (mode == 'sitemap'
+                            or (mode == 'auto'
+                                and configuration.get('sitemap'))))
         self.stdout.write(
             'parcours : '
-            + ('sitemap' if par_sitemap else 'liens de page'))
+            + ('liste fournie' if par_liste
+               else 'sitemap' if par_sitemap else 'liens de page'))
 
-        parcours = explorer_sitemap if par_sitemap else explorer
         try:
-            candidats, visitees, message = parcours(
-                options['url'], pages_max=options['pages'],
-                produits_max=options['produits'], delai=options['delai'],
-                deja_vues=deja_vues, journal=journal)
+            if par_liste:
+                candidats, visitees, message = explorer_liste(
+                    adresses, pages_max=options['pages'],
+                    produits_max=options['produits'], delai=options['delai'],
+                    deja_vues=deja_vues, journal=journal)
+            else:
+                parcours = explorer_sitemap if par_sitemap else explorer
+                candidats, visitees, message = parcours(
+                    options['url'], pages_max=options['pages'],
+                    produits_max=options['produits'], delai=options['delai'],
+                    deja_vues=deja_vues, journal=journal)
         except ExplorationError as exc:
             raise CommandError(str(exc))
 
