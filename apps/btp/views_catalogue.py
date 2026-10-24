@@ -141,6 +141,68 @@ def catalogue_source_run(request, pk):
     return redirect('btp:catalogue_source_detail', pk=source.pk)
 
 
+# Taille d'un tarif de fabricant : celui de Schneider depasse les cent
+# mille references, soit une vingtaine de megaoctets en Excel. La borne est
+# haute pour cette raison, et pas par negligence.
+TAILLE_MAX_TARIF = 60 * 1024 * 1024
+
+
+@login_required
+@require_POST
+def catalogue_source_upload(request, pk):
+    """Importe un fichier DEPOSE, sans rien telecharger.
+
+    La seule voie possible pour les tarifs des fabricants. Schneider,
+    Legrand, Hager, Soprema : leurs tarifs se telechargent a la main
+    depuis un portail protege par identifiants, et n'ont aucune adresse
+    publique que l'ERP pourrait atteindre.
+
+    Meme chemin de lecture et d'import que la voie URL -- executer()
+    accepte les octets -- donc le meme fichier donne le meme resultat
+    qu'il arrive par le reseau ou par le navigateur.
+    """
+    company = request.current_company
+    source = get_object_or_404(CatalogueSource, pk=pk, company=company)
+    a_blanc = request.POST.get('a_blanc') == '1'
+
+    fichier = request.FILES.get('fichier')
+    if fichier is None:
+        messages.error(request, 'Aucun fichier reçu.')
+        return redirect('btp:catalogue_source_detail', pk=source.pk)
+
+    if fichier.size > TAILLE_MAX_TARIF:
+        messages.error(request, (
+            f'Fichier trop volumineux : {fichier.size // 1024 // 1024} Mo, '
+            f'contre {TAILLE_MAX_TARIF // 1024 // 1024} Mo au maximum. '
+            f'Pour un tarif de cette taille, passez par la commande '
+            f'« importer_fichier_catalogue » sur le serveur : elle lit le '
+            f'fichier sur le disque et ne le fait pas transiter par le '
+            f'navigateur.'))
+        return redirect('btp:catalogue_source_detail', pk=source.pk)
+
+    journal = executer(source, a_blanc=a_blanc, utilisateur=request.user,
+                       octets=fichier.read())
+
+    if journal.statut == 'echec':
+        messages.error(
+            request,
+            f'Import impossible : {journal.message or "cause inconnue"}')
+    else:
+        prefixe = 'Essai à blanc — ' if a_blanc else ''
+        verbes = (('à créer', 'à modifier') if a_blanc
+                  else ('créé(s)', 'modifié(s)'))
+        detail = (f'{fichier.name} : {journal.lignes_lues} ligne(s) lue(s), '
+                  f'{journal.crees} {verbes[0]}, '
+                  f'{journal.mis_a_jour} {verbes[1]}, '
+                  f'{journal.inchanges} inchangé(s)')
+        if journal.ignores:
+            detail += f', {journal.ignores} ignorée(s)'
+        (messages.warning if journal.ignores else messages.success)(
+            request, prefixe + detail + '.')
+
+    return redirect('btp:catalogue_source_detail', pk=source.pk)
+
+
 @login_required
 @require_POST
 def catalogue_source_disparus(request, pk):

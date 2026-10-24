@@ -61,3 +61,8 @@ node_modules/
 
 # Sauvegarde de migration locale (donnees reelles, jamais en git)
 /orion_migration_backup/
+
+# Etat de reprise de l'exploration des catalogues fabricants : des listes
+# d'URL deja visitees, propres a chaque machine et reconstructibles. Les
+# versionner ferait des conflits a chaque execution.
+var/

@@ -1,4 +1,4 @@
-"""
+﻿"""
 apps/btp/models.py — Chantiers BTP, Devis, Situations, Pointage
 """
 from decimal import Decimal
@@ -302,8 +302,13 @@ class CatalogueSource(models.Model):
         Company, on_delete=models.CASCADE, related_name='catalogue_sources')
     name = models.CharField('Nom de la source', max_length=200,
                             help_text='Exemple : « Point P — tarifs 2026 ».')
+    # FACULTATIVE. Un tarif de fabricant -- Schneider, Legrand,
+    # Hager, Soprema -- se telecharge a la main depuis un portail
+    # protege par identifiants : il n'a aucune adresse publique, et
+    # exiger une URL rendait ces sources impossibles a creer. Elles
+    # s'alimentent par depot de fichier.
     url = models.URLField(
-        'Adresse du fichier', max_length=500,
+        'Adresse du fichier', max_length=500, blank=True,
         help_text='Adresse publique du CSV, de l’Excel ou du JSON publié '
                   'par le fournisseur.')
     format = models.CharField('Format', max_length=10, choices=FORMATS,
