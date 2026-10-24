@@ -113,6 +113,24 @@ def _verifier_adresse(url):
 
 
 def telecharger(source, session=None):
+    """Récupère le fichier à l'adresse de la source.
+
+    Refuse explicitement une source sans URL : il en existe désormais, et
+    « None » passé à requests donnerait une erreur de bibliothèque au lieu
+    d'une phrase utile. Les tarifs des fabricants — Schneider, Legrand,
+    Hager, Soprema — se téléchargent à la main depuis un portail protégé
+    par identifiants et n'ont aucune adresse publique : ces sources
+    s'alimentent par dépôt de fichier.
+    """
+    if not (source.url or '').strip():
+        raise CatalogueError(
+            'Cette source n\'a pas d\'adresse : elle s\'alimente en '
+            'déposant le fichier téléchargé depuis le portail du '
+            'fournisseur. Utilisez « Importer un fichier » sur sa fiche.')
+    return _telecharger(source, session=session)
+
+
+def _telecharger(source, session=None):
     """Les octets du fichier publié par cette source."""
     return telecharger_url(source.url, session=session)
 
@@ -447,8 +465,21 @@ def importer(source, lignes, a_blanc=False):
     return rapport
 
 
-def executer(source, a_blanc=False, utilisateur=None):
-    """Télécharge, lit, importe, et journalise. Rend le CatalogueImport.
+def executer(source, a_blanc=False, utilisateur=None, octets=None):
+    """Lit, importe, et journalise. Rend le CatalogueImport.
+
+    `octets` fournis : le fichier est déjà en main — déposé par
+    l'utilisateur, ou lu sur le disque du serveur — et rien n'est
+    téléchargé. C'est la seule voie possible pour les tarifs des
+    fabricants, qui vivent derrière un portail protégé par identifiants et
+    n'ont aucune adresse publique.
+
+    `octets` absents : le fichier est récupéré à l'adresse de la source,
+    comportement d'origine, pour un fournisseur qui publie son tarif.
+
+    Un SEUL chemin de lecture et d'import dans les deux cas. Deux
+    fonctions auraient divergé, et le même fichier n'aurait pas donné le
+    même résultat selon qu'il arrive par le réseau ou par le navigateur.
 
     L'échec est journalisé lui aussi : une source qui ne répond plus depuis
     trois semaines doit se voir, et un import qui échoue en silence est
@@ -462,7 +493,8 @@ def executer(source, a_blanc=False, utilisateur=None):
         source=source, a_blanc=a_blanc, lance_par=utilisateur)
 
     try:
-        octets = telecharger(source)
+        if octets is None:
+            octets = telecharger(source)
         lignes = analyser(octets, source)
         rapport = importer(source, lignes, a_blanc=a_blanc)
     except CatalogueError as exc:
@@ -473,6 +505,32 @@ def executer(source, a_blanc=False, utilisateur=None):
         return journal
 
     journal.statut = rapport.statut
+
+    # Un echec SANS message disait « cause inconnue » -- exactement le
+    # genre de reponse que ce module s'interdit ailleurs. Or la cause est
+    # connue et deductible : des lignes ont ete lues, aucune n'a donne
+    # d'article, donc la correspondance des colonnes ne designe pas les
+    # intitules reels du fichier. C'est le defaut le plus courant, et il
+    # survient chaque fois qu'un fabricant renomme ses en-tetes.
+    if rapport.statut == 'echec' and rapport.lignes_lues:
+        # DEUX informations, parce qu'une seule ne suffit pas. Le symptome
+        # par ligne -- « designation vide » -- est exact mais ne mene pas
+        # au correctif ; la piste de la correspondance y mene mais ne dit
+        # pas ce qui a ete constate. Toutes les lignes ayant echoue, la
+        # cause est presque toujours un intitule de colonne qui ne figure
+        # plus dans le fichier : c'est ce qui arrive chaque fois qu'un
+        # fabricant renomme ses en-tetes.
+        cause = f' — « {rapport.erreurs[0]} »' if rapport.erreurs else ''
+        journal.message = (
+            f'Aucun article sur {rapport.lignes_lues} ligne(s) lue(s)'
+            f'{cause}. Vérifiez la correspondance des colonnes : elle ne '
+            f'désigne probablement pas les intitulés réels du fichier.'
+        )[:300]
+    elif rapport.statut == 'echec':
+        journal.message = (
+            'Aucune ligne exploitable dans le fichier : il est vide, ou son '
+            'format ne correspond pas à celui déclaré sur la source.')
+
     journal.lignes_lues = rapport.lignes_lues
     journal.crees = rapport.crees
     journal.mis_a_jour = rapport.mis_a_jour

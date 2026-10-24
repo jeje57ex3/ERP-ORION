@@ -93,6 +93,8 @@ urlpatterns = [
          name='catalogue_source_delete'),
     path('catalogues/<int:pk>/importer/', vc.catalogue_source_run,
          name='catalogue_source_run'),
+    path('catalogues/<int:pk>/deposer/', vc.catalogue_source_upload,
+         name='catalogue_source_upload'),
     path('catalogues/<int:pk>/disparus/', vc.catalogue_source_disparus,
          name='catalogue_source_disparus'),
 
