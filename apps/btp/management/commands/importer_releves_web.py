@@ -36,8 +36,15 @@ class Command(BaseCommand):
             '« Relevé web ». Essai à blanc par défaut.')
 
     def add_arguments(self, parser):
-        parser.add_argument('--entreprise', required=True,
+        parser.add_argument('--entreprise', default='',
                             help='Slug de l\'entreprise.')
+        parser.add_argument(
+            '--toutes-entreprises', action='store_true', dest='toutes',
+            help='Importe dans TOUTES les entreprises qui portent déjà des '
+                 'sources « Relevé web ». Une entreprise qui n\'en a pas '
+                 'est ignorée en silence : elle n\'a pas demandé ces '
+                 'relevés. C\'est cette propriété qui rend l\'appel sans '
+                 'danger depuis le script de mise à jour.')
         parser.add_argument(
             '--dossier', default='',
             help=f'Dossier des CSV. Défaut : {DOSSIER} à la racine du '
@@ -57,10 +64,37 @@ class Command(BaseCommand):
         from ...catalogue_import import CatalogueError, executer
         from ...models import CatalogueSource
 
-        company = Company.objects.filter(slug=options['entreprise']).first()
-        if company is None:
-            raise CommandError(
-                f'Aucune entreprise de slug « {options["entreprise"]} ».')
+        # Les entreprises à traiter.
+        #
+        # `--toutes-entreprises` ne retient que celles qui portent déjà des
+        # sources « Relevé web », c'est-à-dire celles où
+        # creer_sources_fabricants a été lancé volontairement. Une
+        # installation qui n'en veut pas n'est jamais touchée — et c'est
+        # cette propriété qui permet au script de mise à jour d'appeler
+        # cette commande à chaque fois sans rien imposer à personne.
+        if options['toutes']:
+            slugs = set(
+                CatalogueSource.objects
+                .filter(name__startswith='Relevé web ')
+                .values_list('company__slug', flat=True))
+            entreprises = list(Company.objects.filter(slug__in=slugs))
+            if not entreprises:
+                self.stdout.write(
+                    'Aucune entreprise ne porte de source « Relevé web » : '
+                    'rien à importer. Lancez creer_sources_fabricants là où '
+                    'vous voulez ces relevés.')
+                return
+        else:
+            if not options['entreprise']:
+                raise CommandError(
+                    '--entreprise est requis, sauf avec '
+                    '--toutes-entreprises.')
+            company = Company.objects.filter(
+                slug=options['entreprise']).first()
+            if company is None:
+                raise CommandError(
+                    f'Aucune entreprise de slug « {options["entreprise"]} ».')
+            entreprises = [company]
 
         dossier = options['dossier'] or os.path.join(
             str(settings.BASE_DIR), DOSSIER)
@@ -83,6 +117,21 @@ class Command(BaseCommand):
             f'fichiers : {len(fichiers)}\n'
             + ('mode    : ESSAI À BLANC (rien ne sera écrit)\n' if a_blanc
                else 'mode    : ÉCRITURE RÉELLE\n'))
+
+        # Une entreprise a la fois. Le compte-rendu est donne par
+        # entreprise et non cumule : « 8 430 articles crees » sans dire ou
+        # n'aiderait personne a verifier.
+        for index, company in enumerate(entreprises):
+            if len(entreprises) > 1:
+                self.stdout.write('')
+                self.stdout.write(self.style.MIGRATE_HEADING(
+                    f'── {company.name} ({company.slug}) ──'))
+            self._traiter(company, fichiers, dossier, a_blanc)
+
+    def _traiter(self, company, fichiers, dossier, a_blanc):
+        """Importe les fichiers dans les sources d'UNE entreprise."""
+        from ...catalogue_import import CatalogueError, executer
+        from ...models import CatalogueSource
 
         # Les sources, indexées par le mot distinctif de leur nom. Une
         # correspondance par sous-chaîne et non exacte : le fichier

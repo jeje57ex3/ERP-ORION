@@ -730,3 +730,105 @@ def test_le_releve_livre_dans_le_depot_est_lisible():
         lignes = list(csv.reader(flux, delimiter=';'))
     assert lignes[0][:3] == ['Reference', 'Designation', 'Prix HT']
     assert len(lignes) > 10
+
+
+# ── 7. L'import automatique à la mise à jour ────────────────────────────────
+#
+# `update_orion.sh` appelle `importer_releves_web --toutes-entreprises
+# --ecrire` après le bloc de modes, pour que les 8 430 articles arrivent
+# sans aucune manipulation.
+#
+# Ce qui rend cet appel automatique acceptable : il ne touche QUE les
+# entreprises portant déjà des sources « Relevé web », c'est-à-dire celles
+# où l'administrateur a lancé creer_sources_fabricants volontairement. Une
+# installation qui n'en veut pas n'est jamais modifiée.
+
+def test_toutes_entreprises_ignore_celles_qui_n_ont_rien_demande(
+        entreprise, autre_entreprise, dossier_releves):
+    """LA propriété qui autorise l'appel depuis le script de mise à jour.
+
+    Sans elle, une mise à jour imposerait un catalogue fabricant à toutes
+    les sociétés d'une installation mutualisée.
+    """
+    from django.core.management import call_command
+
+    # Seule la première a demandé ces relevés.
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+
+    call_command('importer_releves_web', toutes=True,
+                 dossier=dossier_releves, ecrire=True, stdout=io.StringIO())
+
+    assert Material.objects.filter(company=entreprise).count() == 2
+    assert Material.objects.filter(company=autre_entreprise).count() == 0
+
+
+def test_toutes_entreprises_traite_chacune_de_celles_qui_ont_demande(
+        entreprise, autre_entreprise, dossier_releves):
+    from django.core.management import call_command
+
+    for societe in (entreprise, autre_entreprise):
+        call_command('creer_sources_fabricants', entreprise=societe.slug,
+                     stdout=io.StringIO())
+
+    sortie = io.StringIO()
+    call_command('importer_releves_web', toutes=True,
+                 dossier=dossier_releves, ecrire=True, stdout=sortie)
+
+    assert Material.objects.filter(company=entreprise).count() == 2
+    assert Material.objects.filter(company=autre_entreprise).count() == 2
+    # Le compte-rendu nomme chaque entreprise : « 4 articles créés » sans
+    # dire où n'aiderait personne à vérifier.
+    assert entreprise.slug in sortie.getvalue()
+    assert autre_entreprise.slug in sortie.getvalue()
+
+
+def test_sans_aucune_source_la_commande_ne_fait_rien_et_le_dit(
+        entreprise, dossier_releves):
+    """Appelée à chaque mise à jour, elle doit rester muette et inoffensive
+    sur une installation qui n'utilise pas ces relevés."""
+    from django.core.management import call_command
+
+    sortie = io.StringIO()
+    call_command('importer_releves_web', toutes=True,
+                 dossier=dossier_releves, ecrire=True, stdout=sortie)
+
+    assert Material.objects.count() == 0
+    assert 'rien à importer' in sortie.getvalue()
+
+
+def test_sans_entreprise_ni_toutes_la_commande_refuse(dossier_releves):
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    with pytest.raises(CommandError) as echec:
+        call_command('importer_releves_web', dossier=dossier_releves,
+                     stdout=io.StringIO())
+    assert 'toutes-entreprises' in str(echec.value)
+
+
+def test_le_script_de_mise_a_jour_appelle_l_import_hors_des_modes():
+    """DÉFAUT CORRIGÉ : placé dans maj_directe, l'appel n'aurait jamais eu
+    lieu en usage normal.
+
+    Le mode par défaut passe par le mécanisme applicatif et ne tombe sur
+    maj_directe qu'en cas d'échec. L'étape doit donc suivre le bloc `esac`.
+    """
+    import os
+
+    from django.conf import settings
+
+    chemin = os.path.join(
+        str(settings.BASE_DIR), 'deployment', 'proxmox-appliance', 'scripts',
+        'update_orion.sh')
+    with open(chemin, encoding='utf-8') as flux:
+        contenu = flux.read()
+
+    assert 'importer_releves_web' in contenu
+    assert '--toutes-entreprises' in contenu
+    # L'appel vient après la fermeture du bloc de modes.
+    position_esac = contenu.index('\nesac')
+    position_appel = contenu.rindex('\nimporter_catalogues_fabricants\n')
+    assert position_appel > position_esac, (
+        "l'appel doit suivre `esac`, sinon il ne s'exécute pas en usage "
+        "normal")

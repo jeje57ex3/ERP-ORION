@@ -88,6 +88,39 @@ echo "[4/6] Mise à jour applicative Orion ERP (git pull + migrations)..."
 # irrécupérable, son propre correctif ne pouvant arriver que par lui.
 # Constaté en production avec « Commande de sauvegarde non configurée », qui
 # bloquait toute mise à jour par défaut.
+# ─── Relevés de catalogues fabricants ──────────────────────────────────────────
+#
+# Les CSV de data/catalogues/ arrivent avec le code. Cette étape les importe
+# pour que les 8 430 articles de Hager, Legrand et Soprema soient à jour sans
+# aucune manipulation.
+#
+# SANS DANGER PAR CONSTRUCTION, et c'est ce qui autorise un appel
+# automatique : « --toutes-entreprises » ne touche QUE les entreprises qui
+# portent déjà des sources « Relevé web », c'est-à-dire celles où
+# l'administrateur a lancé creer_sources_fabricants volontairement. Une
+# installation qui n'en veut pas n'est jamais modifiée, et l'étape ne dit
+# rien.
+#
+# L'import est rejouable : un second passage ne duplique rien, et un prix
+# que l'exploitant a CONFIRMÉ -- case « prix indicatif » décochée -- n'est
+# jamais écrasé. Ce sont des prix publics, pas des tarifs négociés.
+#
+# L'échec n'interrompt pas la mise à jour : un catalogue non importé est un
+# désagrément, une mise à jour interrompue en est un autre, bien plus grand.
+importer_catalogues_fabricants() {
+  if [ ! -d "$ORION_HOME/backend/data/catalogues" ]; then
+    return 0
+  fi
+  echo "  relevés de catalogues fabricants..."
+  if sudo -u orion -E "$VENV_PY" "$MANAGE" importer_releves_web        --toutes-entreprises --ecrire 2>&1 | sed 's/^/    /'; then
+    :
+  else
+    echo "  ATTENTION: import des relevés de catalogues échoué ; la mise à" >&2
+    echo "             jour continue. Relancez à la main :" >&2
+    echo "             manage.py importer_releves_web --toutes-entreprises --ecrire" >&2
+  fi
+}
+
 maj_directe() {
   if ! sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
     echo "  ERREUR: git pull impossible (arbre modifié, ou branche suivie différente)." >&2
@@ -126,6 +159,12 @@ case "$MODE" in
     fi
     ;;
 esac
+
+# Les relevés de catalogues, APRÈS le bloc de modes et non dans l'un d'eux :
+# le mode par défaut passe par le mécanisme applicatif et ne touche
+# maj_directe qu'en cas d'échec. Placée dans maj_directe, cette étape ne se
+# serait jamais exécutée en usage normal.
+importer_catalogues_fabricants
 
 # Rafraichit /opt/orion/scripts/ depuis le depot.
 #
