@@ -223,17 +223,41 @@ def extraire_legrand(html, url):
     if not designation:
         return None
 
-    # La référence apparaît dans le nom de l'image (th_LG-CG0001) et dans
-    # le texte. L'image est la source la plus stable : elle n'est pas
-    # entourée de prose.
+    # La référence vient de `itemprop="sku"`, en microdonnées :
+    #   <span itemprop="sku" content="0 905 01">
+    # C'est la reference OFFICIELLE, au format Legrand a dix chiffres
+    # espaces, qu'on normalise en retirant les espaces.
+    #
+    # DEFAUT MESURE, et le pire des trois. Je cherchais d'abord « LG-xxxx »
+    # dans l'og:image -- ce qui ne marche que pour les produits Celiane --
+    # puis je retombais sur un motif « deux lettres et quatre chiffres »
+    # cherche dans TOUTE la page. Or une fiche affiche des produits
+    # VOISINS : la boite Batibox 090501 repartait avec la reference CG0001,
+    # celle d'un interrupteur Celiane. Constate sur l'export : deux
+    # articles differents sous la meme reference.
+    #
+    # Il n'y a plus de repli approximatif. Une reference absente est
+    # honnete et le rapprochement se fait alors sur la designation ; une
+    # reference FAUSSE fait collisionner deux produits distincts.
     reference = ''
-    image = og.get('image') or ''
-    correspondance = re.search(r'LG-([A-Z0-9]{4,10})', image)
+    correspondance = re.search(
+        r'itemprop=["\']sku["\'][^>]*content=["\']([^"\']+)["\']', html)
+    if correspondance is None:
+        correspondance = re.search(
+            r'content=["\']([^"\']+)["\'][^>]*itemprop=["\']sku["\']', html)
     if correspondance:
-        reference = correspondance.group(1)
+        reference = re.sub(r'\s+', '', correspondance.group(1))
+
     if not reference:
-        trouvees = MOTIF_REF_LEGRAND.findall(html)
-        reference = trouvees[0] if trouvees else ''
+        # Repli : le nom de l'image de LA fiche, qui porte son propre code
+        # — « th_090501-LEGRAND.jpg » ou « th_LG-CG0001.jpg ». On ne lit
+        # que l'og:image, jamais le corps de la page.
+        image = og.get('image') or ''
+        for motif in (r'LG-([A-Z0-9]{4,10})', r'th_(\d{6,10})-'):
+            trouve = re.search(motif, image)
+            if trouve:
+                reference = trouve.group(1)
+                break
 
     # Le prix est en MICRODONNEES, pas dans le texte :
     #   <span class="c-product-price__value" itemprop="price" content="14.67">
