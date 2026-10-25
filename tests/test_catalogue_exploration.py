@@ -76,6 +76,7 @@ HTML_LEGRAND = """<!doctype html><html><head>
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Interrupteur ou va-et-vient 10A C&eacute;liane avec plaque -">
 <meta property="og:image" content="https://www.legrand.fr/sites/default/files/ecat/th_LG-CG0001.jpg">
+<meta itemprop="sku" content="0 673 01">
 <script type="application/ld+json">{"@type":"Organization"}</script>
 </head><body itemtype="https://schema.org/Product">
 <div class="c-product-price__content"><span class="c-product-price__value" itemprop="price" content="14.67" >14,67</span><small itemprop="priceCurrency">&euro;</small></div>
@@ -134,15 +135,48 @@ def test_hager_sans_jsonld_ne_rend_rien():
 
 # ── 2. Legrand : microdonnées et texte ──────────────────────────────────────
 
-def test_legrand_lit_la_reference_dans_le_nom_de_l_image():
-    """Source la plus stable : elle n'est pas entourée de prose.
+def test_legrand_lit_la_reference_officielle():
+    """`itemprop="sku"` porte la référence Legrand, espaces retirés.
 
-    Le texte de la page contient « CG0001 » mais aussi des dizaines
-    d'autres codes de produits voisins.
+    « 0 673 01 » devient « 067301 », la forme qu'emploie un bon de
+    commande.
     """
     candidat = extraire_legrand(HTML_LEGRAND,
                                 'https://www.legrand.fr/catalogue/a/b')
-    assert candidat['reference'] == 'CG0001'
+    assert candidat['reference'] == '067301'
+
+
+def test_legrand_ne_prend_jamais_la_reference_d_un_produit_voisin():
+    """DÉFAUT MESURÉ, et le plus grave des trois.
+
+    Une fiche Legrand affiche des produits VOISINS. Mon repli cherchait
+    « deux lettres et quatre chiffres » dans TOUTE la page : la boîte
+    Batibox 090501 repartait avec la référence CG0001, celle d'un
+    interrupteur Céliane. Constaté sur l'export de 1 704 fiches — deux
+    articles différents sous la même référence.
+
+    Sans sku ni image exploitable, la référence reste VIDE. Le
+    rapprochement se fait alors sur la désignation : une référence absente
+    est honnête, une référence fausse fait collisionner deux produits.
+    """
+    html = ('<meta property="og:title" content="Bo&icirc;te Batibox">'
+            '<meta property="og:image" content="/img/sans-code.jpg">'
+            '<body>Voir aussi : CG0001, CG0111, CB9416</body>')
+    candidat = extraire_legrand(html, 'https://www.legrand.fr/catalogue/a/b')
+    assert candidat['reference'] == ''
+    assert candidat['nom'] == 'Boîte Batibox'
+
+
+def test_legrand_lit_le_code_numerique_de_son_image():
+    """Repli : « th_090501-LEGRAND.jpg » porte le code de LA fiche.
+
+    On ne lit que l'og:image, jamais le corps de la page — c'est
+    précisément ce qui évitait la confusion avec un produit voisin.
+    """
+    html = ('<meta property="og:title" content="Bo&icirc;te Batibox">'
+            '<meta property="og:image" content="/files/ecat/th_090501-LEGRAND.jpg">')
+    candidat = extraire_legrand(html, 'https://www.legrand.fr/catalogue/a/b')
+    assert candidat['reference'] == '090501'
 
 
 def test_legrand_decode_les_entites_du_titre():

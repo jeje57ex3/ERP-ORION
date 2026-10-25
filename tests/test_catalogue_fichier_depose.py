@@ -316,7 +316,14 @@ def test_la_fiche_d_une_source_avec_url_garde_le_telechargement(client, agent,
 
 # ── 4. La commande qui prépare les quatre fabricants ────────────────────────
 
-def test_la_commande_cree_les_quatre_sources(entreprise):
+def test_la_commande_cree_deux_sources_par_fabricant(entreprise):
+    """DEUX sources par fabricant, et ce n'est pas un doublon.
+
+    Deux provenances, deux degrés de confiance : « Tarif X » attend le
+    fichier du portail distributeur, contractuel ; « Relevé web X » attend
+    le CSV relevé sur le site public, indicatif. Les mélanger ferait
+    écraser le tarif négocié par un prix public au prochain import.
+    """
     from django.core.management import call_command
 
     sortie = io.StringIO()
@@ -325,8 +332,48 @@ def test_la_commande_cree_les_quatre_sources(entreprise):
 
     noms = set(CatalogueSource.objects.filter(
         company=entreprise).values_list('name', flat=True))
-    assert noms == {'Tarif Schneider Electric', 'Tarif Legrand',
-                    'Tarif Hager', 'Tarif Soprema'}
+    assert noms == {
+        'Tarif Schneider Electric', 'Tarif Legrand', 'Tarif Hager',
+        'Tarif Soprema',
+        'Relevé web Schneider Electric', 'Relevé web Legrand',
+        'Relevé web Hager', 'Relevé web Soprema',
+    }
+
+
+def test_la_source_de_releve_est_prete_pour_les_csv_produits(entreprise):
+    """DÉFAUT MESURÉ : le dépôt n'aurait rien produit.
+
+    Les sources « Tarif » attendent « Référence » et « Désignation »
+    ACCENTUÉS, au format Excel. Les CSV d'explorer_catalogue portent des
+    en-têtes sans accent, séparés par « ; », en utf-8 avec BOM. Un dépôt
+    y aurait lu 1 704 lignes et créé zéro article, sans message d'erreur.
+    """
+    from django.core.management import call_command
+
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    source = CatalogueSource.objects.get(company=entreprise,
+                                          name='Relevé web Hager')
+    assert source.format == 'csv'
+    assert source.delimiteur == ';'
+    assert source.encodage == 'utf-8-sig'
+    # Les intitulés exacts que la commande d'exploration écrit.
+    assert source.colonnes['reference'] == 'Reference'
+    assert source.colonnes['nom'] == 'Designation'
+    assert source.colonnes['prix_achat'] == 'Prix HT'
+
+
+def test_les_deux_sources_partagent_le_fournisseur(entreprise):
+    """Même fabricant, même fournisseur : les achats se regroupent."""
+    from django.core.management import call_command
+
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    tarif = CatalogueSource.objects.get(company=entreprise,
+                                        name='Tarif Hager')
+    releve = CatalogueSource.objects.get(company=entreprise,
+                                         name='Relevé web Hager')
+    assert tarif.supplier_id == releve.supplier_id is not None
 
 
 def test_la_commande_n_importe_aucun_article(entreprise):
@@ -390,7 +437,8 @@ def test_la_commande_est_rejouable(entreprise):
     for _ in range(3):
         call_command('creer_sources_fabricants', entreprise=entreprise.slug,
                      stdout=io.StringIO())
-    assert CatalogueSource.objects.filter(company=entreprise).count() == 4
+    # Deux par fabricant, quatre fabricants.
+    assert CatalogueSource.objects.filter(company=entreprise).count() == 8
 
 
 def test_la_commande_limite_aux_fabricants_demandes(entreprise):
@@ -400,7 +448,8 @@ def test_la_commande_limite_aux_fabricants_demandes(entreprise):
                  seulement='hager,soprema', stdout=io.StringIO())
     noms = set(CatalogueSource.objects.filter(
         company=entreprise).values_list('name', flat=True))
-    assert noms == {'Tarif Hager', 'Tarif Soprema'}
+    assert noms == {'Tarif Hager', 'Tarif Soprema',
+                    'Relevé web Hager', 'Relevé web Soprema'}
 
 
 def test_une_entreprise_inconnue_est_signalee():
@@ -535,3 +584,149 @@ def test_un_fichier_vide_est_distingue_d_une_correspondance_fausse(
     journal = executer(source, octets=b'Reference;Designation;Unite;Prix HT;Famille\n')
     assert journal.statut == 'echec'
     assert 'vide' in journal.message
+
+
+# ── 6. Les relevés livrés avec le code ──────────────────────────────────────
+#
+# Les CSV produits par explorer_catalogue sont versionnés dans
+# data/catalogues/ : ils arrivent sur le serveur avec la mise à jour, et
+# importer_releves_web les charge sans qu'aucun fichier ne passe par un
+# navigateur.
+#
+# Pourquoi cette voie : explorer un catalogue complet représente des
+# milliers de requêtes — 1 704 fiches chez Legrand, 6 706 chez Hager — soit
+# plus d'une heure. Le faire une fois, versionner le résultat et le
+# déployer comme du code évite de refaire ce travail sur chaque machine.
+
+CSV_RELEVE = (
+    'Reference;Designation;Prix HT;Prix indicatif;EAN;Source;Fabricant\n'
+    'NRN425;Disjoncteur 4P 25kA C-25A 4M;428.27;oui;3250612961269;u;Hager\n'
+    'GP112TN;Porte transparente pour GA01N;67.78;oui;3250612961245;u;Hager\n'
+)
+
+
+@pytest.fixture
+def dossier_releves(tmp_path):
+    (tmp_path / 'hager.csv').write_text(CSV_RELEVE, encoding='utf-8-sig')
+    return str(tmp_path)
+
+
+def test_le_releve_est_importe_dans_sa_source(entreprise, dossier_releves):
+    from django.core.management import call_command
+
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    sortie = io.StringIO()
+    call_command('importer_releves_web', entreprise=entreprise.slug,
+                 dossier=dossier_releves, ecrire=True, stdout=sortie)
+
+    assert Material.objects.filter(company=entreprise).count() == 2
+    article = Material.objects.get(reference='NRN425')
+    assert article.purchase_price == Decimal('428.27')
+    assert 'Relevé web Hager' in sortie.getvalue()
+
+
+def test_le_releve_est_en_essai_a_blanc_par_defaut(entreprise,
+                                                    dossier_releves):
+    """Sur huit mille articles, une correspondance fausse en créerait huit
+    mille d'aberrants."""
+    from django.core.management import call_command
+
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    sortie = io.StringIO()
+    call_command('importer_releves_web', entreprise=entreprise.slug,
+                 dossier=dossier_releves, stdout=sortie)
+
+    assert Material.objects.count() == 0
+    assert 'ESSAI À BLANC' in sortie.getvalue()
+
+
+def test_le_nom_du_fichier_choisit_la_source(entreprise, tmp_path):
+    """Il faut savoir où envoyer le fichier AVANT d'en lire une ligne."""
+    from django.core.management import call_command
+
+    (tmp_path / 'catalogue-legrand-complet.csv').write_text(
+        CSV_RELEVE, encoding='utf-8-sig')
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    sortie = io.StringIO()
+    call_command('importer_releves_web', entreprise=entreprise.slug,
+                 dossier=str(tmp_path), stdout=sortie)
+    assert 'Relevé web Legrand' in sortie.getvalue()
+
+
+def test_un_fichier_sans_fabricant_reconnu_est_signale(entreprise, tmp_path):
+    """Laissé de côté avec un avertissement, pas importé au hasard.
+
+    L'envoyer dans la première source venue mélangerait les fabricants, et
+    l'erreur ne se verrait qu'en lisant les articles un par un.
+    """
+    from django.core.management import call_command
+
+    (tmp_path / 'sans-nom.csv').write_text(CSV_RELEVE, encoding='utf-8-sig')
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    sortie = io.StringIO()
+    call_command('importer_releves_web', entreprise=entreprise.slug,
+                 dossier=str(tmp_path), ecrire=True, stdout=sortie)
+    assert Material.objects.count() == 0
+    assert 'aucune source' in sortie.getvalue()
+
+
+def test_sans_source_de_releve_la_commande_oriente(entreprise,
+                                                    dossier_releves):
+    """Le message dit quoi lancer, au lieu de signaler un échec."""
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    with pytest.raises(CommandError) as echec:
+        call_command('importer_releves_web', entreprise=entreprise.slug,
+                     dossier=dossier_releves, stdout=io.StringIO())
+    assert 'creer_sources_fabricants' in str(echec.value)
+
+
+def test_un_dossier_vide_est_signale(entreprise, tmp_path):
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    with pytest.raises(CommandError) as echec:
+        call_command('importer_releves_web', entreprise=entreprise.slug,
+                     dossier=str(tmp_path), stdout=io.StringIO())
+    assert 'Aucun CSV' in str(echec.value)
+
+
+def test_le_filtre_par_fabricant(entreprise, tmp_path):
+    from django.core.management import call_command
+
+    (tmp_path / 'hager.csv').write_text(CSV_RELEVE, encoding='utf-8-sig')
+    (tmp_path / 'legrand.csv').write_text(CSV_RELEVE, encoding='utf-8-sig')
+    call_command('creer_sources_fabricants', entreprise=entreprise.slug,
+                 stdout=io.StringIO())
+    sortie = io.StringIO()
+    call_command('importer_releves_web', entreprise=entreprise.slug,
+                 dossier=str(tmp_path), fabricant='hager', stdout=sortie)
+    assert 'hager.csv' in sortie.getvalue()
+    assert 'legrand.csv' not in sortie.getvalue()
+
+
+def test_le_releve_livre_dans_le_depot_est_lisible():
+    """Le fichier Soprema versionné doit rester exploitable.
+
+    Un CSV committé avec un en-tête changé ou un séparateur différent se
+    chargerait sans erreur et ne produirait aucun article.
+    """
+    import csv
+    import os
+
+    from django.conf import settings
+
+    chemin = os.path.join(str(settings.BASE_DIR), 'data', 'catalogues',
+                          'soprema.csv')
+    assert os.path.isfile(chemin), 'le relevé Soprema doit être versionné'
+    with open(chemin, encoding='utf-8-sig', newline='') as flux:
+        lignes = list(csv.reader(flux, delimiter=';'))
+    assert lignes[0][:3] == ['Reference', 'Designation', 'Prix HT']
+    assert len(lignes) > 10

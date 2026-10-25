@@ -166,11 +166,62 @@ class Command(BaseCommand):
                 existants += 1
                 self.stdout.write(f'  existe {source.name}')
 
+            # ── Seconde source : le relevé du site public ────────────────
+            #
+            # DISTINCTE du tarif officiel, et ce n'est pas un doublon. Deux
+            # provenances, deux degrés de confiance : le tarif du portail
+            # est contractuel, le relevé du site public est indicatif. Les
+            # mélanger dans une seule source ferait écraser l'un par
+            # l'autre au prochain import.
+            #
+            # Préconfigurée pour les CSV produits par explorer_catalogue :
+            # format csv, séparateur « ; », utf-8 avec BOM, et des
+            # intitulés SANS ACCENT. Défaut constaté : les sources ci-dessus
+            # attendent « Référence » et « Désignation » accentués, et un
+            # dépôt du CSV y lisait les lignes sans produire un seul
+            # article.
+            releve, cree_releve = CatalogueSource.objects.get_or_create(
+                company=company, name=f'Relevé web {fabricant["nom"]}',
+                defaults={
+                    'url': '',
+                    'format': 'csv',
+                    'delimiteur': ';',
+                    'encodage': 'utf-8-sig',
+                    'colonnes': {
+                        'reference': 'Reference',
+                        'nom': 'Designation',
+                        'prix_achat': 'Prix HT',
+                    },
+                    'nature_par_defaut': fabricant['nature'],
+                    'supplier': fournisseur,
+                    'is_active': True,
+                    'intervalle_minutes': 0,
+                })
+            if cree_releve:
+                crees += 1
+                self.stdout.write(self.style.SUCCESS(
+                    f'  créé   {releve.name} — pour les CSV de '
+                    f'explorer_catalogue, prêt à déposer tel quel'))
+            else:
+                existants += 1
+                self.stdout.write(f'  existe {releve.name}')
+
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
             f'{crees} source(s) créée(s), {existants} déjà présente(s) — '
             f'aucun article importé.'))
         self.stdout.write('')
+        self.stdout.write(
+            'Deux sources par fabricant, et c\'est voulu :\n'
+            '  « Tarif <fabricant> »      le tarif officiel du portail '
+            'distributeur, contractuel — format Excel, correspondance de '
+            'colonnes à ajuster sur le fichier réel ;\n'
+            '  « Relevé web <fabricant> » le relevé du site public, '
+            'indicatif — déjà configuré pour les CSV de '
+            'explorer_catalogue, rien à régler.\n'
+            '\n'
+            'Les mélanger ferait écraser le tarif contractuel par un prix '
+            'public au prochain import.\n')
         self.stdout.write(
             'Prochaine étape, pour chaque fabricant :\n'
             '  1. télécharger son tarif depuis son portail professionnel ;\n'

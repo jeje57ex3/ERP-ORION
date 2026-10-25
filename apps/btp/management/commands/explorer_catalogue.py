@@ -156,6 +156,7 @@ class Command(BaseCommand):
         # plus que la fiche en cours.
         flux_csv = plume_csv = None
         ecrites = [0]
+        vues_au_fil = set()
 
         def au_fil(candidat):
             if plume_csv is None:
@@ -164,12 +165,42 @@ class Command(BaseCommand):
             flux_csv.flush()
             ecrites[0] += 1
 
+            # L'ÉTAT AUSSI est sauvegardé en cours de route, et pas
+            # seulement à la fin. Deuxième moitié d'un défaut que je
+            # n'avais corrigé qu'à moitié : le parcours Hager s'est
+            # interrompu à 3 007 fiches, le CSV les contenait toutes — mais
+            # l'état était vide, et reprendre aurait voulu dire tout
+            # relever une seconde fois. Il a fallu le reconstruire depuis
+            # la colonne « Source » du CSV.
+            #
+            # L'URL vient du candidat lui-même. En mode sitemap et en mode
+            # liste, chaque page visitée EST une fiche, donc l'ensemble est
+            # complet. En mode liens, les pages de liste n'y figurent pas :
+            # une reprise les revisitera, ce qui coûte quelques requêtes et
+            # non le parcours entier.
+            if candidat.get('url'):
+                vues_au_fil.add(candidat['url'])
+            if ecrites[0] % 50 == 0:
+                self._ecrire_etat(chemin_etat,
+                                  set(deja_vues) | vues_au_fil)
+
         if vers_csv:
             import csv as _csv
 
-            flux_csv = open(vers_csv, 'w', encoding='utf-8-sig', newline='')
+            # AJOUT et non écrasement quand le fichier existe déjà et qu'on
+            # reprend un parcours. Sans cela, relancer après une
+            # interruption tronquait le CSV et perdait tout le travail déjà
+            # fait — constaté : 3 007 fiches Hager qu'il aurait fallu
+            # relever une seconde fois.
+            reprise = bool(deja_vues) and os.path.isfile(vers_csv)
+            flux_csv = open(vers_csv, 'a' if reprise else 'w',
+                            encoding='utf-8-sig', newline='')
             plume_csv = _csv.writer(flux_csv, delimiter=';')
-            plume_csv.writerow(self.COLONNES_CSV)
+            if not reprise:
+                plume_csv.writerow(self.COLONNES_CSV)
+            else:
+                self.stdout.write(
+                    f'csv      : ajout à la suite de {vers_csv}')
             flux_csv.flush()
 
         # Le sitemap est prefere des que le site en declare un : ramper
