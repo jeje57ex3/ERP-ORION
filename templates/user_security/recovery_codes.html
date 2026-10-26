@@ -1,0 +1,51 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Sécurité" %}</p>
+    <h1 class="page-title">{% trans "Codes de récupération" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Conservez ces codes dans un endroit sûr. Chaque code ne peut être utilisé qu'une seule fois." %}</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card" style="max-width:640px;">
+  {% if codes %}
+    <div style="background:#0B2A0B;border:1px solid #22C55E;border-radius:12px;padding:16px;margin-bottom:24px;">
+      <p style="color:#22C55E;font-weight:700;margin:0 0 4px;">{% trans "Nouveaux codes générés" %}</p>
+      <p style="color:#86EFAC;font-size:.9rem;margin:0;">{% trans "Notez-les maintenant — ils ne seront plus affichés." %}</p>
+    </div>
+
+    <div class="orion-recovery-grid">
+      {% for code in codes %}
+        <code>{{ code }}</code>
+      {% endfor %}
+    </div>
+
+    <div style="background:#1A1207;border:1px solid var(--gold);border-radius:12px;padding:16px;margin:20px 0;">
+      <p style="color:var(--gold);font-weight:700;margin:0 0 4px;">{% trans "⚠ Important" %}</p>
+      <p style="color:var(--soft);font-size:.9rem;margin:0;">{% trans "Ces codes disparaîtront dès que vous quitterez cette page. Copiez-les ou imprimez-les maintenant." %}</p>
+    </div>
+  {% else %}
+    <p>{% blocktrans %}Codes de récupération disponibles : <strong>{{ remaining_count }} / 10</strong>{% endblocktrans %}</p>
+    {% if remaining_count <= 3 %}
+      <p style="color:#F59E0B;font-weight:600;">{% trans "⚠ Il reste peu de codes. Régénérez-les pour en avoir 10 nouveaux." %}</p>
+    {% endif %}
+  {% endif %}
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px;">
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn" onclick="return confirm('{% trans "Régénérer tous les codes ? Les anciens seront invalidés." %}')">
+        {% trans "Régénérer les codes" %}
+      </button>
+    </form>
+    <a href="{% url 'user_security:account_security' %}" class="orion-btn orion-btn-ghost">
+      {% trans "Retour sécurité" %}
+    </a>
+  </div>
+</div>
+{% endblock %}

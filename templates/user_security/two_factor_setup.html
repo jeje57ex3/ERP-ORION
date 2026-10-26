@@ -1,0 +1,59 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Sécurité" %}</p>
+    <h1 class="page-title">{% trans "Activer la double authentification" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Scannez le QR code avec Google Authenticator, Microsoft Authenticator ou Authy." %}</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="orion-dashboard-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;">
+
+  <div class="orion-card" style="text-align:center;">
+    <h2>{% trans "1. Scanner le QR code" %}</h2>
+    <p style="color:var(--soft);">{% trans "Ouvrez votre application Authenticator et scannez ce code." %}</p>
+    <div style="display:inline-block;background:#fff;padding:16px;border-radius:16px;margin:20px 0;">
+      <img src="{{ qr_code }}" alt="{% trans 'QR code 2FA' %}" style="width:220px;height:220px;display:block;">
+    </div>
+    <details style="text-align:left;margin-top:8px;">
+      <summary style="cursor:pointer;color:var(--soft);font-size:.9rem;">{% trans "Saisie manuelle" %}</summary>
+      <p style="font-size:.85rem;color:var(--soft);margin-top:8px;">{% trans "Clé secrète :" %}</p>
+      <code style="word-break:break-all;font-size:.9rem;display:block;padding:10px;background:#111116;border-radius:8px;border:1px solid var(--border);">{{ secret }}</code>
+    </details>
+  </div>
+
+  <div class="orion-card">
+    <h2>{% trans "2. Saisir le code à 6 chiffres" %}</h2>
+    <p style="color:var(--soft);">{% trans "Entrez le code affiché dans votre application pour confirmer l'activation." %}</p>
+
+    <form method="post" class="orion-form" style="margin-top:24px;">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="orion-form-group">
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="orion-form-error">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="orion-btn orion-btn-primary" style="width:100%;margin-top:8px;">
+        {% trans "Activer la 2FA" %}
+      </button>
+    </form>
+
+    <a href="{% url 'user_security:account_security' %}" style="display:block;text-align:center;margin-top:16px;color:var(--soft);font-size:.9rem;">
+      {% trans "Annuler" %}
+    </a>
+  </div>
+</div>
+{% endblock %}

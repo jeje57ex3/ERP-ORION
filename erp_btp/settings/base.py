@@ -43,6 +43,11 @@ LOCAL_APPS = [
     'apps.private_saas.apps.PrivateSaaSConfig',
     'apps.accounts',
     'apps.access_control',
+    # Double authentification, codes de recuperation, appareils de
+    # confiance. Elle complete accounts.UserProfile.two_factor_enabled, qui
+    # n'etait qu'une case a cocher sans rien derriere : l'utilisateur
+    # l'activait et il ne se passait rien.
+    'apps.user_security',
     'apps.crm',
     'apps.sales',
     'apps.accounting',
@@ -151,6 +156,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
+    # APRES AuthenticationMiddleware, comme MaintenanceModeMiddleware et
+    # pour la meme raison : il lit request.user, qui n'existe pas avant.
+    #
+    # Et APRES CompanyMiddleware n'aurait pas d'importance ici -- mais
+    # AVANT lui evite de resoudre l'entreprise courante pour une requete
+    # qui va de toute facon etre redirigee vers la verification 2FA.
+    'apps.user_security.middleware.RequireTwoFactorMiddleware',
     'apps.core.middleware.CompanyMiddleware',
     'apps.core.middleware.AuditLogMiddleware',
     'apps.translations.middleware.OrionLanguageMiddleware',
@@ -225,6 +237,22 @@ DATABASES = {
         'CONN_HEALTH_CHECKS': True,
     }
 }
+
+# ─── Double authentification ──────────────────────────────────────────────────
+#
+# A FAUX par defaut, et c'est un choix delibere. Le code de user_security
+# defaut a True : enregistrer l'application aurait force TOUS les super
+# administrateurs a configurer la 2FA des la requete suivante, sur un ERP
+# en service. Si quoi que ce soit cloche dans ce parcours -- gabarit,
+# horloge decalee, telephone indisponible -- l'administrateur se retrouve
+# verrouille dehors de son propre outil, par une mise a jour qu'il n'a pas
+# demandee.
+#
+# La 2FA reste disponible et s'active compte par compte depuis
+# /account/security/. Passez ce reglage a True quand VOUS decidez de
+# l'imposer, et apres l'avoir essayee sur votre propre compte.
+ORION_2FA_REQUIRED_FOR_SUPERUSERS = config(
+    'ORION_2FA_REQUIRED_FOR_SUPERUSERS', default=False, cast=bool)
 
 DATABASE_ROUTERS = ['apps.core.db_router.CompanyDatabaseRouter']
 

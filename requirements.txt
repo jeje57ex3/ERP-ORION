@@ -31,6 +31,12 @@ django-celery-beat==2.7.0
 django-storages==1.14.4
 boto3==1.35.20
 qrcode==7.4.2
+# Double authentification (apps/user_security). pyotp etait IMPORTE par le
+# code et ABSENT d'ici : sur un serveur installe depuis ce fichier,
+# l'intergiciel RequireTwoFactorMiddleware aurait plante a l'import, donc
+# 500 sur toutes les pages. qrcode y figurait, lui, ce qui rendait l'oubli
+# d'autant plus facile a manquer. Version epinglee sur celle installee.
+pyotp==2.10.0
 barcode==1.0.2
 Markdown==3.7
 bleach==6.1.0

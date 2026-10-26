@@ -144,6 +144,14 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # Double authentification. A LA RACINE, et non sous un prefixe : ses
+    # adresses sont absolues (« account/security/ », « auth/2fa/ ») et
+    # correspondent exactement aux exemptions de
+    # RequireTwoFactorMiddleware. Les monter ailleurs rendrait la page de
+    # verification elle-meme soumise a la verification -- une boucle de
+    # redirection dont on ne sort pas.
+    path('', include('apps.user_security.urls', namespace='user_security')),
+
     # Sites web publics (doit être en dernier)
     path('sites/', include('apps.websites.public_urls', namespace='public_websites')),
 ]
