@@ -494,6 +494,10 @@ class EmployeeDocumentAccessLog(models.Model):
     ACTION_CHOICES = [
         ('view', 'Consultation'), ('download', 'Téléchargement'), ('upload', 'Upload'),
         ('edit', 'Modification'), ('delete', 'Suppression'), ('sign', 'Signature'), ('archive', 'Archivage'),
+        # Tentative refusée. Un journal qui n'enregistre que les accès
+        # réussis ne dit pas qu'un compte a essayé deux cents identifiants
+        # de documents avant de s'arrêter.
+        ('denied', 'Accès refusé'),
     ]
     document = models.ForeignKey(EmployeePrivateDocument, on_delete=models.CASCADE, related_name='access_logs')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

@@ -1,0 +1,99 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1">{% trans "Compte utilisateur" %}</p>
+    <h1 class="page-title">{% trans "Sécurité du compte" %}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{% trans "Gérez la double authentification et les codes de récupération." %}</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+  {% for msg in messages %}
+    <div class="orion-alert orion-alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="orion-dashboard-grid" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;margin-bottom:24px;">
+
+  <div class="orion-card">
+    <div class="orion-card-header">
+      <h2>{% trans "Double authentification (2FA)" %}</h2>
+      {% if is_2fa_enabled %}
+        <span class="orion-badge orion-badge-success">{% trans "Activée" %}</span>
+      {% else %}
+        <span class="orion-badge orion-badge-warning">{% trans "Non activée" %}</span>
+      {% endif %}
+    </div>
+
+    {% if is_2fa_enabled %}
+      <p>{% trans "Votre compte est protégé par une application Authenticator (TOTP)." %}</p>
+      <p style="color:var(--soft);font-size:.9rem;">{% blocktrans with confirmed_at=two_factor.confirmed_at|date:"d/m/Y à H:i" %}Activée le {{ confirmed_at }}{% endblocktrans %}</p>
+
+      <form method="post" class="orion-form" style="margin-top:24px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="disable_2fa">
+        {% for field in disable_form %}
+          <div class="orion-form-group">
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<p class="orion-form-error">{{ field.errors.0 }}</p>{% endif %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="orion-btn orion-btn-danger" onclick="return confirm('{% trans "Désactiver la 2FA ?" %}')">
+          {% trans "Désactiver la double authentification" %}
+        </button>
+      </form>
+    {% else %}
+      <p>{% trans "Ajoutez une deuxième étape de vérification pour sécuriser votre compte. Nous recommandons Google Authenticator, Microsoft Authenticator ou Authy." %}</p>
+      <a href="{% url 'user_security:two_factor_setup' %}" class="orion-btn orion-btn-primary" style="margin-top:16px;display:inline-block;">
+        {% trans "Activer la double authentification" %}
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="orion-card">
+    <div class="orion-card-header">
+      <h2>{% trans "Codes de récupération" %}</h2>
+    </div>
+    <p>{% blocktrans %}Codes disponibles : <strong>{{ recovery_codes_count }} / 10</strong>{% endblocktrans %}</p>
+    <p style="color:var(--soft);font-size:.9rem;">{% trans "Les codes de récupération permettent d'accéder à votre compte si vous perdez votre téléphone." %}</p>
+    {% if recovery_codes_count <= 3 %}
+      <p style="color:#F59E0B;font-weight:600;font-size:.9rem;">{% trans "⚠ Il reste peu de codes — régénérez-les." %}</p>
+    {% endif %}
+    <a href="{% url 'user_security:recovery_codes' %}" class="orion-btn" style="margin-top:16px;display:inline-block;">
+      {% trans "Voir / régénérer les codes" %}
+    </a>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2>{% trans "Événements de sécurité récents" %}</h2>
+  </div>
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Événement" %}</th>
+        <th>{% trans "Adresse IP" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in recent_events %}
+      <tr>
+        <td>{{ event.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ event.get_event_display }}</td>
+        <td>{{ event.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;color:var(--soft)">{% trans "Aucun événement." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

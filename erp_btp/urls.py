@@ -54,12 +54,18 @@ urlpatterns = [
     path('production/', include('apps.production.urls', namespace='production')),
     path('audio/', include('apps.audio.urls', namespace='audio')),
     path('websites/', include('apps.websites.urls', namespace='websites')),
+    path('editeur-visuel/', include('apps.site_builder.urls', namespace='site_builder')),
     path('bi/', include('apps.bi.urls', namespace='bi')),
     path('sauvegardes/', include('apps.backups.urls', namespace='backups')),
     path('concurrents/', include('apps.competitor_intelligence.urls', namespace='competitor')),
     path('mon-dashboard/', include('apps.dashboard.urls', namespace='dashboard')),
     path('api/v1/', include('apps.api.urls', namespace='api')),
     path('api/v1/lunea/', include('apps.lunea.urls', namespace='lunea')),
+    # API publique de l'editeur visuel. Les routes sont dans
+    # apps/site_builder/public_urls.py et non dans
+    # apps/ecommerce/public_urls.py, qui les cable aussi mais importe en
+    # plus site_customization -- une autre application non enregistree.
+    path('api/v1/public/', include('apps.site_builder.public_urls', namespace='public_builder')),
     path('api/v1/auth/customer/', include('apps.ecommerce.auth_urls', namespace='ecommerce_auth')),
     path('api/v1/siecle/', include('apps.ecommerce.brand_urls', namespace='ecommerce_siecle')),
     path('api/v1/lunea/store/', include('apps.ecommerce.brand_urls', namespace='ecommerce_lunea')),
@@ -143,6 +149,14 @@ urlpatterns = [
 
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
+
+    # Double authentification. A LA RACINE, et non sous un prefixe : ses
+    # adresses sont absolues (« account/security/ », « auth/2fa/ ») et
+    # correspondent exactement aux exemptions de
+    # RequireTwoFactorMiddleware. Les monter ailleurs rendrait la page de
+    # verification elle-meme soumise a la verification -- une boucle de
+    # redirection dont on ne sort pas.
+    path('', include('apps.user_security.urls', namespace='user_security')),
 
     # Sites web publics (doit être en dernier)
     path('sites/', include('apps.websites.public_urls', namespace='public_websites')),

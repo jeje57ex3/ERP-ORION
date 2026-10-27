@@ -1,0 +1,28 @@
+{% load static %}
+{% load i18n %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% if page.meta_title %}{{ page.meta_title }}{% else %}{{ page.title }}{% endif %}</title>
+  {% if page.meta_description %}<meta name="description" content="{{ page.meta_description }}">{% endif %}
+  <link rel="stylesheet" href="{% static 'site_builder/css/public_builder.css' %}">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, system-ui, sans-serif; background: #0B0B0D; color: #F7F2E7; }
+  </style>
+</head>
+<body>
+
+<!-- Preview banner (ERP only) -->
+<div style="background:#8f7042;color:#fff;text-align:center;padding:.5rem 1rem;font-size:.8rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:1rem;position:sticky;top:0;z-index:9999">
+  <i class="bi bi-eye"></i>
+  {% trans "Prévisualisation" %} — « {{ page.title }} »
+  <a href="{% url 'site_builder:builder' page.pk %}" style="color:#fff;text-decoration:underline">{% trans "Retour à l'éditeur" %}</a>
+</div>
+
+{% for html in sections_html %}{{ html|safe }}{% endfor %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</body>
+</html>

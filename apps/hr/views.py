@@ -19,6 +19,12 @@ from .certification_service import (
     compter_par_statut,
     peut_voir_certification,
 )
+from .document_access import (
+    NIVEAUX_CACHES_AU_SALARIE,
+    documents_visibles,
+    peut_gerer_les_dossiers,
+    peut_voir_document,
+)
 
 
 def _is_hr_admin(request):
@@ -201,6 +207,10 @@ def expense_list(request):
 @login_required
 def private_folder_list(request):
     company = request.current_company
+    # La liste nomme tous les salaries de l'entreprise et compte leurs
+    # documents : c'est deja une information d'encadrement.
+    if not peut_gerer_les_dossiers(request.user):
+        raise Http404
     employees = Employee.objects.filter(company=company, is_active=True)
     folders = []
     for emp in employees:
@@ -214,13 +224,16 @@ def private_folder_list(request):
     from datetime import date, timedelta
     today = date.today()
     threshold = today + timedelta(days=30)
-    expiring = EmployeePrivateDocument.objects.filter(
-        company=company, expires_at__lte=threshold, expires_at__gte=today
-    ).count()
-    expired = EmployeePrivateDocument.objects.filter(company=company, expires_at__lt=today).count()
-    pending_sig = EmployeePrivateDocument.objects.filter(
-        company=company, requires_signature=True, signed_at__isnull=True
-    ).count()
+    # Les compteurs portent sur les memes documents que ceux qu'on a le
+    # droit d'ouvrir : un bandeau « 4 a signer » dont un seul est
+    # accessible decrit un dossier qu'on ne peut pas traiter.
+    lisibles = documents_visibles(
+        request.user, EmployeePrivateDocument.objects.filter(company=company))
+    expiring = lisibles.filter(
+        expires_at__lte=threshold, expires_at__gte=today).count()
+    expired = lisibles.filter(expires_at__lt=today).count()
+    pending_sig = lisibles.filter(
+        requires_signature=True, signed_at__isnull=True).count()
 
     return render(request, 'hr/private_folder_list.html', {
         'folders': folders, 'expiring': expiring, 'expired': expired, 'pending_sig': pending_sig,
@@ -230,13 +243,21 @@ def private_folder_list(request):
 @login_required
 def private_folder_detail(request, employee_pk):
     company = request.current_company
+    # Cette page montre tous les documents d'un salarie ET le journal de
+    # qui les a lus. Le salarie consulte les siens par
+    # `my_private_documents` ; ici, c'est l'encadrement.
+    if not peut_gerer_les_dossiers(request.user):
+        raise Http404
     employee = get_object_or_404(Employee, pk=employee_pk, company=company)
     folder, _ = EmployeePrivateFolder.objects.get_or_create(
         company=company, employee=employee,
         defaults={'folder_name': f'Dossier privé — {employee.first_name} {employee.last_name}'}
     )
     doc_type_filter = request.GET.get('doc_type', '')
-    docs = EmployeePrivateDocument.objects.filter(company=company, employee=employee)
+    docs = documents_visibles(
+        request.user,
+        EmployeePrivateDocument.objects.filter(
+            company=company, employee=employee))
     if doc_type_filter:
         docs = docs.filter(document_type=doc_type_filter)
     recent_logs = EmployeeDocumentAccessLog.objects.filter(
@@ -253,6 +274,10 @@ def private_folder_detail(request, employee_pk):
 @login_required
 def private_document_add(request, employee_pk):
     company = request.current_company
+    # Deposer une piece dans le dossier d'un salarie, sous le nom de qui
+    # la depose : reserve a l'encadrement.
+    if not peut_gerer_les_dossiers(request.user):
+        raise Http404
     employee = get_object_or_404(Employee, pk=employee_pk, company=company)
     folder, _ = EmployeePrivateFolder.objects.get_or_create(
         company=company, employee=employee,
@@ -289,6 +314,11 @@ def private_document_add(request, employee_pk):
 @login_required
 def private_document_delete(request, pk):
     company = request.current_company
+    # Volontairement l'encadrement et non « celui qui peut voir » : un
+    # salarie ne doit pas pouvoir effacer la sanction disciplinaire qui le
+    # concerne.
+    if not peut_gerer_les_dossiers(request.user):
+        raise Http404
     doc = get_object_or_404(EmployeePrivateDocument, pk=pk, company=company)
     employee_pk = doc.employee_id
     if request.method == 'POST':
@@ -305,14 +335,34 @@ def private_document_delete(request, pk):
 def private_document_download(request, pk):
     company = request.current_company
     doc = get_object_or_404(EmployeePrivateDocument, pk=pk, company=company)
+
+    # LE controle qui manquait. Avant lui, cette vue ne verifiait que
+    # l'entreprise : n'importe quel compte connecte telechargeait le
+    # contrat, le bulletin de paie ou la visite medicale de n'importe quel
+    # collegue en faisant defiler les identifiants -- et le journal
+    # enregistrait sagement chaque lecture comme legitime.
+    if not peut_voir_document(request.user, doc, company):
+        EmployeeDocumentAccessLog.objects.create(
+            document=doc, user=request.user, action='denied',
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        # 404 et non 403 : un refus explicite confirmerait que le document
+        # numero 57 existe, et c'est deja une information.
+        raise Http404
+
+    # Le fichier est ouvert AVANT d'ecrire au journal : sur un media
+    # absent, l'ancienne version inscrivait « telecharge » alors que la
+    # reponse etait un 404.
+    try:
+        flux = doc.file.open('rb')
+    except Exception:
+        raise Http404
     EmployeeDocumentAccessLog.objects.create(
         document=doc, user=request.user, action='download',
         ip_address=request.META.get('REMOTE_ADDR'),
     )
-    try:
-        return FileResponse(doc.file.open('rb'), as_attachment=True, filename=doc.file.name.split('/')[-1])
-    except Exception:
-        raise Http404
+    return FileResponse(flux, as_attachment=True,
+                        filename=doc.file.name.split('/')[-1])
 
 
 @login_required
@@ -324,9 +374,14 @@ def my_private_documents(request):
     except Employee.DoesNotExist:
         messages.warning(request, 'Aucun dossier salarié associé à votre compte.')
         return redirect('core:dashboard')
+    # `visible_to_employee` ET le niveau de confidentialite. Cette vue ne
+    # filtrait que la case ; un document coche « visible par le salarie »
+    # mais marque « RH uniquement » -- une incoherence de saisie, pas une
+    # hypothese -- apparaissait dans la liste et renvoyait un 404 au clic.
+    # La liste et le telechargement appliquent desormais la meme regle.
     docs = EmployeePrivateDocument.objects.filter(
         company=company, employee=employee, visible_to_employee=True
-    )
+    ).exclude(confidentiality_level__in=NIVEAUX_CACHES_AU_SALARIE)
     return render(request, 'hr/my_private_documents.html', {
         'employee': employee, 'documents': docs,
     })

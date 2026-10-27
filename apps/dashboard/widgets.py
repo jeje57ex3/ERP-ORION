@@ -340,14 +340,26 @@ def get_hr_expenses_data(user, company):
 
 
 def get_hr_expiring_documents_data(user, company):
+    """Documents prives arrivant a expiration.
+
+    Borne par `documents_visibles` : ce widget nomme le salarie ET le
+    document (« Visite medicale -- Marie Lefebvre »). Sans ce filtre, tout
+    tableau de bord qui le porte diffusait ces couples a n'importe quel
+    compte connecte -- la meme fuite que `private_document_download`, par
+    une autre porte. Pour qui n'est pas de l'encadrement RH, la fonction
+    rend une liste vide.
+    """
     def load():
+        from apps.hr.document_access import documents_visibles
         from apps.hr.models import EmployeePrivateDocument
         threshold = date.today() + timedelta(days=30)
-        docs = EmployeePrivateDocument.objects.filter(
+        # Le filtre AVANT la tranche : un queryset decoupe ne se filtre
+        # plus.
+        docs = documents_visibles(user, EmployeePrivateDocument.objects.filter(
             company=company,
             expires_at__lte=threshold,
             expires_at__gte=date.today()
-        ).select_related('employee').order_by('expires_at')[:10]
+        )).select_related('employee').order_by('expires_at')[:10]
         return {'documents': list(docs), 'total': docs.count()}
     return _safe(load, {'documents': [], 'total': 0})
 
@@ -385,8 +397,15 @@ def get_hr_my_private_documents_data(user, company):
             employee = Employee.objects.get(company=company, user=user)
         except Employee.DoesNotExist:
             return {'documents': []}
+        # `visible_to_employee` ET le niveau, comme la vue
+        # `my_private_documents` et comme le telechargement : les trois
+        # doivent dire la meme chose, sinon le widget propose une piece
+        # dont le clic renvoie un 404.
+        from apps.hr.document_access import NIVEAUX_CACHES_AU_SALARIE
         docs = EmployeePrivateDocument.objects.filter(
             company=company, employee=employee, visible_to_employee=True
+        ).exclude(
+            confidentiality_level__in=NIVEAUX_CACHES_AU_SALARIE
         ).order_by('-created_at')[:8]
         return {'documents': list(docs)}
     return _safe(load, {'documents': []})
@@ -793,12 +812,14 @@ def get_documents_to_sign_data(user, company):
 
 
 def get_documents_expiring_soon_data(user, company):
+    """Meme fuite que get_hr_expiring_documents_data, a 60 jours."""
     def load():
+        from apps.hr.document_access import documents_visibles
         from apps.hr.models import EmployeePrivateDocument
         threshold = date.today() + timedelta(days=60)
-        docs = EmployeePrivateDocument.objects.filter(
+        docs = documents_visibles(user, EmployeePrivateDocument.objects.filter(
             company=company, expires_at__lte=threshold, expires_at__gte=date.today()
-        ).select_related('employee').order_by('expires_at')[:10]
+        )).select_related('employee').order_by('expires_at')[:10]
         return {'documents': list(docs), 'count': docs.count(), 'has_data': docs.exists()}
     return _safe(load, {'documents': [], 'count': 0, 'has_data': False})
 

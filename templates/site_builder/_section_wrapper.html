@@ -1,0 +1,18 @@
+{% load i18n %}
+<div class="sb-section-wrapper"
+     data-section-id="{{ section_id }}"
+     data-module-type="{{ module_type }}"
+     data-settings="{{ settings_json|escapejs }}">
+  <div class="sb-section-toolbar">
+    <div class="sb-section-drag-handle" title="{% trans 'Déplacer' %}"><i class="bi bi-grip-vertical"></i></div>
+    <span class="sb-section-type-label"><i class="bi {{ module_icon }} me-1"></i>{{ module_label }}</span>
+    <div class="sb-section-actions">
+      <button class="sb-section-action" data-action="move-up" title="{% trans 'Monter' %}"><i class="bi bi-chevron-up"></i></button>
+      <button class="sb-section-action" data-action="move-down" title="{% trans 'Descendre' %}"><i class="bi bi-chevron-down"></i></button>
+      <button class="sb-section-action danger" data-action="delete" title="{% trans 'Supprimer' %}"><i class="bi bi-trash3"></i></button>
+    </div>
+  </div>
+  <div class="sb-section-content">
+    {{ rendered_html|safe }}
+  </div>
+</div>

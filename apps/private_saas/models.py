@@ -11,6 +11,11 @@ ALL_MODULE_CODES = [
     'btp', 'ecommerce', 'commerce', 'production', 'hr', 'documents',
     'websites', 'client_portal', 'messages', 'reporting', 'notifications',
     'automation', 'domains', 'domain_diagnostics', 'backups_module',
+    # Sans cette entree, require_company_module('site_builder') refusait
+    # toujours : company_has_module lit CompanyModule, dont les lignes
+    # sont creees en bouclant sur CETTE liste. Le module ne pouvait donc
+    # jamais s'activer, quoi qu'on coche dans l'interface.
+    'site_builder',
 ]
 
 MODULE_LABELS = {
@@ -35,6 +40,7 @@ MODULE_LABELS = {
     'domains':       'Domaines',
     'domain_diagnostics': 'Diagnostic domaines & Cloudflare',
     'backups_module':     'Sauvegardes',
+    'site_builder':       'Editeur visuel de site',
 }
 
 MODULE_NAV_IDS = {
@@ -59,6 +65,7 @@ MODULE_NAV_IDS = {
     'domains':       [],
     'domain_diagnostics': [],
     'backups_module':     [],
+    'site_builder':       [],
 }
 
 DEFAULT_MODULES_BY_TYPE = {

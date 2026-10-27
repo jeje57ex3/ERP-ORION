@@ -1,0 +1,70 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} — Orion ERP{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'site_builder:page_list' %}">{% trans "Éditeur visuel" %}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="orion-card">
+      <div class="orion-orion-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if not editing %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{% trans "Site web" %} <span class="text-danger">*</span></label>
+            <select name="website" class="form-control" required>
+              {% for w in websites %}
+              <option value="{{ w.pk }}">{{ w.name }} ({{ w.slug }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{% trans "Titre de la page" %} <span class="text-danger">*</span></label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">{% trans "Slug (URL)" %}</label>
+            {{ form.slug }}
+            <div class="form-text">{% trans "Laissez vide pour générer automatiquement depuis le titre." %}</div>
+          </div>
+
+          <div class="mb-3 form-check">
+            {{ form.is_homepage }}
+            <label class="form-check-label">{% trans "Définir comme page d'accueil du site" %}</label>
+          </div>
+
+          <hr>
+          <p class="fw-semibold text-muted small mb-2">{% trans "SEO (optionnel)" %}</p>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Meta title" %}</label>
+            {{ form.meta_title }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Meta description" %}</label>
+            {{ form.meta_description }}
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% if editing %}{% trans "Enregistrer" %}{% else %}{% trans "Créer et ouvrir l'éditeur" %}{% endif %}
+            </button>
+            <a href="{% url 'site_builder:page_list' %}" class="orion-btn orion-btn-outline">{% trans "Annuler" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

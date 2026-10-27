@@ -329,6 +329,14 @@ NAV_MODULES = [
             {'label': _('Mes sites'), 'url_name': 'websites:website_list', 'icon_img': 'mes_sites.png', 'icon': 'ti-browser'},
             {'label': _('Domaines'), 'url_name': 'websites:domain_dashboard', 'icon_img': 'domaines.png', 'icon': 'ti-world'},
             {'label': _('Pages'), 'url_name': 'websites:page_list', 'icon_img': 'pages.png', 'icon': 'ti-file'},
+            # Editeur visuel. Sous « Sites web » parce que c'est la qu'on
+            # cherche a modifier les pages de son site -- et parce que
+            # filter_nav_modules ne filtre que les modules de premier
+            # niveau, pas leurs enfants : une entreprise qui a « websites »
+            # sans « site_builder » verra le lien et le decorateur
+            # require_company_module lui dira que le module n'est pas
+            # active, ce qui est plus parlant qu'une absence.
+            {'label': _('Éditeur visuel'), 'url_name': 'site_builder:page_list', 'icon_img': 'pages.png', 'icon': 'ti-layout-board'},
             {'label': _('Blog'), 'url_name': 'websites:blog_list', 'icon_img': 'blog.png', 'icon': 'ti-pencil'},
             {'label': _('Messages'), 'url_name': 'websites:message_list', 'icon_img': 'messages.png', 'icon': 'ti-mail'},
             {'label': _('Boutique'), 'url_name': 'website_shop_settings:dashboard', 'icon_img': 'boutique.png', 'icon': 'ti-building-store'},
