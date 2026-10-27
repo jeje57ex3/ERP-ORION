@@ -701,6 +701,36 @@ def test_le_provisionnement_installe_le_script_sans_droit_d_ecriture():
     assert 'installer_sudoers orion-stockage' in contenu
 
 
+def test_la_mise_a_jour_reinstalle_les_aides_privilegiees():
+    """Sinon la fonctionnalité n'arrive jamais sur une machine déjà installée.
+
+    Trou constaté : règles sudo et assistant disque n'étaient posés que par
+    `provisioning/02-deploy-orion.sh`, c'est-à-dire **une seule fois**, à
+    la création de la machine. Sur une VM existante, une mise à jour
+    apportait le code et pas les droits : la carte « Ajouter un disque »
+    s'affichait et restait inactive — soit exactement la demande non
+    satisfaite, puisqu'il aurait fallu les installer au clavier.
+
+    Le même trou valait depuis toujours pour `orion-serveur` et les boutons
+    d'extinction.
+    """
+    chemin = os.path.join(RACINE, 'deployment', 'proxmox-appliance',
+                          'scripts', 'update_orion.sh')
+    with open(chemin, encoding='utf-8') as fichier:
+        contenu = fichier.read()
+
+    assert 'orion-stockage' in contenu, (
+        'La mise a jour doit reinstaller l assistant disque.')
+    assert '/etc/sudoers.d/' in contenu, (
+        'La mise a jour doit reinstaller les regles sudo.')
+    assert 'visudo -c' in contenu, (
+        'Un fichier sudoers malforme casse sudo pour tout le monde : il '
+        'doit etre valide AVANT mise en place.')
+    assert re.search(r'install\s+-o\s+root\s+-g\s+orion\s+-m\s+0750',
+                     contenu), (
+        'L assistant doit rester non inscriptible par le compte orion.')
+
+
 # ── 7. Les refus du script root, exercés directement ──────────────────────
 
 def test_le_script_root_refuse_une_partition():
