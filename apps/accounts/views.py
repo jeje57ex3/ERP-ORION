@@ -1,13 +1,23 @@
 """
 apps/accounts/views.py — Authentification, profil, gestion utilisateurs
 """
+from urllib.parse import quote
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
+from django.urls import reverse
 from django.views.decorators.http import require_POST
+
+from apps.user_security.services import (
+    TWO_FACTOR_PENDING_USER_KEY,
+    is_trusted_device,
+    user_has_2fa_enabled,
+    user_requires_2fa,
+)
 
 from .forms import LoginForm, UserForm, UserProfileForm, UserCreateForm
 from .models import UserProfile
@@ -37,6 +47,32 @@ def login_view(request):
 
         if not remember:
             request.session.set_expiry(0)
+
+        # La 2FA s'interpose ICI, avant login() — et non apres.
+        #
+        # two_factor_verify_view attend un utilisateur a demi
+        # authentifie, designe par orion_2fa_pending_user_id dans la
+        # session ; c'est elle qui appellera login() une fois le code
+        # valide. Connecter l'utilisateur des maintenant court-circuite
+        # ce protocole : le middleware voit alors une session complete
+        # sans clef d'attente, et sa seule issue est de deconnecter.
+        # Le mot de passe est accepte, l'ecran de connexion revient, et
+        # rien ne l'explique a l'utilisateur -- indefiniment. Personne
+        # ne posait cette clef ; c'est tout ce qui manquait.
+        #
+        # L'appareil de confiance passe outre : le middleware marquera
+        # la session verifiee de lui-meme au premier acces.
+        if (
+            user_requires_2fa(user)
+            and user_has_2fa_enabled(user)
+            and not is_trusted_device(request, user)
+        ):
+            request.session[TWO_FACTOR_PENDING_USER_KEY] = user.id
+            cible = reverse('user_security:two_factor_verify')
+            demande = request.GET.get('next')
+            if demande:
+                cible = f'{cible}?next={quote(demande)}'
+            return redirect(cible)
 
         login(request, user)
 

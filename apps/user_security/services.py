@@ -84,7 +84,12 @@ def user_requires_2fa(user):
         return False
     if user_has_2fa_enabled(user):
         return True
-    if getattr(settings, "ORION_2FA_REQUIRED_FOR_SUPERUSERS", True) and user.is_superuser:
+    # Defaut a False, et non a True : si le reglage disparaissait de
+    # settings, un defaut a True imposerait la 2FA a tous les
+    # super-administrateurs d'un coup, sans que personne ne l'ait
+    # demandee -- une mine qui n'explose qu'en production. On n'impose
+    # une contrainte d'acces que si elle est explicitement demandee.
+    if getattr(settings, "ORION_2FA_REQUIRED_FOR_SUPERUSERS", False) and user.is_superuser:
         return True
     return False
 
