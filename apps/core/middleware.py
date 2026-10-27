@@ -170,13 +170,26 @@ class NoCacheMiddleware:
 
     Les sites publics (request.website défini) et les utilisateurs anonymes
     ne sont pas concernés — seules les pages ERP authentifiées le sont.
+
+    Les fichiers téléversés (/media/) non plus, et c'est une exemption
+    délibérée : ce sont des fichiers immuables en pratique — un nouvel
+    envoi crée un nouveau nom — et leur interdire tout cache faisait
+    re-télécharger chaque photo à chaque affichage d'une page de
+    catalogue. La vue de apps/core/media_access.py pose elle-même un
+    Cache-Control court, « private » pour les fichiers internes afin
+    qu'aucun proxy partagé ne les garde.
     """
+
+    # Préfixes dont la réponse porte déjà son propre Cache-Control.
+    PREFIXES_EXEMPTES = ('/media/',)
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         response = self.get_response(request)
+        if request.path.startswith(self.PREFIXES_EXEMPTES):
+            return response
         user = getattr(request, 'user', None)
         if user is not None and user.is_authenticated and not getattr(request, 'website', None):
             response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
