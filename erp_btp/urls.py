@@ -152,6 +152,12 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Planning et temps dedies ──────────────────────────────────────────────
+    #
+    # A la racine : apps/work_planning/urls.py porte deja son prefixe
+    # « erp/planning/ » sur chaque route.
+    path('', include('apps.work_planning.urls', namespace='work_planning')),
+
     # ── Formations internes ───────────────────────────────────────────────────
     #
     # A la racine : apps/internal_training/urls.py porte deja son prefixe

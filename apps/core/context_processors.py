@@ -300,6 +300,27 @@ NAV_MODULES = [
         ],
     },
     {
+        # Planning et temps dedies. Place apres les RH : il planifie des
+        # salaries et des missions, et c'est la que l'utilisateur le
+        # cherche. Code module 'work_planning', declare dans
+        # ALL_MODULE_CODES -- sans lui, require_company_module refusait ses
+        # vingt-huit vues.
+        'id': 'work_planning',
+        'label': _('Planning'),
+        'icon': 'ti-calendar-time',
+        'url_name': 'work_planning:dashboard',
+        'color': '#0891B2',
+        'children': [
+            {'label': _('Tableau de bord'),  'url_name': 'work_planning:dashboard',              'icon': 'ti-gauge'},
+            {'label': _('Semaine'),          'url_name': 'work_planning:weekly_planning',        'icon': 'ti-calendar-week'},
+            {'label': _('Missions'),         'url_name': 'work_planning:mission_list',           'icon': 'ti-clipboard-list'},
+            {'label': _('Équipe'),           'url_name': 'work_planning:employee_list',          'icon': 'ti-users'},
+            {'label': _('Contraintes'),      'url_name': 'work_planning:all_employee_constraints', 'icon': 'ti-lock-cog'},
+            {'label': _('Demandes client'),  'url_name': 'work_planning:customer_request_list',  'icon': 'ti-inbox'},
+            {'label': _('Saisir des heures'), 'url_name': 'work_planning:time_block_create',     'icon': 'ti-clock-plus'},
+        ],
+    },
+    {
         # Formations internes. Place apres les RH parce que c'est de la
         # formation des salaries, et non un module separe dans l'esprit de
         # qui l'utilise. Son code module est 'internal_training', declare

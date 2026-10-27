@@ -135,6 +135,15 @@ LOCAL_APPS = [
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
 
+    # ── Planning et temps dedies ──────────────────────────────────────────────
+    #
+    # Sept modeles, trente-six routes, vingt-deux gabarits, un ordonnanceur
+    # automatique et une bibliotheque de filtres de gabarit. Vingt-huit de
+    # ses vues sont gardees par require_company_module('work_planning') --
+    # le plus gros ensemble de vues rendues inaccessibles par le code
+    # module manquant.
+    'apps.work_planning.apps.WorkPlanningConfig',
+
     # ── Formations internes ───────────────────────────────────────────────────
     #
     # Six modeles, dix-neuf vues, huit gabarits, une API et une commande de

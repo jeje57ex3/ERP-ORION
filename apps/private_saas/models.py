@@ -102,10 +102,10 @@ MODULE_NAV_IDS = {
     # d'entrée de navigation, et en inventer une ici masquerait un menu
     # vide. Les listes se rempliront quand chaque module sera branché.
     'orders':                 [],
-    'work_planning':          [],
     'site_customization':     [],
-    # Branche : son entree existe desormais dans NAV_MODULES.
+    # Branches : leurs entrees existent desormais dans NAV_MODULES.
     'internal_training':      ['internal_training'],
+    'work_planning':          ['work_planning'],
     # Réglages de boutique : servis sous l'entrée « websites », donc sans
     # identifiant propre.
     'website_shop_settings':  [],
