@@ -23,7 +23,7 @@
             <div class="small fw-semibold mb-1">{{ msg.sender_name }}</div>
             <div>{{ msg.content }}</div>
             {% if msg.attachments.exists %}
-            <div class="mt-2">{% for a in msg.attachments.all %}<a href="{{ a.file.url }}" class="badge bg-white text-dark border me-1"><i class="bi bi-paperclip me-1"></i>{{ a.name|default:fichier_default }}</a>{% endfor %}</div>
+            <div class="mt-2">{% for a in msg.attachments.all %}<a href="{% url 'client_portal:message_attachment_download' project.pk conv.pk a.pk %}" class="badge bg-white text-dark border me-1"><i class="bi bi-paperclip me-1"></i>{{ a.name|default:fichier_default }}</a>{% endfor %}</div>
             {% endif %}
           </div>
           <div class="text-muted mt-1" style="font-size:.7rem">{{ msg.created_at|timesince }}</div>

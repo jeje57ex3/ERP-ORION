@@ -49,7 +49,7 @@
         <td class="text-muted small">{{ doc.added_at|date:"d/m/Y" }}</td>
         <td class="text-end">
           {% if doc.client_can_download %}
-          <a href="{{ doc.file.url }}" class="orion-btn sm btn-outline-secondary" download><i class="bi bi-download me-1"></i>{% trans 'Télécharger' %}</a>
+          <a href="{% url 'client_portal:project_document_download' project.pk doc.pk %}" class="orion-btn sm btn-outline-secondary"><i class="bi bi-download me-1"></i>{% trans 'Télécharger' %}</a>
           {% endif %}
         </td>
       </tr>

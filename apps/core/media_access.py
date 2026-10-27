@@ -359,3 +359,77 @@ def servir_media(request, chemin):
         reponse[cle] = valeur
     reponse['Content-Length'] = str(taille)
     return reponse
+
+
+def servir_fichier_autorise(fichier, nom=None, afficher_si_image=False):
+    """Sert un fichier dont l'appelant a DEJA verifie les droits de lecture.
+
+    Les prefixes de `PREFIXES_INTERDITS` ne sont pas servis par /media/ :
+    seule une vue qui sait QUI a le droit de lire peut les rendre, et c'est
+    elle qui porte le controle. Cette fonction n'en fait aucun -- elle ne
+    fait que poser les bons en-tetes, et elle existe pour que le piege
+    ci-dessous ne soit pas a retenir dans chaque vue.
+
+    **En « attachment » par defaut.** Ces fichiers sont televerses par des
+    tiers : un client depose une piece jointe dans une conversation, un
+    prospect une photo dans un devis guide. Un SVG ou un HTML affiche
+    depuis l'origine du site executerait son script avec les droits du
+    lecteur -- qui est ici un salarie connecte a l'ERP. Le telechargement
+    force supprime ce risque sans rien couter d'autre qu'un clic.
+
+    `afficher_si_image=True` leve cette contrainte pour les seuls types
+    d'IMAGE de `TYPES_AFFICHABLES`, et c'est necessaire : une vignette doit
+    s'afficher dans la page. Un SVG ne figure pas dans cette liste, donc il
+    repart en telechargement meme avec ce drapeau.
+
+    **Les en-tetes sont poses APRES la construction**, et non via
+    `headers=` : `FileResponse.set_headers()` s'execute a l'attachement du
+    fichier et REECRIT Content-Disposition et Content-Type d'apres le nom
+    du fichier. Passes au constructeur, ils sont silencieusement remplaces.
+    C'est ainsi qu'un .svg repartait « inline » dans la premiere version de
+    `servir_media`.
+    """
+    from django.http import FileResponse, Http404
+
+    try:
+        flux = fichier.open('rb')
+    except (OSError, ValueError):
+        # Fichier absent du disque ou champ vide : 404, et surtout pas une
+        # erreur 500 qui exposerait le chemin dans une page de debug.
+        raise Http404
+
+    propre = os.path.basename(str(nom or fichier.name) or 'fichier')
+    propre = propre.replace('"', '').replace('\r', '').replace('\n', '')
+
+    # Les noms affiches viennent de champs libres -- « name », « title » --
+    # et n'ont souvent AUCUNE extension. Un fichier telecharge sous le nom
+    # « Contrat de sous-traitance » n'ouvre aucun logiciel : le systeme ne
+    # sait pas de quoi il s'agit. On recupere donc l'extension du fichier
+    # reellement stocke.
+    if not os.path.splitext(propre)[1]:
+        extension = os.path.splitext(fichier.name or '')[1]
+        if extension:
+            propre += extension
+
+    # `afficher_si_image` sert aux vignettes : une photo deposee par un
+    # prospect doit s'afficher dans la page, pas se telecharger. Reserve aux
+    # types d'IMAGE de TYPES_AFFICHABLES, et a eux seuls -- un SVG n'y
+    # figure pas, et c'est voulu : il est un document XML qui peut porter
+    # un <script>.
+    disposition = 'attachment'
+    type_mime = 'application/octet-stream'
+    if afficher_si_image:
+        devine, encodage = mimetypes.guess_type(fichier.name or '')
+        if (devine in TYPES_AFFICHABLES and not encodage
+                and devine.startswith('image/')):
+            disposition = 'inline'
+            type_mime = devine
+
+    reponse = FileResponse(flux)
+    reponse['Content-Type'] = type_mime
+    reponse['Content-Disposition'] = f'{disposition}; filename="{propre}"'
+    reponse['X-Content-Type-Options'] = 'nosniff'
+    # Aucun cache partage : ces fichiers sont, par construction, reserves a
+    # un lecteur precis.
+    reponse['Cache-Control'] = 'private, no-store'
+    return reponse

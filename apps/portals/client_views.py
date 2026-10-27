@@ -7,6 +7,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from apps.core.media_access import servir_fichier_autorise
 from apps.core.models import Company
 from apps.btp.models import (
     BTPProject, ClientConversation, ClientMessage, MessageAttachment,
@@ -18,6 +19,32 @@ from .models import ClientPortalAccount, ClientPortalSettings
 
 
 def _get_company(request):
+    """L'entreprise du client connecté, lue sur son compte portail.
+
+    **Pourquoi pas `request.current_company`.** CompanyMiddleware le résout
+    par `request.user.profile.companies`, c'est-à-dire par l'appartenance
+    d'un SALARIÉ à une entreprise. Or aucun des trois chemins de création
+    d'un compte portail — `signup_service.convert_signup_to_portal_account`,
+    `btp/guided_quote_views.py` et `websites/electricite_wizard_views.py` —
+    n'ajoute l'entreprise à ce profil. Les trois seuls `companies.add` du
+    projet concernent la création d'un utilisateur ERP, les données de
+    démonstration et l'installation initiale.
+
+    Résultat mesuré : `request.current_company` restait None pour tout
+    client du portail, et chaque page rendait 404. Le portail ne
+    fonctionnait qu'avec les comptes de démonstration, dont le profil est
+    rattaché par `create_demo_data`.
+
+    **Et surtout : le corriger en ajoutant l'entreprise au profil du client
+    serait dangereux.** `profile.companies` est ce qui fait d'un compte un
+    membre de l'entreprise côté ERP ; l'y inscrire donnerait à un client
+    une appartenance qu'il ne doit pas avoir. `ClientPortalAccount.company`
+    porte déjà l'information, et c'est la bonne source : elle dit de quelle
+    entreprise ce client est client, et rien de plus.
+    """
+    account = _get_portal_account(request)
+    if account is not None:
+        return account.company
     return getattr(request, 'current_company', None)
 
 
@@ -66,6 +93,53 @@ def portal_login(request):
 def portal_logout(request):
     logout(request)
     return redirect('client_portal:login')
+
+
+def set_password(request, uidb64, token):
+    """Permet à un client invité par un admin de définir son mot de passe."""
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.http import urlsafe_base64_decode
+    from django.utils.encoding import force_str
+
+    company = _get_company(request)
+
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+        user = None
+
+    token_valid = user is not None and default_token_generator.check_token(user, token)
+
+    if not token_valid:
+        return render(request, 'client_portal/set_password.html', {
+            'company': company,
+            'valid': False,
+        })
+
+    if request.method == 'POST':
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        if len(password1) < 8:
+            messages.error(request, 'Le mot de passe doit contenir au moins 8 caractères.')
+        elif password1 != password2:
+            messages.error(request, 'Les mots de passe ne correspondent pas.')
+        else:
+            user.set_password(password1)
+            user.save(update_fields=['password'])
+            account = getattr(user, 'portal_account', None)
+            if account:
+                account.is_email_verified = True
+                account.last_login = timezone.now()
+                account.save(update_fields=['is_email_verified', 'last_login'])
+            login(request, user)
+            messages.success(request, 'Votre mot de passe a été défini. Bienvenue !')
+            return redirect('client_portal:dashboard')
+
+    return render(request, 'client_portal/set_password.html', {
+        'company': company,
+        'valid': True,
+    })
 
 
 # ─── DASHBOARD ────────────────────────────────────────────────────────────────
@@ -199,6 +273,56 @@ def project_documents(request, pk):
     return render(request, 'client_portal/project_documents.html', {
         'account': account, 'project': project, 'documents': documents,
     })
+
+
+def project_document_download(request, pk, doc_pk):
+    """Télécharge un document de chantier, pour le client qui y a droit.
+
+    `project_documents/` fait partie des préfixes que /media/ refuse : un
+    document de chantier appartient à un client et à une entreprise, et
+    une URL devinable l'aurait rendu lisible par n'importe qui.
+
+    Le contrôle reproduit EXACTEMENT celui de la page qui affiche la liste
+    — même entreprise, même courriel de client, et `visible_to_client` —
+    car un bouton de téléchargement plus permissif que la liste qui le
+    porte serait une fuite d'autant plus discrète qu'aucune page ne la
+    montrerait.
+    """
+    redir = _require_portal_login(request)
+    if redir:
+        return redir
+    company = _get_company(request)
+    account = _get_portal_account(request)
+    project = get_object_or_404(
+        BTPProject, pk=pk, company=company, customer__email=account.email)
+    document = get_object_or_404(
+        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True)
+
+    return servir_fichier_autorise(document.file, document.name)
+
+
+def message_attachment_download(request, pk, conv_pk, piece_pk):
+    """Télécharge une pièce jointe de conversation, côté client.
+
+    `is_internal=False` est le garde-fou central : une note interne est
+    écrite par un salarié POUR ses collègues, à propos du client. La page
+    de conversation la masque déjà (`messages.filter(is_internal=False)`)
+    ; sans le même filtre ici, ses pièces jointes resteraient
+    téléchargeables par le client dont elle parle.
+    """
+    redir = _require_portal_login(request)
+    if redir:
+        return redir
+    company = _get_company(request)
+    account = _get_portal_account(request)
+    project = get_object_or_404(
+        BTPProject, pk=pk, company=company, customer__email=account.email)
+    conv = get_object_or_404(ClientConversation, pk=conv_pk, project=project)
+    piece = get_object_or_404(
+        MessageAttachment, pk=piece_pk, message__conversation=conv,
+        message__is_internal=False)
+
+    return servir_fichier_autorise(piece.file, piece.name)
 
 
 # ─── MESSAGERIE ───────────────────────────────────────────────────────────────

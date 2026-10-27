@@ -9,6 +9,7 @@ urlpatterns = [
     path('', v.dashboard, name='dashboard'),
     path('connexion/', v.portal_login, name='login'),
     path('deconnexion/', v.portal_logout, name='logout'),
+    path('definir-mot-de-passe/<str:uidb64>/<str:token>/', v.set_password, name='set_password'),
 
     # ── Inscription publique ──────────────────────────────────────────────────
     path('inscription/', sv.ClientRegisterView.as_view(), name='register'),
@@ -18,8 +19,13 @@ urlpatterns = [
     path('chantiers/<int:pk>/', v.project_detail, name='project_detail'),
     path('chantiers/<int:pk>/planning/', v.project_planning, name='project_planning'),
     path('chantiers/<int:pk>/documents/', v.project_documents, name='project_documents'),
+    # Les fichiers ne sont pas servis par /media/ : voir apps/core/media_access.py.
+    path('chantiers/<int:pk>/documents/<int:doc_pk>/telecharger/',
+         v.project_document_download, name='project_document_download'),
     path('chantiers/<int:pk>/messages/', v.project_messages, name='project_messages'),
     path('chantiers/<int:pk>/messages/<int:conv_pk>/', v.conversation_detail, name='conversation_detail'),
+    path('chantiers/<int:pk>/messages/<int:conv_pk>/pieces/<int:piece_pk>/',
+         v.message_attachment_download, name='message_attachment_download'),
     path('chantiers/<int:pk>/reserves/', v.project_reservations, name='project_reservations'),
     path('chantiers/<int:pk>/modifications/', v.project_changes, name='project_changes'),
     path('chantiers/<int:pk>/heures/', v.project_hours, name='project_hours'),

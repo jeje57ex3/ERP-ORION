@@ -10,11 +10,13 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
+from apps.core.media_access import servir_fichier_autorise
 from .models import (
     GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem,
     ElectricityPriceLibrary, BTPProject, ClientConversation, ClientMessage,
-    TimeEntry, SiteAssignment, ProjectReservation, ClientChangeRequest,
-    ClientNotification, ProjectDocument,
+    MessageAttachment, TimeEntry, SiteAssignment, ProjectReservation,
+    ClientChangeRequest, ClientNotification, ProjectDocument,
+    GuidedQuotePhoto, GuidedQuoteDocument,
 )
 
 
@@ -528,6 +530,61 @@ def client_conversation_detail(request, pk):
     return render(request, 'btp/client_conversation_detail.html', {
         'conv': conv, 'msgs': msgs,
     })
+
+
+@login_required
+def guided_quote_photo(request, pk, photo_pk):
+    """Affiche une photo déposée par un prospect dans sa demande de devis.
+
+    `guided_quotes/photos/` fait partie des préfixes que /media/ refuse :
+    ce sont des photos de l'intérieur du logement d'un particulier, prises
+    chez lui. Une URL devinable les aurait rendues publiques.
+
+    Servie « inline » et non en téléchargement, parce que la page affiche
+    des vignettes — l'aide ne l'autorise que pour les types d'image, un
+    SVG repartirait en téléchargement.
+    """
+    company = _company(request)
+    photo = get_object_or_404(GuidedQuotePhoto, pk=photo_pk,
+                              request__pk=pk, request__company=company)
+    return servir_fichier_autorise(photo.photo, photo.caption or None,
+                                   afficher_si_image=True)
+
+
+@login_required
+def guided_quote_document_download(request, pk, doc_pk):
+    """Télécharge une pièce déposée par un prospect dans sa demande.
+
+    `guided_quotes/docs/` est également refusé par /media/ : plans,
+    diagnostics, devis concurrents. Bornage par l'entreprise de la
+    demande, comme la page qui affiche le lien.
+    """
+    company = _company(request)
+    document = get_object_or_404(GuidedQuoteDocument, pk=doc_pk,
+                                 request__pk=pk, request__company=company)
+    return servir_fichier_autorise(document.file, document.name or None)
+
+
+@login_required
+def client_message_attachment_download(request, pk, piece_pk):
+    """Télécharge une pièce jointe de conversation, côté ERP.
+
+    `client_messages/` fait partie des préfixes que /media/ refuse : une
+    pièce jointe appartient au chantier d'une entreprise, et une URL
+    devinable l'aurait rendue lisible hors de celle-ci.
+
+    Ici, contrairement au portail client, les notes internes ne sont PAS
+    exclues : cette vue sert les salariés, et la page qui l'appelle affiche
+    déjà tous les messages (`conv.messages.all()`). Le bornage est celui de
+    l'entreprise, par `project__company`.
+    """
+    company = _company(request)
+    conv = get_object_or_404(ClientConversation, pk=pk,
+                             project__company=company)
+    piece = get_object_or_404(MessageAttachment, pk=piece_pk,
+                              message__conversation=conv)
+
+    return servir_fichier_autorise(piece.file, piece.name)
 
 
 # ─── RÉSERVES ERP ─────────────────────────────────────────────────────────────

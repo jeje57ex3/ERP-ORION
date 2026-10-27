@@ -46,7 +46,7 @@
             <div class="bg-light rounded-3 p-3">
               <div class="small fw-semibold mb-1 text-muted">{{ msg.sender_name|default:client_label }}</div>
               <div class="small">{{ msg.content }}</div>
-              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{{ a.file.url }}" class="badge bg-white border text-dark me-1" download><i class="bi bi-paperclip"></i> {% trans "Fichier" %}</a>{% endfor %}</div>{% endif %}
+              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{% url 'btp:client_message_attachment_download' conv.pk a.pk %}" class="badge bg-white border text-dark me-1"><i class="bi bi-paperclip"></i> {% trans "Fichier" %}</a>{% endfor %}</div>{% endif %}
             </div>
             <div class="text-muted mt-1" style="font-size:.65rem">{{ msg.created_at|timesince }}</div>
           </div>
@@ -58,7 +58,7 @@
             <div class="bg-warning rounded-3 p-3">
               <div class="small fw-semibold mb-1">{{ msg.sender_name|default:manager_label }}</div>
               <div class="small">{{ msg.content }}</div>
-              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{{ a.file.url }}" class="badge bg-white border text-dark me-1" download><i class="bi bi-paperclip"></i> {% trans "Fichier" %}</a>{% endfor %}</div>{% endif %}
+              {% if msg.attachments.exists %}<div class="mt-2">{% for a in msg.attachments.all %}<a href="{% url 'btp:client_message_attachment_download' conv.pk a.pk %}" class="badge bg-white border text-dark me-1"><i class="bi bi-paperclip"></i> {% trans "Fichier" %}</a>{% endfor %}</div>{% endif %}
             </div>
             <div class="text-muted mt-1 text-end" style="font-size:.65rem">{{ msg.created_at|timesince }}</div>
           </div>

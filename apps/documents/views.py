@@ -2,6 +2,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from apps.core.media_access import servir_fichier_autorise
 from .models import Document, DocumentCategory
 from .forms import DocumentForm
 
@@ -33,6 +34,26 @@ def document_detail(request, pk):
     company = request.current_company
     doc = get_object_or_404(Document, pk=pk, company=company)
     return render(request, 'documents/document_detail.html', {'doc': doc})
+
+
+@login_required
+def document_download(request, pk):
+    """Télécharge un document, borné à l'entreprise courante.
+
+    `documents/` fait partie des préfixes que /media/ refuse : ces fichiers
+    sont des contrats, des factures, des plans et des rapports
+    d'entreprise, et certains sont marqués confidentiels. Une URL devinable
+    les aurait rendus lisibles depuis n'importe quel compte, de n'importe
+    quelle entreprise.
+
+    Le bornage est celui de `document_detail`, qui affiche le lien — ni
+    plus strict, ni plus permissif. Un bouton plus permissif que la page
+    qui le porte serait une fuite d'autant plus discrète qu'aucun écran ne
+    la montrerait.
+    """
+    company = request.current_company
+    doc = get_object_or_404(Document, pk=pk, company=company)
+    return servir_fichier_autorise(doc.file, doc.title)
 
 
 @login_required
