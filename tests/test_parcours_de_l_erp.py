@@ -70,28 +70,12 @@ NOMS_MORTS_ACCEPTES = {
     'websites:loyalty_list',
     'websites:loyalty_detail',
     'websites:loyalty_add_points',
-    # apps/ecommerce/views_siecle.py : dix-huit vues, aucune route, et le
-    # module n'est importable PAR RIEN -- il reclame deux modeles
-    # (StoreProductVariant, SyncLog) et un formset
-    # (StoreProductVariantFormSet) qui n'existent nulle part dans le
-    # projet. C'est une fonctionnalite inachevee, non un bug : ses huit
-    # gabarits ne sont donc rendus par rien et ces quinze noms ne cassent
-    # aucune page en service.
-    'ecommerce:article_list',
-    'ecommerce:article_create',
-    'ecommerce:article_detail',
-    'ecommerce:article_edit',
-    'ecommerce:article_publish',
-    'ecommerce:article_variants',
-    'ecommerce:article_variant_delete',
-    'ecommerce:article_image_upload',
-    'ecommerce:article_image_delete',
-    'ecommerce:sync_log_list',
-    'ecommerce:sync_retry',
-    'ecommerce:loyalty_status_list',
-    'ecommerce:loyalty_status_detail',
-    'ecommerce:loyalty_status_adjust',
-    'ecommerce:referral_list',
+    # Les quinze noms de apps/ecommerce/views_siecle.py ont quitte cette
+    # liste : le back-office SIECLE est desormais branche. Il lui manquait
+    # deux modeles, un formset, vingt-cinq champs editoriaux sur
+    # StoreProduct et deux sur StoreProductImage -- voir
+    # tests/test_back_office_siecle.py. C'est le second test ci-dessous qui
+    # a impose de les retirer d'ici, et c'est son role.
 }
 
 
