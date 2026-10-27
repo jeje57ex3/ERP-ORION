@@ -68,6 +68,11 @@ LOCAL_APPS = [
     'apps.bi',
     'apps.api',
     'apps.websites',
+    # Editeur visuel de pages (glisser-deposer de sections) pour les
+    # sites de apps.websites. Etait sur le disque, complete -- quatre
+    # modeles, dix modules de rendu, cinq gabarits -- et absente de
+    # LOCAL_APPS comme des URLs.
+    'apps.site_builder',
     'apps.dashboard',
     'apps.notifications',
     'apps.translations',
