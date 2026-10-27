@@ -265,11 +265,17 @@
     <h2 class="h6 mb-0"><i class="bi bi-hdd-stack me-2"></i>Placement des fichiers</h2>
     <span class="text-muted small">{{ volumes|length }} volume(s) disponible(s)</span>
   </div>
+  <p class="text-muted small mb-1">
+    Chaque catégorie vit à un chemin fixe, qui devient un lien vers le disque
+    choisi. Déplacer revient donc à copier puis repointer le lien : aucun
+    réglage à modifier, aucun service à relancer.
+  </p>
   <p class="text-muted small mb-3">
-    Chaque catégorie suit une variable du fichier <code>.env</code>. Un chemin
-    absolu y remplace le dossier de l'application, ce qui permet de poser une
-    catégorie sur un autre disque. Choisissez un disque de destination pour
-    obtenir les commandes exactes — l'ERP ne déplace rien lui-même.
+    <strong>Basculer</strong> est immédiat et ne touche à aucun fichier existant :
+    les nouveaux vont sur le disque choisi, les anciens restent. <strong>Copier
+    puis basculer</strong> emmène tout, relit chaque fichier écrit pour le
+    contrôler, et <em>conserve</em> l'ancien emplacement — sa suppression
+    reste une action à part, que vous demandez après vérification.
   </p>
 
   <div class="table-responsive">
@@ -314,18 +320,39 @@
           </td>
           <td>
             {% if p.deplacable %}
-            <form method="get" class="d-flex gap-1">
-              <input type="hidden" name="categorie" value="{{ p.cle }}">
-              <select name="volume" class="form-select form-select-sm">
-                {% for v in volumes %}
-                <option value="{{ v.point_de_montage }}"
-                  {% if p.volume and v.point_de_montage == p.volume.point_de_montage %}disabled{% endif %}>
-                  {{ v.point_de_montage }} — {{ v.libre_go }} Go libres
-                </option>
-                {% endfor %}
-              </select>
-              <button class="orion-btn sm btn-outline-primary" type="submit">Plan</button>
-            </form>
+              {% if operation_en_cours %}
+                <span class="text-muted small">
+                  <i class="bi bi-hourglass-split"></i>
+                  Une opération est en cours — patientez.
+                </span>
+              {% else %}
+              <form method="post"
+                    action="{% url 'system_health:stockage_deplacer' %}"
+                    class="d-flex flex-column gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="categorie" value="{{ p.cle }}">
+                <select name="volume" class="form-select form-select-sm" required>
+                  {% for v in volumes %}
+                  <option value="{{ v.point_de_montage }}"
+                    {% if p.volume and v.point_de_montage == p.volume.point_de_montage %}disabled{% endif %}>
+                    {{ v.point_de_montage }} — {{ v.libre_go }} Go libres
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="d-flex gap-1">
+                  <button class="orion-btn sm btn-outline-primary" type="submit"
+                          name="mode" value="basculer"
+                          title="Immédiat. Les nouveaux fichiers vont sur le disque choisi, les anciens restent où ils sont.">
+                    Basculer
+                  </button>
+                  <button class="orion-btn sm btn-primary" type="submit"
+                          name="mode" value="copier_basculer"
+                          title="Copie tout, relit chaque fichier pour contrôle, puis bascule. L'ancien emplacement est conservé.">
+                    Copier puis basculer
+                  </button>
+                </div>
+              </form>
+              {% endif %}
             {% else %}
             <span class="text-muted small">Sans intérêt à déplacer</span>
             {% endif %}
@@ -368,6 +395,193 @@
 </div>
 {% endif %}
 
+<!-- Opérations de stockage : ce qui tourne, et ce qui attend votre décision -->
+{% if operations %}
+<div class="orion-card mt-3">
+  <h2 class="h6 mb-1"><i class="bi bi-arrow-left-right me-2"></i>Opérations de stockage</h2>
+  <p class="text-muted small mb-3">
+    Les copies se poursuivent même si vous fermez cet onglet. Une opération
+    « vérifiée » attend votre décision : l'ancien emplacement est encore là.
+  </p>
+
+  {% for op in operations %}
+  {% comment %}
+    L'adresse d'avancement est generee cote serveur et portee par
+    l'element. La recopier dans le JavaScript en aurait fait un doublon de
+    urls.py : un chemin modifie d'un cote aurait casse l'autre en silence.
+
+    Et ce commentaire est un « comment », non un « {# #} » : ce dernier ne
+    vaut que sur UNE ligne, et une balise laissee dans un commentaire
+    multiligne est quand meme analysee -- defaut constate par un test.
+  {% endcomment %}
+  <div class="border rounded p-2 mb-2"
+       {% if op.est_en_cours %}
+       data-operation="{{ op.pk }}"
+       data-url="{% url 'system_health:stockage_operation_api' op.pk %}"
+       {% endif %}>
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div>
+        <span class="fw-600 small">{{ op.get_type_operation_display }}</span>
+        {% if op.categorie %}
+          — {{ op.get_categorie_display }}
+        {% elif op.peripherique %}
+          — <code>{{ op.peripherique }}</code>
+        {% endif %}
+        <div class="text-muted small">
+          {{ op.cree_le|date:"d/m/Y H:i" }}
+          {% if op.demandee_par %}· {{ op.demandee_par }}{% endif %}
+        </div>
+      </div>
+      <span class="badge {% if op.etat == 'echouee' %}bg-danger{% elif op.etat == 'terminee' %}bg-success{% elif op.etat == 'verifiee' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}"
+            data-etat>{{ op.get_etat_display }}</span>
+    </div>
+
+    {% if op.est_en_cours %}
+    <div class="progress mt-2" style="height:6px">
+      <div class="progress-bar progress-bar-striped progress-bar-animated"
+           data-barre style="width:{{ op.progression }}%"></div>
+    </div>
+    <div class="text-muted small mt-1" data-avancement>
+      {{ op.fichiers_traites }} / {{ op.fichiers_total }} fichier(s)
+    </div>
+    {% endif %}
+
+    {% if op.message %}
+    <div class="small mt-1 {% if op.etat == 'echouee' %}text-danger{% else %}text-muted{% endif %}"
+         data-message>{{ op.message }}</div>
+    {% endif %}
+
+    {% if op.etat == 'verifiee' and op.chemin_source %}
+    <div class="alert alert-warning small mt-2 mb-0">
+      <div class="mb-2">
+        L'ancien emplacement <code>{{ op.chemin_source }}</code> est intact.
+        Vérifiez que l'ERP fonctionne normalement — ouvrez quelques documents,
+        quelques images — <strong>avant</strong> de libérer cet espace. Cette
+        suppression est définitive.
+      </div>
+      <form method="post"
+            action="{% url 'system_health:stockage_liberer_la_source' op.pk %}"
+            class="d-flex gap-1 align-items-center flex-wrap">
+        {% csrf_token %}
+        <input type="text" name="confirmation" class="form-control form-control-sm"
+               style="max-width:180px" placeholder="Saisissez SUPPRIMER"
+               autocomplete="off" required>
+        <button class="orion-btn sm btn-outline-danger" type="submit">
+          Libérer l'espace
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if op.journal %}
+    <details class="mt-2">
+      <summary class="small text-muted">Journal détaillé</summary>
+      <pre class="bg-dark text-light p-2 rounded small mt-1 mb-0"
+           style="max-height:220px;overflow:auto"
+           data-journal>{{ op.journal }}</pre>
+    </details>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Ajouter un disque : partitionner, formater, monter -->
+<div class="orion-card mt-3">
+  <h2 class="h6 mb-1"><i class="bi bi-plus-circle me-2"></i>Ajouter un disque</h2>
+
+  {% if not assistant_disponible %}
+    <div class="alert alert-secondary small mb-0">
+      {{ erreur_assistant }}
+    </div>
+  {% elif erreur_assistant %}
+    <div class="alert alert-danger small mb-0">{{ erreur_assistant }}</div>
+  {% else %}
+    <p class="text-muted small mb-3">
+      Un disque ajouté à la machine apparaît ici. Le préparer crée une table
+      GPT, une partition unique en ext4, un point de montage
+      <code>/mnt/orion-&lt;étiquette&gt;</code> et une ligne dans
+      <code>/etc/fstab</code> par UUID, avec <code>nofail</code> — un disque
+      absent au démarrage ne bloquera donc jamais la machine.
+    </p>
+
+    {% if not disques_physiques %}
+      <div class="text-muted small">Aucun disque détecté.</div>
+    {% endif %}
+
+    {% for d in disques_physiques %}
+    <div class="border rounded p-2 mb-2">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          <code class="fw-600">{{ d.peripherique }}</code>
+          <span class="text-muted small">
+            — {{ d.taille_octets|filesizeformat }}
+            {% if d.modele %}· {{ d.modele }}{% endif %}
+          </span>
+          <div class="text-muted small">
+            {% if d.numero_de_serie %}Série : <code>{{ d.numero_de_serie }}</code>{% endif %}
+            {% if d.partitions %}· {{ d.partitions }} partition(s){% endif %}
+            {% if d.systemes_de_fichiers %}
+              · contient : {{ d.systemes_de_fichiers|join:", " }}
+            {% endif %}
+          </div>
+        </div>
+        {% if d.utilisable %}
+          <span class="badge bg-success">Disponible</span>
+        {% else %}
+          <span class="badge bg-secondary">Inutilisable</span>
+        {% endif %}
+      </div>
+
+      {% if not d.utilisable %}
+        <div class="text-muted small mt-1">
+          <i class="bi bi-shield-check"></i>
+          Refusé : {{ d.raisons|join:" ; " }}.
+        </div>
+      {% elif operation_en_cours %}
+        <div class="text-muted small mt-1">
+          <i class="bi bi-hourglass-split"></i> Une opération est en cours.
+        </div>
+      {% else %}
+        <div class="alert alert-danger small mt-2 mb-0">
+          <div class="mb-2">
+            <strong>Préparer ce disque efface tout son contenu</strong>, sans
+            retour possible.
+            {% if d.contient_des_donnees %}
+              Il contient déjà un système de fichiers
+              ({{ d.systemes_de_fichiers|join:", " }}).
+            {% endif %}
+            Pour confirmer, recopiez <code>{{ d.peripherique }}</code>.
+          </div>
+          <form method="post"
+                action="{% url 'system_health:stockage_preparer_disque' %}"
+                class="d-flex gap-1 align-items-center flex-wrap">
+            {% csrf_token %}
+            <input type="hidden" name="peripherique" value="{{ d.peripherique }}">
+            {# Le numero de serie AFFICHE repart avec la demande : le script
+               root compare au materiel present et s'arrete s'il a change,
+               ce qui empeche de formater le bon nom sur le mauvais disque. #}
+            <input type="hidden" name="numero_de_serie"
+                   value="{{ d.numero_de_serie|default:d.wwn }}">
+            <input type="text" name="etiquette" class="form-control form-control-sm"
+                   style="max-width:150px" placeholder="étiquette (ex. donnees)"
+                   pattern="[a-z0-9][a-z0-9-]{0,23}" required
+                   title="Minuscules, chiffres et tirets, 24 caractères au plus."
+                   autocomplete="off">
+            <input type="text" name="confirmation" class="form-control form-control-sm"
+                   style="max-width:170px" placeholder="{{ d.peripherique }}"
+                   autocomplete="off" required>
+            <button class="orion-btn sm btn-outline-danger" type="submit">
+              Préparer et monter
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -393,5 +607,62 @@ function refreshDisks() {
     .catch(() => {});
 }
 setInterval(refreshDisks, 30000);
+
+// Avancement des opérations de stockage.
+//
+// Le suivi s'arrête de lui-même dès que l'opération quitte « en cours », et
+// la page est rechargée une seule fois à ce moment-là : c'est ce qui fait
+// apparaître le bouton « Libérer l'espace » d'une copie vérifiée sans
+// obliger l'utilisateur à rafraîchir, et sans recharger en boucle.
+(function suivreLesOperations() {
+  const blocs = document.querySelectorAll('[data-operation]');
+  if (!blocs.length) return;
+
+  const termines = new Set();
+
+  function majUnBloc(bloc) {
+    const id = bloc.dataset.operation;
+    if (termines.has(id)) return Promise.resolve(false);
+
+    return fetch(bloc.dataset.url)
+      .then(r => r.json())
+      .then(d => {
+        const barre = bloc.querySelector('[data-barre]');
+        if (barre) barre.style.width = d.progression + '%';
+
+        const avancement = bloc.querySelector('[data-avancement]');
+        if (avancement) {
+          avancement.textContent =
+            d.fichiers_traites + ' / ' + d.fichiers_total + ' fichier(s) — '
+            + d.progression + ' %';
+        }
+
+        const etat = bloc.querySelector('[data-etat]');
+        if (etat) etat.textContent = d.etat_libelle;
+
+        const message = bloc.querySelector('[data-message]');
+        if (message && d.message) message.textContent = d.message;
+
+        const journal = bloc.querySelector('[data-journal]');
+        if (journal && d.journal) journal.textContent = d.journal;
+
+        if (!d.en_cours) {
+          termines.add(id);
+          return true;
+        }
+        return false;
+      })
+      .catch(() => false);
+  }
+
+  const minuteur = setInterval(function () {
+    Promise.all(Array.from(blocs).map(majUnBloc)).then(resultats => {
+      if (resultats.some(Boolean)) {
+        clearInterval(minuteur);
+        window.location.reload();
+      }
+    });
+  }, 3000);
+})();
 </script>
 {% endblock %}

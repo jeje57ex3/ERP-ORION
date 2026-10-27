@@ -271,6 +271,53 @@ if [ -d "$NS_PATH" ]; then
   fi
 fi
 
+# Rafraichir les aides privilegiees (regles sudo et assistant disque).
+#
+# POURQUOI CE BLOC EXISTE. Ces fichiers n'etaient installes que par
+# provisioning/02-deploy-orion.sh, c'est-a-dire une seule fois, a la
+# creation de la machine. Une regle sudo ajoutee ou corrigee plus tard
+# n'arrivait donc JAMAIS sur une machine deja installee : le bouton
+# correspondant s'affichait dans l'ERP et ne faisait rien, exactement le
+# defaut que sudoers/orion-serveur decrit. On les reinstalle a chaque mise
+# a jour, apres le git pull qui vient de les apporter.
+#
+# visudo -c AVANT mise en place, et c'est imperatif : un fichier malforme
+# dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
+# reparer.
+echo "[5b/6] Rafraîchissement des droits et assistants privilégiés..."
+SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
+for nom in orion-serveur orion-stockage; do
+  src="$SUDOERS_DIR/$nom"
+  if [ ! -f "$src" ]; then
+    echo "  $nom : source absente, ignoré."
+    continue
+  fi
+  tmp="$(mktemp)"
+  install -m 0440 -o root -g root "$src" "$tmp"
+  if visudo -c -f "$tmp" >/dev/null 2>&1; then
+    install -m 0440 -o root -g root "$tmp" "/etc/sudoers.d/$nom"
+    echo "  $nom : installé."
+  else
+    echo "  ATTENTION: $nom refusé par visudo -c, conservé en l'état." >&2
+  fi
+  rm -f "$tmp"
+done
+
+# Mode 0750, groupe orion : executable par le compte de service, jamais
+# inscriptible par lui. S'il pouvait reecrire ce fichier, la regle sudo qui
+# l'autorise equivaudrait a un acces root complet.
+STOCKAGE_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/scripts/orion-stockage"
+if [ -f "$STOCKAGE_SRC" ]; then
+  install -o root -g orion -m 0750 "$STOCKAGE_SRC" /usr/local/sbin/orion-stockage
+  echo "  assistant disque : /usr/local/sbin/orion-stockage installé."
+  if ! command -v sgdisk >/dev/null 2>&1 || ! command -v partprobe >/dev/null 2>&1; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gdisk parted >/dev/null 2>&1 \
+      || echo "  ATTENTION: gdisk/parted non installés, préparation de disque indisponible." >&2
+  fi
+else
+  echo "  assistant disque : source absente, ignoré."
+fi
+
 echo "[6/6] Redémarrage des services..."
 systemctl restart orion-backend.service orion-frontend.service
 systemctl restart siecle-frontend.service lunea-frontend.service

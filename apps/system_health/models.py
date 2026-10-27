@@ -664,3 +664,116 @@ class HealthAuditLog(models.Model):
 
     def __str__(self):
         return f'{self.get_action_display()} — {self.user} — {self.created_at:%d/%m %H:%M}'
+
+
+# ─── Stockage : opérations sur les disques ────────────────────────────────────
+
+class OperationDeStockage(models.Model):
+    """Une opération de stockage demandée depuis l'interface.
+
+    **Ce modèle n'enregistre pas où sont les fichiers.** Cette information
+    est lue sur le disque : chaque catégorie déplaçable est un lien
+    symbolique, et la cible du lien EST la vérité. Un champ qui la
+    doublerait finirait par la contredire — un disque remonté ailleurs à la
+    main, une restauration, et la base affirmerait un emplacement que le
+    noyau ne suit plus. Ce projet a déjà payé ce genre de doublon.
+
+    Ce modèle enregistre donc ce que le disque ne peut pas dire : qui a
+    demandé quoi, quand, où ça en est, et ce qui a échoué.
+    """
+
+    TYPE_CHOICES = [
+        ('preparer_disque',  'Préparer un disque'),
+        ('basculer',         'Basculer vers un disque'),
+        ('copier_basculer',  'Copier puis basculer'),
+        ('supprimer_source', "Supprimer l'ancien emplacement"),
+    ]
+
+    # « verifiee » n'est pas « terminee » : la copie est faite et
+    # controlee, et l'original est encore la. C'est un etat d'arret
+    # volontaire -- supprimer des fichiers ne doit jamais etre la suite
+    # automatique d'une copie.
+    ETAT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('en_cours',   'En cours'),
+        ('verifiee',   'Vérifiée — ancien emplacement conservé'),
+        ('terminee',   'Terminée'),
+        ('echouee',    'Échouée'),
+    ]
+
+    CATEGORIE_CHOICES = [
+        ('medias',      'Médias et documents'),
+        ('sauvegardes', 'Sauvegardes'),
+        ('journaux',    'Journaux'),
+    ]
+
+    type_operation = models.CharField('Type', max_length=20,
+                                      choices=TYPE_CHOICES)
+    categorie = models.CharField('Catégorie', max_length=20, blank=True,
+                                 choices=CATEGORIE_CHOICES)
+    etat = models.CharField('État', max_length=12, choices=ETAT_CHOICES,
+                            default='en_attente', db_index=True)
+
+    volume_cible = models.CharField('Volume cible', max_length=200, blank=True)
+    chemin_source = models.CharField('Chemin source', max_length=500,
+                                     blank=True)
+    chemin_cible = models.CharField('Chemin cible', max_length=500, blank=True)
+
+    # Le peripherique n'est renseigne que pour « preparer_disque ».
+    peripherique = models.CharField('Périphérique', max_length=100, blank=True)
+
+    fichiers_total = models.PositiveIntegerField('Fichiers à traiter',
+                                                 default=0)
+    fichiers_traites = models.PositiveIntegerField('Fichiers traités',
+                                                   default=0)
+    octets_total = models.BigIntegerField('Octets à traiter', default=0)
+    octets_traites = models.BigIntegerField('Octets traités', default=0)
+
+    message = models.CharField('Message', max_length=300, blank=True)
+    journal = models.TextField('Journal détaillé', blank=True)
+
+    demandee_par = models.ForeignKey(User, null=True, blank=True,
+                                     on_delete=models.SET_NULL,
+                                     verbose_name='Demandée par')
+    cree_le = models.DateTimeField(auto_now_add=True, db_index=True)
+    debute_le = models.DateTimeField(null=True, blank=True)
+    fini_le = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Opération de stockage'
+        verbose_name_plural = 'Opérations de stockage'
+        ordering = ['-cree_le']
+        indexes = [models.Index(fields=['etat', 'cree_le'])]
+
+    def __str__(self):
+        return (f'{self.get_type_operation_display()} '
+                f'{self.categorie or self.peripherique} — '
+                f'{self.get_etat_display()}')
+
+    @property
+    def est_en_cours(self):
+        return self.etat in ('en_attente', 'en_cours')
+
+    @property
+    def progression(self):
+        """Avancement en pourcentage, mesuré en octets.
+
+        En octets et non en fichiers : un dossier de médias mélange des
+        vignettes de 4 Ko et des PDF de 80 Mo, et un compteur de fichiers
+        afficherait 90 % pendant la première seconde puis resterait figé.
+        """
+        if self.octets_total <= 0:
+            return 0
+        return min(100, round(self.octets_traites * 100 / self.octets_total))
+
+    def ajouter_au_journal(self, ligne):
+        """Ajoute une ligne horodatée, en bornant la taille du champ.
+
+        Un échec sur 200 000 fichiers produirait sinon un journal que
+        personne ne peut ouvrir et qui alourdit chaque lecture de la page.
+        """
+        horodatage = timezone.now().strftime('%H:%M:%S')
+        self.journal = (self.journal or '') + f'[{horodatage}] {ligne}\n'
+        if len(self.journal) > 60000:
+            self.journal = (
+                '[...début tronqué...]\n' + self.journal[-50000:])

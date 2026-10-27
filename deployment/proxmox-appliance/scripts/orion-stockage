@@ -1,0 +1,505 @@
+#!/usr/bin/python3
+"""Orion ERP — préparer un disque depuis l'interface, sans ouvrir de terminal.
+
+À installer dans /usr/local/sbin/orion-stockage, propriétaire root:root,
+groupe orion, en mode 0750. L'utilisateur « orion » doit pouvoir
+l'EXÉCUTER et jamais l'ÉCRIRE : s'il pouvait le modifier, la règle sudo
+qui l'autorise équivaudrait à un accès root complet, puisqu'il suffirait
+de réécrire le fichier avant de l'appeler.
+
+    install -o root -g orion -m 0750 orion-stockage /usr/local/sbin/
+
+POURQUOI CE SCRIPT EXISTE
+=========================
+orion-backend.service tourne sous « User=orion », qui n'est pas
+administrateur. Partitionner, formater, monter et inscrire dans /etc/fstab
+demandent root. Sans ce script, les boutons de l'écran des disques
+s'afficheraient et ne feraient rien — le même défaut que les boutons
+« Redémarrer » avant l'existence de sudoers/orion-serveur.
+
+AUCUN JOKER DANS LA RÈGLE SUDO
+==============================
+sudoers/orion-serveur explique pourquoi : un motif « commande * » accepte
+beaucoup plus que ce qu'on croit lui accorder. Or le périphérique à
+préparer est un paramètre, donc une règle à commande exacte semblait
+impossible.
+
+Elle ne l'est pas : les paramètres arrivent par l'ENTRÉE STANDARD, en
+JSON, et non en arguments. Les trois règles sudo sont donc des commandes
+exactes, sans un seul joker :
+
+    orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage lister
+    orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage preparer
+    orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage demonter
+
+Toute la sûreté se joue alors dans la validation faite ici, par du code
+que « orion » ne peut pas modifier.
+
+CE QUE CE SCRIPT REFUSE
+=======================
+Formater détruit des données sans retour possible. Les refus sont donc
+nombreux et délibérés :
+
+- le périphérique doit être un disque ENTIER (TYPE=disk selon lsblk), pas
+  une partition : « preparer /dev/sda1 » est refusé ;
+- aucune de ses partitions ne doit être montée ;
+- il ne doit pas porter la racine « / », ni /boot, ni le swap actif ;
+- il ne doit pas être utilisé par LVM, par un RAID logiciel ou par un
+  chiffrement ouvert (on lit la colonne des « holders » du noyau) ;
+- s'il contient déjà un système de fichiers, l'effacement doit être
+  demandé explicitement ET l'appelant doit renvoyer le NUMÉRO DE SÉRIE que
+  l'interface a montré à l'utilisateur. Si ce numéro ne correspond plus,
+  c'est que /dev/sdX ne désigne plus le même disque qu'à l'affichage —
+  débranchement, redémarrage, ajout d'un autre disque — et le script
+  s'arrête. Cette vérification est le garde-fou le plus important du
+  fichier : elle empêche de formater le bon nom sur le mauvais disque.
+
+L'étiquette est contrainte à [a-z0-9-], le point de montage est CALCULÉ
+(/mnt/orion-<étiquette>) et jamais reçu, et l'inscription dans /etc/fstab
+se fait par UUID — un nom /dev/sdX peut changer d'un démarrage à l'autre,
+et une ligne fstab erronée empêche la machine de démarrer.
+"""
+
+import json
+import os
+import re
+import subprocess
+import sys
+
+PREFIXE_DE_MONTAGE = '/mnt/orion-'
+MOTIF_ETIQUETTE = re.compile(r'^[a-z0-9][a-z0-9-]{0,23}$')
+MOTIF_PERIPHERIQUE = re.compile(
+    r'^/dev/(sd[a-z]{1,2}|vd[a-z]{1,2}|hd[a-z]{1,2}|nvme\d{1,2}n\d{1,2})$')
+
+# Les chemins sont cherchés dans une liste fixe, et non via $PATH : sudo
+# fournit un secure_path, mais ne pas en dépendre coûte trois lignes.
+DOSSIERS_DOUTILS = ('/sbin', '/usr/sbin', '/bin', '/usr/bin')
+
+# Points de montage qu'un disque candidat ne doit en aucun cas porter.
+MONTAGES_SYSTEME = ('/', '/boot', '/boot/efi', '/usr', '/var', '/etc')
+
+
+class Refus(Exception):
+    """Refus explicite, avec un message destiné à l'utilisateur."""
+
+
+def outil(nom):
+    for dossier in DOSSIERS_DOUTILS:
+        chemin = os.path.join(dossier, nom)
+        if os.path.isfile(chemin) and os.access(chemin, os.X_OK):
+            return chemin
+    raise Refus(f'Outil introuvable sur ce système : {nom}. '
+                f'Installez le paquet correspondant.')
+
+
+def executer(arguments, entree=None, delai=300):
+    """Lance une commande sans shell, et remonte son erreur telle quelle."""
+    try:
+        acheve = subprocess.run(
+            arguments, input=entree, capture_output=True, text=True,
+            timeout=delai, shell=False)
+    except subprocess.TimeoutExpired:
+        raise Refus(f'{arguments[0]} n\'a pas répondu en {delai} s.')
+    except OSError as exc:
+        raise Refus(f'{arguments[0]} : {exc}')
+    if acheve.returncode != 0:
+        detail = (acheve.stderr or acheve.stdout or '').strip()
+        raise Refus(f'{os.path.basename(arguments[0])} a échoué : {detail}')
+    return acheve.stdout
+
+
+# ── Lire l'état des disques ────────────────────────────────────────────────
+
+def _lsblk():
+    """L'arbre des périphériques, en JSON, avec ce qui sert à décider."""
+    sortie = executer([
+        outil('lsblk'), '--json', '--bytes', '--paths',
+        '-o', 'NAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,MODEL,SERIAL,WWN,RO,RM',
+    ], delai=30)
+    try:
+        return json.loads(sortie).get('blockdevices', [])
+    except (ValueError, AttributeError) as exc:
+        raise Refus(f'Sortie de lsblk illisible : {exc}')
+
+
+def _descendants(noeud):
+    """Le nœud et tous ses enfants, à plat."""
+    rendu = [noeud]
+    for enfant in noeud.get('children') or []:
+        rendu.extend(_descendants(enfant))
+    return rendu
+
+
+def _detenteurs(nom_de_peripherique):
+    """Les « holders » du noyau : LVM, RAID logiciel, chiffrement ouvert.
+
+    /sys/block/<dev>/holders n'est pas vide dès qu'une couche s'appuie sur
+    ce disque. Formater sous une couche active ne produit pas une erreur
+    franche : il produit une corruption silencieuse.
+    """
+    trouves = []
+    base = os.path.basename(nom_de_peripherique)
+    for racine in (f'/sys/block/{base}',):
+        if not os.path.isdir(racine):
+            continue
+        for entree in os.listdir(racine):
+            dossier_holders = os.path.join(racine, entree, 'holders')
+            if os.path.isdir(dossier_holders):
+                trouves.extend(os.listdir(dossier_holders))
+        dossier_holders = os.path.join(racine, 'holders')
+        if os.path.isdir(dossier_holders):
+            trouves.extend(os.listdir(dossier_holders))
+    return sorted(set(trouves))
+
+
+def _swap_actif():
+    """Les périphériques utilisés comme swap, lus dans /proc/swaps."""
+    actifs = []
+    try:
+        with open('/proc/swaps', encoding='utf-8') as fichier:
+            for ligne in fichier.readlines()[1:]:
+                nom = ligne.split()[0] if ligne.split() else ''
+                if nom.startswith('/dev/'):
+                    actifs.append(nom)
+    except OSError:
+        pass
+    return actifs
+
+
+def _evaluer(disque):
+    """Dit si un disque est utilisable, et sinon pourquoi."""
+    noeuds = _descendants(disque)
+    montages = [n.get('mountpoint') for n in noeuds if n.get('mountpoint')]
+    systemes = [n.get('fstype') for n in noeuds if n.get('fstype')]
+    swaps = _swap_actif()
+    detenteurs = _detenteurs(disque.get('name', ''))
+
+    raisons = []
+    if disque.get('type') != 'disk':
+        raisons.append('ce n\'est pas un disque entier')
+    if disque.get('ro'):
+        raisons.append('disque en lecture seule')
+    for montage in montages:
+        if montage in MONTAGES_SYSTEME:
+            raisons.append(f'porte le système ({montage})')
+        else:
+            raisons.append(f'une partition est montée sur {montage}')
+    if any(n.get('name') in swaps for n in noeuds):
+        raisons.append('utilisé comme swap')
+    if detenteurs:
+        raisons.append(
+            f'utilisé par une autre couche ({", ".join(detenteurs)})')
+
+    return {
+        'peripherique': disque.get('name'),
+        'taille_octets': disque.get('size') or 0,
+        'modele': (disque.get('model') or '').strip(),
+        'numero_de_serie': (disque.get('serial') or '').strip(),
+        'wwn': (disque.get('wwn') or '').strip(),
+        'amovible': bool(disque.get('rm')),
+        'partitions': len([n for n in noeuds if n.get('type') == 'part']),
+        'systemes_de_fichiers': [s for s in systemes if s],
+        'points_de_montage': montages,
+        'contient_des_donnees': bool(systemes),
+        'utilisable': not raisons,
+        'raisons': raisons,
+    }
+
+
+def commande_lister():
+    disques = [_evaluer(d) for d in _lsblk() if d.get('type') == 'disk']
+    deja = [point for point in _points_de_montage_orion()]
+    return {'disques': disques, 'montages_orion': deja}
+
+
+def _points_de_montage_orion():
+    """Les points de montage déjà créés par ce script."""
+    trouves = []
+    for noeud in _lsblk():
+        for enfant in _descendants(noeud):
+            point = enfant.get('mountpoint') or ''
+            if point.startswith(PREFIXE_DE_MONTAGE):
+                trouves.append(point)
+    return sorted(set(trouves))
+
+
+# ── Préparer un disque ────────────────────────────────────────────────────
+
+def _valider_la_demande(demande):
+    peripherique = str(demande.get('peripherique') or '')
+    etiquette = str(demande.get('etiquette') or '')
+
+    if not MOTIF_PERIPHERIQUE.match(peripherique):
+        raise Refus(
+            f'Périphérique refusé : « {peripherique} ». Attendu un disque '
+            f'entier comme /dev/sdb, /dev/vdb ou /dev/nvme0n1 — pas une '
+            f'partition, pas un chemin arbitraire.')
+
+    if not MOTIF_ETIQUETTE.match(etiquette):
+        raise Refus(
+            f'Étiquette refusée : « {etiquette} ». Lettres minuscules, '
+            f'chiffres et tirets, 24 caractères au plus.')
+
+    if not os.path.exists(peripherique):
+        raise Refus(f'{peripherique} n\'existe pas sur cette machine.')
+
+    return peripherique, etiquette
+
+
+def commande_preparer(demande):
+    peripherique, etiquette = _valider_la_demande(demande)
+
+    disques = {d.get('name'): d for d in _lsblk() if d.get('type') == 'disk'}
+    if peripherique not in disques:
+        raise Refus(
+            f'{peripherique} n\'est pas un disque entier d\'après lsblk. '
+            f'Refusé.')
+
+    etat = _evaluer(disques[peripherique])
+    if not etat['utilisable']:
+        raise Refus(
+            f'{peripherique} ne peut pas être préparé : '
+            f'{" ; ".join(etat["raisons"])}.')
+
+    point_de_montage = PREFIXE_DE_MONTAGE + etiquette
+    if os.path.ismount(point_de_montage):
+        raise Refus(
+            f'{point_de_montage} est déjà un point de montage. Choisissez '
+            f'une autre étiquette.')
+
+    # Le garde-fou central : si le disque porte des donnees, l'appelant
+    # doit renvoyer le numero de serie que l'interface a AFFICHE. Un nom
+    # /dev/sdX peut designer un autre disque apres un redemarrage ou
+    # l'ajout d'un peripherique ; le numero de serie, non.
+    if etat['contient_des_donnees']:
+        if not demande.get('effacer'):
+            raise Refus(
+                f'{peripherique} contient déjà des données '
+                f'({", ".join(etat["systemes_de_fichiers"])}). '
+                f'L\'effacement doit être demandé explicitement.')
+
+        attendu = str(demande.get('numero_de_serie') or '').strip()
+        reel = etat['numero_de_serie'] or etat['wwn']
+        if not attendu:
+            raise Refus(
+                'Effacement refusé : le numéro de série du disque affiché '
+                'n\'a pas été transmis. Sans lui, rien ne garantit que '
+                f'{peripherique} désigne encore le même disque.')
+        if not reel:
+            raise Refus(
+                f'{peripherique} n\'expose aucun numéro de série, et '
+                f'contient des données. Par précaution, l\'effacement est '
+                f'refusé : vérifiez le disque depuis la console.')
+        if attendu != reel:
+            raise Refus(
+                f'ARRÊT. Le disque présent sur {peripherique} porte le '
+                f'numéro « {reel} », alors que l\'interface a montré '
+                f'« {attendu} ». {peripherique} ne désigne plus le même '
+                f'matériel. Rien n\'a été modifié.')
+
+    journal = []
+
+    def noter(ligne):
+        journal.append(ligne)
+
+    # 1. Effacer les signatures existantes, pour que le nouveau GPT ne
+    #    cohabite pas avec les restes d'une table precedente.
+    executer([outil('wipefs'), '--all', '--force', peripherique])
+    noter(f'Signatures effacées sur {peripherique}.')
+
+    # 2. Une table GPT neuve et UNE partition occupant tout le disque.
+    executer([outil('sgdisk'), '--zap-all', peripherique])
+    executer([outil('sgdisk'), '--new=1:0:0',
+              '--typecode=1:8300',
+              f'--change-name=1:orion-{etiquette}', peripherique])
+    noter('Table GPT créée, une partition sur tout le disque.')
+
+    executer([outil('partprobe'), peripherique], delai=60)
+    partition = _partition_unique(peripherique)
+    noter(f'Partition : {partition}.')
+
+    # 3. ext4. « -m 1 » rend au volume les 5 % reserves par defaut a root,
+    #    soit des dizaines de gigaoctets sur un gros disque de donnees.
+    executer([outil('mkfs.ext4'), '-F', '-m', '1',
+              '-L', f'orion-{etiquette}'[:16], partition], delai=1800)
+    noter('Système de fichiers ext4 créé.')
+
+    uuid = _uuid_de(partition)
+    noter(f'UUID : {uuid}.')
+
+    # 4. Monter, puis inscrire dans fstab -- dans cet ordre. Une ligne
+    #    fstab fautive empeche la machine de demarrer ; on ne l'ecrit
+    #    qu'apres avoir prouve que le montage fonctionne.
+    os.makedirs(point_de_montage, exist_ok=True)
+    executer([outil('mount'), '-o', 'defaults,noatime',
+              f'UUID={uuid}', point_de_montage], delai=120)
+    noter(f'Monté sur {point_de_montage}.')
+
+    _inscrire_dans_fstab(uuid, point_de_montage, etiquette)
+    noter('Inscrit dans /etc/fstab par UUID.')
+
+    # 5. Rendre le volume ecrivable par l'application.
+    executer([outil('chown'), 'orion:orion', point_de_montage])
+    executer([outil('chmod'), '0755', point_de_montage])
+    noter('Propriétaire : orion.')
+
+    return {
+        'peripherique': peripherique,
+        'partition': partition,
+        'uuid': uuid,
+        'point_de_montage': point_de_montage,
+        'journal': journal,
+    }
+
+
+def _partition_unique(peripherique):
+    """La partition que l'on vient de créer, lue et non devinée.
+
+    Devinée, elle serait « /dev/sdb1 » — mais c'est « /dev/nvme0n1p1 »
+    pour un NVMe. On interroge lsblk plutôt que de concaténer.
+    """
+    sortie = executer([outil('lsblk'), '--json', '--paths', '-o',
+                       'NAME,TYPE', peripherique], delai=30)
+    try:
+        noeuds = json.loads(sortie).get('blockdevices', [])
+    except ValueError as exc:
+        raise Refus(f'Sortie de lsblk illisible : {exc}')
+
+    partitions = [n.get('name') for noeud in noeuds
+                  for n in _descendants(noeud)
+                  if n.get('type') == 'part']
+    if len(partitions) != 1:
+        raise Refus(
+            f'{peripherique} porte {len(partitions)} partition(s) après '
+            f'création, une seule était attendue. Arrêt avant formatage.')
+    return partitions[0]
+
+
+def _uuid_de(partition):
+    sortie = executer([outil('blkid'), '-s', 'UUID', '-o', 'value',
+                       partition], delai=30).strip()
+    if not re.match(r'^[0-9a-fA-F-]{10,40}$', sortie):
+        raise Refus(f'UUID illisible pour {partition} : « {sortie} ».')
+    return sortie
+
+
+def _inscrire_dans_fstab(uuid, point_de_montage, etiquette):
+    """Ajoute la ligne de montage, sans jamais toucher aux autres.
+
+    « 0 2 » en fin de ligne : pas de dump, et vérification du système de
+    fichiers après la racine. « nofail » est essentiel — sans lui, un
+    disque de données absent au démarrage bloque le démarrage complet de
+    la machine, et il faut une console pour s'en sortir.
+    """
+    ligne = (f'UUID={uuid}  {point_de_montage}  ext4  '
+             f'defaults,noatime,nofail  0  2'
+             f'  # orion-{etiquette}\n')
+
+    try:
+        with open('/etc/fstab', encoding='utf-8') as fichier:
+            contenu = fichier.read()
+    except OSError as exc:
+        raise Refus(f'/etc/fstab illisible : {exc}')
+
+    if uuid in contenu:
+        return
+    if f' {point_de_montage} ' in contenu:
+        raise Refus(
+            f'/etc/fstab contient déjà une ligne pour {point_de_montage}. '
+            f'Rien n\'a été ajouté.')
+
+    sauvegarde = '/etc/fstab.orion-avant-' + etiquette
+    try:
+        if not os.path.exists(sauvegarde):
+            with open(sauvegarde, 'w', encoding='utf-8') as fichier:
+                fichier.write(contenu)
+        with open('/etc/fstab', 'a', encoding='utf-8') as fichier:
+            fichier.write(ligne)
+    except OSError as exc:
+        raise Refus(f'/etc/fstab non modifiable : {exc}')
+
+    # Prouver que fstab reste exploitable. « mount --fake --all » relit le
+    # fichier sans rien monter : une erreur ici serait fatale au prochain
+    # demarrage, et c'est le dernier moment ou on peut la voir.
+    try:
+        executer([outil('mount'), '--fake', '--all'], delai=60)
+    except Refus as exc:
+        with open('/etc/fstab', 'w', encoding='utf-8') as fichier:
+            fichier.write(contenu)
+        raise Refus(
+            f'La ligne ajoutée rend /etc/fstab invalide, elle a été '
+            f'retirée : {exc}')
+
+
+# ── Démonter ──────────────────────────────────────────────────────────────
+
+def commande_demonter(demande):
+    point = os.path.normpath(str(demande.get('point_de_montage') or ''))
+    if not point.startswith(PREFIXE_DE_MONTAGE):
+        raise Refus(
+            f'Seuls les points de montage créés par Orion '
+            f'({PREFIXE_DE_MONTAGE}*) peuvent être démontés ici. '
+            f'« {point} » est refusé.')
+    if not os.path.ismount(point):
+        raise Refus(f'{point} n\'est pas monté.')
+
+    executer([outil('umount'), point], delai=120)
+    return {'point_de_montage': point, 'demonte': True}
+
+
+# ── Entrée ────────────────────────────────────────────────────────────────
+
+COMMANDES = {
+    'lister': lambda demande: commande_lister(),
+    'preparer': commande_preparer,
+    'demonter': commande_demonter,
+}
+
+
+def main():
+    if os.geteuid() != 0:
+        print(json.dumps({'ok': False, 'erreur':
+                          'Ce script doit être lancé par root.'}))
+        return 1
+
+    if len(sys.argv) != 2 or sys.argv[1] not in COMMANDES:
+        print(json.dumps({
+            'ok': False,
+            'erreur': f'Usage : orion-stockage '
+                      f'{{{"|".join(COMMANDES)}}} ; les paramètres sont '
+                      f'lus en JSON sur l\'entrée standard.'}))
+        return 2
+
+    demande = {}
+    if sys.argv[1] != 'lister':
+        brut = sys.stdin.read(65536)
+        if brut.strip():
+            try:
+                demande = json.loads(brut)
+            except ValueError as exc:
+                print(json.dumps({'ok': False,
+                                  'erreur': f'JSON illisible : {exc}'}))
+                return 2
+        if not isinstance(demande, dict):
+            print(json.dumps({'ok': False,
+                              'erreur': 'Un objet JSON était attendu.'}))
+            return 2
+
+    try:
+        resultat = COMMANDES[sys.argv[1]](demande)
+    except Refus as exc:
+        print(json.dumps({'ok': False, 'erreur': str(exc)},
+                         ensure_ascii=False))
+        return 1
+    except Exception as exc:                       # noqa: BLE001
+        print(json.dumps({'ok': False,
+                          'erreur': f'Erreur inattendue : {exc}'},
+                         ensure_ascii=False))
+        return 1
+
+    print(json.dumps({'ok': True, **resultat}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
