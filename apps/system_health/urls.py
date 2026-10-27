@@ -27,6 +27,20 @@ urlpatterns = [
     path(_P + 'disques/', views.disk_dashboard, name='disk_dashboard'),
     path(_P + 'api/disques/', views.disk_api, name='disk_api'),
 
+    # Allocation, deplacement, ajout de disques -- execute, plus seulement
+    # guide. Toutes en POST sauf la lecture d'avancement : ces actions
+    # formatent, copient et suppriment, et un GET est rejouable par un
+    # simple rafraichissement de page.
+    path(_P + 'disques/preparer/', views.stockage_preparer_disque,
+         name='stockage_preparer_disque'),
+    path(_P + 'disques/deplacer/', views.stockage_deplacer,
+         name='stockage_deplacer'),
+    path(_P + 'disques/operation/<int:pk>/liberer/',
+         views.stockage_liberer_la_source,
+         name='stockage_liberer_la_source'),
+    path(_P + 'disques/operation/<int:pk>/avancement/',
+         views.stockage_operation_api, name='stockage_operation_api'),
+
     # Registre des risques
     path(_P + 'risques/', views.risk_list, name='risk_list'),
     path(_P + 'risques/nouveau/', views.risk_create, name='risk_create'),

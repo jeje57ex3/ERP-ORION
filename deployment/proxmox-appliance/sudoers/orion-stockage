@@ -1,0 +1,43 @@
+# Orion ERP — droit de préparer un disque depuis l'interface des disques.
+#
+# À installer dans /etc/sudoers.d/orion-stockage, propriétaire root:root,
+# en mode 0440. Le fichier doit être validé par « visudo -c » AVANT d'être
+# mis en place : un fichier malformé dans /etc/sudoers.d/ casse sudo pour
+# TOUT LE MONDE, y compris pour le réparer.
+#
+# Pourquoi ce fichier existe : orion-backend.service tourne sous
+# « User=orion », qui n'est pas administrateur. Partitionner, formater,
+# monter et inscrire dans /etc/fstab demandent root. Sans cette règle, les
+# boutons de l'écran des disques s'afficheraient et ne feraient rien — le
+# même défaut que les boutons « Redémarrer » avant orion-serveur.
+#
+# AUCUN JOKER, comme dans sudoers/orion-serveur, et ce n'était pas
+# évident à obtenir ici : le périphérique à préparer est un paramètre, ce
+# qui semblait imposer un motif « orion-stockage preparer * ».
+#
+# Ce n'était pas nécessaire. Les paramètres arrivent par l'ENTRÉE
+# STANDARD, en JSON, et non en arguments. Les trois commandes autorisées
+# sont donc exactes, et sudo n'accepte rien de plus que ces trois
+# chaînes-là.
+#
+# TOUTE la sûreté se joue par conséquent dans /usr/local/sbin/orion-stockage,
+# qui valide ce qu'il lit : disque entier et non partition, aucune
+# partition montée, pas la racine ni /boot ni le swap, aucune couche LVM
+# ou RAID par-dessus, étiquette contrainte à [a-z0-9-], point de montage
+# calculé et jamais reçu, inscription dans fstab par UUID avec « nofail ».
+# Et, si le disque contient déjà des données, l'appelant doit renvoyer le
+# NUMÉRO DE SÉRIE que l'interface a affiché : un nom /dev/sdX peut
+# désigner un autre disque après un redémarrage, un numéro de série non.
+#
+# D'OÙ L'EXIGENCE SUR LES DROITS DU SCRIPT :
+#
+#     install -o root -g orion -m 0750 orion-stockage /usr/local/sbin/
+#
+# « orion » doit pouvoir l'EXÉCUTER et jamais l'ÉCRIRE. S'il pouvait le
+# modifier, ces trois lignes équivaudraient à un accès root complet : il
+# suffirait de réécrire le fichier avant de l'appeler. Un test vérifie que
+# le script n'est pas inscriptible par son groupe.
+
+orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage lister
+orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage preparer
+orion ALL=(root) NOPASSWD: /usr/local/sbin/orion-stockage demonter

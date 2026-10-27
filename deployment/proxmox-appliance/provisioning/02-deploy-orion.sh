@@ -301,23 +301,56 @@ chown -R orion:orion "$ORION_HOME"
 # dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
 # reparer. On ecrit donc dans un fichier temporaire, on le fait verifier par
 # « visudo -c », et on ne le met en place qu'ensuite.
-SUDOERS_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers/orion-serveur"
-SUDOERS_DST="/etc/sudoers.d/orion-serveur"
+SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
 
-if [ -f "$SUDOERS_SRC" ]; then
-  TMP_SUDOERS="$(mktemp)"
-  install -m 0440 -o root -g root "$SUDOERS_SRC" "$TMP_SUDOERS"
-  if visudo -c -f "$TMP_SUDOERS" >/dev/null 2>&1; then
-    install -m 0440 -o root -g root "$TMP_SUDOERS" "$SUDOERS_DST"
-    echo "[02] sudoers : $SUDOERS_DST installe (extinction/redemarrage depuis l'ERP)."
-  else
-    echo "[02] ATTENTION : $SUDOERS_SRC est refuse par visudo -c." >&2
-    echo "[02]             Non installe. Les boutons Eteindre/Redemarrer" >&2
-    echo "[02]             de l'ERP echoueront jusqu'a correction." >&2
+# Une fonction plutot que deux blocs recopies : il y a maintenant deux
+# fichiers sudoers, et un troisieme viendra. Deux blocs jumeaux auraient
+# fini par diverger -- l'un valide par visudo, l'autre non.
+installer_sudoers() {
+  nom="$1"
+  pourquoi="$2"
+  src="$SUDOERS_DIR/$nom"
+  dst="/etc/sudoers.d/$nom"
+
+  if [ ! -f "$src" ]; then
+    echo "[02] ATTENTION : $src introuvable, sudoers non installe." >&2
+    return
   fi
-  rm -f "$TMP_SUDOERS"
+
+  tmp="$(mktemp)"
+  install -m 0440 -o root -g root "$src" "$tmp"
+  if visudo -c -f "$tmp" >/dev/null 2>&1; then
+    install -m 0440 -o root -g root "$tmp" "$dst"
+    echo "[02] sudoers : $dst installe ($pourquoi)."
+  else
+    echo "[02] ATTENTION : $src est refuse par visudo -c." >&2
+    echo "[02]             Non installe. $pourquoi : indisponible" >&2
+    echo "[02]             jusqu'a correction." >&2
+  fi
+  rm -f "$tmp"
+}
+
+installer_sudoers orion-serveur  "extinction/redemarrage depuis l'ERP"
+installer_sudoers orion-stockage "preparation des disques depuis l'ERP"
+
+# L'assistant disque lui-meme. Mode 0750 et groupe orion : « orion » doit
+# pouvoir l'EXECUTER et jamais l'ECRIRE. S'il pouvait le modifier, la regle
+# sudo qui l'autorise equivaudrait a un acces root complet, puisqu'il
+# suffirait de reecrire le fichier avant de l'appeler.
+STOCKAGE_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/scripts/orion-stockage"
+if [ -f "$STOCKAGE_SRC" ]; then
+  install -o root -g orion -m 0750 "$STOCKAGE_SRC" /usr/local/sbin/orion-stockage
+  echo "[02] assistant disque : /usr/local/sbin/orion-stockage installe."
+  # sgdisk vient de gdisk, et partprobe de parted : sans eux, la
+  # preparation d'un disque echoue au milieu plutot qu'au depart.
+  if ! command -v sgdisk >/dev/null 2>&1 || ! command -v partprobe >/dev/null 2>&1; then
+    echo "[02] Installation de gdisk et parted (requis par l'assistant disque)..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gdisk parted >/dev/null 2>&1 \
+      || echo "[02] ATTENTION : gdisk/parted non installes." >&2
+  fi
 else
-  echo "[02] ATTENTION : $SUDOERS_SRC introuvable, sudoers non installe." >&2
+  echo "[02] ATTENTION : $STOCKAGE_SRC introuvable." >&2
+  echo "[02]             L'ajout de disque depuis l'ERP sera indisponible." >&2
 fi
 
 echo "[02] Terminé."

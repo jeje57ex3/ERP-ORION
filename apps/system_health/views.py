@@ -286,6 +286,352 @@ def disk_dashboard(request):
         'plan': plan,
         'categorie_choisie': categorie,
         'volume_choisi': cible,
+        **_contexte_de_stockage(),
+    })
+
+
+# ── Allocation, déplacement, ajout de disques : exécuté, plus seulement guidé ──
+#
+# `storage_service.commandes_de_migration` rédige les commandes ; les vues
+# ci-dessous les exécutent. Trois principes, parce que ces actions touchent
+# des données :
+#
+# 1. AUCUN CHEMIN N'EST REÇU. L'interface propose les volumes détectés, et
+#    le dossier cible est calculé par `chemin_propose`. Il n'y a donc rien
+#    à valider contre une traversée de répertoire, puisque rien ne vient du
+#    navigateur sinon le choix d'un volume, comparé à la liste réelle.
+# 2. RIEN N'EST SUPPRIMÉ EN SUITE D'AUTRE CHOSE. Une copie s'arrête à
+#    « vérifiée » ; libérer l'ancien emplacement est une action séparée.
+# 3. TOUT PASSE PAR UNE OPÉRATION EN BASE, exécutée par Celery. Une copie
+#    de plusieurs gigaoctets ne tient pas dans une requête HTTP, et son
+#    avancement doit survivre à la fermeture de l'onglet.
+
+def _contexte_de_stockage():
+    """Ce que l'écran des disques doit savoir pour proposer des actions."""
+    from .models import OperationDeStockage
+    from . import stockage_actions, stockage_privilegie
+
+    disques_physiques, erreur_assistant = [], ''
+    if stockage_privilegie.est_disponible():
+        try:
+            disques_physiques = stockage_privilegie.lister_les_disques().get(
+                'disques', [])
+        except (stockage_privilegie.StockagePrivilegieIndisponible,
+                stockage_privilegie.ActionPrivilegieeRefusee) as exc:
+            erreur_assistant = str(exc)
+    else:
+        erreur_assistant = (
+            'L\'assistant de préparation des disques n\'est pas installé sur '
+            'ce serveur. La détection et le déplacement fonctionnent ; seuls '
+            'le partitionnement et le montage d\'un disque neuf en ont '
+            'besoin.')
+
+    # L'etat de chaque categorie est lu sur le DISQUE : est-ce deja un lien,
+    # et vers ou pointe-t-il. Aucune table ne double cette information.
+    etats = []
+    for cle, _reglage in stockage_actions.REGLAGE_PAR_CATEGORIE.items():
+        try:
+            etats.append({
+                'cle': cle,
+                'canonique': stockage_actions.canonique(cle),
+                'reel': stockage_actions.cible_actuelle(cle),
+                'est_un_lien': stockage_actions.est_deja_un_lien(cle),
+            })
+        except stockage_actions.ErreurDeStockage as exc:
+            etats.append({'cle': cle, 'erreur': str(exc)})
+
+    return {
+        'disques_physiques': disques_physiques,
+        'erreur_assistant': erreur_assistant,
+        'assistant_disponible': stockage_privilegie.est_disponible(),
+        'etats_de_stockage': etats,
+        'operations': OperationDeStockage.objects.all()[:15],
+        'operation_en_cours': OperationDeStockage.objects.filter(
+            etat__in=('en_attente', 'en_cours')).first(),
+        'categories_deplacables': dict(
+            OperationDeStockage.CATEGORIE_CHOICES),
+    }
+
+
+DELAI_DE_MISE_EN_FILE = 3
+"""Secondes accordées pour joindre le courtier depuis une requête HTTP.
+
+Au-delà, on rend la main avec un message plutôt que de faire patienter.
+Joindre un Redis local prend quelques millisecondes ; trois secondes
+laissent déjà beaucoup de marge.
+"""
+
+
+def _mettre_en_file(tache, operation):
+    """Met la tâche en file sans jamais suspendre la requête.
+
+    **Mesuré, et non estimé.** Un `.delay()` lancé alors que Redis est
+    arrêté met **64 secondes** à rendre la main. L'utilisateur ne voit
+    qu'une page qui ne revient pas, puis le délai de gunicorn, et rien
+    n'explique quoi que ce soit.
+
+    Et `retry=False` n'y change rien : le délai ne vient pas de la
+    connexion mais des RÉESSAIS d'acquisition de connexion, gouvernés par
+    `broker_connection_max_retries` (défaut 100), que ce drapeau ne touche
+    pas. Les délais de socket dans les settings n'y changent rien non plus
+    — ils bornent une connexion établie, pas une série de tentatives.
+
+    La connexion est donc acquise ici avec `max_retries=0` : une tentative,
+    et un échec dicible en deux secondes au lieu de soixante-quatre.
+
+    L'opération est alors marquée en échec sur-le-champ. Une ligne « en
+    attente » que rien ne fera avancer serait pire qu'un échec : elle
+    bloquerait en plus le verrou « une seule opération à la fois ».
+
+    Défaut trouvé en neutralisant un garde-fou pour vérifier qu'un test
+    mordait — la suite de tests s'est bloquée, parce qu'aucun test
+    n'atteignait jusque-là cet appel.
+    """
+    from django.utils import timezone
+
+    from erp_btp.celery import app
+
+    try:
+        with app.connection_for_write() as connexion:
+            connexion.ensure_connection(max_retries=0,
+                                        timeout=DELAI_DE_MISE_EN_FILE)
+            tache.apply_async(args=[operation.pk], retry=False,
+                              connection=connexion)
+        return True
+    except Exception as exc:                        # noqa: BLE001
+        operation.etat = 'echouee'
+        operation.message = (
+            'Le service de tâches de fond est injoignable, rien n\'a été '
+            'lancé.')[:300]
+        operation.fini_le = timezone.now()
+        operation.ajouter_au_journal(
+            f'Mise en file impossible : {exc}. Vérifiez que Redis et '
+            f'orion-celery sont démarrés.')
+        operation.save(update_fields=['etat', 'message', 'fini_le',
+                                      'journal'])
+        return False
+
+
+def _refuser_si_une_operation_tourne():
+    """Une seule opération de stockage à la fois.
+
+    Deux copies simultanées vers le même volume rempliraient le disque sans
+    que ni l'une ni l'autre n'aboutisse, et deux bascules concurrentes sur
+    la même catégorie laisseraient le lien dans un état que personne ne
+    peut prévoir. Le verrou est volontairement grossier : il n'y a aucune
+    raison de mener deux de ces opérations en parallèle.
+    """
+    from .models import OperationDeStockage
+
+    return OperationDeStockage.objects.filter(
+        etat__in=('en_attente', 'en_cours')).first()
+
+
+@require_POST
+@_require_perm('can_administrate')
+def stockage_preparer_disque(request):
+    """Partitionne, formate et monte un disque neuf."""
+    from .models import OperationDeStockage
+    from . import stockage_privilegie, tasks
+
+    occupe = _refuser_si_une_operation_tourne()
+    if occupe:
+        messages.error(request, f'Une opération est déjà en cours : {occupe}.')
+        return redirect('system_health:disk_dashboard')
+
+    peripherique = request.POST.get('peripherique', '')
+    etiquette = request.POST.get('etiquette', '')
+    numero_de_serie = request.POST.get('numero_de_serie', '')
+
+    if request.POST.get('confirmation') != peripherique:
+        messages.error(
+            request,
+            'Confirmation incorrecte. Pour formater un disque, recopiez son '
+            'nom exact : cette étape existe parce que l\'opération efface '
+            'tout son contenu sans retour possible.')
+        return redirect('system_health:disk_dashboard')
+
+    # Le peripherique et l'etiquette ne sont PAS valides ici : le script
+    # root le fait, et c'est le seul controle qui compte -- ce code tourne
+    # sous le compte meme qu'on cherche a contenir.
+    if not stockage_privilegie.est_disponible():
+        messages.error(
+            request,
+            'L\'assistant de préparation des disques n\'est pas installé. '
+            'Voir deployment/proxmox-appliance/scripts/orion-stockage.')
+        return redirect('system_health:disk_dashboard')
+
+    operation = OperationDeStockage.objects.create(
+        type_operation='preparer_disque',
+        peripherique=peripherique,
+        volume_cible=etiquette,
+        # Le numero de serie affiche voyage dans « message » jusqu'a la
+        # tache, qui le renvoie au script root : si le materiel present
+        # sous ce nom a change, le script s'arrete.
+        message=numero_de_serie,
+        demandee_par=request.user)
+
+    if not _mettre_en_file(tasks.preparer_un_disque, operation):
+        messages.error(
+            request,
+            'Le service de tâches de fond est injoignable : rien n\'a été '
+            'lancé, et aucun disque n\'a été touché. Vérifiez Redis et '
+            'orion-celery.')
+        return redirect('system_health:disk_dashboard')
+
+    _audit(request, 'status_change',
+           description=f'Préparation du disque {peripherique} demandée')
+    messages.success(
+        request,
+        f'Préparation de {peripherique} lancée. Le formatage peut prendre '
+        f'plusieurs minutes ; l\'avancement s\'affiche ci-dessous.')
+    return redirect('system_health:disk_dashboard')
+
+
+@require_POST
+@_require_perm('can_administrate')
+def stockage_deplacer(request):
+    """Bascule une catégorie vers un volume, avec ou sans copie."""
+    from .models import OperationDeStockage
+    from . import stockage_actions, tasks
+
+    occupe = _refuser_si_une_operation_tourne()
+    if occupe:
+        messages.error(request, f'Une opération est déjà en cours : {occupe}.')
+        return redirect('system_health:disk_dashboard')
+
+    categorie = request.POST.get('categorie', '')
+    point_de_montage = request.POST.get('volume', '')
+    mode = request.POST.get('mode', '')
+
+    if mode not in ('basculer', 'copier_basculer'):
+        messages.error(request, 'Mode de déplacement inconnu.')
+        return redirect('system_health:disk_dashboard')
+
+    if categorie not in stockage_actions.REGLAGE_PAR_CATEGORIE:
+        messages.error(request, f'Catégorie non déplaçable : {categorie}.')
+        return redirect('system_health:disk_dashboard')
+
+    # Le volume doit figurer dans la liste REELLE des volumes montes.
+    # C'est ce qui empeche une requete forgee de faire ecrire ailleurs.
+    if stockage_actions.volume_autorise(point_de_montage) is None:
+        messages.error(
+            request,
+            f'Volume inconnu : {point_de_montage}. Choisissez-en un dans la '
+            f'liste proposée.')
+        return redirect('system_health:disk_dashboard')
+
+    cible = stockage_actions.chemin_propose(point_de_montage, categorie)
+    if cible == stockage_actions.cible_actuelle(categorie):
+        messages.info(
+            request,
+            f'« {categorie} » se trouve déjà là. Rien à faire.')
+        return redirect('system_health:disk_dashboard')
+
+    operation = OperationDeStockage.objects.create(
+        type_operation=mode,
+        categorie=categorie,
+        volume_cible=point_de_montage,
+        chemin_source=stockage_actions.cible_actuelle(categorie),
+        chemin_cible=cible,
+        demandee_par=request.user)
+
+    tache = (tasks.basculer_une_categorie if mode == 'basculer'
+             else tasks.copier_puis_basculer)
+    if not _mettre_en_file(tache, operation):
+        messages.error(
+            request,
+            'Le service de tâches de fond est injoignable : rien n\'a été '
+            'déplacé. Vérifiez Redis et orion-celery.')
+        return redirect('system_health:disk_dashboard')
+
+    if mode == 'basculer':
+        messages.success(
+            request,
+            f'Bascule de « {categorie} » vers {cible} lancée. Les fichiers '
+            f'déjà écrits restent où ils sont.')
+    else:
+        messages.success(
+            request,
+            f'Copie de « {categorie} » vers {cible} lancée. Chaque fichier '
+            f'écrit sera relu pour contrôle, et l\'ancien emplacement sera '
+            f'conservé jusqu\'à ce que vous demandiez sa suppression.')
+
+    _audit(request, 'status_change',
+           description=f'Déplacement de {categorie} vers {cible} ({mode})')
+    return redirect('system_health:disk_dashboard')
+
+
+@require_POST
+@_require_perm('can_administrate')
+def stockage_liberer_la_source(request, pk):
+    """Supprime l'ancien emplacement d'une opération vérifiée."""
+    from .models import OperationDeStockage
+    from . import tasks
+
+    operation = get_object_or_404(OperationDeStockage, pk=pk)
+
+    # Seule une operation VERIFIEE donne ce droit : la copie a ete relue
+    # fichier par fichier, et la bascule est faite. Avant cela, l'ancien
+    # emplacement est peut-etre le seul exemplaire des donnees.
+    if operation.etat != 'verifiee':
+        messages.error(
+            request,
+            'Seule une copie vérifiée permet de libérer l\'ancien '
+            'emplacement. Cette opération est à l\'état '
+            f'« {operation.get_etat_display()} ».')
+        return redirect('system_health:disk_dashboard')
+
+    if request.POST.get('confirmation') != 'SUPPRIMER':
+        messages.error(
+            request,
+            'Confirmation incorrecte : saisissez SUPPRIMER pour effacer '
+            'définitivement l\'ancien emplacement.')
+        return redirect('system_health:disk_dashboard')
+
+    operation.etat = 'en_attente'
+    operation.type_operation = 'supprimer_source'
+    operation.fini_le = None
+    operation.ajouter_au_journal(
+        f'Suppression de {operation.chemin_source} demandée par '
+        f'{request.user}.')
+    operation.save(update_fields=['etat', 'type_operation', 'fini_le',
+                                  'journal'])
+
+    if not _mettre_en_file(tasks.supprimer_l_ancien_emplacement, operation):
+        messages.error(
+            request,
+            'Le service de tâches de fond est injoignable : rien n\'a été '
+            'supprimé. Vérifiez Redis et orion-celery.')
+        return redirect('system_health:disk_dashboard')
+
+    _audit(request, 'delete',
+           description=f'Suppression de l\'ancien emplacement '
+                       f'{operation.chemin_source}')
+    messages.success(request,
+                     'Suppression lancée. L\'espace sera libéré sous peu.')
+    return redirect('system_health:disk_dashboard')
+
+
+@require_GET
+@_require_perm('can_view_technical')
+def stockage_operation_api(request, pk):
+    """L'avancement d'une opération, pour la barre de progression."""
+    from .models import OperationDeStockage
+
+    operation = get_object_or_404(OperationDeStockage, pk=pk)
+    return JsonResponse({
+        'id': operation.pk,
+        'etat': operation.etat,
+        'etat_libelle': operation.get_etat_display(),
+        'en_cours': operation.est_en_cours,
+        'progression': operation.progression,
+        'fichiers_traites': operation.fichiers_traites,
+        'fichiers_total': operation.fichiers_total,
+        'octets_traites': operation.octets_traites,
+        'octets_total': operation.octets_total,
+        'message': operation.message,
+        'journal': operation.journal[-4000:],
     })
 
 

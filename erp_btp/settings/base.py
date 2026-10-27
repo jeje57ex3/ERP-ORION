@@ -507,6 +507,30 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+# Borner les opérations réseau vers le courtier.
+#
+# Ces clés protègent du cas « Redis répond à la connexion mais ne répond
+# plus ensuite » : sans elles, une lecture peut attendre indéfiniment.
+#
+# Elles NE règlent PAS, en revanche, le cas « Redis arrêté ». Mesuré :
+# avec ces trois clés en place, un `.delay()` met toujours **64 secondes**
+# à rendre la main, parce que le délai ne vient pas de la connexion mais
+# des RÉESSAIS d'acquisition de connexion, gouvernés par
+# `broker_connection_max_retries` (défaut : 100). Et `retry=False` passé à
+# `apply_async` ne gouverne pas cette étape-là.
+#
+# Abaisser `broker_connection_max_retries` ici réglerait le symptôme et en
+# créerait un autre : le worker et beat ont BESOIN de réessayer pour
+# survivre à un redémarrage de Redis. Le délai n'est donc borné que du
+# côté des requêtes HTTP, appel par appel — voir `_mettre_en_file` dans
+# apps/system_health/views.py.
+CELERY_BROKER_CONNECTION_TIMEOUT = 3
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'socket_connect_timeout': 3,
+    'socket_timeout': 5,
+    'retry_on_timeout': False,
+}
+
 # ─── Intégrations externes ────────────────────────────────────────────────────
 # apps.domain_diagnostics.cloudflare.CloudflareClient lit déjà cette clé via
 # getattr(settings, ...) mais rien ne la déclarait ici : jamais lue depuis
