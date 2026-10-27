@@ -448,6 +448,13 @@ NAV_MODULES = [
             {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
             {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
+            # Meme raison que « Santé du système » ci-dessus : les pages de
+            # apps.orion_ops n'etaient atteignables par aucune entree de
+            # navigation. « Observabilité » juste au-dessus pointe vers une
+            # AUTRE application (system_observability), ce qui rendait la
+            # confusion facile et la page introuvable.
+            {'label': _('Ops — Fiabilité'),    'url_name': 'orion_ops:dashboard',             'icon': 'ti-activity-heartbeat'},
+            {'label': _('Ops — SLO'),          'url_name': 'orion_ops:slo_list',              'icon': 'ti-target'},
             {'label': _('Mises à jour'),       'url_name': 'system_updates:dashboard',        'icon_img': 'mises_a_jour.png', 'icon': 'ti-cloud-download'},
             {'label': _('Centre sauvegardes'), 'url_name': 'backup_center:dashboard',          'icon_img': 'centre_sauvegardes.png', 'icon': 'ti-server-2'},
             {'label': _('Haute dispo.'),       'url_name': 'high_availability:admin_settings', 'icon_img': 'haute_dispo.png', 'icon': 'ti-server'},

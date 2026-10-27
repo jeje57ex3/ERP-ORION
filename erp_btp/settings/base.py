@@ -134,6 +134,20 @@ LOCAL_APPS = [
 
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
+
+    # ── Observabilité, fiabilité et opérations ────────────────────────────────
+    #
+    # Quatorze modeles, sept services, quatre taches Celery, vingt vues et
+    # quinze gabarits etaient sur le disque sans que l'application soit
+    # declaree. Ses 25 tests etaient les SEULS echecs de la suite, et ils
+    # echouaient tous sur la meme erreur :
+    #
+    #   RuntimeError: Model class apps.orion_ops.models.ServiceComponent
+    #   doesn't declare an explicit app_label and isn't in an application
+    #   in INSTALLED_APPS.
+    #
+    # Autrement dit, ils n'avaient jamais pu tourner.
+    'apps.orion_ops.apps.OrionOpsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

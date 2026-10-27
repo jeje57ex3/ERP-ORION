@@ -152,6 +152,16 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Observabilité, fiabilité et opérations ────────────────────────────────
+    #
+    # Le prefixe est porte ICI et non dans apps/orion_ops/urls.py, dont les
+    # routes sont relatives -- contrairement a system_health, qui porte son
+    # propre prefixe « orion-admin/sante-systeme/ ». La docstring de ce
+    # module annoncait deja « Routes montees sous /orion-admin/ops/ » ;
+    # cette ligne est ce qui manquait pour que ce soit vrai.
+    path('orion-admin/ops/',
+         include('apps.orion_ops.urls', namespace='orion_ops')),
+
     # Double authentification. A LA RACINE, et non sous un prefixe : ses
     # adresses sont absolues (« account/security/ », « auth/2fa/ ») et
     # correspondent exactement aux exemptions de
