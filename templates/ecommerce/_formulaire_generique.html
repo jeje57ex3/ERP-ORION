@@ -1,0 +1,64 @@
+{% load i18n %}
+{% comment %}
+  Rendu generique d'un formulaire, dans la carte de la charte Orion.
+
+  Les gabarits voisins de cette application enumerent leurs champs un par
+  un (`{{ form.name }}`, `{{ form.domain }}`...). C'est joli et ca derive :
+  un champ ajoute au formulaire n'apparait nulle part, sans que rien ne le
+  signale -- l'utilisateur ne peut simplement pas le remplir.
+
+  Cette boucle ne peut pas deriver : elle rend ce que le formulaire declare.
+
+  Attendu dans le contexte :
+    form        le formulaire
+    titre       le titre de la carte
+    icone       une icone bootstrap, sans le prefixe « bi- »
+    url_retour  l'adresse du bouton Annuler
+{% endcomment %}
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="erp-card mb-3">
+      <div class="orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-{{ icone|default:'pencil-square' }} me-1 text-primary"></i>{{ titre }}
+        </h6>
+      </div>
+      <div class="orion-card-body">
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+          {% for champ in form %}
+            {% if champ.field.widget.input_type == 'checkbox' %}
+            <div class="col-md-6">
+              <div class="form-check mt-2">
+                {{ champ }}
+                <label class="form-check-label ms-1 small" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+              </div>
+              {% if champ.help_text %}<div class="text-muted small">{{ champ.help_text }}</div>{% endif %}
+              {% for erreur in champ.errors %}<div class="text-danger small">{{ erreur }}</div>{% endfor %}
+            </div>
+            {% else %}
+            <div class="col-md-6">
+              <label class="form-label form-label-sm" for="{{ champ.id_for_label }}">
+                {{ champ.label }}{% if champ.field.required %} *{% endif %}
+              </label>
+              {{ champ }}
+              {% if champ.help_text %}<div class="text-muted small">{{ champ.help_text }}</div>{% endif %}
+              {% for erreur in champ.errors %}<div class="text-danger small">{{ erreur }}</div>{% endfor %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="d-grid gap-2">
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer" %}
+      </button>
+      <a href="{{ url_retour }}" class="btn btn-outline-secondary">{% trans "Annuler" %}</a>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% comment %}
+  Gabarit MANQUANT : la vue marketplace_listing_form et ses deux routes
+  existaient, ce fichier non -- /ecommerce/marketplaces/listings/nouveau/
+  levait TemplateDoesNotExist.
+{% endcomment %}
+{% block title %}{% if listing %}{% trans "Modifier le listing" %}{% else %}{% trans "Nouveau listing" %}{% endif %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:marketplace_list' %}">{% trans "Marketplaces" %}</a></li>
+<li class="breadcrumb-item active">{% if listing %}{{ listing }}{% else %}{% trans "Nouveau listing" %}{% endif %}</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if listing %}{% trans "Modifier le listing" %}{% else %}{% trans "Nouveau listing" %}{% endif %}</h1>
+  <p class="text-muted small mb-0">{% trans "Publier un produit sur une marketplace, avec un prix et un stock propres à ce canal." %}</p>
+</div>
+{% endblock %}
+{% block content %}
+{% url 'ecommerce:marketplace_list' as url_liste %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "ecommerce/_formulaire_generique.html" with titre=_("Listing marketplace") icone="shop-window" url_retour=url_liste %}
+</form>
+{% endblock %}

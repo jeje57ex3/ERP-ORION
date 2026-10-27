@@ -191,7 +191,7 @@ class BrandOrdersView(View):
             company=company,
             brand_key=brand_key,
             customer_email=request.user.email,
-        ).order_by('-created_at')[:20]
+        ).order_by('-order_date')[:20]
 
         return JsonResponse({
             'brand_key': brand_key,

@@ -239,6 +239,11 @@ NAV_MODULES = [
             {'label': _('Catalogue'),      'url_name': 'siecle_creations:catalog',     'icon_img': 'catalogue_siecle.png', 'icon': 'ti-layout-grid'},
             {'label': _('Collections'),    'url_name': 'siecle_creations:collections', 'icon_img': 'collections.png', 'icon': 'ti-stack'},
             {'label': _('Commandes'),      'url_name': 'siecle_creations:campaigns',   'icon_img': 'commandes_siecle.png', 'icon': 'ti-shopping-bag-check'},
+            # Deux sortes de commandes coexistent, et ce n'est pas un
+            # doublon : l'entree ci-dessus liste les CreationOrder, des
+            # commandes de creations sur mesure ; celle-ci les StoreOrder
+            # de la boutique en ligne, servis par apps.orders.
+            {'label': _('Commandes boutique'), 'url_name': 'orders:order_list', 'icon': 'ti-receipt'},
         ],
     },
     {
@@ -300,6 +305,44 @@ NAV_MODULES = [
         ],
     },
     {
+        # Planning et temps dedies. Place apres les RH : il planifie des
+        # salaries et des missions, et c'est la que l'utilisateur le
+        # cherche. Code module 'work_planning', declare dans
+        # ALL_MODULE_CODES -- sans lui, require_company_module refusait ses
+        # vingt-huit vues.
+        'id': 'work_planning',
+        'label': _('Planning'),
+        'icon': 'ti-calendar-time',
+        'url_name': 'work_planning:dashboard',
+        'color': '#0891B2',
+        'children': [
+            {'label': _('Tableau de bord'),  'url_name': 'work_planning:dashboard',              'icon': 'ti-gauge'},
+            {'label': _('Semaine'),          'url_name': 'work_planning:weekly_planning',        'icon': 'ti-calendar-week'},
+            {'label': _('Missions'),         'url_name': 'work_planning:mission_list',           'icon': 'ti-clipboard-list'},
+            {'label': _('Équipe'),           'url_name': 'work_planning:employee_list',          'icon': 'ti-users'},
+            {'label': _('Contraintes'),      'url_name': 'work_planning:all_employee_constraints', 'icon': 'ti-lock-cog'},
+            {'label': _('Demandes client'),  'url_name': 'work_planning:customer_request_list',  'icon': 'ti-inbox'},
+            {'label': _('Saisir des heures'), 'url_name': 'work_planning:time_block_create',     'icon': 'ti-clock-plus'},
+        ],
+    },
+    {
+        # Formations internes. Place apres les RH parce que c'est de la
+        # formation des salaries, et non un module separe dans l'esprit de
+        # qui l'utilise. Son code module est 'internal_training', declare
+        # dans ALL_MODULE_CODES : sans lui, require_company_module refusait
+        # ses dix-neuf vues.
+        'id': 'internal_training',
+        'label': _('Formations'),
+        'icon': 'ti-school',
+        'url_name': 'internal_training:dashboard',
+        'color': '#7C3AED',
+        'children': [
+            {'label': _('Tableau de bord'), 'url_name': 'internal_training:dashboard',      'icon': 'ti-gauge'},
+            {'label': _('Formations'),      'url_name': 'internal_training:course_list',    'icon': 'ti-books'},
+            {'label': _('Nouvelle'),        'url_name': 'internal_training:course_create',  'icon': 'ti-circle-plus'},
+        ],
+    },
+    {
         'id': 'documents',
         'label': _('Documents'),
         'icon_img': 'documents.png', 'icon': 'ti-folder',
@@ -328,6 +371,14 @@ NAV_MODULES = [
         'children': [
             {'label': _('Mes sites'), 'url_name': 'websites:website_list', 'icon_img': 'mes_sites.png', 'icon': 'ti-browser'},
             {'label': _('Domaines'), 'url_name': 'websites:domain_dashboard', 'icon_img': 'domaines.png', 'icon': 'ti-world'},
+            # Rattachement et VERIFICATION de domaines personnalises
+            # (jetons, CNAME, A, TXT, domaine principal). Distinct de
+            # « Domaines » juste au-dessus, qui liste les domaines des
+            # sites, et de diagnostic-domaines/, qui interroge Cloudflare.
+            # Trois choses differentes, d'ou trois entrees.
+            {'label': _('Domaines personnalisés'), 'url_name': 'domain_manager:list', 'icon': 'ti-world-check'},
+            # Personnalisation des themes et des pages d'un site.
+            {'label': _('Personnalisation'), 'url_name': 'site_customization:dashboard', 'icon': 'ti-palette'},
             {'label': _('Pages'), 'url_name': 'websites:page_list', 'icon_img': 'pages.png', 'icon': 'ti-file'},
             # Editeur visuel. Sous « Sites web » parce que c'est la qu'on
             # cherche a modifier les pages de son site -- et parce que
@@ -448,6 +499,14 @@ NAV_MODULES = [
             {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
             {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
+            # Meme raison que « Santé du système » ci-dessus : les pages de
+            # apps.orion_ops n'etaient atteignables par aucune entree de
+            # navigation. « Observabilité » juste au-dessus pointe vers une
+            # AUTRE application (system_observability), ce qui rendait la
+            # confusion facile et la page introuvable.
+            {'label': _('Ops — Fiabilité'),    'url_name': 'orion_ops:dashboard',             'icon': 'ti-activity-heartbeat'},
+            {'label': _('Ops — SLO'),          'url_name': 'orion_ops:slo_list',              'icon': 'ti-target'},
+            {'label': _('Performances'),       'url_name': 'performance_monitor:dashboard',   'icon': 'ti-dashboard'},
             {'label': _('Mises à jour'),       'url_name': 'system_updates:dashboard',        'icon_img': 'mises_a_jour.png', 'icon': 'ti-cloud-download'},
             {'label': _('Centre sauvegardes'), 'url_name': 'backup_center:dashboard',          'icon_img': 'centre_sauvegardes.png', 'icon': 'ti-server-2'},
             {'label': _('Haute dispo.'),       'url_name': 'high_availability:admin_settings', 'icon_img': 'haute_dispo.png', 'icon': 'ti-server'},

@@ -35,7 +35,7 @@
         <i class="bi bi-printer"></i>
       </button>
       {% if customer.pk %}
-      <a href="{% url 'crm:customer_confirm_delete' customer.pk %}" class="orion-icon-btn danger" title="{% trans 'Supprimer' %}"
+      <a href="{% url 'crm:customer_delete' customer.pk %}" class="orion-icon-btn danger" title="{% trans 'Supprimer' %}"
          data-confirm="{% trans 'Supprimer ce client ?' %}">
         <i class="bi bi-trash"></i>
       </a>
@@ -228,7 +228,7 @@
     <div class="orion-bottom-tab-content active" id="tab-contacts">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <span class="orion-section-title" style="border:none;margin:0">{% trans "Contacts associés" %}</span>
-        <a href="{% url 'crm:contact_form' %}?customer={{ customer.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm">
+        <a href="{% url 'crm:contact_create' %}?customer={{ customer.pk }}" class="orion-btn orion-btn-outline orion-orion-btn sm">
           <i class="bi bi-plus me-1"></i>{% trans "Ajouter" %}
         </a>
       </div>
@@ -242,7 +242,7 @@
             <td>{{ c.position }}</td>
             <td>{{ c.email }}</td>
             <td>{{ c.phone }}</td>
-            <td><a href="{% url 'crm:contact_detail' c.pk %}" class="orion-btn orion-btn-outline orion-btn-xs">{% trans "Voir" %}</a></td>
+            <td><a href="{% url 'crm:contact_edit' c.pk %}" class="orion-btn orion-btn-outline orion-btn-xs">{% trans "Voir" %}</a></td>
           </tr>
           {% endfor %}
         </tbody>

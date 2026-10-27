@@ -35,7 +35,7 @@
       <button class="orion-icon-btn" form="project-form" type="submit" title="{% trans "Enregistrer (Ctrl+S)" %}"><i class="bi bi-save"></i></button>
       <button class="orion-icon-btn" onclick="window.print()" title="{% trans "Imprimer" %}"><i class="bi bi-printer"></i></button>
       {% if project.pk %}
-      <a href="{% url 'btp:project_confirm_delete' project.pk %}" class="orion-icon-btn danger"
+      <a href="{% url 'btp:project_delete' project.pk %}" class="orion-icon-btn danger"
          data-confirm="{% trans "Supprimer ce chantier ?" %}"><i class="bi bi-trash"></i></a>
       <span class="orion-toolbar-sep"></span>
       <div class="dropdown">

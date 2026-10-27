@@ -1,0 +1,71 @@
+{% extends "erp_base.html" %}
+{% load static i18n %}
+{% comment %}
+  Gabarit MANQUANT : la vue pickup_point_list existait, sa route aussi, et
+  ce fichier non -- /ecommerce/click-collect/ levait TemplateDoesNotExist.
+  Trouve en visitant les 1052 adresses sans argument du projet.
+{% endcomment %}
+{% block title %}{% trans "Points de retrait" %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">{% trans "Points de retrait" %}</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'ecommerce:pickup_point_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau point de retrait" %}</a>
+{% endblock %}
+{% block content %}
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-shop me-2"></i>{% trans "Click &amp; Collect" %}</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="orion-table">
+      <thead>
+        <tr>
+          <th>{% trans "Nom" %}</th>
+          <th>{% trans "Boutique" %}</th>
+          <th>{% trans "Adresse" %}</th>
+          <th>{% trans "Téléphone" %}</th>
+          <th>{% trans "Réservation max" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for point in points %}
+        <tr>
+          <td class="fw-semibold">{{ point.name }}</td>
+          <td>{% if point.store %}{{ point.store }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>
+            {{ point.address|default:"—" }}
+            {% if point.city %}<div class="text-muted small">{{ point.city }}</div>{% endif %}
+          </td>
+          <td>{{ point.phone|default:"—" }}</td>
+          <td>{% if point.max_reservation_days %}{{ point.max_reservation_days }} {% trans "j" %}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>
+            {% if point.is_active %}
+              <span class="orion-badge orion-badge-success">{% trans "Actif" %}</span>
+            {% else %}
+              <span class="orion-badge orion-badge-secondary">{% trans "Inactif" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{% url 'ecommerce:pickup_point_edit' point.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="orion-empty">
+            <div class="orion-empty-icon"><i class="bi bi-shop"></i></div>
+            <div class="orion-empty-title">{% trans "Aucun point de retrait configuré." %}</div>
+            <p class="text-muted small mb-0">{% trans "Un point de retrait permet à vos clients de récupérer leur commande en boutique." %}</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

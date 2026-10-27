@@ -25,7 +25,7 @@
     <div class="orion-record-toolbar">
       <button class="orion-icon-btn" form="opp-form" type="submit" title="{% trans 'Enregistrer' %}"><i class="bi bi-save"></i></button>
       {% if opportunity.pk %}
-      <a href="{% url 'crm:opportunity_confirm_delete' opportunity.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer cette opportunité ?' %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'crm:opportunity_delete' opportunity.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer cette opportunité ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">

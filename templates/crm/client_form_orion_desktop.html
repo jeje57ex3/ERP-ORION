@@ -30,7 +30,7 @@
       <button class="orion-icon-btn" form="customer-form" type="submit" title="{% trans 'Enregistrer (Ctrl+S)' %}"><i class="bi bi-save"></i></button>
       <button class="orion-icon-btn" onclick="window.print()" title="{% trans 'Imprimer' %}"><i class="bi bi-printer"></i></button>
       {% if customer.pk %}
-      <a href="{% url 'crm:customer_confirm_delete' customer.pk %}" class="orion-icon-btn danger"
+      <a href="{% url 'crm:customer_delete' customer.pk %}" class="orion-icon-btn danger"
          data-confirm="{% trans 'Supprimer ce client et toutes ses données ?' %}"><i class="bi bi-trash"></i></a>
       <span class="orion-toolbar-sep"></span>
       <div class="dropdown">
@@ -217,7 +217,7 @@
         <tbody>
         {% for contact in customer.contacts.all %}
         <tr>
-          <td><a href="{% url 'crm:contact_detail' contact.pk %}">{{ contact.full_name }}</a></td>
+          <td><a href="{% url 'crm:contact_edit' contact.pk %}">{{ contact.full_name }}</a></td>
           <td>{{ contact.job_title|default:"—" }}</td>
           <td>{{ contact.email|default:"—" }}</td>
           <td>{{ contact.phone|default:"—" }}</td>

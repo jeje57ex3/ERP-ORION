@@ -1,0 +1,30 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% comment %}
+  Gabarit MANQUANT : la vue online_store_form et ses deux routes
+  existaient, ce fichier non -- /ecommerce/boutique-admin/ levait
+  TemplateDoesNotExist.
+
+  Pas de bouton « Annuler » vers une liste : il n'existe aucune route
+  online_store_list dans l'application. Le retour pointe donc vers le
+  tableau de bord e-commerce, et non vers une adresse inventee qui
+  leverait NoReverseMatch au rendu.
+{% endcomment %}
+{% block title %}{% if action == 'edit' %}{{ store.name }}{% else %}{% trans "Nouvelle boutique" %}{% endif %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ store.name }}{% else %}{% trans "Nouvelle boutique" %}{% endif %}</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}{{ store.name }}{% else %}{% trans "Nouvelle boutique en ligne" %}{% endif %}</h1>
+  <p class="text-muted small mb-0">{% trans "Domaine, devise, pages légales et suivi d'audience de la boutique." %}</p>
+</div>
+{% endblock %}
+{% block content %}
+{% url 'ecommerce:dashboard' as url_retour_boutique %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% include "ecommerce/_formulaire_generique.html" with titre=_("Boutique en ligne") icone="bag" url_retour=url_retour_boutique %}
+</form>
+{% endblock %}

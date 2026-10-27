@@ -134,6 +134,60 @@ LOCAL_APPS = [
 
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
+
+    # ── Site vitrine Orion et mesure des performances ─────────────────────────
+    #
+    # Les deux dernieres applications dormantes. orion_website est le site
+    # vitrine PUBLIC du produit (onze pages, aucun modele, aucune garde) :
+    # ses pages telechargement et installation etaient inaccessibles, donc
+    # personne ne pouvait recuperer l'application de bureau ni la mobile.
+    # performance_monitor enregistre des mesures de performance et les
+    # affiche a l'equipe (@staff_member_required).
+    'apps.orion_website.apps.OrionWebsiteConfig',
+    'apps.performance_monitor.apps.PerformanceMonitorConfig',
+
+    # ── Personnalisation des sites, domaines, commandes ───────────────────────
+    #
+    # Trois dernieres applications gardees par require_company_module et
+    # jamais declarees : site_customization (quinze vues, quatre modeles),
+    # domain_manager (six vues, un modele, code module « domains ») et
+    # orders (quatre vues, sans modele propre -- elle lit ceux de la
+    # boutique).
+    'apps.site_customization.apps.SiteCustomizationConfig',
+    'apps.domain_manager.apps.DomainManagerConfig',
+    'apps.orders.apps.OrdersConfig',
+
+    # ── Planning et temps dedies ──────────────────────────────────────────────
+    #
+    # Sept modeles, trente-six routes, vingt-deux gabarits, un ordonnanceur
+    # automatique et une bibliotheque de filtres de gabarit. Vingt-huit de
+    # ses vues sont gardees par require_company_module('work_planning') --
+    # le plus gros ensemble de vues rendues inaccessibles par le code
+    # module manquant.
+    'apps.work_planning.apps.WorkPlanningConfig',
+
+    # ── Formations internes ───────────────────────────────────────────────────
+    #
+    # Six modeles, dix-neuf vues, huit gabarits, une API et une commande de
+    # donnees d'exemple, sur le disque et jamais declares. Ses dix-neuf
+    # vues sont gardees par require_company_module('internal_training'),
+    # code qui etait lui aussi absent de ALL_MODULE_CODES : meme branchee,
+    # l'application aurait refuse toutes ses pages.
+    'apps.internal_training.apps.InternalTrainingConfig',
+
+    # ── Observabilité, fiabilité et opérations ────────────────────────────────
+    #
+    # Quatorze modeles, sept services, quatre taches Celery, vingt vues et
+    # quinze gabarits etaient sur le disque sans que l'application soit
+    # declaree. Ses 25 tests etaient les SEULS echecs de la suite, et ils
+    # echouaient tous sur la meme erreur :
+    #
+    #   RuntimeError: Model class apps.orion_ops.models.ServiceComponent
+    #   doesn't declare an explicit app_label and isn't in an application
+    #   in INSTALLED_APPS.
+    #
+    # Autrement dit, ils n'avaient jamais pu tourner.
+    'apps.orion_ops.apps.OrionOpsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

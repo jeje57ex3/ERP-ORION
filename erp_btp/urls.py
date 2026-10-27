@@ -152,6 +152,55 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Site vitrine Orion et mesure des performances ─────────────────────────
+    #
+    # orion_website porte deja son prefixe « orion/ » sur chaque route,
+    # verifie libre : aucune autre application ne l'emploie, et
+    # « orion-admin/ » est un segment distinct.
+    path('', include('apps.orion_website.urls', namespace='orion_website')),
+    path('orion-admin/performance/',
+         include('apps.performance_monitor.urls',
+                 namespace='performance_monitor')),
+
+    # ── Personnalisation des sites, domaines, commandes ───────────────────────
+    #
+    # site_customization et orders ont des routes RELATIVES : leur prefixe
+    # est porte ici. domain_manager porte deja « erp/domains/ » sur chacune
+    # des siennes, d'ou le montage a la racine.
+    #
+    # « erp/domains/ » ne collisionne pas avec domain_diagnostics, monte
+    # sous « diagnostic-domaines/ » : les deux modules traitent de domaines
+    # mais ne partagent aucune adresse.
+    path('erp/personnalisation-site/',
+         include('apps.site_customization.urls',
+                 namespace='site_customization')),
+    path('erp/commandes/', include('apps.orders.urls', namespace='orders')),
+    path('', include('apps.domain_manager.urls',
+                     namespace='domain_manager')),
+
+    # ── Planning et temps dedies ──────────────────────────────────────────────
+    #
+    # A la racine : apps/work_planning/urls.py porte deja son prefixe
+    # « erp/planning/ » sur chaque route.
+    path('', include('apps.work_planning.urls', namespace='work_planning')),
+
+    # ── Formations internes ───────────────────────────────────────────────────
+    #
+    # A la racine : apps/internal_training/urls.py porte deja son prefixe
+    # « erp/formations/ » sur chaque route.
+    path('', include('apps.internal_training.urls',
+                     namespace='internal_training')),
+
+    # ── Observabilité, fiabilité et opérations ────────────────────────────────
+    #
+    # Le prefixe est porte ICI et non dans apps/orion_ops/urls.py, dont les
+    # routes sont relatives -- contrairement a system_health, qui porte son
+    # propre prefixe « orion-admin/sante-systeme/ ». La docstring de ce
+    # module annoncait deja « Routes montees sous /orion-admin/ops/ » ;
+    # cette ligne est ce qui manquait pour que ce soit vrai.
+    path('orion-admin/ops/',
+         include('apps.orion_ops.urls', namespace='orion_ops')),
+
     # Double authentification. A LA RACINE, et non sous un prefixe : ses
     # adresses sont absolues (« account/security/ », « auth/2fa/ ») et
     # correspondent exactement aux exemptions de

@@ -1,0 +1,27 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% comment %}
+  Gabarit MANQUANT : la vue pickup_point_form et ses deux routes
+  existaient, ce fichier non -- /ecommerce/click-collect/nouveau/ levait
+  TemplateDoesNotExist.
+{% endcomment %}
+{% block title %}{% if action == 'edit' %}{{ point.name }}{% else %}{% trans "Nouveau point de retrait" %}{% endif %} — {% if request.current_company %}{{ request.current_company.name }}{% else %}Orion ERP{% endif %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:dashboard' %}">E-commerce</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ecommerce:pickup_point_list' %}">{% trans "Points de retrait" %}</a></li>
+<li class="breadcrumb-item active">{% if action == 'edit' %}{{ point.name }}{% else %}{% trans "Nouveau" %}{% endif %}</li>
+{% endblock %}
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% if action == 'edit' %}{{ point.name }}{% else %}{% trans "Nouveau point de retrait" %}{% endif %}</h1>
+</div>
+{% endblock %}
+{% block content %}
+{# {% url %} est resolu AVANT l'include : une balise ne s'appelle pas  #}
+{# dans les arguments d'un « with », qui n'accepte que des variables.  #}
+{% url 'ecommerce:pickup_point_list' as url_liste %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "ecommerce/_formulaire_generique.html" with titre=_("Point de retrait") icone="shop" url_retour=url_liste %}
+</form>
+{% endblock %}

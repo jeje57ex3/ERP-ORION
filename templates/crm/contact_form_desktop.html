@@ -22,7 +22,7 @@
     <div class="orion-record-toolbar">
       <button class="orion-icon-btn" form="contact-form" type="submit" title="{% trans 'Enregistrer' %}"><i class="bi bi-save"></i></button>
       {% if contact.pk %}
-      <a href="{% url 'crm:contact_confirm_delete' contact.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer ce contact ?' %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'crm:contact_delete' contact.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer ce contact ?' %}"><i class="bi bi-trash"></i></a>
       {% endif %}
     </div>
   </div>
