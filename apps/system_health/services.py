@@ -74,13 +74,48 @@ def collect_server_sensors():
                                       metadata={'total_gb': round(mem.total / 1e9, 1),
                                                 'used_gb':  round(mem.used  / 1e9, 1)}))
 
+        # La racine, inchangee : score_service et capacity_service lisent
+        # ces deux capteurs et comparent leur historique. En elargir le
+        # sens aurait fausse des moyennes sur 30 jours.
         disk = psutil.disk_usage('/')
         disk_pct = disk.percent
         disk_free = round(disk.free / 1e9, 1)
         readings.append(SensorReading(sensor_type='disk_usage', value=disk_pct,
-                                      status=_compute_status('disk_usage', disk_pct)))
+                                      status=_compute_status('disk_usage', disk_pct),
+                                      metadata={'point_de_montage': '/'}))
         readings.append(SensorReading(sensor_type='disk_free_gb', value=disk_free,
-                                      status=_compute_status('disk_free_gb', disk_free)))
+                                      status=_compute_status('disk_free_gb', disk_free),
+                                      metadata={'point_de_montage': '/'}))
+
+        # TOUS les volumes. C'est ce qui manquait : un disque ajoute a la
+        # machine et monte sur /mnt/donnees ne produisait aucune lecture,
+        # donc aucune alerte quand il se remplissait. On remonte le PIRE
+        # volume sous deux capteurs distincts, et la liste complete en
+        # metadonnees -- un capteur par volume aurait casse les lecteurs
+        # qui prennent « la plus recente » pour un nom de capteur donne.
+        try:
+            from .storage_service import volume_le_plus_rempli, volumes
+
+            tous = volumes()
+            pire = volume_le_plus_rempli(tous)
+            if pire is not None:
+                detail = {
+                    'volumes': tous,
+                    'pire_volume': pire['point_de_montage'],
+                    'nombre_de_volumes': len(tous),
+                }
+                readings.append(SensorReading(
+                    sensor_type='disk_usage_max', value=pire['pourcentage'],
+                    status=_compute_status('disk_usage_max', pire['pourcentage']),
+                    metadata=detail))
+                readings.append(SensorReading(
+                    sensor_type='disk_free_min_gb', value=pire['libre_go'],
+                    status=_compute_status('disk_free_min_gb', pire['libre_go']),
+                    metadata=detail))
+        except Exception:
+            # La collecte des autres capteurs ne doit pas tomber parce
+            # qu'un montage reseau ne repond pas.
+            logger.exception('Collecte multi-volumes impossible')
 
         try:
             import os
@@ -281,7 +316,14 @@ def _emplacements_donnees():
     orion = Path('/opt/orion')
     entrees = [
         ("Médias (photos, PDF, APK)", Path(settings.MEDIA_ROOT), "Aucune : jamais purgé"),
-        ("Sauvegardes de l'ERP", base / 'storage' / 'backups', "Seulement si planifiées"),
+        # BACKUP_DIR et non « base / storage / backups » : le reglage est
+        # desormais deplacable sur un autre disque, et un chemin fige ici
+        # aurait fait mesurer un dossier vide apres la migration -- la page
+        # aurait annonce « 0 Go de sauvegardes » sur une installation qui en
+        # a des dizaines.
+        ("Sauvegardes de l'ERP",
+         Path(getattr(settings, 'BACKUP_DIR', base / 'storage' / 'backups')),
+         "Seulement si planifiées"),
         ("Journaux", Path(getattr(settings, 'LOG_DIR', base / 'logs')), "Rotation 10 Mo x 10"),
         ("Fichiers statiques", Path(settings.STATIC_ROOT), "Écrasé à chaque collectstatic"),
         ("Sources des frontends", base / 'frontend', "Réinstallé aux mises à jour"),
@@ -333,16 +375,30 @@ def get_storage_breakdown(use_cache=True):
         if en_cache is not None:
             return en_cache
 
+    from .storage_service import volume_du_chemin, volumes as _volumes
+
+    # Mesure une seule fois : volume_du_chemin serait sinon appele une fois
+    # par emplacement, et chaque appel relirait tous les points de montage.
+    volumes_connus = _volumes()
+
     lignes = []
     for libelle, chemin, purge in _emplacements_donnees():
         chemin = Path(chemin)
         if not chemin.exists():
             continue
         octets = _taille_repertoire(chemin)
+        # Le volume qui porte cet emplacement, et son espace libre. C'est
+        # l'information qui manquait pour decider quoi deplacer : la page
+        # donnait la taille d'un dossier sans dire sur quel disque il est,
+        # ni combien il reste sur ce disque.
+        volume = volume_du_chemin(chemin, volumes_connus)
         lignes.append({
             'label': libelle,
             'path': str(chemin),
             'purge': purge,
+            'mountpoint': volume['point_de_montage'] if volume else None,
+            'volume_free_gb': volume['libre_go'] if volume else None,
+            'volume_percent': volume['pourcentage'] if volume else None,
             'bytes': octets,
             'mb': round(octets / 1048576, 1),
             'gb': round(octets / 1e9, 2),

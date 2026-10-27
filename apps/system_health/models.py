@@ -318,6 +318,14 @@ SENSOR_TYPE_CHOICES = [
     ('memory_usage',        'Mémoire (%)'),
     ('disk_usage',          'Disque utilisé (%)'),
     ('disk_free_gb',        'Disque libre (Go)'),
+    # Le pire volume, TOUS disques confondus. Les deux capteurs ci-dessus
+    # ne mesurent que la racine : un disque de donnees monte sur
+    # /mnt/donnees et rempli a 99 % ne declenchait aucune alerte. On ne
+    # les a pas elargis parce que score_service et capacity_service lisent
+    # « la lecture disk_usage la plus recente » : plusieurs volumes sous
+    # le meme nom de capteur leur auraient fait lire un disque au hasard.
+    ('disk_usage_max',      'Disque le plus rempli (%)'),
+    ('disk_free_min_gb',    'Espace libre du disque le plus rempli (Go)'),
     ('open_files',          'Fichiers ouverts'),
     ('load_average',        'Charge système'),
     ('network_latency_ms',  'Latence réseau (ms)'),

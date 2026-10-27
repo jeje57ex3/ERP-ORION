@@ -250,10 +250,42 @@ def disk_dashboard(request):
     # allocations : agencement physique (partitions, espace non alloué), vide
     # hors Linux. breakdown : où vont réellement les données, mis en cache
     # côté service car il parcourt des dizaines de milliers de fichiers.
+    from .storage_service import commandes_de_migration, emplacements, volumes
+
+    # Le placement par catégorie : quel réglage, quel chemin réel, quel
+    # volume. Sans tailles, parce que `breakdown` les donne déjà et les met
+    # en cache cinq minutes — les recalculer ici doublerait le parcours de
+    # dizaines de milliers de fichiers à chaque affichage.
+    placements = emplacements(mesurer_tailles=False)
+
+    # Plan de migration, seulement si l'administrateur a choisi une cible.
+    # Rédigé, jamais exécuté : voir l'en-tête de storage_service.
+    plan = None
+    categorie = request.GET.get('categorie', '')
+    cible = request.GET.get('volume', '')
+    if categorie and cible:
+        connus = {v['point_de_montage'] for v in volumes()}
+        if cible not in connus:
+            # Un volume inventé dans l'URL ne doit pas produire des
+            # commandes qui créeraient un dossier sur le disque système.
+            messages.error(
+                request,
+                f'Volume inconnu : {cible}. Choisissez-en un dans la liste.')
+        else:
+            try:
+                plan = commandes_de_migration(categorie, cible)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+
     return render(request, 'system_health/disk_dashboard.html', {
         'disks': get_disk_summary(),
         'allocations': get_disk_allocations(),
         'breakdown': get_storage_breakdown(),
+        'placements': placements,
+        'volumes': volumes(),
+        'plan': plan,
+        'categorie_choisie': categorie,
+        'volume_choisi': cible,
     })
 
 

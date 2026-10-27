@@ -292,14 +292,47 @@ LANGUAGES = [
 
 LOCALE_PATHS = [BASE_DIR / 'locale']
 
+# ─── Emplacements de stockage ─────────────────────────────────────────────────
+#
+# `emplacement()` accepte un chemin RELATIF (interprete sous BASE_DIR, le
+# comportement historique) ou ABSOLU (/mnt/donnees/media), ce qui permet de
+# poser une categorie de fichiers sur un autre disque sans toucher au code.
+#
+# Avant, MEDIA_ROOT et STATIC_ROOT etaient ecrits « BASE_DIR / 'media' » :
+# codes en dur, donc impossibles a deplacer autrement qu'avec un lien
+# symbolique pose a la main en SSH -- ce que fait l'appliance aujourd'hui
+# ($ORION_HOME/uploads <- backend/media).
+#
+# BACKUP_DIR et LOG_DIR etaient ecrits « BASE_DIR / config(...) ». Un chemin
+# absolu y fonctionnait DEJA, mais par accident : `Path('/a/b') / '/c/d'`
+# rend `/c/d`, pathlib remplacant la base. On ne s'appuie plus sur cet
+# effet de bord, on l'ecrit.
+#
+# Les noms de cles sont ceux que le provisioning ecrit DEJA dans le .env de
+# l'appliance (voir deployment/proxmox-appliance/provisioning/02-deploy-orion.sh,
+# « MEDIA_ROOT=... » et « STATIC_ROOT=... ») : ces deux lignes y figuraient et
+# Django ne les lisait nulle part. Reutiliser ces noms rend le .env existant
+# effectif, plutot que d'ajouter une deuxieme cle concurrente.
+def emplacement(cle, defaut):
+    """Un repertoire de stockage, relatif a BASE_DIR ou absolu."""
+    from pathlib import Path as _Path
+
+    brut = str(config(cle, default=defaut) or defaut).strip()
+    chemin = _Path(brut).expanduser()
+    return chemin if chemin.is_absolute() else (BASE_DIR / chemin)
+
+
 # ─── Fichiers statiques ───────────────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = emplacement('STATIC_ROOT', 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Les medias sont le premier candidat au deplacement : photos, PDF,
+# documents RH prives, images du builder, APK mobiles -- jamais purges,
+# grossissent indefiniment.
+MEDIA_ROOT = emplacement('MEDIA_ROOT', 'media')
 
 # Ou l'installeur de l'application PC est attendu. Sous MEDIA_ROOT par defaut :
 # c'est le volume persistant de l'appliance (/opt/orion/uploads), donc un
@@ -376,8 +409,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
 # ─── Répertoires applicatifs ──────────────────────────────────────────────────
-BACKUP_DIR = BASE_DIR / config('BACKUP_DIR', default='backups')
-LOG_DIR = BASE_DIR / config('LOG_DIR', default='logs')
+BACKUP_DIR = emplacement('BACKUP_DIR', 'backups')
+LOG_DIR = emplacement('LOG_DIR', 'logs')
 
 # ─── SaaS Privé Multi-Entreprises ────────────────────────────────────────────
 ORION_PRIVATE_SAAS_MODE       = True
