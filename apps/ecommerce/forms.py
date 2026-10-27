@@ -248,3 +248,59 @@ class CustomerStoreAccountForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
+
+
+# ─── Déclinaisons d'article SIÈCLE ───────────────────────────────────────────
+#
+# `apps/ecommerce/views_siecle.py` importait StoreProductVariantFormSet
+# depuis ce module, et il n'existait pas -- comme les deux modeles qu'il
+# manipule. Ce module de vues portait dix-huit vues et aucune route : rien
+# n'avait jamais ete execute, donc rien ne signalait l'absence.
+#
+# La liste des champs est celle que templates/ecommerce/article_variants.html
+# affiche, un par un. En ajouter un ici sans l'ajouter au gabarit le
+# rendrait invisible ; en retirer un casserait le rendu.
+#
+# can_delete=True parce que le gabarit rend la case « DELETE » de chaque
+# ligne, et extra=1 pour qu'une ligne vierge soit toujours proposee -- sans
+# quoi un article sans declinaison n'offrirait aucun champ a remplir.
+class StoreProductVariantForm(forms.ModelForm):
+    class Meta:
+        from apps.websites.models import StoreProductVariant as _Variante
+
+        model = _Variante
+        fields = [
+            'name', 'sku', 'size', 'color', 'color_hex', 'material',
+            'price_override', 'compare_at_price_override',
+            'stock_quantity', 'track_stock',
+            'image', 'is_active', 'is_default', 'display_order',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+
+def _construire_le_formset_de_declinaisons():
+    """Construit le formset a l'import, mais SANS importer les modeles au
+    niveau du module.
+
+    apps.websites importe apps.ecommerce dans certaines chaines ; un import
+    de modele en tete de ce fichier ferait dependre l'un de l'autre a
+    l'import, et Django leverait selon l'ordre de chargement des
+    applications.
+    """
+    from django.forms import inlineformset_factory
+
+    from apps.websites.models import StoreProduct, StoreProductVariant
+
+    return inlineformset_factory(
+        StoreProduct,
+        StoreProductVariant,
+        form=StoreProductVariantForm,
+        extra=1,
+        can_delete=True,
+    )
+
+
+StoreProductVariantFormSet = _construire_le_formset_de_declinaisons()

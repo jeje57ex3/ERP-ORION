@@ -1,5 +1,6 @@
 ﻿from django.urls import path
 from . import views
+from . import views_siecle as siecle
 
 app_name = 'ecommerce'
 
@@ -96,5 +97,39 @@ urlpatterns = [
     path('expeditions/<int:pk>/etiquette/', views.shipment_label, name='shipment_label'),
     path('expeditions/<int:pk>/notifier/', views.shipment_notify, name='shipment_notify'),
     path('expeditions/<int:pk>/litige/', views.shipment_dispute, name='shipment_dispute'),
-    path('expeditions/exporter/', views.shipment_export, name='shipment_export'),]
+    path('expeditions/exporter/', views.shipment_export, name='shipment_export'),
+
+    # ── Back-office SIECLE ────────────────────────────────────────────────────
+    #
+    # apps/ecommerce/views_siecle.py portait DIX-HUIT vues et aucune route.
+    # Ses huit gabarits existaient et citaient quinze noms d'URL inexistants.
+    # Le module n'etait meme pas importable : il reclamait deux modeles
+    # (StoreProductVariant, SyncLog) et un formset qui n'existaient nulle
+    # part -- tous trois ajoutes avec ces routes.
+    #
+    # Les noms de parametres (pk, image_pk, variant_pk, log_pk) sont ceux
+    # que les gabarits passent en arguments NOMMES ; les renommer casserait
+    # a nouveau les memes boutons.
+    path('articles/', siecle.article_list, name='article_list'),
+    path('articles/nouveau/', siecle.article_create, name='article_create'),
+    path('articles/<int:pk>/', siecle.article_detail, name='article_detail'),
+    path('articles/<int:pk>/modifier/', siecle.article_edit, name='article_edit'),
+    path('articles/<int:pk>/publier/', siecle.article_publish, name='article_publish'),
+    path('articles/<int:pk>/images/ajouter/', siecle.article_image_upload, name='article_image_upload'),
+    path('articles/<int:pk>/images/<int:image_pk>/supprimer/', siecle.article_image_delete, name='article_image_delete'),
+    path('articles/<int:pk>/images/<int:image_pk>/principale/', siecle.article_image_set_primary, name='article_image_set_primary'),
+    path('articles/<int:pk>/images/ordre/', siecle.article_image_reorder, name='article_image_reorder'),
+    path('articles/<int:pk>/declinaisons/', siecle.article_variants, name='article_variants'),
+    path('articles/<int:pk>/declinaisons/ajouter/', siecle.article_variant_add, name='article_variant_add'),
+    path('articles/<int:pk>/declinaisons/<int:variant_pk>/supprimer/', siecle.article_variant_delete, name='article_variant_delete'),
+
+    path('synchronisation/journal/', siecle.sync_log_list, name='sync_log_list'),
+    path('synchronisation/journal/<int:log_pk>/rejouer/', siecle.sync_retry, name='sync_retry'),
+
+    path('fidelite/', siecle.loyalty_status_list, name='loyalty_status_list'),
+    path('fidelite/<int:pk>/', siecle.loyalty_status_detail, name='loyalty_status_detail'),
+    path('fidelite/<int:pk>/ajuster/', siecle.loyalty_status_adjust, name='loyalty_status_adjust'),
+
+    path('parrainage/', siecle.referral_list, name='referral_list'),
+]
 

@@ -587,6 +587,82 @@ class StoreProduct(models.Model):
     weight_kg = models.DecimalField('Poids (kg)', max_digits=8, decimal_places=3, null=True, blank=True)
     meta_title = models.CharField('Meta title', max_length=70, blank=True)
     meta_description = models.CharField('Meta description', max_length=160, blank=True)
+
+    # ── Fiche éditoriale SIÈCLE ───────────────────────────────────────────
+    #
+    # Ces vingt-cinq champs étaient ÉCRITS par
+    # apps/ecommerce/views_siecle.py (article_create et article_edit en
+    # renseignent trente-six, dont onze seulement existaient) et AFFICHÉS
+    # par templates/ecommerce/article_form.html. Aucun n'existait.
+    #
+    # Comme ce module de vues n'était routé nulle part et n'était même pas
+    # importable, ces deux vues n'avaient jamais été exécutées : la
+    # création d'un article SIÈCLE était impossible, sans que rien ne le
+    # signale.
+    #
+    # Les types ne sont pas devinés : le gabarit rend un <input> pour
+    # chaque CharField et un <textarea> pour chaque TextField, et
+    # « datetime-local » pour les deux dates. Tous sont facultatifs — un
+    # article minimal doit rester créable.
+    archive_ref = models.CharField(
+        'Référence archive', max_length=120, blank=True)
+    display_order = models.PositiveIntegerField('Ordre d\'affichage',
+                                                default=0)
+
+    EARLY_ACCESS_CHOICES = [
+        ('public', 'Public — visible par tous'),
+        ('gold_early_access', 'Accès anticipé Gold, puis public'),
+    ]
+    early_access_type = models.CharField(
+        'Type d\'accès', max_length=24, choices=EARLY_ACCESS_CHOICES,
+        default='public')
+    gold_access_start = models.DateTimeField(
+        'Ouverture Gold', null=True, blank=True)
+    public_access_start = models.DateTimeField(
+        'Ouverture publique', null=True, blank=True)
+
+    story_title = models.CharField('Titre du récit', max_length=200,
+                                   blank=True)
+    story_content = models.TextField('Récit', blank=True)
+    selection_reason = models.TextField(
+        'Pourquoi cette sélection', blank=True)
+    usage_note = models.TextField('Note d\'usage', blank=True)
+
+    materials = models.CharField('Matières', max_length=200, blank=True)
+    dimensions = models.CharField('Dimensions', max_length=200, blank=True)
+    # « weight » et non « weight_kg » : la vue et le gabarit attendent ce
+    # nom, et il ne porte pas la meme chose. weight_kg ci-dessus est une
+    # MESURE, employee pour le calcul des frais de port ; celui-ci est un
+    # texte editorial (« 120 g sur le poignet »). Deux champs, deux usages.
+    weight = models.CharField('Poids (texte)', max_length=120, blank=True)
+    origin_country = models.CharField('Pays d\'origine', max_length=120,
+                                      blank=True)
+    condition = models.CharField('État', max_length=120, blank=True)
+    care_instructions = models.TextField('Entretien', blank=True)
+    shipping_note = models.TextField('Note de livraison', blank=True)
+    return_note = models.TextField('Note de retour', blank=True)
+    guarantee_note = models.TextField('Note de garantie', blank=True)
+
+    is_siecle_selection = models.BooleanField('Sélection SIÈCLE',
+                                              default=False)
+    is_limited_edition = models.BooleanField('Édition limitée',
+                                             default=False)
+    edition_quantity = models.PositiveIntegerField(
+        'Quantité de l\'édition', null=True, blank=True)
+    is_new_arrival = models.BooleanField('Nouveauté', default=False)
+
+    # Les trois champs JSON : la vue les analyse avec un try/except qui
+    # retombe sur une liste ou un dictionnaire vide, d'ou ces defauts.
+    product_highlights = models.JSONField(
+        'Points forts', default=list, blank=True,
+        help_text='Liste de phrases courtes.')
+    technical_details = models.JSONField(
+        'Détails techniques', default=dict, blank=True,
+        help_text='Paires libellé / valeur.')
+    faq_items = models.JSONField(
+        'Questions fréquentes', default=list, blank=True,
+        help_text='Liste de paires question / réponse.')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -616,14 +692,166 @@ class StoreProductImage(models.Model):
     product = models.ForeignKey(StoreProduct, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField('Image', upload_to='websites/store/products/')
     alt_text = models.CharField('Texte alternatif', max_length=200, blank=True)
+    # Ces deux champs etaient ECRITS par apps/ecommerce/views_siecle.py et
+    # LUS par templates/ecommerce/article_detail.html, sans exister :
+    # `article_image_upload` les passait a objects.create() et levait un
+    # TypeError, et `article_image_set_primary` affectait is_primary a une
+    # colonne absente. Comme le module de vues n'etait route nulle part,
+    # personne ne l'avait jamais constate.
+    variant_label = models.CharField(
+        'Déclinaison illustrée', max_length=120, blank=True,
+        help_text="Nom de la déclinaison que cette image montre, "
+                  "par exemple « Bracelet cuir brun ».")
+    is_primary = models.BooleanField('Image principale', default=False)
     order = models.PositiveIntegerField('Ordre', default=0)
 
     class Meta:
         verbose_name = 'Image produit'
-        ordering = ['order']
+        # L'image principale d'abord : c'est celle que les listes et les
+        # vignettes affichent, et un simple tri par « order » la placerait
+        # au hasard.
+        ordering = ['-is_primary', 'order']
 
     def __str__(self):
         return f'Image de {self.product.name}'
+
+
+class StoreProductVariant(models.Model):
+    """Une déclinaison d'un article : taille, couleur, matière.
+
+    Modèle DÉDUIT et non invente : chacun de ses champs est nomme par
+    `templates/ecommerce/article_variants.html`, qui les affiche un par un
+    dans son formset, et le nom de la relation (« variants ») par
+    `apps/ecommerce/views_siecle.py`, qui lit `article.variants.all()`.
+
+    Ce module de vues portait dix-huit vues et aucune route, et il n'etait
+    meme pas importable : il reclamait ce modele, `SyncLog` ci-dessous et
+    un formset, qui n'existaient nulle part. Tout le back-office SIECLE
+    etait donc mort -- articles, images, declinaisons, journal de
+    synchronisation, fidelite, parrainage.
+
+    Les deux champs « _override » sont nuls par defaut, et c'est le sens du
+    nom : une declinaison qui ne les renseigne pas suit le prix de
+    l'article. Mettre 0 par defaut aurait affiche des articles gratuits.
+    """
+
+    product = models.ForeignKey(
+        StoreProduct, on_delete=models.CASCADE, related_name='variants')
+    name = models.CharField('Nom', max_length=200, blank=True)
+    sku = models.CharField('Référence (SKU)', max_length=80, blank=True)
+
+    size = models.CharField('Taille', max_length=60, blank=True)
+    color = models.CharField('Couleur', max_length=60, blank=True)
+    color_hex = models.CharField(
+        'Couleur (code hexadécimal)', max_length=7, blank=True,
+        help_text='Par exemple #1C1C1C, pour la pastille de couleur.')
+    material = models.CharField('Matière', max_length=80, blank=True)
+
+    price_override = models.DecimalField(
+        'Prix spécifique', max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Laisser vide pour suivre le prix de l'article.")
+    compare_at_price_override = models.DecimalField(
+        'Prix barré spécifique', max_digits=10, decimal_places=2,
+        null=True, blank=True)
+
+    stock_quantity = models.PositiveIntegerField('Stock', default=0)
+    track_stock = models.BooleanField('Suivre le stock', default=True)
+
+    image = models.ImageField(
+        'Image', upload_to='websites/store/variants/', null=True, blank=True)
+
+    is_active = models.BooleanField('Active', default=True)
+    is_default = models.BooleanField(
+        'Déclinaison par défaut', default=False,
+        help_text='Celle que la fiche produit propose en premier.')
+    display_order = models.PositiveIntegerField('Ordre', default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Déclinaison produit'
+        verbose_name_plural = 'Déclinaisons produit'
+        ordering = ['-is_default', 'display_order', 'pk']
+
+    def __str__(self):
+        etiquette = self.name or ' / '.join(
+            p for p in (self.size, self.color, self.material) if p)
+        return f'{self.product.name} — {etiquette or "déclinaison"}'
+
+    @property
+    def prix_effectif(self):
+        """Le prix a afficher : celui de la declinaison, sinon de l'article.
+
+        Propriete et non champ : dupliquer le prix de l'article dans chaque
+        declinaison ferait deux verites, et la seconde finirait par
+        contredire la premiere -- ce depot a deja paye ce genre de doublon.
+        """
+        if self.price_override is not None:
+            return self.price_override
+        return getattr(self.product, 'price', None)
+
+    @property
+    def en_stock(self):
+        """Disponible ? Une declinaison non suivie est toujours disponible."""
+        if not self.track_stock:
+            return True
+        return self.stock_quantity > 0
+
+
+class SyncLog(models.Model):
+    """Trace d'une synchronisation d'article entre l'ERP et la boutique.
+
+    Modèle DÉDUIT lui aussi : ses champs sont ceux que
+    `apps/ecommerce/views_siecle.py` écrit (`company`, `product`,
+    `product_name`, `direction`, `status`, `message`) et ceux que
+    `templates/ecommerce/sync_log_list.html` affiche — dont
+    `get_direction_display`, qui exige des `choices`. Les trois statuts
+    sont ceux que ce gabarit propose en filtre.
+
+    `product_name` double volontairement le nom de l'article : c'est un
+    INSTANTANÉ. Le produit peut être renommé ou supprimé — la clef est
+    `null=True` pour cette raison — et un journal qui perdrait le nom de ce
+    qu'il a synchronisé ne servirait plus à rien.
+    """
+
+    DIRECTION_CHOICES = [
+        ('erp_to_site', "De l'ERP vers la boutique"),
+        ('site_to_erp', "De la boutique vers l'ERP"),
+    ]
+    STATUS_CHOICES = [
+        ('success', 'Réussie'),
+        ('failure', 'Échouée'),
+        ('partial', 'Partielle'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='store_sync_logs')
+    product = models.ForeignKey(
+        StoreProduct, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sync_logs')
+    product_name = models.CharField('Article', max_length=200, blank=True)
+
+    direction = models.CharField(
+        'Sens', max_length=20, choices=DIRECTION_CHOICES,
+        default='erp_to_site')
+    status = models.CharField(
+        'Résultat', max_length=10, choices=STATUS_CHOICES, default='success')
+    message = models.TextField('Message', blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Journal de synchronisation'
+        verbose_name_plural = 'Journal de synchronisation'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['company', 'status'])]
+
+    def __str__(self):
+        return (f'{self.get_status_display()} — '
+                f'{self.product_name or "article supprimé"} — '
+                f'{self.created_at:%d/%m %H:%M}')
 
 
 class StoreCart(models.Model):
