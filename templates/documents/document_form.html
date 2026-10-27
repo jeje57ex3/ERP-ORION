@@ -30,7 +30,7 @@
         <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-upload me-1 text-primary"></i>{% trans "Fichier" %}</h6></div>
         <div class="p-3">
           <label class="form-label">{% trans "Téléverser un fichier" %}</label>{{ form.file }}
-          {% if doc and doc.file %}<div class="small text-muted mt-1"><i class="bi bi-paperclip me-1"></i>{% trans "Fichier actuel" %} : <a href="{{ doc.file.url }}" target="_blank">{{ doc.file.name|slice:"10:" }}</a></div>{% endif %}
+          {% if doc and doc.file %}<div class="small text-muted mt-1"><i class="bi bi-paperclip me-1"></i>{% trans "Fichier actuel" %} : <a href="{% url 'documents:document_download' doc.pk %}" target="_blank">{{ doc.file.name|slice:"10:" }}</a></div>{% endif %}
         </div>
       </div>
     </div>

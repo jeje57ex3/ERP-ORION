@@ -7,7 +7,7 @@
   </div>
   <div class="orion-page-actions">
     {% if document.file %}
-    <a href="{{ document.file.url }}" class="orion-btn" download>
+    <a href="{% url 'smart_documents:download' document.pk %}" class="orion-btn">
       <i class="bi bi-download me-1"></i>Télécharger
     </a>
     {% endif %}

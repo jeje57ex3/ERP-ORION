@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from apps.core.media_access import servir_fichier_autorise
 from .models import SmartDocument
 from .services import search_documents, get_expiring_documents
 
@@ -33,3 +34,19 @@ def document_detail(request, pk):
         'page_title': doc.title, 'document': doc,
         'signature_requests': doc.signature_requests.all().order_by('-created_at'),
     })
+
+
+@login_required
+def document_download(request, pk):
+    """Télécharge un document intelligent, borné à l'entreprise courante.
+
+    `smart_documents/` fait partie des préfixes que /media/ refuse : ces
+    documents portent des contrats, des devis signés et des pièces
+    analysées automatiquement. Une URL devinable les aurait rendus
+    lisibles par n'importe quel compte, de n'importe quelle entreprise.
+
+    Le bornage est celui de `document_detail`, qui affiche le lien.
+    """
+    company = request.current_company
+    doc = get_object_or_404(SmartDocument, pk=pk, company=company)
+    return servir_fichier_autorise(doc.file, doc.title)

@@ -37,6 +37,13 @@ urlpatterns = [
     # â”€â”€â”€ Demandes guidÃ©es â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     path('demandes-guidees/', gq.guided_quote_list, name='guided_quote_list'),
     path('demandes-guidees/<int:pk>/', gq.guided_quote_detail, name='guided_quote_detail'),
+    # Photos et pieces deposees par un prospect : refusees par /media/,
+    # voir apps/core/media_access.py.
+    path('demandes-guidees/<int:pk>/photos/<int:photo_pk>/',
+         gq.guided_quote_photo, name='guided_quote_photo'),
+    path('demandes-guidees/<int:pk>/pieces/<int:doc_pk>/',
+         gq.guided_quote_document_download,
+         name='guided_quote_document_download'),
     path('demandes-guidees/<int:pk>/supprimer/', gq.guided_quote_delete,
          name='guided_quote_delete'),
     path('demandes-guidees/<int:pk>/archiver/', gq.guided_quote_archive,
@@ -55,6 +62,11 @@ urlpatterns = [
     # Messagerie client (vue ERP)
     path('messages-clients/', gq.client_messages_list, name='client_messages_list'),
     path('messages-clients/<int:pk>/', gq.client_conversation_detail, name='client_conversation_detail'),
+    # Les pieces jointes ne sont pas servies par /media/ : voir
+    # apps/core/media_access.py.
+    path('messages-clients/<int:pk>/pieces/<int:piece_pk>/',
+         gq.client_message_attachment_download,
+         name='client_message_attachment_download'),
 
     # Heures visibles client
     path('heures-chantiers/', gq.time_entry_list, name='time_entry_list'),

@@ -2,7 +2,9 @@
 ERP BTP Starter — URL principale
 """
 from django.contrib import admin
-from django.urls import path, include
+
+from apps.core.media_access import servir_media
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
@@ -162,9 +164,30 @@ urlpatterns = [
     path('sites/', include('apps.websites.public_urls', namespace='public_websites')),
 ]
 
-# Fichiers media en développement
+# ── Fichiers media ───────────────────────────────────────────────────────────
+#
+# Servis par une vue qui applique une politique de refus par defaut, en
+# production ET en developpement.
+#
+# Avant, `static(MEDIA_URL, ...)` etait derriere `if settings.DEBUG` : en
+# production nginx relaie /media/ vers gunicorn, Django n'avait aucune route
+# pour ce prefixe et WhiteNoise ne sert que STATIC_ROOT. AUCUN fichier
+# televerse n'etait donc accessible sur l'appliance.
+#
+# La correction evidente -- servir MEDIA_ROOT en statique -- aurait publie
+# employee_private/, c'est-a-dire les contrats et bulletins de paie que
+# hr.private_document_download protege par un controle de role et un journal
+# d'acces. Voir apps/core/media_access.py pour la politique.
+#
+# Monte aussi en developpement a dessein : filtrer seulement en production
+# rendrait la politique invisible pendant qu'on la met au point.
+urlpatterns += [
+    re_path(r'^media/(?P<chemin>.+)$', servir_media, name='media'),
+]
+
+# Les fichiers statiques restent servis par WhiteNoise en production ; cette
+# ligne ne sert qu'au developpement.
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # ─── Handlers d'erreurs ──────────────────────────────────────────────────────

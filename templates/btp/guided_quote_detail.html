@@ -85,21 +85,48 @@
     </div>
 
     <!-- Photos & documents -->
-    {% if photos %}
+    {% comment %}
+      Les photos et les pieces ne sont PAS servies par /media/ : leurs
+      prefixes figurent dans PREFIXES_INTERDITS (voir
+      apps/core/media_access.py). Ce sont des photos prises chez un
+      particulier et des pieces qu'il a deposees ; elles passent donc par
+      des vues bornees a l'entreprise de la demande.
+
+      Cette section etait cassee de deux facons avant correction :
+      elle bouclait sur des GuidedQuotePhoto en lisant « doc.file » et
+      « doc.is_image », qui n'existent sur aucun des deux modeles -- le
+      champ s'appelle « photo » -- donc l'image rendait src="" ; et la
+      variable « documents » du contexte n'etait utilisee nulle part, si
+      bien que les pieces deposees ne s'affichaient pas du tout.
+    {% endcomment %}
+    {% if photos or documents %}
     <div class="bg-white border rounded-3 p-4 mb-3">
       <h6 class="fw-bold mb-3">{% trans "Photos & documents" %}</h6>
       <div class="d-flex flex-wrap gap-3">
-        {% for doc in photos %}
+        {% for photo in photos %}
         <div class="text-center">
-          {% if doc.is_image %}
-          <img src="{{ doc.file.url }}" style="width:100px;height:100px;object-fit:cover;border-radius:8px">
-          {% else %}
+          <a href="{% url 'btp:guided_quote_photo' quote.pk photo.pk %}" target="_blank">
+            <img src="{% url 'btp:guided_quote_photo' quote.pk photo.pk %}"
+                 alt="{{ photo.caption|default:_('Photo de la demande') }}"
+                 style="width:100px;height:100px;object-fit:cover;border-radius:8px">
+          </a>
+          {% if photo.caption %}
+          <div style="font-size:.65rem" class="text-muted mt-1">{{ photo.caption }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        {% for doc in documents %}
+        <div class="text-center">
           <div class="bg-light border rounded p-3 text-center" style="width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <i class="bi bi-file-earmark fs-3 text-muted"></i>
-            <div style="font-size:.65rem" class="text-muted mt-1">{{ doc.doc_type }}</div>
+            <div class="text-muted mt-1 text-truncate" style="font-size:.65rem;max-width:88px">{{ doc.name|default:_("Piece jointe") }}</div>
           </div>
-          {% endif %}
-          <div class="mt-1"><a href="{{ doc.file.url }}" class="btn btn-link orion-btn sm p-0 text-muted" download><i class="bi bi-download"></i></a></div>
+          <div class="mt-1">
+            <a href="{% url 'btp:guided_quote_document_download' quote.pk doc.pk %}"
+               class="btn btn-link orion-btn sm p-0 text-muted"
+               title="{% trans 'Telecharger' %}"><i class="bi bi-download"></i></a>
+          </div>
         </div>
         {% endfor %}
       </div>
