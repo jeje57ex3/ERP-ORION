@@ -16,6 +16,27 @@ ALL_MODULE_CODES = [
     # sont creees en bouclant sur CETTE liste. Le module ne pouvait donc
     # jamais s'activer, quoi qu'on coche dans l'interface.
     'site_builder',
+    # Meme defaut, sept fois. DEFAULT_COMPANY_MODULES (module_access.py)
+    # reclamait treize codes absents d'ici, et seed_company_modules les
+    # ignorait EN SILENCE puisqu'il boucle sur cette liste.
+    #
+    # Consequence mesuree : require_company_module gardait 28 vues de
+    # work_planning, 22 d'internal_training, 15 de site_customization et 4
+    # d'orders avec des codes qui ne pouvaient jamais s'activer. Ces
+    # modules etaient donc inaccessibles par construction, et le rester
+    # sans message d'erreur -- juste « module non active ».
+    #
+    # Les six autres codes fantomes (customers, products, payments,
+    # reports, team, idea_engine) ne correspondaient a AUCUNE application,
+    # aucune entree de navigation et aucune garde : ils ont ete retires de
+    # DEFAULT_COMPANY_MODULES plutot qu'ajoutes ici.
+    'orders',
+    'work_planning',
+    'internal_training',
+    'site_customization',
+    'continuous_improvement',
+    'orion_ai',
+    'website_shop_settings',
 ]
 
 MODULE_LABELS = {
@@ -41,6 +62,13 @@ MODULE_LABELS = {
     'domain_diagnostics': 'Diagnostic domaines & Cloudflare',
     'backups_module':     'Sauvegardes',
     'site_builder':       'Editeur visuel de site',
+    'orders':                 'Commandes',
+    'work_planning':          'Planning du personnel',
+    'internal_training':      'Formations internes',
+    'site_customization':     'Personnalisation des sites',
+    'continuous_improvement': 'Amélioration continue',
+    'orion_ai':               'Intelligence artificielle',
+    'website_shop_settings':  'Réglages boutique',
 }
 
 MODULE_NAV_IDS = {
@@ -66,6 +94,20 @@ MODULE_NAV_IDS = {
     'domain_diagnostics': [],
     'backups_module':     [],
     'site_builder':       [],
+    # Identifiants relevés dans NAV_MODULES (apps/core/context_processors.py)
+    # et non devinés : une liste vide masque le module de la navigation.
+    'continuous_improvement': ['continuous_improvement'],
+    'orion_ai':               ['orion_ai'],
+    # Ces quatre applications sont encore dormantes : elles n'ont pas
+    # d'entrée de navigation, et en inventer une ici masquerait un menu
+    # vide. Les listes se rempliront quand chaque module sera branché.
+    'orders':                 [],
+    'work_planning':          [],
+    'internal_training':      [],
+    'site_customization':     [],
+    # Réglages de boutique : servis sous l'entrée « websites », donc sans
+    # identifiant propre.
+    'website_shop_settings':  [],
 }
 
 DEFAULT_MODULES_BY_TYPE = {

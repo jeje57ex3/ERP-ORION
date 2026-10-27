@@ -1,7 +1,10 @@
 {% load i18n %}
 {% comment %} Composant liste de documents liés
    Variables : documents (queryset/liste), upload_url, object_type, object_id
-   Chaque document : name, file_type, file_size, uploaded_by, created_at, url
+   Chaque document : name, file_type, file_size, uploaded_by, created_at
+   Le fichier passe par documents:document_download et non par son URL
+   /media/ : le prefixe « documents/ » est refuse par la politique de
+   apps/core/media_access.py.
 {% endcomment %}
 <div class="document-list-component">
   {% if documents %}
@@ -14,7 +17,7 @@
       </div>
       <div class="flex-grow-1 min-w-0">
         <div class="fw-semibold small text-truncate">
-          {% if doc.file %}<a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none" style="color:var(--orion-text)">{{ doc.name }}</a>
+          {% if doc.file %}<a href="{% url 'documents:document_download' doc.pk %}" target="_blank" class="text-decoration-none" style="color:var(--orion-text)">{{ doc.name }}</a>
           {% else %}{{ doc.name }}{% endif %}
         </div>
         <div class="text-muted" style="font-size:.72rem">
@@ -26,7 +29,7 @@
       <div class="d-flex gap-1 flex-shrink-0">
         {% if doc.file %}
         {% trans "Télécharger" as orion_doc_download_title %}
-        <a href="{{ doc.file.url }}" download class="orion-btn orion-btn-outline orion-orion-btn sm" title="{{ orion_doc_download_title }}">
+        <a href="{% url 'documents:document_download' doc.pk %}" download class="orion-btn orion-btn-outline orion-orion-btn sm" title="{{ orion_doc_download_title }}">
           <i class="bi bi-download"></i>
         </a>
         {% endif %}

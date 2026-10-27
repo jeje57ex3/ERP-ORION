@@ -20,12 +20,20 @@ Les regles, lues sur les intitules du modele et non inventees :
 * `visible_to_employee` est la porte du salarie sur son propre dossier,
   et `my_private_documents` la respectait deja.
 
-Un choix a signaler, parce qu'il t'appartient : le role « manager »
-(Responsable) n'a **pas** acces. Donner a tout chef d'equipe la lecture des
-bulletins de paie et des sanctions disciplinaires de ses subordonnes est
-une decision d'entreprise, pas un detail technique -- et rien dans le
-modele ne relie un responsable a une equipe. Pour la lui donner, ajoute
-'manager' a ROLES_RH ci-dessous.
+DECISION PRISE, et non question ouverte : le role « manager »
+(Responsable) n'a **pas** acces, et cela reste ainsi. Choix confirme par le
+proprietaire du projet le 27 octobre 2026, apres qu'il ait ete pose
+explicitement.
+
+La raison tient : donner a tout chef d'equipe la lecture des bulletins de
+paie et des sanctions disciplinaires de ses subordonnes est une decision
+d'entreprise, pas un detail technique -- et rien dans le modele ne relie
+un responsable a une equipe, donc l'ouvrir donnerait acces aux dossiers de
+TOUS les salaries de l'entreprise, pas seulement des siens.
+
+Pour l'ouvrir un jour, ajouter 'manager' a ROLES_RH suffit. Un test
+verifie que ce role n'y figure pas, afin qu'un tel elargissement soit un
+acte delibere et non un effet de bord.
 """
 
 # La direction : seule a voir les documents « Direction uniquement ».
@@ -33,7 +41,8 @@ modele ne relie un responsable a une equipe. Pour la lui donner, ajoute
 # ci-dessous en sont l'equivalent le plus proche.
 ROLES_DIRECTION = ('admin', 'superadmin')
 
-# L'encadrement RH. Ajoute 'manager' ici pour ouvrir aux responsables.
+# L'encadrement RH. Volontairement SANS 'manager' : voir l'en-tete.
+# Un test l'affirme, pour qu'un ajout reste un acte delibere.
 ROLES_RH = ('hr_manager',)
 
 # Niveaux que le salarie ne voit pas, meme coches « visible par le

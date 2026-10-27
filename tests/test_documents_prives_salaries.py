@@ -455,3 +455,42 @@ def test_mon_widget_cache_ce_que_le_telechargement_refuse(decor):
         decor['compte_marie'], decor['entreprise'])['documents']}
     assert decor['bulletin'].pk in affiches
     assert cache.pk not in affiches
+
+
+# -- La decision sur le role « manager », verrouillee -----------------------
+
+
+def test_le_role_manager_n_accede_pas_aux_dossiers_prives():
+    """DECISION du proprietaire du projet, confirmee le 27 octobre 2026.
+
+    Le role « Responsable » (manager) ne voit pas les contrats, bulletins
+    de paie ni sanctions. La raison est dans l'en-tete de
+    apps/hr/document_access.py, et elle tient surtout a ceci : rien dans le
+    modele ne relie un responsable a une equipe. Ouvrir ce role donnerait
+    donc acces aux dossiers de TOUS les salaries de l'entreprise, et pas
+    seulement des siens -- un elargissement bien plus large qu'il n'y
+    parait.
+
+    Ce test n'empeche pas de changer d'avis : il empeche de le faire par
+    accident, au detour d'une refonte des roles.
+    """
+    from apps.hr.document_access import ROLES_DIRECTION, ROLES_RH
+
+    assert 'manager' not in ROLES_RH
+    assert 'manager' not in ROLES_DIRECTION
+    assert ROLES_RH == ('hr_manager',)
+
+
+def test_la_direction_ne_designe_que_deux_roles():
+    """Il n'existe pas de role « direction » dans ROLE_CHOICES.
+
+    ROLES_DIRECTION en est l'equivalent le plus proche ; si un vrai role
+    apparait un jour, ce test rappellera de le traiter ici.
+    """
+    from apps.accounts.models import ROLE_CHOICES
+    from apps.hr.document_access import ROLES_DIRECTION
+
+    existants = {code for code, _libelle in ROLE_CHOICES}
+    assert set(ROLES_DIRECTION) <= existants, (
+        'ROLES_DIRECTION cite un role qui n existe pas dans ROLE_CHOICES.')
+    assert 'direction' not in existants

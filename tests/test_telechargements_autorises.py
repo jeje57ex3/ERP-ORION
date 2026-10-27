@@ -686,12 +686,6 @@ def test_aucun_gabarit_ne_pointe_plus_vers_un_prefixe_refuse():
         # necessaire. Verifie avec niveau_requis('training/').
         'templates/internal_training/page_editor.html',
         'templates/internal_training/page_view.html',
-        # Gabarit MORT : aucun gabarit ni aucune vue ne l'inclut (verifie
-        # par recherche sur tout le depot). Il viserait project_documents/,
-        # un prefixe interdit ; s'il est un jour branche, il faudra lui
-        # donner l'URL de telechargement du portail. Laisse tel quel
-        # plutot que corrige a l'aveugle, faute de contexte d'appel.
-        'templates/components/document_list.html',
     }
     restants = [s for s in suspects
                 if s.split(' : ')[0].replace('\\', '/') not in autorises]

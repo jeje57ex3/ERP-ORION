@@ -7,26 +7,34 @@ Utilise CompanyModule (modèle existant lié à core.Company).
 from django.utils import timezone
 
 
-# Modules activés par défaut pour toute nouvelle entreprise
+# Modules activés par défaut pour toute nouvelle entreprise.
+#
+# CETTE LISTE DOIT ÊTRE UN SOUS-ENSEMBLE DE ALL_MODULE_CODES, et un test le
+# vérifie désormais. `seed_company_modules` boucle sur ALL_MODULE_CODES : un
+# code présent ici et absent de là-bas est ignoré EN SILENCE — aucune ligne
+# CompanyModule n'est créée, et `require_company_module` refusera toujours.
+#
+# Elle comptait treize codes dans ce cas. Sept désignaient de vraies
+# applications et ont été ajoutés à ALL_MODULE_CODES ; les six autres
+# (customers, products, payments, reports, team, idea_engine) ne
+# correspondaient à aucune application, aucune entrée de navigation et
+# aucune garde — ils sont retirés plutôt que déclarés, parce qu'ajouter un
+# code qui ne protège rien donnerait une case à cocher sans effet.
 DEFAULT_COMPANY_MODULES = [
     "dashboard",
-    "orders",
-    "customers",
-    "products",
     "inventory",
-    "payments",
+    "orders",
     "website_shop_settings",
     "orion_ai",
     "continuous_improvement",
-    "idea_engine",
-    "reports",
-    "team",
     "internal_training",
     "work_planning",
     "site_customization",
 ]
 
-# Tous les codes modules reconnus (synchronisé avec ALL_MODULE_CODES du modèle)
+# Tous les codes modules reconnus. Importé et non recopié : deux listes
+# jumelles finissent par diverger, et c'est exactement ce qui s'est passé
+# ci-dessus.
 from apps.private_saas.models import ALL_MODULE_CODES as _ALL_MODULE_CODES
 
 ALL_MODULE_CODES = _ALL_MODULE_CODES
