@@ -152,6 +152,16 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Site vitrine Orion et mesure des performances ─────────────────────────
+    #
+    # orion_website porte deja son prefixe « orion/ » sur chaque route,
+    # verifie libre : aucune autre application ne l'emploie, et
+    # « orion-admin/ » est un segment distinct.
+    path('', include('apps.orion_website.urls', namespace='orion_website')),
+    path('orion-admin/performance/',
+         include('apps.performance_monitor.urls',
+                 namespace='performance_monitor')),
+
     # ── Personnalisation des sites, domaines, commandes ───────────────────────
     #
     # site_customization et orders ont des routes RELATIVES : leur prefixe

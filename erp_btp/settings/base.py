@@ -135,6 +135,17 @@ LOCAL_APPS = [
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
 
+    # ── Site vitrine Orion et mesure des performances ─────────────────────────
+    #
+    # Les deux dernieres applications dormantes. orion_website est le site
+    # vitrine PUBLIC du produit (onze pages, aucun modele, aucune garde) :
+    # ses pages telechargement et installation etaient inaccessibles, donc
+    # personne ne pouvait recuperer l'application de bureau ni la mobile.
+    # performance_monitor enregistre des mesures de performance et les
+    # affiche a l'equipe (@staff_member_required).
+    'apps.orion_website.apps.OrionWebsiteConfig',
+    'apps.performance_monitor.apps.PerformanceMonitorConfig',
+
     # ── Personnalisation des sites, domaines, commandes ───────────────────────
     #
     # Trois dernieres applications gardees par require_company_module et
