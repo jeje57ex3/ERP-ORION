@@ -152,6 +152,13 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Formations internes ───────────────────────────────────────────────────
+    #
+    # A la racine : apps/internal_training/urls.py porte deja son prefixe
+    # « erp/formations/ » sur chaque route.
+    path('', include('apps.internal_training.urls',
+                     namespace='internal_training')),
+
     # ── Observabilité, fiabilité et opérations ────────────────────────────────
     #
     # Le prefixe est porte ICI et non dans apps/orion_ops/urls.py, dont les

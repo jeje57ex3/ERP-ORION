@@ -135,6 +135,15 @@ LOCAL_APPS = [
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
 
+    # ── Formations internes ───────────────────────────────────────────────────
+    #
+    # Six modeles, dix-neuf vues, huit gabarits, une API et une commande de
+    # donnees d'exemple, sur le disque et jamais declares. Ses dix-neuf
+    # vues sont gardees par require_company_module('internal_training'),
+    # code qui etait lui aussi absent de ALL_MODULE_CODES : meme branchee,
+    # l'application aurait refuse toutes ses pages.
+    'apps.internal_training.apps.InternalTrainingConfig',
+
     # ── Observabilité, fiabilité et opérations ────────────────────────────────
     #
     # Quatorze modeles, sept services, quatre taches Celery, vingt vues et

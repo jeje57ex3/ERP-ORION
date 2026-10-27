@@ -300,6 +300,23 @@ NAV_MODULES = [
         ],
     },
     {
+        # Formations internes. Place apres les RH parce que c'est de la
+        # formation des salaries, et non un module separe dans l'esprit de
+        # qui l'utilise. Son code module est 'internal_training', declare
+        # dans ALL_MODULE_CODES : sans lui, require_company_module refusait
+        # ses dix-neuf vues.
+        'id': 'internal_training',
+        'label': _('Formations'),
+        'icon': 'ti-school',
+        'url_name': 'internal_training:dashboard',
+        'color': '#7C3AED',
+        'children': [
+            {'label': _('Tableau de bord'), 'url_name': 'internal_training:dashboard',      'icon': 'ti-gauge'},
+            {'label': _('Formations'),      'url_name': 'internal_training:course_list',    'icon': 'ti-books'},
+            {'label': _('Nouvelle'),        'url_name': 'internal_training:course_create',  'icon': 'ti-circle-plus'},
+        ],
+    },
+    {
         'id': 'documents',
         'label': _('Documents'),
         'icon_img': 'documents.png', 'icon': 'ti-folder',
