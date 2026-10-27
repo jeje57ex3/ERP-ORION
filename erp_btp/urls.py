@@ -152,6 +152,22 @@ urlpatterns = [
     # ── Santé du système ───────────────────────────────────────────────────────
     path('', include('apps.system_health.urls', namespace='system_health')),
 
+    # ── Personnalisation des sites, domaines, commandes ───────────────────────
+    #
+    # site_customization et orders ont des routes RELATIVES : leur prefixe
+    # est porte ici. domain_manager porte deja « erp/domains/ » sur chacune
+    # des siennes, d'ou le montage a la racine.
+    #
+    # « erp/domains/ » ne collisionne pas avec domain_diagnostics, monte
+    # sous « diagnostic-domaines/ » : les deux modules traitent de domaines
+    # mais ne partagent aucune adresse.
+    path('erp/personnalisation-site/',
+         include('apps.site_customization.urls',
+                 namespace='site_customization')),
+    path('erp/commandes/', include('apps.orders.urls', namespace='orders')),
+    path('', include('apps.domain_manager.urls',
+                     namespace='domain_manager')),
+
     # ── Planning et temps dedies ──────────────────────────────────────────────
     #
     # A la racine : apps/work_planning/urls.py porte deja son prefixe

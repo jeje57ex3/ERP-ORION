@@ -135,6 +135,17 @@ LOCAL_APPS = [
     # ── Santé du système ───────────────────────────────────────────────────────
     'apps.system_health.apps.SystemHealthConfig',
 
+    # ── Personnalisation des sites, domaines, commandes ───────────────────────
+    #
+    # Trois dernieres applications gardees par require_company_module et
+    # jamais declarees : site_customization (quinze vues, quatre modeles),
+    # domain_manager (six vues, un modele, code module « domains ») et
+    # orders (quatre vues, sans modele propre -- elle lit ceux de la
+    # boutique).
+    'apps.site_customization.apps.SiteCustomizationConfig',
+    'apps.domain_manager.apps.DomainManagerConfig',
+    'apps.orders.apps.OrdersConfig',
+
     # ── Planning et temps dedies ──────────────────────────────────────────────
     #
     # Sept modeles, trente-six routes, vingt-deux gabarits, un ordonnanceur

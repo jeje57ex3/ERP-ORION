@@ -239,6 +239,11 @@ NAV_MODULES = [
             {'label': _('Catalogue'),      'url_name': 'siecle_creations:catalog',     'icon_img': 'catalogue_siecle.png', 'icon': 'ti-layout-grid'},
             {'label': _('Collections'),    'url_name': 'siecle_creations:collections', 'icon_img': 'collections.png', 'icon': 'ti-stack'},
             {'label': _('Commandes'),      'url_name': 'siecle_creations:campaigns',   'icon_img': 'commandes_siecle.png', 'icon': 'ti-shopping-bag-check'},
+            # Deux sortes de commandes coexistent, et ce n'est pas un
+            # doublon : l'entree ci-dessus liste les CreationOrder, des
+            # commandes de creations sur mesure ; celle-ci les StoreOrder
+            # de la boutique en ligne, servis par apps.orders.
+            {'label': _('Commandes boutique'), 'url_name': 'orders:order_list', 'icon': 'ti-receipt'},
         ],
     },
     {
@@ -366,6 +371,14 @@ NAV_MODULES = [
         'children': [
             {'label': _('Mes sites'), 'url_name': 'websites:website_list', 'icon_img': 'mes_sites.png', 'icon': 'ti-browser'},
             {'label': _('Domaines'), 'url_name': 'websites:domain_dashboard', 'icon_img': 'domaines.png', 'icon': 'ti-world'},
+            # Rattachement et VERIFICATION de domaines personnalises
+            # (jetons, CNAME, A, TXT, domaine principal). Distinct de
+            # « Domaines » juste au-dessus, qui liste les domaines des
+            # sites, et de diagnostic-domaines/, qui interroge Cloudflare.
+            # Trois choses differentes, d'ou trois entrees.
+            {'label': _('Domaines personnalisés'), 'url_name': 'domain_manager:list', 'icon': 'ti-world-check'},
+            # Personnalisation des themes et des pages d'un site.
+            {'label': _('Personnalisation'), 'url_name': 'site_customization:dashboard', 'icon': 'ti-palette'},
             {'label': _('Pages'), 'url_name': 'websites:page_list', 'icon_img': 'pages.png', 'icon': 'ti-file'},
             # Editeur visuel. Sous « Sites web » parce que c'est la qu'on
             # cherche a modifier les pages de son site -- et parce que
