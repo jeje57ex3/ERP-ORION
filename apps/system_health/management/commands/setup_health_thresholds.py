@@ -14,6 +14,10 @@ DEFAULT_THRESHOLDS = [
     ('memory_usage',       'gt', 75,    90),
     ('disk_usage',         'gt', 80,    95),
     ('disk_free_gb',       'lt', 5,     2),
+    # Memes seuils, mais sur le pire volume : c'est celui-ci qui attrape
+    # un disque de donnees qui se remplit sans toucher a la racine.
+    ('disk_usage_max',     'gt', 80,    95),
+    ('disk_free_min_gb',   'lt', 5,     2),
     ('load_average',       'gt', 2.0,   4.0),
     ('open_files',         'gt', 1000,  2000),
     # Application

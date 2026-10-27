@@ -206,9 +206,10 @@
       <thead class="small text-muted">
         <tr>
           <th>Emplacement</th>
-          <th class="text-end" style="width:110px">Taille</th>
-          <th style="width:28%">Part</th>
-          <th style="width:30%">Purge</th>
+          <th style="width:16%">Disque</th>
+          <th class="text-end" style="width:100px">Taille</th>
+          <th style="width:22%">Part</th>
+          <th style="width:26%">Purge</th>
         </tr>
       </thead>
       <tbody>
@@ -221,6 +222,12 @@
               {{ r.label }}
             </div>
             <div class="text-muted store-path text-truncate" title="{{ r.path }}">{{ r.path }}</div>
+          </td>
+          <td>
+            {% if r.mountpoint %}
+              <code class="small">{{ r.mountpoint }}</code>
+              <div class="text-muted small">{{ r.volume_free_gb }} Go libres</div>
+            {% else %}<span class="text-muted small">—</span>{% endif %}
           </td>
           <td class="text-end">
             {% if r.gb >= 1 %}<span class="fw-600">{{ r.gb }} Go</span>
@@ -248,6 +255,115 @@
     le sont. Supprimez-les depuis
     <a href="{% url 'backups:dashboard' %}">Sauvegardes</a> plutôt qu'au niveau
     du système, afin que la base reste cohérente.
+  </p>
+</div>
+{% endif %}
+
+<!-- Placement des fichiers : quelle catégorie sur quel disque -->
+<div class="orion-card mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <h2 class="h6 mb-0"><i class="bi bi-hdd-stack me-2"></i>Placement des fichiers</h2>
+    <span class="text-muted small">{{ volumes|length }} volume(s) disponible(s)</span>
+  </div>
+  <p class="text-muted small mb-3">
+    Chaque catégorie suit une variable du fichier <code>.env</code>. Un chemin
+    absolu y remplace le dossier de l'application, ce qui permet de poser une
+    catégorie sur un autre disque. Choisissez un disque de destination pour
+    obtenir les commandes exactes — l'ERP ne déplace rien lui-même.
+  </p>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="small text-muted">
+        <tr>
+          <th>Catégorie</th>
+          <th style="width:28%">Emplacement réel</th>
+          <th style="width:15%">Disque</th>
+          <th style="width:27%">Déplacer vers</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in placements %}
+        <tr>
+          <td>
+            <div class="fw-600">{{ p.nom }}</div>
+            <div class="text-muted small">{{ p.contenu }}</div>
+            <div class="text-muted small">
+              <code>{{ p.variable_env }}</code> · {{ p.purge }}
+            </div>
+            {% if p.note %}<div class="text-muted small fst-italic">{{ p.note }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="store-path text-truncate" title="{{ p.chemin_reel }}">{{ p.chemin_reel }}</div>
+            {% if p.est_un_lien %}
+              <div class="text-muted small">
+                <i class="bi bi-link-45deg"></i> lien depuis {{ p.chemin_configure }}
+              </div>
+            {% endif %}
+            {% if not p.existe %}
+              <div class="text-warning small">
+                <i class="bi bi-exclamation-triangle"></i> ce dossier n'existe pas
+              </div>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.volume %}
+              <code class="small">{{ p.volume.point_de_montage }}</code>
+              <div class="text-muted small">{{ p.volume.libre_go }} Go libres</div>
+            {% else %}<span class="text-muted small">—</span>{% endif %}
+          </td>
+          <td>
+            {% if p.deplacable %}
+            <form method="get" class="d-flex gap-1">
+              <input type="hidden" name="categorie" value="{{ p.cle }}">
+              <select name="volume" class="form-select form-select-sm">
+                {% for v in volumes %}
+                <option value="{{ v.point_de_montage }}"
+                  {% if p.volume and v.point_de_montage == p.volume.point_de_montage %}disabled{% endif %}>
+                  {{ v.point_de_montage }} — {{ v.libre_go }} Go libres
+                </option>
+                {% endfor %}
+              </select>
+              <button class="orion-btn sm btn-outline-primary" type="submit">Plan</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Sans intérêt à déplacer</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Plan de migration, rédigé et non exécuté -->
+{% if plan %}
+<div class="orion-card mt-3">
+  <h2 class="h6 mb-1">
+    <i class="bi bi-terminal me-2"></i>Déplacer « {{ plan.categorie.nom }} »
+    vers {{ plan.destination }}
+  </h2>
+  <p class="text-muted small mb-3">
+    À exécuter en SSH sur le serveur, dans cet ordre. L'ordre est volontaire :
+    on copie d'abord (l'ERP continue de servir l'ancien emplacement), on
+    bascule le réglage ensuite, et on ne supprime l'ancien dossier qu'après
+    vérification — jamais dans la même commande.
+  </p>
+
+  {% for etape in plan.etapes %}
+  <div class="mb-3">
+    <div class="fw-600 small">{{ forloop.counter }}. {{ etape.titre }}</div>
+    <p class="text-muted small mb-1">{{ etape.commentaire }}</p>
+    <pre class="bg-dark text-light p-2 rounded small mb-0"><code>{% for c in etape.commandes %}{{ c }}
+{% endfor %}</code></pre>
+  </div>
+  {% endfor %}
+
+  <p class="text-muted small mb-0">
+    Source : <code>{{ plan.source }}</code> — destination :
+    <code>{{ plan.destination }}</code>. Gardez l'ancien dossier quelques
+    jours : c'est votre filet si quelque chose manque.
   </p>
 </div>
 {% endif %}
