@@ -463,7 +463,7 @@ def customer_profile_list(request):
 def customer_profile_detail(request, pk):
     company = request.current_company
     account = get_object_or_404(CustomerStoreAccount, pk=pk, company=company)
-    orders = WebOrder.objects.filter(company=company, customer_email=account.email).order_by('-created_at')[:10]
+    orders = WebOrder.objects.filter(company=company, customer_email=account.email).order_by('-order_date')[:10]
     return render(request, 'ecommerce/customer_profile_detail.html', {
         'account': account, 'orders': orders,
     })
@@ -573,13 +573,13 @@ def pickup_point_form(request, pk=None):
 def ecommerce_dashboard(request):
     company = request.current_company
     today = timezone.now().date()
-    orders_today = WebOrder.objects.filter(company=company, created_at__date=today).count()
-    revenue_today = WebOrder.objects.filter(company=company, created_at__date=today, payment_status='paid').aggregate(v=Sum('total_ttc'))['v'] or 0
+    orders_today = WebOrder.objects.filter(company=company, order_date__date=today).count()
+    revenue_today = WebOrder.objects.filter(company=company, order_date__date=today, payment_status='paid').aggregate(v=Sum('total_ttc'))['v'] or 0
     pending_orders = WebOrder.objects.filter(company=company, status='pending').count()
     channels = SalesChannel.objects.filter(company=company, status='active').count()
     abandoned = AbandonedCart.objects.filter(cart__company=company, status='open').count()
     active_promos = Promotion.objects.filter(company=company, status='active').count()
-    recent_orders = WebOrder.objects.filter(company=company).order_by('-created_at')[:8]
+    recent_orders = WebOrder.objects.filter(company=company).order_by('-order_date')[:8]
     return render(request, 'ecommerce/ecommerce_dashboard.html', {
         'orders_today': orders_today,
         'revenue_today': revenue_today,

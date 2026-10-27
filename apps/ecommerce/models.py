@@ -852,3 +852,34 @@ class ClickAndCollectOrder(models.Model):
 
     def __str__(self):
         return f'C&C — {self.web_order.order_number} — {self.get_status_display()}'
+
+
+# ─── Configurateur montre SIÈCLE ──────────────────────────────────────────────
+#
+# Importes ICI, et non laisses dans leur fichier : Django ne decouvre les
+# modeles que par le module `models` de l'application. Sans cette ligne,
+# apps/ecommerce/watch_models.py definissait TROIS modeles que le registre
+# ne voyait pas -- donc aucune migration, donc AUCUNE TABLE.
+#
+# Et le defaut etait pire que silencieux. apps/ecommerce/brand_views.py les
+# importe a l'interieur de ses vues (`from .watch_models import ...`). Au
+# premier appel, Python execute le module et Django enregistre les modeles
+# EN COURS DE ROUTE : les requetes echouent alors sur
+# « no such table: ecommerce_savedwatchconfiguration », et toute lecture des
+# relations de User se met a echouer avec elles -- y compris dans du code
+# qui n'a rien a voir avec les montres.
+#
+# C'est ainsi que le parcours complet de l'ERP a fait tomber douze tests de
+# suppression de compte : ils inventorient les relations de User.
+#
+# NOTE : ecommerce.SavedWatchConfiguration n'est PAS un doublon de
+# websites.SavedWatchConfiguration (apps/websites/siecle_advanced.py). Les
+# deux coexistent a dessein : celui-ci sert le configurateur PUBLIC
+# (session anonyme, jeton de partage, client facultatif, prix detaille,
+# gravure), celui-la une configuration rattachee a un client CRM et a un
+# produit. Les champs le disent.
+from .watch_models import (  # noqa: E402,F401
+    SavedWatchConfiguration,
+    WatchCustomizationOption,
+    WatchPreset,
+)

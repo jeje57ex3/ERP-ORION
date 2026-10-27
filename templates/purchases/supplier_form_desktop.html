@@ -22,7 +22,7 @@
     <div class="orion-record-toolbar">
       <button class="orion-icon-btn" form="supplier-form" type="submit" title="{% trans "Enregistrer" %}"><i class="bi bi-save"></i></button>
       {% if supplier.pk %}
-      <a href="{% url 'purchases:supplier_confirm_delete' supplier.pk %}" class="orion-icon-btn danger" data-confirm="{% trans "Supprimer ce fournisseur ?" %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'purchases:supplier_delete' supplier.pk %}" class="orion-icon-btn danger" data-confirm="{% trans "Supprimer ce fournisseur ?" %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>{% trans "Actions" %}</button>

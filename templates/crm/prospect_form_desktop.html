@@ -25,7 +25,7 @@
     <div class="orion-record-toolbar">
       <button class="orion-icon-btn" form="prospect-form" type="submit" title="{% trans 'Enregistrer (Ctrl+S)' %}"><i class="bi bi-save"></i></button>
       {% if prospect.pk %}
-      <a href="{% url 'crm:prospect_confirm_delete' prospect.pk %}" class="orion-icon-btn danger" title="{% trans 'Supprimer' %}" data-confirm="{% trans 'Supprimer ce prospect ?' %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'crm:prospect_delete' prospect.pk %}" class="orion-icon-btn danger" title="{% trans 'Supprimer' %}" data-confirm="{% trans 'Supprimer ce prospect ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
@@ -33,7 +33,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
           <li><a class="dropdown-item py-1" href="{% url 'crm:prospect_convert' prospect.pk %}"><i class="bi bi-arrow-right-circle me-2 text-success"></i>{% trans "Convertir en client" %}</a></li>
-          <li><a class="dropdown-item py-1" href="{% url 'crm:opportunity_form' %}?prospect={{ prospect.pk }}"><i class="bi bi-trophy me-2 text-warning"></i>{% trans "Créer opportunité" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'crm:opportunity_create' %}?prospect={{ prospect.pk }}"><i class="bi bi-trophy me-2 text-warning"></i>{% trans "Créer opportunité" %}</a></li>
           <li><hr class="dropdown-divider my-1"></li>
           <li><a class="dropdown-item py-1" href="#" onclick="window.print();return false"><i class="bi bi-printer me-2"></i>{% trans "Imprimer" %}</a></li>
         </ul>

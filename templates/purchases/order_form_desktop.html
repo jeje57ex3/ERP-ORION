@@ -24,7 +24,7 @@
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button"><i class="bi bi-lightning me-1"></i>{% trans "Actions" %}</button>
         <ul class="dropdown-menu dropdown-menu-end" style="font-size:12.5px">
-          <li><a class="dropdown-item py-1" href="{% url 'purchases:order_receive_confirm' order.pk %}"><i class="bi bi-box-arrow-in-down me-2 text-success"></i>{% trans "Réceptionner" %}</a></li>
+          <li><a class="dropdown-item py-1" href="{% url 'purchases:order_receive' order.pk %}"><i class="bi bi-box-arrow-in-down me-2 text-success"></i>{% trans "Réceptionner" %}</a></li>
           <li><a class="dropdown-item py-1" href="#"><i class="bi bi-send me-2 text-primary"></i>{% trans "Envoyer au fournisseur" %}</a></li>
           <li><a class="dropdown-item py-1" href="#"><i class="bi bi-file-pdf me-2 text-danger"></i>{% trans "Télécharger PDF" %}</a></li>
         </ul>

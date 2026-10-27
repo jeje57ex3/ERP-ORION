@@ -34,7 +34,7 @@
       <button class="orion-icon-btn" form="invoice-form" type="submit" title="{% trans 'Enregistrer (Ctrl+S)' %}"><i class="bi bi-save"></i></button>
       <button class="orion-icon-btn" onclick="window.print()" title="{% trans 'Imprimer' %}"><i class="bi bi-printer"></i></button>
       {% if invoice.pk %}
-      <a href="{% url 'sales:invoice_confirm_delete' invoice.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer cette facture ?' %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'sales:invoice_delete' invoice.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer cette facture ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">

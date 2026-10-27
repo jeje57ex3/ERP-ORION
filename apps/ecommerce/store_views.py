@@ -400,7 +400,7 @@ def customer_account(request):
     store_account = getattr(request.user, 'store_account', None)
     if not store_account:
         return redirect('store:customer_login')
-    recent_orders = WebOrder.objects.filter(company=company, customer_email=request.user.email).order_by('-created_at')[:5]
+    recent_orders = WebOrder.objects.filter(company=company, customer_email=request.user.email).order_by('-order_date')[:5]
     orders_count = WebOrder.objects.filter(company=company, customer_email=request.user.email).count()
     returns_count = ReturnRequest.objects.filter(company=company, order__customer_email=request.user.email).count()
     return render(request, 'store/customer_account.html', {
@@ -418,7 +418,7 @@ def customer_orders(request):
         return redirect('store:customer_login')
     if not getattr(request.user, 'store_account', None):
         return redirect('store:customer_login')
-    orders = WebOrder.objects.filter(company=company, customer_email=request.user.email).order_by('-created_at')
+    orders = WebOrder.objects.filter(company=company, customer_email=request.user.email).order_by('-order_date')
     return render(request, 'store/customer_orders.html', {
         'orders': orders,
         'cart_count': _cart_item_count(request, company),

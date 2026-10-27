@@ -35,7 +35,7 @@
       <button class="orion-icon-btn" form="quote-form" type="submit" title="{% trans 'Enregistrer (Ctrl+S)' %}"><i class="bi bi-save"></i></button>
       <button class="orion-icon-btn" onclick="window.print()" title="{% trans 'Imprimer' %}"><i class="bi bi-printer"></i></button>
       {% if quote.pk %}
-      <a href="{% url 'sales:quote_confirm_delete' quote.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer ce devis ?' %}"><i class="bi bi-trash"></i></a>
+      <a href="{% url 'sales:quote_delete' quote.pk %}" class="orion-icon-btn danger" data-confirm="{% trans 'Supprimer ce devis ?' %}"><i class="bi bi-trash"></i></a>
       <div class="orion-toolbar-sep"></div>
       <div class="dropdown">
         <button class="orion-action-dropdown dropdown-toggle" data-bs-toggle="dropdown" type="button">
