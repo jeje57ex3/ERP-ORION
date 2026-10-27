@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 
@@ -49,8 +50,27 @@ class RequireTwoFactorMiddleware:
                     if not request.path.startswith("/account/security/"):
                         return redirect("user_security:two_factor_setup")
                 elif not request.session.get(TWO_FACTOR_PENDING_USER_KEY):
-                    # Session pré-2FA sans pending_user_id : déconnexion forcée
+                    # Session authentifiée, 2FA activée, mais ni vérification
+                    # ni clef d'attente : il ne reste qu'à faire reprendre la
+                    # connexion depuis le début, car cette vue n'a aucun moyen
+                    # de savoir qui est à demi authentifié.
+                    #
+                    # Ce cas ne doit plus se produire à la connexion -- c'est
+                    # login_view qui pose la clef. Il subsiste pour les
+                    # sessions ouvertes avant ce correctif, et pour celles dont
+                    # le marqueur de vérification a été effacé.
+                    #
+                    # Le message n'est pas un ornement : sans lui, le mot de
+                    # passe est accepté et l'écran de connexion revient sans
+                    # un mot, ce qui est indiscernable d'un mot de passe
+                    # refusé. C'est ce silence qui a verrouillé un compte.
                     logout(request)
+                    messages.warning(
+                        request,
+                        "Votre session a expiré pour raison de sécurité. "
+                        "Reconnectez-vous, puis saisissez votre code de "
+                        "double authentification.",
+                    )
                     return redirect("accounts:login")
                 else:
                     return redirect("user_security:two_factor_verify")

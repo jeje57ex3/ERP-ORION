@@ -1,0 +1,180 @@
+/* public_builder.css — Styles for rendered sections (builder canvas + public preview) */
+*, *::before, *::after { box-sizing: border-box; }
+
+.pb-container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.pb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .7rem 1.8rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: .95rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all .2s;
+}
+.pb-btn-primary {
+  background: #D6B36A;
+  color: #0B0B0D;
+  border-color: #D6B36A;
+}
+.pb-btn-primary:hover { background: #c49d55; border-color: #c49d55; color: #0B0B0D; }
+.pb-btn-dark {
+  background: #0B0B0D;
+  color: #F7F2E7;
+  border-color: #0B0B0D;
+}
+.pb-btn-dark:hover { background: #17171B; }
+
+/* ── Hero ────────────────────────────────────────────────────────────── */
+.pb-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+}
+.pb-hero .pb-container { width: 100%; }
+
+/* ── Text & Image ────────────────────────────────────────────────────── */
+.pb-ti-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .pb-ti-grid { grid-template-columns: 1fr; }
+}
+.pb-ti-img-placeholder {
+  background: rgba(255,255,255,.05);
+  border-radius: 12px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,.2);
+}
+
+/* ── Product Grid ─────────────────────────────────────────────────────── */
+.pb-product-grid-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+.pb-product-card {
+  background: rgba(255,255,255,.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform .2s;
+}
+.pb-product-card:hover { transform: translateY(-4px); }
+.pb-product-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+.pb-product-img-ph {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.15);
+  font-size: 2.5rem;
+}
+.pb-product-info { padding: 1rem; }
+.pb-product-name { font-weight: 600; font-size: .95rem; }
+.pb-product-price { color: #D6B36A; font-weight: 700; margin-top: .3rem; }
+.pb-product-placeholder { opacity: .5; }
+
+/* ── Collection Filter ───────────────────────────────────────────────── */
+.pb-filter-chips { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+.pb-filter-chip {
+  padding: .45rem 1.2rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255,255,255,.2);
+  cursor: pointer;
+  font-size: .88rem;
+  transition: all .2s;
+}
+.pb-filter-chip.active,
+.pb-filter-chip:hover {
+  background: #D6B36A;
+  border-color: #D6B36A;
+  color: #0B0B0D;
+}
+
+/* ── Gallery ────────────────────────────────────────────────────────── */
+.pb-gallery-grid {
+  display: grid;
+  gap: 1rem;
+}
+.pb-gallery-cell img { width: 100%; height: 260px; object-fit: cover; border-radius: 8px; }
+.pb-gallery-ph {
+  height: 260px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,.15);
+  font-size: 2rem;
+}
+
+/* ── Features ────────────────────────────────────────────────────────── */
+.pb-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+}
+.pb-feature-item { text-align: center; }
+.pb-feature-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(214,179,106,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: #D6B36A;
+  margin: 0 auto 1rem;
+}
+.pb-feature-title { font-weight: 700; margin-bottom: .4rem; }
+.pb-feature-text { opacity: .75; font-size: .9rem; line-height: 1.6; }
+
+/* ── CTA ─────────────────────────────────────────────────────────────── */
+.pb-cta { text-align: center; }
+
+/* ── FAQ ─────────────────────────────────────────────────────────────── */
+.pb-faq-item {
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  margin-bottom: .5rem;
+}
+.pb-faq-q {
+  padding: 1rem 0;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pb-faq-q::after { content: '+'; font-size: 1.4rem; opacity: .5; }
+details[open] .pb-faq-q::after { content: '−'; }
+.pb-faq-a { padding: 0 0 1rem; opacity: .8; line-height: 1.7; }
+
+/* ── Spacer ──────────────────────────────────────────────────────────── */
+.pb-spacer { display: block; }
