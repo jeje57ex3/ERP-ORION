@@ -1,4 +1,4 @@
-from django.contrib.admin.views.decorators import staff_member_required
+from apps.private_saas.decorators import super_admin_required
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
@@ -6,8 +6,23 @@ from datetime import timedelta
 from .models import PerformanceEvent
 
 
-@staff_member_required
+@super_admin_required
 def dashboard(request):
+    """Mesures de performance de l'installation.
+
+    Garde alignee sur celle de ses VOISINES dans le menu Super Admin.
+
+    Elle employait `staff_member_required`, et c'etait un piege a deux
+    detentes. D'abord il exige `is_staff` quand toutes les autres pages de
+    ce menu exigent `is_superuser` : un super-administrateur sans le drapeau
+    « equipe » voyait cette page seule lui resister. Ensuite, en cas de
+    refus, il redirige vers `admin:login` -- la page de connexion de l'admin
+    Django -- au lieu de ramener au tableau de bord avec un message. D'ou
+    l'impression d'une page cassee plutot que d'un acces refuse.
+
+    Ces mesures portent sur l'infrastructure entiere et non sur une
+    entreprise : le perimetre super-administrateur est le bon.
+    """
     since = timezone.now() - timedelta(hours=24)
 
     # La liste est materialisee UNE fois, et les quatre indicateurs sont
