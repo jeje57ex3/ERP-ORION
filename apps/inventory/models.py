@@ -6,18 +6,61 @@ from django.contrib.auth.models import User
 from apps.core.models import Company
 
 
+def slug_unique_par_entreprise(instance, source, longueur_max=220):
+    """Un slug tire du nom, unique au sein de l'entreprise.
+
+    Pourquoi ces deux modeles en ont besoin : la boutique publique est
+    routee par SLUG (« boutique/produit/<slug:slug>/ ») et ses gabarits
+    construisent leurs liens avec « p.slug ». Ni Product ni
+    ProductCategory n'avait ce champ : l'attribut rendait une chaine vide,
+    « {% url %} » levait NoReverseMatch, et /boutique/ comme
+    /boutique/recherche/ repondaient 500 des qu'un seul produit existait.
+    Defaut mesure, pas suppose.
+
+    L'unicite est bornee a l'entreprise et non globale : deux societes
+    peuvent legitimement vendre un « Ecrou M8 », et une unicite globale
+    ferait echouer la seconde a l'enregistrement.
+    """
+    from django.utils.text import slugify
+
+    base = slugify(source or '') or 'sans-nom'
+    base = base[:longueur_max - 6]
+    modele = type(instance)
+    candidat = base
+    numero = 2
+    while True:
+        voisins = modele.objects.filter(
+            company_id=instance.company_id, slug=candidat)
+        if instance.pk:
+            voisins = voisins.exclude(pk=instance.pk)
+        if not voisins.exists():
+            return candidat
+        candidat = f'{base}-{numero}'
+        numero += 1
+
+
 class ProductCategory(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='product_categories')
     name = models.CharField('Nom', max_length=100)
+    slug = models.SlugField('Slug', max_length=220, blank=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     description = models.TextField('Description', blank=True)
 
     class Meta:
         verbose_name = 'Catégorie produit'
         verbose_name_plural = 'Catégories produits'
+        # Les adresses publiques resolvent sur (entreprise, slug) : deux
+        # categories de meme slug dans une entreprise rendraient l'une des
+        # deux inatteignable.
+        unique_together = ['company', 'slug']
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slug_unique_par_entreprise(self, self.name)
+        super().save(*args, **kwargs)
 
 
 class Product(models.Model):
@@ -34,6 +77,10 @@ class Product(models.Model):
     product_type = models.CharField('Type', max_length=20, choices=TYPE_CHOICES, default='product')
     reference = models.CharField('Référence', max_length=100, blank=True)
     name = models.CharField('Nom', max_length=200)
+    # Adresse publique du produit dans la boutique. Voir
+    # slug_unique_par_entreprise ci-dessus : sans ce champ, /boutique/
+    # repondait 500 des qu'un produit existait.
+    slug = models.SlugField('Slug', max_length=220, blank=True)
     description = models.TextField('Description', blank=True)
     description_sale = models.TextField('Description vente', blank=True)
     image = models.ImageField('Image', upload_to='products/', blank=True, null=True)
@@ -65,9 +112,17 @@ class Product(models.Model):
         verbose_name = 'Produit'
         verbose_name_plural = 'Produits'
         ordering = ['name']
+        # Meme raison que pour les categories : l'adresse publique resout
+        # sur (entreprise, slug).
+        unique_together = ['company', 'slug']
 
     def __str__(self):
         return f'{self.reference} — {self.name}' if self.reference else self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slug_unique_par_entreprise(self, self.name)
+        super().save(*args, **kwargs)
 
     @property
     def needs_reorder(self):
