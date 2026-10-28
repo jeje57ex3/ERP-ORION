@@ -1,0 +1,85 @@
+{% load i18n %}
+{% comment %}
+  Formulaire de contact d'une SECTION de page publique.
+
+  Gabarit MANQUANT : templates/websites/public/page.html l'inclut depuis
+  sa branche « section_type == 'contact_form' », SANS « ignore missing ».
+  Toute page publique portant une section de ce type rendait donc 500 --
+  un TemplateDoesNotExist au rendu, invisible tant qu'aucune page n'avait
+  cette section.
+
+  Il POSTE vers la page de contact du site et non vers la page courante :
+  la vue `page()` de apps/websites/public_views.py ne traite aucun POST et
+  ne met aucun formulaire en contexte, alors que `contact()` fait les deux
+  -- validation, pot de miel, enregistrement du message.
+
+  Les noms de champs sont donc EXACTEMENT ceux que ContactForm attend,
+  relevés dans templates/websites/public/contact.html. Les renommer ferait
+  silencieusement perdre les messages.
+{% endcomment %}
+<form method="post" action="{% url 'public_websites:contact' site.slug %}" novalidate>
+  {% csrf_token %}
+
+  {# Pot de miel : un robot le remplit, un humain ne le voit pas. #}
+  <div style="display:none;" aria-hidden="true">
+    <input type="text" name="website_url_field" tabindex="-1" autocomplete="off">
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-sm-6">
+      <label class="form-label fw-semibold small" for="section-contact-name">
+        {% trans "Nom complet" %} *
+      </label>
+      <input type="text" id="section-contact-name" name="name"
+             class="site-form-control" placeholder="Jean Dupont" required>
+    </div>
+
+    <div class="col-12 col-sm-6">
+      <label class="form-label fw-semibold small" for="section-contact-email">
+        Email *
+      </label>
+      <input type="email" id="section-contact-email" name="email"
+             class="site-form-control" placeholder="jean@email.com" required>
+    </div>
+
+    <div class="col-12 col-sm-6">
+      <label class="form-label fw-semibold small" for="section-contact-phone">
+        {% trans "Téléphone" %}
+      </label>
+      <input type="tel" id="section-contact-phone" name="phone"
+             class="site-form-control" placeholder="+33 6 00 00 00 00">
+    </div>
+
+    <div class="col-12 col-sm-6">
+      <label class="form-label fw-semibold small" for="section-contact-subject">
+        {% trans "Sujet" %}
+      </label>
+      <input type="text" id="section-contact-subject" name="subject"
+             class="site-form-control"
+             placeholder="{% trans 'Objet de votre message' %}">
+    </div>
+
+    <div class="col-12">
+      <label class="form-label fw-semibold small" for="section-contact-message">
+        Message *
+      </label>
+      <textarea id="section-contact-message" name="message" rows="5"
+                class="site-form-control"
+                placeholder="{% trans 'Décrivez votre demande...' %}"
+                required></textarea>
+    </div>
+
+    <div class="col-12">
+      <button type="submit" class="btn-site w-100 py-3">
+        <i class="bi bi-send me-2"></i>{% trans "Envoyer le message" %}
+      </button>
+    </div>
+
+    <div class="col-12">
+      <p class="small text-muted text-center mb-0">
+        <i class="bi bi-lock me-1"></i>
+        {% trans "Vos données sont protégées et ne seront jamais partagées." %}
+      </p>
+    </div>
+  </div>
+</form>
