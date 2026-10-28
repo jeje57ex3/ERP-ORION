@@ -287,3 +287,68 @@ def test_la_page_annonce_le_mobile_comme_a_venir(client, installation_faite):
     contenu = reponse.content.decode()
     assert 'Bient' in contenu
     assert '/mobile/telecharger/' not in contenu
+
+
+# -- 6. Le garde du moniteur, aligne sur celui de ses voisines -------------
+
+
+@pytest.mark.django_db
+def test_un_super_admin_sans_drapeau_equipe_accede_au_moniteur(
+        client, django_user_model, installation_faite):
+    """LE test du defaut : cette page seule resistait a un super-admin.
+
+    Elle employait `staff_member_required`, qui exige `is_staff`, alors que
+    TOUTES ses voisines du menu Super Admin exigent `is_superuser`. Un
+    super-administrateur sans le drapeau « equipe » se voyait refuser cette
+    page et cette page seulement.
+
+    Pire : en cas de refus, `staff_member_required` redirige vers
+    `admin:login` -- la connexion de l'admin Django -- au lieu de ramener au
+    tableau de bord avec un message. D'ou l'impression d'une page cassee
+    plutot que d'un acces refuse.
+
+    Le compte de ce test est donc deliberement is_superuser SANS is_staff.
+    """
+    from apps.accounts.models import UserProfile
+
+    utilisateur = django_user_model.objects.create_user(
+        'patron-sans-equipe', password='x', is_superuser=True, is_staff=False)
+    profil, _ = UserProfile.objects.get_or_create(user=utilisateur)
+    profil.role = 'superadmin'
+    profil.save()
+    profil.companies.add(installation_faite)
+
+    client.force_login(django_user_model.objects.get(pk=utilisateur.pk))
+    session = client.session
+    session['current_company_id'] = installation_faite.pk
+    session.save()
+
+    reponse = client.get(reverse('performance_monitor:dashboard'))
+    assert reponse.status_code == 200, (
+        f'Un super-administrateur sans is_staff recoit '
+        f'{reponse.status_code} sur la page des performances.')
+
+
+@pytest.mark.django_db
+def test_un_refus_ne_renvoie_pas_vers_la_connexion_de_l_admin(
+        client, django_user_model, installation_faite):
+    """Un acces refuse doit le DIRE, pas deguiser la page en panne.
+
+    `staff_member_required` renvoyait vers /admin/login/, ce qui ressemble
+    a un dysfonctionnement. `super_admin_required` ramene au tableau de
+    bord avec un message explicite.
+    """
+    from apps.accounts.models import UserProfile
+
+    utilisateur = django_user_model.objects.create_user('simple-perf',
+                                                        password='x')
+    profil, _ = UserProfile.objects.get_or_create(user=utilisateur)
+    profil.companies.add(installation_faite)
+    client.force_login(django_user_model.objects.get(pk=utilisateur.pk))
+
+    reponse = client.get(reverse('performance_monitor:dashboard'))
+
+    assert reponse.status_code == 302
+    assert '/admin/login' not in reponse['Location'], (
+        'Le refus renvoie vers la connexion de l admin Django : '
+        'indiscernable d une page cassee.')
