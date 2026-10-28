@@ -52,7 +52,7 @@
         <td><span class="orion-badge neutral">{{ inc.get_status_display }}</span></td>
         <td class="text-muted small">{{ inc.started_at|date:"d/m/Y H:i" }}</td>
         <td class="text-muted small">{{ inc.duration }}</td>
-        <td class="text-muted small">{{ inc.assigned_to.get_full_name|default:inc.assigned_to.username|default:"—" }}</td>
+        <td class="text-muted small">{% firstof inc.assigned_to.get_full_name inc.assigned_to.username "—" %}</td>
         <td><a href="{% url 'system_health:incident_detail' inc.pk %}" class="orion-btn btn-sm">Détail</a></td>
       </tr>
       {% empty %}

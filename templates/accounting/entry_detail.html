@@ -49,7 +49,7 @@
             {% elif entry.status == 'cancelled' %}<span class="orion-badge neutral">{% trans "Annulée" %}</span>
             {% elif entry.status == 'reversed' %}<span class="orion-badge info">{% trans "Extournée" %}</span>{% endif %}
           </dd>
-          {% if entry.validated_by %}<dt class="col-5">{% trans "Validé par" %}</dt><dd class="col-7">{{ entry.validated_by.get_full_name|default:entry.validated_by.username }}</dd>{% endif %}
+          {% if entry.validated_by %}<dt class="col-5">{% trans "Validé par" %}</dt><dd class="col-7">{% firstof entry.validated_by.get_full_name entry.validated_by.username %}</dd>{% endif %}
           {% if entry.reversed_entry %}<dt class="col-5">{% trans "Extourne de" %}</dt><dd class="col-7"><a href="{% url 'accounting:entry_detail' entry.reversed_entry.pk %}">{{ entry.reversed_entry.entry_number }}</a></dd>{% endif %}
         </dl>
       </div>

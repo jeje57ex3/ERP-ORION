@@ -19,7 +19,7 @@
             <select name="user_id" class="form-select" required>
               <option value="">-- {% trans "Sélectionner" %} --</option>
               {% for access in users %}
-              <option value="{{ access.user.pk }}">{{ access.user.get_full_name|default:access.user.username }}</option>
+              <option value="{{ access.user.pk }}">{% firstof access.user.get_full_name access.user.username %}</option>
               {% endfor %}
             </select>
           </div>

@@ -27,7 +27,7 @@
             {% endif %}
             <h1 class="display-6 fw-bold" style="color:var(--site-secondary);">{{ post.title }}</h1>
             <div class="d-flex align-items-center gap-3 text-muted small mt-3 flex-wrap">
-              {% if post.author %}<span><i class="bi bi-person me-1"></i>{{ post.author.get_full_name|default:post.author.username }}</span>{% endif %}
+              {% if post.author %}<span><i class="bi bi-person me-1"></i>{% firstof post.author.get_full_name post.author.username %}</span>{% endif %}
               {% if post.published_at %}<span><i class="bi bi-calendar3 me-1"></i>{{ post.published_at|date:"d F Y" }}</span>{% endif %}
               {% if post.reading_time %}<span><i class="bi bi-clock me-1"></i>{% blocktrans with rt=post.reading_time %}{{ rt }} min de lecture{% endblocktrans %}</span>{% endif %}
             </div>

@@ -115,7 +115,7 @@
         {% for session in sessions %}
         <tr>
           <td class="fw-semibold small">{{ session.store.name|default:"—" }}</td>
-          <td class="small text-muted">{{ session.cashier.get_full_name|default:session.cashier.username|default:"—" }}</td>
+          <td class="small text-muted">{% firstof session.cashier.get_full_name session.cashier.username "—" %}</td>
           <td class="small text-muted">{{ session.session_date|date:"d/m/Y" }}</td>
           <td class="small text-muted">{{ session.opened_at|date:"H:i"|default:"—" }}</td>
           <td class="small text-muted">{{ session.closed_at|date:"H:i"|default:"—" }}</td>

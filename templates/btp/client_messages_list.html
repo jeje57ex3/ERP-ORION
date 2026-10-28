@@ -45,7 +45,19 @@
         <div class="d-flex justify-content-between align-items-start">
           <div>
             <div class="fw-semibold text-dark">{{ conv.subject }}</div>
-            <div class="small text-muted">{{ conv.project.name }} · {{ conv.project.client_company|default:conv.project.client_name|default:"—" }}</div>
+            {% comment %}
+              Ni « client_company » ni « client_name » n'existe sur
+              BTPProject : le client est porte par la cle « customer »
+              vers crm.Customer. Deux defauts se cumulaient ici.
+
+              D'abord le mauvais nom de champ. Ensuite, et c'est ce qui
+              rendait la page 500 au lieu d'afficher un vide : un argument
+              de filtre « |default:<variable> » qui ne resout pas n'est
+              PAS silencieux comme l'est « {{ variable }} » seule. Django
+              laisse remonter VariableDoesNotExist, et toute la page tombe
+              des qu'une seule conversation existe.
+            {% endcomment %}
+            <div class="small text-muted">{{ conv.project.name }} · {{ conv.project.customer.name|default:"—" }}</div>
           </div>
           <div class="text-end">
             <div class="text-muted" style="font-size:.7rem">{{ conv.updated_at|timesince }}</div>

@@ -58,7 +58,7 @@
             <tbody>
               {% for log in recent_logs %}
               <tr>
-                <td class="fw-semibold">{{ log.user.get_full_name|default:log.user.username }}</td>
+                <td class="fw-semibold">{% firstof log.user.get_full_name log.user.username %}</td>
                 <td>{{ log.module }}</td>
                 <td><span class="orion-badge neutral">{{ log.action }}</span></td>
                 <td class="text-center">

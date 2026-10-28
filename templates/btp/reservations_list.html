@@ -65,7 +65,16 @@
           <div class="small text-muted mb-1">{{ res.project.name }}</div>
           {% if res.room %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ res.room }}</div>{% endif %}
           <p class="small text-muted mt-2 mb-0">{{ res.description|truncatechars:150 }}</p>
-          {% if res.photos.exists %}<div class="d-flex gap-2 mt-2">{% for ph in res.photos.all|slice:":3" %}<img src="{{ ph.photo.url }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px">{% endfor %}</div>{% endif %}
+          {% comment %}
+            Le garde est sur « ph.photo » et non seulement sur
+            « res.photos.exists » : ce dernier verifie qu'une LIGNE
+            existe, pas qu'elle porte un fichier. Une ligne a l'image
+            vide -- televersement interrompu, creation par l'API -- faisait
+            lever « The 'photo' attribute has no file associated with it »,
+            et ValueError n'est pas silencieux dans un gabarit comme l'est
+            une variable absente : toute la page tombait.
+          {% endcomment %}
+          {% if res.photos.exists %}<div class="d-flex gap-2 mt-2">{% for ph in res.photos.all|slice:":3" %}{% if ph.photo %}<img src="{{ ph.photo.url }}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px">{% endif %}{% endfor %}</div>{% endif %}
         </div>
         <div class="col-12 col-md-3">
           <div class="small text-muted mb-2">{% blocktrans with date=res.created_at|date:"d/m/Y" %}Signalée le {{ date }}{% endblocktrans %}</div>

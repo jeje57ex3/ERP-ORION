@@ -19,7 +19,7 @@
           <dt>Statut</dt><dd>{{ incident.get_status_display }}</dd>
           {% if incident.brand_key %}<dt>Marque</dt><dd><span class="orion-badge accent">{{ incident.brand_key }}</span></dd>{% endif %}
           {% if incident.customer %}<dt>Client</dt><dd>{{ incident.customer.name }}</dd>{% endif %}
-          {% if incident.assigned_to %}<dt>Assigné à</dt><dd>{{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}</dd>{% endif %}
+          {% if incident.assigned_to %}<dt>Assigné à</dt><dd>{% firstof incident.assigned_to.get_full_name incident.assigned_to.username %}</dd>{% endif %}
           {% if incident.due_at %}<dt>Échéance</dt><dd>{{ incident.due_at|date:"d/m/Y" }}</dd>{% endif %}
           <dt>Créé le</dt><dd>{{ incident.created_at|date:"d/m/Y H:i" }}</dd>
         </dl>
@@ -34,7 +34,7 @@
         {% for comment in comments %}
         <div class="mb-3 pb-3" style="border-bottom:1px solid var(--orion-border)">
           <div style="font-size:12px;color:var(--orion-muted);margin-bottom:4px">
-            {{ comment.user.get_full_name|default:comment.user.username }} · {{ comment.created_at|date:"d/m/Y H:i" }}
+            {% firstof comment.user.get_full_name comment.user.username %} · {{ comment.created_at|date:"d/m/Y H:i" }}
           </div>
           <div style="font-size:13.5px">{{ comment.content|linebreaksbr }}</div>
         </div>

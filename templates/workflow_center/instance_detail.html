@@ -37,7 +37,7 @@
               <span class="orion-badge {% if act.action == 'approve' %}success{% elif act.action == 'reject' %}danger{% else %}neutral{% endif %}">
                 {{ act.get_action_display }}
               </span>
-              <span style="font-size:13px">{{ act.user.get_full_name|default:act.user.username }}</span>
+              <span style="font-size:13px">{% firstof act.user.get_full_name act.user.username %}</span>
               <span style="font-size:11px;color:var(--orion-muted)">· {{ act.created_at|date:"d/m H:i" }}</span>
               {% if act.comment %}<span style="font-size:12px;color:var(--orion-text-soft)">— {{ act.comment }}</span>{% endif %}
             </div>

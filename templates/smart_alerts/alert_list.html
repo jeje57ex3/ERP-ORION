@@ -88,7 +88,7 @@
             {% endif %}
             <div style="font-size:11.5px;color:var(--orion-muted);margin-top:4px">
               {{ alert.created_at|date:"d/m/Y H:i" }}
-              {% if alert.assigned_to %} · Assigné à {{ alert.assigned_to.get_full_name|default:alert.assigned_to.username }}{% endif %}
+              {% if alert.assigned_to %} · Assigné à {% firstof alert.assigned_to.get_full_name alert.assigned_to.username %}{% endif %}
             </div>
           </div>
           {% if alert.status in 'open,acknowledged' %}

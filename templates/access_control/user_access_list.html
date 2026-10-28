@@ -22,7 +22,7 @@
           {% for access in accesses %}
           <tr>
             <td>
-              <div class="fw-semibold">{{ access.user.get_full_name|default:access.user.username }}</div>
+              <div class="fw-semibold">{% firstof access.user.get_full_name access.user.username %}</div>
               <small class="text-muted">{{ access.user.email }}</small>
             </td>
             <td>

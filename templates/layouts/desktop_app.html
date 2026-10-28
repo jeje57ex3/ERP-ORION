@@ -316,7 +316,7 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end" style="min-width:210px;font-size:12.5px">
           <li class="dropdown-header" style="font-size:11px">
-            {{ request.user.get_full_name|default:request.user.username }}<br>
+            {% firstof request.user.get_full_name request.user.username %}<br>
             <span class="text-muted" style="font-size:10.5px">{{ request.user.email }}</span>
           </li>
           <li><hr class="dropdown-divider my-1"></li>

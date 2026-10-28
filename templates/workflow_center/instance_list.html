@@ -41,7 +41,7 @@
             </div>
             <div style="font-size:12px;color:var(--orion-muted)">
               Étape {{ inst.current_step_index|add:1 }} · Créé {{ inst.created_at|date:"d/m/Y H:i" }}
-              {% if inst.created_by %} · par {{ inst.created_by.get_full_name|default:inst.created_by.username }}{% endif %}
+              {% if inst.created_by %} · par {% firstof inst.created_by.get_full_name inst.created_by.username %}{% endif %}
             </div>
           </div>
           <span class="orion-badge neutral">{{ inst.get_status_display }}</span>

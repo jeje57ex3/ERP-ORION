@@ -155,10 +155,24 @@
         {% if employee.user %}
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
             <div style="width:42px;height:42px;border-radius:10px;background:var(--orion-accent-soft);color:var(--orion-accent-strong);display:grid;place-items:center;font-weight:800;font-size:15px;flex-shrink:0">
-              {{ employee.user.first_name|slice:":1"|default:employee.user.username|slice:":1" }}{{ employee.user.last_name|slice:":1" }}
+              {% comment %}
+                Les initiales viennent du SALARIÉ et non de son compte.
+
+                Avant : « employee.user.first_name|slice:":1"|default:
+                employee.user.username|slice:":1" ». Or Employee.user est
+                nullable — un salarié n'a pas forcément de compte ERP,
+                c'est même tout l'objet de missing_employee.html. Quand il
+                est nul, l'ARGUMENT du filtre « default » ne résout pas, et
+                Django laisse remonter VariableDoesNotExist : la fiche du
+                salarié répondait 500.
+
+                Employee porte ses propres first_name et last_name : ils
+                sont toujours là, et ce sont eux qu'il faut afficher.
+              {% endcomment %}
+              {{ employee.first_name|slice:":1" }}{{ employee.last_name|slice:":1" }}
             </div>
             <div>
-              <div style="font-weight:700;font-size:14px">{{ employee.user.get_full_name|default:employee.user.username }}</div>
+              <div style="font-weight:700;font-size:14px">{% firstof employee.user.get_full_name employee.user.username %}</div>
               <div style="font-size:12px;color:var(--orion-muted)">{{ employee.user.email }}</div>
             </div>
             {% if employee.user.is_active %}

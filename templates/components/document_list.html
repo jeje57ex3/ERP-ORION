@@ -21,7 +21,7 @@
           {% else %}{{ doc.name }}{% endif %}
         </div>
         <div class="text-muted" style="font-size:.72rem">
-          {% if doc.uploaded_by %}{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }} · {% endif %}
+          {% if doc.uploaded_by %}{% firstof doc.uploaded_by.get_full_name doc.uploaded_by.username %} · {% endif %}
           {{ doc.created_at|date:"d/m/Y"|default:'' }}
           {% if doc.file_size %} · {{ doc.file_size|filesizeformat }}{% endif %}
         </div>

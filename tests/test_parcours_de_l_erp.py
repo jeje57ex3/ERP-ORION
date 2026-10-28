@@ -26,11 +26,16 @@ recâblés : réparer du code mort donne l'illusion qu'il est maintenu.
 """
 
 import collections
+import datetime
+import decimal
 import os
 import re
 
 import pytest
+from django.apps import apps as registre
+from django.db import models, transaction
 from django.urls import NoReverseMatch, get_resolver, reverse
+from django.utils import timezone
 from django.urls.resolvers import URLPattern, URLResolver
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -157,6 +162,203 @@ def test_aucune_page_ne_leve_d_erreur(client, super_admin_tous_modules):
     # faisait rediriger l'ERP entier (perte de session, intergiciel
     # d'installation), le test ci-dessus passerait sans rien mesurer.
     assert par_code[200] > 800, (
+        f'Seulement {par_code[200]} page(s) en 200 : quelque chose '
+        f'detourne le parcours. Repartition : {dict(par_code)}')
+
+
+# ── 1 bis. Les mêmes pages, sur une base PEUPLÉE ──────────────────────────
+#
+# Le parcours ci-dessus visite une base VIDE, et c'est sa limite : il n'a
+# rien vu de la panne de la boutique publique, qui ne se declenche qu'avec
+# un produit au catalogue. C'est avec des donnees que les gabarits
+# bouclent, donc que les {% url %} s'evaluent et que les attributs se
+# resolvent.
+#
+# Ce second parcours seme une instance de chaque modele rattache a une
+# entreprise -- 458 modeles sur 462 -- puis revisite les memes adresses. Il
+# a trouve huit pannes que le premier ne pouvait pas voir :
+#
+#   - trois « |default:<chemin.pointe> » dont l'argument ne resolvait pas.
+#     Un argument de filtre n'est PAS silencieux, contrairement a une
+#     variable seule : la page entiere tombait ;
+#   - « conv.project.client_name », champ inexistant sur BTPProject ;
+#   - une photo de reserve sans fichier, dont « .url » levait ValueError ;
+#   - un widget de tableau de bord dont le gabarit, nomme en BASE,
+#     n'existait pas -- il emportait le tableau de bord entier ;
+#   - un « {% include ... ignore missing %} », syntaxe que Django n'accepte
+#     pas pour « include » : TemplateSyntaxError des l'analyse.
+
+
+COMPTEUR = {'n': 0}
+
+
+def _valeur(champ, entreprise, deja_crees):
+    """Une valeur plausible pour un champ requis, selon son type."""
+    COMPTEUR['n'] += 1
+    n = COMPTEUR['n']
+
+    if champ.choices:
+        return champ.choices[0][0]
+
+    if isinstance(champ, models.ForeignKey):
+        cible = champ.related_model
+        if cible._meta.label == 'core.Company':
+            return entreprise
+        return deja_crees.get(cible._meta.label)
+
+    if isinstance(champ, (models.SlugField,)):
+        return f'essai-{n}'
+    if isinstance(champ, models.EmailField):
+        return f'essai{n}@exemple.fr'
+    if isinstance(champ, models.URLField):
+        return 'https://exemple.fr'
+    if isinstance(champ, models.GenericIPAddressField):
+        return '192.0.2.1'
+    if isinstance(champ, models.UUIDField):
+        import uuid
+        return uuid.uuid4()
+    if isinstance(champ, (models.CharField, models.TextField)):
+        valeur = f'Essai {n}'
+        longueur = getattr(champ, 'max_length', None)
+        return valeur[:longueur] if longueur else valeur
+    if isinstance(champ, models.BooleanField):
+        return champ.name.startswith('is_active')
+    if isinstance(champ, models.DecimalField):
+        return decimal.Decimal('1')
+    if isinstance(champ, (models.IntegerField, models.FloatField)):
+        return 1
+    if isinstance(champ, models.DateTimeField):
+        return timezone.now()
+    if isinstance(champ, models.DateField):
+        return timezone.now().date()
+    if isinstance(champ, models.TimeField):
+        return datetime.time(9, 0)
+    if isinstance(champ, models.DurationField):
+        return datetime.timedelta(hours=1)
+    if isinstance(champ, models.JSONField):
+        return {} if champ.default is dict else []
+    return None
+
+
+def _semer(entreprise, utilisateur):
+    """Cree une instance de chaque modele qu'on peut, en plusieurs passes."""
+    deja = {'core.Company': entreprise,
+            'auth.User': utilisateur}
+
+    modeles = [m for m in registre.get_models()
+               if m._meta.app_label not in ('contenttypes', 'sessions',
+                                            'admin', 'auth', 'migrations')
+               and not m._meta.abstract and not m._meta.proxy]
+
+    echecs = {}
+    progres = True
+    while progres:
+        progres = False
+        for modele in modeles:
+            label = modele._meta.label
+            if label in deja:
+                continue
+            valeurs = {}
+            manquant = False
+            for champ in modele._meta.get_fields():
+                if not getattr(champ, 'concrete', False):
+                    continue
+                if champ.primary_key or champ.auto_created:
+                    continue
+                if isinstance(champ, (models.FileField, models.ImageField)):
+                    continue
+                requis = (not getattr(champ, 'blank', True)
+                          and not champ.has_default()
+                          and not getattr(champ, 'null', False))
+                if isinstance(champ, models.ForeignKey) and requis:
+                    cible = champ.related_model._meta.label
+                    if cible == 'core.Company':
+                        valeurs[champ.name] = entreprise
+                        continue
+                    if cible in ('auth.User',):
+                        valeurs[champ.name] = utilisateur
+                        continue
+                    if cible not in deja or deja[cible] is None:
+                        manquant = True
+                        break
+                    valeurs[champ.name] = deja[cible]
+                    continue
+                if not requis:
+                    # On renseigne quand meme l'entreprise : sans elle, les
+                    # listes bornees par entreprise resteraient vides et la
+                    # page ne bouclerait sur rien.
+                    if (isinstance(champ, models.ForeignKey)
+                            and champ.related_model._meta.label
+                            == 'core.Company'):
+                        valeurs[champ.name] = entreprise
+                    continue
+                v = _valeur(champ, entreprise, deja)
+                if v is None:
+                    manquant = True
+                    break
+                valeurs[champ.name] = v
+            if manquant:
+                continue
+            try:
+                with transaction.atomic():
+                    deja[label] = modele.objects.create(**valeurs)
+                progres = True
+            except Exception as exc:                # noqa: BLE001
+                echecs[label] = f'{type(exc).__name__}: {str(exc)[:110]}'
+    return deja, echecs
+
+
+@pytest.mark.django_db
+def test_aucune_page_ne_leve_d_erreur_sur_donnees_peuplees(
+        client, django_user_model):
+    """Le parcours qui compte vraiment. Environ deux minutes.
+
+    On n'exige pas 200 partout -- un 302, un 403 ou un 405 sont des
+    reponses voulues. Ce qui n'est jamais acceptable, c'est une exception.
+    """
+    from apps.accounts.models import UserProfile
+    from apps.core.models import Company
+    from apps.private_saas.models import ALL_MODULE_CODES, CompanyModule
+
+    entreprise = Company.objects.create(name='Peuple SA', slug='peuple-sa',
+                                        sector='btp')
+    for code in ALL_MODULE_CODES:
+        CompanyModule.objects.update_or_create(
+            company=entreprise, module_code=code,
+            defaults={'is_enabled': True})
+
+    utilisateur = django_user_model.objects.create_user(
+        'semeur', password='x', is_superuser=True, is_staff=True,
+        email='semeur@exemple.fr')
+    profil, _ = UserProfile.objects.get_or_create(user=utilisateur)
+    profil.role = 'superadmin'
+    profil.save()
+    profil.companies.add(entreprise)
+
+    crees, _echecs = _semer(entreprise, utilisateur)
+    assert len(crees) > 300, (
+        f'Seulement {len(crees)} modele(s) peuple(s) : le parcours ne '
+        f'mesurerait plus grand-chose.')
+
+    client.force_login(django_user_model.objects.get(pk=utilisateur.pk))
+    session = client.session
+    session['current_company_id'] = entreprise.pk
+    session.save()
+
+    par_code = collections.Counter()
+    echecs = []
+    for adresse in _adresses_sans_argument():
+        try:
+            par_code[client.get(adresse).status_code] += 1
+        except Exception as exc:                    # noqa: BLE001
+            echecs.append(f'{adresse}\n      {type(exc).__name__}: '
+                          f'{str(exc)[:170]}')
+
+    assert not echecs, (
+        f'{len(echecs)} page(s) levent une exception AVEC DES DONNEES :\n  '
+        + '\n  '.join(echecs))
+
+    assert par_code[200] > 850, (
         f'Seulement {par_code[200]} page(s) en 200 : quelque chose '
         f'detourne le parcours. Repartition : {dict(par_code)}')
 
