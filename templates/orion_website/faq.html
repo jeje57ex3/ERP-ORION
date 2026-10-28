@@ -1,0 +1,88 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero faq-hero">
+  <p class="orion-eyebrow">FAQ Orion ERP</p>
+  <h1>Questions fréquentes sur Orion ERP.</h1>
+  <p>
+    Retrouve les réponses sur le fonctionnement du logiciel, les modules,
+    la connexion, les applications Windows / Android / Apple, la sécurité
+    et l'installation.
+  </p>
+
+  <div class="orion-hero-actions">
+    <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion ERP</a>
+    <a href="{% url 'orion_website:contact' %}" class="orion-btn large">Contacter le support</a>
+  </div>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-faq-search-card">
+    <label for="orionFaqSearch">Rechercher dans la FAQ</label>
+    <input
+      id="orionFaqSearch"
+      type="search"
+      placeholder="Exemple : Android, modules, sécurité, login..."
+      data-faq-search
+    >
+  </div>
+</section>
+
+<section class="orion-section">
+  <div class="orion-category-grid faq-category-grid">
+    {% for category in faq_categories %}
+    <a href="#faq-{{ category.code }}" class="orion-category-card compact">
+      <span>{{ forloop.counter|stringformat:"02d" }}</span>
+      <h3>{{ category.title }}</h3>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% for group in faq_by_category %}
+<section class="orion-section narrow faq-section" id="faq-{{ group.category.code }}">
+  <div class="orion-section-header">
+    <p class="orion-eyebrow">FAQ</p>
+    <h2>{{ group.category.title }}</h2>
+  </div>
+
+  <div class="orion-faq-list">
+    {% for item in group.items %}
+      <details
+        class="orion-faq-item"
+        data-faq-item
+        data-faq-text="{{ item.question|lower }} {{ item.answer|lower }} {% for tag in item.tags %}{{ tag|lower }} {% endfor %}"
+      >
+        <summary>
+          <span>{{ item.question }}</span>
+          <strong>+</strong>
+        </summary>
+
+        <div class="orion-faq-answer">
+          <p>{{ item.answer }}</p>
+
+          {% if item.tags %}
+          <div class="orion-faq-tags">
+            {% for tag in item.tags %}
+              <span>{{ tag }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </details>
+    {% empty %}
+      <p>Aucune question dans cette catégorie.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<section class="orion-cta">
+  <h2>Tu n'as pas trouvé ta réponse ?</h2>
+  <p>Contacte le support ou connecte-toi à Orion ERP pour accéder à ton espace.</p>
+  <div class="orion-hero-actions centered">
+    <a href="{% url 'orion_website:contact' %}" class="orion-btn large">Contact</a>
+    <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion ERP</a>
+  </div>
+</section>
+{% endblock %}

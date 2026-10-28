@@ -1,0 +1,135 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=profile.display_name %}Contraintes {{ name }}{% endblocktrans %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:employee_list' %}">{% trans 'Équipe' %}</a></li>
+<li class="breadcrumb-item active">{% blocktrans with name=profile.display_name %}Contraintes — {{ name }}{% endblocktrans %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'work_planning:employee_constraint_create' profile.pk %}" class="orion-btn orion-btn-primary">
+    <i class="bi bi-plus-circle me-1"></i>{% trans 'Ajouter une contrainte' %}
+  </a>
+  <a href="{% url 'work_planning:employee_edit' profile.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-pencil me-1"></i>{% trans 'Modifier le profil' %}
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# Résumé horaires normaux #}
+<div class="orion-card mb-4">
+  <div class="orion-card-body p-3">
+    <div class="d-flex flex-wrap gap-4 align-items-center">
+      <div>
+        <div class="text-muted small mb-1"><i class="bi bi-person me-1"></i>{{ profile.get_role_display }}</div>
+        <div class="fw-semibold">{{ profile.display_name }}</div>
+      </div>
+      <div>
+        <div class="text-muted small mb-1"><i class="bi bi-clock me-1"></i>{% trans 'Horaires normaux' %}</div>
+        <div class="fw-medium">{{ profile.normal_work_start|time:"H\hi" }} → {{ profile.normal_work_end|time:"H\hi" }}</div>
+      </div>
+      {% if profile.lunch_break_start %}
+      <div>
+        <div class="text-muted small mb-1"><i class="bi bi-cup-hot me-1"></i>{% trans 'Pause déjeuner' %}</div>
+        <div class="fw-medium">{{ profile.lunch_break_start|time:"H\hi" }} → {{ profile.lunch_break_end|time:"H\hi" }}</div>
+      </div>
+      {% endif %}
+      <div>
+        <div class="text-muted small mb-1"><i class="bi bi-lightning me-1"></i>{% trans 'Heures supplémentaires' %}</div>
+        {% if profile.accepts_overtime %}
+          <span class="orion-badge orion-badge-info">{% blocktrans with h=profile.max_overtime_hours_per_week %}Acceptées — max {{ h }}h/sem.{% endblocktrans %}</span>
+        {% else %}
+          <span class="orion-badge orion-badge-secondary">{% trans 'Refusées' %}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if profile.planning_notes %}
+    <div class="mt-3 p-2 rounded" style="background:#FFF7ED;border-left:3px solid #F59E0B;font-size:.85rem">
+      <i class="bi bi-info-circle me-1 text-warning"></i>{{ profile.planning_notes }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if constraints %}
+<div class="orion-card">
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.85rem">
+        <thead style="background:#F8FAFC">
+          <tr>
+            <th class="px-3 py-2">{% trans 'Contrainte' %}</th>
+            <th class="py-2">{% trans 'Type' %}</th>
+            <th class="py-2">{% trans 'Priorité' %}</th>
+            <th class="py-2">{% trans 'Récurrence' %}</th>
+            <th class="py-2">{% trans 'Jour' %}</th>
+            <th class="py-2">{% trans 'Horaire' %}</th>
+            <th class="py-2">{% trans 'Statut' %}</th>
+            <th class="py-2 pe-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in constraints %}
+          <tr>
+            <td class="px-3 py-2">
+              <div class="fw-medium">{{ c.title }}</div>
+              {% if c.description %}<div class="text-muted" style="font-size:.75rem">{{ c.description|truncatewords:10 }}</div>{% endif %}
+            </td>
+            <td class="py-2">
+              <span class="orion-badge orion-badge-secondary">{{ c.get_constraint_type_display }}</span>
+            </td>
+            <td class="py-2">
+              <span class="orion-badge orion-badge-{% if c.priority == 'blocking' %}danger{% elif c.priority == 'important' %}warning{% else %}secondary{% endif %}">
+                {{ c.get_priority_display }}
+              </span>
+            </td>
+            <td class="py-2">{{ c.get_recurrence_display }}</td>
+            <td class="py-2">{{ c.get_weekday_display|default:"—" }}</td>
+            <td class="py-2">
+              {% if c.start_time %}
+                {{ c.start_time|time:"H\hi" }} → {{ c.end_time|time:"H\hi" }}
+              {% elif c.starts_at %}
+                {{ c.starts_at|date:"d/m/Y H:i" }} → {{ c.ends_at|date:"d/m/Y H:i" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="py-2">
+              {% if c.is_active %}
+                <span class="orion-badge orion-badge-info">{% trans 'Active' %}</span>
+              {% else %}
+                <span class="orion-badge orion-badge-secondary">{% trans 'Inactive' %}</span>
+              {% endif %}
+            </td>
+            <td class="py-2 pe-3">
+              <div class="d-flex gap-1">
+                <a href="{% url 'work_planning:employee_constraint_edit' c.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'work_planning:employee_constraint_delete' c.pk %}" class="orion-btn sm" style="color:#DC2626;background:#FEF2F2;border:1px solid #FECACA" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-shield-check" style="font-size:2.5rem;color:#16A34A;opacity:.5"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucune contrainte' %}</div>
+    <p class="text-muted small mb-3">{% blocktrans with name=profile.display_name %}{{ name }} n'a pas de contrainte personnelle ou familiale enregistrée.{% endblocktrans %}</p>
+    <a href="{% url 'work_planning:employee_constraint_create' profile.pk %}" class="orion-btn orion-btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>{% trans 'Ajouter une contrainte' %}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

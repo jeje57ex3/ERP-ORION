@@ -1,0 +1,98 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><a href="{% url 'internal_training:course_detail' course.pk %}">{{ course.title }}</a> › {{ page.chapter.title }}</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn ghost">
+  <i class="bi bi-list-ul me-1"></i> {% trans 'Sommaire' %}
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Blocs de contenu ──────────────────────────────────────────────────────── #}
+<div class="training-page-view">
+  {% for block in page.blocks.all %}
+  <div class="training-view-block {{ block.block_type }}">
+    {% if block.block_type == 'text' %}
+    <div class="training-view-text">{{ block.content|linebreaksbr }}</div>
+
+    {% elif block.block_type == 'image' %}
+    {% if block.file %}
+    <figure class="training-view-image">
+      <img src="{{ block.file.url }}" alt="" loading="lazy" decoding="async">
+    </figure>
+    {% endif %}
+
+    {% elif block.block_type == 'annotation' %}
+    <div class="training-view-annotation">
+      <i class="bi bi-sticky-fill me-2"></i>
+      {{ block.content|linebreaksbr }}
+    </div>
+
+    {% elif block.block_type == 'audio' %}
+    {% if block.file %}
+    <div class="training-view-audio">
+      <i class="bi bi-music-note-beamed me-2"></i>
+      <audio controls>
+        <source src="{{ block.file.url }}">
+        {% trans "Votre navigateur ne supporte pas l'audio." %}
+      </audio>
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="orion-empty-state">
+    <i class="bi bi-file-text"></i>
+    <p>{% trans 'Cette page ne contient pas encore de contenu.' %}</p>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── Navigation et progression ─────────────────────────────────────────────── #}
+<div class="training-page-nav">
+  <div>
+    {% if prev_page %}
+    <a href="{% url 'internal_training:page_view' prev_page.pk %}" class="orion-btn ghost">
+      <i class="bi bi-arrow-left me-1"></i> {{ prev_page.title }}
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="text-center">
+    {% if is_completed %}
+    <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>{% trans 'Terminé' %}</span>
+    {% else %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="mark_complete">
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-check-circle me-1"></i> {% trans 'Marquer comme terminé' %}
+        {% if next_page %}{% trans 'et passer à la suite' %}{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="text-end">
+    {% if next_page %}
+    <a href="{% url 'internal_training:page_view' next_page.pk %}" class="orion-btn ghost">
+      {{ next_page.title }} <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+    {% else %}
+    <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn ghost">
+      {% trans 'Fin de la formation' %} <i class="bi bi-trophy ms-1"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

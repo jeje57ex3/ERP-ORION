@@ -1,0 +1,232 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block extra_css %}{{ block.super }}
+<style>
+.color-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:8px; }
+.color-field { display:flex; flex-direction:column; gap:6px; }
+.color-field label { font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--orion-text-muted); }
+.color-preview-row { display:flex; align-items:center; gap:10px; }
+.color-swatch { width:36px; height:36px; border-radius:6px; border:1px solid rgba(255,255,255,.1); }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'site_customization:dashboard' %}">{% trans 'Personnalisation' %}</a></li>
+<li class="breadcrumb-item active">{% blocktrans %}Thème — {{ website.name }}{% endblocktrans %}</li>
+{% endblock %}
+
+{% block page_actions %}
+{% if theme.is_published %}
+<span class="orion-badge orion-badge-success me-2"><i class="bi bi-check-circle me-1"></i>{% trans 'Publié' %}</span>
+{% else %}
+<span class="orion-badge me-2"><i class="bi bi-pencil me-1"></i>{% trans 'Brouillon' %}</span>
+{% endif %}
+{% if website.slug == 'siecle' %}
+<a href="{% url 'site_builder:open_siecle' %}" class="orion-btn orion-btn-outline me-1"><i class="bi bi-layout-wtf me-1"></i>{% trans 'Éditeur visuel' %}</a>
+{% elif website.slug == 'lunea' %}
+<a href="{% url 'site_builder:open_lunea' %}" class="orion-btn orion-btn-outline me-1"><i class="bi bi-layout-wtf me-1"></i>{% trans 'Éditeur visuel' %}</a>
+{% else %}
+<a href="{% url 'site_builder:page_list' %}" class="orion-btn orion-btn-outline me-1"><i class="bi bi-layout-wtf me-1"></i>{% trans 'Éditeur visuel' %}</a>
+{% endif %}
+<a href="{% url 'site_customization:theme_publish' website.pk %}" class="orion-btn orion-btn-primary"><i class="bi bi-upload me-1"></i>{% trans 'Publier' %}</a>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ══ Éditeur visuel — bannière d'entrée ══════════════════════════════════ -->
+<div style="border:3px solid #D6B36A;border-radius:16px;padding:20px 24px;margin-bottom:24px;background:rgba(214,179,106,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+  <div>
+    <div style="color:#D6B36A;font-weight:900;text-transform:uppercase;letter-spacing:.1em;font-size:.75rem;margin-bottom:4px;">
+      <i class="bi bi-layout-wtf"></i> {% trans 'Éditeur visuel' %}
+    </div>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">{% blocktrans %}Construire les pages {{ website.name }}{% endblocktrans %}</div>
+    <div style="font-size:.85rem;opacity:.7;">
+      {% trans "Cette page gère le thème (couleurs, logos). Pour ajouter des sections et blocs sans coder, utilisez l'éditeur visuel." %}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    {% if website.slug == 'siecle' %}
+      <a href="{% url 'site_builder:open_siecle' %}"
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+        <i class="bi bi-layout-wtf"></i> {% trans "Ouvrir l'éditeur SIÈCLE" %}
+      </a>
+    {% elif website.slug == 'lunea' %}
+      <a href="{% url 'site_builder:open_lunea' %}"
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+        <i class="bi bi-layout-wtf"></i> {% trans "Ouvrir l'éditeur LUNEA" %}
+      </a>
+    {% else %}
+      <a href="{% url 'site_builder:page_list' %}"
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+        <i class="bi bi-layout-wtf"></i> {% trans 'Éditeur visuel' %}
+      </a>
+    {% endif %}
+    <a href="{% url 'site_builder:page_list' %}"
+       style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid rgba(214,179,106,.4);color:#D6B36A;border-radius:10px;font-weight:600;text-decoration:none;font-size:.85rem;">
+      {% trans 'Toutes les pages' %}
+    </a>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div class="row g-4">
+
+  <!-- Col principale -->
+  <div class="col-lg-8">
+
+    <!-- Couleurs -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-palette me-1 text-primary"></i>{% trans 'Couleurs' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="color-row">
+          {% for field in form %}
+            {% if 'color' in field.name %}
+            <div class="color-field">
+              <label>{{ field.label }}</label>
+              <div class="color-preview-row">
+                {{ field }}
+                <input type="text" class="orion-input" style="width:90px;font-size:12px;font-family:monospace"
+                  value="{{ field.value }}"
+                  onchange="document.getElementById('{{ field.auto_id }}').value=this.value">
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Typographie -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-fonts me-1 text-primary"></i>{% trans 'Typographie & Formes' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.font_family.label }}</label>
+            {{ form.font_family }}
+            <small class="text-muted">{% trans 'Ex : "Inter, system-ui, sans-serif"' %}</small>
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{{ form.border_radius.label }}</label>
+            {{ form.border_radius }}
+          </div>
+          <div class="col-md-3">
+            <label class="orion-label">{{ form.button_radius.label }}</label>
+            {{ form.button_radius }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-code-slash me-1 text-primary"></i>{% trans 'Scripts & Analytics' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="orion-label">{{ form.head_scripts.label }} <small class="text-muted">{% trans '(Google Analytics, Tag Manager…)' %}</small></label>
+          {{ form.head_scripts }}
+        </div>
+        <div class="mb-3">
+          <label class="orion-label">{{ form.body_scripts.label }} <small class="text-muted">{% trans '(Meta Pixel, Hotjar…)' %}</small></label>
+          {{ form.body_scripts }}
+        </div>
+        <div>
+          <label class="orion-label">{{ form.custom_css.label }}</label>
+          {{ form.custom_css }}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Col droite -->
+  <div class="col-lg-4">
+
+    <!-- Médias -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-image me-1 text-primary"></i>{% trans 'Médias' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="orion-label">{{ form.logo.label }}</label>
+          {% if theme.logo %}<div class="mb-2"><img src="{{ theme.logo.url }}" alt="{% trans 'Logo' %}" style="max-height:50px;max-width:100%"></div>{% endif %}
+          {{ form.logo }}
+        </div>
+        <div class="mb-3">
+          <label class="orion-label">{{ form.logo_dark.label }}</label>
+          {% if theme.logo_dark %}<div class="mb-2"><img src="{{ theme.logo_dark.url }}" alt="{% trans 'Logo dark' %}" style="max-height:50px;max-width:100%;background:#000;padding:4px;border-radius:4px"></div>{% endif %}
+          {{ form.logo_dark }}
+        </div>
+        <div>
+          <label class="orion-label">{{ form.favicon.label }}</label>
+          {% if theme.favicon %}<div class="mb-2"><img src="{{ theme.favicon.url }}" alt="{% trans 'Favicon' %}" style="max-height:32px"></div>{% endif %}
+          {{ form.favicon }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Aperçu couleurs -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-eye me-1 text-primary"></i>{% trans 'Aperçu thème' %}</h6></div>
+      <div class="orion-card-body" id="theme-preview" style="background:{{ theme.background_color }};border-radius:8px;padding:16px">
+        <p style="color:{{ theme.text_color }};font-family:{{ theme.font_family }};font-size:16px;font-weight:700;margin-bottom:8px">{% trans 'Titre de section' %}</p>
+        <p style="color:{{ theme.muted_text_color }};font-size:13px;margin-bottom:12px">{% trans 'Texte atténué de description' %}</p>
+        <button style="background:{{ theme.primary_color }};color:#000;border:none;padding:8px 18px;border-radius:{{ theme.button_radius }}px;font-weight:700;font-size:13px;cursor:default">{% trans 'Bouton CTA' %}</button>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="orion-card mb-3">
+      <div class="orion-card-body d-grid gap-2">
+        <button type="submit" class="orion-btn orion-btn-primary"><i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}</button>
+        <a href="{% url 'site_customization:theme_publish' website.pk %}" class="orion-btn orion-btn-outline"><i class="bi bi-upload me-1"></i>{% trans 'Enregistrer & Publier' %}</a>
+        <a href="{% url 'site_customization:dashboard' %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}</a>
+      </div>
+    </div>
+
+    <!-- Éditeur visuel -->
+    <div class="orion-card" style="border-color:rgba(214,179,106,.5);">
+      <div class="orion-card-header" style="border-bottom-color:rgba(214,179,106,.2);">
+        <h6 class="mb-0"><i class="bi bi-layout-wtf me-1" style="color:#D6B36A"></i>{% trans 'Construire les pages' %}</h6>
+      </div>
+      <div class="orion-card-body">
+        <p class="small text-muted mb-3">
+          {% blocktrans %}Cette page gère le <strong>thème global</strong> : couleurs, logos, typographie et scripts.{% endblocktrans %}<br>
+          {% blocktrans %}Pour modifier la <strong>structure du site</strong> — ajouter des blocs, déplacer des sections — utilisez l'éditeur visuel.{% endblocktrans %}
+        </p>
+        {% if website.slug == 'siecle' %}
+        <a href="{% url 'site_builder:open_siecle' %}" class="orion-btn orion-btn-primary w-100">
+          <i class="bi bi-layout-wtf me-1"></i>{% trans "Ouvrir l'éditeur SIÈCLE" %}
+        </a>
+        {% elif website.slug == 'lunea' %}
+        <a href="{% url 'site_builder:open_lunea' %}" class="orion-btn orion-btn-primary w-100">
+          <i class="bi bi-layout-wtf me-1"></i>{% trans "Ouvrir l'éditeur LUNEA" %}
+        </a>
+        {% else %}
+        <a href="{% url 'site_builder:page_list' %}" class="orion-btn orion-btn-primary w-100">
+          <i class="bi bi-layout-wtf me-1"></i>{% trans 'Éditeur visuel' %}
+        </a>
+        {% endif %}
+        <div class="mt-2 text-center">
+          <small class="text-muted" style="font-size:11px">
+            <i class="bi bi-info-circle me-1"></i>{% trans "Crée la page d'accueil automatiquement si elle n'existe pas encore." %}
+          </small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</form>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "erp_base.html" %}
+{% load widget_tweaks i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1"><a href="{% url 'domain_manager:list' %}">{% trans "Domaines" %}</a></p>
+    <h1 class="page-title">{{ page_title }}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{{ page_subtitle }}</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card" style="max-width:640px;">
+  <form method="post" class="orion-form">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="orion-alert danger mb-3">
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="mb-3">
+      <label class="form-label fw-500" for="{{ form.domain.id_for_label }}">
+        {% trans "Nom de domaine" %} <span class="text-danger">*</span>
+      </label>
+      {% trans "ex: monsite.fr ou www.monsite.fr" as domain_placeholder %}
+      {% with placeholder_attr="placeholder:"|add:domain_placeholder %}
+      {{ form.domain|add_class:"form-control"|attr:placeholder_attr }}
+      {% endwith %}
+      {% if form.domain.errors %}
+        <div class="text-danger small mt-1">{{ form.domain.errors.0 }}</div>
+      {% endif %}
+      <div class="form-text">{% trans "Entrez uniquement le domaine, sans https:// ni chemin." %}</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-500" for="{{ form.brand_key.id_for_label }}">
+        {% trans "Marque associée" %}
+      </label>
+      {{ form.brand_key|add_class:"form-control" }}
+      {% if form.brand_key.errors %}
+        <div class="text-danger small mt-1">{{ form.brand_key.errors.0 }}</div>
+      {% endif %}
+      <div class="form-text">{% trans "Laissez vide pour un domaine global. Exemples :" %} <code>siecle</code>, <code>lunea</code></div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-500" for="{{ form.target_type.id_for_label }}">
+        {% trans "Cible" %} <span class="text-danger">*</span>
+      </label>
+      {{ form.target_type|add_class:"form-select" }}
+    </div>
+
+    <div class="mb-4 form-check">
+      {{ form.redirect_to_primary|add_class:"form-check-input" }}
+      <label class="form-check-label" for="{{ form.redirect_to_primary.id_for_label }}">
+        {% trans "Rediriger vers le domaine principal si non défini comme principal" %}
+      </label>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-arrow-right-circle me-1"></i>{% trans "Continuer" %}
+      </button>
+      <a href="{% url 'domain_manager:list' %}" class="orion-btn">{% trans "Annuler" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with title=page.title %}Éditeur — {{ title }}{% endblocktrans %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><a href="{% url 'internal_training:dashboard' %}">{% trans 'Formations' %}</a> › <a href="{% url 'internal_training:course_detail' page.chapter.course.pk %}">{{ page.chapter.course.title }}</a> › {{ page.chapter.title }}</p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'internal_training:page_edit' page.pk %}" class="orion-btn ghost">
+  <i class="bi bi-sliders me-1"></i> {% trans 'Paramètres' %}
+</a>
+{% if page.status == 'published' %}
+<a href="{% url 'internal_training:page_view' page.pk %}" class="orion-btn ghost">
+  <i class="bi bi-eye me-1"></i> {% trans 'Aperçu' %}
+</a>
+{% endif %}
+<a href="{% url 'internal_training:course_detail' page.chapter.course.pk %}" class="orion-btn ghost">
+  <i class="bi bi-arrow-left me-1"></i> {% trans 'Retour' %}
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="training-editor-layout">
+
+  {# ── Zone blocs ───────────────────────────────────────────────────────── #}
+  <div class="training-editor-main">
+    <div class="training-blocks-list" id="blocksList">
+      {% trans '(vide)' as training_block_empty %}
+      {% if page.blocks.exists %}
+        {% for block in page.blocks.all %}
+        <div class="training-block-item" data-block-id="{{ block.pk }}">
+          <div class="training-block-handle"><i class="bi bi-grip-vertical"></i></div>
+          <div class="training-block-content">
+            {% if block.block_type == 'text' %}
+            <div class="training-block-icon text"><i class="bi bi-text-left"></i></div>
+            <div class="training-block-preview">{{ block.content|truncatechars:120|default:training_block_empty }}</div>
+            {% elif block.block_type == 'image' %}
+            <div class="training-block-icon image"><i class="bi bi-image"></i></div>
+            {% if block.file %}
+            <img src="{{ block.file.url }}" alt="image" class="training-block-thumb" loading="lazy" decoding="async">
+            {% else %}
+            <span class="text-muted">{% trans 'Aucun fichier' %}</span>
+            {% endif %}
+            {% elif block.block_type == 'annotation' %}
+            <div class="training-block-icon annotation"><i class="bi bi-sticky"></i></div>
+            <div class="training-block-preview annotation">{{ block.content|truncatechars:120|default:training_block_empty }}</div>
+            {% elif block.block_type == 'audio' %}
+            <div class="training-block-icon audio"><i class="bi bi-music-note"></i></div>
+            {% if block.file %}
+            <audio controls class="training-block-audio">
+              <source src="{{ block.file.url }}">
+            </audio>
+            {% else %}
+            <span class="text-muted">{% trans 'Aucun fichier' %}</span>
+            {% endif %}
+            {% endif %}
+          </div>
+          <div class="training-block-actions">
+            <form method="post" action="{% url 'internal_training:block_edit' block.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="button" class="orion-btn xs ghost"
+                      onclick="openEditBlock({{ block.pk }}, '{{ block.block_type }}', '{{ block.content|escapejs|default_if_none:'' }}')">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </form>
+            <form method="post" action="{% url 'internal_training:block_delete' block.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn xs ghost danger"
+                      onclick="return confirm('{% trans "Supprimer ce bloc ?" %}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="training-editor-empty">
+        <i class="bi bi-grid-1x2"></i>
+        <p>{% trans 'Aucun bloc. Ajoutez du contenu ci-dessous.' %}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Panneau ajout bloc ───────────────────────────────────────────────── #}
+  <div class="training-editor-sidebar">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="orion-card-title">{% trans 'Ajouter un bloc' %}</span>
+      </div>
+      <div class="orion-card-body">
+        <div class="training-block-types-grid">
+          <button type="button" class="training-block-type-btn" onclick="showBlockForm('text')">
+            <i class="bi bi-text-left"></i>
+            <span>{% trans 'Texte' %}</span>
+          </button>
+          <button type="button" class="training-block-type-btn" onclick="showBlockForm('image')">
+            <i class="bi bi-image"></i>
+            <span>{% trans 'Image' %}</span>
+          </button>
+          <button type="button" class="training-block-type-btn" onclick="showBlockForm('annotation')">
+            <i class="bi bi-sticky"></i>
+            <span>{% trans 'Annotation' %}</span>
+          </button>
+          <button type="button" class="training-block-type-btn" onclick="showBlockForm('audio')">
+            <i class="bi bi-music-note"></i>
+            <span>{% trans 'Audio' %}</span>
+          </button>
+        </div>
+
+        <form method="post" action="{% url 'internal_training:block_add' page.pk %}"
+              enctype="multipart/form-data" id="addBlockForm" style="display:none;margin-top:16px">
+          {% csrf_token %}
+          <input type="hidden" name="block_type" id="blockTypeInput">
+          <div class="orion-field mb-3" id="contentField">
+            <label class="orion-label">{% trans 'Contenu' %}</label>
+            <textarea name="content" class="orion-input" rows="4" placeholder="{% trans 'Entrez le texte…' %}"></textarea>
+          </div>
+          <div class="orion-field mb-3" id="fileField" style="display:none">
+            <label class="orion-label">{% trans 'Fichier' %}</label>
+            <input type="file" name="file" class="orion-input">
+          </div>
+          <button type="submit" class="orion-btn primary w-100">{% trans 'Ajouter' %}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-body">
+        <p class="small text-muted mb-0">
+          {% trans 'Statut' %} : <strong>{{ page.get_status_display }}</strong><br>
+          {% trans 'Blocs' %} : <strong>{{ page.blocks.count }}</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showBlockForm(type) {
+  document.getElementById('blockTypeInput').value = type;
+  document.getElementById('addBlockForm').style.display = 'block';
+  const contentField = document.getElementById('contentField');
+  const fileField = document.getElementById('fileField');
+  if (type === 'image' || type === 'audio') {
+    contentField.style.display = 'none';
+    fileField.style.display = 'block';
+  } else {
+    contentField.style.display = 'block';
+    fileField.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

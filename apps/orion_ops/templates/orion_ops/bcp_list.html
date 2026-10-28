@@ -1,0 +1,112 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Plan de continuité d'activité{% endblock %}
+{% block page_eyebrow %}OpsV2 · Résilience{% endblock %}
+{% block page_subtitle %}{{ scenarios|length }} scénario(s) — {{ needs_retest_count }} à retester, {{ not_tested_count }} jamais testés.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:bcp_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-lg me-1"></i>Nouveau scénario</a>
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn ms-2"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bcp-card { border-radius:.75rem; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.02); padding:1.25rem; }
+.bcp-priority-critical { border-left:4px solid #EF4444; }
+.bcp-priority-high     { border-left:4px solid #F59E0B; }
+.bcp-priority-medium   { border-left:4px solid #C6A15B; }
+.bcp-priority-low      { border-left:4px solid #94A3B8; }
+.bcp-metric { text-align:center; }
+.bcp-metric-val { font-size:1.4rem; font-weight:700; }
+.retest-badge { background:rgba(239,68,68,.12); color:#EF4444; border-radius:4px; padding:2px 8px; font-size:.72rem; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if needs_retest_count %}
+<div class="alert alert-danger d-flex align-items-center mb-4" style="border-radius:.75rem">
+  <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+  <span><strong>{{ needs_retest_count }} scénario(s)</strong> n'ont pas été exercés depuis plus de 6 mois — planifiez un exercice.</span>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  {% for scenario in scenarios %}
+  <div class="col-lg-6">
+    <div class="bcp-card bcp-priority-{{ scenario.priority }}">
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="small text-muted">{{ scenario.get_scenario_type_display }}</span>
+            {% if scenario.needs_retest %}<span class="retest-badge">À retester</span>{% endif %}
+          </div>
+          <h6 class="mb-0 fw-700">{{ scenario.name }}</h6>
+          {% if scenario.description %}
+          <p class="text-muted small mb-0 mt-1">{{ scenario.description|truncatechars:100 }}</p>
+          {% endif %}
+        </div>
+        <div>
+          {% if scenario.last_result == 'success' %}
+            <i class="bi bi-shield-fill-check text-success fs-4"></i>
+          {% elif scenario.last_result == 'partial' %}
+            <i class="bi bi-shield-fill-exclamation text-warning fs-4"></i>
+          {% elif scenario.last_result == 'failed' %}
+            <i class="bi bi-shield-fill-x text-danger fs-4"></i>
+          {% else %}
+            <i class="bi bi-shield fs-4 text-muted"></i>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-3 bcp-metric">
+          <div class="bcp-metric-val text-warning">{{ scenario.rto_hours|floatformat:0 }}h</div>
+          <div class="small text-muted">RTO cible</div>
+        </div>
+        <div class="col-3 bcp-metric">
+          <div class="bcp-metric-val text-info">{{ scenario.rpo_hours|floatformat:0 }}h</div>
+          <div class="small text-muted">RPO cible</div>
+        </div>
+        <div class="col-3 bcp-metric">
+          <div class="bcp-metric-val">{{ scenario.procedures|length }}</div>
+          <div class="small text-muted">Étapes</div>
+        </div>
+        <div class="col-3 bcp-metric">
+          <div class="bcp-metric-val">{{ scenario.escalation_contacts|length }}</div>
+          <div class="small text-muted">Contacts</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="small text-muted">
+          {% if scenario.last_exercised %}
+            Dernier exercice : {{ scenario.last_exercised|date:"d/m/Y" }}
+            ({{ scenario.get_last_result_display }})
+          {% else %}
+            <span class="text-danger">Jamais exercé</span>
+          {% endif %}
+        </div>
+        {% if scenario.owner %}
+        <div class="small text-muted">
+          <i class="bi bi-person me-1"></i>{{ scenario.owner.get_full_name|default:scenario.owner.username }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="orion-card text-center py-5 text-muted">
+      <i class="bi bi-shield-exclamation d-block mb-3" style="font-size:2.5rem;"></i>
+      <p class="mb-2">Aucun scénario BCP configuré.</p>
+      <small>Documentez vos procédures de rétablissement pour chaque type d'incident critique.</small><br>
+      <a href="{% url 'orion_ops:bcp_create' %}" class="orion-btn orion-btn-primary mt-3">
+        <i class="bi bi-plus-lg me-1"></i>Créer le premier scénario
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

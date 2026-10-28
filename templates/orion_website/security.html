@@ -1,0 +1,50 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Sécurité</p>
+  <h1>Orion ERP protège les accès et centralise les données côté serveur.</h1>
+  <p>Les applications PC et mobile se connectent au serveur Orion ERP via API HTTPS. Les données ERP ne quittent jamais le serveur.</p>
+</section>
+
+<section class="orion-section">
+  <div class="orion-card-grid">
+    <article class="orion-module-card">
+      <div class="orion-module-icon">🔒</div>
+      <h3>HTTPS obligatoire</h3>
+      <p>Toutes les communications entre applications et serveur passent par HTTPS chiffré. Aucune donnée en clair.</p>
+    </article>
+    <article class="orion-module-card">
+      <div class="orion-module-icon">🎫</div>
+      <h3>Sessions sécurisées</h3>
+      <p>L'authentification utilise des sessions Django sécurisées. Les credentials peuvent être stockés dans le gestionnaire Windows Credential Manager.</p>
+    </article>
+    <article class="orion-module-card">
+      <div class="orion-module-icon">🗄️</div>
+      <h3>Données centralisées</h3>
+      <p>Les données ERP restent sur le serveur. Les applications n'en stockent aucune copie locale.</p>
+    </article>
+    <article class="orion-module-card">
+      <div class="orion-module-icon">🏢</div>
+      <h3>Multi-entreprise isolé</h3>
+      <p>Chaque entreprise dispose de ses propres données cloisonnées. Un utilisateur ne voit que ce à quoi il a accès.</p>
+    </article>
+    <article class="orion-module-card">
+      <div class="orion-module-icon">🛡️</div>
+      <h3>Modules par entreprise</h3>
+      <p>Chaque module peut être activé ou désactivé par entreprise. Les accès sont contrôlés par rôle utilisateur.</p>
+    </article>
+    <article class="orion-module-card">
+      <div class="orion-module-icon">📋</div>
+      <h3>Journaux d'audit</h3>
+      <p>Toutes les actions sensibles sont enregistrées dans les journaux d'audit pour traçabilité complète.</p>
+    </article>
+  </div>
+</section>
+
+<section class="orion-cta">
+  <h2>Des questions sur la sécurité ?</h2>
+  <p>Contacte l'équipe Orion ERP pour en savoir plus.</p>
+  <a href="{% url 'orion_website:contact' %}" class="orion-btn primary large">Nous contacter</a>
+</section>
+{% endblock %}

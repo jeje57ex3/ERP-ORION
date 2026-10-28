@@ -1,0 +1,78 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans 'Formations — liste' %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><a href="{% url 'internal_training:dashboard' %}">{% trans 'Formations' %}</a></p>{% endblock %}
+{% block page_actions %}
+<a href="{% url 'internal_training:course_create' %}" class="orion-btn primary">
+  <i class="bi bi-plus-lg me-1"></i> {% trans 'Nouvelle formation' %}
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if not courses %}
+<div class="orion-empty-state">
+  <i class="bi bi-mortarboard"></i>
+  <p>{% trans 'Aucune formation créée.' %} <a href="{% url 'internal_training:course_create' %}">{% trans 'Créer la première formation' %}</a></p>
+</div>
+{% else %}
+<div class="orion-card" style="overflow:hidden">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>{% trans 'Titre' %}</th>
+        <th>{% trans 'Statut' %}</th>
+        <th>{% trans 'Chapitres' %}</th>
+        <th>{% trans 'Pages' %}</th>
+        <th>{% trans 'Inscrits' %}</th>
+        <th>{% trans 'Créée le' %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for course in courses %}
+      <tr>
+        <td>
+          <a href="{% url 'internal_training:course_detail' course.pk %}" class="fw-semibold">{{ course.title }}</a>
+        </td>
+        <td>
+          {% if course.status == 'published' %}
+          <span class="orion-badge success">{% trans 'Publié' %}</span>
+          {% elif course.status == 'draft' %}
+          <span class="orion-badge secondary">{% trans 'Brouillon' %}</span>
+          {% else %}
+          <span class="orion-badge muted">{% trans 'Archivé' %}</span>
+          {% endif %}
+        </td>
+        <td>{{ course.chapters_count }}</td>
+        <td>{{ course.pages_count }}</td>
+        <td>{{ course.enrolled_count }}</td>
+        <td>{{ course.created_at|date:"d/m/Y" }}</td>
+        <td>
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{% url 'internal_training:course_edit' course.pk %}" class="orion-btn xs ghost" title="{% trans 'Modifier' %}">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'internal_training:course_publish' course.pk %}" class="orion-btn xs ghost" title="{% if course.is_published %}{% trans 'Dépublier' %}{% else %}{% trans 'Publier' %}{% endif %}">
+              <i class="bi bi-{% if course.is_published %}eye-slash{% else %}eye{% endif %}"></i>
+            </a>
+            <a href="{% url 'internal_training:course_delete' course.pk %}" class="orion-btn xs ghost danger" title="{% trans 'Supprimer' %}">
+              <i class="bi bi-trash"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

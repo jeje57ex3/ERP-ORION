@@ -1,0 +1,106 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Tests de défaillance{% endblock %}
+{% block page_eyebrow %}OpsV2 · Résilience{% endblock %}
+{% block page_subtitle %}Fire drills et tests de résistance aux pannes — résultats et remédiation.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:failure_test_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-lg me-1"></i>Nouveau test</a>
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn ms-2"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block content %}
+
+{% if failed_count %}
+<div class="alert alert-danger d-flex align-items-center mb-4" style="border-radius:.75rem">
+  <i class="bi bi-bug-fill me-2 fs-5"></i>
+  <span><strong>{{ failed_count }} test(s) en échec</strong> avec remédiation non effectuée — des points de défaillance critiques ont été identifiés.</span>
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-card-header d-flex align-items-center justify-content-between">
+    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2 text-danger"></i>Tests de défaillance</h5>
+    <small class="text-muted">{{ pending_count }} en attente de résultat</small>
+  </div>
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 orion-table">
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Type</th>
+            <th>Composant</th>
+            <th>Résultat</th>
+            <th>Rétablissement</th>
+            <th>Auto</th>
+            <th>Remédiation</th>
+            <th>Exécuté</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tests %}
+          <tr>
+            <td>
+              <div class="fw-600 small">{{ t.name }}</div>
+              {% if t.impact_observed %}
+              <div class="text-muted" style="font-size:.72rem">{{ t.impact_observed|truncatechars:60 }}</div>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary">{{ t.get_test_type_display }}</span></td>
+            <td class="small">{{ t.target_component.name|default:"—" }}</td>
+            <td>
+              {% if t.result == 'success' %}<span class="badge bg-success">Succès</span>
+              {% elif t.result == 'partial' %}<span class="badge bg-warning text-dark">Partiel</span>
+              {% elif t.result == 'failed' %}<span class="badge bg-danger">Échec</span>
+              {% elif t.result == 'aborted' %}<span class="badge bg-secondary">Abandonné</span>
+              {% else %}<span class="badge bg-info">En cours</span>{% endif %}
+            </td>
+            <td class="text-center small">
+              {% if t.recovery_time_secs is not None %}
+                {{ t.recovery_time_secs|floatformat:0 }}s
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-center">
+              {% if t.automated_recovery is None %}—
+              {% elif t.automated_recovery %}<i class="bi bi-check-circle-fill text-success"></i>
+              {% else %}<i class="bi bi-x-circle-fill text-danger"></i>{% endif %}
+            </td>
+            <td class="text-center">
+              {% if t.remediation_required %}
+                {% if t.remediation_done %}
+                  <i class="bi bi-check-circle-fill text-success" title="Remédiation effectuée"></i>
+                {% else %}
+                  <i class="bi bi-exclamation-circle-fill text-danger" title="Remédiation requise non effectuée"></i>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if t.executed_at %}{{ t.executed_at|date:"d/m/Y H:i" }}
+              {% elif t.planned_at %}Planifié {{ t.planned_at|date:"d/m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-lightning-charge d-block mb-2" style="font-size:2rem;"></i>
+              Aucun test de défaillance enregistré.<br>
+              <small>Les fire drills permettent de valider la résistance de l'ERP aux pannes réelles.</small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if tests.has_other_pages %}
+    <div class="d-flex justify-content-center py-3">
+      {% if tests.has_previous %}<a href="?page={{ tests.previous_page_number }}" class="orion-btn me-2">‹ Précédent</a>{% endif %}
+      <span class="text-muted small align-self-center">Page {{ tests.number }} / {{ tests.paginator.num_pages }}</span>
+      {% if tests.has_next %}<a href="?page={{ tests.next_page_number }}" class="orion-btn ms-2">Suivant ›</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

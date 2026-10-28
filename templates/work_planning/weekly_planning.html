@@ -1,0 +1,124 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Planning semaine' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Planning semaine' %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">
+  {% blocktrans with d0=week_dates.0|date:"d" d6=week_dates.6|date:"d/m/Y" %}Semaine du {{ d0 }} au {{ d6 }}{% endblocktrans %}
+</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap align-items-center">
+  <a href="?semaine={{ prev_week|date:'Y-m-d' }}" class="orion-btn orion-btn-outline sm"><i class="bi bi-chevron-left"></i></a>
+  <a href="{% url 'work_planning:weekly_planning' %}" class="orion-btn orion-btn-outline sm">{% trans "Aujourd'hui" %}</a>
+  <a href="?semaine={{ next_week|date:'Y-m-d' }}" class="orion-btn orion-btn-outline sm"><i class="bi bi-chevron-right"></i></a>
+  <a href="{% url 'work_planning:time_block_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Saisir des heures' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if grid %}
+<div class="orion-card">
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0" style="min-width:700px">
+        <thead>
+          <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0">
+            <th class="px-3 py-3" style="width:160px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#64748B">{% trans 'Employé' %}</th>
+            {% for d in week_dates %}
+            <th class="text-center py-3" style="min-width:90px">
+              <div style="font-size:.72rem;color:#94A3B8;text-transform:uppercase;font-weight:500">{{ d|date:"l" }}</div>
+              <div class="fw-bold{% if d == today %} text-primary{% endif %}" style="font-size:.9rem">{{ d|date:"d/m" }}</div>
+            </th>
+            {% endfor %}
+            <th class="text-center py-3 pe-3" style="min-width:70px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#64748B">{% trans 'Total' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in grid %}
+          <tr style="border-bottom:1px solid #F1F5F9">
+            <td class="px-3 py-3 align-middle">
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:32px;height:32px;border-radius:50%;background:{{ row.employee.color_code }}25;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <span style="font-size:.8rem;font-weight:700;color:{{ row.employee.color_code }}">{{ row.employee.display_name|first|upper }}</span>
+                </div>
+                <div>
+                  <div class="fw-medium" style="font-size:.85rem">{{ row.employee.display_name }}</div>
+                  <div class="text-muted" style="font-size:.72rem">{% blocktrans with h=row.employee.default_hours_per_day %}max {{ h }}h/j{% endblocktrans %}</div>
+                </div>
+              </div>
+            </td>
+            {% for d in week_dates %}
+            {% with day_blocks=row.days %}
+            <td class="text-center py-2 align-middle{% if d == today %} bg-primary bg-opacity-5{% endif %}">
+              {% for date_key, blocks in day_blocks.items %}{% if date_key == d %}
+                {% if blocks %}
+                <div class="d-flex flex-column gap-1 align-items-center">
+                  {% for block in blocks %}
+                  <div class="d-flex align-items-center gap-1" style="max-width:85px">
+                    <span class="orion-badge" style="background:{{ block.mission.color_code|default:'#C6A15B' }}20;color:{{ block.mission.color_code|default:'#C6A15B' }};font-size:.72rem;white-space:nowrap">
+                      {{ block.hours }}h
+                    </span>
+                    <a href="{% url 'work_planning:time_block_delete' block.pk %}" class="text-muted" style="font-size:.65rem;text-decoration:none" title="{% trans 'Supprimer' %}">×</a>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <a href="{% url 'work_planning:time_block_create' %}?date={{ d|date:'Y-m-d' }}&employee={{ row.employee.pk }}" class="text-muted" style="font-size:1.1rem;text-decoration:none;opacity:.3" title="{% trans 'Ajouter des heures' %}">+</a>
+                {% endif %}
+              {% endif %}{% endfor %}
+            </td>
+            {% endwith %}
+            {% endfor %}
+            <td class="text-center py-2 pe-3 align-middle">
+              <span class="fw-bold" style="font-size:.9rem{% if row.total > row.employee.default_hours_per_day|floatformat:'0' %};color:#DC2626{% endif %}">
+                {{ row.total }}h
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Légende missions #}
+{% if active_missions %}
+<div class="mt-3">
+  <div class="small text-muted mb-2 fw-semibold" style="text-transform:uppercase;letter-spacing:.05em;font-size:.72rem">{% trans 'Missions actives' %}</div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for m in active_missions %}
+    <a href="{% url 'work_planning:mission_detail' m.pk %}" class="d-flex align-items-center gap-2 text-decoration-none text-dark" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:.35rem .7rem;font-size:.8rem">
+      <span style="width:10px;height:10px;border-radius:50%;background:{{ m.color_code }}"></span>
+      {{ m.name }}{% if m.code %} <span class="text-muted">({{ m.code }})</span>{% endif %}
+    </a>
+    {% endfor %}
+    <a href="{% url 'work_planning:mission_create' %}" class="d-flex align-items-center gap-2 text-muted text-decoration-none" style="background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:6px;padding:.35rem .7rem;font-size:.8rem">
+      <i class="bi bi-plus"></i> {% trans 'Nouvelle mission' %}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-calendar-week" style="font-size:2.5rem;opacity:.3"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucun employé dans le planning' %}</div>
+    <p class="text-muted small mb-3">{% trans "Ajoutez d'abord des profils employés pour utiliser le planning." %}</p>
+    <a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-person-plus me-1"></i>{% trans 'Ajouter un employé' %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

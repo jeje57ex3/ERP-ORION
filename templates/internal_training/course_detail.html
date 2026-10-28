@@ -1,0 +1,121 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ course.title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><a href="{% url 'internal_training:dashboard' %}">{% trans 'Formations' %}</a></p>{% endblock %}
+{% block page_subtitle %}{% if course.description %}{{ course.description }}{% endif %}{% endblock %}
+{% block page_actions %}
+{% if course.is_published and not enrollment %}
+<a href="{% url 'internal_training:course_enroll' course.pk %}" class="orion-btn primary">
+  <i class="bi bi-person-plus me-1"></i> {% trans "S'inscrire" %}
+</a>
+{% endif %}
+<a href="{% url 'internal_training:course_edit' course.pk %}" class="orion-btn ghost">
+  <i class="bi bi-pencil me-1"></i> {% trans 'Modifier' %}
+</a>
+<a href="{% url 'internal_training:course_publish' course.pk %}"
+   class="orion-btn ghost {% if course.is_published %}warning{% endif %}">
+  <i class="bi bi-{% if course.is_published %}eye-slash{% else %}eye{% endif %} me-1"></i>
+  {% if course.is_published %}{% trans 'Dépublier' %}{% else %}{% trans 'Publier' %}{% endif %}
+</a>
+<a href="{% url 'internal_training:chapter_create' course.pk %}" class="orion-btn ghost">
+  <i class="bi bi-plus-circle me-1"></i> {% trans 'Chapitre' %}
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# Badge statut #}
+<div class="mb-3">
+  {% if course.status == 'published' %}
+  <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>{% trans 'Publié' %}</span>
+  {% else %}
+  <span class="orion-badge secondary"><i class="bi bi-pencil me-1"></i>{% trans 'Brouillon' %}</span>
+  {% endif %}
+  <span class="orion-badge muted ms-2">{{ course.chapters_count }} {% trans 'chapitre' %}{{ course.chapters_count|pluralize }}</span>
+  <span class="orion-badge muted ms-1">{{ course.pages_count }} {% trans 'page' %}{{ course.pages_count|pluralize }}</span>
+  <span class="orion-badge muted ms-1">{{ course.enrolled_count }} {% trans 'inscrit' %}{{ course.enrolled_count|pluralize }}</span>
+</div>
+
+{# ── Chapitres et pages ──────────────────────────────────────────────────── #}
+{% if course.chapters.exists %}
+<div class="training-chapters-list">
+  {% for chapter in course.chapters.all %}
+  <div class="orion-card training-chapter-card mb-3">
+    <div class="training-chapter-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-journals text-muted"></i>
+        <span class="fw-semibold">{{ chapter.title }}</span>
+        <span class="orion-badge muted">{{ chapter.pages_count }} {% trans 'page' %}{{ chapter.pages_count|pluralize }}</span>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'internal_training:page_create' chapter.pk %}" class="orion-btn xs ghost">
+          <i class="bi bi-plus"></i> {% trans 'Page' %}
+        </a>
+        <a href="{% url 'internal_training:chapter_edit' chapter.pk %}" class="orion-btn xs ghost">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <a href="{% url 'internal_training:chapter_delete' chapter.pk %}"
+           class="orion-btn xs ghost danger"
+           onclick="return confirm('{% trans "Supprimer ce chapitre et toutes ses pages ?" %}')">
+          <i class="bi bi-trash"></i>
+        </a>
+      </div>
+    </div>
+
+    {% if chapter.pages.exists %}
+    <ul class="training-pages-list">
+      {% for page in chapter.pages.all %}
+      <li class="training-page-item {% if page.pk in completed_page_ids %}completed{% endif %}">
+        <div class="training-page-info">
+          {% if page.pk in completed_page_ids %}
+          <i class="bi bi-check-circle-fill text-success"></i>
+          {% else %}
+          <i class="bi bi-file-text text-muted"></i>
+          {% endif %}
+          <span>{{ page.title }}</span>
+          {% if page.status == 'draft' %}
+          <span class="orion-badge xs muted">{% trans 'Brouillon' %}</span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          {% if page.status == 'published' %}
+          <a href="{% url 'internal_training:page_view' page.pk %}" class="orion-btn xs ghost">
+            <i class="bi bi-play-circle"></i>
+          </a>
+          {% endif %}
+          <a href="{% url 'internal_training:page_editor' page.pk %}" class="orion-btn xs ghost">
+            <i class="bi bi-grid"></i>
+          </a>
+          <a href="{% url 'internal_training:page_edit' page.pk %}" class="orion-btn xs ghost">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <a href="{% url 'internal_training:page_delete' page.pk %}"
+             class="orion-btn xs ghost danger"
+             onclick="return confirm('{% trans "Supprimer cette page ?" %}')">
+            <i class="bi bi-trash"></i>
+          </a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="training-empty-chapter">{% trans 'Aucune page.' %} <a href="{% url 'internal_training:page_create' chapter.pk %}">{% trans 'Ajouter une page' %}</a></p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-empty-state">
+  <i class="bi bi-journals"></i>
+  <p>{% trans 'Aucun chapitre.' %} <a href="{% url 'internal_training:chapter_create' course.pk %}">{% trans 'Ajouter le premier chapitre' %}</a></p>
+</div>
+{% endif %}
+{% endblock %}

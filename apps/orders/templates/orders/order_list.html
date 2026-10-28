@@ -1,0 +1,143 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Commandes SIÈCLE</li>
+{% endblock %}
+
+{% block page_subtitle %}
+  {{ total }} commande{{ total|pluralize }}
+  {% if website %}
+    &nbsp;·&nbsp;<span class="text-muted">{{ website.name }}</span>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if not website %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <span>Aucun site SIÈCLE actif trouvé pour cette entreprise.</span>
+</div>
+{% endif %}
+
+{# Filtres #}
+<div class="orion-filter-bar mb-3">
+  <form method="get" class="d-flex align-items-center gap-2 flex-wrap w-100">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="N° commande, client, email…" style="max-width:240px">
+
+    <select name="status" class="form-select form-select-sm" style="max-width:180px">
+      <option value="">Tous les statuts</option>
+      {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="payment" class="form-select form-select-sm" style="max-width:180px">
+      <option value="">Tous les paiements</option>
+      {% for val, label in payment_choices %}
+      <option value="{{ val }}" {% if payment_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="orion-btn orion-btn-outline orion-btn-sm">
+      <i class="bi bi-search"></i>
+    </button>
+    {% if search or status_filter or payment_filter %}
+    <a href="{% url 'orders:order_list' %}" class="orion-btn orion-btn-ghost orion-btn-sm">
+      <i class="bi bi-x"></i> Réinitialiser
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+{# Tableau #}
+<div class="card erp-card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>N° commande</th>
+            <th>Client</th>
+            <th>Statut</th>
+            <th>Paiement</th>
+            <th class="text-end">Total TTC</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td>
+              <a href="{% url 'orders:order_detail' order.order_number %}" class="fw-semibold text-decoration-none">
+                {{ order.order_number }}
+              </a>
+            </td>
+            <td>
+              <div>{{ order.customer_name }}</div>
+              <small class="text-muted">{{ order.customer_email }}</small>
+            </td>
+            <td>
+              {% if order.status == 'pending' %}
+                <span class="badge bg-warning text-dark">En attente</span>
+              {% elif order.status == 'confirmed' %}
+                <span class="badge bg-info text-dark">Confirmée</span>
+              {% elif order.status == 'preparing' %}
+                <span class="badge bg-primary">En préparation</span>
+              {% elif order.status == 'shipped' %}
+                <span class="badge bg-success">Expédiée</span>
+              {% elif order.status == 'delivered' %}
+                <span class="badge bg-success">Livrée</span>
+              {% elif order.status == 'cancelled' %}
+                <span class="badge bg-secondary">Annulée</span>
+              {% elif order.status == 'refunded' %}
+                <span class="badge bg-dark">Remboursée</span>
+              {% elif order.status == 'payment_failed' %}
+                <span class="badge bg-danger">Paiement échoué</span>
+              {% else %}
+                <span class="badge bg-light text-dark">{{ order.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if order.payment_status == 'paid' %}
+                <span class="badge bg-success">Payé</span>
+              {% elif order.payment_status == 'pending' %}
+                <span class="badge bg-warning text-dark">En attente</span>
+              {% elif order.payment_status == 'failed' %}
+                <span class="badge bg-danger">Échoué</span>
+              {% elif order.payment_status == 'refunded' %}
+                <span class="badge bg-dark">Remboursé</span>
+              {% else %}
+                <span class="badge bg-light text-dark">{{ order.get_payment_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold">{{ order.grand_total }} €</td>
+            <td>
+              <span title="{{ order.created_at }}">
+                {{ order.created_at|date:"d/m/Y H:i" }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'orders:order_detail' order.order_number %}"
+                 class="orion-btn orion-btn-outline orion-btn-sm">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="bi bi-bag fs-1 d-block mb-3 opacity-25"></i>
+              <p class="mb-0">Aucune commande{% if search or status_filter or payment_filter %} pour ces filtres{% endif %}.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

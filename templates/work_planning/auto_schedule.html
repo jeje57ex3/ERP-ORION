@@ -1,0 +1,198 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Planification automatique' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Planification automatique' %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">{% trans 'Convertit les demandes clients en tâches, puis les répartit automatiquement selon urgence, deadline et disponibilité des salariés.' %}</p>
+{% endblock %}
+
+{% block content %}
+
+{# Actions principales #}
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="orion-card h-100" style="border-left:4px solid #C6A15B">
+      <div class="orion-card-body p-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div style="width:48px;height:48px;background:#EFF6FF;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-lightning text-primary" style="font-size:1.4rem"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">{% trans 'Planifier automatiquement' %}</h6>
+            <p class="text-muted small mb-0">{% trans 'Convertit les demandes non planifiées en tâches et les assigne aux meilleurs salariés disponibles selon leurs compétences et leur charge.' %}</p>
+          </div>
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="schedule">
+          <button type="submit" class="orion-btn orion-btn-primary w-100">
+            <i class="bi bi-play-circle me-1"></i>{% trans 'Lancer la planification' %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="orion-card h-100" style="border-left:4px solid #F59E0B">
+      <div class="orion-card-body p-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <div style="width:48px;height:48px;background:#FFFBEB;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-arrow-repeat" style="font-size:1.4rem;color:#F59E0B"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">{% trans 'Réajuster le planning' %}</h6>
+            <p class="text-muted small mb-0">{% trans 'Supprime les créneaux automatiques non verrouillés et recalcule le planning complet selon les priorités, urgences et deadlines actuelles.' %}</p>
+          </div>
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rebalance">
+          <button type="submit" class="orion-btn orion-btn-outline w-100" onclick="return confirm('{% trans "Recalculer tout le planning automatique ? Les créneaux non verrouillés seront supprimés." %}')">
+            <i class="bi bi-arrow-repeat me-1"></i>{% trans 'Réajuster automatiquement' %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  {# Charge de travail salariés #}
+  <div class="col-12 col-xl-5">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="fw-semibold"><i class="bi bi-bar-chart me-2 text-primary"></i>{% trans 'Charge salariés — semaine courante' %}</span>
+      </div>
+      <div class="orion-card-body p-0">
+        {% if workload %}
+        {% for item in workload %}
+        <div class="px-3 py-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex align-items-center gap-2">
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ item.employee.color_code }}"></span>
+              <span class="fw-medium small">{{ item.employee.display_name }}</span>
+              {% if item.employee.skills %}
+              <span class="text-muted" style="font-size:.7rem">{{ item.employee.skills|join:', ' }}</span>
+              {% endif %}
+            </div>
+            <span class="fw-semibold small{% if item.is_overloaded %} text-danger{% endif %}">{{ item.total_hours }}h / {{ item.capacity }}h</span>
+          </div>
+          <div class="progress" style="height:6px;border-radius:3px">
+            <div class="progress-bar {% if item.load_percent > 100 %}bg-danger{% elif item.load_percent > 80 %}bg-warning{% else %}bg-success{% endif %}"
+                 style="width:{% if item.load_percent > 100 %}100{% else %}{{ item.load_percent }}{% endif %}%"></div>
+          </div>
+          <div class="text-muted d-flex justify-content-between mt-1" style="font-size:.72rem">
+            <span>{% blocktrans with pct=item.load_percent %}{{ pct }}% de charge{% endblocktrans %}</span>
+            {% if item.is_overloaded %}<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>{% trans 'Surchargé' %}</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-4 text-muted small">
+          <i class="bi bi-people" style="font-size:1.5rem;opacity:.3;display:block;margin-bottom:.5rem"></i>
+          {% trans 'Aucun employé configuré.' %}
+          <div class="mt-2"><a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-outline sm">{% trans 'Ajouter un employé' %}</a></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Conflits ouverts #}
+    {% if open_conflicts %}
+    <div class="orion-card mt-3" style="border-left:3px solid #DC2626">
+      <div class="orion-card-header">
+        <span class="fw-semibold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>{% blocktrans with cnt=open_conflicts.count %}Conflits ({{ cnt }}){% endblocktrans %}</span>
+      </div>
+      <div class="orion-card-body p-0">
+        {% for c in open_conflicts %}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+          <div>
+            <div class="fw-medium small">{{ c.employee.display_name }}</div>
+            <div class="text-muted" style="font-size:.73rem">{{ c.date|date:"d/m/Y" }} — {{ c.total_hours_planned }}h / {{ c.max_hours }}h</div>
+          </div>
+          <span class="orion-badge orion-badge-danger">+{{ c.overflow_hours }}h</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Demandes + tâches à planifier #}
+  <div class="col-12 col-xl-7">
+
+    {# Demandes non planifiées #}
+    <div class="orion-card mb-3">
+      <div class="orion-card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-inbox me-2 text-primary"></i>{% blocktrans with cnt=open_requests.count %}Demandes ouvertes ({{ cnt }}){% endblocktrans %}</span>
+        <a href="{% url 'work_planning:customer_request_list' %}" class="orion-btn orion-btn-outline sm">{% trans 'Toutes' %}</a>
+      </div>
+      <div class="orion-card-body p-0">
+        {% if open_requests %}
+        {% for req in open_requests %}
+        <div class="d-flex align-items-center px-3 py-2 border-bottom">
+          <div class="flex-grow-1 min-w-0 me-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="orion-badge orion-badge-{% if req.urgency == 'critical' or req.urgency == 'urgent' %}danger{% elif req.urgency == 'high' %}warning{% else %}secondary{% endif %}" style="font-size:.7rem">{{ req.get_urgency_display }}</span>
+              <span class="fw-medium small text-truncate">{{ req.title }}</span>
+            </div>
+            <div class="text-muted" style="font-size:.73rem">
+              {{ req.estimated_minutes }} min
+              {% if req.required_skill %} · <i class="bi bi-tools me-1"></i>{{ req.required_skill }}{% endif %}
+              {% if req.requested_deadline %} · <i class="bi bi-calendar me-1"></i>{{ req.requested_deadline|date:"d/m" }}{% endif %}
+              {% if req.created_task %} · <span class="text-success fw-semibold">{% trans 'tâche créée' %}</span>{% endif %}
+            </div>
+          </div>
+          <a href="{% url 'work_planning:customer_request_detail' req.pk %}" class="orion-btn orion-btn-outline sm flex-shrink-0"><i class="bi bi-eye"></i></a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-3 text-muted small">
+          <i class="bi bi-check-circle text-success me-1"></i>{% trans 'Toutes les demandes sont planifiées.' %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Tâches non planifiées #}
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="fw-semibold"><i class="bi bi-list-task me-2 text-primary"></i>{% blocktrans with cnt=pending_tasks.count %}Tâches à planifier ({{ cnt }}){% endblocktrans %}</span>
+      </div>
+      <div class="orion-card-body p-0">
+        {% if pending_tasks %}
+        {% for task in pending_tasks %}
+        <div class="d-flex align-items-center px-3 py-2 border-bottom">
+          <div class="flex-grow-1 min-w-0 me-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="orion-badge orion-badge-{% if task.priority == 'urgent' %}danger{% elif task.priority == 'high' %}warning{% else %}secondary{% endif %}" style="font-size:.7rem">{{ task.get_priority_display }}</span>
+              <span class="fw-medium small text-truncate">{{ task.name }}</span>
+            </div>
+            <div class="text-muted" style="font-size:.73rem">
+              {{ task.mission.name }}
+              {% if task.estimated_minutes %} · {{ task.estimated_minutes }} min{% endif %}
+              {% if task.due_date %} · <i class="bi bi-calendar me-1"></i>{{ task.due_date|date:"d/m" }}{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-3 text-muted small">
+          <i class="bi bi-check-circle text-success me-1"></i>{% trans 'Toutes les tâches sont planifiées.' %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

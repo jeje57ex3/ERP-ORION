@@ -1,0 +1,94 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-hero">
+  <div class="orion-hero-content">
+    <p class="orion-eyebrow">Logiciel ERP · Web · Mobile · PC</p>
+    <h1>Orion ERP, le centre de contrôle intelligent de ton entreprise.</h1>
+    <p class="orion-hero-text">
+      Pilote tes modules, ton e-commerce, tes sites SIÈCLE et LUNEA, tes clients, tes formations,
+      tes automatisations et tes applications depuis un seul système connecté.
+    </p>
+    <div class="orion-hero-actions">
+      <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion à Orion ERP</a>
+      <a href="{% url 'orion_website:downloads' %}" class="orion-btn large">Télécharger les applications</a>
+    </div>
+  </div>
+
+  <div class="orion-hero-panel">
+    <div class="orion-dashboard-preview">
+      <div class="preview-top"></div>
+      <div class="preview-grid">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="preview-lines">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="orion-section">
+  <div class="orion-section-header">
+    <p class="orion-eyebrow">Modules</p>
+    <h2>Un ERP modulaire adapté à chaque entreprise.</h2>
+  </div>
+  <div class="orion-card-grid">
+    {% for module in featured_modules %}
+      {% include "orion_website/partials/module_card.html" with module=module %}
+    {% endfor %}
+  </div>
+  <div class="orion-center">
+    <a href="{% url 'orion_website:modules' %}" class="orion-btn">Voir tous les modules →</a>
+  </div>
+</section>
+
+<section class="orion-section split">
+  <div>
+    <p class="orion-eyebrow">Applications</p>
+    <h2>Utilise Orion ERP sur PC, Android et bientôt Apple.</h2>
+    <p>
+      Les applications ne copient pas la base de données. Elles communiquent avec le serveur Orion ERP
+      via HTTPS sécurisé.
+    </p>
+    <a href="{% url 'orion_website:apps' %}" class="orion-btn" style="margin-top:18px">Voir les applications</a>
+  </div>
+  <div class="orion-download-mini-grid">
+    <a href="{{ windows_download_url }}" class="orion-download-mini-card">
+      <strong>Windows</strong>
+      <span>Installateur .exe</span>
+    </a>
+    <a href="{% url 'orion_website:install_android' %}" class="orion-download-mini-card{% if not android_download_url %} disabled{% endif %}">
+      <strong>Android</strong>
+      <span>{% if android_download_url %}Application .apk{% else %}Bientôt disponible{% endif %}</span>
+    </a>
+    <a href="{% url 'orion_website:install_apple' %}" class="orion-download-mini-card disabled">
+      <strong>Apple</strong>
+      <span>Bientôt — .ipa / App Store</span>
+    </a>
+  </div>
+</section>
+
+<section class="orion-section split">
+  <div>
+    <p class="orion-eyebrow">FAQ</p>
+    <h2>Besoin de comprendre Orion ERP rapidement ?</h2>
+    <p>
+      Consulte les réponses sur les modules, les applications, la sécurité,
+      les téléchargements et la connexion.
+    </p>
+  </div>
+
+  <div class="orion-info-box">
+    <h3>Questions fréquentes</h3>
+    <p>Une FAQ détaillée est disponible pour expliquer le fonctionnement d'Orion ERP.</p>
+    <a href="{% url 'orion_website:faq' %}" class="orion-btn primary">Lire la FAQ</a>
+  </div>
+</section>
+
+<section class="orion-cta">
+  <h2>Déjà utilisateur ?</h2>
+  <p>Connecte-toi directement à ton espace Orion ERP.</p>
+  <a href="{{ orion_login_url }}" class="orion-btn primary large">Ouvrir Orion ERP</a>
+</section>
+{% endblock %}

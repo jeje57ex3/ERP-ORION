@@ -1,0 +1,106 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Contraintes salariés' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:employee_list' %}">{% trans 'Équipe' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Contraintes salariés' %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">{% trans "Vue globale des priorités familiales, personnelles et indisponibilités de l'équipe." %}</p>
+{% endblock %}
+
+{% block content %}
+
+{# Filtre par salarié #}
+{% if employees %}
+<form method="get" class="mb-3 d-flex align-items-center gap-2">
+  <select name="employee" class="form-select" style="max-width:260px" onchange="this.form.submit()">
+    <option value="">{% trans 'Tous les salariés' %}</option>
+    {% for emp in employees %}
+    <option value="{{ emp.pk }}" {% if employee_filter == emp.pk|stringformat:"s" %}selected{% endif %}>
+      {{ emp.display_name }}
+    </option>
+    {% endfor %}
+  </select>
+  {% if employee_filter %}
+  <a href="{% url 'work_planning:all_employee_constraints' %}" class="orion-btn orion-btn-outline sm">{% trans 'Tout voir' %}</a>
+  {% endif %}
+</form>
+{% endif %}
+
+{% if constraints %}
+<div class="orion-card">
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.84rem">
+        <thead style="background:#F8FAFC">
+          <tr>
+            <th class="px-3 py-2">{% trans 'Salarié' %}</th>
+            <th class="py-2">{% trans 'Contrainte' %}</th>
+            <th class="py-2">{% trans 'Type' %}</th>
+            <th class="py-2">{% trans 'Priorité' %}</th>
+            <th class="py-2">{% trans 'Récurrence' %}</th>
+            <th class="py-2">{% trans 'Jour' %}</th>
+            <th class="py-2">{% trans 'Horaire' %}</th>
+            <th class="py-2 pe-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in constraints %}
+          <tr>
+            <td class="px-3 py-2">
+              <div class="d-flex align-items-center gap-2">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ c.employee.color_code }};flex-shrink:0"></span>
+                <a href="{% url 'work_planning:employee_constraints' c.employee.pk %}" class="fw-medium text-decoration-none">
+                  {{ c.employee.display_name }}
+                </a>
+              </div>
+            </td>
+            <td class="py-2">
+              <div class="fw-medium">{{ c.title }}</div>
+              {% if c.description %}<div class="text-muted" style="font-size:.73rem">{{ c.description|truncatewords:8 }}</div>{% endif %}
+            </td>
+            <td class="py-2">
+              <span class="orion-badge orion-badge-secondary" style="font-size:.72rem">{{ c.get_constraint_type_display }}</span>
+            </td>
+            <td class="py-2">
+              <span class="orion-badge orion-badge-{% if c.priority == 'blocking' %}danger{% elif c.priority == 'important' %}warning{% else %}secondary{% endif %}" style="font-size:.72rem">
+                {{ c.get_priority_display }}
+              </span>
+            </td>
+            <td class="py-2">{{ c.get_recurrence_display }}</td>
+            <td class="py-2">{{ c.get_weekday_display|default:"—" }}</td>
+            <td class="py-2">
+              {% if c.start_time %}
+                {{ c.start_time|time:"H\hi" }} → {{ c.end_time|time:"H\hi" }}
+              {% elif c.starts_at %}
+                {{ c.starts_at|date:"d/m H:i" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="py-2 pe-3">
+              <a href="{% url 'work_planning:employee_constraint_edit' c.pk %}" class="orion-btn orion-btn-outline sm"><i class="bi bi-pencil"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-shield-check" style="font-size:2.5rem;color:#16A34A;opacity:.5"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucune contrainte enregistrée' %}</div>
+    <p class="text-muted small mb-0">{% trans 'Ajoutez des contraintes personnelles ou familiales depuis la fiche de chaque salarié.' %}</p>
+    <a href="{% url 'work_planning:employee_list' %}" class="orion-btn orion-btn-outline mt-3">{% trans "Voir l'équipe" %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

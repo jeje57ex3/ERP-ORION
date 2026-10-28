@@ -1,0 +1,148 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero modules-hero">
+  <p class="orion-eyebrow">Modules Orion ERP</p>
+  <h1>Tous les modules Orion ERP expliqués simplement.</h1>
+  <p>
+    Orion ERP est organisé en modules. Chaque module correspond à une fonction précise :
+    e-commerce, clients, formations, sécurité, applications, santé système ou amélioration continue.
+  </p>
+
+  <div class="orion-module-stats">
+    <div>
+      <strong>{{ total_modules }}</strong>
+      <span>modules référencés</span>
+    </div>
+    <div>
+      <strong>{{ categories|length }}</strong>
+      <span>catégories</span>
+    </div>
+    <div>
+      <strong>API</strong>
+      <span>serveur centralisé</span>
+    </div>
+  </div>
+
+  <div class="orion-hero-actions">
+    <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion ERP</a>
+    <a href="{% url 'orion_website:downloads' %}" class="orion-btn large">Télécharger les applications</a>
+  </div>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-module-search-card">
+    <label for="orionModuleSearch">Rechercher un module</label>
+    <input
+      id="orionModuleSearch"
+      type="search"
+      placeholder="Exemple : e-commerce, clients, Android, sécurité..."
+      data-module-search
+    >
+  </div>
+</section>
+
+<section class="orion-section">
+  <div class="orion-section-header">
+    <p class="orion-eyebrow">Catégories</p>
+    <h2>Choisir une famille de modules.</h2>
+  </div>
+
+  <div class="orion-category-grid">
+    {% for category in categories %}
+      <a href="#category-{{ category.code }}" class="orion-category-card" data-module-category-link="{{ category.code }}">
+        <span>{{ forloop.counter|stringformat:"02d" }}</span>
+        <h3>{{ category.title }}</h3>
+        <p>{{ category.description }}</p>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="orion-section">
+  <div class="orion-section-header">
+    <p class="orion-eyebrow">Principe</p>
+    <h2>Chaque module est relié à l'entreprise active.</h2>
+    <p>
+      Dans l'ERP, les modules sont affichés selon les droits de l'utilisateur,
+      l'entreprise sélectionnée et les modules activés dans CompanyModuleAccess.
+    </p>
+  </div>
+
+  <div class="orion-feature-strip">
+    <div>
+      <strong>Entreprise active</strong>
+      <p>Les données affichées dépendent de l'entreprise choisie.</p>
+    </div>
+    <div>
+      <strong>Module activé</strong>
+      <p>Un module apparaît uniquement s'il est autorisé pour cette entreprise.</p>
+    </div>
+    <div>
+      <strong>Applications</strong>
+      <p>Windows et Android utilisent les mêmes données via API HTTPS.</p>
+    </div>
+  </div>
+</section>
+
+{% for group in modules_by_category %}
+<section class="orion-section module-category-section" id="category-{{ group.category.code }}">
+  <div class="orion-section-header">
+    <p class="orion-eyebrow">Catégorie</p>
+    <h2>{{ group.category.title }}</h2>
+    <p>{{ group.category.description }}</p>
+  </div>
+
+  <div class="orion-card-grid">
+    {% for module in group.modules %}
+      <article
+        class="orion-module-card detailed"
+        data-module-item
+        data-module-category="{{ module.category }}"
+        data-module-text="{{ module.title|lower }} {{ module.short_description|lower }} {{ module.description|lower }} {% for feature in module.features %}{{ feature|lower }} {% endfor %}"
+      >
+        <div class="orion-module-topline">
+          <div class="orion-module-icon">{{ module.icon }}</div>
+          <span class="orion-status-badge">{{ module.status }}</span>
+        </div>
+
+        <h3>{{ module.title }}</h3>
+
+        <p>{{ module.short_description }}</p>
+
+        <div class="orion-module-explain">
+          <strong>À quoi ça sert ?</strong>
+          <span>{{ module.description|truncatechars:180 }}</span>
+        </div>
+
+        {% if module.availability %}
+        <div class="orion-availability-list">
+          {% for item in module.availability %}
+            <span>{{ item }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <a href="{% url 'orion_website:module_detail' module.code %}" class="orion-card-link">
+          Voir l'explication complète
+        </a>
+      </article>
+    {% empty %}
+      <p>Aucun module dans cette catégorie.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<section class="orion-cta">
+  <h2>Accéder aux modules réels de ton entreprise</h2>
+  <p>
+    Cette page présente tous les modules possibles. Dans Orion ERP, seuls les modules activés
+    pour l'entreprise sélectionnée seront visibles.
+  </p>
+  <div class="orion-hero-actions centered">
+    <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion ERP</a>
+    <a href="{% url 'orion_website:downloads' %}" class="orion-btn large">Applications PC et mobile</a>
+  </div>
+</section>
+{% endblock %}

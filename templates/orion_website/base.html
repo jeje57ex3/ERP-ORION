@@ -1,0 +1,23 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>{{ page_title|default:"Orion ERP" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Orion ERP est un logiciel de gestion intelligent pour piloter e-commerce, modules internes, applications PC et mobile.">
+  <meta property="og:title" content="{{ page_title|default:'Orion ERP' }}">
+  <meta property="og:description" content="Logiciel ERP intelligent connecté aux applications PC et mobile.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="{% static 'orion_website/img/logo.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'orion_website/img/favicon-32.png' %}" type="image/png" sizes="32x32">
+  <link rel="shortcut icon" href="{% static 'orion_website/img/favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'orion_website/css/orion_website.css' %}">
+</head>
+<body>
+  {% include "orion_website/partials/navbar.html" %}
+  <main>{% block content %}{% endblock %}</main>
+  {% include "orion_website/partials/footer.html" %}
+  <script src="{% static 'orion_website/js/orion_website.js' %}"></script>
+</body>
+</html>

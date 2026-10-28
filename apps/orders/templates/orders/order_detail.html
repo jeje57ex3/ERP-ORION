@@ -1,0 +1,282 @@
+{% extends "erp_base.html" %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'orders:order_list' %}">Commandes SIÈCLE</a></li>
+<li class="breadcrumb-item active">{{ order.order_number }}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+  {% if order.status == 'pending' %}<span class="badge bg-warning text-dark">En attente</span>
+  {% elif order.status == 'confirmed' %}<span class="badge bg-info text-dark">Confirmée</span>
+  {% elif order.status == 'preparing' %}<span class="badge bg-primary">En préparation</span>
+  {% elif order.status == 'shipped' %}<span class="badge bg-success">Expédiée</span>
+  {% elif order.status == 'delivered' %}<span class="badge bg-success">Livrée</span>
+  {% elif order.status == 'cancelled' %}<span class="badge bg-secondary">Annulée</span>
+  {% elif order.status == 'refunded' %}<span class="badge bg-dark">Remboursée</span>
+  {% elif order.status == 'payment_failed' %}<span class="badge bg-danger">Paiement échoué</span>
+  {% else %}<span class="badge bg-light text-dark">{{ order.get_status_display }}</span>
+  {% endif %}
+  &nbsp;
+  {% if order.payment_status == 'paid' %}<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Payé</span>
+  {% elif order.payment_status == 'pending' %}<span class="badge bg-warning text-dark">Paiement en attente</span>
+  {% elif order.payment_status == 'failed' %}<span class="badge bg-danger">Paiement échoué</span>
+  {% elif order.payment_status == 'refunded' %}<span class="badge bg-dark">Remboursé</span>
+  {% endif %}
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orders:order_list' %}" class="orion-btn orion-btn-ghost orion-btn-sm">
+  <i class="bi bi-arrow-left"></i> Retour
+</a>
+
+{% if order.status in "pending,confirmed" %}
+<form method="post" action="{% url 'orders:order_mark_processing' order.pk %}" class="d-inline">
+  {% csrf_token %}
+  <button type="submit" class="orion-btn orion-btn-primary orion-btn-sm">
+    <i class="bi bi-box-seam"></i> Passer en préparation
+  </button>
+</form>
+{% endif %}
+
+{% if order.status in "pending,confirmed,preparing" %}
+<button type="button" class="orion-btn orion-btn-outline orion-btn-sm"
+        data-bs-toggle="modal" data-bs-target="#shipModal">
+  <i class="bi bi-truck"></i> Marquer expédiée
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# Colonne gauche : client + adresses + paiement #}
+  <div class="col-lg-4">
+
+    <div class="card erp-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-person me-1"></i> Client
+      </div>
+      <div class="card-body">
+        <p class="mb-1 fw-bold">{{ order.customer_name }}</p>
+        <p class="mb-1"><a href="mailto:{{ order.customer_email }}">{{ order.customer_email }}</a></p>
+        {% if order.customer_phone %}
+        <p class="mb-0 text-muted">{{ order.customer_phone }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if order.shipping_address or order.billing_address %}
+    <div class="card erp-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-geo-alt me-1"></i> Adresses
+      </div>
+      <div class="card-body">
+        {% if order.shipping_address %}
+        <p class="mb-1 text-muted small fw-semibold">LIVRAISON</p>
+        <p class="mb-3" style="white-space:pre-line">{{ order.shipping_address }}</p>
+        {% endif %}
+        {% if order.billing_address and order.billing_address != order.shipping_address %}
+        <p class="mb-1 text-muted small fw-semibold">FACTURATION</p>
+        <p class="mb-0" style="white-space:pre-line">{{ order.billing_address }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card erp-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-credit-card me-1"></i> Paiement
+      </div>
+      <div class="card-body">
+        {% if order.payment_method %}
+        <p class="mb-1"><span class="text-muted">Mode :</span> {{ order.payment_method }}</p>
+        {% endif %}
+        {% if order.payment_reference %}
+        <p class="mb-1"><span class="text-muted">Référence :</span>
+          <code class="text-break">{{ order.payment_reference }}</code>
+        </p>
+        {% endif %}
+        {% if order.stripe_payment_intent %}
+        <p class="mb-0"><span class="text-muted">Stripe PI :</span>
+          <code class="text-break">{{ order.stripe_payment_intent }}</code>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if order.tracking_number or order.carrier or order.shipping_method %}
+    <div class="card erp-card">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-truck me-1"></i> Expédition
+      </div>
+      <div class="card-body">
+        {% if order.shipping_method %}
+        <p class="mb-1"><span class="text-muted">Mode :</span> {{ order.shipping_method }}</p>
+        {% endif %}
+        {% if order.carrier %}
+        <p class="mb-1"><span class="text-muted">Transporteur :</span> {{ order.carrier }}</p>
+        {% endif %}
+        {% if order.tracking_number %}
+        <p class="mb-1"><span class="text-muted">Suivi :</span>
+          <code>{{ order.tracking_number }}</code>
+        </p>
+        {% endif %}
+        {% if order.shipped_at %}
+        <p class="mb-0"><span class="text-muted">Expédiée le :</span> {{ order.shipped_at|date:"d/m/Y H:i" }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# Colonne droite : lignes + totaux + notes #}
+  <div class="col-lg-8">
+
+    <div class="card erp-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-list-ul me-1"></i> Articles commandés
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Article</th>
+                <th>SKU</th>
+                <th class="text-center">Qté</th>
+                <th class="text-end">P.U.</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.product_name }}</div>
+                  {% if item.selected_size %}
+                  <small class="text-muted">Taille : {{ item.selected_size }}</small>
+                  {% endif %}
+                </td>
+                <td><code class="text-muted">{{ item.sku|default:"—" }}</code></td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-end">{{ item.unit_price }} €</td>
+                <td class="text-end fw-semibold">{{ item.total_price }} €</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">Aucun article.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# Totaux #}
+    <div class="card erp-card mb-3">
+      <div class="card-body">
+        <div class="row justify-content-end">
+          <div class="col-sm-6">
+            <table class="table table-sm mb-0">
+              <tr>
+                <td class="text-muted">Sous-total</td>
+                <td class="text-end">{{ order.subtotal }} €</td>
+              </tr>
+              {% if order.discount_total %}
+              <tr>
+                <td class="text-muted">Remise</td>
+                <td class="text-end text-danger">−{{ order.discount_total }} €</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <td class="text-muted">TVA</td>
+                <td class="text-end">{{ order.tax_total }} €</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Livraison</td>
+                <td class="text-end">{{ order.shipping_total }} €</td>
+              </tr>
+              <tr class="fw-bold">
+                <td>Total TTC</td>
+                <td class="text-end fs-5">{{ order.grand_total }} €</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if order.notes %}
+    <div class="card erp-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-chat-text me-1"></i> Notes
+      </div>
+      <div class="card-body">
+        <p class="mb-0" style="white-space:pre-line">{{ order.notes }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Liens ERP #}
+    {% if order.erp_invoice_id or order.erp_shipment_id or order.crm_customer_id %}
+    <div class="card erp-card">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-link-45deg me-1"></i> Liens ERP
+      </div>
+      <div class="card-body d-flex gap-3 flex-wrap">
+        {% if order.erp_invoice_id %}
+        <span class="badge bg-light text-dark border">Facture ERP #{{ order.erp_invoice_id }}</span>
+        {% endif %}
+        {% if order.erp_shipment_id %}
+        <span class="badge bg-light text-dark border">Expédition ERP #{{ order.erp_shipment_id }}</span>
+        {% endif %}
+        {% if order.crm_customer_id %}
+        <a href="{% url 'crm:customer_detail' order.crm_customer_id %}" class="badge bg-light text-dark border text-decoration-none">
+          <i class="bi bi-person me-1"></i>Client CRM #{{ order.crm_customer_id }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{# Modal expédition #}
+<div class="modal fade" id="shipModal" tabindex="-1" aria-labelledby="shipModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'orders:order_mark_shipped' order.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="shipModalLabel">
+            <i class="bi bi-truck me-1"></i> Marquer comme expédiée
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Transporteur</label>
+            <input type="text" name="carrier" value="{{ order.carrier }}"
+                   class="form-control" placeholder="ex : Colissimo, DPD…">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Numéro de suivi</label>
+            <input type="text" name="tracking_number" value="{{ order.tracking_number }}"
+                   class="form-control" placeholder="Numéro de tracking">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="orion-btn orion-btn-ghost" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="orion-btn orion-btn-primary">
+            <i class="bi bi-truck me-1"></i> Confirmer l'expédition
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

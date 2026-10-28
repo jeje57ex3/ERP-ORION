@@ -1,0 +1,147 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{{ page_title }} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:employee_list' %}">{% trans 'Équipe' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:employee_constraints' profile.pk %}">{% blocktrans with name=profile.display_name %}Contraintes {{ name }}{% endblocktrans %}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">{% trans 'Exemples : "Chercher ma fille à 16h30", rendez-vous médical récurrent, réunion fixe.' %}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-7">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="fw-semibold"><i class="bi bi-shield me-2 text-primary"></i>{{ page_title }}</span>
+      </div>
+      <div class="orion-card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {{ form.employee }}
+
+          {# Non-field errors #}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger small mb-3">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Titre' %} <span class="text-danger">*</span></label>
+              {{ form.title }}
+              <div class="form-text text-muted">{% trans "Ex : Chercher ma fille à l'école, Réunion équipe, Consultation médicale" %}</div>
+              {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Description' %}</label>
+              {{ form.description }}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans 'Type' %}</label>
+              {{ form.constraint_type }}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans 'Priorité' %}</label>
+              {{ form.priority }}
+              {% if form.priority.errors %}<div class="text-danger small mt-1">{{ form.priority.errors.0 }}</div>{% endif %}
+              <div class="form-text text-muted">
+                <strong>{% trans 'Bloquante' %}</strong> {% trans ': jamais planifiée dessus.' %}
+                <strong>{% trans 'Importante' %}</strong> {% trans ': évitée si possible.' %}
+                <strong>{% trans 'Souple' %}</strong> {% trans ': prise en compte mais contournable.' %}
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans 'Récurrence' %}</label>
+              {{ form.recurrence }}
+            </div>
+
+            <div class="col-12 col-md-6" id="weekday-row">
+              <label class="form-label fw-medium">{% trans 'Jour de la semaine' %}</label>
+              {{ form.weekday }}
+              <div class="form-text text-muted">{% trans 'Pour une contrainte hebdomadaire.' %}</div>
+            </div>
+
+            {# Heures récurrentes #}
+            <div class="col-12" id="time-row">
+              <div class="p-3 rounded" style="background:#F0FDF4;border:1px solid #BBF7D0">
+                <div class="fw-medium small mb-2"><i class="bi bi-clock me-1 text-success"></i>{% trans 'Plage horaire (contraintes récurrentes)' %}</div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label small">{% trans 'Heure début' %}</label>
+                    {{ form.start_time }}
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">{% trans 'Heure fin' %}</label>
+                    {{ form.end_time }}
+                  </div>
+                </div>
+                {% if form.start_time.errors %}<div class="text-danger small mt-1">{{ form.start_time.errors.0 }}</div>{% endif %}
+                {% if form.end_time.errors %}<div class="text-danger small mt-1">{{ form.end_time.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
+
+            {# Dates ponctuelles #}
+            <div class="col-12" id="datetime-row">
+              <div class="p-3 rounded" style="background:#EFF6FF;border:1px solid #BFDBFE">
+                <div class="fw-medium small mb-2"><i class="bi bi-calendar me-1 text-primary"></i>{% trans 'Dates (contrainte ponctuelle uniquement)' %}</div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label small">{% trans 'Début' %}</label>
+                    {{ form.starts_at }}
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">{% trans 'Fin' %}</label>
+                    {{ form.ends_at }}
+                  </div>
+                </div>
+                {% if form.starts_at.errors %}<div class="text-danger small mt-1">{{ form.starts_at.errors.0 }}</div>{% endif %}
+                {% if form.ends_at.errors %}<div class="text-danger small mt-1">{{ form.ends_at.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex gap-4">
+                <div class="form-check form-switch">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{% trans 'Contrainte active' %}</label>
+                </div>
+                <div class="form-check form-switch">
+                  {{ form.can_be_overridden_by_manager }}
+                  <label class="form-check-label" for="{{ form.can_be_overridden_by_manager.id_for_label }}">
+                    {% trans 'Un manager peut forcer manuellement (jamais automatiquement)' %}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% if action == 'edit' %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Enregistrer' %}{% endif %}
+            </button>
+            <a href="{% url 'work_planning:employee_constraints' profile.pk %}" class="orion-btn orion-btn-outline">{% trans 'Annuler' %}</a>
+            {% if action == 'edit' %}
+            <a href="{% url 'work_planning:employee_constraint_delete' constraint.pk %}" class="orion-btn ms-auto" style="color:#DC2626;background:#FEF2F2;border:1px solid #FECACA">
+              <i class="bi bi-trash me-1"></i>{% trans 'Supprimer' %}
+            </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

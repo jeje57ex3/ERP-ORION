@@ -1,0 +1,123 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'site_customization:dashboard' %}">{% trans 'Personnalisation' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'site_customization:page_list' %}">{% trans 'Pages' %}</a></li>
+<li class="breadcrumb-item active">{{ page.title }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'site_customization:page_preview' page.pk %}" class="orion-btn orion-btn-outline" target="_blank"><i class="bi bi-eye me-1"></i>{% trans 'Aperçu' %}</a>
+<a href="{% url 'site_customization:page_edit' page.pk %}" class="orion-btn orion-btn-outline"><i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}</a>
+{% if page.status != 'published' %}
+<a href="{% url 'site_customization:page_publish' page.pk %}" class="orion-btn orion-btn-primary"><i class="bi bi-upload me-1"></i>{% trans 'Publier' %}</a>
+{% else %}
+<span class="orion-badge orion-badge-success"><i class="bi bi-check-circle me-1"></i>{% trans 'Publié' %}</span>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+<div class="col-lg-8">
+
+  <!-- Hero -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-stars me-1 text-primary"></i>{% trans 'Hero' %}</h6></div>
+    <div class="orion-card-body">
+      <dl class="row mb-0" style="row-gap:10px">
+        <dt class="col-sm-3 text-muted">{% trans 'Titre' %}</dt><dd class="col-sm-9">{{ page.hero_title|default:"—" }}</dd>
+        <dt class="col-sm-3 text-muted">{% trans 'Sous-titre' %}</dt><dd class="col-sm-9">{{ page.hero_subtitle|default:"—"|truncatechars:120 }}</dd>
+        <dt class="col-sm-3 text-muted">CTA</dt><dd class="col-sm-9">{% if page.cta_label %}{{ page.cta_label }} → {{ page.cta_url }}{% else %}—{% endif %}</dd>
+      </dl>
+      {% if page.hero_image %}<img src="{{ page.hero_image.url }}" alt="Hero" style="max-height:140px;border-radius:8px;margin-top:12px">{% endif %}
+    </div>
+  </div>
+
+  <!-- Sections -->
+  <div class="orion-card">
+    <div class="orion-card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0"><i class="bi bi-layout-text-sidebar me-1 text-primary"></i>{% trans 'Sections' %} <span class="text-muted fw-normal">({{ sections|length }})</span></h6>
+      <a href="{% url 'site_customization:section_create' page.pk %}" class="orion-btn orion-btn-primary orion-btn-sm"><i class="bi bi-plus me-1"></i>{% trans 'Ajouter' %}</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <table class="orion-table mb-0">
+        <thead><tr><th>#</th><th>{% trans 'Section' %}</th><th>{% trans 'Type' %}</th><th>{% trans 'Visible' %}</th><th>{% trans 'Blocs' %}</th><th></th></tr></thead>
+        <tbody>
+          {% for section in sections %}
+          <tr>
+            <td class="text-muted">{{ section.position }}</td>
+            <td class="fw-semibold">{{ section.title }}</td>
+            <td>{{ section.get_section_type_display }}</td>
+            <td>{% if section.is_visible %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
+            <td>{{ section.blocks.count }}</td>
+            <td class="text-end">
+              <a href="{% url 'site_customization:section_edit' section.pk %}" class="orion-btn orion-btn-ghost orion-btn-sm">{% trans 'Modifier' %}</a>
+              <a href="{% url 'site_customization:block_create' section.pk %}" class="orion-btn orion-btn-ghost orion-btn-sm"><i class="bi bi-plus"></i>{% trans 'Bloc' %}</a>
+              <form method="post" action="{% url 'site_customization:section_delete' section.pk %}" style="display:inline" onsubmit="return confirm('{% trans 'Supprimer cette section ?' %}')">
+                {% csrf_token %}<button type="submit" class="orion-btn orion-btn-ghost orion-btn-sm text-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">{% trans 'Aucune section.' %} <a href="{% url 'site_customization:section_create' page.pk %}">{% trans 'Ajouter la première' %}</a>.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<div class="col-lg-4">
+
+  <!-- Infos page -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0">{% trans 'Détails' %}</h6></div>
+    <div class="orion-card-body">
+      <dl class="row mb-0" style="row-gap:8px;font-size:13px">
+        <dt class="col-5 text-muted">{% trans 'Site' %}</dt><dd class="col-7">{{ page.website.name }}</dd>
+        <dt class="col-5 text-muted">{% trans 'Type' %}</dt><dd class="col-7">{{ page.get_page_type_display }}</dd>
+        <dt class="col-5 text-muted">Slug</dt><dd class="col-7"><code>/{{ page.slug }}/</code></dd>
+        <dt class="col-5 text-muted">{% trans 'Statut' %}</dt><dd class="col-7">{{ page.get_status_display }}</dd>
+        <dt class="col-5 text-muted">{% trans 'Accueil' %}</dt><dd class="col-7">{% if page.is_homepage %}{% trans 'Oui' %}{% else %}{% trans 'Non' %}{% endif %}</dd>
+        {% if page.published_at %}<dt class="col-5 text-muted">{% trans 'Publié le' %}</dt><dd class="col-7">{{ page.published_at|date:"d/m/Y H:i" }}</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- SEO -->
+  <div class="orion-card mb-4">
+    <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-search me-1 text-primary"></i>SEO</h6></div>
+    <div class="orion-card-body" style="font-size:13px">
+      <p class="mb-1 text-muted">{% trans 'Titre SEO' %}</p>
+      {% trans "(utilise le titre page)" as seo_title_default %}
+      <p class="mb-3">{{ page.seo_title|default:seo_title_default }}</p>
+      <p class="mb-1 text-muted">{% trans 'Description SEO' %}</p>
+      <p class="mb-0">{{ page.seo_description|default:"—"|truncatechars:160 }}</p>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="orion-card">
+    <div class="orion-card-body d-grid gap-2">
+      <a href="{% url 'site_customization:page_edit' page.pk %}" class="orion-btn orion-btn-primary"><i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}</a>
+      <a href="{% url 'site_customization:page_preview' page.pk %}" class="orion-btn orion-btn-outline" target="_blank"><i class="bi bi-eye me-1"></i>{% trans 'Aperçu' %}</a>
+      {% if page.status != 'published' %}
+      <a href="{% url 'site_customization:page_publish' page.pk %}" class="orion-btn orion-btn-outline"><i class="bi bi-upload me-1"></i>{% trans 'Publier' %}</a>
+      {% endif %}
+      <a href="{% url 'site_customization:page_list' %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans 'Retour aux pages' %}</a>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock %}

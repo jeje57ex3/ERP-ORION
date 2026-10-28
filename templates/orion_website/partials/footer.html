@@ -1,0 +1,23 @@
+<footer class="orion-public-footer">
+  <div>
+    <h3>Orion ERP</h3>
+    <p>Logiciel de gestion intelligent pour piloter l'entreprise, l'e-commerce, les modules internes et les applications connectées.</p>
+  </div>
+
+  <div>
+    <h4>Accès</h4>
+    <a href="{{ orion_login_url }}">Connexion ERP</a>
+    <a href="{% url 'orion_website:modules' %}">Modules</a>
+    <a href="{% url 'orion_website:downloads' %}">Téléchargements</a>
+    <a href="{% url 'orion_website:contact' %}">Contact</a>
+  </div>
+
+  <div>
+    <h4>Applications</h4>
+    <a href="{% url 'orion_website:install_windows' %}">Installation Windows</a>
+    <a href="{% url 'orion_website:install_android' %}">Installation Android</a>
+    <a href="{% url 'orion_website:install_apple' %}">Apple — bientôt</a>
+    <a href="{% url 'orion_website:security' %}">Sécurité</a>
+    <a href="{% url 'orion_website:faq' %}">FAQ</a>
+  </div>
+</footer>

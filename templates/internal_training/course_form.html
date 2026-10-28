@@ -1,0 +1,334 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'internal_training:dashboard' %}">{% trans 'Formations' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'internal_training:course_list' %}">{% trans 'Liste' %}</a></li>
+{% if course %}
+<li class="breadcrumb-item"><a href="{% url 'internal_training:course_detail' course.pk %}">{{ course.title|truncatechars:30 }}</a></li>
+{% endif %}
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+{% if action == 'create' %}{% trans 'Renseignez les informations de base, vous pourrez ajouter des chapitres ensuite.' %}
+{% elif action == 'edit' %}{% trans 'Modifiez les propriétés de la formation.' %}
+{% else %}{% trans 'Cette action est irréversible.' %}{% endif %}
+{% endblock %}
+
+{% block page_actions %}
+{% if action == 'delete' %}
+{% else %}
+{% if course %}
+<a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn sm outline">
+  <i class="bi bi-arrow-left me-1"></i>{% trans 'Annuler' %}
+</a>
+{% else %}
+<a href="{% url 'internal_training:course_list' %}" class="orion-btn sm outline">
+  <i class="bi bi-arrow-left me-1"></i>{% trans 'Annuler' %}
+</a>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{# ── Suppression ──────────────────────────────────────────────────────────── #}
+{% if action == 'delete' %}
+<div style="max-width:520px">
+  <div class="orion-card" style="border-color:rgba(239,68,68,.3)">
+    <div class="orion-card-body" style="padding:28px">
+      <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px">
+        <div style="width:44px;height:44px;border-radius:10px;background:rgba(239,68,68,.1);display:grid;place-items:center;flex-shrink:0">
+          <i class="bi bi-trash" style="font-size:20px;color:var(--orion-danger)"></i>
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--orion-text);margin-bottom:4px">{% blocktrans with title=course.title %}Supprimer « {{ title }} » ?{% endblocktrans %}</div>
+          <div style="font-size:13px;color:var(--orion-text-muted);line-height:1.5">
+            {% trans 'Tous les chapitres, pages, blocs de contenu et inscriptions seront également supprimés.' %}<br>
+            <strong style="color:var(--orion-danger)">{% trans 'Cette action est irréversible.' %}</strong>
+          </div>
+        </div>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-2">
+          <button type="submit" class="orion-btn sm" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:var(--orion-danger)">
+            <i class="bi bi-trash me-1"></i>{% trans 'Confirmer la suppression' %}
+          </button>
+          <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn sm ghost">{% trans 'Annuler' %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Formulaire création / édition ────────────────────────────────────────── #}
+{% else %}
+<form method="post" enctype="multipart/form-data" id="courseForm">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    {# ── Colonne principale ────────────────────────────────────────────── #}
+    <div class="col-lg-8">
+
+      {# Titre #}
+      <div class="orion-card mb-4">
+        <div class="orion-card-header" style="font-weight:600;font-size:13px">
+          <i class="bi bi-mortarboard me-2" style="color:var(--orion-gold)"></i>{% trans 'Informations générales' %}
+        </div>
+        <div class="orion-card-body" style="padding:24px;display:flex;flex-direction:column;gap:20px">
+
+          <div>
+            <label for="{{ form.title.id_for_label }}" style="font-size:12px;font-weight:600;color:var(--orion-text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">
+              {% trans 'Titre' %} <span style="color:var(--orion-danger)">*</span>
+            </label>
+            {{ form.title }}
+            {% if form.title.errors %}
+            <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ form.title.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.description.id_for_label }}" style="font-size:12px;font-weight:600;color:var(--orion-text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">
+              {% trans 'Description' %}
+            </label>
+            {{ form.description }}
+            <div style="font-size:11px;color:var(--orion-text-muted);margin-top:5px">{% trans 'Résumé visible sur la carte de la formation et dans le catalogue.' %}</div>
+            {% if form.description.errors %}
+            <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ form.description.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      {# Image de couverture #}
+      <div class="orion-card">
+        <div class="orion-card-header" style="font-weight:600;font-size:13px">
+          <i class="bi bi-image me-2" style="color:var(--orion-gold)"></i>{% trans 'Image de couverture' %}
+        </div>
+        <div class="orion-card-body" style="padding:24px">
+
+          {# Zone de prévisualisation #}
+          <div id="coverPreviewWrapper" style="margin-bottom:16px">
+            {% if course and course.cover_image %}
+            <div id="coverPreview"
+                 style="width:100%;height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--orion-border);background:var(--orion-surface-alt);display:flex;align-items:center;justify-content:center;position:relative">
+              <img src="{{ course.cover_image.url }}" id="coverImg"
+                   style="width:100%;height:100%;object-fit:cover" alt="{% trans 'Couverture' %}">
+              <button type="button" id="removeCoverBtn" onclick="removeCover()"
+                      style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                <i class="bi bi-x-lg" style="font-size:11px"></i>
+              </button>
+            </div>
+            {% else %}
+            <div id="coverPreview"
+                 style="width:100%;height:180px;border-radius:10px;overflow:hidden;border:2px dashed var(--orion-border);background:var(--orion-surface-alt);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s"
+                 onclick="document.getElementById('{{ form.cover_image.id_for_label }}').click()"
+                 ondragover="event.preventDefault();this.style.borderColor='var(--orion-gold)'"
+                 ondragleave="this.style.borderColor='var(--orion-border)'"
+                 ondrop="handleDrop(event)">
+              <i class="bi bi-cloud-upload" style="font-size:28px;color:var(--orion-text-muted);margin-bottom:8px"></i>
+              <div style="font-size:13px;font-weight:500;color:var(--orion-text-muted)">{% trans 'Cliquer ou glisser une image' %}</div>
+              <div style="font-size:11px;color:var(--orion-text-muted);margin-top:4px">{% trans 'JPG, PNG, WEBP — max 5 Mo' %}</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <label for="{{ form.cover_image.id_for_label }}"
+                   class="orion-btn sm outline" style="cursor:pointer;margin:0">
+              <i class="bi bi-upload me-1"></i>{% trans 'Choisir un fichier' %}
+            </label>
+            <span id="coverFileName" style="font-size:12px;color:var(--orion-text-muted)">
+              {% if course and course.cover_image %}{{ course.cover_image.name|slice:"17:" }}{% else %}{% trans 'Aucun fichier sélectionné' %}{% endif %}
+            </span>
+            <div style="display:none">{{ form.cover_image }}</div>
+          </div>
+
+          {% if form.cover_image.errors %}
+          <div style="font-size:12px;color:var(--orion-danger);margin-top:6px">{{ form.cover_image.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Colonne droite #}
+    <div class="col-lg-4">
+
+      {# Statut #}
+      <div class="orion-card mb-4">
+        <div class="orion-card-header" style="font-weight:600;font-size:13px">
+          <i class="bi bi-toggle-on me-2" style="color:var(--orion-gold)"></i>{% trans 'Statut' %}
+        </div>
+        <div class="orion-card-body" style="padding:16px;display:flex;flex-direction:column;gap:8px">
+          {% for value, label in form.status.field.choices %}
+          <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--orion-border);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s"
+                 id="statusLabel_{{ value }}"
+                 onclick="selectStatus('{{ value }}')">
+            <input type="radio" name="{{ form.status.html_name }}" value="{{ value }}"
+                   {% if form.status.value == value or not form.status.value and value == 'draft' %}checked{% endif %}
+                   style="display:none" onchange="selectStatus('{{ value }}')">
+            <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;
+              {% if value == 'published' %}background:rgba(34,197,94,.12);color:#22c55e
+              {% elif value == 'draft' %}background:rgba(96,165,250,.12);color:#C6A15B
+              {% else %}background:var(--orion-surface-alt);color:var(--orion-text-muted){% endif %}">
+              {% if value == 'published' %}<i class="bi bi-check-circle"></i>
+              {% elif value == 'draft' %}<i class="bi bi-pencil-square"></i>
+              {% else %}<i class="bi bi-archive"></i>{% endif %}
+            </span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--orion-text)">{{ label }}</div>
+              <div style="font-size:11px;color:var(--orion-text-muted);margin-top:1px">
+                {% if value == 'published' %}{% trans 'Visible par les salariés inscrits' %}
+                {% elif value == 'draft' %}{% trans 'Non visible, en cours de rédaction' %}
+                {% else %}{% trans 'Désactivée et masquée' %}{% endif %}
+              </div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Paramètres #}
+      <div class="orion-card mb-4">
+        <div class="orion-card-header" style="font-weight:600;font-size:13px">
+          <i class="bi bi-sliders me-2" style="color:var(--orion-gold)"></i>{% trans 'Paramètres' %}
+        </div>
+        <div class="orion-card-body" style="padding:16px">
+          <label style="font-size:12px;font-weight:600;color:var(--orion-text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">
+            {% trans "Ordre d'affichage" %}
+          </label>
+          {{ form.order }}
+          <div style="font-size:11px;color:var(--orion-text-muted);margin-top:5px">{% trans 'Les formations sont triées par ordre croissant dans le catalogue.' %}</div>
+          {% if form.order.errors %}
+          <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ form.order.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Aide #}
+      <div style="background:rgba(214,179,106,.06);border:1px solid rgba(214,179,106,.2);border-radius:10px;padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--orion-gold);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <i class="bi bi-lightbulb"></i> {% trans 'Conseils' %}
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px">
+          <li style="font-size:12px;color:var(--orion-text-muted);display:flex;align-items:flex-start;gap:6px">
+            <i class="bi bi-1-circle" style="color:var(--orion-gold);flex-shrink:0;margin-top:1px"></i>
+            {% trans 'Commencez par créer la formation en brouillon.' %}
+          </li>
+          <li style="font-size:12px;color:var(--orion-text-muted);display:flex;align-items:flex-start;gap:6px">
+            <i class="bi bi-2-circle" style="color:var(--orion-gold);flex-shrink:0;margin-top:1px"></i>
+            {% trans 'Ajoutez des chapitres pour structurer le contenu.' %}
+          </li>
+          <li style="font-size:12px;color:var(--orion-text-muted);display:flex;align-items:flex-start;gap:6px">
+            <i class="bi bi-3-circle" style="color:var(--orion-gold);flex-shrink:0;margin-top:1px"></i>
+            {% trans 'Publiez quand tout est prêt pour que vos équipes y accèdent.' %}
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  {# ── Boutons de soumission ────────────────────────────────────────────────── #}
+  <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--orion-border);display:flex;align-items:center;gap:12px">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-{% if action == 'create' %}plus-circle{% else %}check-circle{% endif %} me-1"></i>
+      {% if action == 'create' %}{% trans 'Créer la formation' %}{% else %}{% trans 'Enregistrer les modifications' %}{% endif %}
+    </button>
+    {% if course %}
+    <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn ghost">{% trans 'Annuler' %}</a>
+    {% else %}
+    <a href="{% url 'internal_training:course_list' %}" class="orion-btn ghost">{% trans 'Annuler' %}</a>
+    {% endif %}
+    {% if action == 'edit' and course %}
+    <a href="{% url 'internal_training:course_delete' course.pk %}"
+       style="margin-left:auto;font-size:12px;color:var(--orion-text-muted);text-decoration:none;display:flex;align-items:center;gap:4px"
+       title="{% trans 'Supprimer cette formation' %}">
+      <i class="bi bi-trash"></i> {% trans 'Supprimer' %}
+    </a>
+    {% endif %}
+  </div>
+</form>
+{% endif %}
+
+<script>
+(function(){
+  /* ── Image upload preview ── */
+  var input = document.getElementById('{{ form.cover_image.id_for_label }}');
+  if(input){
+    input.addEventListener('change', function(){
+      var file = this.files[0];
+      if(!file) return;
+      document.getElementById('coverFileName').textContent = file.name;
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var preview = document.getElementById('coverPreview');
+        preview.style.cursor = 'default';
+        preview.style.border = '1px solid var(--orion-border)';
+        preview.onclick = null;
+        preview.ondragover = null;
+        preview.ondragleave = null;
+        preview.ondrop = null;
+        preview.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover" alt="{% trans 'Prévisualisation' %}">'
+          +'<button type="button" onclick="removeCover()" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="bi bi-x-lg" style="font-size:11px"></i></button>';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Drag & drop ── */
+  window.handleDrop = function(e){
+    e.preventDefault();
+    var file = e.dataTransfer.files[0];
+    if(!file || !file.type.startsWith('image/')) return;
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+  };
+
+  window.removeCover = function(){
+    if(input){ input.value = ''; }
+    document.getElementById('coverFileName').textContent = '{% trans 'Aucun fichier sélectionné' %}';
+    var preview = document.getElementById('coverPreview');
+    preview.style.border = '2px dashed var(--orion-border)';
+    preview.style.cursor = 'pointer';
+    preview.onclick = function(){ document.getElementById('{{ form.cover_image.id_for_label }}').click(); };
+    preview.innerHTML = '<i class="bi bi-cloud-upload" style="font-size:28px;color:var(--orion-text-muted);margin-bottom:8px"></i>'
+      +'<div style="font-size:13px;font-weight:500;color:var(--orion-text-muted)">{% trans 'Cliquer ou glisser une image' %}</div>'
+      +'<div style="font-size:11px;color:var(--orion-text-muted);margin-top:4px">{% trans 'JPG, PNG, WEBP — max 5 Mo' %}</div>';
+  };
+
+  /* ── Status radio cards ── */
+  window.selectStatus = function(value){
+    document.querySelectorAll('[id^="statusLabel_"]').forEach(function(el){
+      el.style.borderColor = 'var(--orion-border)';
+      el.style.background = 'transparent';
+    });
+    var active = document.getElementById('statusLabel_'+value);
+    if(active){
+      active.style.borderColor = 'var(--orion-gold)';
+      active.style.background = 'rgba(214,179,106,.06)';
+    }
+    var radio = active && active.querySelector('input[type="radio"]');
+    if(radio){ radio.checked = true; }
+  };
+
+  /* Init status highlight */
+  var checked = document.querySelector('input[name="{{ form.status.html_name }}"]:checked');
+  if(checked) selectStatus(checked.value);
+  else selectStatus('draft');
+})();
+</script>
+{% endblock %}

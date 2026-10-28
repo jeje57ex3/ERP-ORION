@@ -1,0 +1,51 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Installation Windows</p>
+  <h1>Installer Orion ERP sur Windows.</h1>
+  <p>Utilise l'installateur officiel Orion ERP Desktop. Compatible Windows 10 / 11 (64 bits).</p>
+  <a href="{{ windows_download_url }}" class="orion-btn primary large" style="margin-top:24px">
+    Télécharger OrionERP-Desktop-Setup.exe
+  </a>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-step-list">
+    <div class="orion-step">
+      <span>1</span>
+      <div>
+        <h3>Télécharger l'installateur</h3>
+        <p>Clique sur le bouton ci-dessus pour télécharger <strong>OrionERP-Desktop-Setup.exe</strong>.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>2</span>
+      <div>
+        <h3>Lancer le fichier .exe</h3>
+        <p>Double-clique sur le fichier téléchargé. Si Windows SmartScreen apparaît, clique sur <em>Informations complémentaires → Exécuter quand même</em>.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>3</span>
+      <div>
+        <h3>Suivre l'assistant d'installation</h3>
+        <p>Choisis les raccourcis souhaités (bureau, démarrage automatique), puis clique sur Installer.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>4</span>
+      <div>
+        <h3>Ouvrir et se connecter</h3>
+        <p>Lance Orion ERP Desktop depuis le raccourci bureau. L'application se connecte automatiquement au serveur ERP.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="orion-info-box" style="margin-top:32px">
+    <h3>Serveur par défaut</h3>
+    <p><strong>https://login.elysiums.fr</strong></p>
+    <p style="margin-top:8px">Tu peux modifier l'adresse du serveur dans les paramètres de l'application.</p>
+  </div>
+</section>
+{% endblock %}

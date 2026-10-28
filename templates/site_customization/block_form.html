@@ -1,0 +1,69 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'site_customization:dashboard' %}">{% trans 'Personnalisation' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'site_customization:page_detail' page.pk %}">{{ page.title }}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-card-text me-1 text-primary"></i>{% trans 'Contenu du bloc' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.block_type.label }}</label>{{ form.block_type }}
+          </div>
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.position.label }}</label>{{ form.position }}
+          </div>
+          <div class="col-12">
+            <label class="orion-label">{{ form.title.label }}</label>{{ form.title }}
+          </div>
+          <div class="col-12">
+            <label class="orion-label">{{ form.content.label }}</label>{{ form.content }}
+          </div>
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.link_label.label }}</label>{{ form.link_label }}
+          </div>
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.link_url.label }}</label>{{ form.link_url }}
+          </div>
+          <div class="col-12">
+            <label class="orion-label">{{ form.image.label }}</label>
+            {% if block.image %}<div class="mb-2"><img src="{{ block.image.url }}" alt="{{ block.title }}" style="max-height:80px;border-radius:6px"></div>{% endif %}
+            {{ form.image }}
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              {{ form.is_visible }}
+              <label class="form-check-label orion-label" for="{{ form.is_visible.id_for_label }}">{{ form.is_visible.label }}</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0">{% trans 'Contexte' %}</h6></div>
+      <div class="orion-card-body" style="font-size:13px">
+        <p class="text-muted mb-1">{% trans 'Section' %}</p>
+        <p class="mb-2 fw-semibold">{{ section.title }}</p>
+        <p class="text-muted mb-1">{% trans 'Page' %}</p>
+        <p class="mb-0 fw-semibold">{{ page.title }}</p>
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-card-body d-grid gap-2">
+        <button type="submit" class="orion-btn orion-btn-primary"><i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}</button>
+        <a href="{% url 'site_customization:page_detail' page.pk %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}</a>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'internal_training:dashboard' %}">{% trans 'Formations' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'internal_training:course_detail' course.pk %}">{{ course.title|truncatechars:30 }}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block page_subtitle %}{% blocktrans with title=course.title %}Chapitre de la formation <strong>{{ title }}</strong>{% endblocktrans %}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn sm outline">
+  <i class="bi bi-arrow-left me-1"></i>{% trans 'Retour' %}
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:560px">
+  <div class="orion-card">
+    <div class="orion-card-header" style="font-weight:600;font-size:13px">
+      <i class="bi bi-journals me-2" style="color:var(--orion-gold)"></i>
+      {% if action == 'create' %}{% trans 'Nouveau chapitre' %}{% else %}{% trans 'Modifier le chapitre' %}{% endif %}
+    </div>
+    <div class="orion-card-body" style="padding:24px">
+      <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom:20px">
+          <label for="{{ form.title.id_for_label }}"
+                 style="font-size:12px;font-weight:600;color:var(--orion-text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">
+            {% trans 'Titre du chapitre' %} <span style="color:var(--orion-danger)">*</span>
+          </label>
+          {{ form.title }}
+          <div style="font-size:11px;color:var(--orion-text-muted);margin-top:5px">
+            {% trans 'Ex : Introduction, Module 1 — Sécurité, Évaluation finale…' %}
+          </div>
+          {% if form.title.errors %}
+          <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ form.title.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div style="margin-bottom:24px">
+          <label for="{{ form.order.id_for_label }}"
+                 style="font-size:12px;font-weight:600;color:var(--orion-text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">
+            {% trans "Ordre d'affichage" %}
+          </label>
+          {{ form.order }}
+          <div style="font-size:11px;color:var(--orion-text-muted);margin-top:5px">
+            {% trans 'Les chapitres sont triés par ordre croissant.' %}
+          </div>
+          {% if form.order.errors %}
+          <div style="font-size:12px;color:var(--orion-danger);margin-top:4px">{{ form.order.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;gap:10px;padding-top:4px;border-top:1px solid var(--orion-border)">
+          <button type="submit" class="orion-btn sm primary">
+            <i class="bi bi-{% if action == 'create' %}plus-circle{% else %}check-circle{% endif %} me-1"></i>
+            {% if action == 'create' %}{% trans 'Ajouter le chapitre' %}{% else %}{% trans 'Enregistrer' %}{% endif %}
+          </button>
+          <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-btn sm ghost">{% trans 'Annuler' %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

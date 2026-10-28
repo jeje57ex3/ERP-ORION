@@ -1,0 +1,120 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Demandes clients' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Demandes clients' %}</li>
+{% endblock %}
+
+{% block page_subtitle %}
+<p class="page-subtitle">{% trans 'Transformez les demandes clients en tâches planifiables.' %}</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{% url 'work_planning:customer_request_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle demande' %}</a>
+  <a href="{% url 'work_planning:auto_schedule' %}" class="orion-btn orion-btn-outline"><i class="bi bi-lightning me-1"></i>{% trans 'Planification automatique' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# Filtres statut #}
+<div class="d-flex gap-2 mb-4 flex-wrap align-items-center">
+  <a href="{% url 'work_planning:customer_request_list' %}" class="orion-btn {% if not status_filter %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{% trans 'Toutes' %}</a>
+  {% for s, label in requests.model.STATUS_CHOICES %}
+  <a href="?status={{ s }}" class="orion-btn {% if status_filter == s %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{{ label }} ({{ status_counts|default_if_none:s|default:0 }})</a>
+  {% endfor %}
+</div>
+
+{% if requests %}
+<div class="orion-card">
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" style="font-size:.85rem">
+        <thead style="background:#F8FAFC">
+          <tr>
+            <th class="px-3 py-3">{% trans 'Demande' %}</th>
+            <th class="py-3">{% trans 'Client' %}</th>
+            <th class="py-3">{% trans 'Urgence' %}</th>
+            <th class="py-3">{% trans 'Temps estimé' %}</th>
+            <th class="py-3">{% trans 'Deadline' %}</th>
+            <th class="py-3">{% trans 'Salarié' %}</th>
+            <th class="py-3">{% trans 'Statut' %}</th>
+            <th class="py-3 pe-3 text-end">{% trans 'Actions' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in requests %}
+          <tr>
+            <td class="px-3 py-3">
+              <div class="fw-medium">
+                <a href="{% url 'work_planning:customer_request_detail' req.pk %}" class="text-decoration-none text-dark">{{ req.title }}</a>
+              </div>
+              {% if req.required_skill %}
+              <div class="text-muted" style="font-size:.75rem"><i class="bi bi-tools me-1"></i>{{ req.required_skill }}</div>
+              {% endif %}
+              {% if req.created_task %}<span class="orion-badge orion-badge-success" style="font-size:.7rem"><i class="bi bi-check2 me-1"></i>{% trans 'Tâche créée' %}</span>{% endif %}
+            </td>
+            <td class="py-3 text-muted">{{ req.customer.name|default:'—' }}</td>
+            <td class="py-3">
+              <span class="orion-badge orion-badge-{% if req.urgency == 'critical' or req.urgency == 'urgent' %}danger{% elif req.urgency == 'high' %}warning{% else %}secondary{% endif %}">
+                {{ req.get_urgency_display }}
+              </span>
+            </td>
+            <td class="py-3 text-muted">
+              {% if req.estimated_minutes >= 60 %}
+                {{ req.estimated_minutes|floatformat:0 }} min
+                <span class="text-muted" style="font-size:.75rem">(≈ {{ req.estimated_minutes|floatformat:"0" }}min)</span>
+              {% else %}
+                {{ req.estimated_minutes }} min
+              {% endif %}
+            </td>
+            <td class="py-3 text-muted">
+              {% if req.requested_deadline %}
+              <span{% if req.requested_deadline < today %} class="text-danger fw-semibold"{% endif %}>{{ req.requested_deadline|date:"d/m/Y" }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="py-3 text-muted">{{ req.assigned_employee.display_name|default:'—' }}</td>
+            <td class="py-3">
+              <span class="orion-badge orion-badge-{% if req.status == 'completed' %}success{% elif req.status == 'in_progress' or req.status == 'planned' %}primary{% elif req.status == 'cancelled' %}secondary{% else %}info{% endif %}">
+                {{ req.get_status_display }}
+              </span>
+            </td>
+            <td class="py-3 pe-3 text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{% url 'work_planning:customer_request_detail' req.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Voir' %}"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'work_planning:customer_request_edit' req.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+                {% if not req.created_task %}
+                <a href="{% url 'work_planning:customer_request_convert' req.pk %}" class="orion-btn orion-btn-outline sm text-primary" title="{% trans 'Convertir en tâche' %}"><i class="bi bi-arrow-right-circle"></i></a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-inbox" style="font-size:2.5rem;opacity:.3"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucune demande client' %}</div>
+    <p class="text-muted small mb-3">{% trans 'Créez des demandes clients pour les planifier automatiquement.' %}</p>
+    <a href="{% url 'work_planning:customer_request_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle demande' %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const today = "{{ today|date:'Y-m-d' }}";
+</script>
+{% endblock %}

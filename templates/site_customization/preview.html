@@ -1,0 +1,82 @@
+{% load i18n %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>{% blocktrans with t=page.seo_title|default:page.title %}{{ t }} — Aperçu{% endblocktrans %}</title>
+  <meta name="description" content="{{ page.seo_description }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    {{ theme_css|default:"" }}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--site-background, #0B0B0D); color: var(--site-text, #F7F2E7); font-family: var(--site-font, 'Inter, system-ui, sans-serif'); }
+
+    .preview-bar { position: sticky; top: 0; z-index: 99; background: #111827; border-bottom: 1px solid rgba(255,255,255,.12); padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: #9CA3AF; }
+    .preview-bar a { color: #C6A15B; text-decoration: none; }
+
+    .site-page { padding: 0 clamp(18px, 6vw, 96px); }
+
+    .hero { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; padding: 80px 0; }
+    .hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); font-weight: 800; letter-spacing: -0.05em; line-height: 1; margin-bottom: 24px; }
+    .hero p { color: var(--site-muted, #B9B2A3); font-size: clamp(1rem, 1.5vw, 1.25rem); line-height: 1.7; max-width: 640px; margin-bottom: 32px; }
+    .hero img { max-width: 100%; max-height: 400px; object-fit: cover; border-radius: var(--site-radius, 24px); margin-top: 32px; }
+
+    .cta-btn { display: inline-flex; padding: 14px 28px; background: var(--site-primary, #D6B36A); color: #09090B; font-weight: 800; font-size: 14px; letter-spacing: .06em; text-decoration: none; border-radius: var(--site-button-radius, 999px); }
+
+    .section { padding: 72px 0; border-top: 1px solid rgba(255,255,255,.08); }
+    .section h2 { font-size: clamp(1.8rem, 3vw, 3.5rem); font-weight: 800; letter-spacing: -0.04em; margin-bottom: 16px; }
+    .section p { color: var(--site-muted, #B9B2A3); line-height: 1.7; max-width: 820px; margin-bottom: 24px; }
+    .section img { max-width: 100%; border-radius: var(--site-radius, 24px); margin-bottom: 24px; }
+
+    .blocks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; margin-top: 32px; }
+    .block-card { background: var(--site-surface, #17171B); border-radius: var(--site-radius, 24px); padding: 24px; }
+    .block-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .block-card p { font-size: 14px; color: var(--site-muted, #B9B2A3); }
+    .block-card img { width: 100%; border-radius: calc(var(--site-radius, 24px) / 2); margin-bottom: 12px; }
+    .block-card a { display: inline-flex; margin-top: 12px; padding: 8px 16px; background: var(--site-primary, #D6B36A); color: #09090B; font-size: 12px; font-weight: 700; text-decoration: none; border-radius: var(--site-button-radius, 999px); }
+  </style>
+</head>
+<body>
+  <!-- Barre d'aperçu ERP -->
+  <div class="preview-bar">
+    <span>{% blocktrans with site_name=page.website.name status=page.get_status_display %}⚠ APERÇU ORION ERP — {{ site_name }} · {{ status }}{% endblocktrans %}</span>
+    <a href="{% url 'site_customization:page_detail' page.pk %}">{% trans "← Retour à l'ERP" %}</a>
+  </div>
+
+  <div class="site-page">
+    <!-- Hero -->
+    <section class="hero">
+      {% if page.hero_title %}<h1>{{ page.hero_title }}</h1>{% else %}<h1>{{ page.title }}</h1>{% endif %}
+      {% if page.hero_subtitle %}<p>{{ page.hero_subtitle }}</p>{% endif %}
+      {% if page.cta_label and page.cta_url %}<a class="cta-btn" href="{{ page.cta_url }}">{{ page.cta_label }}</a>{% endif %}
+      {% if page.hero_image %}<img src="{{ page.hero_image.url }}" alt="{{ page.title }}">{% endif %}
+    </section>
+
+    <!-- Sections -->
+    {% for section in sections %}
+    <section class="section" {% if section.background_color %}style="background:{{ section.background_color }};padding:72px clamp(18px,6vw,96px);"{% endif %}>
+      {% if section.title %}<h2 {% if section.text_color %}style="color:{{ section.text_color }}"{% endif %}>{{ section.title }}</h2>{% endif %}
+      {% if section.subtitle %}<p {% if section.text_color %}style="color:{{ section.text_color }}"{% endif %}>{{ section.subtitle }}</p>{% endif %}
+      {% if section.image %}<img src="{{ section.image.url }}" alt="{{ section.title }}">{% endif %}
+      {% if section.content %}<p>{{ section.content|linebreaksbr }}</p>{% endif %}
+      {% if section.custom_html %}{{ section.custom_html|safe }}{% endif %}
+      {% if section.cta_label and section.cta_url %}<a class="cta-btn" href="{{ section.cta_url }}">{{ section.cta_label }}</a>{% endif %}
+
+      {% if section.blocks.count %}
+      <div class="blocks-grid">
+        {% for block in section.blocks.all %}
+        {% if block.is_visible %}
+        <article class="block-card">
+          {% if block.image %}<img src="{{ block.image.url }}" alt="{{ block.title }}">{% endif %}
+          {% if block.title %}<h3>{{ block.title }}</h3>{% endif %}
+          {% if block.content %}<p>{{ block.content|linebreaksbr }}</p>{% endif %}
+          {% if block.link_label and block.link_url %}<a href="{{ block.link_url }}">{{ block.link_label }}</a>{% endif %}
+        </article>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+</body>
+</html>
