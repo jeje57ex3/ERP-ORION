@@ -55,7 +55,7 @@
           <tbody>
             {% for res in reservations %}
             <tr>
-              <td class="small">{{ res.customer.name|default:res.event.name|default:"—" }}</td>
+              <td class="small">{% firstof res.customer.name res.event.name "—" %}</td>
               <td class="small text-muted">{{ res.start_date|date:"d/m/Y" }}</td>
               <td class="small text-muted">{{ res.end_date|date:"d/m/Y" }}</td>
               <td class="text-end small">{{ res.total_amount }} €</td>

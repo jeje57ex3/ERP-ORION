@@ -58,7 +58,7 @@
           <dt class="col-sm-4">Fin</dt>
           <dd class="col-sm-8">{{ job.finished_at|date:"d/m/Y H:i:s"|default:"—" }}</dd>
           <dt class="col-sm-4">Créé par</dt>
-          <dd class="col-sm-8">{{ job.created_by.get_full_name|default:job.created_by.username|default:"Système" }}</dd>
+          <dd class="col-sm-8">{% firstof job.created_by.get_full_name job.created_by.username "Système" %}</dd>
           {% if job.file_path %}
           <dt class="col-sm-4">Fichier</dt>
           <dd class="col-sm-8"><code class="text-break">{{ job.file_path }}</code></dd>

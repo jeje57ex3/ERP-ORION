@@ -28,7 +28,7 @@
           <dt>Signé</dt><dd>{% if document.is_signed %}<span class="orion-badge success">Oui</span>{% else %}<span class="orion-badge neutral">Non</span>{% endif %}</dd>
           {% if document.tags %}<dt>Tags</dt><dd>{% for tag in document.tags %}<span class="orion-badge neutral me-1">{{ tag }}</span>{% endfor %}</dd>{% endif %}
           <dt>Créé le</dt><dd>{{ document.created_at|date:"d/m/Y H:i" }}</dd>
-          {% if document.created_by %}<dt>Par</dt><dd>{{ document.created_by.get_full_name|default:document.created_by.username }}</dd>{% endif %}
+          {% if document.created_by %}<dt>Par</dt><dd>{% firstof document.created_by.get_full_name document.created_by.username %}</dd>{% endif %}
         </dl>
       </div>
     </div>

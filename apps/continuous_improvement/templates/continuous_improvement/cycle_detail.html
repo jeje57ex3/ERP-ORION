@@ -3,7 +3,19 @@
 {% block content %}
 <div class="container-fluid py-4">
 
-  {% include "messages.html" ignore missing %}
+  {% comment %}
+    L'inclusion « {% include "messages.html" ignore missing %} » a ete
+    retiree ici, pour DEUX raisons.
+
+    Elle etait invalide : « {% include %} » n'accepte que « with » et
+    « only » dans Django 4.2, et « ignore missing » leve
+    TemplateSyntaxError des l'ANALYSE du gabarit -- donc avant tout rendu.
+    Cette page repondait 500 a chaque visite.
+
+    Et elle etait redondante : erp_base.html, dont ce gabarit herite,
+    affiche deja les messages. Le fichier « messages.html » n'existe
+    d'ailleurs nulle part dans le projet.
+  {% endcomment %}
 
   <!-- Header -->
   <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">

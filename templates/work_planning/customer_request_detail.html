@@ -94,7 +94,7 @@
           {% if task.is_locked %}<span class="orion-badge orion-badge-warning" style="font-size:.7rem"><i class="bi bi-lock me-1"></i>{% trans 'Verrouillé' %}</span>{% endif %}
         </div>
         <div class="d-flex flex-wrap gap-3 small text-muted">
-          {% if task.assigned_to %}<span><i class="bi bi-person me-1"></i>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</span>{% endif %}
+          {% if task.assigned_to %}<span><i class="bi bi-person me-1"></i>{% firstof task.assigned_to.get_full_name task.assigned_to.username %}</span>{% endif %}
           {% if task.due_date %}<span><i class="bi bi-calendar me-1"></i>{{ task.due_date|date:"d/m/Y" }}</span>{% endif %}
           {% if task.estimated_minutes %}<span><i class="bi bi-clock me-1"></i>{% blocktrans with m=task.estimated_minutes %}{{ m }} min estimés{% endblocktrans %}</span>{% endif %}
         </div>

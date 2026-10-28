@@ -49,7 +49,7 @@
           </dd>
           {% if report.submitted_at %}<dt class="col-5">{% trans "Soumise le" %}</dt><dd class="col-7">{{ report.submitted_at|date:"d/m/Y" }}</dd>{% endif %}
           {% if report.paid_at %}<dt class="col-5">{% trans "Remboursée le" %}</dt><dd class="col-7">{{ report.paid_at|date:"d/m/Y" }}</dd>{% endif %}
-          {% if report.validated_by %}<dt class="col-5">{% trans "Validée par" %}</dt><dd class="col-7">{{ report.validated_by.get_full_name|default:report.validated_by.username }}</dd>{% endif %}
+          {% if report.validated_by %}<dt class="col-5">{% trans "Validée par" %}</dt><dd class="col-7">{% firstof report.validated_by.get_full_name report.validated_by.username %}</dd>{% endif %}
         </dl>
       </div>
     </div>

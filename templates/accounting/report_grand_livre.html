@@ -48,7 +48,7 @@
             <td class="small text-muted">{{ line.entry.entry_date|date:"d/m/Y" }}</td>
             <td><span class="orion-badge neutral">{{ line.entry.journal.code }}</span></td>
             <td><a href="{% url 'accounting:entry_detail' line.entry.pk %}" class="text-decoration-none small">{{ line.entry.entry_number }}</a></td>
-            <td class="small">{{ line.label|default:line.entry.description }}</td>
+            <td class="small">{% firstof line.label line.entry.description %}</td>
             <td class="text-end {% if line.debit %}text-success fw-semibold{% else %}text-muted{% endif %}">{{ line.debit|floatformat:2 }}</td>
             <td class="text-end {% if line.credit %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ line.credit|floatformat:2 }}</td>
           </tr>

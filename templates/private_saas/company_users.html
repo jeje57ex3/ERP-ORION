@@ -24,7 +24,7 @@
       <tbody>
         {% for access in users %}
         <tr>
-          <td class="fw-medium">{{ access.user.get_full_name|default:access.user.username }}</td>
+          <td class="fw-medium">{% firstof access.user.get_full_name access.user.username %}</td>
           <td class="text-muted">{{ access.user.email }}</td>
           <td><span class="orion-badge orion-badge-info">{{ access.role }}</span></td>
           <td>

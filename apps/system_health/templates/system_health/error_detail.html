@@ -73,7 +73,7 @@
       {% for c in error.comments.all %}
       <div class="mb-3 pb-3 border-bottom">
         <div class="d-flex gap-2 align-items-center mb-1">
-          <span class="fw-500 small">{{ c.author.get_full_name|default:c.author.username }}</span>
+          <span class="fw-500 small">{% firstof c.author.get_full_name c.author.username %}</span>
           <span class="text-muted small">· {{ c.created_at|date:"d/m H:i" }}</span>
         </div>
         <p class="mb-0 small">{{ c.content }}</p>

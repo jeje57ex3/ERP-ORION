@@ -17,7 +17,7 @@
         {% if item.description %}<span class="text-muted fw-normal"> — {{ item.description|truncatechars:60 }}</span>{% endif %}
       </div>
       <div class="orion-timeline-date">
-        {% if item.user %}<a href="#" class="text-decoration-none text-muted">{{ item.user.get_full_name|default:item.user.username }}</a> · {% endif %}
+        {% if item.user %}<a href="#" class="text-decoration-none text-muted">{% firstof item.user.get_full_name item.user.username %}</a> · {% endif %}
         {{ item.created_at|date:"d/m/Y H:i" }}
       </div>
     </div>

@@ -25,7 +25,7 @@
 
         <dl style="display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:13px;margin-bottom:0">
           <dt class="text-muted">{% trans "Salarié" %}</dt>
-          <dd style="margin:0;font-weight:600">{{ ts.employee.get_full_name|default:ts.employee.username }}</dd>
+          <dd style="margin:0;font-weight:600">{% firstof ts.employee.get_full_name ts.employee.username %}</dd>
 
           <dt class="text-muted">{% trans "Chantier" %}</dt>
           <dd style="margin:0">
@@ -55,7 +55,7 @@
 
           <dt class="text-muted">{% trans "Validé par" %}</dt>
           <dd style="margin:0">
-            {% if ts.validated_by %}{{ ts.validated_by.get_full_name|default:ts.validated_by.username }}
+            {% if ts.validated_by %}{% firstof ts.validated_by.get_full_name ts.validated_by.username %}
             {% else %}<em class="text-muted">{% trans "pas encore validé" %}</em>{% endif %}
           </dd>
 

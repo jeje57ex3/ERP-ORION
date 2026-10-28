@@ -46,7 +46,7 @@
 <div class="orion-welcome">
   <div>
     <p class="orion-welcome-greeting">
-      Bonjour, {{ request.user.get_full_name|default:request.user.username }} 👋
+      Bonjour, {% firstof request.user.get_full_name request.user.username %} 👋
     </p>
     <p class="orion-welcome-sub">
       {% if current_company %}<strong>{{ current_company.name }}</strong> — {% endif %}
@@ -148,6 +148,19 @@
       </div>
       <!-- Corps widget -->
       <div class="dashboard-widget-body">
+        {% comment %}
+          Le nom du gabarit vient d'un CHAMP DE BASE
+          (uw.widget.template_name). Une seule ligne de widget mal
+          renseignee -- gabarit renomme, supprime ou saisi de travers --
+          levait TemplateDoesNotExist et faisait tomber le tableau de bord
+          ENTIER de l'utilisateur, pas seulement la tuile fautive.
+
+          La verification ne peut PAS se faire ici : « {% include %} »
+          n'accepte que « with » et « only » dans Django 4.2, et un
+          « ignore missing » leve TemplateSyntaxError des l'analyse. Elle
+          est donc faite dans la vue, qui ecarte les widgets dont le
+          gabarit est introuvable -- voir DashboardView.get_context_data.
+        {% endcomment %}
         {% include uw.widget.template_name with widget_data=widget_data user_widget=uw %}
       </div>
     </div>

@@ -165,7 +165,7 @@
       <div class="orion-orion-orion-card-header"><h6 class="card-title mb-0">{% trans "Validation" %}</h6></div>
       <div class="orion-orion-orion-card-body">
         <div class="small text-muted fw-semibold mb-1">{% trans "Validé par" %}</div>
-        <div class="small mb-2">{{ signup.approved_by.get_full_name|default:signup.approved_by.username }}</div>
+        <div class="small mb-2">{% firstof signup.approved_by.get_full_name signup.approved_by.username %}</div>
         <div class="small text-muted fw-semibold mb-1">{% trans "Le" %}</div>
         <div class="small">{{ signup.approved_at|date:"d/m/Y à H:i" }}</div>
       </div>
@@ -178,7 +178,7 @@
       <div class="orion-orion-orion-card-header"><h6 class="card-title mb-0 text-danger">{% trans "Refus" %}</h6></div>
       <div class="orion-orion-orion-card-body">
         <div class="small text-muted fw-semibold mb-1">{% trans "Refusé par" %}</div>
-        <div class="small mb-2">{{ signup.rejected_by.get_full_name|default:signup.rejected_by.username }}</div>
+        <div class="small mb-2">{% firstof signup.rejected_by.get_full_name signup.rejected_by.username %}</div>
         <div class="small text-muted fw-semibold mb-1">{% trans "Le" %}</div>
         <div class="small mb-2">{{ signup.rejected_at|date:"d/m/Y à H:i" }}</div>
         {% if signup.rejection_reason %}

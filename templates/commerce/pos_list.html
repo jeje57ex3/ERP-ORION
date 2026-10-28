@@ -39,7 +39,7 @@
         {% for session in sessions %}
         <tr>
           <td class="small fw-semibold">{{ session.store.name }}</td>
-          <td class="small text-muted">{{ session.cashier.get_full_name|default:session.cashier.username }}</td>
+          <td class="small text-muted">{% firstof session.cashier.get_full_name session.cashier.username %}</td>
           <td class="small text-muted">{{ session.session_date|date:"d/m/Y" }}</td>
           <td class="text-end small">{{ session.opening_cash }} €</td>
           <td class="text-end small fw-semibold">{{ session.total_sales }} €</td>

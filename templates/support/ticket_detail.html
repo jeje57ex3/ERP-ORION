@@ -59,7 +59,7 @@
           <div class="avatar avatar-sm flex-shrink-0">{{ msg.user.get_full_name|slice:":1"|default:"?" }}</div>
           <div class="flex-1">
             <div class="d-flex align-items-center gap-2 mb-1">
-              <span class="fw-semibold small">{{ msg.user.get_full_name|default:msg.user.username }}</span>
+              <span class="fw-semibold small">{% firstof msg.user.get_full_name msg.user.username %}</span>
               {% if msg.is_internal %}<span class="orion-badge warning text-dark" style="font-size:10px;">{% trans "Note interne" %}</span>{% endif %}
               <span class="text-muted small ms-auto">{{ msg.created_at|date:"d/m/Y H:i" }}</span>
             </div>

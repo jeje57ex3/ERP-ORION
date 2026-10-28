@@ -110,7 +110,7 @@
         {% for access in users|slice:":5" %}
         <div class="list-group-item px-3 py-2 d-flex justify-content-between align-items-center">
           <div>
-            <div class="fw-medium small">{{ access.user.get_full_name|default:access.user.username }}</div>
+            <div class="fw-medium small">{% firstof access.user.get_full_name access.user.username %}</div>
             <div class="text-muted" style="font-size:.75rem">{{ access.user.email }}</div>
           </div>
           <span class="orion-badge orion-badge-info">{{ access.role }}</span>

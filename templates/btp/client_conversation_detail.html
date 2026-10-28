@@ -90,7 +90,7 @@
     <div class="bg-white border rounded-3 p-4 mb-3">
       <h6 class="fw-bold mb-3">{% trans "Chantier" %}</h6>
       <div class="small text-muted mb-2"><strong>{{ conv.project.name }}</strong></div>
-      <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>{{ conv.project.client_company|default:conv.project.client_name|default:"—" }}</div>
+      <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>{% firstof conv.project.client_company conv.project.client_name "—" %}</div>
       <a href="{% url 'btp:project_detail' conv.project.pk %}" class="btn btn-outline-primary orion-btn sm w-100 mt-2"><i class="bi bi-building me-1"></i>{% trans "Voir le chantier" %}</a>
     </div>
     <div class="bg-white border rounded-3 p-4">

@@ -70,7 +70,7 @@
           <div class="flex-grow-1">
             <div class="d-flex gap-2 align-items-center">
               <span class="orion-badge neutral small">{{ entry.get_event_type_display }}</span>
-              <small class="text-muted">{{ entry.timestamp|date:"d/m/Y" }} · {{ entry.author.get_full_name|default:entry.author.username|default:"Système" }}</small>
+              <small class="text-muted">{{ entry.timestamp|date:"d/m/Y" }} · {% firstof entry.author.get_full_name entry.author.username "Système" %}</small>
             </div>
             <p class="mb-0 mt-1 small">{{ entry.description }}</p>
           </div>

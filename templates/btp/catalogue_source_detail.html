@@ -148,7 +148,7 @@
                 <span class="orion-badge neutral">{% trans "à blanc" %}</span>
                 {% endif %}
                 {% if essai.lance_par %}
-                <div class="text-muted" style="font-size:.68rem">{{ essai.lance_par.get_full_name|default:essai.lance_par.username }}</div>
+                <div class="text-muted" style="font-size:.68rem">{% firstof essai.lance_par.get_full_name essai.lance_par.username %}</div>
                 {% endif %}
               </td>
               <td>

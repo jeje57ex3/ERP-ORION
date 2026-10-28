@@ -205,7 +205,7 @@
           </span>
           <div>
             <div class="small">{{ log.message }}</div>
-            <div class="text-muted" style="font-size:.7rem">{{ log.created_at|date:"d/m/Y H:i" }}{% if log.created_by %} — {{ log.created_by.get_full_name|default:log.created_by.username }}{% endif %}</div>
+            <div class="text-muted" style="font-size:.7rem">{{ log.created_at|date:"d/m/Y H:i" }}{% if log.created_by %} — {% firstof log.created_by.get_full_name log.created_by.username %}{% endif %}</div>
           </div>
         </li>
         {% endfor %}

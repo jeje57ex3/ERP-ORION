@@ -27,7 +27,7 @@
           {% for log in logs %}
           <tr class="{% if not log.allowed %}table-danger{% endif %}">
             <td class="text-muted small text-nowrap">{{ log.created_at|date:"d/m/Y H:i:s" }}</td>
-            <td class="fw-semibold small">{{ log.user.get_full_name|default:log.user.username }}</td>
+            <td class="fw-semibold small">{% firstof log.user.get_full_name log.user.username %}</td>
             <td class="small">{{ log.module }}</td>
             <td class="small">
               {% if log.view_code %}<code>{{ log.view_code }}</code>{% endif %}

@@ -90,7 +90,7 @@
         </div>
         {% if scenario.owner %}
         <div class="small text-muted">
-          <i class="bi bi-person me-1"></i>{{ scenario.owner.get_full_name|default:scenario.owner.username }}
+          <i class="bi bi-person me-1"></i>{% firstof scenario.owner.get_full_name scenario.owner.username %}
         </div>
         {% endif %}
       </div>

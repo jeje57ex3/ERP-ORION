@@ -368,7 +368,7 @@
         </div>
         <div class="activity-content">
           <div class="activity-text">
-            <strong>{% if log.user %}{{ log.user.get_full_name|default:log.user.username }}{% else %}{% trans "Système" %}{% endif %}</strong>
+            <strong>{% if log.user %}{% firstof log.user.get_full_name log.user.username %}{% else %}{% trans "Système" %}{% endif %}</strong>
             — {{ log.get_action_display }} {{ log.object_repr|truncatechars:40 }}
           </div>
           <div class="activity-time text-muted small">{% blocktrans with t=log.created_at|timesince %}il y a {{ t }}{% endblocktrans %}</div>

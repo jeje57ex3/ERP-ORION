@@ -1,8 +1,12 @@
 ﻿"""
 dashboard/services.py — Logique métier du dashboard personnalisable
 """
+import logging
+
 from .models import DashboardProfile, DashboardWidget, UserDashboardWidget, DashboardShortcut, DashboardUserPreference
 from .permissions import widget_is_accessible
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_WIDGETS_BY_CODE = [
@@ -86,10 +90,58 @@ def get_user_preference(user, company):
     return pref
 
 
+def _widgets_dont_le_gabarit_existe(user_widgets):
+    """Écarte les widgets dont le gabarit est introuvable.
+
+    `dashboard/dashboard.html` fait
+    `{% include uw.widget.template_name %}` : le nom vient d'un CHAMP DE
+    BASE. Une seule ligne mal renseignée — gabarit renommé, supprimé ou
+    saisi de travers — levait `TemplateDoesNotExist` et faisait tomber le
+    tableau de bord ENTIER de l'utilisateur, pas seulement la tuile
+    fautive.
+
+    La vérification ne peut pas se faire dans le gabarit :
+    `{% include %}` n'accepte que « with » et « only » dans Django 4.2, et
+    un « ignore missing » lève `TemplateSyntaxError` dès l'analyse.
+
+    Le widget fautif disparaît donc de la page, et le reste s'affiche. On
+    journalise, parce qu'un widget qui s'évapore en silence serait un
+    second problème : l'utilisateur verrait sa tuile manquer sans que rien
+    ne l'explique à l'exploitant.
+    """
+    from django.template import TemplateDoesNotExist
+    from django.template.loader import get_template
+
+    gardes = []
+    for uw in user_widgets:
+        nom = getattr(getattr(uw, 'widget', None), 'template_name', '') or ''
+        if not nom:
+            logger.warning(
+                'Widget de tableau de bord sans gabarit : %s', uw.pk)
+            continue
+        try:
+            get_template(nom)
+        except TemplateDoesNotExist:
+            logger.warning(
+                'Widget « %s » ecarte : gabarit introuvable « %s ».',
+                getattr(uw.widget, 'code', uw.pk), nom)
+            continue
+        except Exception as exc:                    # noqa: BLE001
+            # Une erreur de syntaxe dans le gabarit du widget ne doit pas
+            # davantage emporter la page entiere.
+            logger.warning(
+                'Widget « %s » ecarte : gabarit illisible (%s).',
+                getattr(uw.widget, 'code', uw.pk), exc)
+            continue
+        gardes.append(uw)
+    return gardes
+
+
 def get_dashboard_context(user, company):
     from . import widgets as wdata
     profile = get_or_create_default_dashboard(user, company)
-    user_widgets = get_user_widgets(user, company, profile)
+    user_widgets = _widgets_dont_le_gabarit_existe(
+        get_user_widgets(user, company, profile))
     shortcuts = get_user_shortcuts(user, company)
     pref = get_user_preference(user, company)
 

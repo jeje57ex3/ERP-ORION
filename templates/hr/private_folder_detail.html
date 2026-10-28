@@ -120,7 +120,7 @@
           {% for log in recent_logs %}
           <li class="list-group-item small">
             <div class="d-flex justify-content-between">
-              <span><strong>{{ log.user.get_full_name|default:log.user.username }}</strong> — {{ log.get_action_display }}</span>
+              <span><strong>{% firstof log.user.get_full_name log.user.username %}</strong> — {{ log.get_action_display }}</span>
               <span class="text-muted">{{ log.created_at|date:"d/m H:i" }}</span>
             </div>
             <small class="text-muted">{{ log.document.title }}</small>
