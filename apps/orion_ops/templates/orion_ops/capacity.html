@@ -1,0 +1,144 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Prévisions de capacité{% endblock %}
+{% block page_eyebrow %}OpsV2 · Capacité{% endblock %}
+{% block page_subtitle %}Tendances et projections de saturation des ressources système.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.capacity-card { border-radius:.75rem; padding:1.25rem; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); }
+.capacity-bar { height:10px; border-radius:5px; background:rgba(255,255,255,.1); overflow:hidden; }
+.capacity-bar-fill { height:100%; border-radius:5px; transition:width .4s; }
+.trend-up   { color:#F43F5E; }
+.trend-down { color:#22C55E; }
+.trend-flat { color:#94A3B8; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+  {% with trends.disk_c as t %}
+  {% if t %}
+  <div class="col-md-6">
+    <div class="capacity-card">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-hdd-fill text-warning"></i>
+        <h6 class="mb-0 fw-700">Disque C:</h6>
+        {% if t.days_until_limit is not None and t.days_until_limit <= 7 %}
+          <span class="badge bg-danger ms-auto">URGENT — {{ t.days_until_limit }}j</span>
+        {% elif t.days_until_limit is not None and t.days_until_limit <= 30 %}
+          <span class="badge bg-warning text-dark ms-auto">{{ t.days_until_limit }}j</span>
+        {% endif %}
+      </div>
+      <div class="capacity-bar mb-2">
+        <div class="capacity-bar-fill {% if t.current_value > 90 %}bg-danger{% elif t.current_value > 80 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ t.current_value|floatformat:0 }}%"></div>
+      </div>
+      <div class="d-flex justify-content-between small text-muted mb-2">
+        <span>{{ t.current_value|floatformat:1 }}% utilisé</span>
+        {% if t.saturation_date %}<span>Saturation estimée : {{ t.saturation_date|date:"d/m/Y" }}</span>{% endif %}
+      </div>
+      {% if t.recommendation %}
+      <div class="text-warning small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ t.recommendation }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% with trends.memory_pct as t %}
+  {% if t %}
+  <div class="col-md-6">
+    <div class="capacity-card">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-memory text-info"></i>
+        <h6 class="mb-0 fw-700">Mémoire RAM</h6>
+      </div>
+      <div class="capacity-bar mb-2">
+        <div class="capacity-bar-fill {% if t.current_value > 90 %}bg-danger{% elif t.current_value > 80 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ t.current_value|floatformat:0 }}%"></div>
+      </div>
+      <div class="d-flex justify-content-between small text-muted mb-2">
+        <span>{{ t.current_value|floatformat:1 }}% utilisé</span>
+        {% if t.growth_7d_pct is not None %}
+          {% if t.growth_7d_pct > 0 %}
+            <span class="trend-up">+{{ t.growth_7d_pct|floatformat:1 }}% sur 7j</span>
+          {% else %}
+            <span class="trend-down">{{ t.growth_7d_pct|floatformat:1 }}% sur 7j</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if t.recommendation %}
+      <div class="text-warning small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ t.recommendation }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% with trends.db_size_gb as t %}
+  {% if t %}
+  <div class="col-md-6">
+    <div class="capacity-card">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-database text-primary"></i>
+        <h6 class="mb-0 fw-700">Base de données</h6>
+      </div>
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="text-muted small">Taille actuelle</div>
+          <div class="fw-700">{{ t.current_value|floatformat:2 }} Go</div>
+        </div>
+        <div class="col-6">
+          <div class="text-muted small">Croissance 30j</div>
+          <div class="fw-700 {% if t.growth_30d_pct and t.growth_30d_pct > 20 %}trend-up{% endif %}">
+            {% if t.growth_30d_pct is not None %}{{ t.growth_30d_pct|floatformat:1 }}%{% else %}—{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if t.recommendation %}
+      <div class="text-warning small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ t.recommendation }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% with trends.cpu_avg as t %}
+  {% if t %}
+  <div class="col-md-6">
+    <div class="capacity-card">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-cpu text-success"></i>
+        <h6 class="mb-0 fw-700">CPU moyen</h6>
+      </div>
+      <div class="capacity-bar mb-2">
+        <div class="capacity-bar-fill {% if t.current_value > 85 %}bg-danger{% elif t.current_value > 70 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ t.current_value|floatformat:0 }}%"></div>
+      </div>
+      <div class="small text-muted">{{ t.current_value|floatformat:1 }}% · mesuré {{ t.computed_at|naturaltime }}</div>
+      {% if t.recommendation %}
+      <div class="text-warning small mt-2"><i class="bi bi-exclamation-triangle me-1"></i>{{ t.recommendation }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+</div>
+
+{% if not trends.disk_c and not trends.memory_pct and not trends.db_size_gb %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-4 text-muted">
+    <i class="bi bi-graph-up-arrow d-block mb-2" style="font-size:2rem;"></i>
+    Aucune tendance calculée.<br>
+    <small>Les prévisions sont calculées toutes les 6h dès que des capteurs sont disponibles.</small>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

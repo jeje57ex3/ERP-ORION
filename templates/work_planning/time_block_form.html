@@ -1,0 +1,102 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{{ page_title }} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:weekly_planning' %}">{% trans 'Planning semaine' %}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="fw-semibold"><i class="bi bi-clock me-2 text-primary"></i>{{ page_title }}</span>
+      </div>
+      <div class="orion-card-body p-4">
+        <form method="post" novalidate id="timeBlockForm">
+          {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans 'Employé' %} <span class="text-danger">*</span></label>
+              {{ form.employee }}
+              {% if form.employee.errors %}<div class="text-danger small mt-1">{{ form.employee.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-medium">{% trans 'Date' %} <span class="text-danger">*</span></label>
+              {{ form.date }}
+              {% if form.date.errors %}<div class="text-danger small mt-1">{{ form.date.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-medium">{% trans 'Heures' %} <span class="text-danger">*</span></label>
+              {{ form.hours }}
+              {% if form.hours.errors %}<div class="text-danger small mt-1">{{ form.hours.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Mission' %}</label>
+              {{ form.mission }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Tâche' %}</label>
+              {{ form.task }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Note' %}</label>
+              {{ form.note }}
+            </div>
+          </div>
+
+          {% if form.non_field_errors %}
+          <div class="orion-alert danger mt-3">{{ form.non_field_errors.0 }}</div>
+          {% endif %}
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% if action == 'edit' %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Enregistrer' %}{% endif %}
+            </button>
+            <a href="{% url 'work_planning:weekly_planning' %}" class="orion-btn orion-btn-outline">{% trans 'Annuler' %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Filtrer les tâches selon la mission sélectionnée
+  const missionSelect = document.querySelector('#id_mission');
+  const taskSelect = document.querySelector('#id_task');
+
+  if (missionSelect && taskSelect) {
+    const allOptions = Array.from(taskSelect.options);
+    missionSelect.addEventListener('change', function() {
+      const missionId = this.value;
+      if (!missionId) {
+        allOptions.forEach(o => { o.hidden = false; });
+        return;
+      }
+      // Recharge via API
+      fetch(`/api/v1/planning/tasks/?mission=${missionId}`)
+        .then(r => r.json())
+        .then(data => {
+          taskSelect.innerHTML = '<option value="">—</option>';
+          data.tasks.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            taskSelect.appendChild(opt);
+          });
+        })
+        .catch(() => {});
+    });
+  }
+</script>
+{% endblock %}

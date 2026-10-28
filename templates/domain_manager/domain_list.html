@@ -1,0 +1,87 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1 text-uppercase" style="letter-spacing:.08em;font-size:.7rem">{% trans "Domaines" %}</p>
+    <h1 class="page-title">{{ page_title }}</h1>
+    <p class="page-subtitle text-muted mb-0 small">{{ page_subtitle }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'domain_manager:create' %}" class="orion-btn primary">
+      <i class="bi bi-plus-lg me-1"></i>{% trans "Ajouter un domaine" %}
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <table class="orion-table">
+    <thead>
+      <tr>
+        <th>{% trans "Domaine" %}</th>
+        <th>{% trans "Marque" %}</th>
+        <th>{% trans "Cible" %}</th>
+        <th>DNS</th>
+        <th>SSL</th>
+        <th>{% trans "Statut" %}</th>
+        <th>{% trans "Principal" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for domain in domains %}
+      <tr>
+        <td>
+          <i class="bi bi-globe me-1 text-muted"></i>
+          <strong>{{ domain.domain }}</strong>
+        </td>
+        <td>{{ domain.brand_key|default:_("Global") }}</td>
+        <td>{{ domain.get_target_type_display }}</td>
+        <td>
+          {% if domain.dns_is_valid %}
+            <span class="orion-badge success"><i class="bi bi-check-circle me-1"></i>{% trans "Valide" %}</span>
+          {% else %}
+            <span class="orion-badge warning"><i class="bi bi-clock me-1"></i>{% trans "En attente" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if domain.ssl_is_valid %}
+            <span class="orion-badge success"><i class="bi bi-lock-fill me-1"></i>OK</span>
+          {% else %}
+            <span class="orion-badge secondary"><i class="bi bi-lock me-1"></i>—</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="orion-badge {% if domain.status == 'active' %}success{% elif domain.status == 'error' %}danger{% else %}secondary{% endif %}">
+            {{ domain.get_status_display }}
+          </span>
+        </td>
+        <td>
+          {% if domain.is_primary %}
+            <span class="orion-badge gold"><i class="bi bi-star-fill me-1"></i>{% trans "Principal" %}</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'domain_manager:detail' domain.id %}" class="orion-btn small">
+            {% trans "Ouvrir" %}
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" class="text-center py-4 text-muted">
+          <i class="bi bi-globe2 display-6 d-block mb-2"></i>
+          {% trans "Aucun domaine connecté." %}<br>
+          <a href="{% url 'domain_manager:create' %}">{% trans "Ajouter votre premier domaine" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

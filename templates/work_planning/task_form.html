@@ -1,0 +1,66 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{{ page_title }} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:mission_list' %}">{% trans 'Missions' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:mission_detail' mission.pk %}">{{ mission.name }}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-7">
+    <div class="orion-card">
+      <div class="orion-card-header">
+        <span class="fw-semibold"><i class="bi bi-list-task me-2 text-primary"></i>{{ page_title }}</span>
+      </div>
+      <div class="orion-card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Nom de la tâche' %} <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-medium">{% trans 'Description' %}</label>
+              {{ form.description }}
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-medium">{% trans 'Statut' %}</label>
+              {{ form.status }}
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-medium">{% trans 'Priorité' %}</label>
+              {{ form.priority }}
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-medium">{% trans 'Heures estimées' %}</label>
+              {{ form.estimated_hours }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans 'Assignée à' %}</label>
+              {{ form.assigned_to }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-medium">{% trans "Date d'échéance" %}</label>
+              {{ form.due_date }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="orion-btn orion-btn-primary">
+              <i class="bi bi-check-lg me-1"></i>{% if action == 'edit' %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Créer la tâche' %}{% endif %}
+            </button>
+            <a href="{% url 'work_planning:mission_detail' mission.pk %}" class="orion-btn orion-btn-outline">{% trans 'Annuler' %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

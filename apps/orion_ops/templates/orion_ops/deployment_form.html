@@ -1,0 +1,68 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Nouveau déploiement{% endblock %}
+{% block page_eyebrow %}OpsV2 · Change Management{% endblock %}
+{% block page_subtitle %}Enregistrer un déploiement en production.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:deployment_list' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <form method="post" class="orion-card">
+      {% csrf_token %}
+      <div class="orion-card-header">
+        <h5 class="mb-0"><i class="bi bi-rocket me-2 text-primary"></i>Nouveau déploiement</h5>
+      </div>
+      <div class="orion-card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-600">Version *</label>
+            <input type="text" name="version" class="form-control orion-input" placeholder="2.5.1" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-600">Environnement</label>
+            <select name="environment" class="form-select orion-input">
+              <option value="production">Production</option>
+              <option value="staging">Préproduction</option>
+              <option value="dev">Développement</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-600">Commit git</label>
+            <input type="text" name="git_commit" class="form-control orion-input font-monospace" placeholder="abc1234">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-600">Branche</label>
+            <input type="text" name="git_branch" class="form-control orion-input" placeholder="main">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-600">Nouvelles fonctionnalités</label>
+            <textarea name="features" class="form-control orion-input" rows="3" placeholder="Liste des nouvelles fonctionnalités…"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-600">Corrections</label>
+            <textarea name="fixes" class="form-control orion-input" rows="3" placeholder="Bugs corrigés…"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-600">Risques identifiés</label>
+            <textarea name="risks" class="form-control orion-input" rows="2" placeholder="Risques potentiels…"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-600">Procédure de rollback</label>
+            <textarea name="rollback_procedure" class="form-control orion-input" rows="2" placeholder="Étapes de rollback si problème…"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="orion-card-footer d-flex justify-content-end gap-2">
+        <a href="{% url 'orion_ops:deployment_list' %}" class="orion-btn">Annuler</a>
+        <button type="submit" class="orion-btn orion-btn-primary">
+          <i class="bi bi-rocket me-1"></i>Enregistrer le déploiement
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

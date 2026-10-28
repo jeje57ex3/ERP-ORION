@@ -1,0 +1,85 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Missions' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Missions' %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'work_planning:mission_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Nouvelle mission' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# Filtres statut #}
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{% url 'work_planning:mission_list' %}" class="orion-btn {% if not status_filter %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{% blocktrans with cnt=status_counts.active|default:0|add:status_counts.paused|default:0|add:status_counts.completed|default:0|add:status_counts.cancelled|default:0 %}Toutes ({{ cnt }}){% endblocktrans %}</a>
+  <a href="?status=active" class="orion-btn {% if status_filter == 'active' %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{% blocktrans with cnt=status_counts.active|default:0 %}En cours ({{ cnt }}){% endblocktrans %}</a>
+  <a href="?status=paused" class="orion-btn {% if status_filter == 'paused' %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{% blocktrans with cnt=status_counts.paused|default:0 %}En pause ({{ cnt }}){% endblocktrans %}</a>
+  <a href="?status=completed" class="orion-btn {% if status_filter == 'completed' %}orion-btn-primary{% else %}orion-btn-outline{% endif %} sm">{% blocktrans with cnt=status_counts.completed|default:0 %}Terminées ({{ cnt }}){% endblocktrans %}</a>
+</div>
+
+{% if missions %}
+<div class="row g-3">
+  {% for mission in missions %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="orion-card h-100" style="border-top:3px solid {{ mission.color_code }}">
+      <div class="orion-card-body p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="flex-grow-1 min-w-0">
+            <h6 class="fw-bold mb-0 text-truncate">
+              <a href="{% url 'work_planning:mission_detail' mission.pk %}" class="text-decoration-none text-dark">{{ mission.name }}</a>
+            </h6>
+            {% if mission.code %}<span class="font-monospace text-muted" style="font-size:.75rem">{{ mission.code }}</span>{% endif %}
+          </div>
+          <div class="d-flex gap-1 ms-2 flex-shrink-0">
+            <span class="orion-badge orion-badge-{% if mission.status == 'active' %}success{% elif mission.status == 'paused' %}warning{% elif mission.status == 'completed' %}info{% else %}secondary{% endif %}">
+              {{ mission.get_status_display }}
+            </span>
+          </div>
+        </div>
+
+        {% if mission.description %}
+        <p class="text-muted small mb-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ mission.description }}</p>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
+          <span><i class="bi bi-flag me-1"></i>{{ mission.get_priority_display }}</span>
+          <span><i class="bi bi-calendar3 me-1"></i>{{ mission.start_date|date:"d/m/Y" }}</span>
+          {% if mission.end_date %}<span><i class="bi bi-calendar-check me-1"></i>{{ mission.end_date|date:"d/m/Y" }}</span>{% endif %}
+        </div>
+
+        <div class="d-flex gap-3 small">
+          <span><i class="bi bi-list-task text-primary me-1"></i>{% blocktrans with cnt=mission.tasks_count %}{{ cnt }} tâche{% endblocktrans %}{% if mission.tasks_count != 1 %}s{% endif %}</span>
+          <span><i class="bi bi-clock text-primary me-1"></i>{% blocktrans with h=mission.total_hours_logged %}{{ h }}h logué{% endblocktrans %}{% if mission.estimated_hours %} / {{ mission.estimated_hours }}h{% endif %}</span>
+        </div>
+      </div>
+      <div class="orion-card-footer border-top p-2">
+        <div class="d-flex gap-2">
+          <a href="{% url 'work_planning:mission_detail' mission.pk %}" class="orion-btn orion-btn-outline sm flex-fill"><i class="bi bi-eye me-1"></i>{% trans 'Voir' %}</a>
+          <a href="{% url 'work_planning:mission_edit' mission.pk %}" class="orion-btn orion-btn-outline sm"><i class="bi bi-pencil"></i></a>
+          <a href="{% url 'work_planning:task_create' mission.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Ajouter tâche' %}"><i class="bi bi-plus"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-briefcase" style="font-size:2.5rem;opacity:.3"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucune mission' %}</div>
+    <p class="text-muted small mb-3">{% trans 'Créez votre première mission pour commencer à planifier les temps.' %}</p>
+    <a href="{% url 'work_planning:mission_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-plus-circle me-1"></i>{% trans 'Créer une mission' %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

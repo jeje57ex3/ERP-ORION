@@ -1,0 +1,42 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Apple iPhone / iPad</p>
+  <h1>Application Orion ERP pour Apple.</h1>
+  <p>La version Apple est en préparation. Elle sera distribuée sous forme de fichier .ipa signé ou via l'App Store.</p>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-info-box">
+    <h3>Statut</h3>
+    <p>Application iOS / iPadOS en cours de développement.</p>
+    <p style="margin-top:8px">Contacte-nous pour être notifié lors du lancement.</p>
+    <a href="{% url 'orion_website:contact' %}" class="orion-btn" style="margin-top:14px">Me notifier</a>
+  </div>
+
+  <div class="orion-step-list" style="margin-top:28px">
+    <div class="orion-step">
+      <span>1</span>
+      <div>
+        <h3>Version iOS / iPadOS</h3>
+        <p>Application native développée pour iPhone et iPad.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>2</span>
+      <div>
+        <h3>Signature Apple Developer</h3>
+        <p>L'application sera signée avec un compte Apple Developer officiel.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>3</span>
+      <div>
+        <h3>Distribution</h3>
+        <p>Distribution via TestFlight (test), puis App Store ou fichier .ipa signé pour les entreprises.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

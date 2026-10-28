@@ -1,0 +1,32 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1"><a href="{% url 'domain_manager:list' %}">{% trans "Domaines" %}</a></p>
+    <h1 class="page-title">{{ page_title }}</h1>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card" style="max-width:520px;">
+  <div class="orion-card-body">
+    <div class="orion-alert danger mb-4">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      {% blocktrans %}Cette action est irréversible. Le domaine <strong>{{ domain.domain }}</strong> sera supprimé définitivement.{% endblocktrans %}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex gap-2">
+        <button type="submit" class="orion-btn danger">
+          <i class="bi bi-trash me-1"></i>{% trans "Confirmer la suppression" %}
+        </button>
+        <a href="{% url 'domain_manager:detail' domain.id %}" class="orion-btn">{% trans "Annuler" %}</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

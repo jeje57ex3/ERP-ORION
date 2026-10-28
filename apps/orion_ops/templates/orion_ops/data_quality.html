@@ -1,0 +1,77 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Qualité des données{% endblock %}
+{% block page_eyebrow %}OpsV2 · Fiabilité données{% endblock %}
+{% block page_subtitle %}Anomalies détectées par les contrôles automatiques nocturnes.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block content %}
+
+{% if open_count %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <strong>{{ open_count }} anomalie(s) ouverte(s)</strong> requièrent une attention.
+  Les contrôles tournent chaque nuit à 3h30 via Celery.
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <div class="orion-card-header"><h5 class="mb-0"><i class="bi bi-database-exclamation me-2"></i>Anomalies qualité des données</h5></div>
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 orion-table">
+        <thead>
+          <tr>
+            <th>Type</th><th>Gravité</th><th>Module</th>
+            <th>Occurrences</th><th>Conseil</th><th>Statut</th><th>Détecté le</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in anomalies %}
+          <tr>
+            <td class="small fw-600">{{ a.get_anomaly_type_display }}</td>
+            <td>
+              {% if a.severity == 'critical' %}<span class="badge bg-danger">Critique</span>
+              {% elif a.severity == 'high' %}<span class="badge bg-warning text-dark">Élevée</span>
+              {% elif a.severity == 'medium' %}<span class="badge bg-info">Modérée</span>
+              {% else %}<span class="badge bg-secondary">Faible</span>{% endif %}
+            </td>
+            <td class="small">{{ a.get_module_display }}</td>
+            <td class="text-center fw-700">{{ a.count }}</td>
+            <td class="text-muted small">{{ a.fix_hint|truncatechars:60|default:"—" }}</td>
+            <td>
+              {% if a.status == 'open' %}<span class="badge bg-danger">Ouverte</span>
+              {% elif a.status == 'acknowledged' %}<span class="badge bg-warning text-dark">Prise en compte</span>
+              {% elif a.status == 'fixing' %}<span class="badge bg-info">En correction</span>
+              {% elif a.status == 'resolved' %}<span class="badge bg-success">Résolue</span>
+              {% else %}<span class="badge bg-secondary">Ignorée</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ a.detected_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center py-4">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            Aucune anomalie — les contrôles nocturnes n'ont rien signalé.
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if anomalies.has_other_pages %}
+    <div class="d-flex justify-content-center py-3">
+      {% if anomalies.has_previous %}
+        <a href="?page={{ anomalies.previous_page_number }}" class="orion-btn me-2">‹ Précédent</a>
+      {% endif %}
+      <span class="text-muted small align-self-center">Page {{ anomalies.number }} / {{ anomalies.paginator.num_pages }}</span>
+      {% if anomalies.has_next %}
+        <a href="?page={{ anomalies.next_page_number }}" class="orion-btn ms-2">Suivant ›</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

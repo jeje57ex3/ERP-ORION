@@ -1,0 +1,107 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'site_customization:dashboard' %}">{% trans 'Personnalisation' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'site_customization:page_list' %}">{% trans 'Pages' %}</a></li>
+<li class="breadcrumb-item active">{{ page_title }}</li>
+{% endblock %}
+{% block content %}
+{% if messages %}
+<div class="mb-3">
+  {% for message in messages %}
+  <div class="orion-alert {{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    <!-- Identité -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-file-earmark-text me-1 text-primary"></i>{% trans 'Identité de la page' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.website.label }}</label>{{ form.website }}
+          </div>
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.page_type.label }}</label>{{ form.page_type }}
+          </div>
+          <div class="col-md-8">
+            <label class="orion-label">{{ form.title.label }}</label>{{ form.title }}
+          </div>
+          <div class="col-md-4">
+            <label class="orion-label">{{ form.slug.label }} <small class="text-muted">{% trans '(auto si vide)' %}</small></label>{{ form.slug }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-stars me-1 text-primary"></i>{% trans 'Hero' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="orion-label">{{ form.hero_title.label }}</label>{{ form.hero_title }}
+        </div>
+        <div class="mb-3">
+          <label class="orion-label">{{ form.hero_subtitle.label }}</label>{{ form.hero_subtitle }}
+        </div>
+        <div class="mb-3">
+          <label class="orion-label">{{ form.hero_image.label }}</label>
+          {% if page.hero_image %}<div class="mb-2"><img src="{{ page.hero_image.url }}" alt="{% trans 'Hero' %}" style="max-height:120px;border-radius:8px"></div>{% endif %}
+          {{ form.hero_image }}
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.cta_label.label }}</label>{{ form.cta_label }}
+          </div>
+          <div class="col-md-6">
+            <label class="orion-label">{{ form.cta_url.label }}</label>{{ form.cta_url }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEO -->
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-search me-1 text-primary"></i>SEO</h6></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="orion-label">{{ form.seo_title.label }} <small class="text-muted">{% trans '(max 70 car.)' %}</small></label>{{ form.seo_title }}
+        </div>
+        <div>
+          <label class="orion-label">{{ form.seo_description.label }} <small class="text-muted">{% trans '(max 160 car.)' %}</small></label>{{ form.seo_description }}
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="col-lg-4">
+    <div class="orion-card mb-4">
+      <div class="orion-card-header"><h6 class="mb-0"><i class="bi bi-sliders me-1 text-primary"></i>{% trans 'Publication' %}</h6></div>
+      <div class="orion-card-body">
+        <div class="mb-3">
+          <label class="orion-label">{{ form.status.label }}</label>{{ form.status }}
+        </div>
+        <div class="form-check mb-3">
+          {{ form.is_homepage }}
+          <label class="form-check-label orion-label" for="{{ form.is_homepage.id_for_label }}">{{ form.is_homepage.label }}</label>
+        </div>
+      </div>
+    </div>
+    <div class="orion-card">
+      <div class="orion-card-body d-grid gap-2">
+        <button type="submit" class="orion-btn orion-btn-primary"><i class="bi bi-check-lg me-1"></i>{% trans 'Enregistrer' %}</button>
+        {% if page %}<a href="{% url 'site_customization:page_detail' page.pk %}" class="orion-btn orion-btn-ghost"><i class="bi bi-arrow-left me-1"></i>{% trans 'Annuler' %}</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

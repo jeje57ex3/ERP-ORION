@@ -1,0 +1,51 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Installation Android</p>
+  <h1>Installer Orion ERP sur Android.</h1>
+  <p>L'application Android Orion ERP utilise un fichier APK à installer directement sur le téléphone.</p>
+  <a href="{{ android_download_url }}" class="orion-btn primary large" style="margin-top:24px">
+    Télécharger OrionERP-Mobile.apk
+  </a>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-step-list">
+    <div class="orion-step">
+      <span>1</span>
+      <div>
+        <h3>Télécharger le fichier APK</h3>
+        <p>Télécharge <strong>OrionERP-Mobile-release.apk</strong> sur ton téléphone Android.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>2</span>
+      <div>
+        <h3>Autoriser les sources inconnues</h3>
+        <p>Sur Android, va dans <em>Paramètres → Sécurité → Sources inconnues</em> (ou autorise depuis le navigateur lors de l'ouverture du fichier).</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>3</span>
+      <div>
+        <h3>Ouvrir le fichier APK</h3>
+        <p>Ouvre le fichier depuis les téléchargements et valide l'installation.</p>
+      </div>
+    </div>
+    <div class="orion-step">
+      <span>4</span>
+      <div>
+        <h3>Se connecter</h3>
+        <p>Lance l'application et connecte-toi avec tes identifiants Orion ERP.</p>
+        <p>Serveur : <strong>https://login.elysiums.fr</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="orion-warning-box" style="margin-top:32px">
+    <h3>Important</h3>
+    <p>Installe uniquement l'APK officiel fourni sur cette page. Ne télécharge pas l'application depuis des sources tierces.</p>
+  </div>
+</section>
+{% endblock %}

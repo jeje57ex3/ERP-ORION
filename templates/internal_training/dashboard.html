@@ -1,0 +1,122 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans 'Formations internes' %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'orion/css/orion-internal-training.css' %}">
+{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><i class="bi bi-mortarboard me-1"></i> {% trans 'Formations' %}</p>{% endblock %}
+{% block page_subtitle %}{% trans 'Gérez et suivez les formations de votre équipe.' %}{% endblock %}
+{% block page_actions %}
+<a href="{% url 'internal_training:course_create' %}" class="orion-btn primary">
+  <i class="bi bi-plus-lg me-1"></i> {% trans 'Nouvelle formation' %}
+</a>
+<a href="{% url 'internal_training:course_list' %}" class="orion-btn ghost">
+  <i class="bi bi-list-ul me-1"></i> {% trans 'Toutes les formations' %}
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Statistiques ──────────────────────────────────────────────────────────── #}
+<div class="training-stats-grid">
+  <div class="orion-card training-stat-card">
+    <div class="training-stat-icon"><i class="bi bi-collection"></i></div>
+    <div class="training-stat-body">
+      <div class="training-stat-value">{{ stats.total_courses }}</div>
+      <div class="training-stat-label">{% trans 'Formations' %}</div>
+    </div>
+  </div>
+  <div class="orion-card training-stat-card">
+    <div class="training-stat-icon published"><i class="bi bi-check-circle"></i></div>
+    <div class="training-stat-body">
+      <div class="training-stat-value">{{ stats.published_courses }}</div>
+      <div class="training-stat-label">{% trans 'Publiées' %}</div>
+    </div>
+  </div>
+  <div class="orion-card training-stat-card">
+    <div class="training-stat-icon draft"><i class="bi bi-pencil-square"></i></div>
+    <div class="training-stat-body">
+      <div class="training-stat-value">{{ stats.draft_courses }}</div>
+      <div class="training-stat-label">{% trans 'Brouillons' %}</div>
+    </div>
+  </div>
+  <div class="orion-card training-stat-card">
+    <div class="training-stat-icon enroll"><i class="bi bi-person-check"></i></div>
+    <div class="training-stat-body">
+      <div class="training-stat-value">{{ stats.total_enrollments }}</div>
+      <div class="training-stat-label">{% trans 'Inscriptions' %}</div>
+    </div>
+  </div>
+</div>
+
+{# ── Mes formations ────────────────────────────────────────────────────────── #}
+<div class="orion-section-header mt-4">
+  <h2 class="orion-section-title">{% trans 'Mes formations' %}</h2>
+</div>
+
+{% if my_courses %}
+<div class="training-courses-grid">
+  {% for course in my_courses %}
+  <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-card training-course-card">
+    <div class="training-course-cover">
+      {% if course.cover_image %}
+      <img src="{{ course.cover_image.url }}" alt="{{ course.title }}" loading="lazy" decoding="async">
+      {% else %}
+      <div class="training-course-cover-placeholder"><i class="bi bi-mortarboard"></i></div>
+      {% endif %}
+    </div>
+    <div class="training-course-body">
+      <h3 class="training-course-title">{{ course.title }}</h3>
+      {% if course.description %}
+      <p class="training-course-desc">{{ course.description|truncatechars:80 }}</p>
+      {% endif %}
+      <div class="training-course-meta">
+        <span><i class="bi bi-journals me-1"></i>{{ course.chapters_count }} {% trans 'chapitre' %}{{ course.chapters_count|pluralize }}</span>
+        <span><i class="bi bi-file-text me-1"></i>{{ course.pages_count }} {% trans 'page' %}{{ course.pages_count|pluralize }}</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-empty-state">
+  <i class="bi bi-mortarboard"></i>
+  <p>{% trans 'Aucune formation en cours.' %} <a href="{% url 'internal_training:course_list' %}">{% trans 'Voir toutes les formations disponibles' %}</a></p>
+</div>
+{% endif %}
+
+{# ── Toutes les formations publiées ───────────────────────────────────────── #}
+{% if all_published %}
+<div class="orion-section-header mt-4">
+  <h2 class="orion-section-title">{% trans 'Formations disponibles' %}</h2>
+</div>
+<div class="training-courses-grid">
+  {% for course in all_published %}
+  <a href="{% url 'internal_training:course_detail' course.pk %}" class="orion-card training-course-card">
+    <div class="training-course-cover">
+      {% if course.cover_image %}
+      <img src="{{ course.cover_image.url }}" alt="{{ course.title }}" loading="lazy" decoding="async">
+      {% else %}
+      <div class="training-course-cover-placeholder"><i class="bi bi-mortarboard"></i></div>
+      {% endif %}
+    </div>
+    <div class="training-course-body">
+      <h3 class="training-course-title">{{ course.title }}</h3>
+      {% if course.description %}
+      <p class="training-course-desc">{{ course.description|truncatechars:80 }}</p>
+      {% endif %}
+      <div class="training-course-meta">
+        <span><i class="bi bi-journals me-1"></i>{{ course.chapters_count }} {% trans 'chapitre' %}{{ course.chapters_count|pluralize }}</span>
+        <span><i class="bi bi-people me-1"></i>{{ course.enrolled_count }} {% trans 'inscrit' %}{{ course.enrolled_count|pluralize }}</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,24 @@
+<article class="orion-module-card detailed">
+  <div class="orion-module-topline">
+    <div class="orion-module-icon">{{ module.icon }}</div>
+    <span class="orion-status-badge">{{ module.status|default:"available" }}</span>
+  </div>
+
+  <h3>{{ module.title }}</h3>
+
+  <p>
+    {{ module.short_description|default:module.description }}
+  </p>
+
+  {% if module.availability %}
+  <div class="orion-availability-list">
+    {% for item in module.availability %}
+      <span>{{ item }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <a href="{% url 'orion_website:module_detail' module.code %}" class="orion-card-link">
+    Découvrir le module
+  </a>
+</article>

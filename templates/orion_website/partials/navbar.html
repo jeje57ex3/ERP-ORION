@@ -1,0 +1,23 @@
+<header class="orion-public-nav">
+  <a href="{% url 'orion_website:home' %}" class="orion-public-brand">
+    {% load static %}
+    <img src="{% static 'orion_website/img/logo.svg' %}" alt="Orion ERP" class="orion-logo-img">
+    <span>Orion ERP</span>
+  </a>
+
+  <nav class="orion-public-links">
+    <a href="{% url 'orion_website:modules' %}">Modules</a>
+    <a href="{% url 'orion_website:apps' %}">Applications</a>
+    <a href="{% url 'orion_website:downloads' %}">Téléchargements</a>
+    <a href="{% url 'orion_website:security' %}">Sécurité</a>
+    <a href="{% url 'orion_website:faq' %}">FAQ</a>
+    <a href="{% url 'orion_website:contact' %}">Contact</a>
+  </nav>
+
+  <div class="orion-public-actions">
+    <a href="{{ orion_login_url }}" class="orion-btn ghost">Connexion ERP</a>
+    <a href="{% url 'orion_website:downloads' %}" class="orion-btn primary">Télécharger</a>
+  </div>
+
+  <button class="orion-mobile-menu-btn" type="button" data-mobile-menu-toggle>&#9776; Menu</button>
+</header>

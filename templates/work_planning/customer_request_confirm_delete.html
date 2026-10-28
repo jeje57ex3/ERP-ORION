@@ -1,0 +1,35 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Supprimer' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:customer_request_list' %}">{% trans 'Demandes clients' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Supprimer' %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6">
+    <div class="orion-card" style="border-left:4px solid #DC2626">
+      <div class="orion-card-body p-4 text-center">
+        <div style="width:60px;height:60px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+          <i class="bi bi-trash text-danger" style="font-size:1.5rem"></i>
+        </div>
+        <h5 class="fw-bold mb-1">{% trans 'Supprimer cette demande ?' %}</h5>
+        <p class="text-muted mb-4"><strong>{{ req.title }}</strong></p>
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex gap-2 justify-content-center">
+            <button type="submit" class="orion-btn" style="background:#DC2626;color:#fff;border:none">
+              <i class="bi bi-trash me-1"></i>{% trans 'Supprimer' %}
+            </button>
+            <a href="{% url 'work_planning:customer_request_detail' req.pk %}" class="orion-btn orion-btn-outline">{% trans 'Annuler' %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

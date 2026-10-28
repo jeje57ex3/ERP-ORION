@@ -1,0 +1,288 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}OpsV2 — Tableau de bord{% endblock %}
+{% block page_eyebrow %}Super Admin · Observabilité & Fiabilité{% endblock %}
+{% block page_subtitle %}Scores de santé étendus, SLO, qualité des données et suivi des déploiements.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:slo_list' %}" class="orion-btn">
+  <i class="bi bi-bullseye me-1"></i>SLO
+</a>
+<a href="{% url 'orion_ops:dependency_map' %}" class="orion-btn">
+  <i class="bi bi-diagram-3 me-1"></i>Dépendances
+</a>
+<a href="{% url 'orion_ops:deployment_create' %}" class="orion-btn orion-btn-primary">
+  <i class="bi bi-rocket me-1"></i>Déploiement
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.ops-score-card { border-radius:.75rem; padding:1.25rem 1rem; text-align:center; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03); transition:box-shadow .2s; }
+.ops-score-card:hover { box-shadow:0 4px 24px rgba(0,0,0,.18); }
+.ops-score-val { font-size:2rem; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+.ops-score-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; opacity:.6; font-weight:600; margin-top:.4rem; }
+.ops-score-status { font-size:.72rem; font-weight:600; margin-top:.3rem; }
+.score-ok     { color:#22C55E; }
+.score-warn   { color:#F59E0B; }
+.score-crit   { color:#F43F5E; }
+.score-na     { color:rgba(255,255,255,.3); }
+.slo-bar { height:6px; border-radius:3px; background:rgba(255,255,255,.1); overflow:hidden; }
+.slo-bar-fill { height:100%; border-radius:3px; transition:width .4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Scores étendus ──────────────────────────────────────────────────── -->
+<div class="orion-card mb-4">
+  <div class="orion-card-header d-flex align-items-center justify-content-between">
+    <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Scores de santé étendus</h5>
+    <small class="text-muted">Mis à jour toutes les heures</small>
+  </div>
+  <div class="orion-card-body">
+    <div class="row g-3">
+      {% for domain, s in extended_scores.items %}
+      {% if s.score is not None %}
+        {% if s.score >= 80 %}{% with cls="score-ok" %}{% endwith %}{% endif %}
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="ops-score-card">
+            {% if s.score is None %}
+              <div class="ops-score-val score-na">—</div>
+            {% elif s.score >= 80 %}
+              <div class="ops-score-val score-ok">{{ s.score }}</div>
+            {% elif s.score >= 50 %}
+              <div class="ops-score-val score-warn">{{ s.score }}</div>
+            {% else %}
+              <div class="ops-score-val score-crit">{{ s.score }}</div>
+            {% endif %}
+            <div class="ops-score-label">{{ domain|title|cut:"_" }}</div>
+            <div class="ops-score-status {% if s.status == 'ok' %}score-ok{% elif s.status == 'warning' %}score-warn{% elif s.status == 'critical' %}score-crit{% else %}score-na{% endif %}">
+              {{ s.status }}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="col-6 col-md-4 col-lg-2">
+          <div class="ops-score-card">
+            <div class="ops-score-val score-na">—</div>
+            <div class="ops-score-label">{{ domain|title|cut:"_" }}</div>
+            <div class="ops-score-status score-na">{{ s.status }}</div>
+          </div>
+        </div>
+      {% endif %}
+      {% endfor %}
+
+      {% if last_snapshot %}
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="ops-score-card">
+          {% if last_snapshot.global_score >= 90 %}
+            <div class="ops-score-val score-ok">{{ last_snapshot.global_score }}</div>
+          {% elif last_snapshot.global_score >= 70 %}
+            <div class="ops-score-val score-warn">{{ last_snapshot.global_score }}</div>
+          {% else %}
+            <div class="ops-score-val score-crit">{{ last_snapshot.global_score }}</div>
+          {% endif %}
+          <div class="ops-score-label">Système global</div>
+          <div class="ops-score-status score-ok">{{ last_snapshot.global_status }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+<!-- ── SLO ─────────────────────────────────────────────────────────────── -->
+<div class="col-md-6">
+  <div class="orion-card h-100">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-bullseye me-2"></i>Objectifs de service (SLO)</h6>
+      <a href="{% url 'orion_ops:slo_list' %}" class="text-muted small">Voir tout →</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <div class="d-flex px-3 py-2 gap-3 border-bottom">
+        <span class="text-success fw-bold">{{ slo_summary.ok }} OK</span>
+        <span class="text-warning fw-bold">{{ slo_summary.at_risk }} À risque</span>
+        <span class="text-danger fw-bold">{{ slo_summary.breached }} Violé</span>
+        <span class="text-muted">{{ slo_summary.no_data }} sans données</span>
+      </div>
+      <ul class="list-unstyled mb-0">
+        {% for slo in slos %}
+        <li class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+          <div>
+            <a href="{% url 'orion_ops:slo_detail' slo.slug %}" class="text-reset text-decoration-none fw-600 small">{{ slo.name }}</a>
+            <div class="text-muted" style="font-size:.72rem;">
+              {% if slo.current_value is not None %}{{ slo.current_value|floatformat:2 }} %{% else %}—{% endif %}
+              / cible {{ slo.target_pct }} %
+            </div>
+          </div>
+          {% if slo.status == 'ok' %}
+            <span class="badge bg-success">OK</span>
+          {% elif slo.status == 'at_risk' %}
+            <span class="badge bg-warning text-dark">À risque</span>
+          {% elif slo.status == 'breached' %}
+            <span class="badge bg-danger">Violé</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ slo.status }}</span>
+          {% endif %}
+        </li>
+        {% empty %}
+        <li class="px-3 py-3 text-muted small">
+          Aucun SLO configuré — <a href="{% url 'system_health:dashboard' %}">lancer la commande setup</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── Incidents ouverts ──────────────────────────────────────────────── -->
+<div class="col-md-6">
+  <div class="orion-card h-100">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-lightning me-2 text-warning"></i>Incidents ouverts</h6>
+      <a href="{% url 'system_health:incident_list' %}" class="text-muted small">Voir tout →</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <ul class="list-unstyled mb-0">
+        {% for inc in open_incidents %}
+        <li class="px-3 py-2 border-bottom d-flex align-items-start gap-2">
+          {% if inc.severity == 'emergency' %}<i class="bi bi-exclamation-octagon-fill text-danger mt-1"></i>
+          {% elif inc.severity == 'critical' %}<i class="bi bi-exclamation-circle-fill text-danger mt-1"></i>
+          {% elif inc.severity == 'major' %}<i class="bi bi-exclamation-triangle-fill text-warning mt-1"></i>
+          {% else %}<i class="bi bi-info-circle text-info mt-1"></i>{% endif %}
+          <div class="flex-grow-1">
+            <a href="{% url 'system_health:incident_detail' inc.pk %}" class="text-reset text-decoration-none fw-600 small">{{ inc.title|truncatechars:55 }}</a>
+            <div class="text-muted" style="font-size:.72rem;">
+              {{ inc.get_status_display }} · {{ inc.detected_at|naturaltime }}
+              {% if inc.auto_created %}<span class="badge bg-secondary ms-1" style="font-size:.65rem;">Auto</span>{% endif %}
+            </div>
+          </div>
+        </li>
+        {% empty %}
+        <li class="px-3 py-3 text-success small"><i class="bi bi-check-circle me-1"></i>Aucun incident ouvert.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── Anomalies qualité ──────────────────────────────────────────────── -->
+<div class="col-md-6">
+  <div class="orion-card h-100">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-database-exclamation me-2"></i>Qualité des données</h6>
+      <a href="{% url 'orion_ops:data_quality' %}" class="text-muted small">Voir tout →</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <ul class="list-unstyled mb-0">
+        {% for a in open_anomalies %}
+        <li class="px-3 py-2 border-bottom d-flex align-items-start gap-2">
+          {% if a.severity == 'critical' %}<i class="bi bi-x-circle-fill text-danger mt-1"></i>
+          {% elif a.severity == 'high' %}<i class="bi bi-exclamation-triangle text-warning mt-1"></i>
+          {% else %}<i class="bi bi-info-circle text-info mt-1"></i>{% endif %}
+          <div class="flex-grow-1">
+            <div class="small fw-600">{{ a.get_anomaly_type_display }}</div>
+            <div class="text-muted" style="font-size:.72rem;">
+              {{ a.count }} occurrence(s) · {{ a.get_module_display }} · {{ a.detected_at|date:"d/m/Y" }}
+            </div>
+          </div>
+        </li>
+        {% empty %}
+        <li class="px-3 py-3 text-muted small">
+          Aucune anomalie ouverte — les contrôles tournent chaque nuit à 3h30.
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── Composants en problème & Dernier déploiement ──────────────────── -->
+<div class="col-md-6">
+  <div class="orion-card mb-4">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Composants dégradés</h6>
+      <a href="{% url 'orion_ops:dependency_map' %}" class="text-muted small">Voir tout →</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <ul class="list-unstyled mb-0">
+        {% for c in components_down %}
+        <li class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+          <div class="small">
+            <span class="fw-600">{{ c.name }}</span>
+            <span class="text-muted ms-1">{{ c.get_component_type_display }}</span>
+          </div>
+          {% if c.status == 'down' %}
+            <span class="badge bg-danger">Hors-service</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Dégradé</span>
+          {% endif %}
+        </li>
+        {% empty %}
+        <li class="px-3 py-3 text-success small"><i class="bi bi-check-circle me-1"></i>Tous les composants opérationnels.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {% if last_deploy %}
+  <div class="orion-card">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-rocket me-2"></i>Dernier déploiement</h6>
+      <a href="{% url 'orion_ops:deployment_list' %}" class="text-muted small">Historique →</a>
+    </div>
+    <div class="orion-card-body">
+      <div class="d-flex align-items-center gap-3">
+        <div>
+          <div class="fw-700">v{{ last_deploy.version }}</div>
+          <div class="text-muted small">{{ last_deploy.environment }} · {{ last_deploy.deployed_at|naturaltime }}</div>
+          {% if last_deploy.git_commit %}<div class="text-muted small font-monospace">{{ last_deploy.git_commit|truncatechars:8 }}</div>{% endif %}
+        </div>
+        <div class="ms-auto">
+          {% if last_deploy.result == 'success' %}<span class="badge bg-success">Succès</span>
+          {% elif last_deploy.result == 'failed' %}<span class="badge bg-danger">Échec</span>
+          {% elif last_deploy.result == 'rolled_back' %}<span class="badge bg-warning text-dark">Rollback</span>
+          {% else %}<span class="badge bg-secondary">{{ last_deploy.get_result_display }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Tâches Celery échouées ─────────────────────────────────────────── -->
+{% if failed_tasks %}
+<div class="col-12">
+  <div class="orion-card">
+    <div class="orion-card-header d-flex align-items-center justify-content-between">
+      <h6 class="mb-0"><i class="bi bi-arrow-repeat text-warning me-2"></i>Tâches Celery échouées</h6>
+      <a href="{% url 'orion_ops:failed_tasks_list' %}" class="text-muted small">Voir tout →</a>
+    </div>
+    <div class="orion-card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 orion-table">
+          <thead><tr><th>Tâche</th><th>File</th><th>Erreur</th><th>Tentatives</th><th>Échec le</th></tr></thead>
+          <tbody>
+            {% for t in failed_tasks %}
+            <tr>
+              <td class="font-monospace small">{{ t.task_name|truncatechars:45 }}</td>
+              <td><span class="badge bg-secondary">{{ t.queue }}</span></td>
+              <td class="text-danger small">{{ t.error_type|truncatechars:40 }}</td>
+              <td class="text-center">{{ t.retries }}</td>
+              <td class="text-muted small">{{ t.failed_at|naturaltime }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}

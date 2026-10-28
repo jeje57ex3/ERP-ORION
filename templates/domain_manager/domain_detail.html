@@ -1,0 +1,202 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <div class="page-header-left">
+    <p class="text-muted small mb-1"><a href="{% url 'domain_manager:list' %}">{% trans "Domaines" %}</a></p>
+    <h1 class="page-title">
+      <i class="bi bi-globe me-2"></i>{{ domain.domain }}
+    </h1>
+    <p class="page-subtitle text-muted mb-0 small">
+      {% trans "Statut :" %}
+      <span class="orion-badge {% if domain.status == 'active' %}success{% elif domain.status == 'error' %}danger{% else %}secondary{% endif %}">
+        {{ domain.get_status_display }}
+      </span>
+      {% if domain.is_primary %}
+        <span class="orion-badge gold ms-1"><i class="bi bi-star-fill me-1"></i>{% trans "Principal" %}</span>
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{% url 'domain_manager:verify' domain.id %}" class="orion-btn primary">
+      <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Vérifier DNS" %}
+    </a>
+    {% if domain.dns_is_valid and not domain.is_primary %}
+    <a href="{% url 'domain_manager:make_primary' domain.id %}" class="orion-btn">
+      <i class="bi bi-star me-1"></i>{% trans "Définir principal" %}
+    </a>
+    {% endif %}
+    <a href="{% url 'domain_manager:delete' domain.id %}" class="orion-btn danger">
+      <i class="bi bi-trash me-1"></i>{% trans "Supprimer" %}
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if domain.last_error %}
+  {% if "IP cible non configurée" in domain.last_error %}
+  <div class="orion-alert warning mb-3">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>{% trans "Configuration incomplète :" %}</strong>
+    {% blocktrans %}l'IP cible Orion n'est pas définie.
+    Renseignez <code>ORION_DOMAIN_TARGET_IP</code> dans votre fichier <code>.env</code>.{% endblocktrans %}
+  </div>
+  {% else %}
+  <div class="orion-alert warning mb-3">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ domain.last_error }}
+  </div>
+  {% endif %}
+{% endif %}
+
+<div class="orion-dashboard-grid" style="grid-template-columns: repeat(3, 1fr); gap:1rem; margin-bottom:1.5rem;">
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">DNS</span>
+    {% if domain.dns_is_valid %}
+      <strong class="text-success"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Valide" %}</strong>
+    {% else %}
+      <strong class="text-warning"><i class="bi bi-clock me-1"></i>{% trans "En attente" %}</strong>
+    {% endif %}
+    {% if domain.last_dns_check_at %}
+      <small class="text-muted d-block mt-1">{% blocktrans with checked_at=domain.last_dns_check_at|date:"d/m/Y H:i" %}Vérifié le {{ checked_at }}{% endblocktrans %}</small>
+    {% endif %}
+  </div>
+
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">SSL</span>
+    {% if domain.ssl_is_valid %}
+      <strong class="text-success"><i class="bi bi-lock-fill me-1"></i>{% trans "Sécurisé" %}</strong>
+    {% else %}
+      <strong class="text-muted"><i class="bi bi-lock me-1"></i>{% trans "En attente" %}</strong>
+    {% endif %}
+    {% if domain.last_ssl_check_at %}
+      <small class="text-muted d-block mt-1">{% blocktrans with checked_at=domain.last_ssl_check_at|date:"d/m/Y H:i" %}Vérifié le {{ checked_at }}{% endblocktrans %}</small>
+    {% endif %}
+  </div>
+
+  <div class="orion-metric-card">
+    <span class="orion-metric-label">Type</span>
+    <strong>{{ domain.get_domain_type_display }}</strong>
+    <small class="text-muted d-block mt-1">{{ domain.get_target_type_display }}</small>
+  </div>
+</div>
+
+<!-- Étape 1 : Vérification propriété -->
+<div class="orion-card mb-3">
+  <div class="orion-card-header">
+    <h2 class="h5 mb-0">
+      <span class="orion-badge gold me-2">1</span>
+      {% trans "Vérification de propriété — Enregistrement TXT" %}
+    </h2>
+  </div>
+  <div class="orion-card-body">
+    <p class="text-muted mb-3">
+      {% trans "Ajoutez cet enregistrement TXT chez votre bureau d'enregistrement (OVH, Cloudflare, Gandi, Ionos…) :" %}
+    </p>
+    <table class="orion-table">
+      <tbody>
+        <tr>
+          <th style="width:140px;">{% trans "Type" %}</th>
+          <td><code>TXT</code></td>
+        </tr>
+        <tr>
+          <th>{% trans "Nom / Hôte" %}</th>
+          <td>
+            <code>{{ domain.expected_txt_name }}</code>
+            <button class="orion-btn sm outline ms-2" onclick="navigator.clipboard.writeText('{{ domain.expected_txt_name }}')" title="{% trans 'Copier' %}">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </td>
+        </tr>
+        <tr>
+          <th>{% trans "Valeur" %}</th>
+          <td>
+            <code>{{ domain.expected_txt_value }}</code>
+            <button class="orion-btn sm outline ms-2" onclick="navigator.clipboard.writeText('{{ domain.expected_txt_value }}')" title="{% trans 'Copier' %}">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </td>
+        </tr>
+        <tr>
+          <th>TTL</th>
+          <td>{% trans "3600 (ou automatique)" %}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Étape 2 : Redirection domaine -->
+<div class="orion-card mb-3">
+  <div class="orion-card-header">
+    <h2 class="h5 mb-0">
+      <span class="orion-badge gold me-2">2</span>
+      {% trans "Redirection du domaine vers Orion" %}
+    </h2>
+  </div>
+  <div class="orion-card-body">
+    {% if domain.domain_type == 'root' %}
+      <p class="text-muted mb-3">
+        {% blocktrans %}Votre domaine est un domaine racine. Ajoutez un enregistrement <strong>A</strong> :{% endblocktrans %}
+      </p>
+      <table class="orion-table">
+        <tbody>
+          <tr><th style="width:140px;">{% trans "Type" %}</th><td><code>A</code></td></tr>
+          <tr><th>{% trans "Nom / Hôte" %}</th><td><code>@</code> {% trans "(ou vide)" %}</td></tr>
+          <tr>
+            <th>{% trans "Valeur / IP" %}</th>
+            <td>
+              <code>{{ domain.expected_a_record|default:"(IP non configurée)" }}</code>
+              {% if domain.expected_a_record %}
+              <button class="orion-btn sm outline ms-2" onclick="navigator.clipboard.writeText('{{ domain.expected_a_record }}')" title="{% trans 'Copier' %}">
+                <i class="bi bi-clipboard"></i>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          <tr><th>TTL</th><td>3600</td></tr>
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted mb-3">
+        {% blocktrans %}Votre domaine est un sous-domaine. Ajoutez un enregistrement <strong>CNAME</strong> :{% endblocktrans %}
+      </p>
+      <table class="orion-table">
+        <tbody>
+          <tr><th style="width:140px;">{% trans "Type" %}</th><td><code>CNAME</code></td></tr>
+          <tr><th>{% trans "Nom / Hôte" %}</th><td><code>{{ domain.domain }}</code></td></tr>
+          <tr>
+            <th>{% trans "Valeur / Cible" %}</th>
+            <td>
+              <code>{{ domain.expected_cname|default:"(CNAME non configuré)" }}</code>
+              {% if domain.expected_cname %}
+              <button class="orion-btn sm outline ms-2" onclick="navigator.clipboard.writeText('{{ domain.expected_cname }}')" title="{% trans 'Copier' %}">
+                <i class="bi bi-clipboard"></i>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          <tr><th>TTL</th><td>3600</td></tr>
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Aide -->
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h2 class="h5 mb-0"><i class="bi bi-info-circle me-2"></i>{% trans "Aide" %}</h2>
+  </div>
+  <div class="orion-card-body">
+    <ul class="mb-0">
+      <li>{% blocktrans %}La propagation DNS peut prendre de <strong>quelques minutes à 48 heures</strong>.{% endblocktrans %}</li>
+      <li>{% blocktrans %}Cliquez sur <strong>Vérifier DNS</strong> après avoir ajouté les enregistrements.{% endblocktrans %}</li>
+      <li>{% trans "Une fois les DNS validés, le SSL sera vérifié automatiquement." %}</li>
+      <li>{% blocktrans %}Définissez ce domaine comme <strong>principal</strong> une fois qu'il est actif.{% endblocktrans %}</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

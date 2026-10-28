@@ -1,0 +1,44 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Applications Orion</p>
+  <h1>Orion ERP sur ordinateur et mobile.</h1>
+  <p>
+    Les applications Orion se connectent au serveur ERP par une interface dédiée et une communication API HTTPS sécurisée.
+    Les données restent toujours sur le serveur.
+  </p>
+</section>
+
+<section class="orion-section">
+  <div class="orion-card-grid">
+    {% for app in apps %}
+      <article class="orion-app-card{% if app.status == 'coming_soon' %} disabled{% endif %}">
+        <h3>{{ app.title }}</h3>
+        <p>{{ app.description }}</p>
+        <span class="orion-badge">{{ app.file_type }}</span>
+        {% if app.status == 'coming_soon' %}
+          <span class="orion-badge" style="background:rgba(126,120,110,.18);color:var(--muted)">Bientôt</span>
+        {% endif %}
+        {% if app.code == "windows" %}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <a href="{{ windows_download_url }}" class="orion-btn primary">Télécharger .exe</a>
+            <a href="{% url 'orion_website:install_windows' %}" class="orion-btn">Guide d'installation</a>
+          </div>
+        {% elif app.code == "android" %}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            {% if android_download_url %}
+              <a href="{{ android_download_url }}" class="orion-btn primary">Télécharger .apk</a>
+            {% else %}
+              <span class="orion-badge" style="background:rgba(126,120,110,.18);color:var(--muted)">Bientôt</span>
+            {% endif %}
+            <a href="{% url 'orion_website:install_android' %}" class="orion-btn">Guide d'installation</a>
+          </div>
+        {% else %}
+          <a href="{% url 'orion_website:install_apple' %}" class="orion-btn" style="margin-top:8px">Voir informations Apple</a>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

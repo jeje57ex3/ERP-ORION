@@ -1,0 +1,85 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Performance{% endblock %}
+
+{% block page_eyebrow %}<p class="orion-page-eyebrow"><i class="bi bi-activity me-1"></i> Super Admin</p>{% endblock %}
+{% block page_subtitle %}Requêtes lentes des dernières 24h{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="orion-card text-center p-3">
+      <div class="orion-stat-value">{{ avg_ms }}<small class="fs-6 text-muted">ms</small></div>
+      <div class="orion-stat-label">Temps moyen</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="orion-card text-center p-3">
+      <div class="orion-stat-value">{{ max_ms }}<small class="fs-6 text-muted">ms</small></div>
+      <div class="orion-stat-label">Temps max</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="orion-card text-center p-3">
+      <div class="orion-stat-value {% if slow_count > 10 %}text-danger{% elif slow_count > 0 %}text-warning{% endif %}">{{ slow_count }}</div>
+      <div class="orion-stat-label">Requêtes lentes</div>
+    </div>
+  </div>
+</div>
+
+{% if top_slow %}
+<div class="orion-card mb-4">
+  <div class="orion-card-header"><span class="orion-card-title">Top 10 requêtes les plus lentes</span></div>
+  <div class="orion-card-body p-0">
+    <table class="orion-table">
+      <thead><tr><th>Chemin</th><th>Méthode</th><th>Temps</th><th>SQL</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for e in top_slow %}
+        <tr>
+          <td class="text-truncate" style="max-width:300px">{{ e.path }}</td>
+          <td><span class="orion-badge">{{ e.method }}</span></td>
+          <td><span class="{% if e.response_ms > 2000 %}text-danger{% elif e.response_ms > 1000 %}text-warning{% else %}text-success{% endif %}"><strong>{{ e.response_ms }}ms</strong></span></td>
+          <td>{{ e.sql_count }}</td>
+          <td>{{ e.status_code }}</td>
+          <td class="text-muted small">{{ e.timestamp|date:"d/m H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if events %}
+<div class="orion-card">
+  <div class="orion-card-header"><span class="orion-card-title">Événements récents (200 derniers)</span></div>
+  <div class="orion-card-body p-0">
+    <table class="orion-table">
+      <thead><tr><th>Date</th><th>Niveau</th><th>Chemin</th><th>Temps</th><th>SQL</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td class="text-muted small">{{ e.timestamp|date:"d/m H:i:s" }}</td>
+          <td>
+            <span class="orion-badge {% if e.level == 'slow' %}warning{% elif e.level == 'error' %}danger{% else %}ghost{% endif %}">
+              {{ e.get_level_display }}
+            </span>
+          </td>
+          <td class="text-truncate" style="max-width:280px">{{ e.path }}</td>
+          <td>{{ e.response_ms }}ms</td>
+          <td>{{ e.sql_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="orion-empty-state">
+  <i class="bi bi-activity"></i>
+  <p>Aucun événement de performance enregistré.</p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% trans 'Équipe planning' %} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item active">{% trans 'Équipe' %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+  <a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-person-plus me-1"></i>{% trans 'Ajouter un employé' %}</a>
+  <a href="{% url 'work_planning:all_employee_constraints' %}" class="orion-btn orion-btn-outline"><i class="bi bi-shield me-1"></i>{% trans 'Toutes les contraintes' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if employees %}
+<div class="row g-3">
+  {% for emp in employees %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="orion-card h-100" style="border-left:4px solid {{ emp.color_code }}">
+      <div class="orion-card-body p-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:42px;height:42px;border-radius:50%;background:{{ emp.color_code }}20;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:1.1rem;color:{{ emp.color_code }};font-weight:700">{{ emp.display_name|first|upper }}</span>
+          </div>
+          <div>
+            <div class="fw-semibold">{{ emp.display_name }}</div>
+            <div class="text-muted small">{{ emp.user.email }}</div>
+          </div>
+          {% if not emp.is_active %}<span class="orion-badge orion-badge-secondary ms-auto">{% trans 'Inactif' %}</span>{% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-3 small text-muted mb-2">
+          <span><i class="bi bi-person-badge me-1"></i>{{ emp.get_role_display }}</span>
+          <span><i class="bi bi-clock me-1"></i>{{ emp.default_hours_per_day }}h/jour</span>
+          <span><i class="bi bi-sun me-1"></i>{{ emp.normal_work_start|time:"H\hi" }}–{{ emp.normal_work_end|time:"H\hi" }}</span>
+        </div>
+        <div class="d-flex gap-2">
+          {% if emp.accepts_overtime %}
+            <span class="orion-badge orion-badge-info" style="font-size:.72rem"><i class="bi bi-lightning me-1"></i>{% blocktrans with h=emp.max_overtime_hours_per_week %}Supp. max {{ h }}h{% endblocktrans %}</span>
+          {% else %}
+            <span class="orion-badge orion-badge-secondary" style="font-size:.72rem">{% trans "Pas d'heures sup." %}</span>
+          {% endif %}
+          {% with nb=emp.availability_constraints.count %}
+          {% if nb %}
+          <span class="orion-badge orion-badge-warning" style="font-size:.72rem"><i class="bi bi-shield me-1"></i>{% blocktrans %}{{ nb }} contrainte{{ nb|pluralize }}{% endblocktrans %}</span>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+      <div class="orion-card-footer border-top p-2">
+        <div class="d-flex gap-1">
+          <a href="{% url 'work_planning:employee_edit' emp.pk %}" class="orion-btn orion-btn-outline sm flex-fill"><i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}</a>
+          <a href="{% url 'work_planning:employee_constraints' emp.pk %}" class="orion-btn orion-btn-outline sm" title="{% trans 'Contraintes' %}"><i class="bi bi-shield"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-card">
+  <div class="orion-card-body text-center py-5">
+    <i class="bi bi-people" style="font-size:2.5rem;opacity:.3"></i>
+    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucun employé configuré' %}</div>
+    <p class="text-muted small mb-3">{% trans 'Ajoutez les membres de votre équipe pour commencer à planifier.' %}</p>
+    <a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-person-plus me-1"></i>{% trans 'Ajouter un employé' %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

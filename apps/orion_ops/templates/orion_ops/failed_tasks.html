@@ -1,0 +1,77 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Tâches Celery échouées{% endblock %}
+{% block page_eyebrow %}OpsV2 · Fiabilité{% endblock %}
+{% block page_subtitle %}Tâches Celery ayant échoué — traçabilité et fermeture manuelle.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-card-header"><h5 class="mb-0"><i class="bi bi-arrow-repeat me-2 text-warning"></i>Tâches Celery échouées</h5></div>
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 orion-table">
+        <thead>
+          <tr><th>Tâche</th><th>File</th><th>Statut</th><th>Type erreur</th><th>Tentatives</th><th>Échec le</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+          <tr>
+            <td class="font-monospace small">{{ t.task_name|truncatechars:50 }}</td>
+            <td><span class="badge bg-secondary">{{ t.queue }}</span></td>
+            <td>
+              {% if t.status == 'failed' %}<span class="badge bg-danger">Échouée</span>
+              {% elif t.status == 'retrying' %}<span class="badge bg-warning text-dark">Nouvelle tentative</span>
+              {% elif t.status == 'replayed' %}<span class="badge bg-success">Relancée</span>
+              {% else %}<span class="badge bg-secondary">Fermée</span>{% endif %}
+            </td>
+            <td class="text-danger small">{{ t.error_type|truncatechars:35 }}</td>
+            <td class="text-center">{{ t.retries }}</td>
+            <td class="small text-muted">{{ t.failed_at|naturaltime }}</td>
+            <td>
+              {% if t.status == 'failed' %}
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="closeTask({{ t.pk }}, this)"
+                      title="Fermer sans relancer">
+                <i class="bi bi-x"></i>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center py-4 text-success">
+            <i class="bi bi-check-circle me-1"></i>Aucune tâche échouée.
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if tasks.has_other_pages %}
+    <div class="d-flex justify-content-center py-3">
+      {% if tasks.has_previous %}<a href="?page={{ tasks.previous_page_number }}" class="orion-btn me-2">‹ Précédent</a>{% endif %}
+      <span class="text-muted small align-self-center">Page {{ tasks.number }} / {{ tasks.paginator.num_pages }}</span>
+      {% if tasks.has_next %}<a href="?page={{ tasks.next_page_number }}" class="orion-btn ms-2">Suivant ›</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function closeTask(pk, btn) {
+  if (!confirm('Fermer cette tâche sans la relancer ?')) return;
+  fetch(`/orion-admin/ops/taches-echouees/${pk}/fermer/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'reason=Fermée+manuellement',
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { btn.closest('tr').style.opacity='.4'; btn.disabled=true; }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Nouveau test de défaillance{% endblock %}
+{% block page_eyebrow %}OpsV2 · Fire Drill{% endblock %}
+{% block page_subtitle %}Planifiez un test de résistance aux pannes sur un composant système.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:failure_tests_list' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<form method="post" class="orion-card">
+  {% csrf_token %}
+  <div class="orion-card-header"><h5 class="mb-0"><i class="bi bi-lightning-charge me-2 text-danger"></i>Nouveau test de défaillance</h5></div>
+  <div class="orion-card-body">
+
+    <div class="alert alert-warning small mb-4" style="border-radius:.5rem">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      <strong>Attention :</strong> Certains tests peuvent impacter le service en production.
+      Prévenez l'équipe et assurez-vous d'avoir une procédure de rollback avant de démarrer.
+    </div>
+
+    <div class="mb-3">
+      <label class="orion-label">Nom du test *</label>
+      <input type="text" name="name" class="orion-input" required
+             placeholder="Ex : Arrêt worker Celery — impact sur les tâches planifiées">
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="orion-label">Type de test *</label>
+        <select name="test_type" class="orion-input">
+          {% for value, label in test_types %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="orion-label">Composant cible</label>
+        <select name="target_component" class="orion-input">
+          <option value="">— Aucun composant spécifique —</option>
+          {% for c in components %}
+          <option value="{{ c.pk }}">{{ c.name }} ({{ c.get_criticality_display }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="orion-label">Objectif / Procédure</label>
+      <textarea name="description" class="orion-input" rows="4"
+                placeholder="Décrivez l'objectif du test, les étapes à suivre, les métriques à observer…"></textarea>
+    </div>
+
+    <div class="alert alert-info small" style="border-radius:.5rem">
+      <i class="bi bi-info-circle me-1"></i>
+      Après création, renseignez le <strong>résultat, le temps de rétablissement et les leçons apprises</strong>
+      depuis l'administration Django
+      (<a href="/admin/orion_ops/failuretest/" class="alert-link">/admin/orion_ops/failuretest/</a>).
+    </div>
+
+  </div>
+  <div class="orion-card-footer d-flex justify-content-end gap-2">
+    <a href="{% url 'orion_ops:failure_tests_list' %}" class="orion-btn">Annuler</a>
+    <button type="submit" class="orion-btn orion-btn-primary">
+      <i class="bi bi-lightning-charge me-1"></i>Créer le test
+    </button>
+  </div>
+</form>
+</div>
+</div>
+{% endblock %}

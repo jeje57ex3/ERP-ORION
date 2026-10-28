@@ -1,0 +1,92 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Objectifs de service (SLO){% endblock %}
+{% block page_eyebrow %}OpsV2 · Fiabilité{% endblock %}
+{% block page_subtitle %}Suivi des SLO, SLI et budgets d'erreur en temps réel.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn">
+  <i class="bi bi-arrow-left me-1"></i>Dashboard
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.slo-budget-bar { height:8px; border-radius:4px; background:rgba(255,255,255,.1); overflow:hidden; }
+.slo-budget-fill { height:100%; border-radius:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-card-header">
+    <h5 class="mb-0"><i class="bi bi-bullseye me-2 text-primary"></i>Objectifs de service (SLO)</h5>
+  </div>
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 orion-table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Capteur SLI</th>
+            <th>Fenêtre</th>
+            <th>Cible</th>
+            <th>Valeur actuelle</th>
+            <th>Budget d'erreur</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for slo in slos %}
+          <tr>
+            <td>
+              <a href="{% url 'orion_ops:slo_detail' slo.slug %}" class="fw-600 text-reset text-decoration-none">
+                {{ slo.name }}
+              </a>
+              {% if slo.sla_pct %}<span class="badge bg-info ms-1" style="font-size:.65rem;">SLA {{ slo.sla_pct }}%</span>{% endif %}
+            </td>
+            <td class="font-monospace small text-muted">{{ slo.sli_sensor }}</td>
+            <td class="small">{{ slo.get_period_display }}</td>
+            <td class="fw-600">{{ slo.target_pct }}%</td>
+            <td>
+              {% if slo.current_value is not None %}
+                {% if slo.current_value >= slo.target_pct %}
+                  <span class="text-success fw-600">{{ slo.current_value|floatformat:3 }}%</span>
+                {% else %}
+                  <span class="text-danger fw-600">{{ slo.current_value|floatformat:3 }}%</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td style="min-width:120px;">
+              {% if slo.error_budget_pct is not None %}
+                <div class="d-flex align-items-center gap-2">
+                  <div class="slo-budget-bar flex-grow-1">
+                    <div class="slo-budget-fill {% if slo.error_budget_pct > 50 %}bg-success{% elif slo.error_budget_pct > 10 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width:{{ slo.error_budget_pct|floatformat:0 }}%"></div>
+                  </div>
+                  <small class="text-muted">{{ slo.error_budget_pct|floatformat:0 }}%</small>
+                </div>
+              {% else %}<span class="text-muted small">—</span>{% endif %}
+            </td>
+            <td>
+              {% if slo.status == 'ok' %}<span class="badge bg-success">OK</span>
+              {% elif slo.status == 'at_risk' %}<span class="badge bg-warning text-dark">À risque</span>
+              {% elif slo.status == 'breached' %}<span class="badge bg-danger">Violé</span>
+              {% elif slo.status == 'inactive' %}<span class="badge bg-secondary">Inactif</span>
+              {% else %}<span class="badge bg-secondary">Pas de données</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">
+            Aucun SLO — lancez <code>python manage.py setup_orion_ops</code>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

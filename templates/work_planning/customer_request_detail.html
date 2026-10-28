@@ -1,0 +1,116 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{{ req.title }} — {{ request.current_company.name }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'work_planning:customer_request_list' %}">{% trans 'Demandes clients' %}</a></li>
+<li class="breadcrumb-item active">{{ req.title|truncatechars:40 }}</li>
+{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2 flex-wrap">
+  {% if not req.created_task %}
+  <form method="post" action="{% url 'work_planning:customer_request_convert' req.pk %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="orion-btn orion-btn-primary"><i class="bi bi-arrow-right-circle me-1"></i>{% trans 'Convertir en tâche' %}</button>
+  </form>
+  {% endif %}
+  <a href="{% url 'work_planning:customer_request_edit' req.pk %}" class="orion-btn orion-btn-outline"><i class="bi bi-pencil me-1"></i>{% trans 'Modifier' %}</a>
+  <a href="{% url 'work_planning:auto_schedule' %}" class="orion-btn orion-btn-outline"><i class="bi bi-lightning me-1"></i>{% trans 'Auto-planifier' %}</a>
+  <a href="{% url 'work_planning:customer_request_delete' req.pk %}" class="orion-btn orion-btn-outline text-danger"><i class="bi bi-trash me-1"></i>{% trans 'Supprimer' %}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{# En-tête #}
+<div class="orion-card mb-4">
+  <div class="orion-card-body p-4">
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-md-8">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="orion-badge orion-badge-{% if req.urgency == 'critical' or req.urgency == 'urgent' %}danger{% elif req.urgency == 'high' %}warning{% else %}secondary{% endif %}">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ req.get_urgency_display }}
+          </span>
+          <span class="orion-badge orion-badge-{% if req.status == 'completed' %}success{% elif req.status == 'planned' or req.status == 'in_progress' %}primary{% elif req.status == 'cancelled' %}secondary{% else %}info{% endif %}">
+            {{ req.get_status_display }}
+          </span>
+          <span class="orion-badge orion-badge-secondary">{{ req.get_source_display }}</span>
+          {% if req.is_locked %}<span class="orion-badge orion-badge-warning"><i class="bi bi-lock me-1"></i>{% trans 'Verrouillé' %}</span>{% endif %}
+          {% if req.created_task %}<span class="orion-badge orion-badge-success"><i class="bi bi-check2-circle me-1"></i>{% trans 'Tâche créée' %}</span>{% endif %}
+        </div>
+        {% if req.description %}
+        <p class="text-muted mb-0">{{ req.description }}</p>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="row g-2">
+          <div class="col-6 text-center">
+            <div class="fw-bold fs-4" style="color:{% if req.urgency == 'urgent' or req.urgency == 'critical' %}#DC2626{% else %}#C6A15B{% endif %}">{{ req.estimated_minutes }}'</div>
+            <div class="text-muted small">{% trans 'Temps estimé' %}</div>
+          </div>
+          <div class="col-6 text-center">
+            <div class="fw-bold fs-4">{% if req.requested_deadline %}{{ req.requested_deadline|date:"d/m" }}{% else %}—{% endif %}</div>
+            <div class="text-muted small">{% trans 'Deadline' %}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-4 mt-3 pt-3 border-top small text-muted">
+      {% if req.customer %}<span><i class="bi bi-person me-1"></i>{{ req.customer.name }}</span>{% endif %}
+      {% if req.website %}<span><i class="bi bi-globe2 me-1"></i>{{ req.website }}</span>{% endif %}
+      {% if req.required_skill %}<span><i class="bi bi-tools me-1"></i>{% trans 'Compétence' %} : <strong>{{ req.required_skill }}</strong></span>{% endif %}
+      {% if req.assigned_employee %}<span><i class="bi bi-person-check me-1"></i>{{ req.assigned_employee.display_name }}</span>{% endif %}
+      {% if req.mission %}<span><i class="bi bi-briefcase me-1"></i><a href="{% url 'work_planning:mission_detail' req.mission.pk %}" class="text-decoration-none">{{ req.mission.name }}</a></span>{% endif %}
+      <span><i class="bi bi-clock me-1"></i>{% blocktrans with d=req.created_at|date:"d/m/Y H:i" %}Créée le {{ d }}{% endblocktrans %}</span>
+    </div>
+  </div>
+</div>
+
+{# Tâches liées #}
+<div class="orion-card">
+  <div class="orion-card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-list-task me-2 text-primary"></i>{% blocktrans with cnt=tasks.count %}Tâches liées ({{ cnt }}){% endblocktrans %}</span>
+    {% if not req.created_task %}
+    <form method="post" action="{% url 'work_planning:customer_request_convert' req.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn orion-btn-outline sm"><i class="bi bi-plus me-1"></i>{% trans 'Créer une tâche' %}</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="orion-card-body p-0">
+    {% if tasks %}
+    {% for task in tasks %}
+    <div class="d-flex align-items-center px-3 py-3 border-bottom">
+      <div class="flex-grow-1 min-w-0 me-3">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="fw-medium">{{ task.name }}</span>
+          <span class="orion-badge orion-badge-{% if task.status == 'done' %}success{% elif task.status == 'in_progress' %}primary{% else %}secondary{% endif %}" style="font-size:.7rem">{{ task.get_status_display }}</span>
+          {% if task.auto_scheduled %}<span class="orion-badge orion-badge-info" style="font-size:.7rem"><i class="bi bi-lightning me-1"></i>{% trans 'Auto' %}</span>{% endif %}
+          {% if task.is_locked %}<span class="orion-badge orion-badge-warning" style="font-size:.7rem"><i class="bi bi-lock me-1"></i>{% trans 'Verrouillé' %}</span>{% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-3 small text-muted">
+          {% if task.assigned_to %}<span><i class="bi bi-person me-1"></i>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</span>{% endif %}
+          {% if task.due_date %}<span><i class="bi bi-calendar me-1"></i>{{ task.due_date|date:"d/m/Y" }}</span>{% endif %}
+          {% if task.estimated_minutes %}<span><i class="bi bi-clock me-1"></i>{% blocktrans with m=task.estimated_minutes %}{{ m }} min estimés{% endblocktrans %}</span>{% endif %}
+        </div>
+      </div>
+      <div class="flex-shrink-0">
+        <a href="{% url 'work_planning:task_edit' task.pk %}" class="orion-btn orion-btn-outline sm"><i class="bi bi-pencil"></i></a>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-list-task" style="font-size:2rem;opacity:.3"></i>
+      <p class="mt-2 small mb-0">{% trans 'Aucune tâche liée à cette demande.' %}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

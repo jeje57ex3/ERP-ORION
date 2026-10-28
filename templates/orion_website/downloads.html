@@ -1,0 +1,54 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Téléchargements</p>
+  <h1>Télécharger Orion ERP pour PC et mobile.</h1>
+  <p>Choisis la version adaptée à ton appareil et suis le guide d'installation.</p>
+</section>
+
+<section class="orion-section">
+  <div class="orion-download-grid">
+    <article class="orion-download-card">
+      <h2>Windows</h2>
+      <p>Installateur PC pour Orion ERP Desktop.</p>
+      <ul>
+        <li>Fichier : <strong>.exe</strong></li>
+        <li>Compatible Windows 10 / 11 (64 bits)</li>
+        <li>Connexion sécurisée au serveur Orion ERP</li>
+        <li>Raccourci bureau + démarrage automatique</li>
+      </ul>
+      <a href="{{ windows_download_url }}" class="orion-btn primary">Télécharger Windows .exe</a>
+      <a href="{% url 'orion_website:install_windows' %}" class="orion-btn">Guide d'installation</a>
+    </article>
+
+    <article class="orion-download-card{% if not android_download_url %} disabled{% endif %}">
+      <h2>Android</h2>
+      <p>Application mobile Android native.</p>
+      <ul>
+        <li>Fichier : <strong>.apk</strong></li>
+        <li>Installation directe sur Android</li>
+        <li>Connexion API HTTPS sécurisée</li>
+        <li>Android 7.0 et supérieur</li>
+      </ul>
+      {% if android_download_url %}
+        <a href="{{ android_download_url }}" class="orion-btn primary">Télécharger Android .apk</a>
+      {% else %}
+        <span class="orion-badge" style="background:rgba(126,120,110,.18);color:var(--muted)">Bientôt disponible</span>
+      {% endif %}
+      <a href="{% url 'orion_website:install_android' %}" class="orion-btn">Guide d'installation</a>
+    </article>
+
+    <article class="orion-download-card disabled">
+      <h2>Apple iPhone / iPad</h2>
+      <p>Version Apple prévue prochainement.</p>
+      <ul>
+        <li>Fichier : <strong>.ipa</strong></li>
+        <li>Distribution signée Apple</li>
+        <li>App Store Connect ultérieurement</li>
+      </ul>
+      <a href="{% url 'orion_website:install_apple' %}" class="orion-btn">Voir informations</a>
+    </article>
+  </div>
+</section>
+{% endblock %}

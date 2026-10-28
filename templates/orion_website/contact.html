@@ -1,0 +1,22 @@
+{% extends "orion_website/base.html" %}
+
+{% block content %}
+<section class="orion-page-hero">
+  <p class="orion-eyebrow">Contact</p>
+  <h1>Besoin d'aide ou d'une démonstration ?</h1>
+  <p>Contacte l'équipe Orion ERP pour toute question, demande de démo ou support technique.</p>
+</section>
+
+<section class="orion-section narrow">
+  <div class="orion-info-box">
+    <h3>Email support</h3>
+    <p><a href="mailto:{{ support_email }}" style="color:var(--gold-light)">{{ support_email }}</a></p>
+  </div>
+
+  <div class="orion-cta" style="margin-top:32px">
+    <h2>Déjà client ?</h2>
+    <p>Accède directement à ton espace Orion ERP.</p>
+    <a href="{{ orion_login_url }}" class="orion-btn primary large">Connexion ERP</a>
+  </div>
+</section>
+{% endblock %}

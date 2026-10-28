@@ -1,0 +1,161 @@
+{% extends "erp_base.html" %}
+{% load humanize %}
+
+{% block title %}Règles d'alerte{% endblock %}
+{% block page_eyebrow %}OpsV2 · Moteur de règles{% endblock %}
+{% block page_subtitle %}{{ counts.total }} règle(s) — {{ counts.enabled }} active(s), {{ counts.triggered }} en état déclenché.{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'orion_ops:dashboard' %}" class="orion-btn"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.rule-row td { vertical-align: middle; }
+.rule-severity-badge { font-size: .7rem; font-weight: 700; border-radius: 4px; padding: 2px 7px; text-transform: uppercase; letter-spacing: .03em; }
+.rule-severity-info      { background: rgba(96,165,250,.15); color: #C6A15B; }
+.rule-severity-warning   { background: rgba(245,158,11,.15); color: #F59E0B; }
+.rule-severity-critical  { background: rgba(239,68,68,.15);  color: #EF4444; }
+.rule-severity-emergency { background: rgba(239,68,68,.25);  color: #FF6B6B; }
+.status-ok       { color: #22C55E; }
+.status-triggered { color: #EF4444; }
+.status-no_data  { color: #94A3B8; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="orion-card text-center py-3">
+      <div style="font-size:2rem;font-weight:700;color:var(--orion-text)">{{ counts.total }}</div>
+      <div class="text-muted small mt-1">Règles configurées</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="orion-card text-center py-3">
+      <div style="font-size:2rem;font-weight:700;color:#22C55E">{{ counts.enabled }}</div>
+      <div class="text-muted small mt-1">Actives</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="orion-card text-center py-3">
+      <div style="font-size:2rem;font-weight:700;color:#EF4444">{{ counts.triggered }}</div>
+      <div class="text-muted small mt-1">En état déclenché</div>
+    </div>
+  </div>
+</div>
+
+<div class="orion-card">
+  <div class="orion-card-header d-flex align-items-center justify-content-between">
+    <h5 class="mb-0"><i class="bi bi-bell me-2 text-warning"></i>Règles d'alerte</h5>
+    <small class="text-muted">Évaluées toutes les 5 min par le moteur</small>
+  </div>
+  <div class="orion-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 orion-table">
+        <thead>
+          <tr>
+            <th>Règle</th>
+            <th>Source</th>
+            <th>Condition</th>
+            <th>Gravité</th>
+            <th>Statut</th>
+            <th>Déclenchée</th>
+            <th>Nb</th>
+            <th>Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rule in rules %}
+          <tr class="rule-row {% if not rule.enabled %}opacity-50{% endif %}">
+            <td>
+              <div class="fw-600 small">{{ rule.name }}</div>
+              {% if rule.description %}
+              <div class="text-muted" style="font-size:.72rem">{{ rule.description|truncatechars:70 }}</div>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary">{{ rule.get_source_display }}</span></td>
+            <td class="font-monospace small text-info">
+              {{ rule.metric_key }} {{ rule.get_operator_display }} {{ rule.threshold|floatformat:1 }}
+            </td>
+            <td>
+              <span class="rule-severity-badge rule-severity-{{ rule.severity }}">{{ rule.severity }}</span>
+            </td>
+            <td>
+              {% if rule.last_status == 'triggered' %}
+                <span class="status-triggered"><i class="bi bi-exclamation-circle-fill me-1"></i>Déclenché</span>
+              {% elif rule.last_status == 'no_data' %}
+                <span class="status-no_data"><i class="bi bi-question-circle me-1"></i>Sans données</span>
+              {% else %}
+                <span class="status-ok"><i class="bi bi-check-circle me-1"></i>OK</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if rule.last_triggered %}{{ rule.last_triggered|naturaltime }}{% else %}—{% endif %}
+            </td>
+            <td class="text-center small">{{ rule.trigger_count }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="toggleRule({{ rule.pk }}, this)"
+                      title="{% if rule.enabled %}Désactiver{% else %}Activer{% endif %}">
+                {% if rule.enabled %}
+                  <i class="bi bi-toggle-on text-success"></i>
+                {% else %}
+                  <i class="bi bi-toggle-off text-muted"></i>
+                {% endif %}
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">
+              <i class="bi bi-bell-slash d-block mb-2" style="font-size:1.5rem;"></i>
+              Aucune règle configurée.<br>
+              <small>Lancez <code>python manage.py setup_orion_ops</code> pour créer les 10 règles par défaut.</small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if rules %}
+<div class="orion-card mt-3">
+  <div class="orion-card-header"><h6 class="mb-0 text-muted"><i class="bi bi-info-circle me-2"></i>Actions disponibles</h6></div>
+  <div class="orion-card-body">
+    <ul class="mb-0 small text-muted">
+      <li><strong>create_alert</strong> — Crée une <code>SystemError</code> tracée dans Santé Système</li>
+      <li><strong>create_incident</strong> — Crée un incident automatique avec statut "Détecté"</li>
+      <li><strong>notify_superusers</strong> — Notification à tous les super-admins</li>
+      <li><strong>notify_team</strong> — Notification aux utilisateurs définis dans la règle</li>
+      <li><strong>webhook</strong> — HTTP POST vers l'URL configurée (timeout 5s)</li>
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleRule(pk, btn) {
+  fetch(`/orion-admin/ops/regles-alertes/${pk}/toggle/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      const icon = btn.querySelector('i');
+      if (d.enabled) {
+        icon.className = 'bi bi-toggle-on text-success';
+        btn.closest('tr').classList.remove('opacity-50');
+      } else {
+        icon.className = 'bi bi-toggle-off text-muted';
+        btn.closest('tr').classList.add('opacity-50');
+      }
+    }
+  });
+}
+</script>
+{% endblock %}
