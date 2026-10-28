@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q, Avg
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from apps.inventory.models import Product
@@ -68,7 +68,12 @@ def store_home(request):
 def store_category(request, slug):
     company = _get_company(request)
     from apps.inventory.models import ProductCategory
-    category = get_object_or_404(ProductCategory, company=company)
+    # Le slug reçu est EMPLOYÉ. Avant, la requête était
+    # `get_object_or_404(ProductCategory, company=company)` : le slug
+    # n'entrait pas dans le filtre. Avec une seule catégorie au catalogue
+    # elle était rendue pour n'importe quelle adresse ; avec plusieurs,
+    # MultipleObjectsReturned faisait répondre 500.
+    category = get_object_or_404(ProductCategory, company=company, slug=slug)
     products = Product.objects.filter(company=company, is_active=True, category=category)
 
     min_price = request.GET.get('min_price', '')
@@ -99,10 +104,26 @@ def store_category(request, slug):
 
 def store_product_detail(request, slug):
     company = _get_company(request)
-    try:
-        product = get_object_or_404(Product, company=company, is_active=True)
-    except Exception:
-        product = get_object_or_404(Product, pk=slug, company=company, is_active=True)
+    # Trois défauts tenaient en quatre lignes ici.
+    #
+    # La requête principale était
+    # `get_object_or_404(Product, company=company, is_active=True)` : le
+    # slug n'y figurait pas. Avec un seul produit au catalogue, toutes les
+    # adresses affichaient le même ; avec plusieurs,
+    # MultipleObjectsReturned était avalé par un `except Exception` qui
+    # retombait sur `pk=slug`, et un slug non numérique levait alors
+    # ValueError — 500 déclenchable depuis la barre d'adresse.
+    #
+    # Le repli par identifiant est conservé, mais borné aux valeurs
+    # réellement numériques : d'anciens liens peuvent encore pointer sur
+    # /boutique/produit/42/.
+    product = Product.objects.filter(
+        company=company, is_active=True, slug=slug).first()
+    if product is None and slug.isdigit():
+        product = Product.objects.filter(
+            company=company, is_active=True, pk=int(slug)).first()
+    if product is None:
+        raise Http404
 
     related_products = Product.objects.filter(
         company=company, is_active=True, category=product.category
