@@ -1,0 +1,127 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_planning' project.pk %}">{% trans "Étapes" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Tout remplir" %}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{% trans "Tout remplir avant le démarrage" %}</h1>
+      <div class="detail-meta">
+        <span><i class="bi bi-building me-1"></i>{{ project.name }}</span>
+        <span><i class="bi bi-ui-checks me-1"></i>{{ remplis }} / {{ total }} {% trans "points renseignés" %}</span>
+        {% if manquants %}<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{% blocktrans count n=manquants %}{{ n }} important à combler{% plural %}{{ n }} importants à combler{% endblocktrans %}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'btp:project_planning' project.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Vue par étapes" %}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if blocs %}
+<div class="orion-alert info mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  {% trans "Tout est sur cette page et s’enregistre d’un seul bouton. Rien n’est obligatoire : vous pouvez enregistrer à moitié rempli et revenir — ce qui manque reste signalé." %}
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% for bloc in blocs %}
+  <div class="erp-card mb-3">
+    <div class="orion-orion-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h6 class="card-title mb-0">
+        <span class="text-muted me-2">{{ forloop.counter }}.</span>{{ bloc.etape.name }}
+        <span class="badge bg-secondary-subtle text-secondary-emphasis ms-2" style="font-weight:500">{{ bloc.etape.get_step_type_display }}</span>
+        {% if bloc.etape.planned_date %}<span class="small text-muted ms-2"><i class="bi bi-calendar-event me-1"></i>{{ bloc.etape.planned_date|date:"d/m/Y" }}</span>{% endif %}
+      </h6>
+      <a href="{% url 'btp:step_detail' bloc.etape.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-sliders me-1"></i>{% trans "Dates et statut" %}
+      </a>
+    </div>
+
+    <div class="p-3">
+      <div class="row g-3">
+        {% for point, champ, commentaire in bloc.form.champs_par_point %}
+        <div class="col-md-6">
+          <label for="{{ champ.id_for_label }}" class="form-label fw-semibold mb-1 small">
+            {{ champ.label }}
+            {% if point.is_required %}
+              {% comment %}
+                « important » et non « obligatoire » : le champ n'est pas
+                required côté formulaire, et écrire le contraire mentirait
+                sur ce que fait le bouton.
+              {% endcomment %}
+              <span class="badge bg-warning-subtle text-warning-emphasis ms-1" style="font-weight:500">{% trans "important" %}</span>
+            {% endif %}
+            {% if point.is_answered %}<i class="bi bi-check-circle-fill text-success ms-1" title="{% trans 'Renseigné' %}"></i>{% endif %}
+          </label>
+          {% comment %}
+            `champ.help_text` et non `point.help_text` : le formulaire
+            l'enrichit quand aucun devis n'existe, et lire le point rendait
+            ce message invisible.
+          {% endcomment %}
+          {% if champ.help_text %}<div class="form-text mb-2 mt-0">{{ champ.help_text }}</div>{% endif %}
+
+          {{ champ }}
+          {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+
+          {% if point.answer_quote %}
+          <div class="form-text mt-1">
+            <a href="{% url 'btp:quote_detail' point.answer_quote.pk %}"><i class="bi bi-file-text me-1"></i>{{ point.answer_quote.number|default:_("Devis") }}</a>
+            — {{ point.answer_quote.total_ht|floatformat:2 }} €&nbsp;HT
+          </div>
+          {% endif %}
+          {% if point.answer_supplier %}
+          <div class="form-text mt-1">
+            <a href="{% url 'purchases:supplier_detail' point.answer_supplier.pk %}"><i class="bi bi-truck me-1"></i>{{ point.answer_supplier.name }}</a>
+          </div>
+          {% endif %}
+
+          {% if point.answer_type == 'photo' and point.answer_photo %}
+          <div class="mt-2">
+            <a href="{% url 'btp:step_item_photo' point.pk %}" target="_blank" rel="noopener">
+              <img src="{% url 'btp:step_item_photo' point.pk %}" alt="{{ point.label }}" class="rounded border" style="max-height:90px">
+            </a>
+          </div>
+          {% endif %}
+
+          <div class="mt-2">{{ commentaire }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% comment %}
+    Le bouton est répété en bas ET collé en haut de la zone d'action :
+    cette page fait plusieurs écrans de haut, et remonter chercher le
+    bouton après cent points saisis est le moment où l'on perd la saisie.
+  {% endcomment %}
+  <div class="d-flex gap-2 mt-4 mb-5 position-sticky bottom-0 bg-body py-3 border-top">
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer tous les points" %}</button>
+    <a href="{% url 'btp:project_planning' project.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+  </div>
+</form>
+
+{% else %}
+<div class="erp-card p-5 text-center">
+  <div class="mb-3"><i class="bi bi-ui-checks" style="font-size:2.5rem;opacity:.3"></i></div>
+  <h5>{% trans "Aucun point à remplir sur ce chantier" %}</h5>
+  <p class="text-muted">{% trans "Les points viennent d’un modèle de chantier. Appliquez-en un pour obtenir les questions à relever avant le démarrage." %}</p>
+  <a href="{% url 'btp:project_apply_template' project.pk %}" class="orion-btn primary"><i class="bi bi-list-check me-1"></i>{% trans "Appliquer un modèle" %}</a>
+</div>
+{% endif %}
+
+{% endblock %}

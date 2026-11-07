@@ -1195,3 +1195,278 @@ class ClientNotification(models.Model):
 
     def __str__(self):
         return f'{self.get_notif_type_display()} — {self.client_email}'
+
+
+# ─── Modèles de chantier : étapes et points de contrôle ──────────────────────
+#
+# POURQUOI CES QUATRE MODÈLES.
+#
+# ProjectPlanStep existait déjà — treize types d'étapes, dates, avancement,
+# visibilité client — mais RIEN ne le remplissait : project_create
+# enregistrait le chantier et s'arrêtait là, et seul le portail client savait
+# lire ces étapes. Aucun écran ERP ne permettait d'en créer.
+#
+# Et il manquait l'essentiel : les POINTS À REMPLIR dans chaque étape, pour
+# ne pas oublier ce qui compte — l'accès camion, le besoin d'une nacelle, la
+# hauteur sous plafond. Aucune liste de contrôle n'existait dans le projet.
+#
+# Deux niveaux, et c'est délibéré :
+#
+#   ProjectTemplate / ...Step / ...Item   le MODÈLE, qu'on écrit une fois
+#   ProjectPlanStep / ProjectStepItem     le CHANTIER, copie du modèle
+#
+# La copie est un INSTANTANÉ. Modifier le modèle plus tard ne doit pas
+# réécrire les chantiers en cours : la question posée à un chef de chantier
+# le mois dernier ne peut pas changer sous sa réponse. Le libellé, le type et
+# le caractère obligatoire sont donc recopiés sur chaque point de chantier, et
+# non lus à travers une clé vers le modèle.
+
+
+class ProjectTemplate(models.Model):
+    """Un modèle de chantier : ses étapes et leurs points de contrôle.
+
+    Exemple : « Électricité neuf », « Rénovation d'appartement ». On le
+    rédige une fois, et chaque nouveau chantier le copie.
+    """
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='project_templates')
+    name = models.CharField('Nom du modèle', max_length=150)
+    description = models.TextField('Description', blank=True)
+    # Appliqué quand l'utilisateur n'en choisit pas à la création. Un seul par
+    # entreprise : le save() ci-dessous s'en assure.
+    is_default = models.BooleanField('Modèle par défaut', default=False)
+    is_active = models.BooleanField('Actif', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Modèle de chantier'
+        verbose_name_plural = 'Modèles de chantier'
+        ordering = ['-is_default', 'name']
+        unique_together = ['company', 'name']
+
+    def __str__(self):
+        return f'{self.name}{" (par défaut)" if self.is_default else ""}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            # Un seul modèle par défaut par entreprise. Sans cela, le choix
+            # à la création d'un chantier dépendrait de l'ordre de tri —
+            # donc du hasard.
+            ProjectTemplate.objects.filter(
+                company=self.company, is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+
+    @property
+    def nombre_de_points(self):
+        return ProjectTemplateItem.objects.filter(step__template=self).count()
+
+
+class ProjectTemplateStep(models.Model):
+    """Une étape du modèle : « Visite technique », « Commande matériel »."""
+
+    template = models.ForeignKey(
+        ProjectTemplate, on_delete=models.CASCADE, related_name='steps')
+    name = models.CharField('Étape', max_length=200)
+    step_type = models.CharField(
+        'Type', max_length=30, choices=ProjectPlanStep.STEP_TYPE_CHOICES,
+        default='other')
+    order = models.PositiveIntegerField('Ordre', default=0)
+    # Décalage en jours depuis la date de début du chantier, pour proposer
+    # une date prévue. Nul = pas de date proposée, l'étape sera datée à la
+    # main.
+    offset_days = models.IntegerField(
+        'Décalage (jours)', null=True, blank=True,
+        help_text='Nombre de jours après le début du chantier. '
+                  'Laisser vide pour ne pas proposer de date.')
+    visible_to_client = models.BooleanField('Visible client', default=True)
+    client_can_validate = models.BooleanField(
+        'Client peut valider', default=False)
+
+    class Meta:
+        verbose_name = 'Étape de modèle'
+        verbose_name_plural = 'Étapes de modèle'
+        ordering = ['order', 'pk']
+
+    def __str__(self):
+        return f'{self.template.name} — {self.name}'
+
+
+ANSWER_TYPE_CHOICES = [
+    ('yes_no', 'Oui / Non'),
+    ('text', 'Texte'),
+    ('number', 'Nombre'),
+    ('date', 'Date'),
+    ('choice', 'Choix dans une liste'),
+    ('photo', 'Photo'),
+    # Les deux derniers ne demandent pas de SAISIR une référence, ils
+    # demandent de DÉSIGNER une fiche de l'ERP. Un numéro de devis recopié
+    # à la main se trompe d'un chiffre, ne se clique pas, et ne se met pas
+    # à jour quand le devis change de numéro. Désigner la fiche donne le
+    # lien, le montant et le statut, et survit à la renumérotation.
+    ('quote', 'Devis de l\'entreprise'),
+    ('supplier', 'Fiche fournisseur'),
+]
+
+
+class ProjectTemplateItem(models.Model):
+    """Un point à remplir dans une étape du modèle.
+
+    « Nacelle nécessaire ? » en oui/non, « hauteur sous plafond » en nombre
+    de mètres, « état de l'existant » en photo.
+    """
+
+    step = models.ForeignKey(
+        ProjectTemplateStep, on_delete=models.CASCADE, related_name='items')
+    label = models.CharField('Question', max_length=250)
+    help_text = models.CharField('Précision', max_length=250, blank=True)
+    answer_type = models.CharField(
+        'Type de réponse', max_length=10, choices=ANSWER_TYPE_CHOICES,
+        default='yes_no')
+    unit = models.CharField(
+        'Unité', max_length=20, blank=True,
+        help_text='Pour un nombre : m, m², kg, A…')
+    # Pour le type « choice ». JSONField et non texte à séparateurs : une
+    # option contenant une virgule casserait le découpage.
+    options = models.JSONField(
+        'Options', default=list, blank=True,
+        help_text='Liste des choix possibles, pour une réponse de type liste.')
+    is_required = models.BooleanField('Obligatoire', default=False)
+    order = models.PositiveIntegerField('Ordre', default=0)
+
+    class Meta:
+        verbose_name = 'Point de modèle'
+        verbose_name_plural = 'Points de modèle'
+        ordering = ['order', 'pk']
+
+    def __str__(self):
+        return self.label
+
+
+class ProjectStepItem(models.Model):
+    """Un point de contrôle d'un CHANTIER, avec sa réponse.
+
+    La définition est RECOPIÉE du modèle et non lue à travers lui : voir
+    l'en-tête de cette section. Un modèle retouché ne doit pas changer la
+    question à laquelle on a déjà répondu.
+
+    Les réponses vont dans des colonnes TYPÉES et non dans un JSON unique,
+    et c'est le point qui compte : on veut pouvoir retrouver tous les
+    chantiers où une nacelle est nécessaire, ou dont la hauteur sous plafond
+    dépasse trois mètres. Un JSON opaque ne se filtre pas.
+    """
+
+    step = models.ForeignKey(
+        ProjectPlanStep, on_delete=models.CASCADE, related_name='items')
+
+    # ── Définition recopiée du modèle ────────────────────────────────────
+    label = models.CharField('Question', max_length=250)
+    help_text = models.CharField('Précision', max_length=250, blank=True)
+    answer_type = models.CharField(
+        'Type de réponse', max_length=10, choices=ANSWER_TYPE_CHOICES,
+        default='yes_no')
+    unit = models.CharField('Unité', max_length=20, blank=True)
+    options = models.JSONField('Options', default=list, blank=True)
+    is_required = models.BooleanField('Obligatoire', default=False)
+    order = models.PositiveIntegerField('Ordre', default=0)
+
+    # ── La réponse ───────────────────────────────────────────────────────
+    answer_boolean = models.BooleanField('Oui / Non', null=True, blank=True)
+    answer_text = models.TextField('Réponse', blank=True)
+    answer_number = models.DecimalField(
+        'Valeur', max_digits=12, decimal_places=3, null=True, blank=True)
+    answer_date = models.DateField('Date', null=True, blank=True)
+    answer_choice = models.CharField('Choix', max_length=250, blank=True)
+    answer_photo = models.ImageField(
+        'Photo', upload_to='btp/checklists/', null=True, blank=True)
+
+    # Deux réponses qui DÉSIGNENT une fiche au lieu d'en recopier le
+    # numéro. `related_name='+'` : ni un devis ni un fournisseur n'a
+    # besoin de lister les points de contrôle qui le citent, et un
+    # accesseur inverse de plus sur BTPQuote n'aiderait personne.
+    #
+    # SET_NULL et non PROTECT : supprimer un devis ne doit pas être
+    # empêché parce qu'une case de chantier le cite. La case redevient
+    # vide, donc « non renseigné », donc signalée — ce qui est le bon
+    # comportement : le devis n'existe plus, la réponse non plus.
+    answer_quote = models.ForeignKey(
+        'btp.BTPQuote', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Devis')
+    answer_supplier = models.ForeignKey(
+        'purchases.Supplier', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='+', verbose_name='Fiche fournisseur')
+
+    comment = models.CharField('Commentaire', max_length=300, blank=True)
+
+    filled_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Rempli par')
+    filled_at = models.DateTimeField('Rempli le', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Point de contrôle'
+        verbose_name_plural = 'Points de contrôle'
+        ordering = ['order', 'pk']
+        indexes = [
+            # Pour « quels chantiers demandent une nacelle ? » : on filtre
+            # sur le type et la réponse.
+            models.Index(fields=['answer_type', 'answer_boolean']),
+        ]
+
+    def __str__(self):
+        return f'{self.label} — {self.reponse_affichable or "non rempli"}'
+
+    @property
+    def is_answered(self):
+        """Ce point a-t-il une réponse ?
+
+        Un booléen à False EST une réponse — « nacelle nécessaire : non »
+        n'est pas un oubli. D'où le test sur None et non sur la fausseté,
+        qui est le piège de ce genre de propriété.
+        """
+        if self.answer_type == 'yes_no':
+            return self.answer_boolean is not None
+        if self.answer_type == 'number':
+            return self.answer_number is not None
+        if self.answer_type == 'date':
+            return self.answer_date is not None
+        if self.answer_type == 'photo':
+            return bool(self.answer_photo)
+        if self.answer_type == 'choice':
+            return bool(self.answer_choice)
+        # `_id` et non l'objet : tester la clé évite une requête, et
+        # surtout ne lève pas si la fiche visée a été supprimée.
+        if self.answer_type == 'quote':
+            return self.answer_quote_id is not None
+        if self.answer_type == 'supplier':
+            return self.answer_supplier_id is not None
+        return bool((self.answer_text or '').strip())
+
+    @property
+    def reponse_affichable(self):
+        """La réponse telle qu'on la montre, unité comprise."""
+        if not self.is_answered:
+            return ''
+        if self.answer_type == 'yes_no':
+            return 'Oui' if self.answer_boolean else 'Non'
+        if self.answer_type == 'number':
+            nombre = format(self.answer_number.normalize(), 'f')
+            return f'{nombre} {self.unit}'.strip()
+        if self.answer_type == 'date':
+            return self.answer_date.strftime('%d/%m/%Y')
+        if self.answer_type == 'photo':
+            return 'Photo fournie'
+        if self.answer_type == 'choice':
+            return self.answer_choice
+        if self.answer_type == 'quote':
+            devis = self.answer_quote
+            if devis is None:
+                return ''
+            numero = devis.number or 'Devis sans numéro'
+            return f'{numero} — {devis.total_ht:.2f} € HT'
+        if self.answer_type == 'supplier':
+            fiche = self.answer_supplier
+            return fiche.name if fiche else ''
+        return self.answer_text

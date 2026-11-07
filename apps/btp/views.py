@@ -50,8 +50,17 @@ def project_detail(request, pk):
     # select_related sur les deux FK affichees : sans cela, une ligne par
     # achat part en requete pour le fournisseur et pour l'article.
     supplies = project.supplies.select_related('supplier', 'material')
+
+    # Le compteur de points importants non renseignés, affiché sur l'onglet
+    # « Étapes ». C'est un AVERTISSEMENT et rien d'autre : rien n'est bloqué,
+    # mais l'oubli se voit depuis la fiche du chantier au lieu de dormir dans
+    # une sous-page que personne n'ouvre.
+    from . import services_etapes as svc
+    etapes_manquantes = svc.compter_les_points_manquants(project)
+
     ctx = {
         'project': project,
+        'etapes_manquantes': etapes_manquantes,
         'quotes': quotes,
         'situations': situations,
         'timesheets': timesheets,
@@ -66,7 +75,7 @@ def project_detail(request, pk):
 def project_create(request):
     company = request.current_company
     if request.method == 'POST':
-        form = BTPProjectForm(request.POST)
+        form = BTPProjectForm(request.POST, company=company)
         if form.is_valid():
             project = form.save(commit=False)
             project.company = company
@@ -75,10 +84,23 @@ def project_create(request):
                 project.code = f'CH-{count:04d}'
             project.save()
             messages.success(request, f'Chantier "{project.name}" créé.')
+
+            # Les étapes du modèle, s'il en a été choisi un. C'est le
+            # moment utile : l'« analyse sur place » et la « commande du
+            # matériel » doivent exister AVANT qu'on les oublie, pas après.
+            modele = form.cleaned_data.get('template')
+            if modele:
+                from . import services_etapes as svc
+                cree = svc.appliquer_le_modele(project, modele)
+                if cree:
+                    messages.info(
+                        request,
+                        f'{cree} étape(s) créée(s) depuis le modèle '
+                        f'« {modele.name} ».')
+                    return redirect('btp:project_planning', pk=project.pk)
             return redirect('btp:project_detail', pk=project.pk)
     else:
-        form = BTPProjectForm()
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form = BTPProjectForm(company=company)
     return render(request, 'btp/project_form.html', {'form': form, 'action': 'create'})
 
 
@@ -87,14 +109,13 @@ def project_edit(request, pk):
     company = request.current_company
     project = get_object_or_404(BTPProject, pk=pk, company=company)
     if request.method == 'POST':
-        form = BTPProjectForm(request.POST, instance=project)
+        form = BTPProjectForm(request.POST, instance=project, company=company)
         if form.is_valid():
             form.save()
             messages.success(request, 'Chantier mis à jour.')
             return redirect('btp:project_detail', pk=project.pk)
     else:
-        form = BTPProjectForm(instance=project)
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form = BTPProjectForm(instance=project, company=company)
     return render(request, 'btp/project_form.html', {'form': form, 'project': project, 'action': 'edit'})
 
 

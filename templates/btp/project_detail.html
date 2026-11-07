@@ -27,6 +27,12 @@
   </div>
   <div class="erp-tabs mt-3">
     <a href="?tab=info" class="erp-tab {% if tab == 'info' or not tab %}active{% endif %}"><i class="bi bi-info-circle me-1"></i>{% trans "Informations" %}</a>
+    {% comment %}
+      Les étapes ont leur propre page et non un onglet : elles portent les
+      points à remplir, donc des formulaires, et un onglet en paramètre
+      d'URL perdrait la saisie au moindre changement d'onglet.
+    {% endcomment %}
+    <a href="{% url 'btp:project_planning' project.pk %}" class="erp-tab"><i class="bi bi-list-check me-1"></i>{% trans "Étapes" %}{% if etapes_manquantes %} <span class="badge bg-warning text-dark">{{ etapes_manquantes }}</span>{% endif %}</a>
     <a href="?tab=quotes" class="erp-tab {% if tab == 'quotes' %}active{% endif %}"><i class="bi bi-file-text me-1"></i>{% blocktrans with c=quotes.count %}Devis ({{ c }}){% endblocktrans %}</a>
     <a href="?tab=situations" class="erp-tab {% if tab == 'situations' %}active{% endif %}"><i class="bi bi-graph-up me-1"></i>{% trans "Situations" %}</a>
     <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>{% trans "Pointage" %}</a>

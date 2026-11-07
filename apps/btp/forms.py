@@ -16,6 +16,36 @@ from .models import (
 
 
 class BTPProjectForm(forms.ModelForm):
+    """Création et modification d'un chantier.
+
+    Deux ajouts par rapport à la version précédente.
+
+    1. **Un modèle d'étapes** à la création. Le chantier naissait nu : ni
+       étapes, ni points à vérifier. Choisir ici un modèle fait créer
+       l'enchaînement « analyse sur place → commande du matériel → … » avec
+       ses questions, au moment où l'on ouvre le chantier — c'est-à-dire au
+       seul moment où personne n'a encore oublié d'y penser.
+
+    2. **Les listes déroulantes sont bornées dans __init__**, donc à la
+       VALIDATION. Elles ne l'étaient que dans la branche GET des vues :
+
+           form = BTPProjectForm()
+           form.fields['customer'].queryset = Customer.objects.filter(...)
+
+       Au POST le formulaire était reconstruit sans ce filtre, et un
+       identifiant de client recopié d'une autre entreprise passait la
+       validation — le chantier était alors enregistré sous l'entreprise
+       courante au nom du client d'une autre société. Même piège que sur le
+       pointage, même correction.
+    """
+
+    template = forms.ModelChoiceField(
+        queryset=None, required=False, label='Modèle d’étapes',
+        empty_label='— Aucun modèle —',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='Crée les étapes du chantier et leurs points à vérifier. '
+                  'Modifiable ensuite chantier par chantier.')
+
     class Meta:
         model = BTPProject
         fields = [
@@ -45,6 +75,47 @@ class BTPProjectForm(forms.ModelForm):
             'market_number': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+    def __init__(self, *args, company=None, **kwargs):
+        from django.contrib.auth.models import User
+
+        from apps.crm.models import Customer
+
+        from .models import ProjectTemplate
+
+        super().__init__(*args, **kwargs)
+        self.company = company
+
+        if company is not None:
+            self.fields['customer'].queryset = Customer.objects.filter(
+                company=company, is_active=True).order_by('name')
+            self.fields['project_manager'].queryset = User.objects.filter(
+                employee_profile__company=company,
+                employee_profile__is_active=True,
+            ).order_by('last_name', 'first_name', 'username')
+            modeles = ProjectTemplate.objects.filter(
+                company=company, is_active=True)
+        else:
+            # `none()` et non « tout » : sans entreprise connue, le choix
+            # sûr est de ne rien proposer. Ouvrir la liste entière
+            # exposerait les clients de toutes les sociétés.
+            self.fields['customer'].queryset = Customer.objects.none()
+            self.fields['project_manager'].queryset = User.objects.none()
+            modeles = ProjectTemplate.objects.none()
+
+        self.fields['project_manager'].required = False
+        self.fields['template'].queryset = modeles
+
+        # Le modèle ne se choisit QU'À la création. Le réappliquer sur un
+        # chantier en cours doublerait ses étapes ou effacerait les réponses
+        # déjà saisies ; cela se fait depuis la page des étapes, qui
+        # demande confirmation.
+        if self.instance.pk:
+            del self.fields['template']
+        elif not self.is_bound:
+            defaut = modeles.filter(is_default=True).first()
+            if defaut:
+                self.initial['template'] = defaut.pk
 
 
 class BTPQuoteForm(forms.ModelForm):

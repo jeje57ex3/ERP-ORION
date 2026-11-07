@@ -129,6 +129,10 @@ PREFIXES_INTERDITS = {
     'guided_quotes/': 'Photos et pièces déposées par un prospect dans le '
                       'devis guidé.',
     'tickets/': 'Pièces jointes de tickets de support.',
+    'btp/checklists/': 'Photos des points de contrôle d\'un chantier — un '
+                       'tableau électrique, un local technique, l\'intérieur '
+                       'de chez un client. Passe par btp.step_item_photo, '
+                       'qui remonte jusqu\'à l\'entreprise.',
 }
 
 # Types servis pour affichage direct. Tout le reste part en téléchargement :

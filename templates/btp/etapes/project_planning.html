@@ -1,0 +1,135 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Étapes" %}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{% trans "Étapes du chantier" %}</h1>
+      <div class="detail-meta">
+        <span><i class="bi bi-building me-1"></i>{{ project.name }}</span>
+        <span><i class="bi bi-person me-1"></i>{{ project.customer.name }}</span>
+        {% if project.start_date %}<span><i class="bi bi-calendar-event me-1"></i>{% trans "Début" %} {{ project.start_date|date:"d/m/Y" }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="detail-actions">
+      {% if lignes %}<a href="{% url 'btp:project_fill_all' project.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-ui-checks me-1"></i>{% trans "Tout remplir" %}</a>{% endif %}
+      <a href="{% url 'btp:step_create' project.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une étape" %}</a>
+      <a href="{% url 'btp:project_apply_template' project.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-list-check me-1"></i>{% trans "Appliquer un modèle" %}</a>
+      <a href="{% url 'btp:project_detail' project.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour au chantier" %}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% comment %}
+  Ce qui manque est rappelé EN HAUT, et n'empêche rien. On avertit, on ne
+  bloque pas : un chantier avance souvent avant que tout soit renseigné, et
+  refuser l'enregistrement ferait inventer des réponses.
+{% endcomment %}
+{% if manquants %}
+<div class="orion-alert warning mb-4">
+  <div class="d-flex align-items-start gap-2">
+    <i class="bi bi-exclamation-triangle mt-1"></i>
+    <div>
+      <strong>{% trans "Des points importants ne sont pas renseignés." %}</strong>
+      <a href="{% url 'btp:project_fill_all' project.pk %}" class="ms-1">{% trans "Tout remplir sur une page" %}</a>
+      <ul class="mb-0 mt-2 small">
+        {% for bloc in manquants %}
+        <li>
+          <a href="{% url 'btp:step_detail' bloc.etape.pk %}" class="fw-semibold">{{ bloc.etape.name }}</a> —
+          {% for point in bloc.points %}{{ point.label }}{% if not forloop.last %} · {% endif %}{% endfor %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if lignes %}
+<div class="erp-card">
+  <div class="table-responsive">
+    <table class="table erp-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th style="width:3rem">{% trans "N°" %}</th>
+          <th>{% trans "Étape" %}</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Prévue" %}</th>
+          <th>{% trans "Réelle" %}</th>
+          <th>{% trans "Statut" %}</th>
+          <th style="min-width:9rem">{% trans "Points remplis" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in lignes %}
+        <tr>
+          <td class="text-muted small">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'btp:step_detail' ligne.etape.pk %}" class="fw-semibold text-dark text-decoration-none">{{ ligne.etape.name }}</a>
+            {% if ligne.manquants %}<i class="bi bi-exclamation-triangle text-warning ms-1" title="{% blocktrans count n=ligne.manquants|length %}{{ n }} point important non renseigné{% plural %}{{ n }} points importants non renseignés{% endblocktrans %}"></i>{% endif %}
+          </td>
+          <td class="small text-muted">{{ ligne.etape.get_step_type_display }}</td>
+          <td class="small">{{ ligne.etape.planned_date|date:"d/m/Y"|default:"—" }}</td>
+          <td class="small">{{ ligne.etape.actual_date|date:"d/m/Y"|default:"—" }}</td>
+          <td><span class="badge-status badge-{{ ligne.etape.status }}">{{ ligne.etape.get_status_display }}</span></td>
+          <td>
+            {% if ligne.total %}
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:6px">
+                <div class="progress-bar {% if ligne.manquants %}bg-warning{% else %}bg-success{% endif %}" style="width:{{ ligne.pourcentage }}%"></div>
+              </div>
+              <span class="small text-muted text-nowrap">{{ ligne.remplis }} / {{ ligne.total }}</span>
+            </div>
+            {% else %}
+            <span class="small text-muted">{% trans "Aucun point" %}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if ligne.etape.visible_to_client %}<i class="bi bi-eye text-success" title="{% trans 'Visible par le client' %}"></i>{% else %}<i class="bi bi-eye-slash text-muted" title="{% trans 'Masquée au client' %}"></i>{% endif %}
+            {% if ligne.etape.validated_by_client %}<i class="bi bi-check-circle-fill text-success ms-1" title="{% trans 'Validée par le client' %}"></i>{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'btp:step_detail' ligne.etape.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'btp:step_delete' ligne.etape.pk %}" class="d-inline"
+                  onsubmit="return confirm('{% trans "Supprimer cette étape et les réponses qu’elle contient ?" %}');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="erp-card p-5 text-center">
+  <div class="mb-3"><i class="bi bi-list-check" style="font-size:2.5rem;opacity:.3"></i></div>
+  <h5>{% trans "Ce chantier n’a pas encore d’étapes" %}</h5>
+  <p class="text-muted">
+    {% trans "Un modèle crée d’un coup l’enchaînement habituel — analyse sur place, commande du matériel, pose — avec les points à vérifier dans chacune." %}
+  </p>
+  <div class="d-flex gap-2 justify-content-center flex-wrap">
+    {% if modeles %}
+    <a href="{% url 'btp:project_apply_template' project.pk %}" class="orion-btn primary"><i class="bi bi-list-check me-1"></i>{% trans "Appliquer un modèle" %}</a>
+    {% else %}
+    <a href="{% url 'btp:template_create' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Créer un modèle de chantier" %}</a>
+    {% endif %}
+    <a href="{% url 'btp:step_create' project.pk %}" class="btn btn-outline-secondary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une étape à la main" %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

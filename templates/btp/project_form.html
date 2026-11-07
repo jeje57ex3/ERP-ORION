@@ -70,6 +70,28 @@
           <div><label class="form-label">{% trans "Chef de chantier" %}</label>{{ form.site_foreman }}</div>
         </div>
       </div>
+
+      {% comment %}
+        Ce gabarit nomme ses champs un par un : un champ ajouté au
+        formulaire et pas ici n'apparaît NULLE PART à l'écran. Le
+        sélecteur de modèle n'existe qu'à la création — le réappliquer sur
+        un chantier en cours se fait depuis la page des étapes, qui
+        demande confirmation.
+      {% endcomment %}
+      {% if action == 'create' %}
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Étapes du chantier" %}</h6></div>
+        <div class="p-3">
+          <label class="form-label">{% trans "Modèle d’étapes" %}</label>
+          {{ form.template }}
+          {% if form.template.errors %}<div class="invalid-feedback d-block">{{ form.template.errors }}</div>{% endif %}
+          <div class="form-text">
+            {% trans "Crée l’enchaînement habituel — analyse sur place, commande du matériel, pose — avec les points à ne pas oublier dans chacune." %}
+            <a href="{% url 'btp:template_list' %}" target="_blank" rel="noopener">{% trans "Gérer les modèles" %}</a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
   <div class="d-flex gap-2 justify-content-end mt-3">
