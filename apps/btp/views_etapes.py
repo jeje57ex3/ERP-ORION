@@ -262,6 +262,8 @@ def step_item_photo(request, pk):
 
 @login_required
 def template_list(request):
+    from .modeles_prets import catalogue_pour_affichage
+
     company = request.current_company
     modeles = (ProjectTemplate.objects
                .filter(company=company)
@@ -269,6 +271,11 @@ def template_list(request):
                .order_by('-is_default', 'name'))
     return render(request, 'btp/etapes/template_list.html', {
         'modeles': modeles,
+        # Les modèles prêts à l'emploi sont proposés MÊME quand
+        # l'entreprise en a déjà : on installe l'électricité en janvier et
+        # l'étanchéité en mars. Les réserver à la page vide les rendait
+        # inatteignables dès le premier modèle créé.
+        'catalogue': catalogue_pour_affichage(),
         'page_title': 'Modèles de chantier',
         'active_module': 'btp',
         'active_subnav': 'templates',
@@ -659,3 +666,88 @@ def template_install_starter(request):
         f'{modele.steps.count()} etapes et {modele.nombre_de_points} points. '
         'Adaptez-le a vos habitudes, il vous appartient maintenant.')
     return redirect('btp:template_detail', pk=modele.pk)
+
+
+@login_required
+def project_fill_all(request, pk):
+    """Tous les points du chantier, etape par etape, dans UN formulaire.
+
+    Le createur du chantier remplit les details AVANT le demarrage : c'est
+    la facon de travailler voulue, et le modele Etancheite compte 143
+    points sur douze etapes. Lui faire ouvrir douze pages pour cela
+    travaille contre lui -- on abandonne a la cinquieme, et les questions
+    qui restent sont precisement celles qu'on voulait ne pas oublier.
+
+    Cette page ne touche PAS aux proprietes des etapes (dates, statut,
+    responsable) : elles se modifient une par une, ou elles encombreraient
+    un ecran deja long. Ici, seules les reponses.
+
+    Un seul formulaire pour tout le chantier est possible parce que les
+    champs sont nommes « point_<pk> » : la cle primaire est unique sur
+    l'ensemble de la base, donc deux etapes ne peuvent pas se marcher
+    dessus. Un prefixe par etape serait inutile.
+    """
+    company = request.current_company
+    project = get_object_or_404(BTPProject, pk=pk, company=company)
+
+    etapes = list(ProjectPlanStep.objects
+                  .filter(project=project)
+                  .prefetch_related('items')
+                  .order_by('order', 'pk'))
+
+    blocs = []
+    for etape in etapes:
+        points = sorted(etape.items.all(), key=lambda p: (p.order, p.pk))
+        if not points:
+            # Une etape sans point n'a rien a montrer ici : l'afficher
+            # vide donnerait l'impression d'un bug.
+            continue
+        blocs.append({'etape': etape, 'points': points})
+
+    if request.method == 'POST':
+        for bloc in blocs:
+            bloc['form'] = PointsDeLEtapeForm(
+                request.POST, request.FILES, points=bloc['points'])
+
+        # TOUS validés avant d'en enregistrer un seul : une erreur de saisie
+        # a l'etape 9 ne doit pas laisser les etapes 1 a 8 ecrites et le
+        # reste perdu, l'utilisateur ne sachant plus ce qui est passe.
+        if all(bloc['form'].is_valid() for bloc in blocs):
+            with transaction.atomic():
+                for bloc in blocs:
+                    for point in bloc['points']:
+                        svc.enregistrer_la_reponse(
+                            point, bloc['form'].cleaned_data,
+                            user=request.user)
+
+            restants = svc.compter_les_points_manquants(project)
+            messages.success(request, 'Points enregistrés.')
+            if restants:
+                messages.warning(
+                    request,
+                    f'{restants} point(s) important(s) restent à renseigner. '
+                    'Le chantier peut démarrer, mais ils sont à combler.')
+            else:
+                messages.success(
+                    request,
+                    'Tous les points importants sont renseignés : le '
+                    'chantier peut démarrer sans angle mort.')
+            return redirect('btp:project_planning', pk=project.pk)
+    else:
+        for bloc in blocs:
+            bloc['form'] = PointsDeLEtapeForm(points=bloc['points'])
+
+    total = sum(len(bloc['points']) for bloc in blocs)
+    remplis = sum(1 for bloc in blocs for point in bloc['points']
+                  if point.is_answered)
+
+    return render(request, 'btp/etapes/project_fill_all.html', {
+        'project': project,
+        'blocs': blocs,
+        'total': total,
+        'remplis': remplis,
+        'manquants': svc.compter_les_points_manquants(project),
+        'page_title': f'Tout remplir — {project.name}',
+        'active_module': 'btp',
+        'active_subnav': 'projects',
+    })

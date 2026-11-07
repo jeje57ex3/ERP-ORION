@@ -19,7 +19,8 @@
       </div>
     </div>
     <div class="detail-actions">
-      <a href="{% url 'btp:step_create' project.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une étape" %}</a>
+      {% if lignes %}<a href="{% url 'btp:project_fill_all' project.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-ui-checks me-1"></i>{% trans "Tout remplir" %}</a>{% endif %}
+      <a href="{% url 'btp:step_create' project.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une étape" %}</a>
       <a href="{% url 'btp:project_apply_template' project.pk %}" class="btn btn-outline-primary orion-btn sm"><i class="bi bi-list-check me-1"></i>{% trans "Appliquer un modèle" %}</a>
       <a href="{% url 'btp:project_detail' project.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour au chantier" %}</a>
     </div>
@@ -40,6 +41,7 @@
     <i class="bi bi-exclamation-triangle mt-1"></i>
     <div>
       <strong>{% trans "Des points importants ne sont pas renseignés." %}</strong>
+      <a href="{% url 'btp:project_fill_all' project.pk %}" class="ms-1">{% trans "Tout remplir sur une page" %}</a>
       <ul class="mb-0 mt-2 small">
         {% for bloc in manquants %}
         <li>

@@ -1201,3 +1201,416 @@ def test_la_date_de_saisie_ne_bouge_pas_sans_changement(connecte,
                    f'point_{hauteur.pk}': '2.4'})
     nacelle.refresh_from_db()
     assert nacelle.filled_at > premiere_saisie
+
+
+# ── 13. Le modèle Étanchéité ────────────────────────────────────────────────
+#
+# Le métier où la surprise coûte le plus cher : ce qu'il y a SOUS l'ancienne
+# étanchéité ne se voit qu'au sondage. Découvert une fois le toit ouvert, il
+# se paie en travaux supplémentaires qu'on n'a pas annoncés — ou qu'on ne
+# facture pas.
+#
+# Ces tests ne vérifient pas « un modèle existe ». Ils vérifient que les
+# questions SANS LESQUELLES le chantier dérape y sont, nommément. Une
+# refonte du catalogue qui en perdrait une doit échouer ici.
+
+def test_installer_le_modele_etancheite(connecte, entreprise):
+    from apps.btp.models import ProjectTemplate, ProjectTemplateItem
+
+    reponse = connecte.post(reverse('btp:template_install_starter'),
+                            {'cle': 'etancheite'})
+    assert reponse.status_code == 302
+
+    modele = ProjectTemplate.objects.get(company=entreprise)
+    assert modele.steps.count() == 12
+    points = ProjectTemplateItem.objects.filter(step__template=modele)
+    assert points.count() > 100
+    # Il est fait pour « combler tous les potentiels problèmes » : la
+    # majorite des points doit etre marquee importante, sinon
+    # l'avertissement ne porte sur rien.
+    assert points.filter(is_required=True).count() > 80
+
+
+@pytest.mark.parametrize('attendu', [
+    # Ce qui ne se sait qu'avant d'ouvrir le toit
+    'sondage ou carottage',
+    'Amiante suspect',
+    'Diagnostic amiante fourni',
+    'étanchéité existante',
+    'Nombre de couches en place',
+    'isolation existante',
+    # La pente et l'eau
+    'Pente du toit',
+    'zones de stagnation',
+    'vacuations d',
+    'trop-pleins',
+    # Les relevés, premier poste de fuite
+    'Hauteur des rel',
+    'acrot',
+    'travers',
+    # L'accès et la logistique
+    'Monte-mat',
+    'Nacelle n',
+    'Accès camion',
+    'Benne possible',
+    # La sécurité et le feu
+    'point chaud',
+    'Permis de feu',
+    'Ronde de surveillance',
+    # Ce qui sauve le logement du dessous
+    'hes de secours',
+    'trois jours à venir',
+    'a-t-il sous la toiture',
+    # Le support, moment de vérité
+    'support est-il SEC',
+    'tat du support apr',
+    'Travaux suppl',
+    # La preuve
+    'Mise en eau r',
+    'sultat de la mise en eau',
+    # L'après
+    'Carnet d',
+    'Attestation de garantie',
+])
+def test_le_modele_etancheite_couvre_les_pieges_du_metier(connecte,
+                                                          entreprise,
+                                                          attendu):
+    """Chaque libelle manquant est une surprise de chantier en puissance."""
+    from apps.btp.models import ProjectTemplateItem
+
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'etancheite'})
+    libelles = ' | '.join(
+        ProjectTemplateItem.objects.filter(
+            step__template__company=entreprise).values_list('label',
+                                                            flat=True))
+    aides = ' | '.join(
+        ProjectTemplateItem.objects.filter(
+            step__template__company=entreprise).values_list('help_text',
+                                                            flat=True))
+    assert attendu in libelles or attendu in aides, attendu
+
+
+def test_l_etancheite_prepare_tout_avant_le_debut_des_travaux(connecte,
+                                                              entreprise):
+    """Le createur du chantier doit pouvoir TOUT remplir avant le demarrage.
+
+    Les etapes de preparation portent donc un decalage NEGATIF -- analyse,
+    autorisations, devis, commande -- et le gros des points importants est
+    dans celles-la. Un modele qui mettrait ces questions apres le debut des
+    travaux les ferait decouvrir trop tard, ce qui est exactement le
+    probleme a resoudre.
+    """
+    from apps.btp.models import ProjectTemplateItem, ProjectTemplateStep
+
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'etancheite'})
+
+    avant = ProjectTemplateStep.objects.filter(
+        template__company=entreprise, offset_days__lt=0)
+    assert avant.count() >= 6
+
+    importants_avant = ProjectTemplateItem.objects.filter(
+        step__in=avant, is_required=True).count()
+    importants_total = ProjectTemplateItem.objects.filter(
+        step__template__company=entreprise, is_required=True).count()
+    assert importants_avant > importants_total / 2, (
+        'le gros des points importants doit se remplir AVANT le demarrage')
+
+
+def test_les_etapes_de_preparation_sont_datees_avant_le_debut(connecte,
+                                                              client_crm):
+    """Un decalage negatif doit donner une date ANTERIEURE au debut."""
+    from apps.btp.models import BTPProject, ProjectPlanStep, ProjectTemplate
+
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'etancheite'})
+    modele = ProjectTemplate.objects.get()
+
+    connecte.post(reverse('btp:project_create'), {
+        'name': 'Toiture Durand', 'customer': client_crm.pk,
+        'status': 'study', 'start_date': '2026-06-15',
+        'estimated_budget': '0', 'retention_rate': '5',
+        'template': modele.pk,
+    })
+    chantier = BTPProject.objects.get(name='Toiture Durand')
+
+    analyse = ProjectPlanStep.objects.filter(
+        project=chantier, step_type='technical_visit').order_by('order').first()
+    assert analyse.planned_date == date(2026, 5, 25)   # 15 juin moins 21 j
+
+    demarrage = ProjectPlanStep.objects.get(project=chantier,
+                                            step_type='work_start')
+    assert demarrage.planned_date == date(2026, 6, 15)
+    assert analyse.planned_date < demarrage.planned_date
+
+
+# ── 14. Les modèles prêts restent atteignables ──────────────────────────────
+
+def test_les_deux_modeles_prets_sont_proposes(connecte):
+    """Et pas seulement quand la page est vide.
+
+    Reserves a l'etat vide, ils devenaient inatteignables des le premier
+    modele cree : on installe l'electricite en janvier et l'etancheite en
+    mars. Verifie sur le HTML rendu.
+    """
+    corps = connecte.get(reverse('btp:template_list')).content.decode(
+        'utf-8', 'replace')
+    assert 'value="electricite"' in corps
+    assert 'value="etancheite"' in corps
+
+
+def test_ils_restent_proposes_quand_un_modele_existe_deja(connecte, modele):
+    corps = connecte.get(reverse('btp:template_list')).content.decode(
+        'utf-8', 'replace')
+    assert 'value="etancheite"' in corps
+    assert modele.name in corps
+
+
+def test_installer_les_deux_metiers(connecte, entreprise):
+    """Une entreprise fait les deux : les modeles cohabitent."""
+    from apps.btp.models import ProjectTemplate
+
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'electricite'})
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'etancheite'})
+
+    modeles = ProjectTemplate.objects.filter(company=entreprise)
+    assert modeles.count() == 2
+    # Un seul par defaut : le second ne demet pas le premier.
+    assert modeles.filter(is_default=True).count() == 1
+
+
+def test_les_compteurs_affiches_viennent_du_catalogue(connecte):
+    """Ecrits a la main, ils vieilliraient en silence."""
+    from apps.btp.modeles_prets import (
+        CATALOGUE_DES_MODELES, catalogue_pour_affichage)
+
+    affiche = {ligne['cle']: ligne for ligne in catalogue_pour_affichage()}
+    assert set(affiche) == set(CATALOGUE_DES_MODELES)
+
+    for cle, modele in CATALOGUE_DES_MODELES.items():
+        etapes = modele['etapes']
+        points = [p for e in etapes for p in e['points']]
+        assert affiche[cle]['nombre_d_etapes'] == len(etapes)
+        assert affiche[cle]['nombre_de_points'] == len(points)
+        assert affiche[cle]['nombre_d_importants'] == sum(
+            1 for p in points if p[2])
+
+    reponse = connecte.get(reverse('btp:template_list'))
+    assert reponse.status_code == 200
+    assert len(reponse.context['catalogue']) == len(CATALOGUE_DES_MODELES)
+
+
+def test_aucun_libelle_du_catalogue_ne_depasse_sa_colonne():
+    """Un libelle trop long leverait a l'installation, pas a l'ecriture.
+
+    Les colonnes sont a 250, 250 et 20 caracteres. Une question redigee un
+    peu longuement passe la relecture et casse le bouton d'installation.
+    """
+    from apps.btp.modeles_prets import CATALOGUE_DES_MODELES
+
+    for cle, modele in CATALOGUE_DES_MODELES.items():
+        assert len(modele['nom']) <= 150, cle
+        for etape in modele['etapes']:
+            assert len(etape['nom']) <= 200, etape['nom']
+            for libelle, _, _, unite, options, aide in etape['points']:
+                assert len(libelle) <= 250, libelle
+                assert len(aide) <= 250, libelle
+                assert len(unite) <= 20, libelle
+                for option in options:
+                    assert len(option) <= 250, option
+
+
+# ── 15. Tout remplir en une page ────────────────────────────────────────────
+#
+# Le créateur du chantier remplit les détails AVANT le démarrage : c'est la
+# façon de travailler voulue. Le modèle Étanchéité compte 143 points sur
+# douze étapes, et lui faire ouvrir douze pages travaille contre lui — on
+# abandonne à la cinquième, et les questions qui restent sont justement
+# celles qu'on voulait ne pas oublier.
+
+def test_la_page_tout_remplir_montre_tous_les_points(connecte,
+                                                     chantier_avec_etapes):
+    reponse = connecte.get(reverse('btp:project_fill_all',
+                                   args=[chantier_avec_etapes.pk]))
+    assert reponse.status_code == 200
+    # Les deux étapes du modèle, et leurs quatre points.
+    assert len(reponse.context['blocs']) == 2
+    assert reponse.context['total'] == 4
+    assert reponse.context['remplis'] == 0
+
+    corps = reponse.content.decode('utf-8', 'replace')
+    for libelle in ['Nacelle nécessaire ?', 'Hauteur sous plafond',
+                    'Nature des murs', 'Date de livraison annoncée']:
+        assert libelle in corps, libelle
+
+
+def test_un_seul_envoi_remplit_toutes_les_etapes(connecte,
+                                                 chantier_avec_etapes):
+    """Le point du fichier : une étape 1 et une étape 2 dans le même POST.
+
+    C'est possible parce que les champs sont nommés « point_<pk> » : la clé
+    primaire est unique sur toute la base, donc deux étapes ne peuvent pas
+    se marcher dessus.
+    """
+    from apps.btp.models import ProjectStepItem
+
+    points = {p.label: p for p in ProjectStepItem.objects.filter(
+        step__project=chantier_avec_etapes)}
+
+    reponse = connecte.post(
+        reverse('btp:project_fill_all', args=[chantier_avec_etapes.pk]), {
+            f'point_{points["Nacelle nécessaire ?"].pk}': 'true',
+            f'point_{points["Hauteur sous plafond"].pk}': '2.8',
+            f'point_{points["Nature des murs"].pk}': 'Placo',
+            f'point_{points["Date de livraison annoncée"].pk}': '2026-03-01',
+        })
+    assert reponse.status_code == 302
+
+    for point in points.values():
+        point.refresh_from_db()
+    assert points['Nacelle nécessaire ?'].answer_boolean is True
+    assert str(points['Hauteur sous plafond'].answer_number) == '2.800'
+    assert points['Nature des murs'].answer_choice == 'Placo'
+    assert points['Date de livraison annoncée'].answer_date == date(2026, 3, 1)
+
+    # Les deux étapes sont touchées, pas seulement la première.
+    assert all(p.is_answered for p in points.values())
+
+
+def test_une_erreur_n_ecrit_rien_du_tout(connecte, chantier_avec_etapes):
+    """Tous validés avant qu'un seul soit écrit.
+
+    Enregistrer les étapes 1 à 8 puis échouer à la 9 laisserait
+    l'utilisateur sans savoir ce qui est passé — et il resaisirait tout,
+    ou rien.
+    """
+    from apps.btp.models import ProjectStepItem
+
+    points = {p.label: p for p in ProjectStepItem.objects.filter(
+        step__project=chantier_avec_etapes)}
+
+    reponse = connecte.post(
+        reverse('btp:project_fill_all', args=[chantier_avec_etapes.pk]), {
+            # Valide, dans la PREMIÈRE étape.
+            f'point_{points["Nacelle nécessaire ?"].pk}': 'true',
+            # Invalide, dans la SECONDE.
+            f'point_{points["Date de livraison annoncée"].pk}': 'bientôt',
+        })
+    assert reponse.status_code == 200
+
+    for point in points.values():
+        point.refresh_from_db()
+    assert points['Nacelle nécessaire ?'].answer_boolean is None, (
+        'la reponse valide a ete ecrite alors qu une autre etape echouait')
+    assert points['Date de livraison annoncée'].answer_date is None
+
+
+def test_enregistrer_a_moitie_rempli_reussit(connecte, chantier_avec_etapes):
+    """« Avertir sans bloquer » vaut aussi sur cette page."""
+    from apps.btp.models import ProjectStepItem
+
+    nacelle = ProjectStepItem.objects.get(
+        step__project=chantier_avec_etapes, label='Nacelle nécessaire ?')
+    reponse = connecte.post(
+        reverse('btp:project_fill_all', args=[chantier_avec_etapes.pk]),
+        {f'point_{nacelle.pk}': 'false'}, follow=True)
+    assert reponse.status_code == 200
+    nacelle.refresh_from_db()
+    assert nacelle.answer_boolean is False
+
+    corps = reponse.content.decode('utf-8', 'replace')
+    assert 'restent à renseigner' in corps
+
+
+def test_quand_tout_est_rempli_on_le_dit(connecte, chantier_avec_etapes):
+    """Le contraire de l'avertissement : savoir qu'on peut démarrer."""
+    from apps.btp.models import ProjectStepItem
+
+    points = {p.label: p for p in ProjectStepItem.objects.filter(
+        step__project=chantier_avec_etapes)}
+    reponse = connecte.post(
+        reverse('btp:project_fill_all', args=[chantier_avec_etapes.pk]), {
+            f'point_{points["Nacelle nécessaire ?"].pk}': 'false',
+            f'point_{points["Hauteur sous plafond"].pk}': '2.5',
+            f'point_{points["Date de livraison annoncée"].pk}': '2026-03-01',
+        }, follow=True)
+    corps = reponse.content.decode('utf-8', 'replace')
+    assert 'sans angle mort' in corps
+
+
+def test_les_etapes_sans_point_ne_sont_pas_affichees(connecte,
+                                                     chantier_avec_etapes):
+    """Une étape vide affichée donnerait l'impression d'un bug."""
+    from apps.btp.models import ProjectPlanStep
+
+    ProjectPlanStep.objects.create(project=chantier_avec_etapes,
+                                   name='Étape nue', order=99)
+    reponse = connecte.get(reverse('btp:project_fill_all',
+                                   args=[chantier_avec_etapes.pk]))
+    assert len(reponse.context['blocs']) == 2
+    assert 'Étape nue' not in reponse.content.decode('utf-8', 'replace')
+
+
+def test_un_chantier_sans_point_invite_a_appliquer_un_modele(connecte,
+                                                             chantier):
+    reponse = connecte.get(reverse('btp:project_fill_all',
+                                   args=[chantier.pk]))
+    assert reponse.status_code == 200
+    assert reponse.context['blocs'] == []
+    assert 'Appliquer un mod' in reponse.content.decode('utf-8', 'replace')
+
+
+def test_le_lien_tout_remplir_est_sur_la_page_des_etapes(connecte,
+                                                         chantier_avec_etapes):
+    """Une page qu'aucun lien ne désigne n'existe pas pour l'utilisateur."""
+    corps = connecte.get(reverse('btp:project_planning',
+                                 args=[chantier_avec_etapes.pk])).content.decode(
+                                     'utf-8', 'replace')
+    assert reverse('btp:project_fill_all',
+                   args=[chantier_avec_etapes.pk]) in corps
+
+
+def test_tout_remplir_chez_le_voisin_est_refuse(connecte, objets_du_voisin):
+    reponse = connecte.get(reverse('btp:project_fill_all',
+                                   args=[objets_du_voisin['projet'].pk]))
+    assert reponse.status_code == 404
+
+
+def test_tout_remplir_tient_les_143_points_de_l_etancheite(connecte,
+                                                            client_crm):
+    """La page doit encaisser le vrai volume, pas deux points de test."""
+    from apps.btp.models import (
+        BTPProject, ProjectStepItem, ProjectTemplate)
+
+    connecte.post(reverse('btp:template_install_starter'),
+                  {'cle': 'etancheite'})
+    modele = ProjectTemplate.objects.get()
+    connecte.post(reverse('btp:project_create'), {
+        'name': 'Toiture Legrand', 'customer': client_crm.pk,
+        'status': 'study', 'start_date': '2026-09-01',
+        'estimated_budget': '0', 'retention_rate': '5',
+        'template': modele.pk,
+    })
+    chantier = BTPProject.objects.get(name='Toiture Legrand')
+
+    reponse = connecte.get(reverse('btp:project_fill_all',
+                                   args=[chantier.pk]))
+    assert reponse.status_code == 200
+    en_base = ProjectStepItem.objects.filter(step__project=chantier).count()
+    assert en_base > 100
+    assert reponse.context['total'] == en_base
+    assert len(reponse.context['blocs']) == 12
+
+    # Et un envoi partiel sur ce volume passe.
+    sondage = ProjectStepItem.objects.get(
+        step__project=chantier,
+        label='Un sondage ou carottage a-t-il été réalisé ?')
+    envoi = connecte.post(reverse('btp:project_fill_all',
+                                  args=[chantier.pk]),
+                          {f'point_{sondage.pk}': 'true'})
+    assert envoi.status_code == 302
+    sondage.refresh_from_db()
+    assert sondage.answer_boolean is True

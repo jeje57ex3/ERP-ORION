@@ -23,6 +23,8 @@ urlpatterns = [
     # adresses ne peut être capturée par « chantiers/<int:pk>/ » plus haut.
     path('chantiers/<int:pk>/etapes/', ve.project_planning,
          name='project_planning'),
+    path('chantiers/<int:pk>/etapes/tout-remplir/', ve.project_fill_all,
+         name='project_fill_all'),
     path('chantiers/<int:pk>/etapes/appliquer-un-modele/',
          ve.project_apply_template, name='project_apply_template'),
     path('chantiers/<int:pk>/etapes/ajouter/', ve.step_create,

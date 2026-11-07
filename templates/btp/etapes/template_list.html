@@ -59,25 +59,53 @@
   </div>
 </div>
 {% else %}
-<div class="erp-card p-5 text-center">
+<div class="erp-card p-5 text-center mb-4">
   <div class="mb-3"><i class="bi bi-list-check" style="font-size:2.5rem;opacity:.3"></i></div>
   <h5>{% trans "Aucun modèle de chantier" %}</h5>
-  <p class="text-muted">{% trans "Écrivez-en un une fois, et chaque nouveau chantier partira avec ses étapes et ses points à vérifier." %}</p>
-  <div class="d-flex gap-2 justify-content-center flex-wrap">
-    {% comment %}
-      Le modèle prêt à l'emploi en premier : un modèle utile fait une
-      quarantaine de questions, et commencer par un écran vide décourage.
-    {% endcomment %}
-    <form method="post" action="{% url 'btp:template_install_starter' %}" class="d-inline">
-      {% csrf_token %}
-      <input type="hidden" name="cle" value="electricite">
-      <button type="submit" class="orion-btn primary"><i class="bi bi-download me-1"></i>{% trans "Installer le modèle Électricité" %}</button>
-    </form>
-    <a href="{% url 'btp:template_create' %}" class="btn btn-outline-secondary"><i class="bi bi-plus-circle me-1"></i>{% trans "Partir d’un modèle vide" %}</a>
-  </div>
-  <p class="form-text mt-3 mb-0">
-    {% trans "Le modèle Électricité contient onze étapes — de la visite technique à la réception — et une cinquantaine de points, dont l’accès camionnette, le besoin d’une nacelle et la hauteur sous plafond. Il est modifiable de bout en bout une fois installé." %}
+  <p class="text-muted mb-0">
+    {% trans "Partez d’un modèle prêt ci-dessous, ou écrivez le vôtre." %}
+    <a href="{% url 'btp:template_create' %}">{% trans "Partir d’un modèle vide" %}</a>
   </p>
 </div>
 {% endif %}
+
+{% comment %}
+  Les modèles prêts sont proposés MÊME quand l'entreprise en a déjà : on
+  installe l'électricité en janvier et l'étanchéité en mars. Réservés à la
+  page vide, ils devenaient inatteignables dès le premier modèle créé.
+
+  La liste vient de `catalogue` et n'est pas écrite en dur : un métier
+  ajouté à apps/btp/modeles_prets.py apparaît ici sans toucher au gabarit.
+{% endcomment %}
+<div class="erp-card">
+  <div class="orion-orion-card-header">
+    <h6 class="card-title mb-0"><i class="bi bi-download me-1 text-primary"></i>{% trans "Modèles prêts à l’emploi" %}</h6>
+    <div class="small text-muted">{% trans "Installés en un clic, puis modifiables de bout en bout — ils vous appartiennent." %}</div>
+  </div>
+  <div class="p-3">
+    <div class="row g-3">
+      {% for pret in catalogue %}
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100 d-flex flex-column">
+          <h6 class="mb-1">{{ pret.nom }}</h6>
+          <div class="small text-muted mb-2">
+            {% blocktrans with e=pret.nombre_d_etapes p=pret.nombre_de_points i=pret.nombre_d_importants %}{{ e }} étapes · {{ p }} points, dont {{ i }} importants{% endblocktrans %}
+          </div>
+          <p class="small text-muted flex-grow-1">{{ pret.description }}</p>
+          <form method="post" action="{% url 'btp:template_install_starter' %}">
+            {% csrf_token %}
+            <input type="hidden" name="cle" value="{{ pret.cle }}">
+            <button type="submit" class="orion-btn primary orion-btn sm">
+              <i class="bi bi-download me-1"></i>{% trans "Installer" %}
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="form-text mt-3 mb-0">
+      {% trans "Installer un modèle deux fois n’écrase pas le premier : vos retouches sont conservées et une copie est ajoutée à côté." %}
+    </p>
+  </div>
+</div>
 {% endblock %}
