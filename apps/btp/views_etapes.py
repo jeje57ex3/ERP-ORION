@@ -178,13 +178,19 @@ def step_detail(request, pk):
     etape = get_object_or_404(
         ProjectPlanStep.objects.select_related('project'),
         pk=pk, project__company=company)
-    points = list(etape.items.all().order_by('order', 'pk'))
+    # select_related sur les deux fiches désignables : sans cela, afficher
+    # « DEV-0012 — 4 300 € » part en une requête par point.
+    points = list(etape.items
+                  .select_related('answer_quote', 'answer_quote__customer',
+                                  'answer_supplier')
+                  .order_by('order', 'pk'))
 
     if request.method == 'POST':
         form_etape = EtapeDuChantierForm(
             request.POST, instance=etape, company=company)
         form_points = PointsDeLEtapeForm(
-            request.POST, request.FILES, points=points)
+            request.POST, request.FILES, points=points,
+            company=company, project=etape.project)
 
         if form_etape.is_valid() and form_points.is_valid():
             with transaction.atomic():
@@ -211,7 +217,8 @@ def step_detail(request, pk):
             return redirect('btp:step_detail', pk=etape.pk)
     else:
         form_etape = EtapeDuChantierForm(instance=etape, company=company)
-        form_points = PointsDeLEtapeForm(points=points)
+        form_points = PointsDeLEtapeForm(
+            points=points, company=company, project=etape.project)
 
     return render(request, 'btp/etapes/step_detail.html', {
         'project': etape.project,
@@ -613,7 +620,9 @@ def points_search(request):
                   .filter(step__project__company=company,
                           label__icontains=question)
                   .select_related('step', 'step__project',
-                                  'step__project__customer'))
+                                  'step__project__customer',
+                                  'answer_quote', 'answer_quote__customer',
+                                  'answer_supplier'))
         if reponse == 'oui':
             points = points.filter(answer_boolean=True)
         elif reponse == 'non':
@@ -692,7 +701,11 @@ def project_fill_all(request, pk):
 
     etapes = list(ProjectPlanStep.objects
                   .filter(project=project)
-                  .prefetch_related('items')
+                  .prefetch_related(Prefetch(
+                      'items',
+                      queryset=ProjectStepItem.objects.select_related(
+                          'answer_quote', 'answer_quote__customer',
+                          'answer_supplier').order_by('order', 'pk')))
                   .order_by('order', 'pk'))
 
     blocs = []
@@ -707,7 +720,8 @@ def project_fill_all(request, pk):
     if request.method == 'POST':
         for bloc in blocs:
             bloc['form'] = PointsDeLEtapeForm(
-                request.POST, request.FILES, points=bloc['points'])
+                request.POST, request.FILES, points=bloc['points'],
+                company=company, project=project)
 
         # TOUS validés avant d'en enregistrer un seul : une erreur de saisie
         # a l'etape 9 ne doit pas laisser les etapes 1 a 8 ecrites et le
@@ -735,7 +749,8 @@ def project_fill_all(request, pk):
             return redirect('btp:project_planning', pk=project.pk)
     else:
         for bloc in blocs:
-            bloc['form'] = PointsDeLEtapeForm(points=bloc['points'])
+            bloc['form'] = PointsDeLEtapeForm(
+                points=bloc['points'], company=company, project=project)
 
     total = sum(len(bloc['points']) for bloc in blocs)
     remplis = sum(1 for bloc in blocs for point in bloc['points']

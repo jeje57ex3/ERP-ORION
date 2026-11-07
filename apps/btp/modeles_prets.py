@@ -74,6 +74,9 @@ CATALOGUE_DES_MODELES = {
                 'client_valide': True,
                 'points': [
                     ('Devis signé reçu ?', 'yes_no', True, '', [], ''),
+                    ('Devis concerné', 'quote', True, '', [],
+                     'Désignez la fiche du devis : son numéro, son '
+                     'montant et son statut suivent tout seuls.'),
                     ('Date de signature', 'date', False, '', [], ''),
                     ('Acompte encaissé ?', 'yes_no', False, '', [], ''),
                     ('Montant de l\'acompte', 'number', False, '€', [], ''),
@@ -89,6 +92,16 @@ CATALOGUE_DES_MODELES = {
                     ('Métré validé ?', 'yes_no', True, '', [], ''),
                     ('Liste de matériel établie ?', 'yes_no', True, '', [],
                      ''),
+                    ('Fournisseur retenu', 'supplier', True, '', [],
+                     'La fiche fournisseur : coordonnées et délai '
+                     'annoncé viennent avec.'),
+                    ('Devis de référence', 'quote', False, '', [],
+                     'Le devis client que cette commande sert, pour '
+                     'rapprocher la dépense de ce qui a été vendu.'),
+                    ('Numéro de commande ou de devis fournisseur',
+                     'text', False, '', [],
+                     'La référence côté fournisseur, à rappeler en cas '
+                     'de litige sur la livraison.'),
                     ('Commande passée au fournisseur le', 'date', True, '',
                      [], ''),
                     ('Date de livraison annoncée', 'date', True, '', [], ''),
@@ -435,6 +448,9 @@ CATALOGUE_DES_MODELES = {
                 'client_valide': True,
                 'points': [
                     ('Devis signé reçu ?', 'yes_no', True, '', [], ''),
+                    ('Devis concerné', 'quote', True, '', [],
+                     'Désignez la fiche du devis : son numéro, son '
+                     'montant et son statut suivent tout seuls.'),
                     ('Date de signature', 'date', False, '', [], ''),
                     ('Acompte encaissé ?', 'yes_no', False, '', [], ''),
                     ('Le devis couvre-t-il la dépose de l\'existant ?',
@@ -493,6 +509,16 @@ CATALOGUE_DES_MODELES = {
                      'À vérifier contre la descente de charges : une '
                      'protection lourde de trop fissure la dalle.'),
                     ('Quantité commandée', 'number', True, 'm²', [], ''),
+                    ('Fournisseur retenu', 'supplier', True, '', [],
+                     'La fiche fournisseur : coordonnées et délai '
+                     'annoncé viennent avec.'),
+                    ('Devis de référence', 'quote', False, '', [],
+                     'Le devis client que cette commande sert, pour '
+                     'rapprocher la dépense de ce qui a été vendu.'),
+                    ('Numéro de commande ou de devis fournisseur',
+                     'text', False, '', [],
+                     'La référence côté fournisseur, à rappeler en cas '
+                     'de litige sur la livraison.'),
                     ('Commande passée le', 'date', True, '', [], ''),
                     ('Date de livraison annoncée', 'date', True, '', [], ''),
                     ('Livraison en toiture prévue ?', 'yes_no', True, '', [],

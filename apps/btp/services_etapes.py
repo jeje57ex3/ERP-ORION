@@ -162,6 +162,10 @@ def _valeur_de_la_reponse(point):
         return point.answer_date
     if point.answer_type == 'choice':
         return point.answer_choice
+    if point.answer_type == 'quote':
+        return point.answer_quote_id
+    if point.answer_type == 'supplier':
+        return point.answer_supplier_id
     if point.answer_type == 'photo':
         # Le NOM du fichier : deux FieldFile distincts désignant le même
         # fichier ne sont pas égaux entre eux.
@@ -202,6 +206,11 @@ def enregistrer_la_reponse(point, donnees, user=None):
     point.answer_number = None
     point.answer_date = None
     point.answer_choice = ''
+    # Les deux clés vers une fiche se nettoient comme les autres colonnes :
+    # ce sont des entiers, pas des fichiers, et rien n'est détruit en les
+    # mettant à NULL.
+    point.answer_quote = None
+    point.answer_supplier = None
 
     if point.answer_type == 'yes_no':
         # '' = pas de réponse, et c'est distinct de False. Un ChoiceField à
@@ -217,6 +226,13 @@ def enregistrer_la_reponse(point, donnees, user=None):
         point.answer_date = valeur
     elif point.answer_type == 'choice':
         point.answer_choice = valeur or ''
+    elif point.answer_type == 'quote':
+        # `valeur` est déjà l'objet : un ModelChoiceField l'a cherché dans
+        # son queryset, lui-même borné à l'entreprise. Un identifiant forgé
+        # n'arrive donc jamais ici — il a échoué à la validation.
+        point.answer_quote = valeur or None
+    elif point.answer_type == 'supplier':
+        point.answer_supplier = valeur or None
     elif point.answer_type == 'photo':
         # ClearableFileInput rend TROIS choses, et les confondre coûte cher :
         #   None  → rien n'a été envoyé, on garde la photo en place

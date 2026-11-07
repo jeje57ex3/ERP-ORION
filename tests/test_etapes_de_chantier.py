@@ -1614,3 +1614,448 @@ def test_tout_remplir_tient_les_143_points_de_l_etancheite(connecte,
     assert envoi.status_code == 302
     sondage.refresh_from_db()
     assert sondage.answer_boolean is True
+
+
+# ── 16. Désigner un devis et une fiche fournisseur ──────────────────────────
+#
+# Deux types de réponse qui ne demandent pas de SAISIR une référence mais de
+# DÉSIGNER une fiche de l'ERP. La différence n'est pas cosmétique :
+#
+#   * un numéro recopié se trompe d'un chiffre, et personne ne le voit ;
+#   * il ne se clique pas — il faut aller rechercher le devis à la main ;
+#   * il ne survit pas à une renumérotation ;
+#   * il ne se filtre pas : « quels chantiers chez ce fournisseur ? » reste
+#     sans réponse.
+#
+# D'où deux colonnes FK, et non deux CharField.
+
+@pytest.fixture
+def devis(entreprise, client_crm, chantier):
+    from decimal import Decimal
+
+    from apps.btp.models import BTPQuote
+    return BTPQuote.objects.create(
+        company=entreprise, project=chantier, customer=client_crm,
+        number='DEV-0042', subject='Rénovation complète',
+        total_ht=Decimal('12500.00'))
+
+
+@pytest.fixture
+def fournisseur(entreprise):
+    from apps.purchases.models import Supplier
+    return Supplier.objects.create(
+        company=entreprise, name='Négoce Rexel', phone='0387000000',
+        lead_time_days=5)
+
+
+@pytest.fixture
+def etape_avec_fiches(chantier_avec_etapes):
+    """Ajoute un point « devis » et un point « fournisseur » à l'étape 1."""
+    from apps.btp.models import ProjectPlanStep, ProjectStepItem
+
+    etape = ProjectPlanStep.objects.get(
+        project=chantier_avec_etapes, name='Analyse sur place')
+    ProjectStepItem.objects.create(
+        step=etape, label='Devis concerné', answer_type='quote',
+        is_required=True, order=80)
+    ProjectStepItem.objects.create(
+        step=etape, label='Fournisseur retenu', answer_type='supplier',
+        is_required=True, order=81)
+    return etape
+
+
+def _envoi_de_base(etape):
+    return {'name': etape.name, 'step_type': etape.step_type, 'order': 1,
+            'status': 'pending', 'progress_percent': 0}
+
+
+def test_designer_un_devis_et_un_fournisseur(connecte, etape_avec_fiches,
+                                             devis, fournisseur):
+    from apps.btp.models import ProjectStepItem
+
+    point_devis = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                              answer_type='quote')
+    point_fournisseur = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                                    answer_type='supplier')
+
+    reponse = connecte.post(
+        reverse('btp:step_detail', args=[etape_avec_fiches.pk]), {
+            **_envoi_de_base(etape_avec_fiches),
+            f'point_{point_devis.pk}': devis.pk,
+            f'point_{point_fournisseur.pk}': fournisseur.pk,
+        })
+    assert reponse.status_code == 302
+
+    point_devis.refresh_from_db()
+    point_fournisseur.refresh_from_db()
+    assert point_devis.answer_quote == devis
+    assert point_fournisseur.answer_supplier == fournisseur
+    assert point_devis.is_answered is True
+    assert point_fournisseur.is_answered is True
+
+
+def test_la_reponse_affichee_porte_le_numero_et_le_montant(
+        connecte, etape_avec_fiches, devis, fournisseur):
+    """Le numéro seul ne dit pas si c'est le bon devis."""
+    from apps.btp.models import ProjectStepItem
+
+    point_devis = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                              answer_type='quote')
+    point_devis.answer_quote = devis
+    point_devis.save()
+    assert point_devis.reponse_affichable == 'DEV-0042 — 12500.00 € HT'
+
+    point_fournisseur = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                                    answer_type='supplier')
+    point_fournisseur.answer_supplier = fournisseur
+    point_fournisseur.save()
+    assert point_fournisseur.reponse_affichable == 'Négoce Rexel'
+
+
+def test_un_devis_sans_numero_ne_rend_pas_une_chaine_vide(connecte,
+                                                          etape_avec_fiches,
+                                                          entreprise,
+                                                          client_crm):
+    """`number` est `blank=True` : un devis peut n'en avoir aucun."""
+    from decimal import Decimal
+
+    from apps.btp.models import BTPQuote, ProjectStepItem
+
+    anonyme = BTPQuote.objects.create(
+        company=entreprise, customer=client_crm, total_ht=Decimal('100'))
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='quote')
+    point.answer_quote = anonyme
+    point.save()
+    assert point.reponse_affichable.startswith('Devis sans numéro')
+
+
+def test_les_liens_vers_les_fiches_sont_affiches(connecte, etape_avec_fiches,
+                                                 devis, fournisseur):
+    """Tout l'intérêt de désigner une fiche : on l'ouvre d'un clic."""
+    from apps.btp.models import ProjectStepItem
+
+    ProjectStepItem.objects.filter(
+        step=etape_avec_fiches, answer_type='quote').update(
+            answer_quote=devis)
+    ProjectStepItem.objects.filter(
+        step=etape_avec_fiches, answer_type='supplier').update(
+            answer_supplier=fournisseur)
+
+    corps = connecte.get(reverse('btp:step_detail',
+                                 args=[etape_avec_fiches.pk])).content.decode(
+                                     'utf-8', 'replace')
+    assert reverse('btp:quote_detail', args=[devis.pk]) in corps
+    assert reverse('purchases:supplier_detail',
+                   args=[fournisseur.pk]) in corps
+    assert 'DEV-0042' in corps
+    assert 'Négoce Rexel' in corps
+
+
+def test_l_etiquette_du_devis_distingue_deux_devis_du_meme_client(
+        connecte, etape_avec_fiches, devis, entreprise, client_crm):
+    """Deux devis du même client sont indiscernables sans le montant.
+
+    `BTPQuote.__str__` ne donne que « numéro — client ». La liste
+    déroulante ajoute donc le montant et le chantier.
+    """
+    from decimal import Decimal
+
+    from apps.btp.models import BTPQuote
+
+    BTPQuote.objects.create(
+        company=entreprise, customer=client_crm, number='DEV-0043',
+        total_ht=Decimal('980.00'))
+
+    corps = connecte.get(reverse('btp:step_detail',
+                                 args=[etape_avec_fiches.pk])).content.decode(
+                                     'utf-8', 'replace')
+    assert 'DEV-0042 — Mme Martin — 12500.00 € HT' in corps
+    assert 'DEV-0043 — Mme Martin — 980.00 € HT' in corps
+
+
+def test_les_devis_du_chantier_viennent_en_tete(connecte, etape_avec_fiches,
+                                                devis, entreprise,
+                                                client_crm):
+    """Neuf fois sur dix c'est celui du chantier qu'on cherche."""
+    from decimal import Decimal
+
+    from apps.btp.forms_etapes import PointsDeLEtapeForm
+    from apps.btp.models import BTPQuote, ProjectStepItem
+
+    # Plus récent, donc premier dans l'ordre par défaut — mais d'un autre
+    # chantier.
+    BTPQuote.objects.create(
+        company=entreprise, customer=client_crm, number='DEV-0099',
+        issue_date=date(2030, 1, 1), total_ht=Decimal('1'))
+
+    points = list(ProjectStepItem.objects.filter(step=etape_avec_fiches))
+    form = PointsDeLEtapeForm(points=points, company=entreprise,
+                              project=etape_avec_fiches.project)
+    choix = list(form._devis)
+    assert choix[0] == devis
+
+
+def test_un_devis_d_une_autre_entreprise_est_refuse(connecte,
+                                                    etape_avec_fiches,
+                                                    autre_entreprise):
+    """Borné dans __init__, donc à la VALIDATION et pas qu'à l'affichage."""
+    from decimal import Decimal
+
+    from apps.btp.models import BTPQuote, ProjectStepItem
+    from apps.crm.models import Customer
+
+    acheteur = Customer.objects.create(company=autre_entreprise,
+                                       name='Client voisin')
+    etranger = BTPQuote.objects.create(
+        company=autre_entreprise, customer=acheteur, number='DEV-VOISIN',
+        total_ht=Decimal('99999'))
+
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='quote')
+    reponse = connecte.post(
+        reverse('btp:step_detail', args=[etape_avec_fiches.pk]), {
+            **_envoi_de_base(etape_avec_fiches),
+            f'point_{point.pk}': etranger.pk,
+        })
+    assert reponse.status_code == 200
+    assert f'point_{point.pk}' in reponse.context['form_points'].errors
+    point.refresh_from_db()
+    assert point.answer_quote_id is None
+
+
+def test_un_fournisseur_d_une_autre_entreprise_est_refuse(connecte,
+                                                          etape_avec_fiches,
+                                                          autre_entreprise):
+    from apps.btp.models import ProjectStepItem
+    from apps.purchases.models import Supplier
+
+    etranger = Supplier.objects.create(company=autre_entreprise,
+                                       name='Fournisseur du voisin')
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='supplier')
+    reponse = connecte.post(
+        reverse('btp:step_detail', args=[etape_avec_fiches.pk]), {
+            **_envoi_de_base(etape_avec_fiches),
+            f'point_{point.pk}': etranger.pk,
+        })
+    assert reponse.status_code == 200
+    point.refresh_from_db()
+    assert point.answer_supplier_id is None
+
+
+def test_un_fournisseur_inactif_n_est_pas_propose(connecte, etape_avec_fiches,
+                                                  entreprise):
+    from apps.btp.models import ProjectStepItem
+    from apps.purchases.models import Supplier
+
+    ferme = Supplier.objects.create(company=entreprise,
+                                    name='Négoce fermé', is_active=False)
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='supplier')
+    reponse = connecte.post(
+        reverse('btp:step_detail', args=[etape_avec_fiches.pk]), {
+            **_envoi_de_base(etape_avec_fiches),
+            f'point_{point.pk}': ferme.pk,
+        })
+    assert reponse.status_code == 200
+    point.refresh_from_db()
+    assert point.answer_supplier_id is None
+
+
+def test_supprimer_le_devis_vide_la_case(connecte, etape_avec_fiches, devis):
+    """SET_NULL et non PROTECT : supprimer un devis ne doit pas être bloqué
+    parce qu'une case de chantier le cite. La case redevient « non
+    renseignée », donc signalée — ce qui est juste : le devis n'existe plus.
+    """
+    from apps.btp.models import ProjectStepItem
+
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='quote')
+    point.answer_quote = devis
+    point.save()
+    assert point.is_answered is True
+
+    devis.delete()
+
+    point.refresh_from_db()
+    assert point.answer_quote_id is None
+    assert point.is_answered is False
+    assert point.reponse_affichable == ''
+
+
+def test_effacer_la_designation_efface_la_tracabilite(connecte,
+                                                      etape_avec_fiches,
+                                                      devis):
+    from apps.btp.models import ProjectStepItem
+
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='quote')
+    base = _envoi_de_base(etape_avec_fiches)
+
+    connecte.post(reverse('btp:step_detail', args=[etape_avec_fiches.pk]),
+                  {**base, f'point_{point.pk}': devis.pk})
+    point.refresh_from_db()
+    assert point.filled_at is not None
+
+    connecte.post(reverse('btp:step_detail', args=[etape_avec_fiches.pk]),
+                  {**base, f'point_{point.pk}': ''})
+    point.refresh_from_db()
+    assert point.answer_quote_id is None
+    assert point.filled_at is None
+
+
+def test_redesigner_le_meme_devis_ne_bouge_pas_la_date(connecte,
+                                                       etape_avec_fiches,
+                                                       devis):
+    """`_valeur_de_la_reponse` compare les clés, pas les objets.
+
+    Deux instances distinctes du même devis ne sont pas égales dans tous
+    les cas : comparer les objets ferait croire à un changement et
+    réhorodaterait à chaque enregistrement.
+    """
+    from apps.btp.models import ProjectStepItem
+
+    point = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                        answer_type='quote')
+    base = _envoi_de_base(etape_avec_fiches)
+
+    connecte.post(reverse('btp:step_detail', args=[etape_avec_fiches.pk]),
+                  {**base, f'point_{point.pk}': devis.pk})
+    point.refresh_from_db()
+    premiere = point.filled_at
+
+    connecte.post(reverse('btp:step_detail', args=[etape_avec_fiches.pk]),
+                  {**base, f'point_{point.pk}': devis.pk})
+    point.refresh_from_db()
+    assert point.filled_at == premiere
+
+
+def test_sans_aucun_devis_le_champ_le_dit(connecte, etape_avec_fiches):
+    """Une liste vide sans explication passe pour un bug."""
+    corps = connecte.get(reverse('btp:step_detail',
+                                 args=[etape_avec_fiches.pk])).content.decode(
+                                     'utf-8', 'replace')
+    assert 'Aucun devis dans cette entreprise' in corps
+
+
+def test_tout_remplir_designe_aussi_les_fiches(connecte, etape_avec_fiches,
+                                               devis, fournisseur):
+    from apps.btp.models import ProjectStepItem
+
+    point_devis = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                              answer_type='quote')
+    point_fournisseur = ProjectStepItem.objects.get(step=etape_avec_fiches,
+                                                    answer_type='supplier')
+    reponse = connecte.post(
+        reverse('btp:project_fill_all',
+                args=[etape_avec_fiches.project.pk]), {
+            f'point_{point_devis.pk}': devis.pk,
+            f'point_{point_fournisseur.pk}': fournisseur.pk,
+        })
+    assert reponse.status_code == 302
+    point_devis.refresh_from_db()
+    point_fournisseur.refresh_from_db()
+    assert point_devis.answer_quote == devis
+    assert point_fournisseur.answer_supplier == fournisseur
+
+
+def test_la_recherche_montre_la_fiche_designee(connecte, etape_avec_fiches,
+                                               fournisseur):
+    from apps.btp.models import ProjectStepItem
+
+    ProjectStepItem.objects.filter(
+        step=etape_avec_fiches, answer_type='supplier').update(
+            answer_supplier=fournisseur)
+
+    reponse = connecte.get(reverse('btp:points_search'),
+                           {'q': 'Fournisseur retenu'})
+    assert reponse.status_code == 200
+    assert 'Négoce Rexel' in reponse.content.decode('utf-8', 'replace')
+
+
+# ── 17. Les modèles prêts citent le devis et le fournisseur ─────────────────
+
+@pytest.mark.parametrize('cle', ['electricite', 'etancheite'])
+def test_les_modeles_prets_demandent_le_devis_et_le_fournisseur(connecte,
+                                                                entreprise,
+                                                                cle):
+    from apps.btp.models import ProjectTemplateItem
+
+    connecte.post(reverse('btp:template_install_starter'), {'cle': cle})
+    points = ProjectTemplateItem.objects.filter(
+        step__template__company=entreprise)
+
+    # Le devis est demandé à la validation ET rappelé à la commande.
+    assert points.filter(answer_type='quote').count() == 2
+    assert points.filter(answer_type='supplier').count() == 1
+
+    validation = points.get(answer_type='quote',
+                            step__step_type='quote_validation')
+    assert validation.is_required is True
+    commande = points.get(answer_type='supplier',
+                          step__step_type='material_prep')
+    assert commande.is_required is True
+
+    # Et la référence côté fournisseur reste du texte libre : ce n'est pas
+    # une fiche de notre ERP, c'est un numéro chez eux.
+    assert points.filter(
+        label__icontains='devis fournisseur',
+        answer_type='text').exists()
+
+
+@pytest.mark.parametrize('cle', ['electricite', 'etancheite'])
+def test_le_point_devis_du_modele_pret_se_remplit(connecte, entreprise,
+                                                   client_crm, cle):
+    """De bout en bout : installer, créer, désigner."""
+    from decimal import Decimal
+
+    from apps.btp.models import (
+        BTPProject, BTPQuote, ProjectStepItem, ProjectTemplate)
+
+    connecte.post(reverse('btp:template_install_starter'), {'cle': cle})
+    modele = ProjectTemplate.objects.get()
+
+    connecte.post(reverse('btp:project_create'), {
+        'name': 'Chantier avec devis', 'customer': client_crm.pk,
+        'status': 'study', 'start_date': '2026-05-04',
+        'estimated_budget': '0', 'retention_rate': '5',
+        'template': modele.pk,
+    })
+    chantier = BTPProject.objects.get(name='Chantier avec devis')
+    facture = BTPQuote.objects.create(
+        company=entreprise, project=chantier, customer=client_crm,
+        number='DEV-0100', total_ht=Decimal('7400.00'))
+
+    point = ProjectStepItem.objects.get(
+        step__project=chantier, answer_type='quote',
+        step__step_type='quote_validation')
+    reponse = connecte.post(reverse('btp:project_fill_all',
+                                    args=[chantier.pk]),
+                            {f'point_{point.pk}': facture.pk})
+    assert reponse.status_code == 302
+    point.refresh_from_db()
+    assert point.answer_quote == facture
+    assert point.reponse_affichable == 'DEV-0100 — 7400.00 € HT'
+
+
+def test_l_aide_du_modele_reste_affichee(connecte, chantier_avec_etapes):
+    """Le passage a `champ.help_text` ne doit pas perdre l'aide du modele.
+
+    Les deux sont egaux la plupart du temps -- le champ recoit celui du
+    point -- mais verifier le cas courant evite que la correction du cas
+    particulier casse le general.
+    """
+    from apps.btp.models import ProjectPlanStep, ProjectStepItem
+
+    etape = ProjectPlanStep.objects.get(
+        project=chantier_avec_etapes, name='Analyse sur place')
+    ProjectStepItem.objects.create(
+        step=etape, label='Avec une aide', answer_type='text',
+        help_text='Voici la precision attendue.', order=90)
+
+    for nom, args in [('btp:step_detail', [etape.pk]),
+                      ('btp:project_fill_all', [chantier_avec_etapes.pk])]:
+        corps = connecte.get(reverse(nom, args=args)).content.decode(
+            'utf-8', 'replace')
+        assert 'Voici la precision attendue.' in corps, nom

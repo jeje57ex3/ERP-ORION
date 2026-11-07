@@ -62,10 +62,42 @@
                   <i class="bi bi-exclamation-triangle text-warning ms-1" title="{% trans 'À renseigner' %}"></i>
                 {% endif %}
               </label>
-              {% if point.help_text %}<div class="form-text mb-2 mt-0">{{ point.help_text }}</div>{% endif %}
+              {% comment %}
+                `champ.help_text` et NON `point.help_text`. Les deux sont
+                égaux la plupart du temps — le champ reçoit celui du point —
+                mais le formulaire l'enrichit dans un cas : quand aucun
+                devis n'existe encore, il l'explique. Lire le point rendait
+                ce message invisible, et la liste vide passait pour un bug.
+              {% endcomment %}
+              {% if champ.help_text %}<div class="form-text mb-2 mt-0">{{ champ.help_text }}</div>{% endif %}
 
               {{ champ }}
               {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+
+              {% comment %}
+                Le lien vers la fiche désignée, c'est tout l'intérêt de
+                pointer un enregistrement plutôt que de recopier un
+                numéro : le devis et le fournisseur s'ouvrent d'un clic
+                depuis l'étape, sans passer par une recherche.
+              {% endcomment %}
+              {% if point.answer_quote %}
+              <div class="form-text mt-1">
+                <a href="{% url 'btp:quote_detail' point.answer_quote.pk %}">
+                  <i class="bi bi-file-text me-1"></i>{% trans "Ouvrir le devis" %} {{ point.answer_quote.number|default:"" }}
+                </a>
+                — {{ point.answer_quote.total_ht|floatformat:2 }} €&nbsp;HT
+                · {{ point.answer_quote.get_status_display }}
+              </div>
+              {% endif %}
+              {% if point.answer_supplier %}
+              <div class="form-text mt-1">
+                <a href="{% url 'purchases:supplier_detail' point.answer_supplier.pk %}">
+                  <i class="bi bi-truck me-1"></i>{% trans "Ouvrir la fiche fournisseur" %}
+                </a>
+                {% if point.answer_supplier.phone %}· {{ point.answer_supplier.phone }}{% endif %}
+                {% if point.answer_supplier.lead_time_days %}· {% blocktrans with d=point.answer_supplier.lead_time_days %}délai {{ d }} j{% endblocktrans %}{% endif %}
+              </div>
+              {% endif %}
 
               {% if point.answer_type == 'photo' and point.answer_photo %}
               <div class="mt-2">

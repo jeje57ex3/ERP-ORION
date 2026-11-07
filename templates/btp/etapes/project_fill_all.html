@@ -66,10 +66,27 @@
             {% endif %}
             {% if point.is_answered %}<i class="bi bi-check-circle-fill text-success ms-1" title="{% trans 'Renseigné' %}"></i>{% endif %}
           </label>
-          {% if point.help_text %}<div class="form-text mb-2 mt-0">{{ point.help_text }}</div>{% endif %}
+          {% comment %}
+            `champ.help_text` et non `point.help_text` : le formulaire
+            l'enrichit quand aucun devis n'existe, et lire le point rendait
+            ce message invisible.
+          {% endcomment %}
+          {% if champ.help_text %}<div class="form-text mb-2 mt-0">{{ champ.help_text }}</div>{% endif %}
 
           {{ champ }}
           {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+
+          {% if point.answer_quote %}
+          <div class="form-text mt-1">
+            <a href="{% url 'btp:quote_detail' point.answer_quote.pk %}"><i class="bi bi-file-text me-1"></i>{{ point.answer_quote.number|default:_("Devis") }}</a>
+            — {{ point.answer_quote.total_ht|floatformat:2 }} €&nbsp;HT
+          </div>
+          {% endif %}
+          {% if point.answer_supplier %}
+          <div class="form-text mt-1">
+            <a href="{% url 'purchases:supplier_detail' point.answer_supplier.pk %}"><i class="bi bi-truck me-1"></i>{{ point.answer_supplier.name }}</a>
+          </div>
+          {% endif %}
 
           {% if point.answer_type == 'photo' and point.answer_photo %}
           <div class="mt-2">

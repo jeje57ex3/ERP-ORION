@@ -202,9 +202,26 @@ class PointsDeLEtapeForm(forms.Form):
     donc ferait tout retaper, donc ferait inventer.
     """
 
-    def __init__(self, *args, points=None, **kwargs):
+    def __init__(self, *args, points=None, company=None, project=None,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.points = list(points or [])
+        self.company = company
+        self.project = project
+
+        # Les deux listes de fiches sont construites UNE fois, et pas une
+        # par point : un modèle peut citer le fournisseur dans trois étapes,
+        # et trois requêtes identiques n'apportent rien.
+        #
+        # `company=None` donne `none()` et non « tout ». Sans entreprise
+        # connue, le choix sûr est de ne rien proposer : ouvrir la liste
+        # entière exposerait les devis et les fournisseurs de toutes les
+        # sociétés.
+        self._devis = self._devis_de_l_entreprise()
+        self._fournisseurs = self._fournisseurs_de_l_entreprise()
+        # Compté UNE fois : `.exists()` dans la boucle repartirait en base
+        # à chaque point qui désigne un devis, et un modèle en cite deux.
+        self._il_y_a_des_devis = self._devis.exists()
 
         for point in self.points:
             cle = f'point_{point.pk}'
@@ -252,6 +269,28 @@ class PointsDeLEtapeForm(forms.Form):
                     **commun)
                 self.initial[cle] = point.answer_choice
 
+            elif point.answer_type == 'quote':
+                champ = forms.ModelChoiceField(
+                    queryset=self._devis,
+                    empty_label='— Aucun devis désigné —',
+                    widget=forms.Select(attrs={'class': 'form-select'}),
+                    **commun)
+                champ.label_from_instance = self._etiquette_du_devis
+                if not self._il_y_a_des_devis:
+                    champ.help_text = (
+                        (point.help_text + ' ') if point.help_text else ''
+                    ) + 'Aucun devis dans cette entreprise pour le moment.'
+                self.fields[cle] = champ
+                self.initial[cle] = point.answer_quote_id
+
+            elif point.answer_type == 'supplier':
+                self.fields[cle] = forms.ModelChoiceField(
+                    queryset=self._fournisseurs,
+                    empty_label='— Aucun fournisseur désigné —',
+                    widget=forms.Select(attrs={'class': 'form-select'}),
+                    **commun)
+                self.initial[cle] = point.answer_supplier_id
+
             elif point.answer_type == 'photo':
                 self.fields[cle] = forms.ImageField(
                     widget=forms.ClearableFileInput(attrs={
@@ -274,6 +313,60 @@ class PointsDeLEtapeForm(forms.Form):
                     'class': 'form-control form-control-sm',
                     'placeholder': 'Remarque…'}),
                 initial=point.comment)
+
+    def _devis_de_l_entreprise(self):
+        """Les devis proposables, ceux du chantier d'abord.
+
+        Bornés à l'ENTREPRISE et non au seul chantier, et c'est délibéré :
+        un devis est souvent établi avant d'être rattaché au chantier, et
+        un avenant peut vivre sur un autre chantier du même client. Le
+        borner au chantier rendrait la liste vide précisément quand on en
+        a besoin.
+
+        Ce qui doit être interdit, c'est le devis d'une AUTRE société, et
+        ça l'est. Pour que le reste se voie, chaque option porte son
+        chantier : choisir celui du voisin de palier devient visible.
+        """
+        from .models import BTPQuote
+
+        if self.company is None:
+            return BTPQuote.objects.none()
+
+        devis = (BTPQuote.objects
+                 .filter(company=self.company)
+                 .select_related('project', 'customer'))
+        if self.project is not None:
+            # Les devis de CE chantier remontent en tête de liste : c'est
+            # ce qu'on cherche neuf fois sur dix.
+            from django.db.models import Case, IntegerField, Value, When
+            devis = devis.annotate(
+                _priorite=Case(
+                    When(project=self.project, then=Value(0)),
+                    default=Value(1), output_field=IntegerField()),
+            ).order_by('_priorite', '-issue_date')
+        return devis
+
+    def _fournisseurs_de_l_entreprise(self):
+        if self.company is None:
+            from apps.purchases.models import Supplier
+            return Supplier.objects.none()
+        from apps.purchases.models import Supplier
+        return Supplier.objects.filter(
+            company=self.company, is_active=True).order_by('name')
+
+    @staticmethod
+    def _etiquette_du_devis(devis):
+        """« DEV-0012 — Mme Martin — 4 300,00 € HT — Rénovation Martin ».
+
+        `__str__` ne donne que le numéro et le client. Sans le chantier ni
+        le montant, deux devis du même client sont indiscernables dans la
+        liste — et l'on en choisit un au hasard.
+        """
+        morceaux = [devis.number or 'Devis sans numéro', devis.customer.name,
+                    f'{devis.total_ht:.2f} € HT']
+        if devis.project_id:
+            morceaux.append(devis.project.name)
+        return ' — '.join(morceaux)
 
     def champs_par_point(self):
         """Les paires (point, champ principal, champ commentaire).

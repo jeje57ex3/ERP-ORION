@@ -1301,6 +1301,13 @@ ANSWER_TYPE_CHOICES = [
     ('date', 'Date'),
     ('choice', 'Choix dans une liste'),
     ('photo', 'Photo'),
+    # Les deux derniers ne demandent pas de SAISIR une référence, ils
+    # demandent de DÉSIGNER une fiche de l'ERP. Un numéro de devis recopié
+    # à la main se trompe d'un chiffre, ne se clique pas, et ne se met pas
+    # à jour quand le devis change de numéro. Désigner la fiche donne le
+    # lien, le montant et le statut, et survit à la renumérotation.
+    ('quote', 'Devis de l\'entreprise'),
+    ('supplier', 'Fiche fournisseur'),
 ]
 
 
@@ -1374,6 +1381,23 @@ class ProjectStepItem(models.Model):
     answer_choice = models.CharField('Choix', max_length=250, blank=True)
     answer_photo = models.ImageField(
         'Photo', upload_to='btp/checklists/', null=True, blank=True)
+
+    # Deux réponses qui DÉSIGNENT une fiche au lieu d'en recopier le
+    # numéro. `related_name='+'` : ni un devis ni un fournisseur n'a
+    # besoin de lister les points de contrôle qui le citent, et un
+    # accesseur inverse de plus sur BTPQuote n'aiderait personne.
+    #
+    # SET_NULL et non PROTECT : supprimer un devis ne doit pas être
+    # empêché parce qu'une case de chantier le cite. La case redevient
+    # vide, donc « non renseigné », donc signalée — ce qui est le bon
+    # comportement : le devis n'existe plus, la réponse non plus.
+    answer_quote = models.ForeignKey(
+        'btp.BTPQuote', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Devis')
+    answer_supplier = models.ForeignKey(
+        'purchases.Supplier', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='+', verbose_name='Fiche fournisseur')
+
     comment = models.CharField('Commentaire', max_length=300, blank=True)
 
     filled_by = models.ForeignKey(
@@ -1412,6 +1436,12 @@ class ProjectStepItem(models.Model):
             return bool(self.answer_photo)
         if self.answer_type == 'choice':
             return bool(self.answer_choice)
+        # `_id` et non l'objet : tester la clé évite une requête, et
+        # surtout ne lève pas si la fiche visée a été supprimée.
+        if self.answer_type == 'quote':
+            return self.answer_quote_id is not None
+        if self.answer_type == 'supplier':
+            return self.answer_supplier_id is not None
         return bool((self.answer_text or '').strip())
 
     @property
@@ -1430,4 +1460,13 @@ class ProjectStepItem(models.Model):
             return 'Photo fournie'
         if self.answer_type == 'choice':
             return self.answer_choice
+        if self.answer_type == 'quote':
+            devis = self.answer_quote
+            if devis is None:
+                return ''
+            numero = devis.number or 'Devis sans numéro'
+            return f'{numero} — {devis.total_ht:.2f} € HT'
+        if self.answer_type == 'supplier':
+            fiche = self.answer_supplier
+            return fiche.name if fiche else ''
         return self.answer_text
