@@ -1,0 +1,53 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Appliquer un modèle" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card" style="max-width:720px">
+  <div class="orion-orion-card-header">
+    <h6 class="card-title mb-0"><i class="bi bi-list-check me-1 text-primary"></i>{% trans "Appliquer un modèle de chantier" %}</h6>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="p-3">
+      {% if a_deja_des_etapes %}
+      <div class="orion-alert warning mb-3">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {% trans "Ce chantier a déjà des étapes. Appliquer un modèle ne fera rien, sauf si vous cochez « Remplacer les étapes existantes » — ce qui supprimera aussi les réponses déjà saisies." %}
+      </div>
+      {% endif %}
+      {% if not project.start_date %}
+      <div class="orion-alert info mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        {% trans "Ce chantier n’a pas de date de début : les étapes seront créées sans date prévue. Renseignez la date de début d’abord pour qu’elles soient datées automatiquement." %}
+      </div>
+      {% endif %}
+          {% for champ in form %}
+          <div class="mb-3">
+            {% if champ.field.widget.input_type == 'checkbox' %}
+            <div class="form-check">
+              {{ champ }}
+              <label for="{{ champ.id_for_label }}" class="form-check-label">{{ champ.label }}</label>
+            </div>
+            {% else %}
+            <label for="{{ champ.id_for_label }}" class="form-label small fw-semibold">{{ champ.label }}</label>
+            {{ champ }}
+            {% endif %}
+            {% if champ.help_text %}<div class="form-text">{{ champ.help_text }}</div>{% endif %}
+            {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+          {% for erreur in form.non_field_errors %}<div class="orion-alert danger">{{ erreur }}</div>{% endfor %}
+    </div>
+    <div class="p-3 border-top d-flex gap-2">
+      <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Appliquer" %}</button>
+      <a href="{% url 'btp:project_planning' project.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

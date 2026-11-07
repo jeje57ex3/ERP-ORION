@@ -1,0 +1,71 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:template_list' %}">{% trans "Modèles de chantier" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Rechercher dans les points" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="erp-card mb-4">
+  <div class="p-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label for="q" class="form-label small fw-semibold">{% trans "La question contient" %}</label>
+        <input type="text" id="q" name="q" value="{{ q }}" class="form-control" placeholder="{% trans 'nacelle, accès, hauteur…' %}">
+      </div>
+      <div class="col-md-4">
+        <label for="reponse" class="form-label small fw-semibold">{% trans "Réponse (questions oui/non)" %}</label>
+        <select id="reponse" name="reponse" class="form-select">
+          <option value="">{% trans "— Toutes —" %}</option>
+          <option value="oui" {% if reponse == 'oui' %}selected{% endif %}>{% trans "Oui" %}</option>
+          <option value="non" {% if reponse == 'non' %}selected{% endif %}>{% trans "Non" %}</option>
+          <option value="vide" {% if reponse == 'vide' %}selected{% endif %}>{% trans "Non renseignée" %}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="orion-btn primary w-100"><i class="bi bi-search me-1"></i>{% trans "Chercher" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if q %}
+<div class="erp-card">
+  <div class="table-responsive">
+    <table class="table erp-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>{% trans "Chantier" %}</th>
+          <th>{% trans "Client" %}</th>
+          <th>{% trans "Étape" %}</th>
+          <th>{% trans "Question" %}</th>
+          <th>{% trans "Réponse" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for point in points %}
+        <tr>
+          <td><a href="{% url 'btp:project_detail' point.step.project.pk %}" class="fw-semibold text-dark text-decoration-none">{{ point.step.project.name }}</a></td>
+          <td class="small text-muted">{{ point.step.project.customer.name }}</td>
+          <td class="small"><a href="{% url 'btp:step_detail' point.step.pk %}" class="text-decoration-none">{{ point.step.name }}</a></td>
+          <td class="small">{{ point.label }}</td>
+          <td class="small fw-semibold">
+            {% if point.is_answered %}{{ point.reponse_affichable }}{% else %}<span class="text-muted fw-normal">{% trans "non renseignée" %}</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4 small">{% trans "Aucun point ne correspond." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="erp-card p-5 text-center">
+  <div class="mb-3"><i class="bi bi-search" style="font-size:2.5rem;opacity:.3"></i></div>
+  <h5>{% trans "Chercher un point dans tous les chantiers" %}</h5>
+  <p class="text-muted mb-0">{% trans "Par exemple « nacelle » avec la réponse « Oui », pour lister les chantiers qui en demandent une." %}</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="delete-confirm-card erp-card p-4 text-center">
+  <div class="mb-3"><i class="bi bi-copy" style="font-size:2.5rem;opacity:.4"></i></div>
+  <h4 class="mb-2">{% trans "Dupliquer ce modèle ?" %}</h4>
+  <p class="fw-semibold fs-5 mb-3">{{ modele.name }}</p>
+  <p class="text-muted mb-4">
+    {% trans "Les étapes et tous les points à remplir seront recopiés dans un nouveau modèle, que vous pourrez modifier librement." %}
+  </p>
+  <form method="post" class="d-flex gap-2 justify-content-center">
+    {% csrf_token %}
+    <a href="{% url 'btp:template_detail' modele.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-copy me-1"></i>{% trans "Dupliquer" %}</button>
+  </form>
+</div>
+{% endblock %}

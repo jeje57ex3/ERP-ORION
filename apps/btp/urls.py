@@ -4,6 +4,7 @@ from . import guided_quote_erp_views as gq
 from . import views_materials as vm
 from . import views_catalogue as vc
 from . import views_detection as vd
+from . import views_etapes as ve
 
 app_name = 'btp'
 
@@ -16,6 +17,51 @@ urlpatterns = [
     path('chantiers/<int:pk>/', views.project_detail, name='project_detail'),
     path('chantiers/<int:pk>/modifier/', views.project_edit, name='project_edit'),
     path('chantiers/<int:pk>/supprimer/', views.project_delete, name='project_delete'),
+
+    # ─── Étapes de chantier ──────────────────────────────────────────────────
+    # « etapes » et « modeles » ne sont pas des entiers : aucune de ces
+    # adresses ne peut être capturée par « chantiers/<int:pk>/ » plus haut.
+    path('chantiers/<int:pk>/etapes/', ve.project_planning,
+         name='project_planning'),
+    path('chantiers/<int:pk>/etapes/appliquer-un-modele/',
+         ve.project_apply_template, name='project_apply_template'),
+    path('chantiers/<int:pk>/etapes/ajouter/', ve.step_create,
+         name='step_create'),
+    path('etapes/<int:pk>/', ve.step_detail, name='step_detail'),
+    path('etapes/<int:pk>/supprimer/', ve.step_delete, name='step_delete'),
+    # La photo d'un point n'est pas servie par /media/ : voir
+    # apps/core/media_access.py.
+    path('points/<int:pk>/photo/', ve.step_item_photo, name='step_item_photo'),
+    path('points/rechercher/', ve.points_search, name='points_search'),
+
+    # ─── Modèles de chantier ─────────────────────────────────────────────────
+    path('modeles-de-chantier/', ve.template_list, name='template_list'),
+    path('modeles-de-chantier/nouveau/', ve.template_create,
+         name='template_create'),
+    path('modeles-de-chantier/installer/', ve.template_install_starter,
+         name='template_install_starter'),
+    path('modeles-de-chantier/<int:pk>/', ve.template_detail,
+         name='template_detail'),
+    path('modeles-de-chantier/<int:pk>/modifier/', ve.template_edit,
+         name='template_edit'),
+    path('modeles-de-chantier/<int:pk>/supprimer/', ve.template_delete,
+         name='template_delete'),
+    path('modeles-de-chantier/<int:pk>/dupliquer/', ve.template_duplicate,
+         name='template_duplicate'),
+    path('modeles-de-chantier/<int:pk>/etapes/ajouter/',
+         ve.template_step_create, name='template_step_create'),
+    path('modeles-de-chantier/etapes/<int:pk>/modifier/',
+         ve.template_step_edit, name='template_step_edit'),
+    path('modeles-de-chantier/etapes/<int:pk>/supprimer/',
+         ve.template_step_delete, name='template_step_delete'),
+    path('modeles-de-chantier/etapes/<int:pk>/deplacer/',
+         ve.template_step_move, name='template_step_move'),
+    path('modeles-de-chantier/etapes/<int:pk>/points/ajouter/',
+         ve.template_item_create, name='template_item_create'),
+    path('modeles-de-chantier/points/<int:pk>/modifier/',
+         ve.template_item_edit, name='template_item_edit'),
+    path('modeles-de-chantier/points/<int:pk>/supprimer/',
+         ve.template_item_delete, name='template_item_delete'),
 
     # BTP Quotes
     path('devis/', views.quote_list, name='quote_list'),

@@ -1,0 +1,129 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:template_list' %}">{% trans "Modèles de chantier" %}</a></li>
+<li class="breadcrumb-item active">{{ modele.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ modele.name }}</h1>
+      <div class="detail-meta">
+        {% if modele.is_default %}<span class="badge bg-primary-subtle text-primary-emphasis">{% trans "modèle par défaut" %}</span>{% endif %}
+        {% if not modele.is_active %}<span class="badge-status badge-pending">{% trans "Inactif" %}</span>{% endif %}
+        <span>{% blocktrans count n=modele.nombre_de_points %}{{ n }} point à remplir{% plural %}{{ n }} points à remplir{% endblocktrans %}</span>
+      </div>
+      {% if modele.description %}<p class="text-muted mb-0 mt-2">{{ modele.description }}</p>{% endif %}
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'btp:template_step_create' modele.pk %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter une étape" %}</a>
+      <a href="{% url 'btp:template_edit' modele.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}</a>
+      <a href="{% url 'btp:template_duplicate' modele.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-copy me-1"></i>{% trans "Dupliquer" %}</a>
+      <a href="{% url 'btp:template_list' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Retour" %}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% if etapes %}
+{% for etape in etapes %}
+<div class="erp-card mb-3">
+  <div class="orion-orion-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h6 class="card-title mb-0">
+      <span class="text-muted me-2">{{ forloop.counter }}.</span>{{ etape.name }}
+      <span class="badge bg-secondary-subtle text-secondary-emphasis ms-2" style="font-weight:500">{{ etape.get_step_type_display }}</span>
+      {% if etape.offset_days != None %}
+        {% comment %}
+          Pas de blocktrans count ici : un décalage peut être négatif — une
+          visite technique a lieu AVANT le début des travaux — et « J+-3 »
+          ne se lit pas. On écrit le signe à la main.
+        {% endcomment %}
+        <span class="small text-muted ms-2">
+          {% if etape.offset_days < 0 %}J{{ etape.offset_days }}{% else %}J+{{ etape.offset_days }}{% endif %}
+        </span>
+      {% endif %}
+      {% if etape.visible_to_client %}<i class="bi bi-eye text-success ms-2" title="{% trans 'Visible par le client' %}"></i>{% endif %}
+      {% if etape.client_can_validate %}<i class="bi bi-check2-square text-primary ms-1" title="{% trans 'Le client peut valider' %}"></i>{% endif %}
+    </h6>
+    <div class="d-flex gap-1">
+      <form method="post" action="{% url 'btp:template_step_move' etape.pk %}" class="d-inline">
+        {% csrf_token %}<input type="hidden" name="sens" value="haut">
+        <button type="submit" class="btn btn-sm btn-outline-secondary" title="{% trans 'Monter' %}"{% if forloop.first %} disabled{% endif %}><i class="bi bi-arrow-up"></i></button>
+      </form>
+      <form method="post" action="{% url 'btp:template_step_move' etape.pk %}" class="d-inline">
+        {% csrf_token %}<input type="hidden" name="sens" value="bas">
+        <button type="submit" class="btn btn-sm btn-outline-secondary" title="{% trans 'Descendre' %}"{% if forloop.last %} disabled{% endif %}><i class="bi bi-arrow-down"></i></button>
+      </form>
+      <a href="{% url 'btp:template_item_create' etape.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Point" %}</a>
+      <a href="{% url 'btp:template_step_edit' etape.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+      <form method="post" action="{% url 'btp:template_step_delete' etape.pk %}" class="d-inline"
+            onsubmit="return confirm('{% trans "Supprimer cette étape du modèle et ses points ?" %}');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+      </form>
+    </div>
+  </div>
+
+  {% if etape.items.all %}
+  <div class="table-responsive">
+    <table class="table erp-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>{% trans "Question" %}</th>
+          <th>{% trans "Type de réponse" %}</th>
+          <th>{% trans "Important" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for point in etape.items.all %}
+        <tr>
+          <td>
+            {{ point.label }}
+            {% if point.help_text %}<div class="small text-muted">{{ point.help_text }}</div>{% endif %}
+            {% if point.answer_type == 'choice' and point.options %}
+            <div class="small text-muted">{% for option in point.options %}<span class="badge bg-light text-dark border me-1">{{ option }}</span>{% endfor %}</div>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ point.get_answer_type_display }}{% if point.unit %} ({{ point.unit }}){% endif %}
+          </td>
+          <td>{% if point.is_required %}<i class="bi bi-exclamation-triangle text-warning"></i>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="text-end">
+            <a href="{% url 'btp:template_item_edit' point.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'btp:template_item_delete' point.pk %}" class="d-inline"
+                  onsubmit="return confirm('{% trans "Supprimer ce point du modèle ?" %}');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="p-3">
+    <p class="text-muted small mb-0">
+      {% trans "Aucun point à remplir dans cette étape." %}
+      <a href="{% url 'btp:template_item_create' etape.pk %}">{% trans "En ajouter un" %}</a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="erp-card p-5 text-center">
+  <div class="mb-3"><i class="bi bi-diagram-3" style="font-size:2.5rem;opacity:.3"></i></div>
+  <h5>{% trans "Ce modèle n’a pas encore d’étapes" %}</h5>
+  <p class="text-muted">{% trans "Commencez par « Analyse sur place », puis « Commande du matériel » — et mettez dans chacune les points à ne pas oublier." %}</p>
+  <a href="{% url 'btp:template_step_create' modele.pk %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>{% trans "Ajouter la première étape" %}</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="delete-confirm-card erp-card p-4 text-center">
+  <div class="delete-confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+  <h4 class="mb-2">{% trans "Supprimer ce modèle de chantier ?" %}</h4>
+  <p class="fw-semibold fs-5 mb-3">{{ modele.name }}</p>
+  <div class="orion-alert info text-start mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    {% trans "Les chantiers déjà créés ne sont PAS touchés : leurs étapes et leurs réponses sont des copies, indépendantes du modèle. Seul le modèle disparaît, avec ses étapes et ses questions — vous ne pourrez plus l’appliquer à un nouveau chantier." %}
+  </div>
+  <form method="post" class="d-flex gap-2 justify-content-center">
+    {% csrf_token %}
+    <a href="{% url 'btp:template_detail' modele.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+    <button type="submit" class="orion-btn danger"><i class="bi bi-trash me-1"></i>{% trans "Supprimer définitivement" %}</button>
+  </form>
+</div>
+{% endblock %}

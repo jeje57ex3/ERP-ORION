@@ -1,0 +1,131 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_planning' project.pk %}">{% trans "Étapes" %}</a></li>
+<li class="breadcrumb-item active">{{ etape.name }}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <h1 class="detail-title">{{ etape.name }}</h1>
+      <div class="detail-meta">
+        <span class="badge-status badge-{{ etape.status }}">{{ etape.get_status_display }}</span>
+        <span>{{ etape.get_step_type_display }}</span>
+        <span><i class="bi bi-building me-1"></i>{{ project.name }}</span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <a href="{% url 'btp:project_planning' project.pk %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-arrow-left me-1"></i>{% trans "Toutes les étapes" %}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% comment %}
+  Les deux formulaires sont postés ENSEMBLE, dans un seul form. Une visite
+  sur place se saisit d'un trait : séparer « l'étape » de « ses points »
+  obligerait à deux enregistrements, carnet en main sur un chantier.
+{% endcomment %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="erp-card">
+        <div class="orion-orion-card-header">
+          <h6 class="card-title mb-0"><i class="bi bi-ui-checks me-1 text-primary"></i>{% trans "Points à remplir" %}</h6>
+        </div>
+        <div class="p-3">
+          {% if form_points.points %}
+            {% for point, champ, commentaire in form_points.champs_par_point %}
+            <div class="mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+              <label for="{{ champ.id_for_label }}" class="form-label fw-semibold mb-1">
+                {{ champ.label }}
+                {% if point.is_required %}
+                  {% comment %}
+                    Marqué « important » et non « obligatoire » : le champ
+                    n'est pas required côté formulaire, et écrire le
+                    contraire mentirait sur ce que le bouton va faire.
+                  {% endcomment %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis ms-1" style="font-weight:500">{% trans "important" %}</span>
+                {% endif %}
+                {% if point.is_answered %}
+                  <i class="bi bi-check-circle-fill text-success ms-1" title="{% trans 'Renseigné' %}"></i>
+                {% elif point.is_required %}
+                  <i class="bi bi-exclamation-triangle text-warning ms-1" title="{% trans 'À renseigner' %}"></i>
+                {% endif %}
+              </label>
+              {% if point.help_text %}<div class="form-text mb-2 mt-0">{{ point.help_text }}</div>{% endif %}
+
+              {{ champ }}
+              {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+
+              {% if point.answer_type == 'photo' and point.answer_photo %}
+              <div class="mt-2">
+                <a href="{% url 'btp:step_item_photo' point.pk %}" target="_blank" rel="noopener">
+                  <img src="{% url 'btp:step_item_photo' point.pk %}" alt="{{ point.label }}"
+                       class="rounded border" style="max-height:140px">
+                </a>
+                <div class="form-text">{% trans "Déposer un nouveau fichier remplacera cette photo." %}</div>
+              </div>
+              {% endif %}
+
+              <div class="mt-2">{{ commentaire }}</div>
+
+              {% if point.filled_at %}
+              <div class="form-text mt-1">
+                <i class="bi bi-clock-history me-1"></i>{{ point.filled_at|date:"d/m/Y à H:i" }}{% if point.filled_by %} — {{ point.filled_by.get_full_name|default:point.filled_by.username }}{% endif %}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+          <p class="text-muted mb-0 small">
+            {% trans "Cette étape n’a aucun point à remplir. Les points viennent du modèle de chantier." %}
+            <a href="{% url 'btp:template_list' %}">{% trans "Voir les modèles" %}</a>
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="erp-card">
+        <div class="orion-orion-card-header">
+          <h6 class="card-title mb-0"><i class="bi bi-sliders me-1 text-primary"></i>{% trans "L’étape" %}</h6>
+        </div>
+        <div class="p-3">
+          {% for champ in form_etape %}
+          <div class="mb-3">
+            {% if champ.field.widget.input_type == 'checkbox' %}
+            <div class="form-check">
+              {{ champ }}
+              <label for="{{ champ.id_for_label }}" class="form-check-label">{{ champ.label }}</label>
+            </div>
+            {% else %}
+            <label for="{{ champ.id_for_label }}" class="form-label small fw-semibold">{{ champ.label }}</label>
+            {{ champ }}
+            {% endif %}
+            {% if champ.help_text %}<div class="form-text">{{ champ.help_text }}</div>{% endif %}
+            {% for erreur in champ.errors %}<div class="invalid-feedback d-block">{{ erreur }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="orion-btn primary"><i class="bi bi-check-circle me-1"></i>{% trans "Enregistrer" %}</button>
+    <a href="{% url 'btp:project_planning' project.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>{% trans "Annuler" %}</a>
+  </div>
+</form>
+
+{% endblock %}

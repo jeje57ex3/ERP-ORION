@@ -1,0 +1,83 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Modèles de chantier" %}</li>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'btp:points_search' %}" class="btn btn-outline-secondary orion-btn sm"><i class="bi bi-search me-1"></i>{% trans "Rechercher dans les points" %}</a>
+<a href="{% url 'btp:template_create' %}" class="orion-btn primary orion-btn sm"><i class="bi bi-plus-circle me-1"></i>{% trans "Nouveau modèle" %}</a>
+{% endblock %}
+
+{% block content %}
+{% include "btp/_subnav.html" %}
+
+<div class="orion-alert info mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  {% trans "Un modèle décrit les étapes d’un type de chantier et, dans chaque étape, les points à vérifier — accès camion, besoin d’une nacelle, hauteur sous plafond. Il est recopié dans chaque nouveau chantier : le retoucher ensuite ne modifie pas les chantiers déjà créés." %}
+</div>
+
+{% if modeles %}
+<div class="erp-card">
+  <div class="table-responsive">
+    <table class="table erp-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>{% trans "Modèle" %}</th>
+          <th class="text-end">{% trans "Étapes" %}</th>
+          <th class="text-end">{% trans "Points" %}</th>
+          <th>{% trans "État" %}</th>
+          <th class="text-end">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for modele in modeles %}
+        <tr>
+          <td>
+            <a href="{% url 'btp:template_detail' modele.pk %}" class="fw-semibold text-dark text-decoration-none">{{ modele.name }}</a>
+            {% if modele.is_default %}<span class="badge bg-primary-subtle text-primary-emphasis ms-1">{% trans "par défaut" %}</span>{% endif %}
+            {% if modele.description %}<div class="small text-muted">{{ modele.description|truncatechars:90 }}</div>{% endif %}
+          </td>
+          <td class="text-end small">{{ modele.nb_etapes }}</td>
+          <td class="text-end small">{{ modele.nombre_de_points }}</td>
+          <td>
+            {% if modele.is_active %}<span class="badge-status badge-active">{% trans "Actif" %}</span>
+            {% else %}<span class="badge-status badge-pending">{% trans "Inactif" %}</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'btp:template_detail' modele.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Étapes et points' %}"><i class="bi bi-list-check"></i></a>
+            <a href="{% url 'btp:template_edit' modele.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Modifier' %}"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'btp:template_duplicate' modele.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Dupliquer' %}"><i class="bi bi-copy"></i></a>
+            <a href="{% url 'btp:template_delete' modele.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Supprimer' %}"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="erp-card p-5 text-center">
+  <div class="mb-3"><i class="bi bi-list-check" style="font-size:2.5rem;opacity:.3"></i></div>
+  <h5>{% trans "Aucun modèle de chantier" %}</h5>
+  <p class="text-muted">{% trans "Écrivez-en un une fois, et chaque nouveau chantier partira avec ses étapes et ses points à vérifier." %}</p>
+  <div class="d-flex gap-2 justify-content-center flex-wrap">
+    {% comment %}
+      Le modèle prêt à l'emploi en premier : un modèle utile fait une
+      quarantaine de questions, et commencer par un écran vide décourage.
+    {% endcomment %}
+    <form method="post" action="{% url 'btp:template_install_starter' %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="cle" value="electricite">
+      <button type="submit" class="orion-btn primary"><i class="bi bi-download me-1"></i>{% trans "Installer le modèle Électricité" %}</button>
+    </form>
+    <a href="{% url 'btp:template_create' %}" class="btn btn-outline-secondary"><i class="bi bi-plus-circle me-1"></i>{% trans "Partir d’un modèle vide" %}</a>
+  </div>
+  <p class="form-text mt-3 mb-0">
+    {% trans "Le modèle Électricité contient onze étapes — de la visite technique à la réception — et une cinquantaine de points, dont l’accès camionnette, le besoin d’une nacelle et la hauteur sous plafond. Il est modifiable de bout en bout une fois installé." %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}
