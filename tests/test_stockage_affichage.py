@@ -188,6 +188,34 @@ def test_le_bouton_preparer_apparait_pour_un_disque_utilisable(
 
 
 @pytest.mark.django_db
+def test_aucun_commentaire_de_gabarit_ne_fuit_dans_la_page(
+        client, django_user_model, monkeypatch):
+    """Le formulaire affichait en clair le commentaire du développeur.
+
+    « {# … #} » étalé sur trois lignes n'est pas un commentaire pour
+    Django : son texte est rendu. Il apparaissait entre la phrase
+    d'avertissement et le bouton, au milieu du seul formulaire de cette
+    page qui efface un disque.
+
+    Le contrôle porte sur le HTML rendu et non sur le fichier : c'est
+    `tests/test_gabarits_sains.py` qui garde la syntaxe, mais lui ne
+    regardait pas les gabarits des apps — d'où ce test de plus, ici, sur
+    l'écran lui-même.
+    """
+    _assistant_qui_repond(monkeypatch)
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert 'Préparer et monter' in contenu, 'le formulaire doit être rendu'
+    assert '{#' not in contenu
+    assert '#}' not in contenu
+    assert 'numero de serie AFFICHE' not in contenu
+    assert '{% comment %}' not in contenu
+    assert '{% endcomment %}' not in contenu
+
+
+@pytest.mark.django_db
 def test_sans_assistant_aucun_disque_n_est_liste(
         client, django_user_model, monkeypatch):
     """L'état d'avant l'installation : bandeau, aucun disque, aucun bouton."""
