@@ -53,6 +53,88 @@
 {% endfor %}
 {% endif %}
 
+{% comment %}
+  Mise à jour par le SERVICE SYSTÈME, placée en tête parce qu'elle doit être
+  le chemin par défaut.
+
+  Le bouton « Lancer la mise à jour » ci-dessus confie le travail à Django :
+  il lit la base avant tout, tourne dans gunicorn et sous un compte non
+  administrateur. Les trois l'empêchent de fonctionner précisément quand il
+  faut déployer un correctif — base tombée, backend tué par manque de
+  mémoire, ou droits root nécessaires pour rafraîchir sudoers et les
+  assistants privilégiés.
+
+  Cette carte-ci déclenche une unité systemd. L'état affiché est lu sur le
+  DISQUE et auprès de systemd, jamais en base : il reste donc consultable
+  quand MySQL est en panne.
+{% endcomment %}
+<div class="orion-card mb-4">
+  <div class="orion-orion-orion-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h2 style="font-size:15px;font-weight:600;margin:0">
+      <i class="bi bi-shield-check me-2"></i>{% trans "Mise à jour par le service système" %}
+      <span class="badge bg-success-subtle text-success-emphasis ms-2" style="font-weight:500">{% trans "recommandé" %}</span>
+    </h2>
+    {% if service_maj.disponible %}
+      {% if service_maj.en_cours %}
+        <span class="text-muted small">
+          <i class="bi bi-hourglass-split me-1"></i>{% trans "En cours — rechargez cette page pour suivre." %}
+        </span>
+      {% else %}
+        <form method="post" action="{% url 'system_updates:maj_par_le_service' %}" class="m-0">
+          {% csrf_token %}
+          <button type="submit" class="orion-btn primary">
+            <i class="bi bi-cloud-download me-1"></i>{% trans "Lancer par le service système" %}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="p-3">
+    {% if not service_maj.disponible %}
+      <div class="orion-alert warning mb-0 small">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        {% blocktrans with unite=service_maj.unite %}L'unité {{ unite }} n'est pas installée sur cette machine. Elle est livrée par le dépôt et posée par update_orion.sh, qu'il faut lancer une fois en root depuis l'hyperviseur.{% endblocktrans %}
+      </div>
+    {% else %}
+      <p class="text-muted small mb-3">
+        {% blocktrans %}La mise à jour tourne en root, détachée de cette page : elle survit à la fermeture de l'onglet et à un redémarrage de l'ERP. Elle peut aussi se déclencher sans interface web, depuis l'hyperviseur.{% endblocktrans %}
+      </p>
+
+      <div class="row g-3 small">
+        <div class="col-md-4">
+          <div class="text-muted">{% trans "État systemd" %}</div>
+          <code>{{ service_maj.etat_systemd|default:"—" }}</code>
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted">{% trans "Dernière étape connue" %}</div>
+          <code>{{ service_maj.derniere_etape|default:"—" }}</code>
+          {% if service_maj.dernier_code is not None %}
+            <span class="ms-1">({% trans "code" %} {{ service_maj.dernier_code }})</span>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <div class="text-muted">{% trans "Horodatage" %}</div>
+          <code>{{ service_maj.dernier_horodatage|default:"—" }}</code>
+        </div>
+      </div>
+
+      {% if service_maj.derniere_etape == "refusee" %}
+      <div class="orion-alert warning mt-3 mb-0 small">
+        <i class="bi bi-shield-exclamation me-2"></i>
+        {% blocktrans %}La dernière tentative a été REFUSÉE avant toute modification : espace disque ou mémoire insuffisants. Rien n'a été changé. Le motif exact est dans le journal.{% endblocktrans %}
+      </div>
+      {% endif %}
+
+      <div class="mt-3 small text-muted">
+        <div>{% trans "Journal complet :" %} <code>journalctl -u orion-update</code></div>
+        <div>{% trans "État sans l'interface :" %} <code>cat {{ service_maj.fichier }}</code></div>
+        <div>{% trans "Déclencher sans l'interface :" %} <code>systemctl start {{ service_maj.unite }}</code></div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
 {% if running %}
 <div class="orion-alert warning mb-3">
   <i class="bi bi-hourglass-split me-2"></i>

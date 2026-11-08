@@ -1,0 +1,47 @@
+# Orion ERP — droit de DÉCLENCHER la mise à jour système depuis l'interface.
+#
+# À installer dans /etc/sudoers.d/orion-maj, propriétaire root:root, en mode
+# 0440. Le fichier doit être validé par « visudo -c » AVANT d'être mis en
+# place : un fichier malformé dans /etc/sudoers.d/ casse sudo pour TOUT LE
+# MONDE, y compris pour le réparer.
+#
+# POURQUOI CE FICHIER EXISTE
+#
+# Le bouton de mise à jour de l'ERP faisait le travail lui-même, dans un
+# worker gunicorn, sous l'utilisateur « orion ». Trois conséquences, toutes
+# constatées sur l'appliance :
+#
+#   - sous « orion », la mise à jour ne pouvait pas rafraîchir les paquets
+#     apt, les règles sudoers, /usr/local/sbin/orion-stockage ni les unités
+#     systemd. L'assistant de préparation des disques est ainsi resté absent
+#     d'une machine pourtant mise à jour plusieurs fois ;
+#   - dans gunicorn, un backend tué par manque de mémoire emportait la mise
+#     à jour en cours ;
+#   - et tout cela exigeait que l'interface web réponde.
+#
+# Avec cette règle, le bouton ne fait plus que DÉCLENCHER l'unité systemd.
+# Le travail passe en root, détaché de la requête HTTP, et la même mise à
+# jour se lance aussi bien sans interface web :
+#
+#     systemctl start orion-update.service
+#
+# AUCUN JOKER. La règle autorise une chaîne exacte, « start » sur une unité
+# nommée, et rien d'autre : ni stop, ni une autre unité, ni daemon-reload.
+# Un motif « systemctl * » aurait donné à « orion » le contrôle de tous les
+# services de la machine — c'est-à-dire la racine par un autre chemin.
+#
+# Les deux emplacements de systemctl sont autorisés parce qu'ils existent
+# selon les distributions, et que la règle sudoers doit correspondre au
+# chemin ABSOLU réellement appelé : « sudo systemctl » tout court dépendrait
+# du PATH du processus, que systemd ne garantit pas.
+#
+# LIRE l'état ne demande aucun droit : « systemctl is-active » répond à tout
+# le monde, et l'avancement détaillé est dans /opt/orion/logs/maj-etat.json.
+# Rien n'est donc accordé pour la consultation.
+#
+# La liste vit aussi dans apps/system_updates/service_maj.py, et un test
+# compare les deux. Si elles divergent, le bouton cesse de fonctionner sans
+# que rien ne le signale.
+
+orion ALL=(root) NOPASSWD: /bin/systemctl start orion-update.service
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl start orion-update.service

@@ -1,0 +1,60 @@
+[Unit]
+# Mise à jour complète de l'appliance, DÉTACHÉE de l'interface web.
+#
+# Pourquoi cette unité existe. Le mécanisme applicatif
+# (`manage.py run_system_update`, declenché par le bouton de l'ERP) cumule
+# quatre dépendances qui le rendent indisponible précisément quand on a
+# besoin de déployer un correctif :
+#
+#   1. sa PREMIÈRE instruction est une lecture en base (SystemUpdateSettings),
+#      donc il ne démarre pas si MySQL est tombé ;
+#   2. il tourne dans un worker gunicorn : un `orion-backend` tué par manque
+#      de mémoire emporte la mise à jour en cours de route ;
+#   3. il tourne sous l'utilisateur « orion », qui n'est pas administrateur :
+#      il ne peut donc rafraîchir ni les paquets apt, ni /etc/sudoers.d/, ni
+#      /usr/local/sbin/orion-stockage, ni les unités systemd. C'est ainsi que
+#      l'assistant de préparation des disques est resté absent d'une machine
+#      pourtant « à jour » ;
+#   4. il a besoin que l'interface web réponde.
+#
+# Lancée par systemd, la mise à jour survit à un redémarrage du backend, à un
+# onglet fermé et à un « qm guest exec » interrompu ; elle tourne en root ; et
+# elle se déclenche sans que Django ni la base soient en état :
+#
+#     systemctl start orion-update.service
+#
+# Depuis l'hyperviseur, sans session dans la VM :
+#     qm guest exec <vmid> --timeout 60 -- systemctl start orion-update.service
+#
+# Le journal est dans journalctl -u orion-update, et survit donc à un
+# redémarrage. L'avancement lisible sans la base est dans
+# /opt/orion/logs/maj-etat.json, écrit par le script lui-même.
+Description=Orion ERP — Mise à jour complète (script root, hors interface web)
+Documentation=file:/opt/orion/backend/deployment/proxmox-appliance/docs/PROXMOX.md
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# --direct : aucune dépendance à la base ni au mécanisme applicatif. C'est
+# tout l'intérêt de passer par ici plutôt que par le bouton de l'ERP.
+ExecStart=/opt/orion/scripts/update_orion.sh --direct
+
+# Large à dessein : apt, pip, les migrations et trois builds npm. Mesuré
+# entre 8 et 25 minutes selon l'ampleur. Un délai trop court tuerait la mise
+# à jour au milieu d'un build, c'est-à-dire dans l'état le plus pénible à
+# rattraper.
+TimeoutStartSec=5400
+
+# Pas de Restart : une mise à jour qui échoue doit être LUE, pas rejouée en
+# boucle. Une reprise automatique sur un disque plein ferait trois fois les
+# mêmes dégâts.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orion-update
+
+# AUCUNE section [Install], et c'est voulu : cette unité ne doit pas être
+# activée au démarrage. Elle se lance à la demande, jamais d'elle-même. Une
+# mise à jour non surveillée d'un ERP en production, c'est se réveiller
+# devant un système cassé sans savoir ce qui a changé.

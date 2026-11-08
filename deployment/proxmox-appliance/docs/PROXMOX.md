@@ -228,6 +228,80 @@ fichier de credentials) plutôt qu'un tunnel à token géré depuis le dashboard
 Remplacer les `__*_DOMAIN__` par les domaines réels et l'utiliser comme
 `/etc/cloudflared/config.yml`.
 
+## Mettre à jour sans passer par l'interface web
+
+L'interface web ne doit **jamais** être une dépendance de la mise à jour.
+Elle l'était, et cela se payait : le mécanisme applicatif
+(`manage.py run_system_update`, derrière le bouton de l'ERP) lit la base
+avant tout, tourne dans un worker gunicorn, et sous l'utilisateur `orion`
+qui n'est pas administrateur. Donc indisponible quand MySQL est tombé,
+interrompu si le backend est tué faute de mémoire, et incapable de
+rafraîchir les paquets apt, `/etc/sudoers.d/`, `/usr/local/sbin/` ou les
+unités systemd — c'est ainsi que l'assistant de préparation des disques est
+resté absent d'une machine pourtant mise à jour plusieurs fois.
+
+La mise à jour est donc portée par une unité systemd, qui appelle le script
+root. Depuis l'hyperviseur, sans session dans la VM et sans que Django ni la
+base soient en état :
+
+```bash
+qm guest exec <vmid> --timeout 60 -- systemctl start orion-update.service
+```
+
+Elle tourne en root, détachée de toute requête HTTP et de toute session :
+elle survit à un onglet fermé, à un redémarrage du backend et à un
+`qm guest exec` interrompu. Elle n'est **pas** activée au démarrage et ne se
+lance jamais d'elle-même.
+
+Suivre son avancement, sans la base :
+
+```bash
+qm guest exec <vmid> --timeout 60 -- cat /opt/orion/logs/maj-etat.json
+qm guest exec <vmid> --timeout 60 -- journalctl -u orion-update -n 60 --no-pager
+```
+
+Le fichier d'état porte l'étape, le mode, le code de sortie et l'horodatage.
+Il est écrit par un piège sur `EXIT`, pour qu'une mise à jour tuée en route
+n'y reste pas marquée « en cours ».
+
+### Le contrôle préalable
+
+Le script refuse de commencer si la machine ne peut pas encaisser le
+travail — moins de 2 Go libres sur `/`, ou moins de 600 Mo de mémoire
+disponible :
+
+```
+[0/6] Controle prealable : 1400 Mo libres sur /, 420 Mo de memoire disponible.
+  ECHEC: moins de 2048 Mo libres sur /. ...
+  Mise a jour NON DEMARREE : rien n'a ete modifie.
+```
+
+C'est voulu : un refus net ne laisse rien à rattraper, contrairement à un
+échec au milieu d'un `apt upgrade` ou d'un `CREATE TABLE`. Les deux pannes
+de mise à jour de cette appliance sont arrivées sur une machine à 85 % de
+disque et à bout de mémoire.
+
+### Première mise en route
+
+L'unité et la règle sudo sont posées par le provisioning et rafraîchies par
+`update_orion.sh`. Sur une appliance installée avant leur arrivée, il faut
+donc **un premier lancement en root** pour les installer :
+
+```bash
+qm guest exec <vmid> --timeout 60 -- /bin/bash -lc 'nohup /opt/orion/scripts/update_orion.sh --direct > /opt/orion/logs/maj-manuelle.log 2>&1 & echo lancee'
+```
+
+Ensuite seulement, `systemctl start orion-update.service` et le bouton de
+l'ERP existent.
+
+### Le bouton de l'ERP
+
+Il ne fait plus le travail : il déclenche l'unité, puis rend la main. La page
+affiche l'état lu sur le disque et auprès de systemd, jamais en base. Le
+droit correspondant est une règle sudo **exacte**, sans joker, dans
+`sudoers/orion-maj` — un motif `systemctl *` donnerait à `orion` le contrôle
+de tous les services de la machine.
+
 ## IP statique (au lieu de DHCP)
 
 Après import, avant le premier démarrage :

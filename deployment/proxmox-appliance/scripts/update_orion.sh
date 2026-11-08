@@ -62,6 +62,111 @@ done
 normaliser_env "$ENV_FILE"
 charger_env "$ENV_FILE"
 
+# ─── Avancement lisible SANS la base et SANS l'interface web ────────────────
+#
+# Le bouton de l'ERP lisait son avancement dans SystemUpdateRun, donc en
+# base. C'est exactement ce qu'on ne peut plus consulter quand MySQL est
+# tombé — c'est-à-dire au moment où l'on a le plus besoin de savoir où en
+# est la mise à jour. Ce fichier-ci est écrit en clair par le script, et se
+# lit depuis l'hyperviseur sans rien démarrer :
+#
+#     qm guest exec <vmid> -- cat /opt/orion/logs/maj-etat.json
+#
+# Les échecs d'écriture sont ignorés volontairement : ne pas pouvoir noter
+# l'état ne doit jamais empêcher la mise à jour elle-même.
+FICHIER_ETAT="$ORION_HOME/logs/maj-etat.json"
+
+noter_etat() {
+  mkdir -p "$(dirname "$FICHIER_ETAT")" 2>/dev/null || true
+  printf '{"etape": "%s", "mode": "%s", "code": %s, "horodatage": "%s"}\n' \
+    "$1" "$MODE" "${2:-null}" "$(date -u +%FT%TZ)" \
+    > "$FICHIER_ETAT" 2>/dev/null || true
+  chmod 0644 "$FICHIER_ETAT" 2>/dev/null || true
+}
+
+# Le code de sortie est relevé par un piège sur EXIT, et non écrit à la fin
+# du script : une mise à jour tuée en route (mémoire épuisée, délai systemd
+# dépassé) ne serait jamais passée par la dernière ligne, et le fichier
+# d'état aurait indiqué « en cours » indéfiniment.
+sur_sortie() {
+  local code=$?
+  if [ "$code" -eq 0 ]; then
+    noter_etat 'terminee' 0
+  else
+    noter_etat 'echouee' "$code"
+  fi
+}
+trap sur_sortie EXIT
+
+# ─── Contrôle préalable : refuser AVANT de modifier quoi que ce soit ────────
+#
+# Les deux mises à jour qui ont échoué sur cette appliance l'ont fait sur une
+# machine à 85 % de disque et à bout de mémoire. L'une a laissé une migration
+# à mi-chemin, dans un état qui bloquait toutes les suivantes. Rien n'avait
+# vérifié que la machine pouvait encaisser le travail.
+#
+# Un refus net AVANT la première modification vaut infiniment mieux qu'un
+# échec au milieu d'un `apt upgrade` ou d'un `CREATE TABLE` : il n'y a rien
+# à rattraper, et le message dit quoi libérer.
+#
+# Les seuils bloquants sont bas à dessein : ils marquent le point où la mise
+# à jour ÉCHOUERA de toute façon, pas le point où elle devient inconfortable.
+# L'inconfort, lui, est signalé sans bloquer — c'est à l'exploitant de juger.
+MINI_DISQUE_MO=2048
+ALERTE_DISQUE_MO=8192
+MINI_MEMOIRE_MO=600
+ALERTE_MEMOIRE_MO=1500
+
+verifier_avant_de_commencer() {
+  local libre_mo memoire_mo refus=0
+
+  libre_mo="$(df -BM --output=avail / 2>/dev/null | tail -1 | tr -dc '0-9')"
+  memoire_mo="$(awk '/^MemAvailable:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null)"
+  [ -n "$libre_mo" ]   || libre_mo=0
+  [ -n "$memoire_mo" ] || memoire_mo=0
+
+  echo "[0/6] Controle prealable : ${libre_mo} Mo libres sur /, ${memoire_mo} Mo de memoire disponible."
+
+  if [ "$libre_mo" -lt "$MINI_DISQUE_MO" ]; then
+    echo "  ECHEC: moins de ${MINI_DISQUE_MO} Mo libres sur /. La mise a jour" >&2
+    echo "         echouerait en cours de route. Liberez de la place :" >&2
+    echo "         journalctl --vacuum-size=200M ; docker image prune -af" >&2
+    refus=1
+  elif [ "$libre_mo" -lt "$ALERTE_DISQUE_MO" ]; then
+    echo "  ATTENTION: ${libre_mo} Mo libres seulement. apt, pip et trois" >&2
+    echo "             builds npm en consomment plusieurs milliers." >&2
+  fi
+
+  if [ "$memoire_mo" -lt "$MINI_MEMOIRE_MO" ]; then
+    echo "  ECHEC: ${memoire_mo} Mo de memoire disponible. Le tueur de memoire" >&2
+    echo "         du noyau interromprait la migration ou un build." >&2
+    refus=1
+  elif [ "$memoire_mo" -lt "$ALERTE_MEMOIRE_MO" ]; then
+    echo "  ATTENTION: ${memoire_mo} Mo de memoire disponible, c'est juste." >&2
+  fi
+
+  # Sonde informative, JAMAIS bloquante : « --direct » existe précisément
+  # pour tourner quand la base est en panne, et actualiser le code et les
+  # frontends garde alors tout son sens. Mais le dire d'avance évite de
+  # croire ensuite que la mise à jour a tout fait.
+  if sudo -u orion -E "$VENV_PY" "$MANAGE" showmigrations --plan >/dev/null 2>&1; then
+    echo "  base joignable, plan de migrations lisible."
+  else
+    echo "  ATTENTION: base injoignable ou plan de migrations illisible." >&2
+    echo "             Le code et les frontends seront actualises ; les" >&2
+    echo "             migrations echoueront. Verifiez orion-db-stack." >&2
+  fi
+
+  if [ "$refus" -ne 0 ]; then
+    echo "  Mise a jour NON DEMARREE : rien n'a ete modifie." >&2
+    noter_etat 'refusee' 1
+    exit 1
+  fi
+}
+
+noter_etat 'demarrage'
+verifier_avant_de_commencer
+
 echo "======================================"
 echo " Mise à jour Orion ERP Appliance"
 echo "======================================"
@@ -286,7 +391,7 @@ fi
 # reparer.
 echo "[5b/6] Rafraîchissement des droits et assistants privilégiés..."
 SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
-for nom in orion-serveur orion-stockage; do
+for nom in orion-serveur orion-stockage orion-maj; do
   src="$SUDOERS_DIR/$nom"
   if [ ! -f "$src" ]; then
     echo "  $nom : source absente, ignoré."
