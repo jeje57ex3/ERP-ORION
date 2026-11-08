@@ -335,3 +335,147 @@ def test_la_limite_de_sigkill_est_documentee(texte):
     """
     assert 'SIGKILL' in texte
     assert 'Limite assumee' in texte or 'limite assumee' in texte
+
+
+# ─── L'ORDRE DES ÉTAPES, ET L'INTERVALLE QUI NE DOIT RIEN RISQUER ──────────
+#
+# LE défaut qui a fait perdre une journée entière, et qui en masquait quatre
+# autres. Relevé dans le journal de l'unité le 08/11/2026 :
+#
+#     chown: cannot access '/opt/orion/siecle': No such file or directory
+#     orion-update.service: Main process exited, code=exited, status=1/FAILURE
+#
+# Un `chown` non protégé, sur deux dossiers que les builds npm en échec
+# n'avaient jamais créés. Sous `set -e`, il tuait le script JUSTE AVANT
+# « [6/6] Redémarrage des services ».
+#
+# Conséquence, et c'est elle qui compte : Django met ses gabarits en cache
+# dès que DEBUG est faux. Le code arrivait bien sur le disque, mais gunicorn
+# continuait de servir l'ancien depuis sa mémoire. QUATRE correctifs
+# successifs n'ont donc jamais été chargés — chacun paraissant sans effet,
+# ce qui a envoyé le diagnostic chercher le défaut dans le code corrigé au
+# lieu du mécanisme qui ne le livrait pas.
+#
+# Deux invariants en sortent, et ces tests les tiennent.
+
+CARACTERE_DE_CONTINUATION = chr(92)
+
+COMMANDES_RISQUEES = ('chown', 'chmod', 'mkdir', 'cp ', 'rm ', 'mv ',
+                      'systemctl', 'apt-get', 'npm ', 'install ', 'visudo')
+
+
+def _lignes_logiques(fragment):
+    """Recolle les continuations, pour juger une commande entière."""
+    logiques, tampon = [], ''
+    for ligne in fragment.splitlines():
+        tampon += ligne
+        if ligne.rstrip().endswith(CARACTERE_DE_CONTINUATION):
+            tampon = tampon.rstrip()[:-1]
+            continue
+        logiques.append(tampon)
+        tampon = ''
+    if tampon:
+        logiques.append(tampon)
+    return logiques
+
+
+def test_le_backend_redemarre_avant_les_builds_npm(texte):
+    """Le redémarrage rend la mise à jour EFFECTIVE ; il passe en premier.
+
+    Placé après trois builds npm, il était à la merci de n'importe lequel
+    d'entre eux — et c'est précisément ce qui s'est produit.
+    """
+    redemarrage = texte.index('[6/7] Redémarrage du backend')
+    frontends = texte.index('[7/7] Reconstruction des frontends')
+    assert redemarrage < frontends, (
+        'les builds npm ne doivent jamais se trouver entre le code et le '
+        'redemarrage qui le charge')
+
+
+def test_rien_de_risque_entre_le_code_et_le_redemarrage(texte):
+    """L'invariant central : aucune commande non protégée dans l'intervalle.
+
+    Huit commandes de ce genre s'y trouvaient encore après le correctif du
+    `chown`. Chacune pouvait reproduire le même défaut à l'identique, et
+    aucune n'aurait été remarquée avant la prochaine journée perdue.
+    """
+    debut = texte.index(chr(10) + 'esac' + chr(10)) + 6
+    fin = texte.index('echo "[6/7] Redémarrage du backend')
+
+    suspectes = []
+    for ligne in _lignes_logiques(texte[debut:fin]):
+        nue = ligne.strip()
+        if not nue or nue.startswith('#'):
+            continue
+        if not any(nue.startswith(c) for c in COMMANDES_RISQUEES):
+            continue
+        if '||' in nue or nue.startswith('if ') or '2>/dev/null' in nue:
+            continue
+        suspectes.append(nue[:100])
+
+    assert suspectes == [], (
+        'commandes non protegees entre le pull et le redemarrage du '
+        'backend ; une seule en echec et le nouveau code ne serait jamais '
+        'charge : %s' % suspectes)
+
+
+@besoin_de_bash
+def test_le_chown_des_frontends_ne_tue_plus_le_script(texte, tmp_path):
+    """Le défaut exact, rejoué : dossiers absents, script qui continue."""
+    debut = texte.index('for nom_du_frontend in siecle lunea; do')
+    fin = texte.index('done', debut) + len('done')
+    harnais = chr(10).join([
+        'set -euo pipefail',
+        'ORION_HOME=%s/inexistant' % tmp_path.as_posix(),
+        texte[debut:fin],
+        'echo APRES-LE-CHOWN',
+    ])
+    fichier = tmp_path / 'essai_chown.sh'
+    fichier.write_text(harnais, encoding='utf-8')
+    acheve = subprocess.run([BASH, str(fichier)], capture_output=True,
+                            text=True, encoding='utf-8', errors='replace')
+    sortie = (acheve.stdout or '') + (acheve.stderr or '')
+    assert 'APRES-LE-CHOWN' in sortie, (
+        'le script meurt encore sur le chown des frontends :' + chr(10)
+        + sortie)
+
+
+def test_un_backend_qui_ne_redemarre_pas_est_un_echec_critique(texte):
+    """Sans ce redémarrage, la mise à jour n'a rien changé pour personne."""
+    debut = texte.index('echo "[6/7] Redémarrage du backend')
+    fin = texte.index('[7/7] Reconstruction des frontends')
+    bloc = texte[debut:fin]
+    assert 'ECHEC_CRITIQUE=1' in bloc, (
+        'un backend qui ne redemarre pas doit faire echouer la mise a jour')
+    assert 'ANCIEN code' in bloc, (
+        'le message doit dire que l ERP sert encore l ancien code')
+
+
+def test_npm_est_cherche_et_non_supponse(texte):
+    """« npm: command not found » sous systemd, trouvé via bash -lc.
+
+    Le même script réussissait à la main et échouait en service : le pire
+    des deux mondes, puisque le mode service est celui qui doit marcher
+    quand l'interface web est tombée.
+    """
+    assert 'chemin_de_npm()' in texte
+    assert '.nvm/versions/node' in texte, (
+        'nvm installe npm hors du PATH de systemd')
+    assert 'npm introuvable' in texte, (
+        "l'absence de npm doit etre dite, et ne pas interrompre")
+
+
+def test_les_etapes_sont_numerotees_de_maniere_coherente(texte):
+    """Huit lignes d'etape, du controle prealable au dernier frontend.
+
+    Le controle prealable porte le numero 0 : il precede tout, et il
+    peut refuser sans que rien ne soit modifie.
+    """
+    import re
+    numeros = re.findall(r'echo "\[(\d)/(\d)\]', texte)
+    assert numeros, 'plus aucune etape numerotee'
+    totaux = {total for _, total in numeros}
+    assert totaux == {'7'}, 'numerotation incoherente : %s' % totaux
+    assert [n for n, _ in numeros] == ['0', '1', '2', '3', '4', '5', '6',
+                                       '7'], (
+        'les etapes ne se suivent pas : %s' % numeros)
