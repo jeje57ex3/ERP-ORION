@@ -481,3 +481,87 @@ def test_un_utilisateur_ordinaire_ne_peut_pas_abandonner(
         {'confirmation': 'ABANDONNER'})
 
     assert OperationDeStockage.objects.get(pk=operation.pk).etat == 'en_attente'
+
+
+# ─── Défaut n°4 : un lien habillé en bouton d'action ──────────────────────
+#
+# Rapporté depuis l'écran, trois fois : « le bouton Préparer un disque ne
+# fonctionne pas ». Il avait raison. Le mot « Préparer un disque » ne
+# désignait pas le bouton du formulaire -- qui s'appelle « Préparer et
+# monter » -- mais un lien d'ancre habillé en `orion-btn btn-outline-primary`,
+# donc indiscernable d'un bouton d'action. Cliquer faisait défiler la page
+# jusqu'à la section « Ajouter un disque », et RIEN DU TOUT quand cette
+# section était déjà à l'écran.
+#
+# Un contrôle qui ressemble à un bouton promet d'agir. Celui-ci naviguait.
+
+
+@pytest.mark.django_db
+def test_le_lien_vers_le_formulaire_n_est_pas_habille_en_bouton(
+        client, django_user_model, monkeypatch):
+    """Sinon il promet une action et n'en exécute aucune."""
+    import re
+
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+    balise = re.search('<a href="#ajouter-un-disque"[^>]*>', contenu)
+    assert balise, 'le lien de navigation a disparu'
+
+    assert 'orion-btn' not in balise.group(0), (
+        'un lien de navigation habille en bouton fait croire a une action : '
+        + balise.group(0))
+
+
+@pytest.mark.django_db
+def test_le_lien_annonce_ou_il_mene(client, django_user_model, monkeypatch):
+    """« Préparer un disque » décrivait une action, pas une destination."""
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert 'Aller au formulaire de préparation' in contenu
+    assert 'plus bas' in contenu
+
+
+@pytest.mark.django_db
+def test_le_clic_produit_un_effet_visible_meme_si_la_cible_est_a_l_ecran(
+        client, django_user_model, monkeypatch):
+    """Le cœur du défaut : une ancre déjà visible ne fait rien du tout.
+
+    `:target` met la section en évidence sans JavaScript, et retombe au
+    clic suivant. Sans cette règle, le lien reste muet sur un grand écran
+    où la section est déjà affichée — et c'est exactement la situation
+    depuis laquelle le défaut a été rapporté.
+    """
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert '#ajouter-un-disque:target' in contenu, (
+        'sans effet visible, le lien paraitra casse')
+
+
+@pytest.mark.django_db
+def test_le_formulaire_qui_efface_un_disque_n_apparait_qu_une_fois(
+        client, django_user_model, monkeypatch):
+    """Deux exemplaires d'une commande destructrice invitent à l'erreur.
+
+    La tentation, en corrigeant le défaut ci-dessus, est de recopier le
+    formulaire à l'endroit du lien. Il efface un disque sans retour
+    possible : il reste à un seul endroit, et on y conduit.
+    """
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert contenu.count('disques/preparer/') == 1, (
+        'le formulaire de preparation doit rester unique sur la page')
