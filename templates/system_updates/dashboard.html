@@ -129,7 +129,7 @@
       <div class="mt-3 small text-muted">
         <div>{% trans "Journal complet :" %} <code>journalctl -u orion-update</code></div>
         <div>{% trans "État sans l'interface :" %} <code>cat {{ service_maj.fichier }}</code></div>
-        <div>{% trans "Déclencher sans l'interface :" %} <code>systemctl start {{ service_maj.unite }}</code></div>
+        <div>{% trans "Déclencher sans l'interface :" %} <code>systemctl --no-block start {{ service_maj.unite }}</code></div>
       </div>
     {% endif %}
   </div>

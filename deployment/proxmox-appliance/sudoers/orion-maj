@@ -23,7 +23,18 @@
 # Le travail passe en root, détaché de la requête HTTP, et la même mise à
 # jour se lance aussi bien sans interface web :
 #
-#     systemctl start orion-update.service
+#     systemctl --no-block start orion-update.service
+#
+# « --no-block » FAIT PARTIE DE LA REGLE, et ce n'est pas un detail de
+# confort. « systemctl start » sur une unite Type=oneshot est SYNCHRONE : il
+# attend la sortie du processus. Sans cette option, le bouton attendait la
+# mise a jour entiere dans un worker gunicorn -- precisement ce que tout ce
+# dispositif existe pour eviter. Constate le 08/11/2026 : le bouton a
+# renvoye le VERDICT du job (« failed because the control process exited »),
+# qui ne peut revenir qu'apres la fin du processus.
+#
+# sudoers compare la ligne de commande TELLE QUELLE : l'option doit donc
+# figurer ici au meme endroit que dans service_maj.ligne_de_commande().
 #
 # AUCUN JOKER. La règle autorise une chaîne exacte, « start » sur une unité
 # nommée, et rien d'autre : ni stop, ni une autre unité, ni daemon-reload.
@@ -43,5 +54,5 @@
 # compare les deux. Si elles divergent, le bouton cesse de fonctionner sans
 # que rien ne le signale.
 
-orion ALL=(root) NOPASSWD: /bin/systemctl start orion-update.service
-orion ALL=(root) NOPASSWD: /usr/bin/systemctl start orion-update.service
+orion ALL=(root) NOPASSWD: /bin/systemctl --no-block start orion-update.service
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl --no-block start orion-update.service
