@@ -332,6 +332,7 @@ installer_sudoers() {
 
 installer_sudoers orion-serveur  "extinction/redemarrage depuis l'ERP"
 installer_sudoers orion-stockage "preparation des disques depuis l'ERP"
+installer_sudoers orion-maj      "declenchement de la mise a jour systeme"
 
 # L'assistant disque lui-meme. Mode 0750 et groupe orion : « orion » doit
 # pouvoir l'EXECUTER et jamais l'ECRIRE. S'il pouvait le modifier, la regle

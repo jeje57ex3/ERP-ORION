@@ -10,6 +10,7 @@ from apps.system_updates.forms import (
 )
 from apps.system_updates.models import ServerActionLog, SystemUpdateRun
 from apps.system_updates.permissions import super_admin_required
+from apps.system_updates import service_maj
 from apps.system_updates.rollback import rollback_update
 from apps.system_updates.selectors import (
     get_latest_update_check,
@@ -53,7 +54,41 @@ def updates_dashboard(request):
         'recent_runs': get_recent_update_runs(),
         'recent_server_actions': get_recent_server_actions(),
         'running': has_update_running(),
+        # L'état du service système est lu sur le DISQUE, pas en base :
+        # c'est ce qui le rend consultable quand MySQL est tombé.
+        'service_maj': service_maj.etat(),
     })
+
+
+@require_POST
+@super_admin_required
+def maj_par_le_service(request):
+    """Confie la mise à jour à `orion-update.service`, et rend la main.
+
+    La vue ne fait que DÉCLENCHER. Attendre la fin ferait expirer la requête
+    bien avant : une mise à jour complète dure entre huit et vingt-cinq
+    minutes. L'avancement se lit ensuite sur le tableau de bord, qui le tient
+    d'un fichier et de systemd — donc sans la base.
+
+    Pourquoi passer par là plutôt que par `run_system_update` : ce dernier
+    lit la base avant tout, tourne dans gunicorn et sous un compte non
+    administrateur. Les trois l'empêchent de fonctionner exactement quand on
+    en a besoin. Le détail est dans `service_maj`.
+    """
+    try:
+        service_maj.declencher()
+    except service_maj.ServiceDeMiseAJourIndisponible as exc:
+        messages.error(request, f'Mise à jour non déclenchée : {exc}')
+        return redirect('system_updates:dashboard')
+
+    messages.success(
+        request,
+        'Mise à jour lancée par le service système. Elle tourne en root, '
+        'détachée de cette page : vous pouvez fermer l\'onglet, et elle '
+        'survivra même à un redémarrage de l\'ERP. L\'avancement s\'affiche '
+        'ci-dessous, et le journal complet est dans '
+        '« journalctl -u orion-update ».')
+    return redirect('system_updates:dashboard')
 
 
 @super_admin_required
