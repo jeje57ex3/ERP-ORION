@@ -38,6 +38,9 @@ urlpatterns = [
     path(_P + 'disques/operation/<int:pk>/liberer/',
          views.stockage_liberer_la_source,
          name='stockage_liberer_la_source'),
+    path(_P + 'disques/operation/<int:pk>/abandonner/',
+         views.stockage_abandonner_operation,
+         name='stockage_abandonner_operation'),
     path(_P + 'disques/operation/<int:pk>/avancement/',
          views.stockage_operation_api, name='stockage_operation_api'),
 

@@ -1,0 +1,43 @@
+{% load i18n %}
+{% comment %}
+  Le verrou « une seule opération à la fois » affichait « patientez » et
+  rien d'autre. Une opération que rien ne fera plus avancer — worker tué,
+  machine redémarrée, mémoire épuisée — masquait alors définitivement le
+  bouton de préparation d'un disque ET tous les sélecteurs de destination,
+  sans aucune sortie depuis l'interface.
+
+  Ce bloc nomme l'opération qui bloque et permet de la clore. Il est inclus
+  aux DEUX endroits concernés : impossible d'en corriger un et d'oublier
+  l'autre.
+{% endcomment %}
+<div class="small">
+  <div class="text-muted">
+    <i class="bi bi-hourglass-split"></i>
+    {% blocktrans with id=operation_en_cours.pk %}Opération #{{ id }} en cours.{% endblocktrans %}
+    <span class="text-nowrap">{{ operation_en_cours.get_type_operation_display }}</span>
+    · {{ operation_en_cours.get_etat_display }}
+    · {% blocktrans with quand=operation_en_cours.cree_le|date:"d/m/Y H:i" %}demandée le {{ quand }}{% endblocktrans %}
+  </div>
+
+  <details class="mt-1">
+    <summary class="text-muted" style="cursor:pointer">
+      {% trans "Elle ne progresse plus ?" %}
+    </summary>
+    <div class="mt-2">
+      <p class="text-muted mb-2">
+        {% trans "La déclarer échouée rouvre cet écran. Rien n’est supprimé et aucun fichier n’est touché : l’opération reste dans l’historique. Vérifiez ensuite la colonne « Emplacement réel », qui est lue sur le disque." %}
+      </p>
+      <form method="post"
+            action="{% url 'system_health:stockage_abandonner_operation' operation_en_cours.pk %}"
+            class="d-flex gap-1 align-items-center flex-wrap">
+        {% csrf_token %}
+        <input type="text" name="confirmation" class="form-control form-control-sm"
+               style="max-width:140px" placeholder="ABANDONNER"
+               autocomplete="off" required>
+        <button class="orion-btn sm btn-outline-danger" type="submit">
+          {% trans "Abandonner cette opération" %}
+        </button>
+      </form>
+    </div>
+  </details>
+</div>
