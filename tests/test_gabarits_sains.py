@@ -30,21 +30,71 @@ import re
 
 RACINE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOSSIER_GABARITS = os.path.join(RACINE, 'templates')
+DOSSIER_APPS = os.path.join(RACINE, 'apps')
 
 MOTIF_COMMENTAIRE = re.compile(r'\{#(.*?)#\}', re.DOTALL)
 MOTIF_STATIC = re.compile(r"""\{%\s*static\s+['"]([^'"]+)['"]""")
 
 
+def _dossiers_de_gabarits():
+    """Les DEUX emplacements où Django cherche les gabarits.
+
+    Angle mort corrigé : cette fonction n'examinait que `templates/` à la
+    racine du projet. Or `APP_DIRS = True` dans les settings, donc chaque
+    `apps/<nom>/templates/` est tout aussi servi — et ce sont plus de la
+    moitié des gabarits du dépôt. Un commentaire `{# #}` étalé sur trois
+    lignes y a vécu jusqu'à ce que son texte s'affiche en clair dans le
+    formulaire de préparation d'un disque, sur la machine de production.
+
+    Les tests de ce fichier ne valaient donc que pour la moitié du dépôt,
+    sans que rien ne le signale.
+    """
+    yield DOSSIER_GABARITS
+    if not os.path.isdir(DOSSIER_APPS):
+        return
+    for nom in sorted(os.listdir(DOSSIER_APPS)):
+        candidat = os.path.join(DOSSIER_APPS, nom, 'templates')
+        if os.path.isdir(candidat):
+            yield candidat
+
+
 def _gabarits():
-    for dossier, _sous, fichiers in os.walk(DOSSIER_GABARITS):
-        for fichier in fichiers:
-            if fichier.endswith('.html'):
-                yield os.path.join(dossier, fichier)
+    for base in _dossiers_de_gabarits():
+        for dossier, _sous, fichiers in os.walk(base):
+            for fichier in fichiers:
+                if fichier.endswith('.html'):
+                    yield os.path.join(dossier, fichier)
 
 
 def _lire(chemin):
     with open(chemin, encoding='utf-8', errors='replace') as flux:
         return flux.read()
+
+
+def test_le_controle_couvre_aussi_les_gabarits_des_apps():
+    """Sans cela, les tests de ce fichier ne valent que pour la moitié du dépôt.
+
+    C'est la raison pour laquelle le défaut précédent a survécu : le
+    parcours s'arrêtait à `templates/` et ignorait les quelque cinq cents
+    gabarits portés par les apps. Ce test échoue si quelqu'un resserre à
+    nouveau le périmètre.
+    """
+    examines = list(_gabarits())
+    relatifs = [os.path.relpath(c, RACINE) for c in examines]
+
+    sous_apps = [r for r in relatifs if r.startswith('apps' + os.sep)]
+    a_la_racine = [r for r in relatifs if r.startswith('templates' + os.sep)]
+
+    assert a_la_racine, 'les gabarits de templates/ ne sont plus examinés'
+    assert sous_apps, 'les gabarits des apps ne sont plus examinés'
+
+    # Repère concret : ce gabarit vit dans une app et porte un formulaire
+    # qui formate un disque. S'il sort du périmètre, le contrôle est à
+    # refaire.
+    temoin = os.path.join(
+        'apps', 'system_health', 'templates', 'system_health',
+        'disk_dashboard.html')
+    assert temoin in relatifs, f'{temoin} doit être examiné'
 
 
 def test_aucun_commentaire_etale_sur_plusieurs_lignes():

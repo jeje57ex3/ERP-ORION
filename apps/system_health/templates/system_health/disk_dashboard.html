@@ -591,9 +591,15 @@
                 class="d-flex gap-1 align-items-center flex-wrap">
             {% csrf_token %}
             <input type="hidden" name="peripherique" value="{{ d.peripherique }}">
-            {# Le numero de serie AFFICHE repart avec la demande : le script
-               root compare au materiel present et s'arrete s'il a change,
-               ce qui empeche de formater le bon nom sur le mauvais disque. #}
+            {% comment %}
+              Le numéro de série AFFICHÉ repart avec la demande : le script
+              root le compare au matériel présent et s'arrête s'il a changé,
+              ce qui empêche de formater le bon nom sur le mauvais disque.
+
+              Ce bloc était écrit avec la syntaxe courte sur trois lignes.
+              Elle ne commente qu'une seule ligne : le texte s'affichait en
+              clair au milieu du formulaire de préparation.
+            {% endcomment %}
             <input type="hidden" name="numero_de_serie"
                    value="{{ d.numero_de_serie|default:d.wwn }}">
             <input type="text" name="etiquette" class="form-control form-control-sm"
