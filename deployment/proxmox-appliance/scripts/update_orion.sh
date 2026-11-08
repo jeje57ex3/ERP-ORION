@@ -226,14 +226,44 @@ importer_catalogues_fabricants() {
   fi
 }
 
+# CHAQUE etape est verifiee SEPAREMENT, et non laissee a « set -euo pipefail ».
+#
+# Defaut constate sur l'appliance le 08/11/2026 : appelee a gauche d'un
+# « || », cette fonction tourne avec set -e SUSPENDU pour TOUT son corps.
+# Un `migrate` en echec n'interrompait donc rien du tout -- collectstatic
+# s'executait quand meme, et la ligne « code récupéré, schéma migré »
+# s'affichait trois lignes sous un traceback MySQL. Releve textuellement
+# dans le journal de l'appliance :
+#
+#     django.db.utils.OperationalError: (1060, "Duplicate column name
+#     'archive_ref'")
+#       code récupéré, schéma migré, statiques collectés.
+#
+# Consequence la plus grave : la fonction renvoyait 0, donc maj-etat.json
+# notait « terminee » et l'unite systemd se declarait reussie, sur un ERP
+# dont le schema ne correspondait pas au code. C'est ainsi qu'une base a
+# moitie migree a survecu a plusieurs mises a jour « reussies ».
 maj_directe() {
   if ! sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
     echo "  ERREUR: git pull impossible (arbre modifié, ou branche suivie différente)." >&2
     echo "          Vérifiez : git -C $ORION_HOME/backend status" >&2
     return 1
   fi
-  sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput
-  sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput >/dev/null
+  if ! sudo -u orion -E "$VENV_PY" "$MANAGE" migrate --noinput; then
+    echo "  ERREUR: migrate a echoue — le code est deploye sur un schema qui ne" >&2
+    echo "          lui correspond pas. L'ERP peut repondre en 500." >&2
+    echo "          MySQL n'a pas de DDL transactionnelle : une migration" >&2
+    echo "          interrompue laisse ses tables et colonnes sans ecrire sa" >&2
+    echo "          ligne dans django_migrations, et bute ensuite sur son" >&2
+    echo "          propre travail. Le detail ci-dessus nomme l'objet en" >&2
+    echo "          cause ; voir apps/core/migrations_rejouables.py." >&2
+    return 1
+  fi
+  if ! sudo -u orion -E "$VENV_PY" "$MANAGE" collectstatic --noinput >/dev/null; then
+    echo "  ERREUR: collectstatic a echoue — l'interface s'afficherait sans" >&2
+    echo "          styles ni scripts." >&2
+    return 1
+  fi
   echo "  code récupéré, schéma migré, statiques collectés."
 }
 
@@ -241,14 +271,28 @@ maj_applicative() {
   sudo -u orion -E "$VENV_PY" "$MANAGE" run_system_update --no-confirm
 }
 
+# Un echec du code ou du schema est RETENU ici, et decide du code de sortie a
+# la toute fin. Il n'interrompt pas le script sur place : les etapes qui
+# suivent -- scripts d'exploitation, unites systemd, redemarrage des
+# services -- sont precisement celles par lesquelles un correctif ARRIVE sur
+# la machine. S'arreter net les priverait de leur mise a jour, et la panne se
+# reconduirait au lancement suivant.
+ECHEC_CRITIQUE=0
+
 case "$MODE" in
   direct)
     echo "  mode --direct : le mécanisme applicatif est volontairement ignoré."
-    maj_directe || echo "  ATTENTION: mise à jour directe échouée." >&2
+    if ! maj_directe; then
+      echo "  ATTENTION: mise à jour directe échouée." >&2
+      ECHEC_CRITIQUE=1
+    fi
     ;;
   django)
     echo "  mode --django-only : aucun repli."
-    maj_applicative || echo "  ATTENTION: run_system_update a échoué." >&2
+    if ! maj_applicative; then
+      echo "  ATTENTION: run_system_update a échoué." >&2
+      ECHEC_CRITIQUE=1
+    fi
     ;;
   *)
     if ! maj_applicative; then
@@ -260,16 +304,14 @@ case "$MODE" in
         echo "  nouvelle tentative du mécanisme normal..."
         maj_applicative \
           || echo "  ATTENTION: run_system_update échoue encore — cause applicative, voir /opt/orion/logs/errors.log." >&2
+      else
+        # Les deux voies ont echoue : ni le mecanisme applicatif ni le repli
+        # direct n'ont pose le code et le schema. Rien n'est a jour.
+        ECHEC_CRITIQUE=1
       fi
     fi
     ;;
 esac
-
-# Les relevés de catalogues, APRÈS le bloc de modes et non dans l'un d'eux :
-# le mode par défaut passe par le mécanisme applicatif et ne touche
-# maj_directe qu'en cas d'échec. Placée dans maj_directe, cette étape ne se
-# serait jamais exécutée en usage normal.
-importer_catalogues_fabricants
 
 # Rafraichit /opt/orion/scripts/ depuis le depot.
 #
@@ -340,6 +382,20 @@ rafraichir_unites_systemd() {
   echo "  unites systemd rafraichies depuis le depot."
 }
 rafraichir_unites_systemd || echo "  ATTENTION: rafraichissement des unites echoue." >&2
+
+# Les relevés de catalogues, APRÈS le bloc de modes et non dans l'un d'eux :
+# le mode par défaut passe par le mécanisme applicatif et ne touche
+# maj_directe qu'en cas d'échec. Placée dans maj_directe, cette étape ne se
+# serait jamais exécutée en usage normal.
+#
+# Et APRÈS le rafraîchissement des scripts et des unités, non avant. Cette
+# étape interroge des sites de fabricants : elle dure des minutes, dépend du
+# réseau, et n'apporte que des prix indicatifs. Placée avant, elle retardait
+# la pose de /etc/systemd/system/orion-update.service -- au point que
+# `systemctl start orion-update.service` répondait encore « Unit not found »
+# alors que la mise à jour tournait depuis plusieurs minutes. L'infrastructure
+# d'abord, le confort ensuite.
+importer_catalogues_fabricants
 
 # Recompile les catalogues : un .po mis a jour par le git pull resterait
 # sans effet tant que son .mo n'est pas regenere.
@@ -443,20 +499,36 @@ systemctl --no-pager status orion-backend.service orion-frontend.service \
 echo ""
 echo "[verification] Etat de l'installation apres mise a jour..."
 VERIFICATEUR="$ORION_HOME/scripts/orion-verifier.sh"
+VERIFICATION_OK=1
 if [ -f "$VERIFICATEUR" ]; then
-  if bash "$VERIFICATEUR"; then
-    echo ""
-    echo "Mise a jour terminee — installation verifiee."
-  else
-    echo ""
-    echo "ATTENTION: la mise a jour est passee mais la verification signale des" >&2
-    echo "defauts (detail ci-dessus). Rollback applicatif si necessaire :" >&2
-    echo "  sudo -u orion $VENV_PY $MANAGE rollback_system_update" >&2
-    exit 1
-  fi
+  bash "$VERIFICATEUR" || VERIFICATION_OK=0
 else
-  echo ""
-  echo "Mise à jour terminée."
   echo "  (orion-verifier.sh absent — rien n'a ete verifie)"
+fi
+
+# Le verdict final, en un seul endroit. Il etait auparavant annonce depuis
+# trois branches differentes, et l'une d'elles -- celle de la mise a jour
+# directe -- disait « terminee » sur une migration en echec.
+echo ""
+if [ "$ECHEC_CRITIQUE" -ne 0 ]; then
+  echo "ECHEC: le code ou le schema n'a PAS ete mis a jour (detail plus haut)." >&2
+  echo "       Les scripts d'exploitation, les unites systemd et les services" >&2
+  echo "       ont tout de meme ete rafraichis : c'est par eux qu'un correctif" >&2
+  echo "       arrive sur la machine, donc un nouveau lancement a une chance" >&2
+  echo "       d'aboutir la ou celui-ci a echoue." >&2
+  echo "       Etat : cat $FICHIER_ETAT" >&2
+  echo "       Journal : journalctl -u orion-update --no-pager" >&2
+  exit 1
+fi
+if [ "$VERIFICATION_OK" -eq 0 ]; then
+  echo "ATTENTION: la mise a jour est passee mais la verification signale des" >&2
+  echo "defauts (detail ci-dessus). Rollback applicatif si necessaire :" >&2
+  echo "  sudo -u orion $VENV_PY $MANAGE rollback_system_update" >&2
+  exit 1
+fi
+if [ -f "$VERIFICATEUR" ]; then
+  echo "Mise a jour terminee — installation verifiee."
+else
+  echo "Mise à jour terminée."
 fi
 echo "En cas de problème : sudo -u orion $VENV_PY $MANAGE rollback_system_update"
