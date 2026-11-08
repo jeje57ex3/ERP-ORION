@@ -50,6 +50,16 @@
 .store-bar-fill { height: 100%; border-radius: 4px; background: var(--orion-primary, #0d6efd); }
 .store-bar-fill.never { background: #fd7e14; }
 .store-path { font-size: .72rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+/* Un lien d'ancre doit produire un effet VISIBLE, meme quand sa cible est
+   deja a l'ecran. Sans cela, cliquer ne fait rien du tout et l'utilisateur
+   en conclut -- a juste titre -- que le lien est casse. Pas de JavaScript :
+   « :target » suffit, et la pseudo-classe retombe d'elle-meme au clic
+   suivant. */
+#ajouter-un-disque:target {
+  outline: 2px solid var(--orion-primary, #0d6efd);
+  outline-offset: 3px;
+}
 </style>
 {% endblock %}
 
@@ -339,8 +349,28 @@
                           {{ d.taille_octets|filesizeformat }} détecté,
                           <strong>pas encore préparé</strong>.</div>
                       {% endfor %}
-                      <a href="#ajouter-un-disque" class="orion-btn sm btn-outline-primary mt-1">
-                        <i class="bi bi-plus-circle me-1"></i>Préparer un disque
+                      {% comment %}
+                        Un lien de NAVIGATION, et non un bouton d'action.
+
+                        Il était libellé « Préparer un disque » et habillé
+                        comme le bouton du formulaire. Cliquer ne faisait
+                        que défiler jusqu'à la section « Ajouter un disque »,
+                        et rien du tout quand elle était déjà visible. Un
+                        utilisateur en a conclu que « le bouton Préparer un
+                        disque ne fonctionne pas » — et il avait raison : un
+                        contrôle habillé en bouton promet d'agir, pas de
+                        faire défiler. Le libellé dit désormais où il mène,
+                        la flèche le confirme, et le style est celui d'un
+                        lien.
+
+                        Le formulaire de préparation n'est PAS recopié ici :
+                        il efface un disque sans retour possible, et deux
+                        exemplaires d'une telle commande sur un même écran
+                        est une invitation à se tromper.
+                      {% endcomment %}
+                      <a href="#ajouter-un-disque" class="small d-inline-block mt-1">
+                        Aller au formulaire de préparation, plus bas
+                        <i class="bi bi-arrow-down"></i>
                       </a>
                     </div>
                   {% else %}
@@ -602,15 +632,54 @@
             {% endcomment %}
             <input type="hidden" name="numero_de_serie"
                    value="{{ d.numero_de_serie|default:d.wwn }}">
-            <input type="text" name="etiquette" class="form-control form-control-sm"
-                   style="max-width:150px" placeholder="étiquette (ex. donnees)"
-                   pattern="[a-z0-9][a-z0-9-]{0,23}" required
-                   title="Minuscules, chiffres et tirets, 24 caractères au plus."
-                   autocomplete="off">
-            <input type="text" name="confirmation" class="form-control form-control-sm"
-                   style="max-width:170px" placeholder="{{ d.peripherique }}"
-                   autocomplete="off" required>
-            <button class="orion-btn sm btn-outline-danger" type="submit">
+            {% comment %}
+              DEUX CHAMPS ÉTIQUETÉS, ET AUCUN PLACEHOLDER QUI IMITE UNE VALEUR.
+
+              Défaut rapporté trois fois : « le bouton Préparer un disque ne
+              déclenche rien du tout ». C'était exact, et la cause était ici.
+              Le champ de confirmation portait
+              `placeholder="{{ d.peripherique }}"`, c'est-à-dire EXACTEMENT
+              la valeur à recopier. Un « /dev/sdb » grisé dans la case : elle
+              paraît déjà remplie. On clique, le champ est en réalité vide et
+              `required`, donc le NAVIGATEUR refuse d'envoyer le formulaire —
+              aucune requête, aucun rechargement, aucune trace côté serveur,
+              et une bulle d'avertissement fugace qu'on ne voit pas sur un
+              formulaire large qui passe à la ligne.
+
+              Un placeholder suggère un format ; il ne doit jamais montrer la
+              valeur attendue d'un champ obligatoire. Les deux champs portent
+              maintenant une étiquette visible, et le placeholder dit quoi
+              faire, pas quoi copier.
+
+              `autocapitalize` et `spellcheck` : un clavier mobile qui met une
+              majuscule à l'initiale casse le motif de l'étiquette, et le
+              refus serait là aussi silencieux.
+            {% endcomment %}
+            <div class="d-flex flex-column">
+              <label class="form-label small mb-0"
+                     for="etiquette-{{ forloop.counter }}">Étiquette du volume
+                <span class="text-muted">(minuscules)</span></label>
+              <input type="text" id="etiquette-{{ forloop.counter }}"
+                     name="etiquette" class="form-control form-control-sm"
+                     style="max-width:150px" placeholder="ex. donnees"
+                     pattern="[a-z0-9][a-z0-9-]{0,23}" required
+                     title="Minuscules, chiffres et tirets, 24 caractères au plus."
+                     autocapitalize="none" spellcheck="false"
+                     autocomplete="off">
+            </div>
+            <div class="d-flex flex-column">
+              <label class="form-label small mb-0"
+                     for="confirmation-{{ forloop.counter }}">Recopiez
+                <code>{{ d.peripherique }}</code></label>
+              <input type="text" id="confirmation-{{ forloop.counter }}"
+                     name="confirmation" class="form-control form-control-sm"
+                     style="max-width:170px" placeholder="à recopier ici"
+                     title="Recopiez le nom du disque affiché juste au-dessus."
+                     autocapitalize="none" spellcheck="false"
+                     autocomplete="off" required>
+            </div>
+            <button class="orion-btn sm btn-outline-danger align-self-end"
+                    type="submit">
               Préparer et monter
             </button>
           </form>
