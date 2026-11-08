@@ -76,6 +76,15 @@ charger_env "$ENV_FILE"
 # l'état ne doit jamais empêcher la mise à jour elle-même.
 FICHIER_ETAT="$ORION_HOME/logs/maj-etat.json"
 
+# Un etat FIGE n'est plus ecrase par le piege de sortie. Sans cela, le piege
+# repassait apres « exit 1 » et remplacait « refusee » par « echouee ».
+# Constate sur l'appliance le 08/11/2026 : le journal disait « Mise a jour
+# NON DEMARREE : rien n'a ete modifie » tandis que maj-etat.json annoncait
+# « echouee ». Or la difference est capitale pour qui doit decider d'un
+# rollback -- « refusee » signifie que RIEN n'a ete touche, donc qu'il n'y a
+# rien a defaire.
+ETAT_FIGE=0
+
 noter_etat() {
   mkdir -p "$(dirname "$FICHIER_ETAT")" 2>/dev/null || true
   printf '{"etape": "%s", "mode": "%s", "code": %s, "horodatage": "%s"}\n' \
@@ -88,8 +97,16 @@ noter_etat() {
 # du script : une mise à jour tuée en route (mémoire épuisée, délai systemd
 # dépassé) ne serait jamais passée par la dernière ligne, et le fichier
 # d'état aurait indiqué « en cours » indéfiniment.
+figer_etat() {
+  noter_etat "$1" "${2:-null}"
+  ETAT_FIGE=1
+}
+
 sur_sortie() {
   local code=$?
+  if [ "$ETAT_FIGE" -ne 0 ]; then
+    return
+  fi
   if [ "$code" -eq 0 ]; then
     noter_etat 'terminee' 0
   else
@@ -97,6 +114,29 @@ sur_sortie() {
   fi
 }
 trap sur_sortie EXIT
+
+# Un signal doit laisser une trace DISTINCTE, et non passer pour un succes.
+#
+# Mesure du 08/11/2026 : sur SIGTERM, bash execute bien le piege EXIT, mais
+# « $? » y vaut ZERO -- c'est le code de la derniere commande achevee, pas
+# celui du signal. Le script notait donc « terminee », code 0, pour une mise
+# a jour que systemd venait de tuer a son TimeoutStartSec. C'est exactement
+# le mensonge que ce fichier d'etat existe pour empecher, et il etait au
+# coeur du mecanisme cense dire la verite quand la base est en panne.
+#
+# SIGKILL -- le tueur de memoire du noyau -- ne peut par definition pas etre
+# intercepte. Dans ce seul cas l'etat reste celui de la derniere etape notee,
+# et c'est le journal systemd qui leve le doute. Limite assumee : il n'existe
+# aucun moyen de l'eviter depuis le processus tue.
+sur_signal() {
+  local nom="$1" code="$2"
+  echo "  INTERROMPU ($nom) — la mise a jour s'arrete en cours de route." >&2
+  figer_etat 'interrompue' "$code"
+  exit "$code"
+}
+trap 'sur_signal TERM 143' TERM
+trap 'sur_signal INT 130' INT
+trap 'sur_signal HUP 129' HUP
 
 # ─── Contrôle préalable : refuser AVANT de modifier quoi que ce soit ────────
 #
@@ -159,7 +199,7 @@ verifier_avant_de_commencer() {
 
   if [ "$refus" -ne 0 ]; then
     echo "  Mise a jour NON DEMARREE : rien n'a ete modifie." >&2
-    noter_etat 'refusee' 1
+    figer_etat 'refusee' 1
     exit 1
   fi
 }

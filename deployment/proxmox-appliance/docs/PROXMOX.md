@@ -245,13 +245,23 @@ root. Depuis l'hyperviseur, sans session dans la VM et sans que Django ni la
 base soient en état :
 
 ```bash
-qm guest exec <vmid> --timeout 60 -- systemctl start orion-update.service
+qm guest exec <vmid> --timeout 60 -- systemctl --no-block start orion-update.service
 ```
 
 Elle tourne en root, détachée de toute requête HTTP et de toute session :
 elle survit à un onglet fermé, à un redémarrage du backend et à un
 `qm guest exec` interrompu. Elle n'est **pas** activée au démarrage et ne se
 lance jamais d'elle-même.
+
+`--no-block` n'est pas facultatif. `systemctl start` sur une unité
+`Type=oneshot` est **synchrone** : il attend la sortie du processus, donc
+jusqu'à 5400 s ici. Sans cette option, `qm guest exec` coupe au bout de son
+délai, et le bouton de l'ERP attendrait la mise à jour entière dans un
+worker gunicorn — ce que tout ce dispositif existe pour éviter.
+
+En conséquence, un code de retour nul signifie « travail accepté », et non
+« mise à jour réussie ». Le verdict se lit dans l'état et dans le journal,
+ci-dessous — jamais dans le code de retour du déclenchement.
 
 Suivre son avancement, sans la base :
 
@@ -291,7 +301,7 @@ donc **un premier lancement en root** pour les installer :
 qm guest exec <vmid> --timeout 60 -- /bin/bash -lc 'nohup /opt/orion/scripts/update_orion.sh --direct > /opt/orion/logs/maj-manuelle.log 2>&1 & echo lancee'
 ```
 
-Ensuite seulement, `systemctl start orion-update.service` et le bouton de
+Ensuite seulement, `systemctl --no-block start orion-update.service` et le bouton de
 l'ERP existent.
 
 ### Le bouton de l'ERP

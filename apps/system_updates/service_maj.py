@@ -20,7 +20,11 @@ mise à jour survit alors à un redémarrage du backend, à un onglet fermé et 
 une session coupée ; elle tourne en root ; et **la même mise à jour se
 déclenche sans interface web**, depuis l'hyperviseur :
 
-    qm guest exec <vmid> --timeout 60 -- systemctl start orion-update.service
+    qm guest exec <vmid> --timeout 60 -- systemctl --no-block start orion-update.service
+
+`--no-block` n'est pas un détail : sans lui, `systemctl start` attend la fin
+d'une unité `oneshot`, et `qm guest exec` coupe au bout de son délai. Le
+verdict se lit ensuite dans l'état, pas dans le code de retour.
 
 L'interface devient un confort, plus une dépendance. C'est le point de toute
 l'affaire.
@@ -54,10 +58,31 @@ CHEMINS_SYSTEMCTL = ('/bin/systemctl', '/usr/bin/systemctl')
 
 FICHIER_ETAT = Path('/opt/orion/logs/maj-etat.json')
 
+OPTION_SANS_ATTENDRE = '--no-block'
+"""INDISPENSABLE, et je l'avais d'abord cru inutile.
+
+`systemctl start` sur une unité `Type=oneshot` est SYNCHRONE : le travail
+n'est considéré terminé que quand le processus sort, et la commande attend
+ce verdict. Sans `--no-block`, le bouton attendait donc la mise à jour
+entière — jusqu'à 5400 s — dans un worker gunicorn, c'est-à-dire tout ce
+que ce module existe pour éviter.
+
+Mesuré sur l'appliance le 08/11/2026 : le bouton a renvoyé « Job for
+orion-update.service failed because the control process exited with error
+code ». Ce message est le RÉSULTAT du job, et il ne peut revenir qu'après
+la sortie du processus. La commande avait donc bien attendu. Si la mise à
+jour avait réussi au lieu d'échouer en quelques secondes, la requête aurait
+patienté plusieurs minutes puis expiré.
+
+Conséquence assumée : le bouton ne connaît plus l'issue de la mise à jour,
+seulement le fait qu'elle est lancée. C'est exactement ce qu'on veut —
+l'issue se lit dans l'état, qui ne dépend ni de la base ni de la requête.
+"""
+
 DELAI_COMMANDE = 15
-"""`systemctl start` sur une unité `oneshot` rend la main dès le lancement,
-il n'attend pas la fin du travail. Quinze secondes couvrent largement le
-démarrage ; au-delà, c'est que sudo ou systemd ne répondent pas."""
+"""Avec `--no-block`, systemd met le job en file et rend la main aussitôt.
+Quinze secondes couvrent largement cela ; au-delà, c'est que sudo ou systemd
+ne répondent pas."""
 
 
 class ServiceDeMiseAJourIndisponible(Exception):
@@ -78,8 +103,14 @@ def chemin_systemctl():
 
 
 def ligne_de_commande():
-    """La commande exacte, telle que sudoers doit l'autoriser."""
-    return ['sudo', '-n', chemin_systemctl(), 'start', UNITE]
+    """La commande exacte, telle que sudoers doit l'autoriser.
+
+    L'ordre compte : sudoers compare la ligne de commande TELLE QUELLE, donc
+    `--no-block` doit figurer au même endroit dans la règle et ici. Un test
+    compare les deux.
+    """
+    return ['sudo', '-n', chemin_systemctl(), OPTION_SANS_ATTENDRE,
+            'start', UNITE]
 
 
 def est_disponible():
@@ -100,6 +131,9 @@ def declencher():
     et durera plusieurs minutes. L'appelant doit renvoyer l'utilisateur vers
     l'état, pas lui faire attendre une réponse qui n'arrivera pas avant le
     délai d'expiration de gunicorn.
+
+    Un code de retour nul signifie donc « job accepté », et non « mise à
+    jour réussie ». Voir OPTION_SANS_ATTENDRE.
     """
     if platform.system() != 'Linux':
         raise ServiceDeMiseAJourIndisponible(

@@ -63,9 +63,16 @@ def test_la_commande_du_code_est_autorisee_par_sudoers():
 
     autorisees = _regles_sudoers()
     for chemin in service_maj.CHEMINS_SYSTEMCTL:
-        attendue = f'{chemin} start {service_maj.UNITE}'
+        attendue = (f'{chemin} {service_maj.OPTION_SANS_ATTENDRE} '
+                    f'start {service_maj.UNITE}')
         assert attendue in autorisees, (
             f'« {attendue} » doit figurer dans {SUDOERS.name}')
+
+    # Et l'inverse : la commande reellement lancee doit etre l'une d'elles.
+    lancee = ' '.join(service_maj.ligne_de_commande()[2:])
+    assert any(regle.endswith(lancee) for regle in autorisees), (
+        f'la commande lancee « {lancee} » ne correspond a aucune regle : '
+        f'{autorisees}')
 
 
 def test_la_commande_passe_par_sudo_sans_mot_de_passe():
@@ -78,6 +85,44 @@ def test_la_commande_passe_par_sudo_sans_mot_de_passe():
     assert commande[0] == 'sudo'
     assert commande[1] == '-n'
     assert commande[-2:] == ['start', service_maj.UNITE]
+
+
+def test_le_declenchement_n_attend_pas_la_fin_de_la_mise_a_jour():
+    """`systemctl start` sur une unité `oneshot` est SYNCHRONE.
+
+    Défaut constaté sur l'appliance le 08/11/2026 : le bouton a renvoyé
+    « Job for orion-update.service failed because the control process
+    exited with error code ». Ce message est le VERDICT du job, et il ne
+    peut revenir qu'après la sortie du processus — la commande avait donc
+    attendu. Une mise à jour qui réussit aurait fait patienter la requête
+    plusieurs minutes, puis expirer gunicorn : c'est-à-dire exactement la
+    dépendance à l'interface web que ce dispositif supprime.
+
+    Sans ce test, la correction se perd à la première « simplification » de
+    la ligne de commande, et le symptôme ne réapparaît qu'en production, sur
+    une mise à jour longue.
+    """
+    from apps.system_updates import service_maj
+
+    assert service_maj.OPTION_SANS_ATTENDRE == '--no-block'
+    commande = service_maj.ligne_de_commande()
+    assert '--no-block' in commande, (
+        'sans --no-block, le bouton attend la mise a jour entiere dans un '
+        'worker gunicorn')
+    # L'ordre compte : sudoers compare la ligne de commande telle quelle.
+    assert commande.index('--no-block') == commande.index('start') - 1
+
+
+def test_le_delai_du_declenchement_reste_court():
+    """Il mesure la réponse de systemd, pas la durée du travail.
+
+    Un délai long ici signifierait qu'on attend la mise à jour, et
+    rétablirait sans bruit le défaut que `--no-block` corrige.
+    """
+    from apps.system_updates import service_maj
+
+    assert service_maj.DELAI_COMMANDE <= 30, (
+        'ce delai ne doit couvrir que la mise en file du job')
 
 
 def test_sudoers_n_accorde_aucun_joker():
@@ -426,7 +471,7 @@ def test_le_tableau_de_bord_affiche_le_chemin_sans_interface(
 
     assert reponse.status_code == 200
     assert 'service système' in contenu
-    assert 'systemctl start orion-update.service' in contenu
+    assert 'systemctl --no-block start orion-update.service' in contenu
     assert 'journalctl -u orion-update' in contenu
     assert 'maj-etat.json' in contenu
     # Le bouton doit être un POST, pas un lien : un déclencheur ne part pas

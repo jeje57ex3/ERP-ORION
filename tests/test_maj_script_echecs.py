@@ -229,3 +229,109 @@ def test_l_echec_des_catalogues_n_est_pas_critique(texte):
     """Un catalogue non importé est un désagrément, pas une panne."""
     corps = _extraire_fonction(texte, 'importer_catalogues_fabricants')
     assert 'ECHEC_CRITIQUE' not in corps
+
+
+# ─── L'état écrit sur le disque dit la vérité ─────────────────────────────
+
+def _jouer_l_etat(texte, final, tmp_path):
+    """Exécute les fonctions d'état en bash et renvoie le JSON écrit.
+
+    Le fichier d'état est la SEULE source lisible quand la base est en
+    panne. Ce qu'il contient se vérifie donc en l'écrivant pour de vrai.
+    """
+    import json
+
+    etat = tmp_path / 'maj-etat.json'
+    harnais = '\n'.join([
+        'set -euo pipefail',
+        'MODE=direct',
+        'FICHIER_ETAT=%s' % etat.as_posix(),
+        'ETAT_FIGE=0',
+        _extraire_fonction(texte, 'noter_etat'),
+        _extraire_fonction(texte, 'figer_etat'),
+        _extraire_fonction(texte, 'sur_sortie'),
+        _extraire_fonction(texte, 'sur_signal'),
+        'trap sur_sortie EXIT',
+        "trap 'sur_signal TERM 143' TERM",
+        final,
+    ])
+    fichier = tmp_path / 'essai_etat.sh'
+    fichier.write_text(harnais, encoding='utf-8')
+    subprocess.run([BASH, str(fichier)], capture_output=True, text=True,
+                   encoding='utf-8', errors='replace')
+    return json.loads(etat.read_text(encoding='utf-8'))
+
+
+@besoin_de_bash
+def test_un_refus_reste_un_refus_et_non_un_echec(texte, tmp_path):
+    """Le piège sur EXIT écrasait « refusee » par « echouee ».
+
+    Constaté sur l'appliance le 08/11/2026, les deux sorties se
+    contredisant :
+
+        journal  : Mise a jour NON DEMARREE : rien n'a ete modifie.
+        maj-etat : {"etape": "echouee", "code": 1}
+
+    La distinction n'est pas cosmétique : « refusee » signifie que RIEN
+    n'a été touché, donc qu'il n'y a rien à défaire. C'est l'information
+    dont dépend la décision de faire ou non un rollback, et c'est
+    précisément celle que le piège détruisait.
+    """
+    donnees = _jouer_l_etat(texte, "figer_etat 'refusee' 1\nexit 1", tmp_path)
+    assert donnees['etape'] == 'refusee', donnees
+
+
+@besoin_de_bash
+def test_un_vrai_echec_est_bien_note_echoue(texte, tmp_path):
+    """Le correctif ne doit pas rendre le piège muet."""
+    donnees = _jouer_l_etat(texte, "noter_etat 'migrations'\nexit 3",
+                            tmp_path)
+    assert donnees['etape'] == 'echouee'
+    assert donnees['code'] == 3
+
+
+@besoin_de_bash
+def test_une_mise_a_jour_qui_passe_est_notee_terminee(texte, tmp_path):
+    donnees = _jouer_l_etat(texte, "noter_etat 'frontends'\nexit 0",
+                            tmp_path)
+    assert donnees['etape'] == 'terminee'
+    assert donnees['code'] == 0
+
+
+@besoin_de_bash
+def test_une_mise_a_jour_tuee_par_systemd_n_est_pas_notee_reussie(texte,
+                                                                  tmp_path):
+    """LE défaut le plus grave trouvé dans ce mécanisme.
+
+    Mesuré le 08/11/2026 : sur SIGTERM, bash exécute bien le piège EXIT,
+    mais `$?` y vaut ZÉRO — c'est le code de la dernière commande achevée,
+    pas celui du signal. Le script notait donc « terminee », code 0, pour
+    une mise à jour que systemd venait de tuer à son TimeoutStartSec.
+
+    Au cœur du mécanisme censé dire la vérité quand la base est en panne,
+    et dans la seule source que l'exploitant peut alors consulter.
+    """
+    final = chr(10).join(["noter_etat 'migrations'", 'kill -TERM $$'])
+    donnees = _jouer_l_etat(texte, final, tmp_path)
+    assert donnees['etape'] != 'terminee', (
+        'une mise a jour tuee est annoncee reussie : %s' % donnees)
+    assert donnees['etape'] == 'interrompue', donnees
+    assert donnees['code'] == 143
+
+
+def test_les_trois_signaux_d_arret_sont_interceptes(texte):
+    """TERM vient de systemd, INT d'un Ctrl-C, HUP d'une session coupée."""
+    for signal in ('TERM', 'INT', 'HUP'):
+        assert "trap 'sur_signal %s " % signal in texte, (
+            'signal non intercepte : %s' % signal)
+
+
+def test_la_limite_de_sigkill_est_documentee(texte):
+    """SIGKILL ne peut pas être intercepté, et il faut le dire.
+
+    Le tueur de mémoire du noyau frappe en SIGKILL. Prétendre que l'état
+    est toujours fiable serait faux, et c'est le genre de promesse sur
+    laquelle on s'appuie au pire moment.
+    """
+    assert 'SIGKILL' in texte
+    assert 'Limite assumee' in texte or 'limite assumee' in texte
