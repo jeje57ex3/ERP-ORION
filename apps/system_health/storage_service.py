@@ -71,6 +71,62 @@ def volumes():
     ]
 
 
+# Points de montage qui ne doivent JAMAIS être proposés comme destination.
+#
+# Défaut mesuré : sur une appliance à un seul disque, `volumes()` renvoie
+# « / », « /boot » et « /boot/efi ». La racine portant déjà les données
+# était grisée, et le sélecteur « Déplacer vers » ne proposait donc que
+# /boot (880 Mo) et /boot/efi (104 Mo) — deux partitions système où
+# écrire des médias remplit le disque de démarrage et empêche la machine
+# de redémarrer. De l'extérieur, cela ressemblait à « l'ERP ne propose
+# rien » : il proposait, mais rien d'utilisable.
+#
+# La RACINE reste proposable : c'est l'emplacement d'origine de toutes les
+# catégories, et on doit pouvoir y revenir après un déplacement.
+MONTAGES_INTERDITS_EN_DESTINATION = ('/boot', '/efi')
+
+
+def _point_de_montage_normalise(point):
+    """Normalise un point de montage SANS passer par os.path.normpath.
+
+    `normpath('/boot/efi')` rend « \\boot\\efi » sous Windows, où tourne la
+    suite de tests : le filtre ci-dessous ne mordait plus et le test
+    passait pour une raison fausse. Un point de montage est un chemin
+    POSIX — il est traité comme tel sur toute plateforme.
+    """
+    texte = str(point or '').replace('\\', '/')
+    while len(texte) > 1 and texte.endswith('/'):
+        texte = texte[:-1]
+    return texte
+
+
+def volumes_pour_destination():
+    """Les volumes où l'on peut raisonnablement déposer des données.
+
+    `volumes()` sert à AFFICHER l'occupation de chaque système de fichiers
+    monté ; cette fonction-ci sert à en CHOISIR un. Les deux listes ne
+    doivent pas être confondues : le tableau des volumes doit continuer de
+    montrer /boot, sinon on ne verrait pas qu'il se remplit.
+
+    Filtre par CHEMIN et non par taille : une règle « au moins 2 Go »
+    écarterait aussi un petit disque de données légitime, et laisserait
+    passer un /boot généreux. Le chemin, lui, dit ce que le volume EST.
+    """
+    retenus = []
+    for volume in volumes():
+        point = _point_de_montage_normalise(volume['point_de_montage'])
+        # Le séparateur dans le préfixe est indispensable : sans lui,
+        # « /bootstrap-donnees » commencerait par « /boot » et un vrai
+        # disque de données serait écarté.
+        interdit = any(
+            point == refuse or point.startswith(refuse + '/')
+            for refuse in MONTAGES_INTERDITS_EN_DESTINATION
+        )
+        if not interdit:
+            retenus.append(volume)
+    return retenus
+
+
 def volume_du_chemin(chemin, liste=None):
     """Le volume qui porte ce chemin : le point de montage le plus long.
 

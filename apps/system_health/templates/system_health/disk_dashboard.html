@@ -321,20 +321,48 @@
           <td>
             {% if p.deplacable %}
               {% if operation_en_cours %}
-                <span class="text-muted small">
-                  <i class="bi bi-hourglass-split"></i>
-                  Une opération est en cours — patientez.
-                </span>
+                {% include "system_health/_operation_bloquante.html" %}
+              {% elif not p.destinations %}
+                {% comment %}
+                  Une liste de destinations vide n'est plus un sélecteur
+                  vide : elle dit POURQUOI, et vers quoi aller. Sur une
+                  machine à un seul disque, c'est le cas normal — et le
+                  sélecteur grisé passait pour une panne.
+                {% endcomment %}
+                <div class="text-muted small">
+                  <i class="bi bi-info-circle"></i>
+                  Aucun autre volume où déposer ces fichiers.
+                  {% if disques_a_preparer %}
+                    <div class="mt-1">
+                      {% for d in disques_a_preparer %}
+                        <div><code>{{ d.peripherique }}</code> —
+                          {{ d.taille_octets|filesizeformat }} détecté,
+                          <strong>pas encore préparé</strong>.</div>
+                      {% endfor %}
+                      <a href="#ajouter-un-disque" class="orion-btn sm btn-outline-primary mt-1">
+                        <i class="bi bi-plus-circle me-1"></i>Préparer un disque
+                      </a>
+                    </div>
+                  {% else %}
+                    <div class="mt-1">Ajoutez un disque à la machine pour
+                      obtenir une destination.</div>
+                  {% endif %}
+                </div>
               {% else %}
               <form method="post"
                     action="{% url 'system_health:stockage_deplacer' %}"
                     class="d-flex flex-column gap-1">
                 {% csrf_token %}
                 <input type="hidden" name="categorie" value="{{ p.cle }}">
+                {% comment %}
+                  `p.destinations` et non `volumes` : la vue a déjà retiré
+                  le volume courant et les partitions de démarrage. Aucune
+                  option n'est donc `disabled`, et ce qui s'affiche est
+                  exactement ce qui peut être choisi.
+                {% endcomment %}
                 <select name="volume" class="form-select form-select-sm" required>
-                  {% for v in volumes %}
-                  <option value="{{ v.point_de_montage }}"
-                    {% if p.volume and v.point_de_montage == p.volume.point_de_montage %}disabled{% endif %}>
+                  {% for v in p.destinations %}
+                  <option value="{{ v.point_de_montage }}">
                     {{ v.point_de_montage }} — {{ v.libre_go }} Go libres
                   </option>
                   {% endfor %}
@@ -487,7 +515,12 @@
 {% endif %}
 
 <!-- Ajouter un disque : partitionner, formater, monter -->
-<div class="orion-card mt-3">
+{% comment %}
+  L'ancre sert les liens « Préparer un disque » posés dans la colonne
+  « Déplacer vers » : sans elle, un écran qui dit « préparez un disque »
+  n'emmène nulle part, et cette section se trouve plusieurs écrans plus bas.
+{% endcomment %}
+<div class="orion-card mt-3" id="ajouter-un-disque">
   <h2 class="h6 mb-1"><i class="bi bi-plus-circle me-2"></i>Ajouter un disque</h2>
 
   {% if not assistant_disponible %}
@@ -539,8 +572,8 @@
           Refusé : {{ d.raisons|join:" ; " }}.
         </div>
       {% elif operation_en_cours %}
-        <div class="text-muted small mt-1">
-          <i class="bi bi-hourglass-split"></i> Une opération est en cours.
+        <div class="mt-1">
+          {% include "system_health/_operation_bloquante.html" %}
         </div>
       {% else %}
         <div class="alert alert-danger small mt-2 mb-0">

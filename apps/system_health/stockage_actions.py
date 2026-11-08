@@ -121,11 +121,18 @@ def volume_autorise(point_de_montage):
     exemple. On compare à la liste que la page des disques affiche, et non
     à un motif de chemin : un motif aurait fini par autoriser un dossier
     qui n'est pas un volume.
+
+    `volumes_pour_destination()` et non `volumes()` : les partitions de
+    démarrage sont des volumes montés légitimes, qu'il faut continuer
+    d'AFFICHER, mais y déposer des médias remplit /boot et empêche la
+    machine de redémarrer. Le contrôle doit porter sur la même liste que
+    celle proposée à l'écran, sinon une requête forgée passerait là où
+    l'interface refuse d'aller.
     """
-    from .storage_service import volumes
+    from .storage_service import volumes_pour_destination
 
     attendu = os.path.normpath(str(point_de_montage or ''))
-    for volume in volumes():
+    for volume in volumes_pour_destination():
         if os.path.normpath(volume['point_de_montage']) == attendu:
             return volume
     return None

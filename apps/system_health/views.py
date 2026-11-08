@@ -250,7 +250,8 @@ def disk_dashboard(request):
     # allocations : agencement physique (partitions, espace non alloué), vide
     # hors Linux. breakdown : où vont réellement les données, mis en cache
     # côté service car il parcourt des dizaines de milliers de fichiers.
-    from .storage_service import commandes_de_migration, emplacements, volumes
+    from .storage_service import (commandes_de_migration, emplacements,
+                                  volumes, volumes_pour_destination)
 
     # Le placement par catégorie : quel réglage, quel chemin réel, quel
     # volume. Sans tailles, parce que `breakdown` les donne déjà et les met
@@ -258,13 +259,28 @@ def disk_dashboard(request):
     # dizaines de milliers de fichiers à chaque affichage.
     placements = emplacements(mesurer_tailles=False)
 
+    # Les destinations possibles, PAR CATÉGORIE : la liste des volumes
+    # utilisables moins celui où la catégorie se trouve déjà.
+    #
+    # Calculé ici, et non dans le gabarit. Celui-ci se contentait de poser
+    # `disabled` sur l'option courante : sur une machine à un seul disque,
+    # il restait alors /boot et /boot/efi comme seules options actives,
+    # et l'écran paraissait « ne rien proposer » — il proposait deux
+    # partitions système. Une liste vide est maintenant une liste vide, et
+    # le gabarit peut l'expliquer au lieu d'afficher un choix inutilisable.
+    destinations = volumes_pour_destination()
+    for placement in placements:
+        actuel = (placement.get('volume') or {}).get('point_de_montage')
+        placement['destinations'] = [
+            v for v in destinations if v['point_de_montage'] != actuel]
+
     # Plan de migration, seulement si l'administrateur a choisi une cible.
     # Rédigé, jamais exécuté : voir l'en-tête de storage_service.
     plan = None
     categorie = request.GET.get('categorie', '')
     cible = request.GET.get('volume', '')
     if categorie and cible:
-        connus = {v['point_de_montage'] for v in volumes()}
+        connus = {v['point_de_montage'] for v in volumes_pour_destination()}
         if cible not in connus:
             # Un volume inventé dans l'URL ne doit pas produire des
             # commandes qui créeraient un dossier sur le disque système.
@@ -283,6 +299,7 @@ def disk_dashboard(request):
         'breakdown': get_storage_breakdown(),
         'placements': placements,
         'volumes': volumes(),
+        'volumes_destination': destinations,
         'plan': plan,
         'categorie_choisie': categorie,
         'volume_choisi': cible,
@@ -342,6 +359,14 @@ def _contexte_de_stockage():
 
     return {
         'disques_physiques': disques_physiques,
+        # Les disques bruts que l'assistant juge préparables. Sert à
+        # EXPLIQUER une liste de destinations vide : « un disque de 2,9 To
+        # est détecté mais pas encore préparé » est actionnable, « aucune
+        # destination » ne l'est pas. Sans cela, l'utilisateur voyait son
+        # disque marqué « Disponible » plus haut dans la page et aucun
+        # moyen de s'en servir plus bas.
+        'disques_a_preparer': [
+            d for d in disques_physiques if d.get('utilisable')],
         'erreur_assistant': erreur_assistant,
         'assistant_disponible': stockage_privilegie.est_disponible(),
         'etats_de_stockage': etats,
@@ -559,6 +584,81 @@ def stockage_deplacer(request):
 
     _audit(request, 'status_change',
            description=f'Déplacement de {categorie} vers {cible} ({mode})')
+    return redirect('system_health:disk_dashboard')
+
+
+@require_POST
+@_require_perm('can_administrate')
+def stockage_abandonner_operation(request, pk):
+    """Clôt une opération restée en attente ou en cours.
+
+    POURQUOI CETTE ACTION EXISTE. Le verrou « une seule opération à la
+    fois » est volontairement grossier : deux copies concurrentes vers le
+    même volume le rempliraient sans qu'aucune n'aboutisse. Mais il n'avait
+    aucune sortie de secours. Une ligne restée en « en_attente » — worker
+    Celery tué en pleine tâche, machine redémarrée, mémoire épuisée —
+    masquait ALORS DÉFINITIVEMENT le bouton de préparation d'un disque ET
+    tous les sélecteurs « Déplacer vers ». L'écran entier devenait
+    inutilisable, et le seul recours était un UPDATE à la main en base.
+
+    L'opération n'est pas supprimée : elle reste dans l'historique, marquée
+    échouée et horodatée. Supprimer la ligne effacerait la trace de ce qui
+    a été tenté sur les fichiers, qui est précisément ce qu'on veut garder.
+
+    Rien n'est touché sur le disque. Si une tâche de fond tournait encore
+    pour de bon, elle écrira son propre état en terminant ; c'est pourquoi
+    cette action demande une confirmation plutôt que de s'appuyer sur un
+    délai, qu'aucune valeur ne rendrait juste.
+    """
+    from django.utils import timezone
+
+    from .models import OperationDeStockage
+
+    operation = get_object_or_404(OperationDeStockage, pk=pk)
+
+    if operation.etat not in ('en_attente', 'en_cours'):
+        messages.info(
+            request,
+            f'L\'opération #{operation.pk} est déjà close '
+            f'({operation.get_etat_display()}). Rien à faire.')
+        return redirect('system_health:disk_dashboard')
+
+    if request.POST.get('confirmation') != 'ABANDONNER':
+        messages.error(
+            request,
+            'Confirmation incorrecte. Recopiez ABANDONNER en majuscules : '
+            'cette action déclare l\'opération perdue, et l\'état des '
+            'fichiers qu\'elle avait commencé à déplacer doit être vérifié '
+            'après coup.')
+        return redirect('system_health:disk_dashboard')
+
+    # La trace va dans `journal` (TextField) et NON dans `message`, qui est
+    # un CharField(max_length=300) : y concaténer une phrase déborderait
+    # sur MySQL, et pour une préparation de disque `message` porte le
+    # numéro de série du matériel — l'écraser effacerait la trace de ce
+    # qui avait été visé.
+    operation.etat = 'echouee'
+    operation.journal = (
+        (operation.journal or '')
+        + f'\n[{timezone.now():%d/%m/%Y %H:%M}] Abandonnée depuis '
+          f'l\'interface par {request.user}.'
+    ).strip()
+    operation.save(update_fields=['etat', 'journal'])
+
+    _audit(request, 'status_change',
+           description=f'Opération de stockage #{operation.pk} abandonnée')
+    avertissement = ''
+    if operation.categorie:
+        avertissement = (
+            f' Vérifiez où se trouvent réellement les fichiers de '
+            f'« {operation.get_categorie_display()} » avant de relancer un '
+            f'déplacement : la colonne « Emplacement réel » ci-dessus est '
+            f'lue sur le disque, elle dit la vérité.')
+
+    messages.success(
+        request,
+        f'Opération #{operation.pk} déclarée échouée. L\'écran des disques '
+        f'est de nouveau utilisable.{avertissement}')
     return redirect('system_health:disk_dashboard')
 
 
