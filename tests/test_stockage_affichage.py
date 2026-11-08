@@ -565,3 +565,103 @@ def test_le_formulaire_qui_efface_un_disque_n_apparait_qu_une_fois(
 
     assert contenu.count('disques/preparer/') == 1, (
         'le formulaire de preparation doit rester unique sur la page')
+
+
+# ─── Défaut n°5 : un placeholder qui imite la valeur attendue ─────────────
+#
+# « Le bouton Préparer un disque ne déclenche rien du tout. » Rapporté trois
+# fois, et exact. Le champ de confirmation portait
+# `placeholder="{{ d.peripherique }}"` : la valeur EXACTE à recopier,
+# affichée en gris dans la case. Elle paraît remplie. On clique, le champ
+# est vide et `required`, donc le NAVIGATEUR refuse d'envoyer le
+# formulaire -- aucune requête, aucun rechargement, aucune trace serveur.
+#
+# Ce défaut est invisible à tout test côté serveur : la requête n'arrive
+# jamais. Il se pince sur le HTML, et seulement là.
+
+
+def _deux_disques_utilisables():
+    import copy
+    reponse = copy.deepcopy(DISQUES_REELS)
+    second = copy.deepcopy(reponse['disques'][1])
+    second['peripherique'] = '/dev/sdc'
+    second['numero_de_serie'] = 'QM00014'
+    reponse['disques'].append(second)
+    return reponse
+
+
+@pytest.mark.django_db
+def test_le_champ_de_confirmation_ne_parait_jamais_deja_rempli(
+        client, django_user_model, monkeypatch):
+    """Le cœur du défaut : un placeholder n'est pas une valeur."""
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert 'placeholder="/dev/sdb"' not in contenu, (
+        'le placeholder montre la valeur a recopier : la case parait '
+        'remplie, et le navigateur refuse en silence un champ vide')
+    assert 'name="confirmation"' in contenu, 'le champ a disparu'
+
+
+@pytest.mark.django_db
+def test_les_deux_champs_portent_une_etiquette_visible(
+        client, django_user_model, monkeypatch):
+    """Sans étiquette, rien ne dit qu'il faut écrire dans la case."""
+    import re
+
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    for nom in ('etiquette', 'confirmation'):
+        champ = re.search('<input[^>]*name="%s"[^>]*>' % nom, contenu)
+        assert champ, 'champ absent : %s' % nom
+        identifiant = re.search('id="([^"]+)"', champ.group(0))
+        assert identifiant, "%s est sans identifiant" % nom
+        assert 'for="%s"' % identifiant.group(1) in contenu, (
+            "aucune etiquette ne designe le champ %s" % nom)
+
+
+@pytest.mark.django_db
+def test_l_etiquette_dit_qu_il_faut_des_minuscules(
+        client, django_user_model, monkeypatch):
+    """Le motif HTML refuse les majuscules, et son refus est muet.
+
+    Taper « Donnees » bloque l'envoi sans explication visible. Autant le
+    dire dans l'étiquette.
+    """
+    _assistant_qui_repond(monkeypatch)
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    assert 'minuscules' in contenu
+    assert 'autocapitalize="none"' in contenu, (
+        'un clavier mobile mettrait une majuscule et casserait le motif')
+
+
+@pytest.mark.django_db
+def test_chaque_disque_a_ses_propres_identifiants_de_champ(
+        client, django_user_model, monkeypatch):
+    """Deux disques, deux formulaires : des identifiants dupliqués feraient
+    pointer l'étiquette du second vers le champ du premier, et cliquer
+    dessus remplirait le mauvais formulaire — sur une action qui efface un
+    disque."""
+    import re
+
+    _assistant_qui_repond(monkeypatch, _deux_disques_utilisables())
+    _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
+    _super_admin(client, django_user_model)
+
+    contenu = _page(client)
+
+    identifiants = re.findall('id="(confirmation-[^"]+)"', contenu)
+    assert len(identifiants) == 2, identifiants
+    assert len(set(identifiants)) == 2, (
+        'identifiants dupliques entre deux formulaires : %s' % identifiants)

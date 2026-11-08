@@ -632,15 +632,54 @@
             {% endcomment %}
             <input type="hidden" name="numero_de_serie"
                    value="{{ d.numero_de_serie|default:d.wwn }}">
-            <input type="text" name="etiquette" class="form-control form-control-sm"
-                   style="max-width:150px" placeholder="étiquette (ex. donnees)"
-                   pattern="[a-z0-9][a-z0-9-]{0,23}" required
-                   title="Minuscules, chiffres et tirets, 24 caractères au plus."
-                   autocomplete="off">
-            <input type="text" name="confirmation" class="form-control form-control-sm"
-                   style="max-width:170px" placeholder="{{ d.peripherique }}"
-                   autocomplete="off" required>
-            <button class="orion-btn sm btn-outline-danger" type="submit">
+            {% comment %}
+              DEUX CHAMPS ÉTIQUETÉS, ET AUCUN PLACEHOLDER QUI IMITE UNE VALEUR.
+
+              Défaut rapporté trois fois : « le bouton Préparer un disque ne
+              déclenche rien du tout ». C'était exact, et la cause était ici.
+              Le champ de confirmation portait
+              `placeholder="{{ d.peripherique }}"`, c'est-à-dire EXACTEMENT
+              la valeur à recopier. Un « /dev/sdb » grisé dans la case : elle
+              paraît déjà remplie. On clique, le champ est en réalité vide et
+              `required`, donc le NAVIGATEUR refuse d'envoyer le formulaire —
+              aucune requête, aucun rechargement, aucune trace côté serveur,
+              et une bulle d'avertissement fugace qu'on ne voit pas sur un
+              formulaire large qui passe à la ligne.
+
+              Un placeholder suggère un format ; il ne doit jamais montrer la
+              valeur attendue d'un champ obligatoire. Les deux champs portent
+              maintenant une étiquette visible, et le placeholder dit quoi
+              faire, pas quoi copier.
+
+              `autocapitalize` et `spellcheck` : un clavier mobile qui met une
+              majuscule à l'initiale casse le motif de l'étiquette, et le
+              refus serait là aussi silencieux.
+            {% endcomment %}
+            <div class="d-flex flex-column">
+              <label class="form-label small mb-0"
+                     for="etiquette-{{ forloop.counter }}">Étiquette du volume
+                <span class="text-muted">(minuscules)</span></label>
+              <input type="text" id="etiquette-{{ forloop.counter }}"
+                     name="etiquette" class="form-control form-control-sm"
+                     style="max-width:150px" placeholder="ex. donnees"
+                     pattern="[a-z0-9][a-z0-9-]{0,23}" required
+                     title="Minuscules, chiffres et tirets, 24 caractères au plus."
+                     autocapitalize="none" spellcheck="false"
+                     autocomplete="off">
+            </div>
+            <div class="d-flex flex-column">
+              <label class="form-label small mb-0"
+                     for="confirmation-{{ forloop.counter }}">Recopiez
+                <code>{{ d.peripherique }}</code></label>
+              <input type="text" id="confirmation-{{ forloop.counter }}"
+                     name="confirmation" class="form-control form-control-sm"
+                     style="max-width:170px" placeholder="à recopier ici"
+                     title="Recopiez le nom du disque affiché juste au-dessus."
+                     autocapitalize="none" spellcheck="false"
+                     autocomplete="off" required>
+            </div>
+            <button class="orion-btn sm btn-outline-danger align-self-end"
+                    type="submit">
               Préparer et monter
             </button>
           </form>
