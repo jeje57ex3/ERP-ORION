@@ -3,27 +3,48 @@
 {% block title %}Performance{% endblock %}
 
 {% block page_eyebrow %}<p class="orion-page-eyebrow"><i class="bi bi-activity me-1"></i> Super Admin</p>{% endblock %}
-{% block page_subtitle %}Requêtes lentes des dernières 24h{% endblock %}
+{% block page_subtitle %}Latence du serveur et requêtes lentes, sur 24 h{% endblock %}
 
 {% block content %}
 
+{% comment %}
+  La MEDIANE en premier, la moyenne en dernier, et ce n'est pas un detail
+  de presentation. Une moyenne ment des qu'une requete sort du lot : une
+  page a dix secondes noyee dans cent-quatre-vingt-dix-neuf pages a
+  cinquante millisecondes deplace la moyenne d'un bon tiers, et on cherche
+  une lenteur generale qui n'existe pas.
+
+  La mediane dit ce que l'utilisateur vit d'habitude. Le 95e centile dit ce
+  que vivent les plus malchanceux -- et c'est lui qui fait dire « l'ERP
+  rame », jamais la moyenne.
+{% endcomment %}
 <div class="row g-3 mb-4">
-  <div class="col-sm-4">
+  <div class="col-6 col-lg-3">
     <div class="orion-card text-center p-3">
-      <div class="orion-stat-value">{{ avg_ms }}<small class="fs-6 text-muted">ms</small></div>
-      <div class="orion-stat-label">Temps moyen</div>
+      <div class="orion-stat-value">{{ p50_ms }}<small class="fs-6 text-muted">ms</small></div>
+      <div class="orion-stat-label">Latence médiane</div>
+      <div class="text-muted" style="font-size:.72rem">la moitié des requêtes sont plus rapides</div>
     </div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-6 col-lg-3">
     <div class="orion-card text-center p-3">
-      <div class="orion-stat-value">{{ max_ms }}<small class="fs-6 text-muted">ms</small></div>
-      <div class="orion-stat-label">Temps max</div>
+      <div class="orion-stat-value {% if p95_ms > 2000 %}text-danger{% elif p95_ms > 1000 %}text-warning{% endif %}">{{ p95_ms }}<small class="fs-6 text-muted">ms</small></div>
+      <div class="orion-stat-label">95ᵉ centile</div>
+      <div class="text-muted" style="font-size:.72rem">ce que subissent les 5 % les plus lents</div>
     </div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-6 col-lg-3">
     <div class="orion-card text-center p-3">
       <div class="orion-stat-value {% if slow_count > 10 %}text-danger{% elif slow_count > 0 %}text-warning{% endif %}">{{ slow_count }}</div>
       <div class="orion-stat-label">Requêtes lentes</div>
+      <div class="text-muted" style="font-size:.72rem">au-delà de {{ seuil_lent_ms }} ms</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="orion-card text-center p-3">
+      <div class="orion-stat-value">{{ max_ms }}<small class="fs-6 text-muted">ms</small></div>
+      <div class="orion-stat-label">Maximum</div>
+      <div class="text-muted" style="font-size:.72rem">moyenne : {{ avg_ms }} ms</div>
     </div>
   </div>
 </div>
@@ -76,9 +97,22 @@
   </div>
 </div>
 {% else %}
+{% comment %}
+  Distinguer « aucune mesure » de « tout va bien ». Cette page est restee
+  vide longtemps parce que son middleware n'etait declare nulle part ; une
+  page vide qui ne s'explique pas laisse croire que le module est encore
+  casse.
+{% endcomment %}
 <div class="orion-empty-state">
   <i class="bi bi-activity"></i>
-  <p>Aucun événement de performance enregistré.</p>
+  <p>Aucune mesure sur les dernières 24 heures.</p>
+  <p class="text-muted small mb-0">
+    La latence est mesurée par échantillonnage : une requête sur
+    {{ taux_echantillon }} est enregistrée, et toute requête dépassant
+    {{ seuil_lent_ms }} ms l'est systématiquement. Il faut donc un peu de
+    trafic avant qu'une première ligne n'apparaisse. Les fichiers statiques
+    et les images ne sont pas comptés : leur rapidité fausserait la médiane.
+  </p>
 </div>
 {% endif %}
 
