@@ -198,7 +198,13 @@ def project_detail(request, pk):
 
     assignments = SiteAssignment.objects.filter(project=project, visible_to_client=True, is_active=True).select_related('employee')
     plan_steps = ProjectPlanStep.objects.filter(project=project, visible_to_client=True)
-    documents = ProjectDocument.objects.filter(project=project, visible_to_client=True)
+    # `corbeille_le__isnull=True` : une photo retiree de la galerie du
+    # chantier ne doit plus apparaitre ici non plus. Sans ce filtre, un
+    # document « supprime » resterait visible du client pendant les deux
+    # semaines de conservation -- et telechargeable.
+    documents = ProjectDocument.objects.filter(
+        project=project, visible_to_client=True,
+        corbeille_le__isnull=True)
     reservations = ProjectReservation.objects.filter(project=project)
     change_requests = ClientChangeRequest.objects.filter(project=project)
     conversations = ClientConversation.objects.filter(project=project)
@@ -257,7 +263,8 @@ def project_documents(request, pk):
     project = get_object_or_404(BTPProject, pk=pk, company=company, customer__email=account.email)
     documents = list(
         ProjectDocument.objects.filter(project=project,
-                                       visible_to_client=True))
+                                       visible_to_client=True,
+                                       corbeille_le__isnull=True))
 
     # Quels documents peuvent porter une vignette. Decide ICI et non dans
     # le gabarit, et sur l'EXTENSION seule : poser une balise <img> sans le
@@ -307,7 +314,8 @@ def project_document_download(request, pk, doc_pk):
     project = get_object_or_404(
         BTPProject, pk=pk, company=company, customer__email=account.email)
     document = get_object_or_404(
-        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True)
+        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True,
+        corbeille_le__isnull=True)
 
     return servir_fichier_autorise(document.file, document.name)
 
@@ -349,7 +357,8 @@ def project_document_thumbnail(request, pk, doc_pk):
     project = get_object_or_404(
         BTPProject, pk=pk, company=company, customer__email=account.email)
     document = get_object_or_404(
-        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True)
+        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True,
+        corbeille_le__isnull=True)
 
     chemin = miniatures.miniature(document.file)
     if chemin is None:

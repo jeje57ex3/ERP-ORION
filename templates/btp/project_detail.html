@@ -38,6 +38,9 @@
     <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>{% trans "Pointage" %}</a>
     <a href="?tab=supplies" class="erp-tab {% if tab == 'supplies' %}active{% endif %}"><i class="bi bi-box-seam me-1"></i>{% blocktrans with c=supplies.count %}Fournitures ({{ c }}){% endblocktrans %}</a>
     <a href="?tab=photos" class="erp-tab {% if tab == 'photos' %}active{% endif %}"><i class="bi bi-images me-1"></i>{% blocktrans with c=nb_photos %}Photos ({{ c }}){% endblocktrans %}</a>
+    {% if nb_corbeille %}
+    <a href="?tab=corbeille" class="erp-tab {% if tab == 'corbeille' %}active{% endif %}"><i class="bi bi-trash me-1"></i>{% blocktrans with c=nb_corbeille %}Corbeille ({{ c }}){% endblocktrans %}</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
@@ -199,6 +202,50 @@
   {% endif %}
 </div>
 
+{% elif tab == 'corbeille' %}
+<div class="erp-card">
+  {% comment %}
+    La corbeille est purgee a l'OUVERTURE de cet ecran, en plus de la tache
+    periodique : la promesse « supprimee au bout de deux semaines » ne doit
+    pas dependre d'un planificateur que personne n'a configure. Voir
+    views._corbeille_du_chantier.
+  {% endcomment %}
+  <div class="alert alert-light border small">
+    <i class="bi bi-info-circle me-1"></i>
+    {% blocktrans with j=jours_de_corbeille %}Ces photos sont retirées du chantier mais pas encore détruites. Elles le seront définitivement {{ j }} jours après leur mise à la corbeille.{% endblocktrans %}
+  </div>
+  {% if corbeille %}
+    <div class="row g-3">
+      {% for photo in corbeille %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="border rounded overflow-hidden h-100 d-flex flex-column">
+          <img src="{{ photo.url }}" alt="{{ photo.titre }}" loading="lazy"
+               style="width:100%;height:150px;object-fit:cover;display:block;opacity:.6">
+          <div class="p-2 small flex-grow-1 d-flex flex-column">
+            <div class="fw-semibold text-truncate" title="{{ photo.titre }}">{{ photo.titre }}</div>
+            <div class="text-muted text-truncate">{{ photo.detail }}</div>
+            <div class="mt-auto pt-1 d-flex justify-content-between align-items-center gap-1">
+              <span class="badge bg-light text-dark">{{ photo.origine }}</span>
+              <span class="{% if photo.jours_restants <= 2 %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                {% blocktrans count j=photo.jours_restants %}{{ j }} jour{% plural %}{{ j }} jours{% endblocktrans %}
+              </span>
+            </div>
+            <form method="post" action="{{ photo.restauration }}" class="mt-2">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn sm btn-outline-primary w-100">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Restaurer" %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted small"><i class="bi bi-trash me-1"></i>{% trans "La corbeille est vide." %}</div>
+  {% endif %}
+</div>
+
 {% elif tab == 'photos' %}
 <div class="erp-card">
   {% comment %}
@@ -242,10 +289,10 @@
                 services_photos.supprimer_la_photo.
               {% endcomment %}
               <form method="post" action="{{ photo.suppression }}"
-                    onsubmit="return confirm('{% blocktrans with t=photo.titre %}Retirer définitivement « {{ t }} » de ce chantier ?{% endblocktrans %}')">
+                    onsubmit="return confirm('{% blocktrans with t=photo.titre j=jours_de_corbeille %}Mettre « {{ t }} » à la corbeille ? Elle y restera {{ j }} jours avant suppression définitive.{% endblocktrans %}')">
                 {% csrf_token %}
                 <button type="submit" class="orion-btn danger sm"
-                        title="{% trans 'Supprimer cette photo' %}">
+                        title="{% trans 'Mettre à la corbeille' %}">
                   <i class="bi bi-trash"></i>
                 </button>
               </form>

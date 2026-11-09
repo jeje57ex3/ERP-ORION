@@ -29,6 +29,7 @@ l'audit de ce module a corrigée ailleurs.
 """
 
 import os
+from datetime import timedelta
 
 from django.urls import reverse
 
@@ -91,7 +92,8 @@ def _url_de_suppression(project, origine, pk):
                    args=[project.pk, origine, pk])
 
 
-def fichier_de_la_photo(project, origine, pk):
+def fichier_de_la_photo(project, origine, pk,
+                        inclure_la_corbeille=False):
     """Le fichier d'une photo de CE chantier, ou None.
 
     Le `project` est fourni par la vue, déjà filtré sur l'entreprise. Chaque
@@ -99,92 +101,200 @@ def fichier_de_la_photo(project, origine, pk):
     d'un autre chantier, ou d'une autre société, ne peut donc pas être
     servie même si son identifiant est deviné.
     """
-    if origine == 'document':
-        objet = project.project_documents.filter(pk=pk).first()
-        return objet.file if objet and objet.file else None
-
-    if origine == 'reserve':
-        from .models import ReservationPhoto
-        objet = ReservationPhoto.objects.filter(
-            pk=pk, reservation__project=project).first()
-        return objet.photo if objet and objet.photo else None
-
-    if origine == 'point':
-        from .models import ProjectStepItem
-        objet = ProjectStepItem.objects.filter(
-            pk=pk, step__project=project).first()
-        return objet.answer_photo if objet and objet.answer_photo else None
-
-    return None
+    objet = _objet_de_la_photo(project, origine, pk, inclure_la_corbeille)
+    if objet is None:
+        return None
+    fichier = _fichier_porte_par(origine, objet)
+    return fichier if fichier else None
 
 
-def supprimer_la_photo(project, origine, pk):
-    """Retire une photo du chantier. Rend un libellé, ou None si introuvable.
+def _objet_de_la_photo(project, origine, pk, inclure_la_corbeille=False):
+    """L'objet qui porte la photo, cherché DEPUIS le chantier.
 
-    CE QUE « SUPPRIMER » VEUT DIRE DÉPEND DE L'ORIGINE, et c'est le point
-    délicat de cette fonction. Traiter les trois cas de la même façon
-    détruirait des données qui n'ont rien à voir avec l'image.
-
-    * **document** — le document EST la photo : on le supprime.
-    * **réserve** — seule la photo part. Le titre, la description et le
-      statut de la réserve sont le dossier ; une réserve sans sa photo
-      reste une réserve à traiter, et la supprimer avec l'image ferait
-      disparaître une malfaçon signalée.
-    * **point de contrôle** — seule la RÉPONSE est effacée. La question
-      reste, et le point redevient « non renseigné », donc signalé par le
-      compteur de l'onglet Étapes. Supprimer le point lui-même ferait
-      disparaître du contrôle une case qu'il faut encore remplir.
-
-    Le fichier est retiré du stockage avec la ligne. Django ne le fait pas
-    tout seul : sans cela, chaque suppression laisserait un fichier
-    orphelin que plus rien ne référence et que personne ne retrouvera.
+    `inclure_la_corbeille` n'est vrai que pour l'écran de corbeille et la
+    restauration : partout ailleurs, une photo mise à la corbeille doit
+    être introuvable, sans quoi elle resterait servie par son URL alors
+    qu'elle a disparu de la galerie.
     """
     if origine == 'document':
-        objet = project.project_documents.filter(pk=pk).first()
-        if objet is None:
-            return None
-        libelle = objet.name
-        fichier = objet.file
-        objet.delete()
-        _oublier_le_fichier(fichier)
-        return libelle
+        recherche = project.project_documents.filter(pk=pk)
+        if not inclure_la_corbeille:
+            recherche = recherche.filter(corbeille_le__isnull=True)
+        return recherche.first()
 
     if origine == 'reserve':
         from .models import ReservationPhoto
-        objet = ReservationPhoto.objects.filter(
-            pk=pk, reservation__project=project).first()
-        if objet is None:
-            return None
-        libelle = objet.caption or objet.reservation.title
-        fichier = objet.photo
-        objet.delete()
-        _oublier_le_fichier(fichier)
-        return libelle
+        recherche = ReservationPhoto.objects.filter(
+            pk=pk, reservation__project=project)
+        if not inclure_la_corbeille:
+            recherche = recherche.filter(corbeille_le__isnull=True)
+        return recherche.first()
 
     if origine == 'point':
         from .models import ProjectStepItem
-        objet = ProjectStepItem.objects.filter(
-            pk=pk, step__project=project).first()
-        if objet is None or not objet.answer_photo:
-            return None
-        libelle = objet.label
-        fichier = objet.answer_photo
-        objet.answer_photo = None
-        objet.save(update_fields=['answer_photo'])
-        _oublier_le_fichier(fichier)
-        return libelle
+        recherche = ProjectStepItem.objects.filter(
+            pk=pk, step__project=project).exclude(answer_photo='')
+        if not inclure_la_corbeille:
+            recherche = recherche.filter(photo_corbeille_le__isnull=True)
+        return recherche.first()
 
     return None
+
+
+def _fichier_porte_par(origine, objet):
+    return {
+        'document': getattr(objet, 'file', None),
+        'reserve': getattr(objet, 'photo', None),
+        'point': getattr(objet, 'answer_photo', None),
+    }.get(origine)
+
+
+# ─── La corbeille ──────────────────────────────────────────────────────────
+#
+# Une photo retirée d'un chantier n'est pas détruite : elle est datée et
+# reste récupérable DEUX SEMAINES. Une photo de chantier peut servir de
+# preuve en cas de litige, et un clic de trop ne doit pas la faire
+# disparaître à jamais.
+#
+# Rien n'est déplacé ni recopié : l'objet reste à sa place, seule une date
+# le marque. Copier le fichier ailleurs doublerait l'occupation disque
+# pendant quinze jours, et une restauration consisterait à le recopier en
+# sens inverse — deux fois plus d'occasions de le perdre.
+DUREE_DE_CONSERVATION_JOURS = 14
+
+# Le champ qui porte la date, par origine. Le point de contrôle a le sien
+# parce que la photo n'y est qu'une des réponses possibles : c'est la PHOTO
+# qu'on met à la corbeille, pas la question.
+CHAMP_DE_CORBEILLE = {
+    'document': 'corbeille_le',
+    'reserve': 'corbeille_le',
+    'point': 'photo_corbeille_le',
+}
+CHAMP_D_AUTEUR = {
+    'document': 'corbeille_par',
+    'reserve': 'corbeille_par',
+    'point': 'photo_corbeille_par',
+}
+
+
+def mettre_a_la_corbeille(project, origine, pk, utilisateur=None):
+    """Retire la photo de la galerie. Rend un libellé, ou None si introuvable.
+
+    CE QUI N'EST PAS SUPPRIMÉ, et c'est le point délicat :
+
+    * **réserve** — seule la photo part. Le titre, la description et le
+      statut de la réserve sont le dossier ; une réserve sans son image
+      reste une malfaçon à traiter, et l'effacer avec la photo la ferait
+      disparaître du suivi.
+    * **point de contrôle** — la question reste, et redevient « non
+      renseignée » donc comptée par l'avertisseur de l'onglet Étapes.
+      Supprimer le point ferait disparaître du contrôle une case qu'il
+      faut encore remplir, sans que personne ne sache qu'elle manque.
+    """
+    from django.utils import timezone
+
+    objet = _objet_de_la_photo(project, origine, pk)
+    if objet is None:
+        return None
+
+    libelle = _libelle_de(origine, objet)
+    setattr(objet, CHAMP_DE_CORBEILLE[origine], timezone.now())
+    if utilisateur is not None and utilisateur.is_authenticated:
+        setattr(objet, CHAMP_D_AUTEUR[origine], utilisateur)
+    objet.save(update_fields=[CHAMP_DE_CORBEILLE[origine],
+                              CHAMP_D_AUTEUR[origine]])
+    return libelle
+
+
+def restaurer_la_photo(project, origine, pk):
+    """Remet la photo dans la galerie. Rend un libellé, ou None."""
+    objet = _objet_de_la_photo(project, origine, pk,
+                               inclure_la_corbeille=True)
+    if objet is None or getattr(objet, CHAMP_DE_CORBEILLE[origine]) is None:
+        return None
+
+    libelle = _libelle_de(origine, objet)
+    setattr(objet, CHAMP_DE_CORBEILLE[origine], None)
+    setattr(objet, CHAMP_D_AUTEUR[origine], None)
+    objet.save(update_fields=[CHAMP_DE_CORBEILLE[origine],
+                              CHAMP_D_AUTEUR[origine]])
+    return libelle
+
+
+def _libelle_de(origine, objet):
+    if origine == 'document':
+        return objet.name or os.path.basename(
+            getattr(objet.file, 'name', '') or '')
+    if origine == 'reserve':
+        return objet.caption or objet.reservation.title
+    return objet.label
+
+
+def purger_la_corbeille(maintenant=None):
+    """Détruit définitivement ce qui dort dans la corbeille depuis 14 jours.
+
+    Rend un décompte par origine. Ne lève jamais sur un fichier : la ligne
+    doit partir même si le fichier manque déjà — une sauvegarde restaurée
+    sans les médias laisse exactement cet état.
+
+    APPELÉE DE DEUX ENDROITS, ET C'EST DÉLIBÉRÉ.
+
+    Une tâche périodique, et aussi l'ouverture de l'écran de corbeille. La
+    promesse faite à l'utilisateur — « supprimée définitivement au bout de
+    deux semaines » — ne doit pas dépendre d'un planificateur que personne
+    n'a configuré. Ce dépôt a déjà livré trois choses que rien n'activait :
+    le middleware de performance, les règles sudo et l'assistant disque.
+    Une purge qui ne tourne jamais garderait les fichiers indéfiniment, et
+    l'écran afficherait « 0 jour restant » sans que rien ne se passe.
+    """
+    from django.utils import timezone
+
+    from .models import ProjectDocument, ProjectStepItem, ReservationPhoto
+
+    maintenant = maintenant or timezone.now()
+    limite = maintenant - timedelta(days=DUREE_DE_CONSERVATION_JOURS)
+    comptes = {'documents': 0, 'reserves': 0, 'points': 0}
+
+    for document in ProjectDocument.objects.filter(
+            corbeille_le__isnull=False, corbeille_le__lt=limite):
+        fichier = document.file
+        document.delete()
+        _oublier_le_fichier(fichier)
+        comptes['documents'] += 1
+
+    for cliche in ReservationPhoto.objects.filter(
+            corbeille_le__isnull=False, corbeille_le__lt=limite):
+        fichier = cliche.photo
+        cliche.delete()
+        _oublier_le_fichier(fichier)
+        comptes['reserves'] += 1
+
+    # Le point de contrôle SURVIT : seule sa photo part, et la question
+    # reste « non renseignée ». La date de corbeille est remise à None,
+    # sans quoi le point resterait marqué comme ayant eu une photo retirée
+    # alors qu'il n'y en a plus du tout.
+    for point in ProjectStepItem.objects.filter(
+            photo_corbeille_le__isnull=False, photo_corbeille_le__lt=limite):
+        fichier = point.answer_photo
+        point.answer_photo = None
+        point.photo_corbeille_le = None
+        point.photo_corbeille_par = None
+        point.save(update_fields=['answer_photo', 'photo_corbeille_le',
+                                  'photo_corbeille_par'])
+        _oublier_le_fichier(fichier)
+        comptes['points'] += 1
+
+    return comptes
 
 
 def _oublier_le_fichier(fichier):
     """Retire le fichier du stockage, sans jamais lever.
 
-    La ligne est déjà supprimée quand on arrive ici : si le fichier a
-    disparu du disque, si les droits manquent, ou si le stockage est
-    distant et injoignable, l'opération reste un succès du point de vue de
-    l'utilisateur — la photo n'apparaît plus. Lever ici rendrait une erreur
-    500 sur une suppression qui a bel et bien eu lieu.
+    La ligne est déjà partie quand on arrive ici : si le fichier a disparu
+    du disque, si les droits manquent, ou si le stockage est distant et
+    injoignable, la suppression reste un succès du point de vue de
+    l'utilisateur. Lever ici rendrait une erreur 500 sur une purge qui a
+    bel et bien eu lieu.
     """
     if not fichier:
         return
@@ -194,71 +304,110 @@ def _oublier_le_fichier(fichier):
         pass
 
 
-def photos_du_chantier(project):
+def photos_du_chantier(project, corbeille=False):
     """Les photos du chantier, les plus récentes d'abord.
 
-    Rend une liste de dictionnaires : `url`, `titre`, `origine`, `detail`,
-    `date`, `lien`. `lien` renvoie vers la fiche d'où la photo vient quand
-    une telle page existe, et vaut None sinon — l'affichage doit rester
-    exact plutôt que de promettre un lien mort.
+    Avec `corbeille=True`, rend au contraire celles qui attendent leur
+    suppression définitive, avec le nombre de jours restants.
+
+    La MÊME fonction sert les deux écrans, et c'est voulu : deux parcours
+    séparés des trois sources finiraient par diverger, et une photo
+    pourrait alors manquer aux deux endroits à la fois.
     """
     photos = []
 
     # ── 1. Les documents du chantier ────────────────────────────────────
-    for document in project.project_documents.all():
+    documents = project.project_documents.filter(
+        corbeille_le__isnull=not corbeille)
+    for document in documents:
         nom_du_fichier = getattr(document.file, 'name', '')
         if not est_une_image(nom_du_fichier):
             continue
-        photos.append({
-            'url': _url_de_service(project, 'document', document.pk),
-            'suppression': _url_de_suppression(project, 'document', document.pk),
-            'titre': document.name or os.path.basename(nom_du_fichier),
-            'origine': 'Document',
-            'detail': document.get_doc_type_display(),
-            'date': document.added_at,
-            'lien': None,
-        })
+        photos.append(_decrire(
+            project, 'document', document.pk,
+            titre=document.name or os.path.basename(nom_du_fichier),
+            origine='Document',
+            detail=document.get_doc_type_display(),
+            date=document.added_at,
+            lien=None,
+            corbeille_le=document.corbeille_le,
+            corbeille=corbeille))
 
     # ── 2. Les photos de réserves ───────────────────────────────────────
     for reserve in project.reservations.prefetch_related('photos'):
         for cliche in reserve.photos.all():
             if not cliche.photo:
                 continue
-            photos.append({
-                'url': _url_de_service(project, 'reserve', cliche.pk),
-                'suppression': _url_de_suppression(project, 'reserve', cliche.pk),
-                'titre': cliche.caption or reserve.title,
-                'origine': 'Réserve',
-                'detail': reserve.title,
-                'date': cliche.uploaded_at,
-                'lien': reverse('btp:reservations_list'),
-            })
+            if (cliche.corbeille_le is None) == corbeille:
+                continue
+            photos.append(_decrire(
+                project, 'reserve', cliche.pk,
+                titre=cliche.caption or reserve.title,
+                origine='Réserve',
+                detail=reserve.title,
+                date=cliche.uploaded_at,
+                lien=reverse('btp:reservations_list'),
+                corbeille_le=cliche.corbeille_le,
+                corbeille=corbeille))
 
     # ── 3. Les points de contrôle dont la réponse EST une photo ─────────
     for etape in project.plan_steps.prefetch_related('items'):
         for point in etape.items.all():
             if not point.answer_photo:
                 continue
-            photos.append({
-                'url': _url_de_service(project, 'point', point.pk),
-                'suppression': _url_de_suppression(project, 'point', point.pk),
-                'titre': point.label,
-                'origine': 'Étape',
-                'detail': etape.name,
-                'date': point.filled_at,
-                'lien': reverse('btp:step_detail', args=[etape.pk]),
-            })
+            if (point.photo_corbeille_le is None) == corbeille:
+                continue
+            photos.append(_decrire(
+                project, 'point', point.pk,
+                titre=point.label,
+                origine='Étape',
+                detail=etape.name,
+                date=point.filled_at,
+                lien=reverse('btp:step_detail', args=[etape.pk]),
+                corbeille_le=point.photo_corbeille_le,
+                corbeille=corbeille))
 
     # Les plus récentes d'abord, et celles sans date à la fin.
     #
     # Deux listes plutôt qu'une clé de tri avec une date sentinelle : une
     # sentinelle demande de choisir entre naïf et conscient du fuseau, et se
-    # trompe un jour sur deux. `filled_at` est nul tant que le point n'a pas
-    # été rempli, et une photo peut y être déposée sans que le reste le soit.
+    # trompe un jour sur deux.
     datees = [p for p in photos if p['date']]
     sans_date = [p for p in photos if not p['date']]
     datees.sort(key=lambda p: p['date'], reverse=True)
     return datees + sans_date
+
+
+def _decrire(project, cle, pk, titre, origine, detail, date, lien,
+             corbeille_le, corbeille):
+    """Une entrée de galerie, pour l'un ou l'autre des deux écrans."""
+    photo = {
+        'url': _url_de_service(project, cle, pk),
+        'titre': titre,
+        'origine': origine,
+        'detail': detail,
+        'date': date,
+        'lien': lien,
+    }
+    if corbeille:
+        photo['restauration'] = reverse(
+            'btp:project_photo_restore', args=[project.pk, cle, pk])
+        photo['corbeille_le'] = corbeille_le
+        photo['jours_restants'] = jours_restants(corbeille_le)
+    else:
+        photo['suppression'] = _url_de_suppression(project, cle, pk)
+    return photo
+
+
+def jours_restants(corbeille_le):
+    """Combien de jours avant la suppression définitive. 0 si c'est passé."""
+    from django.utils import timezone
+
+    if corbeille_le is None:
+        return None
+    limite = corbeille_le + timedelta(days=DUREE_DE_CONSERVATION_JOURS)
+    restant = limite - timezone.now()
+    return max(0, restant.days + (1 if restant.seconds else 0))
 
 
 def compter_les_photos(project):
@@ -273,14 +422,17 @@ def compter_les_photos(project):
 
     # Les documents demandent de regarder les noms de fichiers, puisque
     # c'est l'extension qui tranche : une seule colonne est ramenée.
-    noms = project.project_documents.values_list('file', flat=True)
+    noms = project.project_documents.filter(
+        corbeille_le__isnull=True).values_list('file', flat=True)
     total = sum(1 for nom in noms if est_une_image(nom))
 
     total += ReservationPhoto.objects.filter(
-        reservation__project=project).count()
+        reservation__project=project,
+        corbeille_le__isnull=True).count()
 
     total += ProjectStepItem.objects.filter(
-        step__project=project).exclude(answer_photo='').exclude(
-        answer_photo__isnull=True).count()
+        step__project=project,
+        photo_corbeille_le__isnull=True).exclude(
+        answer_photo='').exclude(answer_photo__isnull=True).count()
 
     return total
