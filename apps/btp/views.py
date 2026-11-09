@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum
 from django.views.decorators.http import require_POST
+from django.urls import reverse
 
 from .models import BTPProject, BTPQuote, SituationOfWorks, BTPTimesheet
 from .forms import BTPProjectForm, BTPQuoteForm, SituationForm, BTPTimesheetForm
@@ -140,6 +141,38 @@ def project_photo(request, pk, origine, photo_pk):
     # d'exempter ce préfixe dans le middleware — comme /media/ l'est déjà,
     # et pour exactement la même raison, que sa docstring explique.
     return FileResponse(flux, content_type=type_mime)
+
+
+@require_POST
+@login_required
+def project_photo_delete(request, pk, origine, photo_pk):
+    """Retire une photo du chantier.
+
+    POST uniquement, et le chantier est filtre sur l'entreprise AVANT toute
+    recherche : la suppression ne peut donc pas sortir de l'entreprise, ni
+    du chantier affiche.
+
+    Ce que « supprimer » signifie depend de l'origine -- document supprime,
+    photo de reserve retiree sans toucher a la reserve, reponse d'un point
+    de controle effacee sans supprimer la question. Le raisonnement est
+    dans services_photos.supprimer_la_photo, et il compte : traiter les
+    trois cas de la meme facon ferait disparaitre une malfacon signalee ou
+    une case qu'il reste a remplir.
+    """
+    from . import services_photos
+
+    company = request.current_company
+    project = get_object_or_404(BTPProject, pk=pk, company=company)
+
+    libelle = services_photos.supprimer_la_photo(project, origine, photo_pk)
+    if libelle is None:
+        messages.error(request,
+                       "Cette photo n'existe plus sur ce chantier.")
+    else:
+        messages.success(request, f'Photo supprimée : {libelle}.')
+
+    return redirect(
+        f"{reverse('btp:project_detail', args=[project.pk])}?tab=photos")
 
 
 @login_required

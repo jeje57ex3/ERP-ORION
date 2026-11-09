@@ -19,6 +19,8 @@ urlpatterns = [
     # views.project_photo et apps/core/media_access.py.
     path('chantiers/<int:pk>/photo/<slug:origine>/<int:photo_pk>/',
          views.project_photo, name='project_photo'),
+    path('chantiers/<int:pk>/photo/<slug:origine>/<int:photo_pk>/supprimer/',
+         views.project_photo_delete, name='project_photo_delete'),
     path('chantiers/<int:pk>/modifier/', views.project_edit, name='project_edit'),
     path('chantiers/<int:pk>/supprimer/', views.project_delete, name='project_delete'),
 

@@ -83,6 +83,14 @@ def _url_de_service(project, origine, pk):
     return reverse('btp:project_photo', args=[project.pk, origine, pk])
 
 
+def _url_de_suppression(project, origine, pk):
+    """L'URL du bouton qui retire cette photo du chantier."""
+    from django.urls import reverse
+
+    return reverse('btp:project_photo_delete',
+                   args=[project.pk, origine, pk])
+
+
 def fichier_de_la_photo(project, origine, pk):
     """Le fichier d'une photo de CE chantier, ou None.
 
@@ -110,6 +118,82 @@ def fichier_de_la_photo(project, origine, pk):
     return None
 
 
+def supprimer_la_photo(project, origine, pk):
+    """Retire une photo du chantier. Rend un libellé, ou None si introuvable.
+
+    CE QUE « SUPPRIMER » VEUT DIRE DÉPEND DE L'ORIGINE, et c'est le point
+    délicat de cette fonction. Traiter les trois cas de la même façon
+    détruirait des données qui n'ont rien à voir avec l'image.
+
+    * **document** — le document EST la photo : on le supprime.
+    * **réserve** — seule la photo part. Le titre, la description et le
+      statut de la réserve sont le dossier ; une réserve sans sa photo
+      reste une réserve à traiter, et la supprimer avec l'image ferait
+      disparaître une malfaçon signalée.
+    * **point de contrôle** — seule la RÉPONSE est effacée. La question
+      reste, et le point redevient « non renseigné », donc signalé par le
+      compteur de l'onglet Étapes. Supprimer le point lui-même ferait
+      disparaître du contrôle une case qu'il faut encore remplir.
+
+    Le fichier est retiré du stockage avec la ligne. Django ne le fait pas
+    tout seul : sans cela, chaque suppression laisserait un fichier
+    orphelin que plus rien ne référence et que personne ne retrouvera.
+    """
+    if origine == 'document':
+        objet = project.project_documents.filter(pk=pk).first()
+        if objet is None:
+            return None
+        libelle = objet.name
+        fichier = objet.file
+        objet.delete()
+        _oublier_le_fichier(fichier)
+        return libelle
+
+    if origine == 'reserve':
+        from .models import ReservationPhoto
+        objet = ReservationPhoto.objects.filter(
+            pk=pk, reservation__project=project).first()
+        if objet is None:
+            return None
+        libelle = objet.caption or objet.reservation.title
+        fichier = objet.photo
+        objet.delete()
+        _oublier_le_fichier(fichier)
+        return libelle
+
+    if origine == 'point':
+        from .models import ProjectStepItem
+        objet = ProjectStepItem.objects.filter(
+            pk=pk, step__project=project).first()
+        if objet is None or not objet.answer_photo:
+            return None
+        libelle = objet.label
+        fichier = objet.answer_photo
+        objet.answer_photo = None
+        objet.save(update_fields=['answer_photo'])
+        _oublier_le_fichier(fichier)
+        return libelle
+
+    return None
+
+
+def _oublier_le_fichier(fichier):
+    """Retire le fichier du stockage, sans jamais lever.
+
+    La ligne est déjà supprimée quand on arrive ici : si le fichier a
+    disparu du disque, si les droits manquent, ou si le stockage est
+    distant et injoignable, l'opération reste un succès du point de vue de
+    l'utilisateur — la photo n'apparaît plus. Lever ici rendrait une erreur
+    500 sur une suppression qui a bel et bien eu lieu.
+    """
+    if not fichier:
+        return
+    try:
+        fichier.delete(save=False)
+    except Exception:                                   # noqa: BLE001
+        pass
+
+
 def photos_du_chantier(project):
     """Les photos du chantier, les plus récentes d'abord.
 
@@ -127,6 +211,7 @@ def photos_du_chantier(project):
             continue
         photos.append({
             'url': _url_de_service(project, 'document', document.pk),
+            'suppression': _url_de_suppression(project, 'document', document.pk),
             'titre': document.name or os.path.basename(nom_du_fichier),
             'origine': 'Document',
             'detail': document.get_doc_type_display(),
@@ -141,6 +226,7 @@ def photos_du_chantier(project):
                 continue
             photos.append({
                 'url': _url_de_service(project, 'reserve', cliche.pk),
+                'suppression': _url_de_suppression(project, 'reserve', cliche.pk),
                 'titre': cliche.caption or reserve.title,
                 'origine': 'Réserve',
                 'detail': reserve.title,
@@ -155,6 +241,7 @@ def photos_du_chantier(project):
                 continue
             photos.append({
                 'url': _url_de_service(project, 'point', point.pk),
+                'suppression': _url_de_suppression(project, 'point', point.pk),
                 'titre': point.label,
                 'origine': 'Étape',
                 'detail': etape.name,
