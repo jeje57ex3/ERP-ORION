@@ -22,6 +22,10 @@ urlpatterns = [
     # Les fichiers ne sont pas servis par /media/ : voir apps/core/media_access.py.
     path('chantiers/<int:pk>/documents/<int:doc_pk>/telecharger/',
          v.project_document_download, name='project_document_download'),
+    # La miniature : meme controle que le telechargement, mais servie
+    # « inline » pour s'afficher dans la page. Voir apps/core/miniatures.py.
+    path('chantiers/<int:pk>/documents/<int:doc_pk>/miniature/',
+         v.project_document_thumbnail, name='project_document_thumbnail'),
     path('chantiers/<int:pk>/messages/', v.project_messages, name='project_messages'),
     path('chantiers/<int:pk>/messages/<int:conv_pk>/', v.conversation_detail, name='conversation_detail'),
     path('chantiers/<int:pk>/messages/<int:conv_pk>/pieces/<int:piece_pk>/',

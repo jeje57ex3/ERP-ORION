@@ -255,7 +255,18 @@ def project_documents(request, pk):
     company = _get_company(request)
     account = _get_portal_account(request)
     project = get_object_or_404(BTPProject, pk=pk, company=company, customer__email=account.email)
-    documents = ProjectDocument.objects.filter(project=project, visible_to_client=True)
+    documents = list(
+        ProjectDocument.objects.filter(project=project,
+                                       visible_to_client=True))
+
+    # Quels documents peuvent porter une vignette. Decide ICI et non dans
+    # le gabarit, et sur l'EXTENSION seule : poser une balise <img> sans le
+    # savoir d'avance afficherait une vignette cassee pour un PDF ou un
+    # HEIC -- le defaut que la galerie du chantier vient de corriger.
+    from apps.core import miniatures
+    for document in documents:
+        document.apercu_possible = miniatures.peut_etre_miniaturee(
+            getattr(document.file, 'name', ''))
 
     if request.method == 'POST' and account.can_upload:
         for f in request.FILES.getlist('files'):
@@ -299,6 +310,56 @@ def project_document_download(request, pk, doc_pk):
         ProjectDocument, pk=doc_pk, project=project, visible_to_client=True)
 
     return servir_fichier_autorise(document.file, document.name)
+
+
+def project_document_thumbnail(request, pk, doc_pk):
+    """Rend la miniature d'un document image, pour le client qui y a droit.
+
+    POURQUOI UNE MINIATURE PLUTOT QUE LA PHOTO REDUITE PAR LE NAVIGATEUR.
+
+    Afficher l'original dans une balise de 150 pixels donne le meme
+    resultat a l'ecran et ne change rien au cout : le client telecharge
+    quand meme quatre megaoctets par photo. Sur vingt photos, depuis un
+    telephone, cela fait quatre-vingts megaoctets. La miniature en pese une
+    trentaine de kilooctets.
+
+    LE CONTROLE EST LE MEME QUE CELUI DE LA LISTE, mot pour mot : meme
+    entreprise, meme courriel de client, et `visible_to_client`. Un apercu
+    plus permissif que la page qui le porte serait une fuite d-autant plus
+    discrete qu-aucun ecran ne la montrerait -- c-est le raisonnement que
+    `project_document_download` applique deja, et il vaut ici a
+    l-identique.
+
+    `client_can_download` n-entre PAS dans ce controle, et c-est un choix.
+    Les deux champs ne disent pas la meme chose : `visible_to_client`
+    autorise a VOIR, `client_can_download` autorise a EMPORTER. Un apercu
+    releve du premier. Un document dont le nom, le type et la date sont
+    deja listes au client n-est pas rendu plus secret par l-absence de sa
+    vignette.
+    """
+    from django.http import FileResponse, Http404
+
+    from apps.core import miniatures
+
+    redir = _require_portal_login(request)
+    if redir:
+        return redir
+    company = _get_company(request)
+    account = _get_portal_account(request)
+    project = get_object_or_404(
+        BTPProject, pk=pk, company=company, customer__email=account.email)
+    document = get_object_or_404(
+        ProjectDocument, pk=doc_pk, project=project, visible_to_client=True)
+
+    chemin = miniatures.miniature(document.file)
+    if chemin is None:
+        # Extension non geree, image illisible, disque plein. 404 et non
+        # 500 : le gabarit ne pose une balise <img> que pour les extensions
+        # miniaturables, donc ce cas reste rare et ne doit pas faire tomber
+        # la page.
+        raise Http404('Pas de miniature pour ce document.')
+
+    return FileResponse(open(chemin, 'rb'), content_type='image/jpeg')
 
 
 def message_attachment_download(request, pk, conv_pk, piece_pk):
