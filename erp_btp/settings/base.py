@@ -193,8 +193,35 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # ─── Middleware ────────────────────────────────────────────────────────────────
+# ─── Mesure de la latence ─────────────────────────────────────────────────────
+#
+# ORION_SLOW_REQUEST_MS : au-dela, la requete est jugee LENTE, journalisee
+# et toujours enregistree.
+#
+# ORION_PERF_SAMPLE_RATE : une requete sur N est enregistree meme si elle est
+# rapide. C'est ce qui donne une LATENCE -- mediane, 95e centile, maximum --
+# et non un simple journal des incidents. Tout enregistrer serait plus simple
+# et intenable : plusieurs dizaines de milliers de lignes par jour pour
+# mesurer un ERP qui se porte bien.
+#
+# A 20, une installation a 10 000 requetes par jour produit environ 500
+# lignes quotidiennes : assez pour une mediane fiable, assez peu pour que la
+# purge hebdomadaire suffise.
+ORION_SLOW_REQUEST_MS = config('ORION_SLOW_REQUEST_MS', default=800, cast=int)
+ORION_PERF_SAMPLE_RATE = config('ORION_PERF_SAMPLE_RATE', default=20, cast=int)
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # EN HAUT DE LA PILE, et c'est le point : place plus bas, il ne
+    # mesurerait que ce qui reste apres les middlewares qui le precedent, et
+    # une lenteur venue de l'un d'eux serait invisible. Ici, la duree mesuree
+    # est celle que le navigateur subit reellement.
+    #
+    # Il n'etait declare NULLE PART. L'application figurait dans
+    # INSTALLED_APPS, son modele, sa vue et son gabarit existaient -- mais
+    # rien ne mesurait quoi que ce soit, donc la page de performance
+    # n'affichait rien et paraissait cassee.
+    'apps.performance_monitor.middleware.PerformanceMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'apps.core.middleware.SetupRequiredMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

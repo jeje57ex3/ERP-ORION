@@ -229,9 +229,27 @@
               <span class="badge bg-light text-dark">{{ photo.origine }}</span>
               {% if photo.date %}<span class="text-muted">{{ photo.date|date:"d/m/Y" }}</span>{% endif %}
             </div>
-            {% if photo.lien %}
-            <a href="{{ photo.lien }}" class="small mt-1">{% trans "Voir la fiche" %}</a>
-            {% endif %}
+            <div class="d-flex justify-content-between align-items-center mt-1 gap-1">
+              {% if photo.lien %}
+              <a href="{{ photo.lien }}" class="small">{% trans "Voir la fiche" %}</a>
+              {% else %}<span></span>{% endif %}
+              {% comment %}
+                « Supprimer » ne fait pas la même chose selon l'origine, et
+                le message de confirmation doit le dire : un document est
+                supprimé, une photo de réserve part sans toucher à la
+                réserve, et la réponse d'un point de contrôle est effacée
+                sans supprimer la question. Le détail est dans
+                services_photos.supprimer_la_photo.
+              {% endcomment %}
+              <form method="post" action="{{ photo.suppression }}"
+                    onsubmit="return confirm('{% blocktrans with t=photo.titre %}Retirer définitivement « {{ t }} » de ce chantier ?{% endblocktrans %}')">
+                {% csrf_token %}
+                <button type="submit" class="orion-btn danger sm"
+                        title="{% trans 'Supprimer cette photo' %}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
