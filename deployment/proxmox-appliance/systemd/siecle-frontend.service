@@ -3,11 +3,36 @@ Description=Orion ERP — SIÈCLE Store (siecle.elysiums.fr — port 5173)
 After=network-online.target orion-backend.service
 Wants=network-online.target
 
+# ─── Borne de redemarrage ───────────────────────────────────────────────────
+#
+# SANS ELLE, LA BOUCLE EST INFINIE, et ce n'est pas une hypothese : le
+# 09/11/2026, lunea-frontend affichait « restart counter is at 578 » et
+# siecle-frontend 177, sur une appliance ou ils ne pouvaient pas demarrer.
+#
+# Le defaut de systemd (cinq essais dans une fenetre de DIX secondes) ne
+# protege de rien ici : avec RestartSec a 5 ou 10 secondes, deux essais au
+# plus tombent dans la fenetre, le seuil n'est jamais atteint, et le service
+# se relance jusqu'a la fin des temps. Une fenetre plus LARGE est ce qui
+# borne reellement la boucle.
+#
+# Cinq essais sur cinq minutes, volontairement court : ces services ne
+# font que servir des fichiers deja construits. S'ils n'y arrivent pas,
+# c'est que le bundle manque, et aucun nombre de tentatives ne le fera
+# apparaitre.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
 [Service]
 Type=simple
 User=orion
 Group=orion
-WorkingDirectory=/opt/orion/siecle
+# Le prefixe « - » : dossier absent, service demarre quand meme.
+#
+# Sans lui, le service meurt instantanement sur « status=200/CHDIR »
+# des que /opt/orion/siecle manque -- ce qui arrive des que
+# les builds npm n'ont pas tourne. Un serveur de fichiers statiques
+# doit pouvoir demarrer et repondre 404, pas refuser de vivre.
+WorkingDirectory=-/opt/orion/siecle
 ExecStart=/usr/bin/env serve -s /opt/orion/siecle -l 5173
 Restart=on-failure
 RestartSec=5
