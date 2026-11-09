@@ -1035,6 +1035,28 @@ class ProjectDocument(models.Model):
     added_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ── La corbeille ─────────────────────────────────────────────────────
+    #
+    # Une photo retirée d'un chantier n'est pas détruite tout de suite :
+    # elle est datée ici et reste récupérable pendant deux semaines. Une
+    # photo de chantier peut servir de preuve en cas de litige, et un clic
+    # de trop ne doit pas la faire disparaître à jamais.
+    #
+    # Un horodatage plutôt qu'un booléen, et ce n'est pas un détail : la
+    # date de mise à la corbeille est ce qui permet d'afficher le temps
+    # restant et de purger automatiquement au bon moment. Un booléen
+    # obligerait à ajouter cette date ensuite, ou à ne jamais purger.
+    #
+    # ATTENTION À CHAQUE LECTURE. Ce champ ne filtre rien tout seul : les
+    # endroits qui listent des documents doivent exclure explicitement
+    # `corbeille_le__isnull=False`. Ils sont peu nombreux et nommés dans
+    # tests/test_corbeille_photos.py, qui échoue si l'un est oublié.
+    corbeille_le = models.DateTimeField(
+        'Mis à la corbeille le', null=True, blank=True, db_index=True)
+    corbeille_par = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Mis à la corbeille par')
+
     class Meta:
         verbose_name = 'Document chantier'
         verbose_name_plural = 'Documents chantier'
@@ -1166,6 +1188,16 @@ class ReservationPhoto(models.Model):
     photo = models.ImageField('Photo', upload_to='reservations/')
     caption = models.CharField('Légende', max_length=200, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    # Même corbeille que ProjectDocument — voir le commentaire qui y
+    # accompagne ce champ. La RÉSERVE, elle, n'est jamais mise à la
+    # corbeille avec sa photo : c'est une malfaçon signalée, et elle reste
+    # à traiter même sans son image.
+    corbeille_le = models.DateTimeField(
+        'Mis à la corbeille le', null=True, blank=True, db_index=True)
+    corbeille_par = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Mis à la corbeille par')
 
 
 # ─── NOTIFICATIONS CLIENT ─────────────────────────────────────────────────────
@@ -1382,6 +1414,20 @@ class ProjectStepItem(models.Model):
     answer_photo = models.ImageField(
         'Photo', upload_to='btp/checklists/', null=True, blank=True)
 
+    # La corbeille, pour la PHOTO seule. Le point de contrôle, lui, n'est
+    # jamais supprimé : la question reste, et elle redevient « non
+    # renseignée » — donc comptée par l'avertisseur de l'onglet Étapes.
+    # Supprimer le point ferait disparaître du contrôle une case qu'il
+    # faut encore remplir, et personne ne saurait qu'elle manque.
+    #
+    # C'est pour cela que `is_answered` consulte ce champ : une photo à la
+    # corbeille ne répond plus à la question.
+    photo_corbeille_le = models.DateTimeField(
+        'Photo mise à la corbeille le', null=True, blank=True, db_index=True)
+    photo_corbeille_par = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', verbose_name='Photo retirée par')
+
     # Deux réponses qui DÉSIGNENT une fiche au lieu d'en recopier le
     # numéro. `related_name='+'` : ni un devis ni un fournisseur n'a
     # besoin de lister les points de contrôle qui le citent, et un
@@ -1433,7 +1479,12 @@ class ProjectStepItem(models.Model):
         if self.answer_type == 'date':
             return self.answer_date is not None
         if self.answer_type == 'photo':
-            return bool(self.answer_photo)
+            # Une photo à la corbeille ne répond plus à la question : le
+            # point redevient « non renseigné » et le compteur de l'onglet
+            # Étapes le signale. Sans cette condition, retirer une photo
+            # laisserait le point compté comme rempli alors qu'il ne l'est
+            # plus, et l'oubli dormirait jusqu'à la réception du chantier.
+            return bool(self.answer_photo) and self.photo_corbeille_le is None
         if self.answer_type == 'choice':
             return bool(self.answer_choice)
         # `_id` et non l'objet : tester la clé évite une requête, et

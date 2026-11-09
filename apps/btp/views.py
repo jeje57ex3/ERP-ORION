@@ -77,8 +77,18 @@ def project_detail(request, pk):
         'phases': phases,
         'supplies': supplies,
         'nb_photos': services_photos.compter_les_photos(project),
+        'nb_corbeille': len(
+            services_photos.photos_du_chantier(
+                project, corbeille=True)),
         'photos': (services_photos.photos_du_chantier(project)
                    if tab == 'photos' else None),
+        # La corbeille est PURGEE a son ouverture, et pas seulement par la
+        # tache periodique : la promesse « supprimee au bout de deux
+        # semaines » ne doit pas dependre d'un planificateur que personne
+        # n'a configure. Voir services_photos.purger_la_corbeille.
+        'corbeille': (_corbeille_du_chantier(project)
+                      if tab == 'corbeille' else None),
+        'jours_de_corbeille': services_photos.DUREE_DE_CONSERVATION_JOURS,
         'tab': tab,
     }
     return render(request, 'btp/project_detail.html', ctx)
@@ -114,7 +124,12 @@ def project_photo(request, pk, origine, photo_pk):
     company = request.current_company
     project = get_object_or_404(BTPProject, pk=pk, company=company)
 
-    fichier = services_photos.fichier_de_la_photo(project, origine, photo_pk)
+    # `inclure_la_corbeille` : l'ecran de corbeille affiche les
+    # vignettes de ce qu'il propose de restaurer. Sans ce drapeau,
+    # elles s'afficheraient toutes cassees -- et on ne restaure pas
+    # de confiance une photo qu'on ne voit pas.
+    fichier = services_photos.fichier_de_la_photo(
+        project, origine, photo_pk, inclure_la_corbeille=True)
     if fichier is None:
         raise Http404('Photo introuvable sur ce chantier.')
 
@@ -164,15 +179,61 @@ def project_photo_delete(request, pk, origine, photo_pk):
     company = request.current_company
     project = get_object_or_404(BTPProject, pk=pk, company=company)
 
-    libelle = services_photos.supprimer_la_photo(project, origine, photo_pk)
+    libelle = services_photos.mettre_a_la_corbeille(
+        project, origine, photo_pk, utilisateur=request.user)
     if libelle is None:
         messages.error(request,
                        "Cette photo n'existe plus sur ce chantier.")
     else:
-        messages.success(request, f'Photo supprimée : {libelle}.')
+        messages.success(
+            request,
+            f"« {libelle} » est à la corbeille. Elle y reste "
+            f"{services_photos.DUREE_DE_CONSERVATION_JOURS} jours, "
+            f"le temps de changer d'avis.")
 
     return redirect(
         f"{reverse('btp:project_detail', args=[project.pk])}?tab=photos")
+
+
+def _corbeille_du_chantier(project):
+    """Ce qui attend sa suppression définitive, après purge de l'échu.
+
+    La purge court À L'OUVERTURE de l'écran, et pas seulement dans la tâche
+    périodique. La promesse faite à l'utilisateur — « supprimée
+    définitivement au bout de deux semaines » — ne doit pas dépendre d'un
+    planificateur que personne n'a configuré : ce dépôt a déjà livré trois
+    choses que rien n'activait, dont le middleware de performance et
+    l'assistant disque. Sans cela, l'écran afficherait « 0 jour restant »
+    indéfiniment, sur des fichiers toujours présents.
+    """
+    from . import services_photos
+
+    services_photos.purger_la_corbeille()
+    return services_photos.photos_du_chantier(project, corbeille=True)
+
+
+@require_POST
+@login_required
+def project_photo_restore(request, pk, origine, photo_pk):
+    """Remet une photo de la corbeille dans la galerie.
+
+    Meme filtrage que la mise a la corbeille : le chantier est d'abord
+    borne a l'entreprise, puis la photo est cherchee depuis lui.
+    """
+    from . import services_photos
+
+    company = request.current_company
+    project = get_object_or_404(BTPProject, pk=pk, company=company)
+
+    libelle = services_photos.restaurer_la_photo(project, origine, photo_pk)
+    if libelle is None:
+        messages.error(request,
+                       "Cette photo n'est plus dans la corbeille.")
+    else:
+        messages.success(request, f'« {libelle} » est de retour.')
+
+    return redirect(
+        f"{reverse('btp:project_detail', args=[project.pk])}?tab=corbeille")
 
 
 @login_required
