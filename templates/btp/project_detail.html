@@ -37,6 +37,7 @@
     <a href="?tab=situations" class="erp-tab {% if tab == 'situations' %}active{% endif %}"><i class="bi bi-graph-up me-1"></i>{% trans "Situations" %}</a>
     <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>{% trans "Pointage" %}</a>
     <a href="?tab=supplies" class="erp-tab {% if tab == 'supplies' %}active{% endif %}"><i class="bi bi-box-seam me-1"></i>{% blocktrans with c=supplies.count %}Fournitures ({{ c }}){% endblocktrans %}</a>
+    <a href="?tab=photos" class="erp-tab {% if tab == 'photos' %}active{% endif %}"><i class="bi bi-images me-1"></i>{% blocktrans with c=nb_photos %}Photos ({{ c }}){% endblocktrans %}</a>
   </div>
 </div>
 {% endblock %}
@@ -195,6 +196,54 @@
       <tr class="total-row"><td>{% trans "Budget prévu HT" %}</td><td class="text-end">{{ project.estimated_budget|floatformat:2 }} €</td></tr>
     </table>
   </div>
+  {% endif %}
+</div>
+
+{% elif tab == 'photos' %}
+<div class="erp-card">
+  {% comment %}
+    Les photos ne sont PAS stockées ici : elles sont rassemblées à la lecture
+    depuis les documents du chantier, les photos de réserves et les points de
+    contrôle qui en demandent une. Le raisonnement -- et la raison de ne pas
+    créer un quatrième modèle -- est dans apps/btp/services_photos.py.
+
+    Chaque vignette dit D'OÙ elle vient. Sans cela, une galerie unique ferait
+    perdre le contexte qui donne son sens à la photo : « fissure au plafond »
+    ne veut pas dire la même chose selon qu'elle vient d'une réserve ou de
+    l'état des lieux d'avant travaux.
+  {% endcomment %}
+  {% if photos %}
+    <div class="row g-3">
+      {% for photo in photos %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="border rounded overflow-hidden h-100 d-flex flex-column">
+          <a href="{{ photo.url }}" target="_blank" rel="noopener"
+             title="{% trans 'Ouvrir en grand' %}">
+            <img src="{{ photo.url }}" alt="{{ photo.titre }}" loading="lazy"
+                 style="width:100%;height:150px;object-fit:cover;display:block">
+          </a>
+          <div class="p-2 small flex-grow-1 d-flex flex-column">
+            <div class="fw-semibold text-truncate" title="{{ photo.titre }}">{{ photo.titre }}</div>
+            <div class="text-muted text-truncate" title="{{ photo.detail }}">{{ photo.detail }}</div>
+            <div class="mt-auto pt-1 d-flex justify-content-between align-items-center gap-1">
+              <span class="badge bg-light text-dark">{{ photo.origine }}</span>
+              {% if photo.date %}<span class="text-muted">{{ photo.date|date:"d/m/Y" }}</span>{% endif %}
+            </div>
+            {% if photo.lien %}
+            <a href="{{ photo.lien }}" class="small mt-1">{% trans "Voir la fiche" %}</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted small">
+      <div><i class="bi bi-images me-1"></i>{% trans "Aucune photo sur ce chantier." %}</div>
+      <div class="mt-2">
+        {% trans "Une photo apparaît ici dès qu'elle est déposée comme document du chantier, ajoutée à une réserve, ou donnée en réponse à un point de contrôle d'étape." %}
+      </div>
+    </div>
   {% endif %}
 </div>
 

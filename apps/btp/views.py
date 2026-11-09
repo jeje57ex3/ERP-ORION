@@ -58,6 +58,15 @@ def project_detail(request, pk):
     from . import services_etapes as svc
     etapes_manquantes = svc.compter_les_points_manquants(project)
 
+    # Les photos du chantier sont dispersees dans trois modeles (documents,
+    # reserves, points de controle). Le COMPTEUR est calcule a chaque
+    # affichage -- trois requetes legeres pour le badge de l'onglet -- mais
+    # la galerie elle-meme n'est construite que si on ouvre l'onglet : elle
+    # parcourt les trois sources, et la fiche d'un chantier se consulte bien
+    # plus souvent qu'on ne regarde ses photos.
+    from . import services_photos
+    tab = request.GET.get('tab', 'info')
+
     ctx = {
         'project': project,
         'etapes_manquantes': etapes_manquantes,
@@ -66,7 +75,10 @@ def project_detail(request, pk):
         'timesheets': timesheets,
         'phases': phases,
         'supplies': supplies,
-        'tab': request.GET.get('tab', 'info'),
+        'nb_photos': services_photos.compter_les_photos(project),
+        'photos': (services_photos.photos_du_chantier(project)
+                   if tab == 'photos' else None),
+        'tab': tab,
     }
     return render(request, 'btp/project_detail.html', ctx)
 

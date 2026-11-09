@@ -4,6 +4,25 @@ After=network-online.target orion-db-stack.service orion-backend.service
 Wants=network-online.target
 Requires=orion-db-stack.service
 
+# ─── Borne de redemarrage ───────────────────────────────────────────────────
+#
+# SANS ELLE, LA BOUCLE EST INFINIE, et ce n'est pas une hypothese : le
+# 09/11/2026, lunea-frontend affichait « restart counter is at 578 » et
+# siecle-frontend 177, sur une appliance ou ils ne pouvaient pas demarrer.
+#
+# Le defaut de systemd (cinq essais dans une fenetre de DIX secondes) ne
+# protege de rien ici : avec RestartSec a 5 ou 10 secondes, deux essais au
+# plus tombent dans la fenetre, le seuil n'est jamais atteint, et le service
+# se relance jusqu'a la fin des temps. Une fenetre plus LARGE est ce qui
+# borne reellement la boucle.
+#
+# Vingt essais sur dix minutes : le service insiste assez longtemps pour
+# traverser une base lente a demarrer ou une coupure passagere, puis
+# renonce et se marque EN ECHEC -- un etat visible, qui ne consomme
+# plus la machine et que « systemctl --state=failed » nomme.
+StartLimitIntervalSec=600
+StartLimitBurst=20
+
 [Service]
 Type=simple
 User=orion

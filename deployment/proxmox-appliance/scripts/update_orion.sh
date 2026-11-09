@@ -419,6 +419,34 @@ rafraichir_unites_systemd() {
   fi
   cp "$source_unites"/*.service /etc/systemd/system/ 2>/dev/null || true
   cp "$source_unites"/*.timer   /etc/systemd/system/ 2>/dev/null || true
+
+  # Les FRAGMENTS (« drop-ins ») completent des unites que ce depot ne
+  # possede pas. cloudflared.service est installe par cloudflared lui-meme :
+  # le remplacer serait ecrase a sa prochaine mise a jour. Systemd lit
+  # /etc/systemd/system/<unite>.d/*.conf PAR-DESSUS l'unite d'origine, ce qui
+  # permet d'ajouter « Restart=always » et une borne de redemarrage a une
+  # unite dont on n'est pas proprietaire.
+  #
+  # C'est ainsi que le tunnel se releve seul, sans gardien pour le
+  # surveiller -- le 09/11/2026, l'acces a l'ERP a ete perdu parce que
+  # cloudflared etait tombe et que rien ne le relevait.
+  if [ -d "$source_unites/dropins" ]; then
+    poses=0
+    for dossier in "$source_unites"/dropins/*/; do
+      [ -d "$dossier" ] || continue
+      cible="/etc/systemd/system/$(basename "$dossier")"
+      if ! mkdir -p "$cible" 2>/dev/null; then
+        echo "  ATTENTION: $cible non cree, fragment ignore." >&2
+        continue
+      fi
+      if cp "$dossier"*.conf "$cible"/ 2>/dev/null; then
+        poses=$((poses + 1))
+      else
+        echo "  ATTENTION: fragments de $(basename "$dossier") non poses." >&2
+      fi
+    done
+    echo "  $poses fragment(s) d'unite pose(s)."
+  fi
   systemctl daemon-reload || echo "  ATTENTION: daemon-reload a echoue." >&2
   echo "  unites systemd rafraichies depuis le depot."
 }

@@ -23,6 +23,20 @@ VENV_PY="$ORION_HOME/backend/.venv/bin/python"
 MANAGE="$ORION_HOME/backend/manage.py"
 
 cp "$PAYLOAD_DIR"/systemd/*.service "$PAYLOAD_DIR"/systemd/*.timer /etc/systemd/system/
+
+# Les fragments d'unite, pour completer celles que ce depot ne possede pas --
+# cloudflared.service est installe par cloudflared lui-meme. Meme traitement
+# que dans update_orion.sh, pour qu'une machine neuve et une machine mise a
+# jour soient dans le meme etat.
+if [ -d "$PAYLOAD_DIR/systemd/dropins" ]; then
+  for dossier in "$PAYLOAD_DIR"/systemd/dropins/*/; do
+    [ -d "$dossier" ] || continue
+    cible="/etc/systemd/system/$(basename "$dossier")"
+    mkdir -p "$cible"
+    cp "$dossier"*.conf "$cible"/ 2>/dev/null       || echo "  ATTENTION: fragments de $(basename "$dossier") non poses." >&2
+  done
+fi
+
 systemctl daemon-reload
 
 # ─── Lecture du .env, sans l'exécuter ─────────────────────────────────────────
