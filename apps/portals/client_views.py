@@ -55,9 +55,38 @@ def _get_portal_account(request):
 
 
 def _require_portal_login(request):
-    """Redirige vers login si pas connecté au portail client."""
-    if not request.user.is_authenticated or not _get_portal_account(request):
+    """Redirige vers login si pas connecté au portail client.
+
+    **UN COMPTE SANS COURRIEL VERRAIT LES CHANTIERS DE TOUT LE MONDE**, et
+    c'est la raison d'être de la seconde condition.
+
+    Tout le portail retrouve les chantiers du client par
+    `customer__email=account.email`. Or `Customer.email` est déclaré
+    `blank=True` — un client de BTP créé au téléphone n'en a souvent pas —
+    et `ClientPortalAccount.email` vaut la chaîne vide par défaut au niveau
+    de la base, quoi qu'en dise le formulaire.
+
+    Si les deux se rencontrent, le filtre devient `customer__email=''` et
+    correspond à TOUS les clients sans courriel de l'entreprise. Le compte
+    verrait alors leurs chantiers, leurs documents, leurs messages et leurs
+    réserves — sans qu'aucune page n'ait l'air anormale.
+
+    Le contrôle est ici, en un seul endroit, parce que les quatorze vues du
+    portail passent toutes par cette fonction. Le poser dans chacune
+    reviendrait à en oublier une le jour où l'on en ajoutera une quinzième.
+    """
+    compte = _get_portal_account(request)
+    if not request.user.is_authenticated or not compte:
         return redirect('client_portal:login')
+
+    if not (compte.email or '').strip():
+        messages.error(
+            request,
+            "Ce compte client n'a pas d'adresse email enregistrée. Il ne "
+            "peut donc être rattaché à aucun chantier. Contactez votre "
+            "interlocuteur pour la renseigner.")
+        return redirect('client_portal:login')
+
     return None
 
 
