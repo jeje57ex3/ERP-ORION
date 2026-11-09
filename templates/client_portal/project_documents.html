@@ -40,8 +40,34 @@
       {% for doc in documents %}
       <tr>
         <td>
+          {% comment %}
+            La vignette evite au client de telecharger une photo pour la
+            voir. C'est une VRAIE miniature, fabriquee par
+            apps/core/miniatures.py : reduire l'original avec une largeur
+            CSS donnerait la meme image a l'ecran et ferait quand meme
+            descendre quatre megaoctets par photo.
+
+            `apercu_possible` est decide par la vue, sur l'extension seule.
+            Poser une balise <img> sans le savoir d'avance afficherait une
+            vignette cassee sur un PDF ou un HEIC.
+          {% endcomment %}
           <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-file-earmark-{% if 'pdf' in doc.file.name %}pdf text-danger{% elif 'jpg' in doc.file.name or 'png' in doc.file.name %}image text-info{% else %}text-muted{% endif %} fs-5"></i>
+            {% if doc.apercu_possible %}
+              {% if doc.client_can_download %}
+              <a href="{% url 'client_portal:project_document_download' project.pk doc.pk %}"
+                 title="{% trans 'Ouvrir en grand' %}">
+                <img src="{% url 'client_portal:project_document_thumbnail' project.pk doc.pk %}"
+                     alt="{{ doc.name }}" loading="lazy"
+                     style="width:64px;height:64px;object-fit:cover;border-radius:.35rem;display:block">
+              </a>
+              {% else %}
+              <img src="{% url 'client_portal:project_document_thumbnail' project.pk doc.pk %}"
+                   alt="{{ doc.name }}" loading="lazy"
+                   style="width:64px;height:64px;object-fit:cover;border-radius:.35rem;display:block">
+              {% endif %}
+            {% else %}
+            <i class="bi bi-file-earmark-{% if 'pdf' in doc.file.name %}pdf text-danger{% else %}text-muted{% endif %} fs-5"></i>
+            {% endif %}
             <span class="fw-semibold small">{{ doc.name }}</span>
           </div>
         </td>
