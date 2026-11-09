@@ -329,10 +329,11 @@ def _contexte_de_stockage():
     from . import stockage_actions, stockage_privilegie
 
     disques_physiques, erreur_assistant = [], ''
+    inventaire = None
     if stockage_privilegie.est_disponible():
         try:
-            disques_physiques = stockage_privilegie.lister_les_disques().get(
-                'disques', [])
+            inventaire = stockage_privilegie.lister_les_disques()
+            disques_physiques = inventaire.get('disques', [])
         except (stockage_privilegie.StockagePrivilegieIndisponible,
                 stockage_privilegie.ActionPrivilegieeRefusee) as exc:
             erreur_assistant = str(exc)
@@ -367,6 +368,10 @@ def _contexte_de_stockage():
         # moyen de s'en servir plus bas.
         'disques_a_preparer': [
             d for d in disques_physiques if d.get('utilisable')],
+        # Une etiquette toute prete : sur un ERP a un ou deux
+        # disques de donnees, la faire saisir n'ajoute qu'une
+        # case a remplir. Elle reste modifiable.
+        'etiquette_proposee': etiquette_proposee(inventaire),
         'erreur_assistant': erreur_assistant,
         'assistant_disponible': stockage_privilegie.est_disponible(),
         'etats_de_stockage': etats,
@@ -452,6 +457,54 @@ def _refuser_si_une_operation_tourne():
         etat__in=('en_attente', 'en_cours')).first()
 
 
+def _etat_du_disque(peripherique):
+    """Ce que l'assistant root dit de CE disque, maintenant. None si absent.
+
+    Redemandé à chaque préparation, et non lu dans le formulaire : entre
+    l'affichage de la page et le clic, un disque a pu être monté, rempli,
+    ou remplacé par un autre portant le même nom.
+    """
+    from . import stockage_privilegie
+
+    if not peripherique or not stockage_privilegie.est_disponible():
+        return None
+    try:
+        inventaire = stockage_privilegie.lister_les_disques()
+    except Exception:                                   # noqa: BLE001
+        return None
+    for disque in inventaire.get('disques', []):
+        if disque.get('peripherique') == peripherique:
+            return disque
+    return None
+
+
+def etiquette_proposee(inventaire=None):
+    """Une étiquette libre, du genre « donnees » puis « donnees-2 ».
+
+    Proposée plutôt que demandée : sur un ERP à un ou deux disques de
+    données, le nom n'apprend rien à personne et le faire saisir n'ajoute
+    qu'une case à remplir. Elle reste modifiable.
+    """
+    from . import stockage_privilegie
+
+    deja = set()
+    try:
+        if inventaire is None and stockage_privilegie.est_disponible():
+            inventaire = stockage_privilegie.lister_les_disques()
+        for point in (inventaire or {}).get('montages_orion', []):
+            deja.add(str(point).rsplit('orion-', 1)[-1])
+    except Exception:                                   # noqa: BLE001
+        pass
+
+    if 'donnees' not in deja:
+        return 'donnees'
+    for numero in range(2, 50):
+        candidat = 'donnees-%d' % numero
+        if candidat not in deja:
+            return candidat
+    return 'donnees-x'
+
+
 @require_POST
 @_require_perm('can_administrate')
 def stockage_preparer_disque(request):
@@ -465,16 +518,44 @@ def stockage_preparer_disque(request):
         return redirect('system_health:disk_dashboard')
 
     peripherique = request.POST.get('peripherique', '')
-    etiquette = request.POST.get('etiquette', '')
+    etiquette = (request.POST.get('etiquette', '') or '').strip()
     numero_de_serie = request.POST.get('numero_de_serie', '')
 
-    if request.POST.get('confirmation') != peripherique:
+    # ── La friction est PROPORTIONNELLE AU RISQUE ───────────────────────
+    #
+    # Recopier « /dev/sdb » à la main protège d'une erreur de disque. Mais
+    # l'exiger pour un disque VIERGE — aucune partition, aucun système de
+    # fichiers, rien à perdre — c'est demander un effort là où il n'y a
+    # aucun danger, et c'est ce qui faisait dire qu'il n'y avait « pas de
+    # bouton pour préparer un disque simplement ».
+    #
+    # Un disque qui CONTIENT quelque chose, lui, garde la recopie : c'est
+    # là que l'erreur coûte, et seulement là.
+    #
+    # C'EST LE SERVEUR QUI DÉCIDE, et non un champ caché du formulaire. Il
+    # redemande l'inventaire à l'assistant root : une page restée ouverte
+    # pendant qu'on branchait un autre disque proposerait sinon un
+    # raccourci sur un disque devenu plein.
+    etat = _etat_du_disque(peripherique)
+    if etat is None:
         messages.error(
             request,
-            'Confirmation incorrecte. Pour formater un disque, recopiez son '
-            'nom exact : cette étape existe parce que l\'opération efface '
-            'tout son contenu sans retour possible.')
+            f'{peripherique} n\'est plus détecté sur cette machine. '
+            f'Rechargez la page : la liste des disques a changé.')
         return redirect('system_health:disk_dashboard')
+
+    if etat.get('contient_des_donnees'):
+        if request.POST.get('confirmation') != peripherique:
+            messages.error(
+                request,
+                f'Ce disque contient déjà des données '
+                f'({", ".join(etat.get("systemes_de_fichiers") or [])}). '
+                f'Pour les effacer, recopiez son nom exact : '
+                f'{peripherique}.')
+            return redirect('system_health:disk_dashboard')
+
+    if not etiquette:
+        etiquette = etiquette_proposee()
 
     # Le peripherique et l'etiquette ne sont PAS valides ici : le script
     # root le fait, et c'est le seul controle qui compte -- ce code tourne

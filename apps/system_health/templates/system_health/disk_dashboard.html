@@ -606,64 +606,47 @@
           {% include "system_health/_operation_bloquante.html" %}
         </div>
       {% else %}
+        {% comment %}
+          DEUX PARCOURS, parce que le risque n'est pas le meme.
+
+          Un disque VIERGE -- aucune partition, aucun systeme de fichiers --
+          n'a rien a perdre : le preparer est un BOUTON, avec une
+          confirmation du navigateur qui nomme le disque et sa taille.
+          Exiger d'y recopier « /dev/sdb » demandait un effort la ou il n'y
+          a aucun danger, et c'est ce qui faisait dire qu'il n'y avait
+          « pas de bouton pour preparer un disque simplement ».
+
+          Un disque qui CONTIENT quelque chose garde la recopie a la main :
+          c'est la que l'erreur coute, et seulement la.
+
+          Le SERVEUR decide lequel des deux s'applique -- il redemande
+          l'inventaire a l'assistant root -- et non ce formulaire. Une page
+          restee ouverte pendant qu'on branche un autre disque proposerait
+          sinon un raccourci sur un disque devenu plein.
+        {% endcomment %}
+        {% if d.contient_des_donnees %}
         <div class="alert alert-danger small mt-2 mb-0">
           <div class="mb-2">
-            <strong>Préparer ce disque efface tout son contenu</strong>, sans
-            retour possible.
-            {% if d.contient_des_donnees %}
-              Il contient déjà un système de fichiers
-              ({{ d.systemes_de_fichiers|join:", " }}).
-            {% endif %}
-            Pour confirmer, recopiez <code>{{ d.peripherique }}</code>.
+            <strong>Ce disque contient déjà des données</strong>
+            ({{ d.systemes_de_fichiers|join:", " }}). Le préparer les efface
+            sans retour possible. Pour confirmer, recopiez
+            <code>{{ d.peripherique }}</code>.
           </div>
           <form method="post"
                 action="{% url 'system_health:stockage_preparer_disque' %}"
-                class="d-flex gap-1 align-items-center flex-wrap">
+                class="d-flex gap-2 align-items-end flex-wrap">
             {% csrf_token %}
             <input type="hidden" name="peripherique" value="{{ d.peripherique }}">
-            {% comment %}
-              Le numéro de série AFFICHÉ repart avec la demande : le script
-              root le compare au matériel présent et s'arrête s'il a changé,
-              ce qui empêche de formater le bon nom sur le mauvais disque.
-
-              Ce bloc était écrit avec la syntaxe courte sur trois lignes.
-              Elle ne commente qu'une seule ligne : le texte s'affichait en
-              clair au milieu du formulaire de préparation.
-            {% endcomment %}
             <input type="hidden" name="numero_de_serie"
                    value="{{ d.numero_de_serie|default:d.wwn }}">
-            {% comment %}
-              DEUX CHAMPS ÉTIQUETÉS, ET AUCUN PLACEHOLDER QUI IMITE UNE VALEUR.
-
-              Défaut rapporté trois fois : « le bouton Préparer un disque ne
-              déclenche rien du tout ». C'était exact, et la cause était ici.
-              Le champ de confirmation portait
-              `placeholder="{{ d.peripherique }}"`, c'est-à-dire EXACTEMENT
-              la valeur à recopier. Un « /dev/sdb » grisé dans la case : elle
-              paraît déjà remplie. On clique, le champ est en réalité vide et
-              `required`, donc le NAVIGATEUR refuse d'envoyer le formulaire —
-              aucune requête, aucun rechargement, aucune trace côté serveur,
-              et une bulle d'avertissement fugace qu'on ne voit pas sur un
-              formulaire large qui passe à la ligne.
-
-              Un placeholder suggère un format ; il ne doit jamais montrer la
-              valeur attendue d'un champ obligatoire. Les deux champs portent
-              maintenant une étiquette visible, et le placeholder dit quoi
-              faire, pas quoi copier.
-
-              `autocapitalize` et `spellcheck` : un clavier mobile qui met une
-              majuscule à l'initiale casse le motif de l'étiquette, et le
-              refus serait là aussi silencieux.
-            {% endcomment %}
             <div class="d-flex flex-column">
               <label class="form-label small mb-0"
-                     for="etiquette-{{ forloop.counter }}">Étiquette du volume
+                     for="etiquette-{{ forloop.counter }}">Nom du volume
                 <span class="text-muted">(minuscules)</span></label>
               <input type="text" id="etiquette-{{ forloop.counter }}"
                      name="etiquette" class="form-control form-control-sm"
-                     style="max-width:150px" placeholder="ex. donnees"
+                     style="max-width:150px" value="{{ etiquette_proposee }}"
                      pattern="[a-z0-9][a-z0-9-]{0,23}" required
-                     title="Minuscules, chiffres et tirets, 24 caractères au plus."
                      autocapitalize="none" spellcheck="false"
                      autocomplete="off">
             </div>
@@ -674,16 +657,56 @@
               <input type="text" id="confirmation-{{ forloop.counter }}"
                      name="confirmation" class="form-control form-control-sm"
                      style="max-width:170px" placeholder="à recopier ici"
-                     title="Recopiez le nom du disque affiché juste au-dessus."
                      autocapitalize="none" spellcheck="false"
                      autocomplete="off" required>
             </div>
-            <button class="orion-btn sm btn-outline-danger align-self-end"
-                    type="submit">
-              Préparer et monter
+            <button class="orion-btn sm btn-outline-danger" type="submit">
+              Effacer et préparer
             </button>
           </form>
         </div>
+        {% else %}
+        <div class="alert alert-light border small mt-2 mb-0">
+          <div class="mb-2">
+            <i class="bi bi-check-circle text-success me-1"></i>
+            Ce disque est <strong>vierge</strong> : aucune partition, aucun
+            système de fichiers. Le préparer crée une partition unique en
+            ext4, montée sur
+            <code>/mnt/orion-{{ etiquette_proposee }}</code>.
+          </div>
+          <form method="post"
+                action="{% url 'system_health:stockage_preparer_disque' %}"
+                class="d-flex gap-2 align-items-end flex-wrap"
+                onsubmit="return confirm('Préparer {{ d.peripherique|escapejs }} ({{ d.taille_octets|filesizeformat|escapejs }}) ? Le disque sera partitionné, formaté et monté.')">
+            {% csrf_token %}
+            <input type="hidden" name="peripherique" value="{{ d.peripherique }}">
+            <input type="hidden" name="numero_de_serie"
+                   value="{{ d.numero_de_serie|default:d.wwn }}">
+            <div class="d-flex flex-column">
+              {% comment %}
+                « (minuscules) » ici aussi, et pas seulement sur l'autre
+                branche : le motif HTML refuse les majuscules, et son refus
+                est MUET. Un nom modifié en « Donnees » bloquerait l'envoi
+                sans rien expliquer — le défaut exact qui faisait croire
+                que le bouton ne marchait pas.
+              {% endcomment %}
+              <label class="form-label small mb-0"
+                     for="etiquette-{{ forloop.counter }}">Nom du volume
+                <span class="text-muted">(minuscules)</span></label>
+              <input type="text" id="etiquette-{{ forloop.counter }}"
+                     name="etiquette" class="form-control form-control-sm"
+                     style="max-width:150px" value="{{ etiquette_proposee }}"
+                     pattern="[a-z0-9][a-z0-9-]{0,23}"
+                     title="Minuscules, chiffres et tirets, 24 caractères au plus."
+                     autocapitalize="none" spellcheck="false"
+                     autocomplete="off">
+            </div>
+            <button class="orion-btn sm primary" type="submit">
+              <i class="bi bi-hdd me-1"></i>Préparer ce disque
+            </button>
+          </form>
+        </div>
+        {% endif %}
       {% endif %}
     </div>
     {% endfor %}

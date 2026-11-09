@@ -181,10 +181,18 @@ def test_le_bouton_preparer_apparait_pour_un_disque_utilisable(
 
     assert '/dev/sdb' in contenu, 'le disque n\'est pas listé du tout'
     assert 'Disponible' in contenu, 'le badge « Disponible » manque'
-    assert 'Préparer et monter' in contenu, (
+    assert 'Préparer ce disque' in contenu, (
         'LE BOUTON MANQUE alors que le disque est utilisable')
     assert 'name="etiquette"' in contenu
-    assert 'name="confirmation"' in contenu
+
+    # Et PAS de champ de recopie : ce disque est vierge.
+    #
+    # Ce test exigeait l'inverse, et il avait raison du temps où un seul
+    # parcours servait tous les cas. La friction est désormais
+    # proportionnelle au risque : recopier « /dev/sdb » n'a aucun sens
+    # quand il n'y a rien à perdre, et c'est cette exigence-là qui faisait
+    # dire qu'il n'y avait « pas de bouton pour préparer un disque ».
+    assert 'name="confirmation"' not in contenu
 
 
 @pytest.mark.django_db
@@ -207,7 +215,7 @@ def test_aucun_commentaire_de_gabarit_ne_fuit_dans_la_page(
 
     contenu = _page(client)
 
-    assert 'Préparer et monter' in contenu, 'le formulaire doit être rendu'
+    assert 'Préparer ce disque' in contenu, 'le formulaire doit être rendu'
     assert '{#' not in contenu
     assert '#}' not in contenu
     assert 'numero de serie AFFICHE' not in contenu
@@ -226,7 +234,7 @@ def test_sans_assistant_aucun_disque_n_est_liste(
 
     contenu = _page(client)
 
-    assert 'Préparer et monter' not in contenu
+    assert 'Préparer ce disque' not in contenu
     # Sans apostrophe dans l'assertion : le gabarit échappe « n'est » en
     # « n&#x27;est », donc chercher la forme Python ne trouve jamais rien.
     assert 'pas installé sur ce serveur' in contenu
@@ -377,7 +385,7 @@ def test_une_operation_en_cours_masque_le_bouton_mais_offre_une_sortie(
     contenu = _page(client)
 
     # Le verrou tient toujours.
-    assert 'Préparer et monter' not in contenu
+    assert 'Préparer ce disque' not in contenu
     assert 'name="volume"' not in contenu
     # Mais l'écran nomme ce qui bloque, et permet de le clore.
     assert f'Opération #{operation.pk}' in contenu
@@ -409,7 +417,7 @@ def test_abandonner_rouvre_l_ecran(client, django_user_model, monkeypatch):
     assert 'Abandonnée depuis' in operation.journal
 
     contenu = _page(client)
-    assert 'Préparer et monter' in contenu
+    assert 'Préparer ce disque' in contenu
     assert 'value="/mnt/orion-donnees"' in contenu
 
 
@@ -580,6 +588,25 @@ def test_le_formulaire_qui_efface_un_disque_n_apparait_qu_une_fois(
 # jamais. Il se pince sur le HTML, et seulement là.
 
 
+def _disques_avec_donnees(reponse=None):
+    """L'inventaire, mais avec des disques qui CONTIENNENT quelque chose.
+
+    Depuis que la friction est proportionnelle au risque, la recopie du
+    nom du disque n'apparaît QUE dans ce cas : un disque vierge se prépare
+    d'un bouton. Les tests du champ de confirmation doivent donc partir
+    d'un disque qui a de quoi être effacé — sans quoi ils vérifieraient
+    l'absence d'un champ qui n'a plus lieu d'être.
+    """
+    import copy
+
+    reponse = copy.deepcopy(reponse or DISQUES_REELS)
+    for disque in reponse['disques']:
+        if disque.get('utilisable'):
+            disque['contient_des_donnees'] = True
+            disque['systemes_de_fichiers'] = ['ext4']
+    return reponse
+
+
 def _deux_disques_utilisables():
     import copy
     reponse = copy.deepcopy(DISQUES_REELS)
@@ -593,8 +620,12 @@ def _deux_disques_utilisables():
 @pytest.mark.django_db
 def test_le_champ_de_confirmation_ne_parait_jamais_deja_rempli(
         client, django_user_model, monkeypatch):
-    """Le cœur du défaut : un placeholder n'est pas une valeur."""
-    _assistant_qui_repond(monkeypatch)
+    """Le cœur du défaut : un placeholder n'est pas une valeur.
+
+    Sur un disque qui contient des données — le seul cas où la recopie est
+    désormais demandée.
+    """
+    _assistant_qui_repond(monkeypatch, _disques_avec_donnees())
     _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
     _super_admin(client, django_user_model)
 
@@ -612,7 +643,7 @@ def test_les_deux_champs_portent_une_etiquette_visible(
     """Sans étiquette, rien ne dit qu'il faut écrire dans la case."""
     import re
 
-    _assistant_qui_repond(monkeypatch)
+    _assistant_qui_repond(monkeypatch, _disques_avec_donnees())
     _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
     _super_admin(client, django_user_model)
 
@@ -655,7 +686,8 @@ def test_chaque_disque_a_ses_propres_identifiants_de_champ(
     disque."""
     import re
 
-    _assistant_qui_repond(monkeypatch, _deux_disques_utilisables())
+    _assistant_qui_repond(
+        monkeypatch, _disques_avec_donnees(_deux_disques_utilisables()))
     _machine(monkeypatch, VOLUMES_UN_SEUL_DISQUE, VOLUMES_UN_SEUL_DISQUE[0])
     _super_admin(client, django_user_model)
 
