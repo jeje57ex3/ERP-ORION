@@ -49,17 +49,65 @@ def est_une_image(nom_de_fichier):
     return extension in EXTENSIONS_IMAGE
 
 
-def _url_du_fichier(fichier):
-    """L'URL du fichier, ou None si le stockage ne peut pas la donner.
+# Les trois origines, et leur libellé d'affichage. La CLÉ voyage dans
+# l'URL de service ; le libellé est ce que l'écran montre.
+ORIGINES = (
+    ('document', 'Document'),
+    ('reserve', 'Réserve'),
+    ('point', 'Étape'),
+)
 
-    Un `FileField` dont le fichier a disparu du disque, ou un stockage mal
-    configuré, lève ici. Une photo manquante ne doit pas faire tomber la
-    page entière du chantier : on l'écarte et on affiche les autres.
+
+def _url_de_service(project, origine, pk):
+    """L'URL par laquelle la galerie demande une image.
+
+    PAS `fichier.url`, et c'est le correctif du 09/11/2026 : sous /media/,
+    `apps/core/media_access.py` applique un REFUS PAR DÉFAUT et ne sert que
+    des préfixes nommés. `project_documents/` et `btp/checklists/` n'en font
+    pas partie — délibérément, puisqu'on y trouve des devis, des contrats et
+    des documents clients. Les vignettes s'affichaient donc cassées, et
+    seules celles de réserves fonctionnaient, `reservations/` étant le seul
+    des trois préfixes autorisé.
+
+    La tentation est d'ajouter les deux préfixes manquants à la liste
+    blanche. Ce serait une fuite : cette liste n'a AUCUNE notion
+    d'entreprise, et tout utilisateur connecté de n'importe quelle société
+    pourrait alors lire les documents de n'importe quelle autre en devinant
+    une URL. C'est exactement ce que l'audit de ce module a corrigé
+    ailleurs.
+
+    On passe donc par une vue qui vérifie l'entreprise à chaque lecture.
     """
-    try:
-        return fichier.url
-    except Exception:                                   # noqa: BLE001
-        return None
+    from django.urls import reverse
+
+    return reverse('btp:project_photo', args=[project.pk, origine, pk])
+
+
+def fichier_de_la_photo(project, origine, pk):
+    """Le fichier d'une photo de CE chantier, ou None.
+
+    Le `project` est fourni par la vue, déjà filtré sur l'entreprise. Chaque
+    recherche ci-dessous repart de lui par une clé étrangère : une photo
+    d'un autre chantier, ou d'une autre société, ne peut donc pas être
+    servie même si son identifiant est deviné.
+    """
+    if origine == 'document':
+        objet = project.project_documents.filter(pk=pk).first()
+        return objet.file if objet and objet.file else None
+
+    if origine == 'reserve':
+        from .models import ReservationPhoto
+        objet = ReservationPhoto.objects.filter(
+            pk=pk, reservation__project=project).first()
+        return objet.photo if objet and objet.photo else None
+
+    if origine == 'point':
+        from .models import ProjectStepItem
+        objet = ProjectStepItem.objects.filter(
+            pk=pk, step__project=project).first()
+        return objet.answer_photo if objet and objet.answer_photo else None
+
+    return None
 
 
 def photos_du_chantier(project):
@@ -77,11 +125,8 @@ def photos_du_chantier(project):
         nom_du_fichier = getattr(document.file, 'name', '')
         if not est_une_image(nom_du_fichier):
             continue
-        url = _url_du_fichier(document.file)
-        if not url:
-            continue
         photos.append({
-            'url': url,
+            'url': _url_de_service(project, 'document', document.pk),
             'titre': document.name or os.path.basename(nom_du_fichier),
             'origine': 'Document',
             'detail': document.get_doc_type_display(),
@@ -92,11 +137,10 @@ def photos_du_chantier(project):
     # ── 2. Les photos de réserves ───────────────────────────────────────
     for reserve in project.reservations.prefetch_related('photos'):
         for cliche in reserve.photos.all():
-            url = _url_du_fichier(cliche.photo)
-            if not url:
+            if not cliche.photo:
                 continue
             photos.append({
-                'url': url,
+                'url': _url_de_service(project, 'reserve', cliche.pk),
                 'titre': cliche.caption or reserve.title,
                 'origine': 'Réserve',
                 'detail': reserve.title,
@@ -109,11 +153,8 @@ def photos_du_chantier(project):
         for point in etape.items.all():
             if not point.answer_photo:
                 continue
-            url = _url_du_fichier(point.answer_photo)
-            if not url:
-                continue
             photos.append({
-                'url': url,
+                'url': _url_de_service(project, 'point', point.pk),
                 'titre': point.label,
                 'origine': 'Étape',
                 'detail': etape.name,

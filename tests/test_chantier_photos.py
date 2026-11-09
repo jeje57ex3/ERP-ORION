@@ -169,16 +169,19 @@ def test_un_document_image_apparait_dans_la_galerie(connecte, chantier,
 
     assert 'Façade avant travaux' in contenu
 
-    # L'URL RÉELLE du fichier, et non le nom donné au téléversement.
+    # L'URL DE SERVICE, et non celle du stockage.
     #
-    # Première version de ce test : `assert 'facade.jpg' in contenu`. Elle
-    # échouait, et elle avait tort : quand un fichier de même nom existe
-    # déjà, le stockage de Django en ajoute un suffixe aléatoire
-    # (« facade_k3Xm9.jpg »). Un test qui suppose le nom du fichier tombe
-    # donc dès qu'un autre test du même fichier téléverse ce nom — et il
-    # tomberait aussi en production, où les homonymes sont la règle.
-    assert document.file.url in contenu
-    assert '<img src="%s"' % document.file.url in contenu
+    # Deux versions de ce test ont eu tort avant celle-ci, et c'est
+    # instructif. La première cherchait « facade.jpg » : faux, le stockage
+    # de Django suffixe les homonymes. La seconde cherchait
+    # `document.file.url`, c'est-à-dire /media/project_documents/… : faux
+    # aussi, et cette fois le CODE avait tort — media_access.py refuse ce
+    # préfixe, les vignettes s'affichaient donc cassées en production
+    # pendant que le test passait au vert.
+    attendue = reverse('btp:project_photo',
+                       args=[chantier.pk, 'document', document.pk])
+    assert '<img src="%s"' % attendue in contenu
+    assert '/media/project_documents/' not in contenu
 
 
 def test_un_pdf_etiquete_photo_n_apparait_pas(connecte, chantier, fichier):

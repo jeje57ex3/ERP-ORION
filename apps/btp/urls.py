@@ -15,6 +15,10 @@ urlpatterns = [
     path('chantiers/', views.project_list, name='project_list'),
     path('chantiers/nouveau/', views.project_create, name='project_create'),
     path('chantiers/<int:pk>/', views.project_detail, name='project_detail'),
+    # Les photos d'un chantier ne passent pas par /media/ : voir
+    # views.project_photo et apps/core/media_access.py.
+    path('chantiers/<int:pk>/photo/<slug:origine>/<int:photo_pk>/',
+         views.project_photo, name='project_photo'),
     path('chantiers/<int:pk>/modifier/', views.project_edit, name='project_edit'),
     path('chantiers/<int:pk>/supprimer/', views.project_delete, name='project_delete'),
 

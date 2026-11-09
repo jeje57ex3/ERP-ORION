@@ -84,6 +84,65 @@ def project_detail(request, pk):
 
 
 @login_required
+def project_photo(request, pk, origine, photo_pk):
+    """Sert une photo de chantier, après vérification de l'entreprise.
+
+    POURQUOI CETTE VUE EXISTE PLUTÔT QU'UN LIEN /media/ DIRECT.
+
+    `apps/core/media_access.py` applique un refus par défaut sous /media/ :
+    seuls des préfixes nommés sont servis. `project_documents/` et
+    `btp/checklists/` n'en font pas partie — délibérément, puisqu'on y
+    trouve devis, contrats et documents clients. Les vignettes de la
+    galerie s'affichaient donc cassées.
+
+    La correction facile aurait été d'ajouter ces deux préfixes à la liste
+    blanche. Elle aurait ouvert une fuite : cette liste ne connaît pas la
+    notion d'entreprise, et n'importe quel utilisateur connecté aurait pu
+    lire les documents d'une autre société en devinant une URL.
+
+    Ici, `project` est filtré sur `request.current_company` AVANT toute
+    recherche, et la photo est ensuite retrouvée par une clé étrangère
+    depuis lui. Un identifiant deviné ne donne donc rien.
+    """
+    import mimetypes
+
+    from django.http import FileResponse, Http404
+
+    from . import services_photos
+
+    company = request.current_company
+    project = get_object_or_404(BTPProject, pk=pk, company=company)
+
+    fichier = services_photos.fichier_de_la_photo(project, origine, photo_pk)
+    if fichier is None:
+        raise Http404('Photo introuvable sur ce chantier.')
+
+    try:
+        flux = fichier.open('rb')
+    except (OSError, ValueError):
+        # Le fichier a disparu du disque — une sauvegarde restaurée sans les
+        # médias, un déplacement manuel. 404 et non 500 : c'est une image
+        # manquante, pas une panne de l'ERP.
+        raise Http404('Fichier absent du stockage.')
+
+    type_mime = mimetypes.guess_type(fichier.name)[0] or 'application/octet-stream'
+    # AUCUN Cache-Control posé ici, et c'est délibéré.
+    #
+    # Le middleware d'apps/core impose déjà « no-cache, no-store,
+    # must-revalidate » à toute réponse servie à un utilisateur connecté
+    # hors /media/. Poser « private, max-age=300 » comme je l'avais fait
+    # d'abord est du code mort : il est écrasé à chaque requête, et un
+    # lecteur croirait pourtant que cette vue décide de son cache.
+    #
+    # Conséquence assumée : chaque vignette est retéléchargée à chaque
+    # affichage de la galerie. Pour un écran d'administration interne c'est
+    # acceptable. Si cela devenait gênant, la bonne correction serait
+    # d'exempter ce préfixe dans le middleware — comme /media/ l'est déjà,
+    # et pour exactement la même raison, que sa docstring explique.
+    return FileResponse(flux, content_type=type_mime)
+
+
+@login_required
 def project_create(request):
     company = request.current_company
     if request.method == 'POST':
