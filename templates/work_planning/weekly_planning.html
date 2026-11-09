@@ -2,7 +2,70 @@
 {% load static %}
 {% load i18n %}
 {% block title %}{% trans 'Planning semaine' %} — {{ request.current_company.name }}{% endblock %}
-{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block extra_css %}{{ block.super }}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">
+<style>
+/* ─── L'agenda de la semaine ───────────────────────────────────────────────
+   Une heure vaut 48 px, et c'est la SEULE constante de ce fichier : les
+   blocs sont places en POURCENTAGE de la hauteur de leur colonne, calcules
+   cote serveur. Changer cette valeur change l'echelle sans rien casser.   */
+.agenda { --agenda-heure: 48px; --agenda-gouttiere: 58px; }
+
+.agenda-entete { display: flex; border-bottom: 1px solid var(--bs-border-color, #dee2e6); }
+.agenda-entete .agenda-gouttiere { flex: 0 0 var(--agenda-gouttiere); }
+.agenda-jour-entete {
+  flex: 1 1 0; text-align: center; padding: .4rem .25rem;
+  border-left: 1px solid var(--bs-border-color, #dee2e6);
+}
+.agenda-jour-entete.est-aujourdhui { background: rgba(99,102,241,.08); }
+.agenda-jour-nom { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; opacity: .65; }
+.agenda-jour-date { font-weight: 600; font-size: .9rem; }
+.agenda-jour-total { font-size: .7rem; opacity: .6; }
+
+.agenda-corps { display: flex; position: relative; }
+.agenda-corps .agenda-gouttiere { flex: 0 0 var(--agenda-gouttiere); }
+.agenda-heure {
+  height: var(--agenda-heure); position: relative;
+  border-top: 1px solid transparent;
+}
+.agenda-heure span {
+  position: absolute; top: -.55rem; right: .4rem;
+  font-size: .68rem; opacity: .55; background: var(--bs-body-bg, #fff);
+  padding: 0 .15rem;
+}
+
+.agenda-colonne {
+  flex: 1 1 0; position: relative;
+  border-left: 1px solid var(--bs-border-color, #dee2e6);
+}
+.agenda-colonne.est-aujourdhui { background: rgba(99,102,241,.04); }
+.agenda-ligne { height: var(--agenda-heure); border-top: 1px dashed rgba(128,128,128,.22); }
+
+/* Un bloc : position et hauteur viennent du serveur, en pourcentage. */
+.agenda-bloc {
+  position: absolute; overflow: hidden;
+  border-left: 3px solid; border-radius: .25rem;
+  padding: .12rem .3rem; font-size: .7rem; line-height: 1.15;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.agenda-bloc-heure { font-weight: 700; opacity: .75; font-size: .65rem; }
+.agenda-bloc-titre { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agenda-bloc-detail { opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Le trait de l'heure courante : ce qui fait qu'un agenda se lit d'un
+   coup d'oeil. Sans lui, on cherche ou l'on en est. */
+.agenda-maintenant { position: absolute; left: 0; right: 0; height: 2px; background: #DC2626; z-index: 3; }
+.agenda-maintenant::before {
+  content: ''; position: absolute; left: -4px; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%; background: #DC2626;
+}
+
+.agenda-ajouter {
+  position: absolute; right: .25rem; bottom: .25rem;
+  opacity: .18; text-decoration: none; font-size: 1.1rem; line-height: 1;
+}
+.agenda-colonne:hover .agenda-ajouter { opacity: .7; }
+</style>
+{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'work_planning:dashboard' %}">{% trans 'Planning' %}</a></li>
@@ -27,70 +90,147 @@
 {% block content %}
 
 {% if grid %}
+
+{% comment %}
+  UN AGENDA, ET NON UN TABLEAU DE BADGES.
+
+  L'ecran listait des pastilles « 3,5 h » dans une case par salarie et par
+  jour. On y lisait COMBIEN, jamais QUAND, et deux journees chargees se
+  ressemblaient.
+
+  Ici : les jours en colonnes, les heures en lignes, les blocs poses dans
+  la grille a leur place et a leur hauteur. Deux blocs qui tombent en meme
+  temps se partagent la largeur, comme dans un agenda.
+
+  CE QUE LA POSITION VERTICALE VEUT DIRE. `DedicatedTimeBlock` porte une
+  date et une DUREE, pas une heure de debut. La position est donc CALCULEE
+  a partir de l'heure d'embauche du salarie et de sa pause -- voir
+  apps/work_planning/calendrier.py. Elle dit « voici comment la journee se
+  remplit », pas « le rendez-vous est a 10 h 15 », et le bandeau
+  ci-dessous le dit aussi a l'utilisateur. Un agenda qui laisserait croire
+  a des horaires fermes alors qu'il les devine ferait manquer un
+  rendez-vous.
+{% endcomment %}
+
+{% if semaine_vide %}
+<div class="alert alert-secondary small d-flex align-items-center gap-2 mb-3">
+  <i class="bi bi-calendar-x"></i>
+  <div>{% trans "Aucune heure saisie cette semaine." %}
+    <a href="{% url 'work_planning:time_block_create' %}">{% trans 'En saisir' %}</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="alert alert-light border small d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-info-circle mt-1"></i>
+  <div>
+    {% trans "Les blocs sont posés à la suite à partir de l'heure d'embauche de chaque salarié, pause déjeuner déduite." %}
+    <span class="text-muted">{% trans "La hauteur est la durée réelle ; l'heure affichée est calculée, pas un rendez-vous fixé." %}</span>
+  </div>
+</div>
+
 <div class="orion-card">
   <div class="orion-card-body p-0">
     <div class="table-responsive">
-      <table class="table mb-0" style="min-width:700px">
-        <thead>
-          <tr style="background:#F8FAFC;border-bottom:2px solid #E2E8F0">
-            <th class="px-3 py-3" style="width:160px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#64748B">{% trans 'Employé' %}</th>
-            {% for d in week_dates %}
-            <th class="text-center py-3" style="min-width:90px">
-              <div style="font-size:.72rem;color:#94A3B8;text-transform:uppercase;font-weight:500">{{ d|date:"l" }}</div>
-              <div class="fw-bold{% if d == today %} text-primary{% endif %}" style="font-size:.9rem">{{ d|date:"d/m" }}</div>
-            </th>
-            {% endfor %}
-            <th class="text-center py-3 pe-3" style="min-width:70px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#64748B">{% trans 'Total' %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in grid %}
-          <tr style="border-bottom:1px solid #F1F5F9">
-            <td class="px-3 py-3 align-middle">
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:32px;height:32px;border-radius:50%;background:{{ row.employee.color_code }}25;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                  <span style="font-size:.8rem;font-weight:700;color:{{ row.employee.color_code }}">{{ row.employee.display_name|first|upper }}</span>
-                </div>
-                <div>
-                  <div class="fw-medium" style="font-size:.85rem">{{ row.employee.display_name }}</div>
-                  <div class="text-muted" style="font-size:.72rem">{% blocktrans with h=row.employee.default_hours_per_day %}max {{ h }}h/j{% endblocktrans %}</div>
-                </div>
-              </div>
-            </td>
-            {% for d in week_dates %}
-            {% with day_blocks=row.days %}
-            <td class="text-center py-2 align-middle{% if d == today %} bg-primary bg-opacity-5{% endif %}">
-              {% for date_key, blocks in day_blocks.items %}{% if date_key == d %}
-                {% if blocks %}
-                <div class="d-flex flex-column gap-1 align-items-center">
-                  {% for block in blocks %}
-                  <div class="d-flex align-items-center gap-1" style="max-width:85px">
-                    <span class="orion-badge" style="background:{{ block.mission.color_code|default:'#C6A15B' }}20;color:{{ block.mission.color_code|default:'#C6A15B' }};font-size:.72rem;white-space:nowrap">
-                      {{ block.hours }}h
-                    </span>
-                    <a href="{% url 'work_planning:time_block_delete' block.pk %}" class="text-muted" style="font-size:.65rem;text-decoration:none" title="{% trans 'Supprimer' %}">×</a>
-                  </div>
-                  {% endfor %}
-                </div>
-                {% else %}
-                <a href="{% url 'work_planning:time_block_create' %}?date={{ d|date:'Y-m-d' }}&employee={{ row.employee.pk }}" class="text-muted" style="font-size:1.1rem;text-decoration:none;opacity:.3" title="{% trans 'Ajouter des heures' %}">+</a>
-                {% endif %}
-              {% endif %}{% endfor %}
-            </td>
-            {% endwith %}
-            {% endfor %}
-            <td class="text-center py-2 pe-3 align-middle">
-              <span class="fw-bold" style="font-size:.9rem{% if row.total > row.employee.default_hours_per_day|floatformat:'0' %};color:#DC2626{% endif %}">
-                {{ row.total }}h
-              </span>
-            </td>
-          </tr>
+      <div class="agenda" style="min-width:860px">
+
+        {# En-tete des jours #}
+        <div class="agenda-entete">
+          <div class="agenda-gouttiere"></div>
+          {% for jour in agenda.jours %}
+          <div class="agenda-jour-entete{% if jour.date == today %} est-aujourdhui{% endif %}">
+            <div class="agenda-jour-nom">{{ jour.date|date:"D" }}</div>
+            <div class="agenda-jour-date">{{ jour.date|date:"d/m" }}</div>
+            {% if jour.total_heures %}
+            <div class="agenda-jour-total">{{ jour.total_heures }} h</div>
+            {% endif %}
+          </div>
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
+
+        {# Le corps : gouttiere des heures + sept colonnes #}
+        <div class="agenda-corps">
+          <div class="agenda-gouttiere">
+            {% for heure in agenda.heures %}
+            <div class="agenda-heure"><span>{{ heure }}:00</span></div>
+            {% endfor %}
+          </div>
+
+          {% for jour in agenda.jours %}
+          <div class="agenda-colonne{% if jour.date == today %} est-aujourdhui{% endif %}">
+            {% for heure in agenda.heures %}
+            <div class="agenda-ligne"></div>
+            {% endfor %}
+
+            {% if jour.date == today and maintenant_pct is not None %}
+            <div class="agenda-maintenant" style="top:{{ maintenant_pct }}%"
+                 title="{% trans 'Maintenant' %}"></div>
+            {% endif %}
+
+            {% for b in jour.blocs %}
+            <div class="agenda-bloc"
+                 style="top:{{ b.haut_pct }}%;height:{{ b.hauteur_pct }}%;left:{{ b.gauche_pct }}%;width:{{ b.largeur_pct }}%;border-left-color:{{ b.couleur }};background:{{ b.couleur }}1A"
+                 title="{{ b.employe.user.get_full_name|default:b.employe.user.username }} — {{ b.bloc.mission.name|default:'—' }} — {{ b.duree_heures }} h ({{ b.debut|time:'H:i' }} → {{ b.fin|time:'H:i' }})">
+              <div class="agenda-bloc-heure">{{ b.debut|time:"H:i" }}</div>
+              <div class="agenda-bloc-titre">{{ b.employe.user.get_full_name|default:b.employe.user.username }}</div>
+              {% if b.bloc.mission %}
+              <div class="agenda-bloc-detail">{{ b.bloc.mission.name }}</div>
+              {% endif %}
+              {% if b.coupe_par_la_pause and b.premier_segment %}
+              <div class="agenda-bloc-detail text-muted">{% trans "coupé par la pause" %}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
+
+            <a class="agenda-ajouter"
+               href="{% url 'work_planning:time_block_create' %}?date={{ jour.date|date:'Y-m-d' }}"
+               title="{% trans 'Saisir des heures ce jour-là' %}">+</a>
+          </div>
+          {% endfor %}
+        </div>
+
+      </div>
     </div>
   </div>
 </div>
+
+{# La charge par salarie : l'agenda dit QUAND, ceci dit COMBIEN. #}
+{% if grid %}
+<div class="orion-card mt-3">
+  <div class="orion-card-header"><span class="orion-card-title">{% trans 'Charge de la semaine' %}</span></div>
+  <div class="orion-card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for row in grid %}
+      <div class="d-flex align-items-center gap-2 border rounded px-2 py-1">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ row.employee.color_code|default:'#6366F1' }}"></span>
+        <span class="small fw-semibold">{{ row.employee.user.get_full_name|default:row.employee.user.username }}</span>
+        <span class="small {% if row.total > row.employee.weekly_capacity_hours %}text-danger fw-bold{% else %}text-muted{% endif %}">
+          {{ row.total }} / {{ row.employee.weekly_capacity_hours }} h
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+{% comment %}
+  SANS SALARIE, l'agenda ne peut rien montrer : ce n'est pas une semaine
+  vide, c'est un planning qui n'a pas encore d'habitants. Les confondre
+  ferait chercher au mauvais endroit.
+
+  Une semaine SANS HEURES, en revanche, garde sa grille : un agenda vide
+  est une information -- personne n'est occupe -- et c'est ce qu'affiche
+  n'importe quel agenda. Une simple ligne au-dessus le signale.
+{% endcomment %}
+<div class="orion-empty-state">
+  <i class="bi bi-calendar-week"></i>
+  <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucun employé dans le planning' %}</div>
+  <p class="text-muted small mb-3">{% trans "Ajoutez d'abord des profils employés pour utiliser le planning." %}</p>
+  <a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-person-plus me-1"></i>{% trans 'Ajouter un employé' %}</a>
+</div>
+{% endif %}
 
 {# Légende missions #}
 {% if active_missions %}
@@ -110,15 +250,5 @@
 </div>
 {% endif %}
 
-{% else %}
-<div class="orion-card">
-  <div class="orion-card-body text-center py-5">
-    <i class="bi bi-calendar-week" style="font-size:2.5rem;opacity:.3"></i>
-    <div class="orion-empty-title mt-3 mb-1">{% trans 'Aucun employé dans le planning' %}</div>
-    <p class="text-muted small mb-3">{% trans "Ajoutez d'abord des profils employés pour utiliser le planning." %}</p>
-    <a href="{% url 'work_planning:employee_create' %}" class="orion-btn orion-btn-primary"><i class="bi bi-person-plus me-1"></i>{% trans 'Ajouter un employé' %}</a>
-  </div>
-</div>
-{% endif %}
 
 {% endblock %}

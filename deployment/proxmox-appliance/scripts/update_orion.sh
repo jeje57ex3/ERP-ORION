@@ -484,6 +484,45 @@ sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
 # visudo -c AVANT mise en place, et c'est imperatif : un fichier malforme
 # dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
 # reparer.
+# ─── Les cles de .env apparues APRES l'installation ──────────────────────────
+#
+# Le provisioning ne tourne qu'une seule fois. Une cle ajoutee au produit
+# plus tard n'arrive donc JAMAIS sur une machine deja installee, et son
+# absence se manifeste des mois apres, loin de sa cause.
+#
+# Constate le 09/11/2026 : ORION_NODE_ID manquait sur une appliance
+# installee avant son introduction, et le verificateur declarait a juste
+# titre un defaut bloquant -- sans lui, la protection anti-divergence de la
+# haute disponibilite compare une valeur VIDE au verrou de grappe.
+#
+# Meme raisonnement que pour les regles sudo, les unites systemd et
+# l'assistant disque : ce qui n'est pose qu'une fois doit etre RATTRAPE a
+# chaque mise a jour.
+#
+# La valeur par defaut est celle du provisioning, « orion-primary », et non
+# le nom de machine : identique a une installation neuve, donc aucun
+# changement de comportement. Une grappe de plusieurs serveurs doit la
+# personnaliser, comme le provisioning le fait avec --node-domain.
+completer_env() {
+  local cle="$1" valeur="$2"
+  if [ ! -w "$ENV_FILE" ]; then
+    echo "  ATTENTION: $ENV_FILE non inscriptible, $cle non ajoutee." >&2
+    return 0
+  fi
+  if grep -qE "^[[:space:]]*${cle}=" "$ENV_FILE" 2>/dev/null; then
+    return 0
+  fi
+  if printf '%s=%s
+' "$cle" "$valeur" >> "$ENV_FILE"; then
+    echo "  .env complete : $cle=$valeur (cle absente depuis l'installation)"
+  else
+    echo "  ATTENTION: $cle n'a pas pu etre ajoutee a $ENV_FILE." >&2
+  fi
+}
+
+completer_env ORION_NODE_ID orion-primary
+completer_env ORION_NODE_PRIORITY 1
+
 echo "[5/7] Rafraîchissement des droits et assistants privilégiés..."
 SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
 for nom in orion-serveur orion-stockage orion-maj; do

@@ -457,6 +457,27 @@ def weekly_planning(request):
     grid = build_weekly_grid(company, week_dates)
     active_missions = get_active_missions(company)
 
+    # ── L'agenda proprement dit ─────────────────────────────────────────
+    #
+    # `grid` reste : il porte la charge par salarie, que l'agenda ne dit
+    # pas d'un coup d'oeil. Les deux se completent -- l'agenda montre
+    # QUAND, le recapitulatif montre COMBIEN.
+    from . import calendrier
+    from .selectors import get_employee_profiles, get_time_blocks_for_week
+
+    agenda = calendrier.grille_de_la_semaine(
+        get_time_blocks_for_week(company, week_dates[0]),
+        get_employee_profiles(company),
+        week_dates,
+    )
+    # Le trait de l'heure courante, seulement si la semaine affichee est
+    # celle d'aujourd'hui : le tracer sur une semaine passee n'aurait aucun
+    # sens, et sur une semaine future encore moins.
+    maintenant_pct = (
+        calendrier.position_de_maintenant(
+            agenda['heure_min'], agenda['heure_max'])
+        if today in week_dates else None)
+
     prev_week = week_dates[0] - timedelta(days=7)
     next_week = week_dates[0] + timedelta(days=7)
 
@@ -464,6 +485,10 @@ def weekly_planning(request):
         'page_title': 'Planning de la semaine',
         'week_dates': week_dates,
         'grid': grid,
+        'agenda': agenda,
+        'maintenant_pct': maintenant_pct,
+        'semaine_vide': not any(
+            jour['blocs'] for jour in agenda['jours']),
         'today': today,
         'active_missions': active_missions,
         'prev_week': prev_week,

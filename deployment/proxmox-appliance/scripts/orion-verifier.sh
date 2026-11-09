@@ -246,16 +246,29 @@ else
   leger "moteur IA local non installé (optionnel) — « /opt/orion/scripts/orion-ai.sh install »"
 fi
 
-# ─── 9. git utilisable par root ───────────────────────────────────────────────
+# ─── 9. Le depot, lu par le compte qui s'en sert ──────────────────────────────
 titre 'Dépôt et mises à jour'
-# Le provisioning clone en root puis chown vers orion : sans safe.directory,
-# toute commande git lancée par root est refusée pour « dubious ownership » —
-# y compris les mises à jour depuis l'interface.
+# CE CONTROLE TESTAIT LA MAUVAISE CHOSE, et faisait echouer chaque mise a
+# jour sur une installation parfaitement saine.
+#
+# Il verifiait que ROOT peut lire le depot. Le provisioning clone en root
+# puis chown vers orion, si bien que git refuse a root pour « dubious
+# ownership » -- et le controle declarait ce refus BLOQUANT, en invoquant
+# « les mises a jour depuis l'interface ».
+#
+# Or rien ne lit ce depot en root. `update_orion.sh` tire avec
+# « sudo -u orion git pull », et `run_system_update` tourne sous orion.
+# Le refus signale ne genait donc personne, et exigeait en remede un
+# « safe.directory '*' » qui desactive globalement une protection de git.
+#
+# On teste desormais ce qui compte : que le compte QUI S'EN SERT puisse
+# lire le depot.
 if [ -d "$ORION_HOME/backend/.git" ]; then
-  if HOME="${HOME:-/root}" git -C "$ORION_HOME/backend" rev-parse --short HEAD >/dev/null 2>&1; then
-    bon "dépôt lisible — révision $(HOME="${HOME:-/root}" git -C "$ORION_HOME/backend" rev-parse --short HEAD 2>/dev/null)"
+  revision="$(runuser -u orion -- git -C "$ORION_HOME/backend" rev-parse --short HEAD 2>/dev/null || true)"
+  if [ -n "$revision" ]; then
+    bon "dépôt lisible par orion — révision $revision"
   else
-    grave "git refuse de lire $ORION_HOME/backend — « git config --system --add safe.directory '*' »"
+    grave "orion ne peut pas lire $ORION_HOME/backend — les mises à jour échoueront. Vérifiez le propriétaire : chown -R orion:orion $ORION_HOME/backend"
   fi
 else
   grave "$ORION_HOME/backend/.git absent — le clone de l'étape 02 a échoué."
