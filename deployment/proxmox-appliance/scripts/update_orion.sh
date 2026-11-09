@@ -165,7 +165,7 @@ verifier_avant_de_commencer() {
   [ -n "$libre_mo" ]   || libre_mo=0
   [ -n "$memoire_mo" ] || memoire_mo=0
 
-  echo "[0/6] Controle prealable : ${libre_mo} Mo libres sur /, ${memoire_mo} Mo de memoire disponible."
+  echo "[0/7] Controle prealable : ${libre_mo} Mo libres sur /, ${memoire_mo} Mo de memoire disponible."
 
   if [ "$libre_mo" -lt "$MINI_DISQUE_MO" ]; then
     echo "  ECHEC: moins de ${MINI_DISQUE_MO} Mo libres sur /. La mise a jour" >&2
@@ -211,21 +211,21 @@ echo "======================================"
 echo " Mise à jour Orion ERP Appliance"
 echo "======================================"
 
-echo "[1/6] Mise à jour Ubuntu..."
+echo "[1/7] Mise à jour Ubuntu..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
 
-echo "[2/6] Mise à jour images Docker (MySQL/Redis)..."
+echo "[2/7] Mise à jour images Docker (MySQL/Redis)..."
 docker compose -f "$ORION_HOME/docker/docker-compose.yml" pull
 docker compose -f "$ORION_HOME/docker/docker-compose.yml" up -d
 
-echo "[3/6] Mise à jour Node.js (paquets globaux) et dépendances Python (venv)..."
+echo "[3/7] Mise à jour Node.js (paquets globaux) et dépendances Python (venv)..."
 npm update -g --silent || true
 "$VENV_PY" -m pip install --upgrade pip --quiet
 "$VENV_PY" -m pip install --no-cache-dir -r "$ORION_HOME/backend/requirements.txt"
 
-echo "[4/6] Mise à jour applicative Orion ERP (git pull + migrations)..."
+echo "[4/7] Mise à jour applicative Orion ERP (git pull + migrations)..."
 
 # Mise à jour sans aucune dépendance au mécanisme applicatif : seuls git, pip
 # et les commandes Django de base sont requis. C'est la voie de survie quand
@@ -387,11 +387,12 @@ rafraichir_scripts() {
   local poses=0
   for fichier in "$sas"/*; do
     [ -f "$fichier" ] || continue
-    chmod +x "$fichier"
-    mv -f "$fichier" "$ORION_HOME/scripts/$(basename "$fichier")"
+    chmod +x "$fichier" || echo "  ATTENTION: $fichier non rendu executable." >&2
+    mv -f "$fichier" "$ORION_HOME/scripts/$(basename "$fichier")" \
+      || echo "  ATTENTION: $(basename "$fichier") non pose." >&2
     poses=$((poses + 1))
   done
-  rm -rf "$sas"
+  rm -rf "$sas" || true
 
   chown -R orion:orion "$ORION_HOME/scripts" 2>/dev/null || true
   echo "  $poses script(s) d'exploitation rafraichis depuis le depot."
@@ -418,7 +419,7 @@ rafraichir_unites_systemd() {
   fi
   cp "$source_unites"/*.service /etc/systemd/system/ 2>/dev/null || true
   cp "$source_unites"/*.timer   /etc/systemd/system/ 2>/dev/null || true
-  systemctl daemon-reload
+  systemctl daemon-reload || echo "  ATTENTION: daemon-reload a echoue." >&2
   echo "  unites systemd rafraichies depuis le depot."
 }
 rafraichir_unites_systemd || echo "  ATTENTION: rafraichissement des unites echoue." >&2
@@ -442,7 +443,140 @@ importer_catalogues_fabricants
 sudo -u orion -E "$VENV_PY" "$MANAGE" compilemessages \
   || echo "  ATTENTION: compilemessages a echoue, traductions inchangees."
 
-echo "[5/6] Reconstruction des frontends SIÈCLE / LUNEA / NÉOSTRUCTURA..."
+# Rafraichir les aides privilegiees (regles sudo et assistant disque).
+#
+# POURQUOI CE BLOC EXISTE. Ces fichiers n'etaient installes que par
+# provisioning/02-deploy-orion.sh, c'est-a-dire une seule fois, a la
+# creation de la machine. Une regle sudo ajoutee ou corrigee plus tard
+# n'arrivait donc JAMAIS sur une machine deja installee : le bouton
+# correspondant s'affichait dans l'ERP et ne faisait rien, exactement le
+# defaut que sudoers/orion-serveur decrit. On les reinstalle a chaque mise
+# a jour, apres le git pull qui vient de les apporter.
+#
+# visudo -c AVANT mise en place, et c'est imperatif : un fichier malforme
+# dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
+# reparer.
+echo "[5/7] Rafraîchissement des droits et assistants privilégiés..."
+SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
+for nom in orion-serveur orion-stockage orion-maj; do
+  src="$SUDOERS_DIR/$nom"
+  if [ ! -f "$src" ]; then
+    echo "  $nom : source absente, ignoré."
+    continue
+  fi
+  tmp="$(mktemp)"
+  if ! install -m 0440 -o root -g root "$src" "$tmp"; then
+    echo "  ATTENTION: $nom non prepare, conserve en l'etat." >&2
+    rm -f "$tmp" || true
+    continue
+  fi
+  if visudo -c -f "$tmp" >/dev/null 2>&1; then
+    if install -m 0440 -o root -g root "$tmp" "/etc/sudoers.d/$nom"; then
+      echo "  $nom : installé."
+    else
+      echo "  ATTENTION: $nom non installe dans /etc/sudoers.d/." >&2
+    fi
+  else
+    echo "  ATTENTION: $nom refusé par visudo -c, conservé en l'état." >&2
+  fi
+  rm -f "$tmp" || true
+done
+
+# Mode 0750, groupe orion : executable par le compte de service, jamais
+# inscriptible par lui. S'il pouvait reecrire ce fichier, la regle sudo qui
+# l'autorise equivaudrait a un acces root complet.
+STOCKAGE_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/scripts/orion-stockage"
+if [ -f "$STOCKAGE_SRC" ]; then
+  if install -o root -g orion -m 0750 "$STOCKAGE_SRC" /usr/local/sbin/orion-stockage; then
+    echo "  assistant disque : /usr/local/sbin/orion-stockage installé."
+  else
+    echo "  ATTENTION: assistant disque non installe ; la preparation" >&2
+    echo "             d'un disque restera indisponible dans l'ERP." >&2
+  fi
+  if ! command -v sgdisk >/dev/null 2>&1 || ! command -v partprobe >/dev/null 2>&1; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gdisk parted >/dev/null 2>&1 \
+      || echo "  ATTENTION: gdisk/parted non installés, préparation de disque indisponible." >&2
+  fi
+else
+  echo "  assistant disque : source absente, ignoré."
+fi
+
+# ─── LE REDEMARRAGE DU BACKEND, AVANT LES BUILDS NPM ──────────────────────
+#
+# C'est le point le plus important de ce script, et il etait le dernier.
+#
+# Django met ses gabarits en cache des que DEBUG est faux : un gabarit
+# corrige sur le disque n'est PLUS JAMAIS relu tant que le processus ne
+# redemarre pas. Le redemarrage n'est donc pas une finition, c'est l'etape
+# qui rend la mise a jour EFFECTIVE.
+#
+# Or il etait place en dernier, derriere trois builds npm et un « chown »
+# non protege. Mesure du 08/11/2026, dans le journal de l'unite :
+#
+#     chown: cannot access '/opt/orion/siecle': No such file or directory
+#     orion-update.service: Main process exited, code=exited, status=1/FAILURE
+#
+# Sous « set -e », ce chown a tue le script juste avant le redemarrage. Le
+# code etait bien sur le disque ; gunicorn servait toujours l'ancien depuis
+# sa memoire. QUATRE correctifs successifs n'ont donc jamais ete charges --
+# chacun paraissant sans effet, ce qui a envoye le diagnostic dans le mur a
+# chaque fois, et fait chercher le defaut dans le code corrige au lieu du
+# mecanisme qui ne le livrait pas.
+#
+# Plus rien de facultatif ne se trouve entre le code et son chargement, et
+# un test interdit toute commande non protegee dans cet intervalle.
+echo "[6/7] Redémarrage du backend et des tâches de fond..."
+if systemctl restart orion-backend.service; then
+  echo "  orion-backend redémarré — le nouveau code est désormais servi."
+else
+  echo "  ERREUR: orion-backend n'a pas redemarre. L'ERP continue de servir" >&2
+  echo "          l'ANCIEN code depuis la memoire du processus, et aucun" >&2
+  echo "          correctif de cette mise a jour n'est visible." >&2
+  ECHEC_CRITIQUE=1
+fi
+# Celery charge le code applicatif au demarrage : sans redemarrage, les
+# taches continueraient de tourner sur l'ancienne version.
+systemctl restart orion-celery.service orion-celery-beat.service   || echo "  ATTENTION: Celery n'a pas redemarre ; les taches de fond tournent sur l'ancien code." >&2
+
+# npm doit etre TROUVE, pas suppose.
+#
+# Mesure du 08/11/2026, dans le journal de l'unite systemd :
+#
+#     update_orion.sh: line 450: npm: command not found
+#
+# Lance a la main par « bash -lc », le shell de connexion lit /etc/profile et
+# les scripts de nvm : npm est la. Lance par systemd, PATH est le minimum du
+# systeme et npm est introuvable. Le meme script reussissait donc a la main
+# et echouait en service -- le pire des deux mondes, puisque le mode service
+# est precisement celui qui doit marcher quand l'interface web est tombee.
+chemin_de_npm() {
+  local candidat
+  if command -v npm >/dev/null 2>&1; then
+    command -v npm
+    return 0
+  fi
+  for candidat in /usr/local/bin/npm /usr/bin/npm /opt/node/bin/npm; do
+    if [ -x "$candidat" ]; then echo "$candidat"; return 0; fi
+  done
+  # nvm : la version la plus recente installee, pour root comme pour orion.
+  candidat="$(ls -1d /root/.nvm/versions/node/*/bin/npm                      /home/orion/.nvm/versions/node/*/bin/npm 2>/dev/null               | sort -V | tail -1)"
+  if [ -n "$candidat" ] && [ -x "$candidat" ]; then echo "$candidat"; return 0; fi
+  return 1
+}
+
+NPM_TROUVE="$(chemin_de_npm || true)"
+if [ -n "$NPM_TROUVE" ]; then
+  PATH="$(dirname "$NPM_TROUVE"):$PATH"
+  export PATH
+  echo "  npm : $NPM_TROUVE"
+else
+  echo "  ATTENTION: npm introuvable, meme hors du PATH de systemd. Les" >&2
+  echo "             frontends ne seront pas reconstruits ; leurs versions" >&2
+  echo "             precedentes restent servies. Le backend, lui, est deja" >&2
+  echo "             a jour et redemarre." >&2
+fi
+
+echo "[7/7] Reconstruction des frontends SIÈCLE / LUNEA / NÉOSTRUCTURA..."
 for store in siecle-store:siecle lunea-store:lunea; do
   SRC_DIR="${store%%:*}"; DEST_NAME="${store##*:}"
   STORE_PATH="$ORION_HOME/backend/frontend/$SRC_DIR"
@@ -454,7 +588,14 @@ for store in siecle-store:siecle lunea-store:lunea; do
       || echo "  ATTENTION: build $SRC_DIR échoué — version précédente conservée."
   fi
 done
-chown -R orion:orion "$ORION_HOME/siecle" "$ORION_HOME/lunea"
+# Le chown qui a tue cette mise a jour quatre fois. Les dossiers n'existaient
+# pas -- les builds npm ayant echoue, rien ne les avait crees -- et sous
+# « set -e » un chown en echec arrete tout le script. Desormais : les
+# dossiers sont crees s'il manquent, et l'echec est signale sans interrompre.
+for nom_du_frontend in siecle lunea; do
+  mkdir -p "$ORION_HOME/$nom_du_frontend" 2>/dev/null     || echo "  ATTENTION: $ORION_HOME/$nom_du_frontend non cree." >&2
+  chown -R orion:orion "$ORION_HOME/$nom_du_frontend" 2>/dev/null     || echo "  ATTENTION: proprietaire de $ORION_HOME/$nom_du_frontend inchange." >&2
+done
 
 # NÉOSTRUCTURA à part : aucune URL d'API à injecter au build (appels relatifs,
 # proxifiés par Nginx), et pas de service applicatif à redémarrer puisque c'est
@@ -472,60 +613,14 @@ if [ -d "$NS_PATH" ]; then
   fi
 fi
 
-# Rafraichir les aides privilegiees (regles sudo et assistant disque).
-#
-# POURQUOI CE BLOC EXISTE. Ces fichiers n'etaient installes que par
-# provisioning/02-deploy-orion.sh, c'est-a-dire une seule fois, a la
-# creation de la machine. Une regle sudo ajoutee ou corrigee plus tard
-# n'arrivait donc JAMAIS sur une machine deja installee : le bouton
-# correspondant s'affichait dans l'ERP et ne faisait rien, exactement le
-# defaut que sudoers/orion-serveur decrit. On les reinstalle a chaque mise
-# a jour, apres le git pull qui vient de les apporter.
-#
-# visudo -c AVANT mise en place, et c'est imperatif : un fichier malforme
-# dans /etc/sudoers.d/ casse sudo pour TOUT LE MONDE, y compris pour le
-# reparer.
-echo "[5b/6] Rafraîchissement des droits et assistants privilégiés..."
-SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
-for nom in orion-serveur orion-stockage orion-maj; do
-  src="$SUDOERS_DIR/$nom"
-  if [ ! -f "$src" ]; then
-    echo "  $nom : source absente, ignoré."
-    continue
-  fi
-  tmp="$(mktemp)"
-  install -m 0440 -o root -g root "$src" "$tmp"
-  if visudo -c -f "$tmp" >/dev/null 2>&1; then
-    install -m 0440 -o root -g root "$tmp" "/etc/sudoers.d/$nom"
-    echo "  $nom : installé."
-  else
-    echo "  ATTENTION: $nom refusé par visudo -c, conservé en l'état." >&2
-  fi
-  rm -f "$tmp"
-done
 
-# Mode 0750, groupe orion : executable par le compte de service, jamais
-# inscriptible par lui. S'il pouvait reecrire ce fichier, la regle sudo qui
-# l'autorise equivaudrait a un acces root complet.
-STOCKAGE_SRC="$ORION_HOME/backend/deployment/proxmox-appliance/scripts/orion-stockage"
-if [ -f "$STOCKAGE_SRC" ]; then
-  install -o root -g orion -m 0750 "$STOCKAGE_SRC" /usr/local/sbin/orion-stockage
-  echo "  assistant disque : /usr/local/sbin/orion-stockage installé."
-  if ! command -v sgdisk >/dev/null 2>&1 || ! command -v partprobe >/dev/null 2>&1; then
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gdisk parted >/dev/null 2>&1 \
-      || echo "  ATTENTION: gdisk/parted non installés, préparation de disque indisponible." >&2
-  fi
-else
-  echo "  assistant disque : source absente, ignoré."
-fi
-
-echo "[6/6] Redémarrage des services..."
-systemctl restart orion-backend.service orion-frontend.service
-systemctl restart siecle-frontend.service lunea-frontend.service
-# Celery charge le code applicatif au demarrage : sans redemarrage, les
-# taches continueraient de tourner sur l'ancienne version.
-systemctl restart orion-celery.service orion-celery-beat.service || true
-systemctl reload nginx || true
+# Les frontends redemarrent APRES leur build, contrairement au backend : ils
+# servent des fichiers produits a l'instant, et les relancer avant les
+# laisserait servir l'ancien bundle.
+echo "  redémarrage des frontends..."
+systemctl restart orion-frontend.service   || echo "  ATTENTION: orion-frontend n'a pas redemarre." >&2
+systemctl restart siecle-frontend.service lunea-frontend.service   || echo "  ATTENTION: siecle-frontend / lunea-frontend n'ont pas redemarre." >&2
+systemctl reload nginx   || echo "  ATTENTION: nginx n'a pas recharge sa configuration." >&2
 
 sleep 3
 systemctl --no-pager status orion-backend.service orion-frontend.service \

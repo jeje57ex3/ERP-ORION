@@ -222,7 +222,11 @@ def test_le_controle_prealable_court_avant_la_premiere_etape():
     texte = SCRIPT_MAJ.read_text(encoding='utf-8')
 
     appel = texte.index('\nverifier_avant_de_commencer\n')
-    premiere_etape = texte.index('[1/6]')
+    # « [1/ » et non « [1/6] » : le nombre total d'etapes a change le
+    # jour ou le redemarrage du backend est passe avant les builds npm,
+    # et ce test avait alors echoue pour une raison qui n'etait pas la
+    # sienne.
+    premiere_etape = texte.index('[1/')
 
     assert appel < premiere_etape, (
         'le controle doit courir AVANT la premiere modification')
