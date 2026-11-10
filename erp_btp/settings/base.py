@@ -628,7 +628,7 @@ ORION_AI_ENABLED                        = config('ORION_AI_ENABLED',            
 # Local par defaut ET par interdiction : voir OrionAISettings.local_only.
 ORION_AI_LOCAL_ONLY                     = config('ORION_AI_LOCAL_ONLY',                     default=True,  cast=bool)
 ORION_AI_DEFAULT_PROVIDER               = config('ORION_AI_DEFAULT_PROVIDER',               default='local')
-ORION_AI_DEFAULT_MODEL                  = config('ORION_AI_DEFAULT_MODEL',                  default='qwen2.5:3b-instruct')
+ORION_AI_DEFAULT_MODEL                  = config('ORION_AI_DEFAULT_MODEL',                  default='qwen3.5:4b-q4_K_M')
 ORION_AI_MAX_INPUT_CHARS                = config('ORION_AI_MAX_INPUT_CHARS',                default=20000, cast=int)
 ORION_AI_MAX_HISTORY_MESSAGES           = config('ORION_AI_MAX_HISTORY_MESSAGES',           default=20,    cast=int)
 ORION_AI_LOG_CONVERSATIONS              = config('ORION_AI_LOG_CONVERSATIONS',              default=True,  cast=bool)

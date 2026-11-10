@@ -58,7 +58,56 @@
 
       <div>
         <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Modèle par défaut</label>
-        <input type="text" name="default_model" value="{{ ai_settings.default_model }}" class="orion-input" style="width:100%" placeholder="gpt-4.1-mini">
+        <input type="text" name="default_model" value="{{ ai_settings.default_model }}" class="orion-input" style="width:100%" placeholder="qwen3.5:4b-q4_K_M" list="modeles-presents">
+        {% if modeles_presents %}
+          <datalist id="modeles-presents">
+            {% for nom in modeles_presents %}<option value="{{ nom }}"></option>{% endfor %}
+          </datalist>
+          <p style="font-size:12px;margin:6px 0 0;opacity:.8">
+            Présents sur ce serveur : <span style="font-family:monospace">{{ modeles_presents|join:" · " }}</span>
+          </p>
+        {% endif %}
+        {% if modele_absent %}
+          <p style="font-size:12px;margin:6px 0 0;color:var(--orion-danger)">
+            Ce modèle n’est pas téléchargé sur ce serveur : l’assistant
+            échouera à chaque question. Téléchargez-le, ou choisissez-en un
+            parmi ceux présents ci-dessus.
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Temps de réponse. Ces réglages étaient transmis au moteur et
+           documentés comme étant ici, mais aucun champ ne les portait. -->
+      <div style="grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Garder le modèle en mémoire (min)</label>
+          <input type="number" min="0" name="keep_alive_minutes" value="{{ ai_settings.keep_alive_minutes }}" class="orion-input" style="width:100%">
+          <p style="font-size:11.5px;margin:5px 0 0;opacity:.75">Évite de le recharger depuis le disque après une période calme — cause la plus courante d’une réponse isolée très lente. 0 = décharger aussitôt.</p>
+        </div>
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Longueur max. de la réponse (jetons)</label>
+          <input type="number" min="0" name="max_output_tokens" value="{{ ai_settings.max_output_tokens }}" class="orion-input" style="width:100%">
+          <p style="font-size:11.5px;margin:5px 0 0;opacity:.75">600 jetons ≈ 450 mots. 0 = aucun plafond, au prix de réponses bavardes et donc lentes.</p>
+        </div>
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Fenêtre de contexte (jetons)</label>
+          <input type="number" min="0" name="context_window_tokens" value="{{ ai_settings.context_window_tokens }}" class="orion-input" style="width:100%">
+          <p style="font-size:11.5px;margin:5px 0 0;opacity:.75">Plus grande, elle consomme de la mémoire et ralentit chaque requête ; trop petite, elle tronque les faits fournis au modèle.</p>
+        </div>
+      </div>
+
+      <div style="grid-column:span 2">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13.5px">
+          <input type="checkbox" name="local_thinking" {% if ai_settings.local_thinking %}checked{% endif %} style="width:16px;height:16px">
+          Laisser le modèle réfléchir avant de répondre
+        </label>
+        <p style="font-size:12px;margin:6px 0 0;opacity:.8">
+          Les modèles récents (qwen3.5 et suivants) peuvent raisonner avant de
+          répondre. La réflexion <strong>ne s’affiche pas</strong> et ses
+          jetons sont pris sur la longueur maximale ci-dessus : sur une petite
+          machine, la réponse arrive bien plus tard, et peut arriver vide.
+          Sans effet sur un modèle qui ne sait pas raisonner.
+        </p>
       </div>
 
       <div style="grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">

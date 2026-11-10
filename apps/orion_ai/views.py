@@ -233,6 +233,36 @@ def ai_settings_view(request):
         ai_settings.redact_sensitive_data = request.POST.get('redact_sensitive_data') == 'on'
         ai_settings.ai_name = request.POST.get('ai_name', ai_settings.ai_name)
         ai_settings.system_prompt_extra = request.POST.get('system_prompt_extra', '')
+
+        # ─── Temps de réponse ────────────────────────────────────────────────
+        # Ces quatre réglages existaient dans le modèle, étaient transmis au
+        # moteur, et la documentation annonçait qu'on les trouvait ici — mais
+        # aucun champ ne les portait. Ils n'étaient donc modifiables que par
+        # la console Django, ce qui revenait à ne pas l'être.
+        #
+        # Un entier illisible, vide ou négatif CONSERVE la valeur en place,
+        # suivant la règle posée plus haut : un champ qu'on ne comprend pas ne
+        # doit pas remplacer un réglage qui fonctionne. Zéro, lui, est une
+        # valeur LÉGITIME et différente pour chacun des trois — décharger le
+        # modèle aussitôt, ne plafonner ni la réponse ni le contexte (le
+        # moteur omet alors l'option) — et il est donc accepté tel quel.
+        def _entier(nom, courant):
+            brut = request.POST.get(nom)
+            if brut is None or str(brut).strip() == '':
+                return courant
+            try:
+                valeur = int(str(brut).strip())
+            except (TypeError, ValueError):
+                return courant
+            return valeur if valeur >= 0 else courant
+
+        ai_settings.keep_alive_minutes = _entier(
+            'keep_alive_minutes', ai_settings.keep_alive_minutes)
+        ai_settings.max_output_tokens = _entier(
+            'max_output_tokens', ai_settings.max_output_tokens)
+        ai_settings.context_window_tokens = _entier(
+            'context_window_tokens', ai_settings.context_window_tokens)
+        ai_settings.local_thinking = request.POST.get('local_thinking') == 'on'
         from apps.orion_ai.providers import FOURNISSEURS_EXTERNES
         if ai_settings.local_only and ai_settings.default_provider in FOURNISSEURS_EXTERNES:
             messages.error(
@@ -261,11 +291,26 @@ def ai_settings_view(request):
         return redirect('orion_ai:admin_ai_settings')
 
     from apps.orion_ai.tool_registry import get_available_ai_tools
+    from apps.orion_ai.providers import modeles_locaux_installes
     tools = get_available_ai_tools()
+
+    modeles_presents = modeles_locaux_installes()
 
     return render(request, 'orion_ai/admin_settings.html', {
         'ai_settings': ai_settings,
         'available_tools': tools,
+        'modeles_presents': modeles_presents,
+        # Un modèle configuré mais absent du disque fait échouer CHAQUE
+        # question par un 404 d'Ollama. C'était jusqu'ici invisible depuis
+        # l'interface : le nom s'affichait, correctement orthographié, et rien
+        # ne disait qu'aucun fichier ne portait ce nom. Le signaler ici, et
+        # seulement si la liste a pu être obtenue — « je n'ai pas pu savoir »
+        # ne doit pas se présenter comme « il manque ».
+        'modele_absent': bool(
+            modeles_presents
+            and ai_settings.default_provider == 'local'
+            and ai_settings.default_model not in modeles_presents
+        ),
         'page_title': 'Paramètres IA — Super Admin',
     })
 

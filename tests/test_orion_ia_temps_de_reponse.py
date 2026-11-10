@@ -69,7 +69,7 @@ def test_le_modele_est_garde_en_memoire(monkeypatch):
     vu = _capturer(monkeypatch)
     LocalAIProvider().generate(
         messages=[{'role': 'user', 'content': 'bonjour'}],
-        model='qwen2.5:3b-instruct',
+        model='qwen3.5:4b-q4_K_M',
         keep_alive_minutes=30,
     )
     assert vu['json']['keep_alive'] == '30m'

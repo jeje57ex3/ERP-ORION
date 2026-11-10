@@ -41,9 +41,20 @@ class OrionAISettings(models.Model):
         default='local',
     )
 
+    # Le nom est EXACT, et il ne se devine pas à partir de l'ancien : qwen3.5
+    # a abandonné le suffixe « -instruct » et n'a pas de taille « 3b » — ses
+    # tailles sont 0.8b, 2b, 4b, 9b. « qwen3.5:3b-instruct » n'existe pas, et
+    # Ollama répond 404 sur chaque question pour un nom inconnu.
+    #
+    # La quantification est ÉPINGLÉE (`-q4_K_M`, 3,3 Go) plutôt que laissée au
+    # tag court `qwen3.5:4b`. Un tag court est réattribuable : le même nom peut
+    # désigner un fichier plus lourd après une mise à jour amont, et sur une
+    # appliance à 8 Go partagés avec MySQL, deux gigaoctets de plus font la
+    # différence entre un modèle qui tient en mémoire et un processus tué par
+    # le noyau en pleine réponse.
     default_model = models.CharField(
         max_length=120,
-        default='qwen2.5:3b-instruct',
+        default='qwen3.5:4b-q4_K_M',
         help_text='Modele servi par Ollama sur ce serveur.',
     )
 
@@ -90,6 +101,22 @@ class OrionAISettings(models.Model):
         help_text='Taille allouée au contexte. Plus grande, elle consomme '
                   'de la mémoire et ralentit chaque requête ; trop petite, '
                   'elle tronque les faits fournis au modèle.',
+    )
+
+    # Quatrième part, apparue avec qwen3.5 : la RÉFLEXION. Elle précède la
+    # réponse, ne s'affiche pas, et ses jetons sont pris sur le plafond
+    # ci-dessus — 600 jetons dépensés à réfléchir laissent une réponse vide.
+    # Coupée par défaut, donc, et le réglage existe parce qu'une machine
+    # confortable peut vouloir en profiter. Sans effet sur un modèle qui ne
+    # sait pas raisonner : l'option ne lui est alors pas envoyée du tout.
+    local_thinking = models.BooleanField(
+        default=False,
+        verbose_name='Laisser le modèle réfléchir avant de répondre',
+        help_text='Améliore les réponses aux questions de raisonnement, au '
+                  'prix d’un temps d’attente bien plus long — la réflexion '
+                  'ne s’affiche pas, et ses jetons sont pris sur la longueur '
+                  'maximale de la réponse. À n’activer que si le débit mesuré '
+                  'par « orion-ai.sh bench » est confortable.',
     )
 
     max_history_chars = models.PositiveIntegerField(

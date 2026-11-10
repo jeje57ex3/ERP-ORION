@@ -41,7 +41,13 @@ def test_un_fournisseur_externe_verrouille_est_bascule_en_local():
     reglages.refresh_from_db()
 
     assert reglages.default_provider == 'local'
-    assert reglages.default_model == 'qwen2.5:3b-instruct'
+    # La valeur de la MIGRATION, pas celle du modele d'aujourd'hui. Une
+    # migration est une archive : le defaut est passe a qwen3.5 depuis, et
+    # reecrire 0003 pour suivre reecrirait l'histoire d'installations deja
+    # migrees. Lire la constante plutot que la recopier evite d'avoir a
+    # choisir entre les deux a chaque changement de modele.
+    assert reglages.default_model == _MIGRATION.MODELE_LOCAL
+    assert _MIGRATION.MODELE_LOCAL == 'qwen2.5:3b-instruct'
 
 
 def test_un_modele_local_deja_choisi_est_conserve():

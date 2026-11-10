@@ -237,7 +237,7 @@ if command -v ollama >/dev/null 2>&1 || curl -fsS --max-time 5 http://127.0.0.1:
     if printf '%s' "$tags" | grep -q '"name"'; then
       bon "modèle(s) présent(s) : $(printf '%s' "$tags" | grep -o '"name":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')"
     else
-      grave "aucun modèle téléchargé — l'assistant répondrait 404 sur chaque question. « /opt/orion/scripts/orion-ai.sh pull qwen2.5:3b-instruct »"
+      grave "aucun modèle téléchargé — l'assistant répondrait 404 sur chaque question. « /opt/orion/scripts/orion-ai.sh install »"
     fi
   else
     leger "ollama installé mais le daemon ne répond pas — « /opt/orion/scripts/orion-ai.sh status »"

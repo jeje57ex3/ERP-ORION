@@ -237,14 +237,76 @@ Deux passes — la première inclut le chargement — puis un verdict :
 Pour un modèle plus petit :
 
 ```bash
-qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-ai.sh pull qwen2.5:1.5b-instruct
+qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-ai.sh pull qwen3.5:2b-q4_K_M
 ```
 
-puis sélectionnez-le dans `Paramètres IA`. Un modèle de 1,5 milliard de
-paramètres répond environ deux fois plus vite qu'un 3 milliards, au prix de
-réponses un peu plus sommaires — acceptable pour guider dans une interface,
-puisque les faits viennent de l'ERP et non du modèle (voir « Pourquoi Orion
-n'invente pas de page »).
+puis sélectionnez-le dans `Paramètres IA`, où les modèles réellement présents
+sur le serveur sont listés. Un 2 milliards de paramètres répond nettement plus
+vite qu'un 4 milliards, au prix de réponses un peu plus sommaires — acceptable
+pour guider dans une interface, puisque les faits viennent de l'ERP et non du
+modèle (voir « Pourquoi Orion n'invente pas de page »).
+
+## Le modèle, et pourquoi son nom ne se devine pas
+
+Le modèle par défaut est **`qwen3.5:4b-q4_K_M`**. Trois précisions, chacune
+tirée d'un piège :
+
+**Le nom est exact.** qwen3.5 a abandonné le suffixe `-instruct` de qwen2.5 et
+n'a pas de taille `3b` — ses tailles sont 0.8b, 2b, 4b et 9b. Remplacer « 2.5 »
+par « 3.5 » dans l'ancien nom produit donc un modèle qui n'existe pas, et
+Ollama répond 404 à **chaque** question pour un nom inconnu.
+
+**La quantification est épinglée** (`-q4_K_M`) au lieu du tag court
+`qwen3.5:4b`. Un tag court est réattribuable : le même nom peut désigner un
+fichier plus lourd après une mise à jour amont, et sur une appliance à 8 Go
+partagés avec MySQL, deux gigaoctets de plus séparent un modèle qui tient en
+mémoire d'un processus tué par le noyau en pleine réponse.
+
+**La taille se choisit sur la RAM**, pas sur le disque :
+
+| Modèle | Disque | RAM à l'inférence | Pour |
+|---|---|---|---|
+| `qwen3.5:2b-q4_K_M` | 1,9 Go | ~2,7 Go | une VM à 4 Go |
+| `qwen3.5:4b-q4_K_M` | 3,3 Go | ~4,3 Go | le défaut, VM à 8 Go |
+| `qwen3.5:9b-q4_K_M` | 6,6 Go | ~7,7 Go | ne tient pas à côté de MySQL |
+
+### Changer de modèle
+
+Une mise à jour **ne renomme jamais** le modèle déjà enregistré. C'est
+volontaire : une valeur par défaut décrit un souhait, alors qu'un nom en base
+désigne un fichier présent sur le disque. Le renommer pendant un `migrate`
+aurait fait pointer l'assistant vers un modèle non téléchargé — et il aurait
+échoué à chaque question juste après une mise à jour réussie, pour une cause
+qu'on ne serait pas allé chercher.
+
+Deux étapes, donc :
+
+1. télécharger le modèle sur le serveur :
+   `qm guest exec <vmid> -- /bin/bash /opt/orion/scripts/orion-ai.sh pull qwen3.5:4b-q4_K_M` ;
+2. le sélectionner dans `Paramètres IA`. La page liste les modèles présents
+   sur le serveur, et signale en rouge un modèle configuré qui n'y est pas.
+
+## La réflexion, coupée par défaut
+
+qwen3.5 sait raisonner avant de répondre. C'est un progrès ailleurs, et un
+défaut ici, pour deux raisons mesurées :
+
+- **les jetons de réflexion sont pris sur le plafond de réponse.** À 600
+  jetons, un modèle qui réfléchit peut les dépenser entièrement et renvoyer
+  une réponse **vide** ;
+- **la réflexion ne s'affiche pas.** En flux, elle se traduit par un silence
+  complet — exactement ce que le flux avait été ajouté pour supprimer.
+
+Elle est donc coupée, et le réglage `Laisser le modèle réfléchir avant de
+répondre` permet de la rallumer sur une machine dont le débit mesuré est
+confortable.
+
+L'option n'est envoyée qu'aux modèles qui la **déclarent**. Ce n'est pas une
+précaution de style : Ollama refuse la requête entière — `HTTP 400`, « *does
+not support thinking* » — quand elle est adressée à un modèle qui ne la
+connaît pas. Une installation restée sur qwen2.5 continue donc de fonctionner
+sans rien changer. La capacité est demandée au démon (`/api/show`) et non
+déduite du nom : un nom ne dit pas ce qu'un fichier contient.
 
 ## Diagnostic
 

@@ -7,6 +7,101 @@ class AIProviderError(Exception):
     pass
 
 
+# ─── Ce que le modèle sait faire ─────────────────────────────────────────────
+# Les familles récentes — qwen3.5 et les suivantes — savent RAISONNER avant de
+# répondre. C'est un progrès ailleurs, et un défaut ici, pour deux raisons
+# mesurables :
+#
+#   1. les jetons de réflexion sont pris SUR LE PLAFOND de génération. Avec
+#      `num_predict` à 600, un modèle qui réfléchit peut dépenser les 600 en
+#      réflexion et renvoyer une réponse VIDE ;
+#   2. la réflexion n'arrive pas dans `content`. En flux, l'utilisateur voit
+#      donc un silence complet pendant toute sa durée — exactement ce que le
+#      flux avait été ajouté pour supprimer.
+#
+# D'où `think: false`. Mais l'envoyer à tous les modèles « pour être sûr »
+# casserait toute installation restée sur qwen2.5 : Ollama REFUSE la requête
+# entière — HTTP 400, « "qwen2.5:3b-instruct" does not support thinking » —
+# quand `think` est adressé à un modèle sans cette capacité. L'assistant
+# répondrait alors « le moteur local a refusé la requête (HTTP 400) » à chaque
+# question, message qui ne désigne pas la cause.
+#
+# La capacité est donc DEMANDÉE au démon, et non déduite du nom : un nom ne dit
+# pas ce qu'un fichier contient, et les conventions changent d'une version à
+# l'autre — qwen2.5 suffixait ses modèles « -instruct », qwen3.5 ne le fait
+# plus et n'a pas de taille « 3b ».
+_CAPACITES = {}
+
+
+def capacites_du_modele(base_url, model):
+    """Capacités déclarées par Ollama pour ce modèle, ou () si on ne sait pas.
+
+    L'échec ne conclut PAS « ce modèle ne pense pas ». Les deux erreurs
+    possibles n'ont pas le même prix : omettre `think` laisse un modèle à
+    raisonnement répondre lentement — gênant, réparable ; l'envoyer à un
+    modèle qui l'ignore rend l'assistant muet. L'incertitude penche donc du
+    côté réparable.
+
+    Seules les réponses OBTENUES sont mémorisées. Mettre un échec en cache
+    figerait « ne pense pas » pour toute la durée du processus parce que le
+    démon était indisponible à la première question.
+    """
+    cle = (base_url, model)
+    if cle in _CAPACITES:
+        return _CAPACITES[cle]
+
+    try:
+        reponse = http_requests.post(
+            base_url.rstrip('/') + '/api/show',
+            json={'model': model},
+            timeout=10,
+        )
+        if reponse.status_code != 200:
+            return ()
+        capacites = tuple((reponse.json() or {}).get('capabilities') or ())
+    except Exception:
+        return ()
+
+    _CAPACITES[cle] = capacites
+    return capacites
+
+
+def oublier_les_capacites():
+    """Vide le cache des capacités.
+
+    Utile après le téléchargement d'un modèle portant un nom déjà interrogé,
+    et aux tests, qui ne doivent pas hériter du cache les uns des autres.
+    """
+    _CAPACITES.clear()
+
+
+def modeles_locaux_installes():
+    """Noms des modèles réellement présents sur ce serveur, ou [] si inconnu.
+
+    Une liste vide ne signifie PAS « aucun modèle » : elle signifie « je n'ai
+    pas pu savoir ». Les deux se confondraient dans l'interface, et annoncer
+    « aucun modèle installé » parce que le démon était arrêté enverrait
+    l'exploitant télécharger ce qu'il possède déjà. L'appelant ne doit donc
+    rien conclure d'une liste vide.
+    """
+    base_url = getattr(settings, 'LOCAL_AI_BASE_URL', 'http://localhost:11434')
+    try:
+        reponse = http_requests.get(
+            base_url.rstrip('/') + '/api/tags', timeout=5,
+        )
+        if reponse.status_code != 200:
+            return []
+        modeles = (reponse.json() or {}).get('models') or []
+    except Exception:
+        return []
+
+    noms = {
+        str(entree.get('model') or entree.get('name') or '')
+        for entree in modeles if isinstance(entree, dict)
+    }
+    return sorted(noms - {''})
+
+
 class BaseAIProvider:
     def generate(self, *, messages, model, temperature=0.2, tools=None):
         raise NotImplementedError
@@ -120,7 +215,7 @@ class LocalAIProvider(BaseAIProvider):
 
     def generate(self, *, messages, model, temperature=0.2, tools=None,
                  keep_alive_minutes=None, max_output_tokens=None,
-                 context_window_tokens=None):
+                 context_window_tokens=None, thinking=False):
         base_url = getattr(settings, 'LOCAL_AI_BASE_URL', 'http://localhost:11434')
         url = base_url.rstrip('/') + '/api/chat'
 
@@ -145,6 +240,13 @@ class LocalAIProvider(BaseAIProvider):
                 f'{int(keep_alive_minutes)}m' if int(keep_alive_minutes) > 0
                 else 0
             )
+
+        # Le raisonnement est coupé par défaut, et seulement sur les modèles
+        # qui le connaissent : voir `capacites_du_modele` pour les deux raisons
+        # mesurées (plafond de génération dépensé en réflexion, et silence du
+        # flux) et pour le 400 qu'un envoi inconditionnel provoquerait.
+        if 'thinking' in capacites_du_modele(base_url, model):
+            charge['think'] = bool(thinking)
 
         try:
             response = http_requests.post(
@@ -227,7 +329,7 @@ class LocalAIProvider(BaseAIProvider):
 
     def generate_stream(self, *, messages, model, temperature=0.2,
                         keep_alive_minutes=None, max_output_tokens=None,
-                        context_window_tokens=None):
+                        context_window_tokens=None, thinking=False):
         """Même requête, mais rendue au fur et à mesure.
 
         C'est le gain de confort le plus important sur un petit modèle en CPU,
@@ -261,6 +363,12 @@ class LocalAIProvider(BaseAIProvider):
                 f'{int(keep_alive_minutes)}m' if int(keep_alive_minutes) > 0
                 else 0
             )
+
+        # C'est en flux que le raisonnement coûte le plus cher : il n'arrive
+        # pas dans `content`, donc rien ne s'affiche pendant toute sa durée.
+        # Le silence que le flux devait supprimer reviendrait, aggravé.
+        if 'thinking' in capacites_du_modele(base_url, model):
+            charge['think'] = bool(thinking)
 
         try:
             reponse = http_requests.post(
