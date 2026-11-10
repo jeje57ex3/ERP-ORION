@@ -27,6 +27,28 @@ from apps.core.models import Company, CompanySettings
 # connexion, rendu independant de l'ordre de cette facon.
 
 
+@pytest.fixture(autouse=True)
+def _cache_vide():
+    """Vide le cache avant et apres chaque test.
+
+    LocMemCache vit dans une variable de MODULE : une valeur ecrite par un
+    test resterait visible par les suivants, alors que la base, elle, est
+    revenue en arriere. On obtiendrait des tests qui ne passent que dans un
+    certain ordre -- exactement le defaut que la note ci-dessus decrit pour
+    SetupRequiredMiddleware.
+
+    Contrairement a la remise a zero de _setup_complete_cache, celle-ci ne
+    casse rien, et c'est le bon moment pour la poser : jusqu'a present aucun
+    reglage CACHES n'existait, donc aucun test ne peut dependre d'une valeur
+    de cache laissee par un autre. La suite complete le confirme.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
 @pytest.fixture
 def company(db):
     """Entreprise de test avec paramètres complets."""

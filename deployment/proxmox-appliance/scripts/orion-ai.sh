@@ -173,9 +173,20 @@ cmd_install() {
   cat > /etc/systemd/system/ollama.service.d/orion.conf <<EOF
 [Service]
 Environment=OLLAMA_HOST=$HOTE
-# Le modèle est libéré de la mémoire après ce délai d'inactivité. Sur une
-# petite VM, garder 3 Go résidents en permanence prive l'ERP de sa mémoire,
-# alors que le rechargement ne coûte que quelques secondes.
+# Délai d'inactivité après lequel le modèle est libéré de la mémoire, POUR
+# LES SEULES REQUÊTES QUI N'EN IMPOSENT PAS UN. Le commentaire précédent
+# affirmait ici que le modèle était libéré au bout de 5 minutes ; c'était
+# faux pour l'usage réel de l'ERP.
+#
+# L'ERP envoie « keep_alive » dans chaque requête /api/chat (réglage
+# « Garder le modèle en mémoire », 30 minutes par défaut, modifiable dans
+# Paramètres IA), et la valeur de la requête l'emporte sur cette variable.
+# Les 5 minutes ne s'appliquent donc qu'à ce qui ne précise rien :
+# « orion-ai.sh test » et « orion-ai.sh bench ».
+#
+# C'est voulu : un diagnostic lancé depuis le serveur ne doit pas retenir
+# trois gigaoctets pendant une demi-heure, alors qu'un utilisateur qui pose
+# des questions a tout intérêt à ce que le modèle reste chargé.
 Environment=OLLAMA_KEEP_ALIVE=5m
 # Un seul chargement à la fois : deux inférences simultanées sur 2 cœurs ne
 # vont pas deux fois plus vite, elles échouent toutes les deux.
