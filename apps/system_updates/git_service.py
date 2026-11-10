@@ -81,6 +81,21 @@ def get_remote_commit():
 
 
 def get_commits_behind_ahead():
+    """Combien de commits de retard et d'avance. (None, None) si on ne sait pas.
+
+    NE PAS SAVOIR N'EST PAS ETRE A JOUR, et cette fonction rendait
+    pourtant (0, 0) des que la commande echouait -- ce que l'appelant lit
+    comme « aucun commit de retard », donc « a jour ».
+
+    Consequence constatee le 09/11/2026 : l'ERP annoncait « le systeme est
+    a jour » alors que son ecran servait du code vieux de plusieurs lots.
+    Personne ne pouvait le soupconner, puisque la page l'affirmait.
+
+    C'est la meme faute que le script de mise a jour qui annoncait
+    « schema migre » trois lignes sous un traceback : une incertitude
+    rapportee comme un succes. Elle coute d'autant plus cher ici que la
+    page sert precisement a savoir s'il faut agir.
+    """
     remote = getattr(settings, 'ORION_GIT_REMOTE', 'origin')
     branch = getattr(settings, 'ORION_GIT_BRANCH', 'main')
     result = run_command(
@@ -88,11 +103,14 @@ def get_commits_behind_ahead():
         cwd=get_project_root(),
     )
     if not result['ok']:
-        return 0, 0
+        return None, None
     parts = result['stdout'].split()
     if len(parts) != 2:
-        return 0, 0
-    return int(parts[1]), int(parts[0])  # behind, ahead
+        return None, None
+    try:
+        return int(parts[1]), int(parts[0])  # behind, ahead
+    except ValueError:
+        return None, None
 
 
 def get_changelog(max_count=20):
