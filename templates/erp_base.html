@@ -369,7 +369,7 @@
          devis avant d'etre coupe. Le blocage, lui, ne vient que du fichier
          verrou -- voir MaintenanceModeMiddleware. {% endcomment %}
       <div class="orion-bandeau-maintenance"
-           style="background:{% if maintenance_annonce.a_commence %}#b43b3b{% else %}#c6a15b{% endif %};
+           style="background:{% if maintenance_annonce.a_commence %}#b43b3b{% else %}#00a5c4{% endif %};
                   color:#fff;padding:10px 16px;border-radius:10px;
                   font-size:13.5px;line-height:1.55;margin-bottom:16px">
         <i class="bi bi-{% if maintenance_annonce.a_commence %}exclamation-triangle-fill{% else %}clock-history{% endif %} me-1"></i>
@@ -480,7 +480,7 @@
     var lien = ORION_URL + '?q=' + encodeURIComponent(q);
     return '<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">{% trans "Demander" %}</small></div>'
       + '<a href="' + lien + '" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item">'
-      + '<span class="me-3 fs-5" style="color:#C6A15B"><i class="bi bi-stars"></i></span>'
+      + '<span class="me-3 fs-5" style="color:#00A5C4"><i class="bi bi-stars"></i></span>'
       + '<span><span class="d-block fw-medium text-dark">' + echapper(ORION_NOM) + '</span>'
       + '<span class="d-block small text-muted">&laquo;&nbsp;' + echapper(q) + '&nbsp;&raquo;</span>'
       + '</span></a>';

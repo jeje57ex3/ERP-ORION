@@ -44,9 +44,9 @@
 {% endif %}
 
 <!-- ══ Éditeur visuel — bannière d'entrée ══════════════════════════════════ -->
-<div style="border:3px solid #D6B36A;border-radius:16px;padding:20px 24px;margin-bottom:24px;background:rgba(214,179,106,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+<div style="border:3px solid #6CC3DE;border-radius:16px;padding:20px 24px;margin-bottom:24px;background:rgba(108,195,222,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
   <div>
-    <div style="color:#D6B36A;font-weight:900;text-transform:uppercase;letter-spacing:.1em;font-size:.75rem;margin-bottom:4px;">
+    <div style="color:#6CC3DE;font-weight:900;text-transform:uppercase;letter-spacing:.1em;font-size:.75rem;margin-bottom:4px;">
       <i class="bi bi-layout-wtf"></i> {% trans 'Éditeur visuel' %}
     </div>
     <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">{% blocktrans %}Construire les pages {{ website.name }}{% endblocktrans %}</div>
@@ -57,22 +57,22 @@
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
     {% if website.slug == 'siecle' %}
       <a href="{% url 'site_builder:open_siecle' %}"
-         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#6CC3DE;color:#060B14;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
         <i class="bi bi-layout-wtf"></i> {% trans "Ouvrir l'éditeur SIÈCLE" %}
       </a>
     {% elif website.slug == 'lunea' %}
       <a href="{% url 'site_builder:open_lunea' %}"
-         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#6CC3DE;color:#060B14;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
         <i class="bi bi-layout-wtf"></i> {% trans "Ouvrir l'éditeur LUNEA" %}
       </a>
     {% else %}
       <a href="{% url 'site_builder:page_list' %}"
-         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#D6B36A;color:#0B0B0D;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
+         style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:#6CC3DE;color:#060B14;border-radius:10px;font-weight:800;text-decoration:none;font-size:.9rem;">
         <i class="bi bi-layout-wtf"></i> {% trans 'Éditeur visuel' %}
       </a>
     {% endif %}
     <a href="{% url 'site_builder:page_list' %}"
-       style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid rgba(214,179,106,.4);color:#D6B36A;border-radius:10px;font-weight:600;text-decoration:none;font-size:.85rem;">
+       style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid rgba(108,195,222,.4);color:#6CC3DE;border-radius:10px;font-weight:600;text-decoration:none;font-size:.85rem;">
       {% trans 'Toutes les pages' %}
     </a>
   </div>
@@ -196,9 +196,9 @@
     </div>
 
     <!-- Éditeur visuel -->
-    <div class="orion-card" style="border-color:rgba(214,179,106,.5);">
-      <div class="orion-card-header" style="border-bottom-color:rgba(214,179,106,.2);">
-        <h6 class="mb-0"><i class="bi bi-layout-wtf me-1" style="color:#D6B36A"></i>{% trans 'Construire les pages' %}</h6>
+    <div class="orion-card" style="border-color:rgba(108,195,222,.5);">
+      <div class="orion-card-header" style="border-bottom-color:rgba(108,195,222,.2);">
+        <h6 class="mb-0"><i class="bi bi-layout-wtf me-1" style="color:#6CC3DE"></i>{% trans 'Construire les pages' %}</h6>
       </div>
       <div class="orion-card-body">
         <p class="small text-muted mb-3">

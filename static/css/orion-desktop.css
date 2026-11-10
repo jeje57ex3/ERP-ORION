@@ -6,26 +6,26 @@
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
   --orion-sidebar-width: 245px;
-  --orion-sidebar-bg: #2B2118;
-  --orion-sidebar-bg-dark: #1C120A;
-  --orion-sidebar-hover: rgba(198,161,91,.08);
-  --orion-sidebar-active-bg: rgba(198,161,91,.14);
-  --orion-sidebar-active: #C6A15B;
+  --orion-sidebar-bg: #16243A;
+  --orion-sidebar-bg-dark: #0B1422;
+  --orion-sidebar-hover: rgba(0,165,196,.08);
+  --orion-sidebar-active-bg: rgba(0,165,196,.14);
+  --orion-sidebar-active: #00A5C4;
 
-  --orion-primary: #3A2A1A;
-  --orion-secondary: #C6A15B;
-  --orion-accent: #E8D8B0;
-  --orion-bg: #F8F3EA;
-  --orion-page-bg: #F2EDE4;
+  --orion-primary: #212D44;
+  --orion-secondary: #00A5C4;
+  --orion-accent: #B4E0EF;
+  --orion-bg: #F0F4F9;
+  --orion-page-bg: #E9EEF6;
   --orion-panel-bg: #FFFFFF;
-  --orion-border: #D8C9B0;
-  --orion-border-light: #EBE0CC;
+  --orion-border: #C1CCDB;
+  --orion-border-light: #DAE2ED;
 
-  --orion-text: #2B2118;
-  --orion-muted: #7A6A58;
-  --orion-light-text: #F8F3EA;
-  --orion-sand-100: #F6F1E6;
-  --orion-sand-200: #EFE7D5;
+  --orion-text: #16243A;
+  --orion-muted: #5A6B82;
+  --orion-light-text: #F0F4F9;
+  --orion-sand-100: #EEF2F8;
+  --orion-sand-200: #E2E8F2;
 
   --orion-success: #166534;
   --orion-success-bg: #DCFCE7;
@@ -38,8 +38,8 @@
 
   --orion-radius: 3px;
   --orion-radius-md: 6px;
-  --orion-shadow: 0 2px 8px rgba(43,33,24,.07);
-  --orion-shadow-md: 0 4px 16px rgba(43,33,24,.10);
+  --orion-shadow: 0 2px 8px rgba(22,36,58,.07);
+  --orion-shadow-md: 0 4px 16px rgba(22,36,58,.10);
 
   --orion-topbar-h: 44px;
   --orion-open-tabs-h: 32px;
@@ -166,7 +166,7 @@ body.orion-desktop {
 
 .orion-search-mini:focus-within {
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 2px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 2px rgba(0,165,196,.15);
   background: #fff;
 }
 
@@ -187,13 +187,13 @@ body.orion-desktop {
 }
 
 .orion-search-mini input::placeholder {
-  color: #9E8E7C;
+  color: #8292A9;
 }
 
 .orion-search-mini kbd {
   font-size: 10px;
   padding: 1px 4px;
-  background: #E8E0D4;
+  background: #DAE2ED;
   border: 1px solid var(--orion-border);
   border-radius: 2px;
   color: var(--orion-muted);
@@ -342,11 +342,11 @@ body.orion-desktop {
 }
 
 .orion-dense-table tbody tr:hover td {
-  background: #FFFDF8;
+  background: #FDFDFE;
 }
 
 .orion-dense-table tbody tr.selected td {
-  background: rgba(198,161,91,.09);
+  background: rgba(0,165,196,.09);
 }
 
 .orion-dense-table tfoot td {

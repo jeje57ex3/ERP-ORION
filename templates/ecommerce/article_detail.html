@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{% static 'css/orion-ui.css' %}">
 <style>
 .img-thumb { width:80px;height:80px;object-fit:cover;border-radius:4px;border:2px solid transparent; }
-.img-thumb.primary { border-color:#C6A15B; }
+.img-thumb.primary { border-color:#00A5C4; }
 .drag-handle { cursor:grab; color:#aaa; }
 </style>
 {% endblock %}
@@ -79,7 +79,7 @@
             {% if not img.is_primary %}
             <button onclick="setPrimary({{ img.pk }})" class="orion-btn orion-btn-ghost orion-btn-sm" title="{% trans 'Définir principale' %}"><i class="bi bi-star"></i></button>
             {% else %}
-            <i class="bi bi-star-fill" style="color:#C6A15B;font-size:14px;padding:4px 6px" title="{% trans 'Image principale' %}"></i>
+            <i class="bi bi-star-fill" style="color:#00A5C4;font-size:14px;padding:4px 6px" title="{% trans 'Image principale' %}"></i>
             {% endif %}
             <form method="post" action="{% url 'ecommerce:article_image_delete' pk=article.pk image_pk=img.pk %}" onsubmit="return confirm('{% trans "Supprimer cette image ?" %}')">
               {% csrf_token %}<button type="submit" class="orion-btn orion-btn-ghost orion-btn-sm text-danger"><i class="bi bi-trash"></i></button>

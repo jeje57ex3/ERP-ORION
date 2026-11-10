@@ -19,7 +19,7 @@ DEFAULT_WIDGETS_BY_CODE = [
 DEFAULT_SHORTCUTS = [
     {'label': 'Nouveau devis', 'icon': 'bi-file-text', 'color': '#2563EB', 'url_name': 'sales:quote_create', 'target_type': 'create_action', 'module_code': 'sales'},
     {'label': 'Nouveau client', 'icon': 'bi-person-plus', 'color': '#0891B2', 'url_name': 'crm:customer_create', 'target_type': 'create_action', 'module_code': 'crm'},
-    {'label': 'Mes messages', 'icon': 'bi-chat', 'color': '#C6A15B', 'url_name': 'support:ticket_list', 'target_type': 'object_list', 'module_code': 'support'},
+    {'label': 'Mes messages', 'icon': 'bi-chat', 'color': '#00A5C4', 'url_name': 'support:ticket_list', 'target_type': 'object_list', 'module_code': 'support'},
     {'label': 'Mes documents', 'icon': 'bi-folder', 'color': '#6B7280', 'url_name': 'documents:index', 'target_type': 'module', 'module_code': 'documents'},
 ]
 

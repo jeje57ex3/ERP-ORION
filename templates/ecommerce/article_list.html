@@ -30,8 +30,8 @@
 <!-- KPIs -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#C6A15B">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-collection"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#00A5C4">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#00A5C4"><i class="bi bi-collection"></i></div>
       <div><div class="orion-kpi-value">{{ total }}</div><div class="orion-kpi-label">{% trans "Articles" %}</div></div>
     </div>
   </div>
@@ -91,7 +91,7 @@
         {% if art.category %}<span class="orion-badge" style="background:#F0FDF4;color:#16A34A">{{ art.category.name }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
       </td>
       <td>
-        {% if art.archive_ref %}<span class="orion-badge" style="background:#EEF2FF;color:#C6A15B">{{ art.archive_ref }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+        {% if art.archive_ref %}<span class="orion-badge" style="background:#EEF2FF;color:#00A5C4">{{ art.archive_ref }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
       </td>
       <td><code>{{ art.sku|default:"—" }}</code></td>
       <td>{{ art.price }} €</td>

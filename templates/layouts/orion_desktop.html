@@ -139,7 +139,7 @@
             var label=entry[0],items=entry[1];
             html+='<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-semibold" style="font-size:.7rem;letter-spacing:.06em">'+label+'</small></div>';
             items.forEach(function(item){
-              html+='<a href="'+item.url+'" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item" style="transition:background .15s" onmouseover="this.style.background=\'rgba(198,161,91,.08)\'" onmouseout="this.style.background=\'\'">'
+              html+='<a href="'+item.url+'" class="d-flex align-items-center px-3 py-2 text-decoration-none rounded-2 mx-2 mb-1 search-result-item" style="transition:background .15s" onmouseover="this.style.background=\'rgba(0,165,196,.08)\'" onmouseout="this.style.background=\'\'">'
                 +'<span class="me-3 fs-5 text-'+(item.color||'secondary')+'"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
                 +'<span><span class="d-block fw-medium text-dark">'+item.title+'</span>'+(item.subtitle?'<span class="d-block small text-muted">'+item.subtitle+'</span>':'')+'</span></a>';});
           });

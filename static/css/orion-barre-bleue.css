@@ -41,7 +41,8 @@
      restée dorée se serait vue comme une pièce rapportée.
 
      UNE SEULE LIGNE À REMETTRE pour revenir à l'ancien accent : la valeur
-     précédente était #3A2A1A (brun foncé). */
+     précédente était #3A2A1A (brun foncé) ; depuis la bascule de la
+     palette vers l'ardoise, c'est #212D44. */
   --orion-primary:         var(--orion-bleu);
   --orion-primary-hover:   var(--orion-bleu-sombre);
   --bs-primary:            #0A84FF;

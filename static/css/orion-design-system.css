@@ -11,27 +11,27 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   /* Surfaces */
-  --orion-bg:            #f6f3ee;
+  --orion-bg:            #f0f4f9;
   --orion-surface:       #ffffff;
-  --orion-surface-alt:   #fbfaf7;
+  --orion-surface-alt:   #f9fafd;
 
   /* Sidebar */
-  --orion-sidebar:       #14110f;
-  --orion-sidebar-soft:  #1e1a17;
+  --orion-sidebar:       #09121e;
+  --orion-sidebar-soft:  #101b2c;
 
   /* Textes */
-  --orion-text:          #1f1b18;
-  --orion-text-soft:     #5f5750;
-  --orion-muted:         #8b8177;
+  --orion-text:          #101c2e;
+  --orion-text-soft:     #4a5971;
+  --orion-muted:         #73849d;
 
   /* Bordure */
-  --orion-border:        rgba(42, 34, 28, 0.12);
-  --orion-border-light:  rgba(42, 34, 28, 0.08);
+  --orion-border:        rgba(22, 36, 58, 0.12);
+  --orion-border-light:  rgba(22, 36, 58, 0.08);
 
-  /* Accent champagne */
-  --orion-accent:        #b89b6b;
-  --orion-accent-soft:   rgba(184, 155, 107, 0.12);
-  --orion-accent-strong: #8f7042;
+  /* Accent azur */
+  --orion-accent:        #35accf;
+  --orion-accent-soft:   rgba(53, 172, 207, 0.12);
+  --orion-accent-strong: #00809b;
 
   /* Statuts sobres */
   --orion-success:       #2f7d57;
@@ -45,8 +45,8 @@
   --orion-radius-lg:     18px;
 
   /* Ombres légères */
-  --orion-shadow-soft:   0 10px 30px rgba(31, 27, 24, 0.06);
-  --orion-shadow-card:   0 1px 2px rgba(31, 27, 24, 0.08);
+  --orion-shadow-soft:   0 10px 30px rgba(16, 28, 46, 0.06);
+  --orion-shadow-card:   0 1px 2px rgba(16, 28, 46, 0.08);
 
   /* Dimensions */
   --orion-sidebar-width:           268px;
@@ -61,21 +61,21 @@
    1. EXTENDED PALETTE — new tokens only, never override orion-ui.css vars
 ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Brown scale */
-  --orion-brown-950: #1C120A;
-  --orion-brown-900: #2B1A0F;
-  --orion-brown-800: #3A2A1A;
+  /* Brown scale — nom historique : ces valeurs sont des ardoises */
+  --orion-brown-950: #0B1422;
+  --orion-brown-900: #121E31;
+  --orion-brown-800: #212D44;
 
-  /* Gold scale */
-  --orion-gold-700: #9D7A3F;
-  --orion-gold-600: #B88A44;
-  --orion-gold-500: #C6A15B;
+  /* Gold scale — nom historique : ces valeurs sont des azurs */
+  --orion-gold-700: #008BA9;
+  --orion-gold-600: #00A0BE;
+  --orion-gold-500: #00A5C4;
 
-  /* Sand scale */
-  --orion-sand-100: #F8F3EA;
-  --orion-sand-200: #EFE2CD;
-  --orion-sand-300: #E3D5BD;
-  --orion-surface-soft: #FBF7F0;
+  /* Sand scale — nom historique : ces valeurs sont des ardoises claires */
+  --orion-sand-100: #F0F4F9;
+  --orion-sand-200: #DDE4EF;
+  --orion-sand-300: #CED7E5;
+  --orion-surface-soft: #F5F8FB;
 
   /* Radius tokens */
   --orion-radius-sm: 6px;
@@ -84,12 +84,12 @@
   --orion-radius-xl: 22px;
 
   /* Shadow tokens */
-  --orion-shadow-sm: 0 1px 2px rgba(43, 26, 15, .05);
-  --orion-shadow-md: 0 8px 24px rgba(43, 26, 15, .08);
-  --orion-shadow-lg: 0 18px 40px rgba(43, 26, 15, .12);
+  --orion-shadow-sm: 0 1px 2px rgba(18, 30, 49, .05);
+  --orion-shadow-md: 0 8px 24px rgba(18, 30, 49, .08);
+  --orion-shadow-lg: 0 18px 40px rgba(18, 30, 49, .12);
 
   /* Page background (toggled by dark mode) */
-  --orion-bg-page: #F8F3EA;
+  --orion-bg-page: #F0F4F9;
 
   /* Status colors */
   --orion-success: #16A34A;
@@ -102,22 +102,22 @@
    2. DARK MODE
 ═══════════════════════════════════════════════════════════════════════════ */
 [data-theme="dark"] {
-  --orion-bg:        #14100C;
-  --orion-surface:   #1F1711;
-  --orion-border:    #3A2A1A;
-  --orion-text:      #F8F3EA;
-  --orion-muted:     #C8B89D;
-  --orion-primary:   #E8D8B0;
-  --orion-secondary: #C6A15B;
-  --orion-bg-page:   #14100C;
-  --orion-surface-soft: #241A12;
-  --orion-sand-100:  #241A12;
-  --orion-sand-200:  #2E2016;
-  --orion-sand-300:  #3A2A1A;
-  --navbar-bg:       #1F1711;
-  --sidebar-bg:      #0F0A06;
-  --sidebar-text:    #C8B89D;
-  --sidebar-hover:   rgba(198, 161, 91, .12);
+  --orion-bg:        #09111D;
+  --orion-surface:   #0E1929;
+  --orion-border:    #212D44;
+  --orion-text:      #F0F4F9;
+  --orion-muted:     #AEBBCD;
+  --orion-primary:   #B4E0EF;
+  --orion-secondary: #00A5C4;
+  --orion-bg-page:   #09111D;
+  --orion-surface-soft: #111C2E;
+  --orion-sand-100:  #111C2E;
+  --orion-sand-200:  #152339;
+  --orion-sand-300:  #212D44;
+  --navbar-bg:       #0E1929;
+  --sidebar-bg:      #060B14;
+  --sidebar-text:    #AEBBCD;
+  --sidebar-hover:   rgba(0, 165, 196, .12);
   --card-shadow:     0 1px 4px rgba(0, 0, 0, .25);
   --card-shadow-hover: 0 6px 24px rgba(0, 0, 0, .40);
 }
@@ -141,7 +141,7 @@
 }
 
 [data-theme="dark"] .orion-table tbody tr:hover td {
-  background: rgba(198, 161, 91, .06);
+  background: rgba(0, 165, 196, .06);
 }
 
 [data-theme="dark"] .orion-table td,
@@ -151,7 +151,7 @@
 }
 
 [data-theme="dark"] .orion-sidebar {
-  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
+  background: var(--orion-menu-bg, linear-gradient(180deg, #0B1422 0%, #16243A 100%));
 }
 
 [data-theme="dark"] .orion-navbar,
@@ -189,7 +189,7 @@
   color: var(--orion-text);
   border-color: var(--orion-border);
 }
-[data-theme="dark"] .table-hover tbody tr:hover td { background: rgba(198,161,91,.07); }
+[data-theme="dark"] .table-hover tbody tr:hover td { background: rgba(0,165,196,.07); }
 [data-theme="dark"] .table > thead { background: var(--orion-brown-900); }
 
 [data-theme="dark"] .erp-navbar,
@@ -202,7 +202,7 @@
 [data-theme="dark"] .sidebar-footer { border-color: var(--orion-border); }
 [data-theme="dark"] .dropdown-menu { background: var(--orion-surface); border-color: var(--orion-border); }
 [data-theme="dark"] .dropdown-item { color: var(--orion-text); }
-[data-theme="dark"] .dropdown-item:hover { background: rgba(198,161,91,.1); }
+[data-theme="dark"] .dropdown-item:hover { background: rgba(0,165,196,.1); }
 [data-theme="dark"] .dropdown-divider { border-color: var(--orion-border); }
 [data-theme="dark"] .dropdown-header { color: var(--orion-muted); }
 [data-theme="dark"] .modal-content { background: var(--orion-surface); color: var(--orion-text); border-color: var(--orion-border); }
@@ -216,7 +216,7 @@
 [data-theme="dark"] .bg-light { background: var(--orion-surface) !important; }
 [data-theme="dark"] .border { border-color: var(--orion-border) !important; }
 [data-theme="dark"] .list-group-item { background: var(--orion-surface); border-color: var(--orion-border); color: var(--orion-text); }
-[data-theme="dark"] .list-group-item:hover { background: rgba(198,161,91,.08); }
+[data-theme="dark"] .list-group-item:hover { background: rgba(0,165,196,.08); }
 [data-theme="dark"] .erp-footer { background: var(--orion-surface); border-top-color: var(--orion-border); color: var(--orion-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -366,7 +366,7 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(15, 10, 6, .65);
+  background: rgba(6, 11, 20, .65);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-start;
@@ -445,7 +445,7 @@
 
 .orion-command-palette__item:hover,
 .orion-command-palette__item.is-active {
-  background: var(--orion-sand-100, #F8F3EA);
+  background: var(--orion-sand-100, #F0F4F9);
 }
 
 .orion-command-palette__item-icon {
@@ -456,7 +456,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--orion-sand-200, #EFE2CD);
+  background: var(--orion-sand-200, #DDE4EF);
   color: var(--orion-secondary);
   font-size: .95rem;
 }
@@ -479,8 +479,8 @@
 .orion-command-palette__item-kbd kbd {
   font-size: .65rem;
   padding: .15rem .4rem;
-  background: var(--orion-sand-200, #EFE2CD);
-  border: 1px solid var(--orion-sand-300, #E3D5BD);
+  background: var(--orion-sand-200, #DDE4EF);
+  border: 1px solid var(--orion-sand-300, #CED7E5);
   border-radius: 4px;
   color: var(--orion-muted);
   font-family: inherit;
@@ -498,8 +498,8 @@
 .orion-command-palette__footer kbd {
   font-size: .65rem;
   padding: .1rem .35rem;
-  background: var(--orion-sand-200, #EFE2CD);
-  border: 1px solid var(--orion-sand-300, #E3D5BD);
+  background: var(--orion-sand-200, #DDE4EF);
+  border: 1px solid var(--orion-sand-300, #CED7E5);
   border-radius: 4px;
   font-family: inherit;
 }
@@ -528,7 +528,7 @@
 }
 
 .orion-skeleton {
-  background: linear-gradient(90deg, #f0ebe3 25%, #e8ddd2 50%, #f0ebe3 75%);
+  background: linear-gradient(90deg, #e7ecf4 25%, #d8dfeb 50%, #e7ecf4 75%);
   background-size: 200% 100%;
   animation: orion-shimmer 1.5s infinite;
   border-radius: var(--orion-radius-sm);
@@ -555,7 +555,7 @@
 }
 
 [data-theme="dark"] .orion-skeleton {
-  background: linear-gradient(90deg, #241A12 25%, #2E2016 50%, #241A12 75%);
+  background: linear-gradient(90deg, #111C2E 25%, #152339 50%, #111C2E 75%);
   background-size: 200% 100%;
   animation: orion-shimmer 1.5s infinite;
 }
@@ -577,7 +577,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: var(--orion-sand-200, #EFE2CD);
+  background: var(--orion-sand-200, #DDE4EF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -682,7 +682,7 @@
   position: sticky;
   top: var(--navbar-height, 60px);
   z-index: 100;
-  background: var(--orion-bg, #F8F3EA);
+  background: var(--orion-bg, #F0F4F9);
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   margin-left: -1.5rem;
@@ -691,7 +691,7 @@
 }
 
 .orion-page-header-sticky.is-scrolled {
-  box-shadow: 0 2px 8px rgba(43, 26, 15, .08);
+  box-shadow: 0 2px 8px rgba(18, 30, 49, .08);
   border-bottom: 1px solid var(--orion-border);
 }
 
@@ -709,7 +709,7 @@
   align-items: center;
   gap: .4rem;
   padding: .45rem 1rem;
-  background: linear-gradient(135deg, var(--orion-gold-600, #B88A44), var(--orion-gold-500, #C6A15B));
+  background: linear-gradient(135deg, var(--orion-gold-600, #00A0BE), var(--orion-gold-500, #00A5C4));
   color: #fff;
   border: none;
   border-radius: var(--orion-radius-md);
@@ -722,7 +722,7 @@
 }
 
 .orion-create-btn__trigger:hover {
-  box-shadow: 0 0 0 4px rgba(198, 161, 91, .25), var(--orion-shadow-md);
+  box-shadow: 0 0 0 4px rgba(0, 165, 196, .25), var(--orion-shadow-md);
   transform: translateY(-1px);
 }
 
@@ -762,7 +762,7 @@
 }
 
 .orion-create-btn__menu-item:hover {
-  background: var(--orion-sand-100, #F8F3EA);
+  background: var(--orion-sand-100, #F0F4F9);
   color: var(--orion-text);
 }
 
@@ -770,7 +770,7 @@
   width: 28px;
   height: 28px;
   border-radius: var(--orion-radius-sm);
-  background: var(--orion-sand-200, #EFE2CD);
+  background: var(--orion-sand-200, #DDE4EF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -819,7 +819,7 @@
 }
 
 .orion-notification-dropdown__mark-all:hover {
-  color: var(--orion-gold-700, #9D7A3F);
+  color: var(--orion-gold-700, #008BA9);
   text-decoration: underline;
 }
 
@@ -838,11 +838,11 @@
 }
 
 .orion-notification-item:hover {
-  background: var(--orion-sand-100, #F8F3EA);
+  background: var(--orion-sand-100, #F0F4F9);
 }
 
 .orion-notification-item.is-unread {
-  background: var(--orion-surface-soft, #FBF7F0);
+  background: var(--orion-surface-soft, #F5F8FB);
 }
 
 .orion-notification-item__icon {
@@ -943,7 +943,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  background: var(--orion-sand-200, #EFE2CD);
+  background: var(--orion-sand-200, #DDE4EF);
   color: var(--orion-secondary);
 }
 
@@ -1052,7 +1052,7 @@
     display: block !important;
     position: fixed;
     inset: 0;
-    background: rgba(15, 10, 6, .5);
+    background: rgba(6, 11, 20, .5);
     z-index: 1055;
     backdrop-filter: blur(2px);
     opacity: 0;
@@ -1127,7 +1127,7 @@
     align-items: center;
     justify-content: space-around;
     padding: 0 .5rem;
-    box-shadow: 0 -4px 12px rgba(43, 26, 15, .08);
+    box-shadow: 0 -4px 12px rgba(18, 30, 49, .08);
   }
 
   /* Push content up so it doesn't hide behind bar */
@@ -1245,11 +1245,11 @@
   align-items: center;
   justify-content: center;
   font-size: .8rem;
-  background: var(--orion-sand-200, #EFE2CD);
+  background: var(--orion-sand-200, #DDE4EF);
   color: var(--orion-muted);
   position: relative;
   z-index: 1;
-  border: 2px solid var(--orion-bg, #F8F3EA);
+  border: 2px solid var(--orion-bg, #F0F4F9);
   transition: box-shadow .15s ease;
 }
 
@@ -1262,7 +1262,7 @@
 .orion-activity-item--comment .orion-activity-item__dot   { background: #FEF3C7; color: #D97706; }
 
 .orion-activity-item:hover .orion-activity-item__dot {
-  box-shadow: 0 0 0 4px var(--orion-sand-100, #F8F3EA);
+  box-shadow: 0 0 0 4px var(--orion-sand-100, #F0F4F9);
 }
 
 .orion-activity-item__content {
@@ -1296,7 +1296,7 @@
   margin-top: .3rem;
   font-size: .78rem;
   color: var(--orion-muted);
-  background: var(--orion-sand-100, #F8F3EA);
+  background: var(--orion-sand-100, #F0F4F9);
   border-radius: var(--orion-radius-sm);
   padding: .35rem .65rem;
   border-left: 2px solid var(--orion-border);
@@ -1315,13 +1315,13 @@
   align-items: center;
   justify-content: space-between;
   padding: .8rem 1rem .7rem;
-  border-bottom: 1px solid var(--orion-border, #E3D5BD);
+  border-bottom: 1px solid var(--orion-border, #CED7E5);
   font-size: .875rem;
 }
 
 .notif-mark-all {
   font-size: .78rem;
-  color: var(--orion-secondary, #C6A15B);
+  color: var(--orion-secondary, #00A5C4);
   text-decoration: none;
   font-weight: 500;
 }
@@ -1331,16 +1331,16 @@
 
 .notif-footer {
   padding: .6rem 1rem;
-  border-top: 1px solid var(--orion-border, #E3D5BD);
+  border-top: 1px solid var(--orion-border, #CED7E5);
   text-align: center;
   font-size: .82rem;
 }
-.notif-footer a { color: var(--orion-secondary, #C6A15B); text-decoration: none; font-weight: 500; }
+.notif-footer a { color: var(--orion-secondary, #00A5C4); text-decoration: none; font-weight: 500; }
 .notif-footer a:hover { text-decoration: underline; }
 
 /* Unread state */
 .notification-item.unread {
-  background: var(--orion-surface-soft, #FBF7F0);
+  background: var(--orion-surface-soft, #F5F8FB);
 }
 
 /* Icon levels */
@@ -1376,7 +1376,7 @@
   justify-content: center;
 }
 .mobile-action-item:hover,
-.mobile-action-item.mobile-action-create { color: var(--orion-secondary, #C6A15B); }
+.mobile-action-item.mobile-action-create { color: var(--orion-secondary, #00A5C4); }
 .mobile-action-item i { font-size: 1.2rem; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1397,7 +1397,7 @@
 .orion-toast-message {
   flex: 1;
   font-size: .88rem;
-  color: var(--orion-text, #2B1A0F);
+  color: var(--orion-text, #121E31);
   line-height: 1.4;
 }
 
@@ -1412,7 +1412,7 @@
   flex-shrink: 0;
   transition: color .15s;
 }
-.orion-toast-close:hover { color: var(--orion-text, #2B1A0F); }
+.orion-toast-close:hover { color: var(--orion-text, #121E31); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    17. SIDEBAR COMPACT MODE
@@ -1486,7 +1486,7 @@
     left: calc(100% + 8px);
     top: 50%;
     transform: translateY(-50%);
-    background: var(--orion-primary, #3A2A1A);
+    background: var(--orion-primary, #212D44);
     color: #fff;
     padding: .3rem .7rem;
     border-radius: 6px;
@@ -1505,7 +1505,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(43,26,15,.4);
+  background: rgba(18,30,49,.4);
   backdrop-filter: blur(2px);
   z-index: 1050;
 }
@@ -1518,7 +1518,7 @@
   width: min(520px, 92vw);
   height: 100vh;
   background: var(--orion-surface, #fff);
-  box-shadow: -8px 0 40px rgba(43,26,15,.14);
+  box-shadow: -8px 0 40px rgba(18,30,49,.14);
   z-index: 1051;
   display: flex;
   flex-direction: column;
@@ -1532,13 +1532,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--orion-border, #E3D5BD);
+  border-bottom: 1px solid var(--orion-border, #CED7E5);
   flex-shrink: 0;
 }
 .orion-drawer-title {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--orion-text, #2B2118);
+  color: var(--orion-text, #16243A);
   margin: 0;
 }
 .orion-drawer-close {
@@ -1546,14 +1546,14 @@
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
-  color: var(--orion-muted, #7A6A58);
+  color: var(--orion-muted, #5A6B82);
   padding: .25rem;
   border-radius: 6px;
   transition: background .15s, color .15s;
 }
 .orion-drawer-close:hover {
-  background: var(--orion-sand-200, #EFE2CD);
-  color: var(--orion-text, #2B2118);
+  background: var(--orion-sand-200, #DDE4EF);
+  color: var(--orion-text, #16243A);
 }
 
 .orion-drawer-body {
@@ -1564,7 +1564,7 @@
 
 .orion-drawer-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--orion-border, #E3D5BD);
+  border-top: 1px solid var(--orion-border, #CED7E5);
   display: flex;
   justify-content: flex-end;
   gap: .75rem;

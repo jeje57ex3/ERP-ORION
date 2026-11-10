@@ -15,7 +15,7 @@ ICON_CHOICES = [
 ]
 
 COLOR_CHOICES = [
-    ('#C6A15B', 'Or Orion'), ('#3A2A1A', 'Brun Orion'), ('#10B981', 'Vert'),
+    ('#00A5C4', 'Azur Orion'), ('#212D44', 'Ardoise Orion'), ('#10B981', 'Vert'),
     ('#2563EB', 'Bleu'), ('#7C3AED', 'Violet'), ('#DC2626', 'Rouge'),
     ('#F59E0B', 'Ambre'), ('#0891B2', 'Cyan'), ('#DB2777', 'Rose'),
     ('#6B7280', 'Gris'), ('#0D9488', 'Teal'), ('#16A34A', 'Vert foncé'),

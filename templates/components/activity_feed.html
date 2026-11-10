@@ -7,7 +7,7 @@
   {% for item in activities %}
   <li class="orion-timeline-item">
     <div class="orion-timeline-dot"
-         style="background:{% if item.action == 'create' %}#DCFCE7;color:#15803D{% elif item.action == 'delete' %}#FEE2E2;color:#B91C1C{% elif item.action == 'update' %}#F8F3EA;color:#8f7042{% else %}#F3F4F6;color:#6B7280{% endif %}">
+         style="background:{% if item.action == 'create' %}#DCFCE7;color:#15803D{% elif item.action == 'delete' %}#FEE2E2;color:#B91C1C{% elif item.action == 'update' %}#F0F4F9;color:#00809b{% else %}#F3F4F6;color:#6B7280{% endif %}">
       <i class="bi bi-{% if item.action == 'create' %}plus-lg{% elif item.action == 'delete' %}trash{% elif item.action == 'update' %}pencil{% elif item.action == 'validate' %}check-lg{% elif item.action == 'reject' %}x-lg{% elif item.action == 'login' %}box-arrow-in-right{% else %}clock{% endif %}"></i>
     </div>
     <div class="orion-timeline-content">

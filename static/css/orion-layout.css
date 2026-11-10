@@ -32,8 +32,8 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
-  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%));
-  color: #f8f5ef;
+  background: var(--orion-menu-bg, linear-gradient(180deg, #0B1422 0%, #16243A 100%));
+  color: #f3f5fa;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -63,7 +63,7 @@ body {
   min-width: 36px;
   border-radius: 11px;
   background: var(--orion-accent);
-  color: #14110f;
+  color: #09121e;
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -114,7 +114,7 @@ body {
   height: 30px;
   min-width: 30px;
   border-radius: 8px;
-  background: rgba(184, 155, 107, 0.18);
+  background: rgba(53, 172, 207, 0.18);
   color: var(--orion-accent);
   display: grid;
   place-items: center;
@@ -194,7 +194,7 @@ body {
 }
 
 .orion-nav-item.active {
-  background: rgba(184, 155, 107, 0.16);
+  background: rgba(53, 172, 207, 0.16);
   color: #fff;
 }
 
@@ -261,7 +261,7 @@ body {
 
 .orion-nav-subitem.active {
   color: #fff;
-  background: rgba(184, 155, 107, 0.1);
+  background: rgba(53, 172, 207, 0.1);
 }
 
 /* Sidebar footer */
@@ -295,7 +295,7 @@ body {
   height: 30px;
   min-width: 30px;
   border-radius: 50%;
-  background: rgba(184, 155, 107, 0.2);
+  background: rgba(53, 172, 207, 0.2);
   color: var(--orion-accent);
   display: grid;
   place-items: center;
@@ -382,7 +382,7 @@ body {
   top: 0;
   z-index: 40;
   height: var(--orion-topbar-height);
-  background: rgba(246, 243, 238, 0.9);
+  background: rgba(240, 244, 249, 0.9);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--orion-border);
@@ -508,7 +508,7 @@ body {
 }
 
 .orion-topbar-btn:hover {
-  border-color: rgba(42, 34, 28, 0.22);
+  border-color: rgba(22, 36, 58, 0.22);
   background: var(--orion-surface-alt);
 }
 
@@ -519,7 +519,7 @@ body {
 }
 
 .orion-topbar-btn.primary:hover {
-  background: #2e2924;
+  background: #1d2a40;
 }
 
 /* User menu */
@@ -534,7 +534,7 @@ body {
 }
 
 .orion-topbar-user:hover {
-  background: rgba(42, 34, 28, 0.06);
+  background: rgba(22, 36, 58, 0.06);
 }
 
 .orion-topbar-avatar {
@@ -601,7 +601,7 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(20, 17, 15, 0.45);
+  background: rgba(9, 18, 30, 0.45);
   z-index: 55;
   backdrop-filter: blur(2px);
 }

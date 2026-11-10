@@ -1,6 +1,10 @@
 /*
  * Orion ERP — Design System
- * Palette : sable, brun, or — luxe métier
+ * Palette : ardoise et azur. Les noms des jetons (sand, gold, brown)
+ * sont antérieurs à la bascule du 10/11/2026 et ont été conservés :
+ * les renommer aurait demandé de toucher 137 fichiers de plus, et
+ * c'est un renommage qui casse en silence ce qu'il oublie.
+ * Voir scripts/palette_froide.py pour la table de conversion.
  * Bootstrap 5.3 compliant
  */
 
@@ -8,18 +12,18 @@
    VARIABLES
 ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  --orion-primary:        #3A2A1A;
-  --orion-primary-dark:   #24180F;
-  --orion-primary-light:  #5A3E28;
-  --orion-secondary:      #C6A15B;
-  --orion-secondary-dark: #9D7A3F;
-  --orion-secondary-light:#E8D49A;
-  --orion-accent:         #E8D8B0;
-  --orion-bg:             #F8F3EA;
+  --orion-primary:        #212D44;
+  --orion-primary-dark:   #101B2C;
+  --orion-primary-light:  #37445C;
+  --orion-secondary:      #00A5C4;
+  --orion-secondary-dark: #008BA9;
+  --orion-secondary-light:#ABDDED;
+  --orion-accent:         #B4E0EF;
+  --orion-bg:             #F0F4F9;
   --orion-surface:        #FFFFFF;
-  --orion-border:         #E3D5BD;
-  --orion-text:           #2B2118;
-  --orion-muted:          #7A6A58;
+  --orion-border:         #CED7E5;
+  --orion-text:           #16243A;
+  --orion-muted:          #5A6B82;
   --orion-success:        #16A34A;
   --orion-warning:        #D97706;
   --orion-danger:         #DC2626;
@@ -28,8 +32,8 @@
   /* Sidebar */
   --sidebar-width:        260px;
   --sidebar-bg:           var(--orion-primary);
-  --sidebar-text:         #E8D8B0;
-  --sidebar-hover:        rgba(198,161,91,.15);
+  --sidebar-text:         #B4E0EF;
+  --sidebar-hover:        rgba(0,165,196,.15);
   --sidebar-active:       var(--orion-secondary);
 
   /* Navbar */
@@ -39,8 +43,8 @@
 
   /* Cards */
   --card-radius:          .75rem;
-  --card-shadow:          0 1px 4px rgba(58,42,26,.08);
-  --card-shadow-hover:    0 6px 24px rgba(58,42,26,.14);
+  --card-shadow:          0 1px 4px rgba(33,45,68,.08);
+  --card-shadow-hover:    0 6px 24px rgba(33,45,68,.14);
 
   /* Transitions */
   --transition:           .18s ease;
@@ -80,7 +84,7 @@ a:hover { color: var(--orion-secondary); }
 
 .orion-sidebar-brand {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(198,161,91,.2);
+  border-bottom: 1px solid rgba(0,165,196,.2);
   display: flex;
   align-items: center;
   gap: .75rem;
@@ -122,7 +126,7 @@ a:hover { color: var(--orion-secondary); }
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: rgba(232,216,176,.4);
+  color: rgba(180,224,239,.4);
 }
 
 .orion-nav-item {
@@ -148,7 +152,7 @@ a:hover { color: var(--orion-secondary); }
 
 .orion-nav-item.active,
 .orion-nav-item[aria-current="page"] {
-  background: rgba(198,161,91,.2);
+  background: rgba(0,165,196,.2);
   color: var(--orion-secondary);
   font-weight: 600;
 }
@@ -187,8 +191,8 @@ a:hover { color: var(--orion-secondary); }
 /* Company switcher */
 .orion-company-switcher {
   margin: .75rem 1rem;
-  background: rgba(232,216,176,.08);
-  border: 1px solid rgba(198,161,91,.2);
+  background: rgba(180,224,239,.08);
+  border: 1px solid rgba(0,165,196,.2);
   border-radius: .6rem;
   padding: .6rem .8rem;
   display: flex;
@@ -202,7 +206,7 @@ a:hover { color: var(--orion-secondary); }
 }
 
 .orion-company-switcher:hover {
-  background: rgba(198,161,91,.15);
+  background: rgba(0,165,196,.15);
   color: #fff;
   text-decoration: none;
 }
@@ -235,7 +239,7 @@ a:hover { color: var(--orion-secondary); }
   position: sticky;
   top: 0;
   z-index: 900;
-  box-shadow: 0 1px 0 rgba(58,42,26,.06);
+  box-shadow: 0 1px 0 rgba(33,45,68,.06);
 }
 
 .orion-navbar-search {
@@ -257,7 +261,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-navbar-search input:focus {
   outline: none;
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 3px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 3px rgba(0,165,196,.15);
   background: #fff;
 }
 
@@ -380,7 +384,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-card-footer {
   padding: .75rem 1.25rem;
   border-top: 1px solid var(--orion-border);
-  background: rgba(248,243,234,.5);
+  background: rgba(240,244,249,.5);
   border-radius: 0 0 var(--card-radius) var(--card-radius);
 }
 
@@ -490,7 +494,7 @@ a:hover { color: var(--orion-secondary); }
 
 .orion-table tbody tr:last-child { border-bottom: none; }
 
-.orion-table tbody tr:hover { background: rgba(248,243,234,.6); }
+.orion-table tbody tr:hover { background: rgba(240,244,249,.6); }
 
 .orion-table tbody td {
   padding: .7rem 1rem;
@@ -527,7 +531,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-badge-warning  { background:#FEF9C3; color:#92400E; border-color:#FDE68A; }
 .orion-badge-danger   { background:#FEE2E2; color:#B91C1C; border-color:#FECACA; }
 .orion-badge-info     { background:#DBEAFE; color:#1D4ED8; border-color:#BFDBFE; }
-.orion-badge-primary  { background:#3A2A1A; color:#E8D8B0; border-color:#5A3E28; }
+.orion-badge-primary  { background:#212D44; color:#B4E0EF; border-color:#37445C; }
 .orion-badge-secondary{ background:#F3F4F6; color:#6B7280; border-color:#E5E7EB; }
 .orion-badge-gold     { background:#FEF3C7; color:#92400E; border-color:#FDE68A; }
 .orion-badge-purple   { background:#EDE9FE; color:#6D28D9; border-color:#DDD6FE; }
@@ -636,7 +640,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-search-input:focus {
   outline: none;
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 3px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 3px rgba(0,165,196,.15);
   background: #fff;
 }
 
@@ -711,7 +715,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-form-control:focus {
   outline: none;
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 3px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 3px rgba(0,165,196,.15);
 }
 
 .orion-form-section {
@@ -724,7 +728,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-form-section-header {
   padding: .85rem 1.25rem;
   border-bottom: 1px solid var(--orion-border);
-  background: rgba(248,243,234,.5);
+  background: rgba(240,244,249,.5);
   border-radius: var(--card-radius) var(--card-radius) 0 0;
 }
 
@@ -920,7 +924,7 @@ a:hover { color: var(--orion-secondary); }
 .orion-confirm-modal .modal-content {
   border: none;
   border-radius: var(--card-radius);
-  box-shadow: 0 20px 60px rgba(58,42,26,.2);
+  box-shadow: 0 20px 60px rgba(33,45,68,.2);
 }
 
 .orion-confirm-modal .modal-header {
@@ -1058,7 +1062,7 @@ span.orion-page-btn {
 .orion-form-select:focus {
   outline: none;
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 3px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 3px rgba(0,165,196,.15);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1070,7 +1074,7 @@ span.orion-page-btn {
   border-color: #DDD6FE;
 }
 .orion-badge-gold {
-  background: #FEF9EC;
-  color: #9D7A3F;
-  border-color: #E8D8B0;
+  background: #F8F9FC;
+  color: #008BA9;
+  border-color: #B4E0EF;
 }

@@ -254,8 +254,8 @@
             var label=entry[0],items=entry[1];
             html+='<div style="padding:8px 12px 4px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orion-muted)">'+label+'</span></div>';
             items.forEach(function(item){
-              html+='<a href="'+item.url+'" data-bs-dismiss="modal" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;text-decoration:none;transition:background .12s" onmouseover="this.style.background=\'rgba(184,155,107,.08)\'" onmouseout="this.style.background=\'\'">'
-                +'<span style="width:32px;height:32px;border-radius:8px;background:rgba(139,129,119,.1);display:grid;place-items:center;color:var(--orion-muted);font-size:14px;flex-shrink:0"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
+              html+='<a href="'+item.url+'" data-bs-dismiss="modal" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;text-decoration:none;transition:background .12s" onmouseover="this.style.background=\'rgba(53,172,207,.08)\'" onmouseout="this.style.background=\'\'">'
+                +'<span style="width:32px;height:32px;border-radius:8px;background:rgba(115,132,157,.1);display:grid;place-items:center;color:var(--orion-muted);font-size:14px;flex-shrink:0"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
                 +'<span><span style="display:block;font-size:13px;font-weight:600;color:var(--orion-text)">'+item.title+'</span>'+(item.subtitle?'<span style="display:block;font-size:12px;color:var(--orion-muted)">'+item.subtitle+'</span>':'')+'</span></a>';
             });
           });

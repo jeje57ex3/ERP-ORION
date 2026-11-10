@@ -180,7 +180,7 @@
                    style="display:none" onchange="selectStatus('{{ value }}')">
             <span style="width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;
               {% if value == 'published' %}background:rgba(34,197,94,.12);color:#22c55e
-              {% elif value == 'draft' %}background:rgba(96,165,250,.12);color:#C6A15B
+              {% elif value == 'draft' %}background:rgba(96,165,250,.12);color:#00A5C4
               {% else %}background:var(--orion-surface-alt);color:var(--orion-text-muted){% endif %}">
               {% if value == 'published' %}<i class="bi bi-check-circle"></i>
               {% elif value == 'draft' %}<i class="bi bi-pencil-square"></i>
@@ -217,7 +217,7 @@
       </div>
 
       {# Aide #}
-      <div style="background:rgba(214,179,106,.06);border:1px solid rgba(214,179,106,.2);border-radius:10px;padding:16px">
+      <div style="background:rgba(108,195,222,.06);border:1px solid rgba(108,195,222,.2);border-radius:10px;padding:16px">
         <div style="font-size:12px;font-weight:700;color:var(--orion-gold);margin-bottom:10px;display:flex;align-items:center;gap:6px">
           <i class="bi bi-lightbulb"></i> {% trans 'Conseils' %}
         </div>
@@ -319,7 +319,7 @@
     var active = document.getElementById('statusLabel_'+value);
     if(active){
       active.style.borderColor = 'var(--orion-gold)';
-      active.style.background = 'rgba(214,179,106,.06)';
+      active.style.background = 'rgba(108,195,222,.06)';
     }
     var radio = active && active.querySelector('input[type="radio"]');
     if(radio){ radio.checked = true; }

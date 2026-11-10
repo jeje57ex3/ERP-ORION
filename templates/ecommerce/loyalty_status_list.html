@@ -15,8 +15,8 @@
 <!-- KPIs -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
-    <div class="orion-kpi" style="--kpi-color:#C6A15B">
-      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#C6A15B"><i class="bi bi-people"></i></div>
+    <div class="orion-kpi" style="--kpi-color:#00A5C4">
+      <div class="orion-kpi-icon" style="background:#EEF2FF;color:#00A5C4"><i class="bi bi-people"></i></div>
       <div><div class="orion-kpi-value">{{ total }}</div><div class="orion-kpi-label">{% trans "Membres total" %}</div></div>
     </div>
   </div>
@@ -91,7 +91,7 @@
         <!-- Barre progression -->
         {% if acc.tier == 'classic' %}
         <div style="background:#e5e7eb;border-radius:4px;height:4px;width:100px;margin-top:4px">
-          <div style="background:#C6A15B;border-radius:4px;height:4px;width:{% widthratio acc.lifetime_points 500 100 %}%"></div>
+          <div style="background:#00A5C4;border-radius:4px;height:4px;width:{% widthratio acc.lifetime_points 500 100 %}%"></div>
         </div>
         <small class="text-muted" style="font-size:10px">{% blocktrans with pts=acc.lifetime_points %}{{ pts }}/500 → Silver{% endblocktrans %}</small>
         {% elif acc.tier == 'silver' %}

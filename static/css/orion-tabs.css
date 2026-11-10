@@ -6,7 +6,7 @@
 .orion-open-tabs {
   height: 32px;
   min-height: 32px;
-  background: #EDE7DA;
+  background: #E2E8F1;
   border-bottom: 1px solid var(--orion-border);
   display: flex;
   align-items: flex-end;
@@ -38,7 +38,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  background: #E4DECE;
+  background: #D7DFEB;
   border: 1px solid var(--orion-border);
   border-bottom: none;
   border-radius: 3px 3px 0 0;
@@ -98,7 +98,7 @@
 }
 
 .orion-open-tab:hover {
-  background: #EEE8DA;
+  background: #E3E9F2;
   color: var(--orion-text);
 }
 
@@ -327,7 +327,7 @@
 
 .orion-chatter-input textarea:focus {
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 2px rgba(198,161,91,.15);
+  box-shadow: 0 0 0 2px rgba(0,165,196,.15);
 }
 
 /* ── Onglets secondaires internes (mini) ───────────────────── */
