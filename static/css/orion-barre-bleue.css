@@ -1,0 +1,177 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Orion ERP — la barre latérale en pastille bleue
+   ═══════════════════════════════════════════════════════════════════════
+
+   POURQUOI UNE FEUILLE À PART, CHARGÉE EN DERNIER.
+
+   Neuf feuilles décrivent déjà cette barre, et cinq d'entre elles lisent
+   le même jeton `--orion-menu-bg`. Modifier l'une d'elles, c'est risquer
+   qu'une autre la réécrive selon l'ordre de chargement — et personne ne
+   saurait laquelle gagne sans les lire toutes.
+
+   Celle-ci est chargée APRÈS toutes les autres et ne contient que la
+   refonte. Elle se retire en supprimant UNE ligne de base.html, et l'ERP
+   retrouve exactement son aspect d'avant. Sur un changement qui touche
+   chaque écran, pouvoir revenir en arrière d'un geste vaut mieux que la
+   confiance.
+
+   CE QUI N'EST PAS TOUCHÉ : la navigation elle-même. Les libellés, les
+   menus déroulants et les sous-entrées restent tels quels. L'ERP porte
+   29 modules et une centaine de sous-entrées ; les réduire à des icônes
+   sans nom aurait rendu l'ensemble illisible, quoi qu'en dise la mode.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Le bleu de la maquette : un azur vif, légèrement plus clair en haut
+     pour que la pastille ait du relief sans dégradé criard. */
+  --orion-bleu:            #0A84FF;
+  --orion-bleu-clair:      #38A1FF;
+  --orion-bleu-sombre:     #0062D6;
+  --orion-bleu-lueur:      rgba(10, 132, 255, .42);
+
+  /* Le jeton que CINQ feuilles lisent déjà pour le fond de la barre.
+     Le redéfinir ici les atteint toutes, sans en modifier aucune. */
+  --orion-menu-bg: linear-gradient(170deg,
+                     var(--orion-bleu-clair) 0%,
+                     var(--orion-bleu) 42%,
+                     var(--orion-bleu-sombre) 100%);
+
+  /* L'accent de l'ERP s'aligne sur la barre : boutons principaux, liens
+     actifs, bordures de focus. Une barre bleue au-dessus d'une interface
+     restée dorée se serait vue comme une pièce rapportée.
+
+     UNE SEULE LIGNE À REMETTRE pour revenir à l'ancien accent : la valeur
+     précédente était #3A2A1A (brun foncé). */
+  --orion-primary:         var(--orion-bleu);
+  --orion-primary-hover:   var(--orion-bleu-sombre);
+  --bs-primary:            #0A84FF;
+  --bs-link-color:         #0A84FF;
+  --bs-link-hover-color:   #0062D6;
+}
+
+/* ─── La pastille ──────────────────────────────────────────────────────
+   La barre était collée aux quatre bords (`top/left/bottom: 0`). On la
+   décolle de douze pixels et on arrondit : c'est tout ce qui sépare un
+   bandeau d'une pastille flottante.
+
+   La largeur réservée au contenu ne change PAS : `--sidebar-width` reste
+   la même, et la pastille flotte à l'intérieur. Sans cela, chaque écran
+   de l'ERP aurait eu besoin d'un décalage different. */
+.erp-sidebar {
+  top: 12px;
+  left: 12px;
+  bottom: 12px;
+  min-height: 0;
+  width: calc(var(--sidebar-width) - 24px);
+  border-radius: 26px;
+  box-shadow:
+    0 10px 36px var(--orion-bleu-lueur),
+    0 2px 10px rgba(0, 0, 0, .18);
+  color: #fff;
+}
+
+/* Le contenu de la barre défile ; la pastille, elle, ne bouge pas. Avec
+   29 modules, le pied de barre serait sinon poussé hors de l'écran. */
+.erp-sidebar .sidebar-nav {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .35) transparent;
+}
+.erp-sidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
+.erp-sidebar .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .3);
+  border-radius: 3px;
+}
+
+/* ─── Les entrées ──────────────────────────────────────────────────────
+   Sur un fond bleu vif, un gris moyen devient illisible. Les libellés
+   passent donc en blanc légèrement voilé, et l'entrée active en blanc
+   franc sur un voile clair — le contraste fait le travail, pas la
+   couleur. */
+.erp-sidebar .nav-link,
+.erp-sidebar .nav-sublink {
+  color: rgba(255, 255, 255, .82);
+  border-radius: 12px;
+}
+.erp-sidebar .nav-link:hover,
+.erp-sidebar .nav-sublink:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .14);
+}
+.erp-sidebar .nav-link.active,
+.erp-sidebar .nav-item.active > .nav-link {
+  color: #fff;
+  background: rgba(255, 255, 255, .20);
+  font-weight: 600;
+}
+.erp-sidebar .nav-sublink.active {
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+}
+
+/* Les icônes de module gardent leur couleur propre — BTP ambre, CRM
+   cyan — mais adoucie : à pleine saturation sur du bleu vif, certaines
+   vibrent désagréablement. */
+.erp-sidebar .nav-link i,
+.erp-sidebar .nav-link [class^="ti-"],
+.erp-sidebar .nav-link [class*=" ti-"] {
+  opacity: .92;
+}
+
+/* ─── Marque, sélecteur d'entreprise et pied ───────────────────────────
+   Trois zones qui portaient leurs propres fonds sombres : sur du bleu,
+   ils apparaîtraient comme des taches. On les rend translucides pour
+   qu'ils prennent la teinte de la pastille. */
+.erp-sidebar .sidebar-brand,
+.erp-sidebar .sidebar-footer {
+  border-color: rgba(255, 255, 255, .18);
+}
+.erp-sidebar .sidebar-brand-text,
+.erp-sidebar .brand-sub,
+.erp-sidebar .sidebar-user {
+  color: rgba(255, 255, 255, .92);
+}
+.erp-sidebar .sidebar-company-selector,
+.erp-sidebar .sidebar-company-selector select,
+.erp-sidebar .sidebar-company-selector .form-select {
+  background: rgba(255, 255, 255, .14);
+  border-color: rgba(255, 255, 255, .22);
+  color: #fff;
+}
+.erp-sidebar .sidebar-company-selector option {
+  /* Le menu déroulant natif est rendu par le système : du blanc sur
+     translucide y serait invisible. */
+  color: #16243A;
+  background: #fff;
+}
+
+/* ─── Sur mobile ───────────────────────────────────────────────────────
+   La barre glisse par-dessus le contenu et occupe toute la hauteur : une
+   pastille décollée y laisserait des bandes de fond disgracieuses de part
+   et d'autre. */
+@media (max-width: 991.98px) {
+  .erp-sidebar {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    border-radius: 0 20px 20px 0;
+  }
+}
+
+/* ─── Les accents, hors de la barre ────────────────────────────────────
+   `--orion-primary` ci-dessus suffit pour tout ce qui le lit. Ces deux
+   règles rattrapent les boutons qui codaient leur bleu en dur. */
+.orion-btn.primary,
+.orion-btn-primary,
+.btn-primary {
+  background: var(--orion-bleu);
+  border-color: var(--orion-bleu);
+}
+.orion-btn.primary:hover,
+.orion-btn-primary:hover,
+.btn-primary:hover {
+  background: var(--orion-bleu-sombre);
+  border-color: var(--orion-bleu-sombre);
+}

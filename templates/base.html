@@ -50,6 +50,11 @@
   <link href="{% static 'css/orion-tables.css' %}" rel="stylesheet">
   <link href="{% static 'css/orion-dashboard.css' %}" rel="stylesheet">
   <link href="{% static 'css/orion-responsive.css' %}" rel="stylesheet">
+  <!-- La barre laterale en pastille bleue. CHARGEE EN DERNIER, et c'est
+       deliberé : neuf feuilles decrivent deja cette barre, et poser la
+       refonte ailleurs la ferait ecraser selon l'ordre de chargement.
+       Retirer CETTE SEULE LIGNE rend a l'ERP son aspect precedent. -->
+  <link href="{% static 'css/orion-barre-bleue.css' %}?v=1" rel="stylesheet">
 
   {% block extra_css %}{% endblock %}
 </head>
