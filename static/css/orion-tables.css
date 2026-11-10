@@ -52,7 +52,7 @@
   align-items: center;
   height: 20px;
   border-radius: 999px;
-  background: rgba(139, 129, 119, 0.12);
+  background: rgba(115, 132, 157, 0.12);
   color: var(--orion-muted);
   font-size: 10.5px;
   font-weight: 700;
@@ -116,7 +116,7 @@
 }
 
 .orion-table tbody tr:hover td {
-  background: rgba(184, 155, 107, 0.04);
+  background: rgba(53, 172, 207, 0.04);
 }
 
 .orion-table tbody tr.selected td {
@@ -276,7 +276,7 @@
 
 .orion-page-btn:hover {
   background: var(--orion-surface-alt);
-  border-color: rgba(42, 34, 28, 0.2);
+  border-color: rgba(22, 36, 58, 0.2);
 }
 
 .orion-page-btn.active {
@@ -305,9 +305,9 @@ body.orion-compact .orion-table-toolbar {
 }
 
 [data-theme="dark"] .orion-table th {
-  background: var(--orion-sand-200, #2E2016);
+  background: var(--orion-sand-200, #152339);
 }
 
 [data-theme="dark"] .orion-table tbody tr:hover td {
-  background: rgba(184, 155, 107, 0.06);
+  background: rgba(53, 172, 207, 0.06);
 }

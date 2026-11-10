@@ -88,7 +88,7 @@ NAV_MODULES = [
         'icon_img': 'private_saas_dashboard.png',
         'icon': 'ti-layout-grid',
         'url_name': 'dashboard:home',
-        'color': '#C6A15B',
+        'color': '#00A5C4',
         'children': [
             # Dans « Mon dashboard » et non dans Super Admin : ce module
             # figure dans always_show, donc l'entree est visible de tous. La

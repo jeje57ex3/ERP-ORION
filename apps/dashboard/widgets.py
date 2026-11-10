@@ -465,7 +465,7 @@ def get_quick_actions_data(user, company):
         {'label': 'Saisir heures', 'icon': 'bi-clock', 'url': '/btp/timesheets/nouveau/', 'color': '#D97706'},
         {'label': 'Créer ticket', 'icon': 'bi-headset', 'url': '/support/tickets/nouveau/', 'color': '#DC2626'},
         {'label': 'Ajouter document', 'icon': 'bi-folder-plus', 'url': '/documents/', 'color': '#0891B2'},
-        {'label': 'Nouveau chantier', 'icon': 'bi-building-gear', 'url': '/btp/projects/create/', 'color': '#C6A15B'},
+        {'label': 'Nouveau chantier', 'icon': 'bi-building-gear', 'url': '/btp/projects/create/', 'color': '#00A5C4'},
         {'label': 'Voir planning', 'icon': 'bi-calendar3', 'url': '/btp/planning/', 'color': '#6B7280'},
     ]
     return {'actions': actions}

@@ -6,7 +6,7 @@
   `--orion-card` **n'existe nulle part** dans le système de design — la
   vraie variable est `--orion-surface`. Le repli `#1b1b1f` s'appliquait donc
   toujours : une cellule quasi noire, sous un texte qui héritait de
-  `--orion-text` (`#1f1b18` en thème clair). Noir sur noir, et les noms
+  `--orion-text` (`#101c2e` en thème clair). Noir sur noir, et les noms
   des salariés illisibles.
 
   Les états souffraient du même mal : `color: rgba(255,255,255,.35)` pour le
@@ -26,10 +26,10 @@
     --pl-nom-texte:       var(--orion-text);
 
     --pl-travaille-fond:  transparent;
-    --pl-travaille-texte: var(--orion-text-soft, #5f5750);
+    --pl-travaille-texte: var(--orion-text-soft, #4a5971);
 
-    --pl-repos-fond:      #ebe6de;
-    --pl-repos-texte:     #7d736a;
+    --pl-repos-fond:      #e1e7f1;
+    --pl-repos-texte:     #65768e;
 
     --pl-conge-fond:      #d6e7f1;
     --pl-conge-texte:     #27566a;
@@ -40,9 +40,9 @@
     --pl-arret-fond:      #f6d8d8;
     --pl-arret-texte:     #8a2b2b;
 
-    --pl-grille-trait:    var(--orion-border, rgba(42, 34, 28, .12));
-    --pl-frise-fond:      #f1ece4;
-    --pl-aujourdhui:      var(--orion-accent, #b89b6b);
+    --pl-grille-trait:    var(--orion-border, rgba(22, 36, 58, .12));
+    --pl-frise-fond:      #e8edf5;
+    --pl-aujourdhui:      var(--orion-accent, #35accf);
   }
 
   [data-theme="dark"] {
@@ -52,8 +52,8 @@
     --pl-travaille-fond:  rgba(255, 255, 255, .04);
     --pl-travaille-texte: var(--orion-muted);
 
-    --pl-repos-fond:      #241a12;
-    --pl-repos-texte:     #8c7c66;
+    --pl-repos-fond:      #111c2e;
+    --pl-repos-texte:     #6e7f99;
 
     --pl-conge-fond:      #1e3b49;
     --pl-conge-texte:     #a7d4e6;
@@ -65,8 +65,8 @@
     --pl-arret-texte:     #f3aaaa;
 
     --pl-grille-trait:    var(--orion-border);
-    --pl-frise-fond:      #1b1410;
-    --pl-aujourdhui:      #c6a15b;
+    --pl-frise-fond:      #0c1624;
+    --pl-aujourdhui:      #00a5c4;
   }
 
   .pl-travaille { background: var(--pl-travaille-fond); color: var(--pl-travaille-texte) }

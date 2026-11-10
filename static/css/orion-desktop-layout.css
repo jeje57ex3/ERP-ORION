@@ -6,28 +6,28 @@
 /* ── Design tokens ─────────────────────────────────────────────── */
 :root {
   /* Palette Orion */
-  --od-primary:        #2B2118;
-  --od-primary-light:  #3A2A1A;
-  --od-gold:           #C6A15B;
-  --od-gold-light:     #DEC07D;
-  --od-gold-pale:      #E8D8B0;
-  --od-cream:          #F2EDE4;
-  --od-sand-50:        #FBF8F2;
-  --od-sand-100:       #F6F1E6;
-  --od-sand-200:       #EFE7D5;
-  --od-sand-300:       #E3D5BE;
-  --od-border:         #D8C9B0;
-  --od-border-light:   #EBE0CC;
-  --od-muted:          #7A6A58;
-  --od-text:           #2B2118;
+  --od-primary:        #16243A;
+  --od-primary-light:  #212D44;
+  --od-gold:           #00A5C4;
+  --od-gold-light:     #87CEE4;
+  --od-gold-pale:      #B4E0EF;
+  --od-cream:          #E9EEF6;
+  --od-sand-50:        #F6F8FC;
+  --od-sand-100:       #EEF2F8;
+  --od-sand-200:       #E2E8F2;
+  --od-sand-300:       #CED7E5;
+  --od-border:         #C1CCDB;
+  --od-border-light:   #DAE2ED;
+  --od-muted:          #5A6B82;
+  --od-text:           #16243A;
 
   /* Sidebar */
   --od-sidebar-w:      245px;
   --od-sidebar-w-sm:   52px;
-  --od-sidebar-bg:     #1C120A;
-  --od-sidebar-bg2:    #2B2118;
-  --od-sidebar-hover:  rgba(198,161,91,.09);
-  --od-sidebar-active: rgba(198,161,91,.16);
+  --od-sidebar-bg:     #0B1422;
+  --od-sidebar-bg2:    #16243A;
+  --od-sidebar-hover:  rgba(0,165,196,.09);
+  --od-sidebar-active: rgba(0,165,196,.16);
 
   /* Chrome UI */
   --od-topbar-h:       44px;
@@ -56,8 +56,8 @@
   /* Radius & shadow */
   --od-radius:    3px;
   --od-radius-md: 6px;
-  --od-shadow:    0 1px 4px rgba(43,33,24,.07), 0 4px 12px rgba(43,33,24,.05);
-  --od-shadow-md: 0 4px 20px rgba(43,33,24,.10);
+  --od-shadow:    0 1px 4px rgba(22,36,58,.07), 0 4px 12px rgba(22,36,58,.05);
+  --od-shadow-md: 0 4px 20px rgba(22,36,58,.10);
 }
 
 /* ── Base reset ────────────────────────────────────────────────── */

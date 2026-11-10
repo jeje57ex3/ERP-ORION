@@ -16,12 +16,12 @@
 <div class="row g-4">
   {% for wh in warehouses %}
   <div class="col-12 col-md-6 col-lg-4">
-    <div class="orion-card h-100 d-flex flex-column" style="border-top:3px solid var(--color-primary,#3A2A1A)">
+    <div class="orion-card h-100 d-flex flex-column" style="border-top:3px solid var(--color-primary,#212D44)">
       <div class="orion-orion-orion-card-body flex-grow-1">
         <!-- En-tête carte -->
         <div class="d-flex align-items-start justify-content-between mb-3">
           <div class="d-flex align-items-center gap-3">
-            <div class="orion-kpi-icon" style="width:48px;height:48px;background:#FEF9EC;color:#C6A15B;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+            <div class="orion-kpi-icon" style="width:48px;height:48px;background:#F8F9FC;color:#00A5C4;border-radius:12px;display:flex;align-items:center;justify-content:center;">
               <i class="bi bi-building" style="font-size:1.4rem"></i>
             </div>
             <div>
@@ -63,14 +63,14 @@
         <!-- Stats -->
         <div class="row g-2 text-center">
           <div class="col-6">
-            <div style="background:#F8F3EA;border-radius:8px;padding:10px 8px">
-              <div class="fw-bold fs-5" style="color:#3A2A1A">{{ wh.locations.count|default:"0" }}</div>
+            <div style="background:#F0F4F9;border-radius:8px;padding:10px 8px">
+              <div class="fw-bold fs-5" style="color:#212D44">{{ wh.locations.count|default:"0" }}</div>
               <div class="small text-muted">{% trans "Emplacements" %}</div>
             </div>
           </div>
           <div class="col-6">
-            <div style="background:#F8F3EA;border-radius:8px;padding:10px 8px">
-              <div class="fw-bold fs-5" style="color:#C6A15B">—</div>
+            <div style="background:#F0F4F9;border-radius:8px;padding:10px 8px">
+              <div class="fw-bold fs-5" style="color:#00A5C4">—</div>
               <div class="small text-muted">{% trans "Valeur stock" %}</div>
             </div>
           </div>

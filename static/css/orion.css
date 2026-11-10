@@ -2,20 +2,20 @@
    Orion ERP — Charte graphique & variables CSS
    ═══════════════════════════════════════════════════════════ */
 :root {
-  --orion-primary:       #3A2A1A;
-  --orion-primary-dark:  #24180F;
-  --orion-secondary:     #C6A15B;
-  --orion-secondary-dark:#9D7A3F;
-  --orion-accent:        #E8D8B0;
-  --orion-bg:            #F8F3EA;
-  --orion-text:          #2B2118;
-  --orion-gold-glow:     rgba(198, 161, 91, 0.25);
-  --orion-divider:       rgba(198, 161, 91, 0.2);
+  --orion-primary:       #212D44;
+  --orion-primary-dark:  #101B2C;
+  --orion-secondary:     #00A5C4;
+  --orion-secondary-dark:#008BA9;
+  --orion-accent:        #B4E0EF;
+  --orion-bg:            #F0F4F9;
+  --orion-text:          #16243A;
+  --orion-gold-glow:     rgba(0, 165, 196, 0.25);
+  --orion-divider:       rgba(0, 165, 196, 0.2);
 
   /* Fond unique de la barre de menu. Il existait TROIS apparences selon
-     le gabarit de la page : #0F0A06 plat pour .erp-sidebar (que le
-     !important ci-dessous imposait), le degrade #1C120A -> #2B2118 pour
-     .orion-sidebar, et #14110f pour .orion-sidebar-v2. Trois gabarits de
+     le gabarit de la page : #060B14 plat pour .erp-sidebar (que le
+     !important ci-dessous imposait), le degrade #0B1422 -> #16243A pour
+     .orion-sidebar, et #09121e pour .orion-sidebar-v2. Trois gabarits de
      mise en page differents, donc une couleur qui changeait en naviguant.
 
      Unifie sur la variante la plus CLAIRE des trois, mesuree a la
@@ -25,12 +25,12 @@
      Defini ICI et une seule fois : c est la duplication de --sidebar-bg,
      declaree a deux valeurs differentes dans deux feuilles, qui a produit
      la divergence. */
-  --orion-menu-bg: linear-gradient(180deg, #1C120A 0%, #2B2118 100%);
+  --orion-menu-bg: linear-gradient(180deg, #0B1422 0%, #16243A 100%);
 }
 
 /* ─── Sidebar ──────────────────────────────────────────────── */
 .erp-sidebar {
-  background: var(--orion-menu-bg, linear-gradient(180deg, #1C120A 0%, #2B2118 100%)) !important;
+  background: var(--orion-menu-bg, linear-gradient(180deg, #0B1422 0%, #16243A 100%)) !important;
   border-right: 1px solid var(--orion-divider) !important;
 }
 
@@ -51,13 +51,13 @@
 }
 
 .brand-sub {
-  color: rgba(232, 216, 176, 0.55) !important;
+  color: rgba(180, 224, 239, 0.55) !important;
   font-size: 0.72rem !important;
 }
 
 /* ─── Navigation items ─────────────────────────────────────── */
 .nav-link-erp {
-  color: rgba(232, 216, 176, 0.72) !important;
+  color: rgba(180, 224, 239, 0.72) !important;
 }
 
 .nav-link-erp:hover {
@@ -72,7 +72,7 @@
 }
 
 .nav-section-title {
-  color: rgba(198, 161, 91, 0.45) !important;
+  color: rgba(0, 165, 196, 0.45) !important;
   text-transform: uppercase;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
@@ -90,7 +90,7 @@
 
 /* ─── Logo placeholder (sans logo entreprise) ─────────────── */
 .logo-placeholder {
-  background: rgba(198, 161, 91, 0.15) !important;
+  background: rgba(0, 165, 196, 0.15) !important;
   color: var(--orion-secondary) !important;
 }
 
@@ -104,12 +104,12 @@
 /* ─── Topbar ───────────────────────────────────────────────── */
 .erp-topbar {
   background: #fff !important;
-  border-bottom: 1px solid rgba(58, 42, 26, 0.1) !important;
+  border-bottom: 1px solid rgba(33, 45, 68, 0.1) !important;
 }
 
 /* ─── Login page Orion ─────────────────────────────────────── */
 .login-page {
-  background: linear-gradient(135deg, var(--orion-primary) 0%, #1A110A 50%, var(--orion-primary) 100%) !important;
+  background: linear-gradient(135deg, var(--orion-primary) 0%, #0A1320 50%, var(--orion-primary) 100%) !important;
 }
 
 .login-logo {

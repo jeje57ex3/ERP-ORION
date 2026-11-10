@@ -175,8 +175,8 @@
 .orion-record-page select:focus,
 .orion-record-page textarea:focus {
   border-color: var(--orion-secondary);
-  box-shadow: 0 0 0 2px rgba(198,161,91,.15);
-  background: #FFFDF8;
+  box-shadow: 0 0 0 2px rgba(0,165,196,.15);
+  background: #FDFDFE;
 }
 
 .orion-form-control:disabled,
@@ -309,7 +309,7 @@
 
 .orion-lines-table td input:focus,
 .orion-lines-table td select:focus {
-  background: #FFFDF8;
+  background: #FDFDFE;
   border: 1px solid var(--orion-secondary);
   border-radius: 2px;
 }
@@ -441,8 +441,8 @@
 }
 
 .orion-btn-primary:hover {
-  background: #4D3A26;
-  border-color: #4D3A26;
+  background: #313E56;
+  border-color: #313E56;
   color: #fff;
 }
 
@@ -454,8 +454,8 @@
 }
 
 .orion-btn-gold:hover {
-  background: #D4AE62;
-  border-color: #D4AE62;
+  background: #64BFDB;
+  border-color: #64BFDB;
   color: var(--orion-primary);
 }
 

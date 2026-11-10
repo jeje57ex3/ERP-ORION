@@ -86,7 +86,7 @@
 }
 
 .orion-metric-badge.neutral {
-  background: rgba(139, 129, 119, 0.12);
+  background: rgba(115, 132, 157, 0.12);
   color: var(--orion-muted);
 }
 

@@ -43,7 +43,7 @@
 <!-- Stats globales -->
 <div class="row g-4 mb-4">
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="kpi-card" style="--kpi-color: #C6A15B">
+    <div class="kpi-card" style="--kpi-color: #00A5C4">
       <div class="kpi-icon"><i class="bi bi-building"></i></div>
       <div class="kpi-body">
         <div class="kpi-value">{{ total_companies|default:0 }}</div>
@@ -149,7 +149,7 @@
 <div class="row g-4 mb-4">
 
   <div class="col-12 col-sm-6 col-xl-3">
-    <div class="kpi-card" style="--kpi-color: #C6A15B">
+    <div class="kpi-card" style="--kpi-color: #00A5C4">
       <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
       <div class="kpi-body">
         <div class="kpi-value">{{ total_customers|default:0 }}</div>
@@ -228,19 +228,19 @@
             <span>{% trans "Pointage" %}</span>
           </a>
           {% elif current_company.sector == 'ecommerce' %}
-          <a href="{% url 'ecommerce:order_list' %}" class="quick-access-item" style="--qa-color: #8f7042">
+          <a href="{% url 'ecommerce:order_list' %}" class="quick-access-item" style="--qa-color: #00809b">
             <i class="bi bi-bag-check"></i>
             <span>{% trans "Commandes" %}</span>
           </a>
-          <a href="{% url 'ecommerce:product_list' %}" class="quick-access-item" style="--qa-color: #8f7042">
+          <a href="{% url 'ecommerce:product_list' %}" class="quick-access-item" style="--qa-color: #00809b">
             <i class="bi bi-grid-3x3-gap"></i>
             <span>{% trans "Catalogue" %}</span>
           </a>
-          <a href="{% url 'ecommerce:shipment_list' %}" class="quick-access-item" style="--qa-color: #8f7042">
+          <a href="{% url 'ecommerce:shipment_list' %}" class="quick-access-item" style="--qa-color: #00809b">
             <i class="bi bi-truck"></i>
             <span>{% trans "Expéditions" %}</span>
           </a>
-          <a href="{% url 'ecommerce:return_list' %}" class="quick-access-item" style="--qa-color: #8f7042">
+          <a href="{% url 'ecommerce:return_list' %}" class="quick-access-item" style="--qa-color: #00809b">
             <i class="bi bi-arrow-return-left"></i>
             <span>{% trans "Retours" %}</span>
           </a>
@@ -271,11 +271,11 @@
             <span>{% trans "Planning" %}</span>
           </a>
           {% else %}
-          <a href="{% url 'sales:quote_list' %}" class="quick-access-item" style="--qa-color: #C6A15B">
+          <a href="{% url 'sales:quote_list' %}" class="quick-access-item" style="--qa-color: #00A5C4">
             <i class="bi bi-file-text"></i>
             <span>{% trans "Devis" %}</span>
           </a>
-          <a href="{% url 'sales:order_list' %}" class="quick-access-item" style="--qa-color: #C6A15B">
+          <a href="{% url 'sales:order_list' %}" class="quick-access-item" style="--qa-color: #00A5C4">
             <i class="bi bi-bag"></i>
             <span>{% trans "Commandes" %}</span>
           </a>

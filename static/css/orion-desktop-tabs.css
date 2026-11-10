@@ -6,8 +6,8 @@
 /* ── Open tabs bar (browser-like) ──────────────────────────────── */
 .orion-open-tabs {
   height: var(--od-tabs-h, 32px);
-  background: var(--od-sand-200, #EFE7D5);
-  border-bottom: 1px solid var(--od-border, #D8C9B0);
+  background: var(--od-sand-200, #E2E8F2);
+  border-bottom: 1px solid var(--od-border, #C1CCDB);
   display: flex;
   align-items: flex-end;
   padding: 0 8px;
@@ -29,12 +29,12 @@
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  background: var(--od-sand-300, #E3D5BE);
-  border: 1px solid var(--od-border, #D8C9B0);
+  background: var(--od-sand-300, #CED7E5);
+  border: 1px solid var(--od-border, #C1CCDB);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   font-size: 12px;
-  color: var(--od-muted, #7A6A58);
+  color: var(--od-muted, #5A6B82);
   text-decoration: none;
   white-space: nowrap;
   max-width: 180px;
@@ -46,16 +46,16 @@
 }
 
 .orion-open-tab:hover {
-  background: var(--od-sand-100, #F6F1E6);
-  color: var(--od-text, #2B2118);
+  background: var(--od-sand-100, #EEF2F8);
+  color: var(--od-text, #16243A);
   text-decoration: none;
 }
 
 .orion-open-tab.active {
   background: #FFFFFF;
-  color: var(--od-primary, #2B2118);
+  color: var(--od-primary, #16243A);
   font-weight: 500;
-  border-top: 2px solid var(--od-gold, #C6A15B);
+  border-top: 2px solid var(--od-gold, #00A5C4);
   padding-top: 0;
   z-index: 1;
 }
@@ -87,16 +87,16 @@
 }
 
 .orion-open-tab-close:hover {
-  background: rgba(43,33,24,.15);
+  background: rgba(22,36,58,.15);
   opacity: 1 !important;
 }
 
 /* ── Bottom tabs (record details) ──────────────────────────────── */
 .orion-bottom-tabs {
   background: var(--od-panel-bg, #FFFFFF);
-  border: 1px solid var(--od-border-light, #EBE0CC);
+  border: 1px solid var(--od-border-light, #DAE2ED);
   border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(43,33,24,.05);
+  box-shadow: 0 1px 3px rgba(22,36,58,.05);
   margin-top: 12px;
   overflow: hidden;
 }
@@ -105,8 +105,8 @@
 .orion-bottom-tabs-nav {
   display: flex;
   align-items: center;
-  background: var(--od-sand-100, #F6F1E6);
-  border-bottom: 1px solid var(--od-border, #D8C9B0);
+  background: var(--od-sand-100, #EEF2F8);
+  border-bottom: 1px solid var(--od-border, #C1CCDB);
   overflow-x: auto;
   scrollbar-width: none;
   gap: 0;
@@ -128,7 +128,7 @@
   border-bottom: 2px solid transparent;
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--od-muted, #7A6A58);
+  color: var(--od-muted, #5A6B82);
   cursor: pointer;
   transition: color .15s, border-color .15s, background .15s;
   white-space: nowrap;
@@ -140,15 +140,15 @@
 }
 
 .orion-bottom-tab:hover {
-  color: var(--od-primary, #2B2118);
-  background: rgba(198,161,91,.07);
+  color: var(--od-primary, #16243A);
+  background: rgba(0,165,196,.07);
 }
 
 .orion-bottom-tab.active {
-  color: var(--od-primary, #2B2118);
-  border-bottom-color: var(--od-gold, #C6A15B);
+  color: var(--od-primary, #16243A);
+  border-bottom-color: var(--od-gold, #00A5C4);
   font-weight: 600;
-  background: rgba(198,161,91,.06);
+  background: rgba(0,165,196,.06);
 }
 
 /* Tab count badge */
@@ -159,16 +159,16 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  background: var(--od-sand-300, #E3D5BE);
-  color: var(--od-muted, #7A6A58);
+  background: var(--od-sand-300, #CED7E5);
+  color: var(--od-muted, #5A6B82);
   border-radius: 8px;
   font-size: 10px;
   font-weight: 700;
 }
 
 .orion-bottom-tab.active .tab-count {
-  background: rgba(198,161,91,.25);
-  color: var(--od-primary, #2B2118);
+  background: rgba(0,165,196,.25);
+  color: var(--od-primary, #16243A);
 }
 
 /* Tab content panels */
@@ -187,7 +187,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  border-bottom: 1px solid var(--od-border-light, #EBE0CC);
+  border-bottom: 1px solid var(--od-border-light, #DAE2ED);
   margin-bottom: 12px;
 }
 
@@ -199,19 +199,19 @@
   border-bottom: 2px solid transparent;
   font-size: 12px;
   font-weight: 500;
-  color: var(--od-muted, #7A6A58);
+  color: var(--od-muted, #5A6B82);
   cursor: pointer;
   transition: color .15s, border-color .15s;
   white-space: nowrap;
 }
 
 .orion-mini-tab:hover {
-  color: var(--od-primary, #2B2118);
+  color: var(--od-primary, #16243A);
 }
 
 .orion-mini-tab.active {
-  color: var(--od-primary, #2B2118);
-  border-bottom-color: var(--od-gold, #C6A15B);
+  color: var(--od-primary, #16243A);
+  border-bottom-color: var(--od-gold, #00A5C4);
 }
 
 .orion-mini-tab-content {
@@ -231,17 +231,17 @@
 }
 
 .orion-breadcrumb a {
-  color: var(--od-muted, #7A6A58);
+  color: var(--od-muted, #5A6B82);
   text-decoration: none;
   transition: color .15s;
 }
 
 .orion-breadcrumb a:hover {
-  color: var(--od-primary, #2B2118);
+  color: var(--od-primary, #16243A);
 }
 
 .orion-breadcrumb-sep {
-  color: var(--od-border, #D8C9B0);
+  color: var(--od-border, #C1CCDB);
   padding: 0 2px;
 }
 

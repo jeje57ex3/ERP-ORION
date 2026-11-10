@@ -12,8 +12,16 @@ propriétés dont dépend ce choix :
 1. elle est bien la dernière, sans quoi elle ne gagne pas ;
 2. elle redéfinit le jeton que les autres lisent, plutôt que de les
    contredire une par une ;
-3. aucune feuille existante n'a été modifiée, de sorte que retirer UNE
-   ligne de base.html rend à l'ERP son aspect précédent.
+3. la refonte tient en UNE ligne de base.html, et la retirer suffit à
+   rendre la barre à sa couleur de fond habituelle.
+
+   Une précision est devenue nécessaire : à la création de cette feuille,
+   retirer cette ligne rendait à l'ERP son aspect brun d'origine. Depuis
+   la bascule de la palette vers l'ardoise et l'azur
+   (`scripts/palette_froide.py`), ce n'est plus vrai : la retirer donne
+   une barre ardoise sur une interface froide. Cohérent, mais pas un
+   retour en arrière. Le retour en arrière complet, c'est `git revert`
+   des deux lots.
 
 Et un quatrième, qui n'est pas technique : **la navigation n'a pas été
 sacrifiée à l'esthétique**. L'ERP porte 29 modules et une centaine de

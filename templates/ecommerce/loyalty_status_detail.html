@@ -84,7 +84,7 @@
           <small class="text-muted">{{ account.lifetime_points }}/500</small>
         </div>
         <div style="background:#e5e7eb;border-radius:8px;height:8px">
-          <div style="background:#C6A15B;border-radius:8px;height:8px;width:{% widthratio account.lifetime_points 500 100 %}%;max-width:100%"></div>
+          <div style="background:#00A5C4;border-radius:8px;height:8px;width:{% widthratio account.lifetime_points 500 100 %}%;max-width:100%"></div>
         </div>
         {% widthratio account.lifetime_points -1 1 as neg_lifetime_points_silver %}
         <small class="text-muted">{% blocktrans with remaining=500|add:neg_lifetime_points_silver %}{{ remaining }} pts restants pour atteindre Silver{% endblocktrans %}</small>

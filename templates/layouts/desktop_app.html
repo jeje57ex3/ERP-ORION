@@ -65,7 +65,7 @@
     <div style="padding:8px 12px 6px">
       <div class="dropdown w-100">
         <button class="d-flex align-items-center gap-2 w-100 text-start px-2 py-1 rounded"
-                style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(248,243,234,.8);font-size:12px;cursor:pointer"
+                style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(240,244,249,.8);font-size:12px;cursor:pointer"
                 data-bs-toggle="dropdown" type="button">
           {% if current_company %}
           <span style="width:8px;height:8px;border-radius:50%;background:{{ current_company.sector_color }};flex-shrink:0"></span>
@@ -439,7 +439,7 @@
         Object.entries(byType).forEach(function(e){
           html+='<div class="px-3 pt-2 pb-1"><small class="text-uppercase text-muted fw-bold" style="font-size:.68rem;letter-spacing:.07em">'+e[0]+'</small></div>';
           e[1].forEach(function(item){
-            html+='<a href="'+item.url+'" class="d-flex align-items-center gap-3 px-3 py-2 text-decoration-none rounded mx-2 mb-1" style="font-size:13px;transition:background .1s" onmouseover="this.style.background=\'#F6F1E6\'" onmouseout="this.style.background=\'\'">'
+            html+='<a href="'+item.url+'" class="d-flex align-items-center gap-3 px-3 py-2 text-decoration-none rounded mx-2 mb-1" style="font-size:13px;transition:background .1s" onmouseover="this.style.background=\'#EEF2F8\'" onmouseout="this.style.background=\'\'">'
               +'<span class="text-'+( item.color||'secondary')+'"><i class="bi '+(item.icon||'bi-dot')+'"></i></span>'
               +'<span><span class="d-block fw-500">'+item.title+'</span>'+(item.subtitle?'<span class="d-block text-muted" style="font-size:11.5px">'+item.subtitle+'</span>':'')+'</span></a>';
           });

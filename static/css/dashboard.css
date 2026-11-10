@@ -2,17 +2,17 @@
    Orion ERP — Dashboard personnalisable
    ═══════════════════════════════════════════════════════════ */
 :root {
-  --dashboard-primary:   #3A2A1A;
-  --dashboard-secondary: #C6A15B;
-  --dashboard-accent:    #E8D8B0;
-  --dashboard-bg:        #F8F3EA;
+  --dashboard-primary:   #212D44;
+  --dashboard-secondary: #00A5C4;
+  --dashboard-accent:    #B4E0EF;
+  --dashboard-bg:        #F0F4F9;
   --dashboard-surface:   #FFFFFF;
-  --dashboard-border:    #E3D5BD;
-  --dashboard-text:      #2B2118;
-  --dashboard-muted:     #7A6A58;
+  --dashboard-border:    #CED7E5;
+  --dashboard-text:      #16243A;
+  --dashboard-muted:     #5A6B82;
   --dashboard-radius:    0.875rem;
-  --dashboard-shadow:    0 2px 12px rgba(58, 42, 26, 0.08);
-  --dashboard-shadow-lg: 0 8px 30px rgba(58, 42, 26, 0.14);
+  --dashboard-shadow:    0 2px 12px rgba(33, 45, 68, 0.08);
+  --dashboard-shadow-lg: 0 8px 30px rgba(33, 45, 68, 0.14);
 }
 
 /* ─── Layout ─────────────────────────────────────────────── */
@@ -47,7 +47,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem 0.75rem;
-  border-bottom: 1px solid rgba(227, 213, 189, 0.5);
+  border-bottom: 1px solid rgba(206, 215, 229, 0.5);
   gap: 0.75rem;
 }
 
@@ -130,8 +130,8 @@
 
 .dashboard-widget-footer {
   padding: 0.6rem 1.25rem;
-  border-top: 1px solid rgba(227, 213, 189, 0.5);
-  background: rgba(248, 243, 234, 0.4);
+  border-top: 1px solid rgba(206, 215, 229, 0.5);
+  background: rgba(240, 244, 249, 0.4);
 }
 
 /* ─── Raccourcis ─────────────────────────────────────────── */
@@ -162,7 +162,7 @@
   background: var(--dashboard-bg);
   color: var(--dashboard-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(198, 161, 91, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 165, 196, 0.2);
 }
 
 .shortcut-card .shortcut-icon {
@@ -203,7 +203,7 @@
 .shortcut-add-card:hover {
   border-color: var(--dashboard-secondary);
   color: var(--dashboard-secondary);
-  background: rgba(198, 161, 91, 0.05);
+  background: rgba(0, 165, 196, 0.05);
 }
 
 /* ─── KPI Cards ─────────────────────────────────────────── */
@@ -248,7 +248,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0;
-  border-bottom: 1px solid rgba(227, 213, 189, 0.4);
+  border-bottom: 1px solid rgba(206, 215, 229, 0.4);
   text-decoration: none;
   color: var(--dashboard-text);
   transition: background 0.15s;
@@ -320,7 +320,7 @@
 
 /* ─── Dashboard welcome ──────────────────────────────────── */
 .dashboard-welcome {
-  background: linear-gradient(135deg, var(--dashboard-primary), #1A110A);
+  background: linear-gradient(135deg, var(--dashboard-primary), #0A1320);
   color: white;
   border-radius: var(--dashboard-radius);
   padding: 1.5rem 2rem;
@@ -341,7 +341,7 @@
 
 .dashboard-welcome-text p {
   margin: 0.25rem 0 0;
-  color: rgba(232, 216, 176, 0.7);
+  color: rgba(180, 224, 239, 0.7);
   font-size: 0.85rem;
 }
 
@@ -378,7 +378,7 @@
 
 .catalog-widget-card:hover {
   border-color: var(--dashboard-secondary);
-  box-shadow: 0 4px 12px rgba(198, 161, 91, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 165, 196, 0.15);
 }
 
 .catalog-widget-card.already-added {
@@ -412,7 +412,7 @@
 }
 
 .sortable-chosen {
-  box-shadow: 0 8px 25px rgba(198, 161, 91, 0.3) !important;
+  box-shadow: 0 8px 25px rgba(0, 165, 196, 0.3) !important;
 }
 
 /* ─── Layout chooser ─────────────────────────────────────── */
@@ -427,7 +427,7 @@
 
 .layout-option:hover, .layout-option.selected {
   border-color: var(--dashboard-secondary);
-  background: rgba(198, 161, 91, 0.07);
+  background: rgba(0, 165, 196, 0.07);
 }
 
 .layout-option-preview {

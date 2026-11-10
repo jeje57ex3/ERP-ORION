@@ -5,7 +5,7 @@
   {% comment %} viewport-fit=cover : sans lui, la barre du bas reste sous l'encoche des
      iPhone recents, donc inaccessible au pouce. {% endcomment %}
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1C120A">
+  <meta name="theme-color" content="#0B1422">
 
   {% comment %} Installation sur le telephone.
 
@@ -30,12 +30,12 @@
      retrecie, ce que l'on cherche precisement a eviter. {% endcomment %}
   <style>
     :root {
-      --m-fond: #14110f;
-      --m-carte: #1F1A15;
-      --m-bord: rgba(198,161,91,.22);
-      --m-or: #C6A15B;
-      --m-texte: #F8F3EA;
-      --m-doux: rgba(248,243,234,.62);
+      --m-fond: #09121e;
+      --m-carte: #101B2C;
+      --m-bord: rgba(0,165,196,.22);
+      --m-or: #00A5C4;
+      --m-texte: #F0F4F9;
+      --m-doux: rgba(240,244,249,.62);
       --m-ok: #4ADE80;
       --m-err: #F87171;
       /* Hauteur de la barre basse + marge de securite de l'appareil. */
@@ -55,7 +55,7 @@
       position: sticky; top: 0; z-index: 10;
       display: flex; align-items: center; gap: 12px;
       padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
-      background: linear-gradient(180deg, #1C120A 0%, #2B2118 100%);
+      background: linear-gradient(180deg, #0B1422 0%, #16243A 100%);
       border-bottom: 1px solid var(--m-bord);
     }
     header h1 { margin: 0; font-size: 17px; font-weight: 600; flex: 1; }
@@ -75,7 +75,7 @@
       color: var(--m-or); font-size: 20px;
     }
     .langues > summary::-webkit-details-marker { display: none; }
-    .langues[open] > summary { background: rgba(201,162,77,.14); border-radius: 10px; }
+    .langues[open] > summary { background: rgba(76,180,212,.14); border-radius: 10px; }
     .langues .liste {
       position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
       min-width: 190px; padding: 6px;
@@ -103,7 +103,7 @@
       border-radius: 14px; margin-bottom: 12px;
       color: var(--m-texte); text-decoration: none;
     }
-    .action:active { background: #272019; }
+    .action:active { background: #142136; }
     .action .ico { font-size: 26px; width: 34px; text-align: center; }
     .action .txt { flex: 1; }
     .action .txt b { display: block; font-size: 16px; }
@@ -111,13 +111,13 @@
     label { display: block; font-size: 13.5px; font-weight: 600; margin: 14px 0 6px; }
     input[type=text], textarea, select {
       width: 100%; padding: 13px 14px; font-size: 16px;
-      background: #171310; color: var(--m-texte);
+      background: #0B1422; color: var(--m-texte);
       border: 1px solid var(--m-bord); border-radius: 10px;
     }
     .bouton {
       display: block; width: 100%; min-height: 54px;
       font-size: 17px; font-weight: 600;
-      background: var(--m-or); color: #1C120A;
+      background: var(--m-or); color: #0B1422;
       border: 0; border-radius: 12px; margin-top: 18px;
     }
     .bouton:active { opacity: .85; }
@@ -125,11 +125,11 @@
     .alerte { padding: 12px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 14.5px; }
     .alerte.ok { background: rgba(74,222,128,.12); color: var(--m-ok); }
     .alerte.err { background: rgba(248,113,113,.12); color: var(--m-err); }
-    .alerte.info { background: rgba(198,161,91,.12); color: var(--m-or); }
+    .alerte.info { background: rgba(0,165,196,.12); color: var(--m-or); }
     .aide { color: var(--m-doux); font-size: 12.5px; margin: 6px 0 0; }
     nav.barre {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-      display: flex; background: #1C120A;
+      display: flex; background: #0B1422;
       border-top: 1px solid var(--m-bord);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }

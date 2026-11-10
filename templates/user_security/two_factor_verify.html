@@ -24,13 +24,13 @@
 .login-brand { text-align: center; margin-bottom: 1.5rem; }
 .login-brand-icon {
   width: 56px; height: 56px;
-  background: linear-gradient(135deg, #2B1808 55%, #C6A15B 100%);
+  background: linear-gradient(135deg, #111D2F 55%, #00A5C4 100%);
   border-radius: 16px;
   display: inline-flex; align-items: center; justify-content: center;
   margin-bottom: 16px;
 }
-.login-title { font-size: 1.5rem; font-weight: 700; margin: 0; color: #2B2118; }
-.login-subtitle { color: #7A6A58; font-size: 0.88rem; margin-top: 5px; }
+.login-title { font-size: 1.5rem; font-weight: 700; margin: 0; color: #16243A; }
+.login-subtitle { color: #5A6B82; font-size: 0.88rem; margin-top: 5px; }
 .form-label { font-weight: 500; color: #374151; }
 .form-control {
   padding: 0.75rem 1rem;
@@ -49,7 +49,7 @@
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #2B1808 55%, #C6A15B 100%);
+  background: linear-gradient(135deg, #111D2F 55%, #00A5C4 100%);
   color: #fff;
 }
 .btn-login:hover { transform: translateY(-1px); }
@@ -64,7 +64,7 @@
   background: #fff;
   color: #374151;
 }
-.recovery-toggle { cursor: pointer; color: #7A6A58; font-size: .9rem; text-align: center; }
+.recovery-toggle { cursor: pointer; color: #5A6B82; font-size: .9rem; text-align: center; }
 .invalid-feedback.d-block { display: block; }
 </style>
 {% endblock %}
@@ -133,7 +133,7 @@
 
     {% else %}
 
-    <p style="color:#7A6A58;margin-bottom:16px;font-size:.95rem;">{% trans "Saisissez l'un de vos codes de récupération (format XXXXX-XXXXX)." %}</p>
+    <p style="color:#5A6B82;margin-bottom:16px;font-size:.95rem;">{% trans "Saisissez l'un de vos codes de récupération (format XXXXX-XXXXX)." %}</p>
     <form method="post" autocomplete="off">
       {% csrf_token %}
       {% for field in recovery_form %}
@@ -145,7 +145,7 @@
       {% endfor %}
       <button type="submit" class="btn-login">{% trans "Utiliser ce code" %}</button>
     </form>
-    <a href="{% url 'user_security:two_factor_verify' %}" class="d-block text-center mt-3" style="color:#7A6A58;font-size:.9rem;">
+    <a href="{% url 'user_security:two_factor_verify' %}" class="d-block text-center mt-3" style="color:#5A6B82;font-size:.9rem;">
       {% trans "Retour au code Authenticator" %}
     </a>
     {% endif %}
