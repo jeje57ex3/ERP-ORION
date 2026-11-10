@@ -222,6 +222,7 @@ def send_ai_message(*, request, prompt, conversation_id=None, context_module='',
             'keep_alive_minutes': ai_settings.keep_alive_minutes,
             'max_output_tokens': ai_settings.max_output_tokens,
             'context_window_tokens': ai_settings.context_window_tokens,
+            'thinking': ai_settings.local_thinking,
         }
 
     try:
@@ -390,6 +391,7 @@ def envoyer_message_en_flux(*, request, prompt, conversation_id=None,
         keep_alive_minutes=ai_settings.keep_alive_minutes,
         max_output_tokens=ai_settings.max_output_tokens,
         context_window_tokens=ai_settings.context_window_tokens,
+        thinking=ai_settings.local_thinking,
     ):
         if evenement.get('fin'):
             dernier = evenement

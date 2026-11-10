@@ -131,14 +131,14 @@ Le mécanisme sait se réparer : si `run_system_update` échoue, `update_orion.s
 | `OPENAI_API_KEY` | *(vide)* | Clé API OpenAI. |
 | `ORION_AI_ALLOW_DANGEROUS_ACTIONS` | False · `bool` | Autorise les actions à effet de bord. **À laisser désactivé** sauf besoin explicite. |
 | `ORION_AI_ALLOW_TOOLS` | True · `bool` | Autorise l'assistant à appeler des outils internes. |
-| `ORION_AI_DEFAULT_MODEL` | 'gpt-4.1-mini' | Modèle par défaut. |
-| `ORION_AI_DEFAULT_PROVIDER` | 'openai' | Fournisseur par défaut. |
+| `ORION_AI_DEFAULT_MODEL` | 'qwen3.5:4b-q4_K_M' | Modèle par défaut, servi par Ollama sur ce serveur. Le nom est exact : qwen3.5 n'a ni suffixe `-instruct` ni taille `3b`. Voir `docs/ORION-IA.md`. |
+| `ORION_AI_DEFAULT_PROVIDER` | 'local' | Fournisseur par défaut. `local` sert le modèle depuis ce serveur ; les données de l'entreprise ne sortent pas. |
 | `ORION_AI_ENABLED` | False · `bool` | Active l'assistant intégré. |
 | `ORION_AI_LOG_CONVERSATIONS` | True · `bool` | Journalise les conversations. Attention aux données personnelles. |
 | `ORION_AI_MAX_HISTORY_MESSAGES` | 20 · `int` | Messages d'historique transmis au modèle. |
 | `ORION_AI_MAX_INPUT_CHARS` | 20000 · `int` | Taille maximale d'une requête. |
 | `ORION_AI_SUPPORT_EMAIL` | *(vide)* | Adresse de contact proposée par l'assistant. |
-| `ORION_AI_SYSTEM_NAME` | 'Assistant Orion' | Nom sous lequel l'assistant se présente. |
+| `ORION_AI_SYSTEM_NAME` | 'Orion' | Nom sous lequel l'assistant se présente. |
 
 ## Paiement
 

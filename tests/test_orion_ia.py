@@ -480,7 +480,7 @@ def _brancher(monkeypatch, reponse):
 def _interroger():
     return LocalAIProvider().generate(
         messages=[{'role': 'user', 'content': 'bonjour'}],
-        model='qwen2.5:3b-instruct',
+        model='qwen3.5:4b-q4_K_M',
     )
 
 
@@ -492,7 +492,7 @@ def test_un_modele_absent_est_nomme_avec_la_commande(monkeypatch):
         _interroger()
 
     message = str(erreur.value)
-    assert 'qwen2.5:3b-instruct' in message
+    assert 'qwen3.5:4b-q4_K_M' in message
     assert "n'est pas téléchargé" in message
     assert 'orion-ai.sh pull' in message
     # Et surtout, plus de jargon HTTP brut.

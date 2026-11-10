@@ -7,10 +7,22 @@
 # aucun appel sortant, aucun tiers dans la boucle. C'est pourquoi le moteur
 # est servi ici, et pourquoi il n'écoute que la boucle locale.
 #
-# Dimensionnement : un modèle de 3 milliards de paramètres quantifié tient en
-# ~2 Go sur le disque et demande ~3 Go de RAM à l'inférence. Sur une VM à
-# 2 cœurs, comptez quelques secondes par réponse. Un modèle de 7 Go et plus
-# ne tient pas dans 4 Go de RAM : il serait chargé puis tué par le noyau.
+# Dimensionnement, en Go de RAM À L'INFÉRENCE et non sur le disque — c'est la
+# RAM qui décide si le modèle répond ou se fait tuer par le noyau en pleine
+# réponse :
+#
+#   qwen3.5:2b-q4_K_M   1,9 Go disque   ~2,7 Go RAM   tient sur une VM à 4 Go
+#   qwen3.5:4b-q4_K_M   3,3 Go disque   ~4,3 Go RAM   défaut, VM à 8 Go
+#   qwen3.5:9b-q4_K_M   6,6 Go disque   ~7,7 Go RAM   ne tient pas avec MySQL
+#
+# Sur 2 à 4 cœurs, comptez quelques secondes par réponse. « orion-ai.sh bench »
+# mesure le débit réel de CETTE machine et le qualifie ; aucun réglage de l'ERP
+# ne compense un débit insuffisant, seul un modèle plus petit le fait.
+#
+# Les noms sont exacts et ne se devinent pas : qwen3.5 a abandonné le suffixe
+# « -instruct » de qwen2.5 et n'a pas de taille « 3b ». La quantification est
+# épinglée parce qu'un tag court est réattribuable — le même nom peut désigner
+# un fichier plus lourd après une mise à jour amont.
 #
 # Usage :
 #   orion-ai.sh install [MODELE]   Installe Ollama et télécharge le modèle
@@ -32,12 +44,16 @@ export HOME="${HOME:-/root}"
 
 ORION_HOME="/opt/orion"
 ENV_FILE="$ORION_HOME/backend/.env"
-MODELE_DEFAUT="qwen2.5:3b-instruct"
+MODELE_DEFAUT="qwen3.5:4b-q4_K_M"
+MODELE_PLUS_PETIT="qwen3.5:2b-q4_K_M"
 HOTE="127.0.0.1:11434"
 
-# Les lignes 2 a 22 de ce fichier SONT le texte d'aide : ajouter une commande
-# ci-dessus demande d'etendre cette plage, sinon la derniere ligne disparait.
-usage() { sed -n '2,22p' "$0"; exit "${1:-0}"; }
+# L'en-tete de ce fichier EST le texte d'aide. La plage etait ecrite en dur
+# (« sed -n 2,22p »), ce qui obligeait a la recaler a chaque ligne ajoutee
+# au-dessus -- sinon la derniere ligne de l'aide disparaissait en silence.
+# Elle est desormais deduite : toutes les lignes de commentaire qui suivent le
+# shebang, jusqu'a la premiere ligne qui n'en est pas une.
+usage() { awk 'NR>1 && /^#/ {print; next} NR>1 {exit}' "$0"; exit "${1:-0}"; }
 
 exiger_root() { [ "$(id -u)" -eq 0 ] || { echo "ERREUR: à lancer en root." >&2; exit 1; }; }
 
@@ -51,6 +67,33 @@ modele_configure() {
 
 ram_libre_mo() {
   awk '/MemAvailable/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0
+}
+
+# Fragment JSON « , "think": false » -- ou rien du tout.
+#
+# Les familles recentes (qwen3.5 et suivantes) reflechissent avant de repondre.
+# La reflexion n arrive PAS dans « content » et ses jetons sont pris sur
+# num_predict : « test » n afficherait qu une reponse vide, et « bench »
+# mesurerait un debit de reflexion. Il faut donc la couper.
+#
+# Mais l option ne peut pas etre ajoutee par precaution : Ollama REFUSE la
+# requete entiere -- HTTP 400, « <modele> does not support thinking » -- quand
+# « think » est adresse a un modele sans cette capacite. Elle n est donc
+# ajoutee que si le demon la DECLARE, et la capacite est demandee, pas deduite
+# du nom.
+#
+# Sans python3, la capacite n est pas determinee et rien n est envoye : le pire
+# cas est alors une mesure plus lente, jamais un refus.
+option_think() {
+  local modele="$1"
+  command -v python3 >/dev/null 2>&1 || return 0
+  if curl -fsS --max-time 10 -X POST "http://$HOTE/api/show" \
+       -H 'Content-Type: application/json' \
+       -d "{\"model\": \"$modele\"}" 2>/dev/null \
+     | python3 -c 'import json,sys; sys.exit(0 if "thinking" in (json.load(sys.stdin).get("capabilities") or []) else 1)' 2>/dev/null
+  then
+    printf ', "think": false'
+  fi
 }
 
 telecharger_modele() {
@@ -97,11 +140,21 @@ cmd_install() {
 
   local ram
   ram="$(ram_libre_mo)"
-  if [ "$ram" -lt 2500 ]; then
+  # Seuil relevé avec le modèle : qwen3.5:4b-q4_K_M demande ~4300 Mo à
+  # l'inférence, là où l'ancien 3B en demandait ~3000. Garder l'ancien seuil
+  # aurait laissé passer sans un mot une machine où le noyau tue le processus
+  # en pleine réponse — panne intermittente, et sans message qui la désigne.
+  if [ "$ram" -lt 4500 ]; then
     echo "ATTENTION: $ram Mo de RAM disponibles seulement." >&2
-    echo "           Un modèle 3B en demande environ 3000 Mo à l'inférence." >&2
+    echo "           Le modèle demandé — « $modele » — peut ne pas tenir." >&2
+    echo "           Reperes a l'inference : 2b-q4_K_M ~2700 Mo," >&2
+    echo "           4b-q4_K_M ~4300 Mo, 9b-q4_K_M ~7700 Mo." >&2
     echo "           Le noyau risque de tuer le processus en pleine réponse." >&2
-    echo "           Augmentez la RAM de la VM : qm set <vmid> --memory 8192" >&2
+    echo "           Deux issues :" >&2
+    echo "             - augmenter la RAM : qm set <vmid> --memory 8192" >&2
+    echo "             - ou prendre le modèle plus petit (~2700 Mo) :" >&2
+    echo "               orion-ai.sh install $MODELE_PLUS_PETIT" >&2
+    echo "               puis le sélectionner dans « Paramètres IA »." >&2
     echo ""
   fi
 
@@ -205,13 +258,16 @@ cmd_test() {
   echo "Question: $question"
   echo ""
 
+  local think
+  think="$(option_think "$modele")"
+
   local debut fin
   debut="$(date +%s)"
   local reponse
   if ! reponse="$(curl -fsS "http://$HOTE/api/chat" \
       -H 'Content-Type: application/json' \
       --data-binary @- <<EOF
-{"model": "$modele", "stream": false, "messages": [{"role": "user", "content": "$question"}]}
+{"model": "$modele", "stream": false$think, "messages": [{"role": "user", "content": "$question"}]}
 EOF
   )"; then
     echo "ERREUR: le moteur n'a pas répondu. Vérifiez « orion-ai.sh status »." >&2
@@ -232,13 +288,18 @@ cmd_bench() {
   # garder le modele en memoire, plafonner la reponse et raccourcir le prompt
   # aident, mais si la machine ne produit que 3 jetons par seconde, aucun
   # reglage ne rendra l'assistant agreable -- il faut un modele plus petit.
-  local modele="${1:-$MODELE_DEFAUT}"
+  local modele="${1:-$(modele_configure)}"
   echo "[ia] Mesure sur « $modele »..."
   echo "[ia] Deux passes : la premiere inclut le chargement du modele."
 
+  # Sans cela, sur un modele qui reflechit, les 120 jetons mesures seraient des
+  # jetons de REFLEXION : le debit annonce ne serait pas celui des reponses.
+  local think
+  think="$(option_think "$modele")"
+
   local passe reponse
   for passe in 1 2; do
-    if ! reponse="$(curl -fsS --max-time 300 -X POST "http://$HOTE/api/chat"         -H 'Content-Type: application/json'         -d "{\"model\": \"$modele\", \"stream\": false, \"options\": {\"num_predict\": 120}, \"messages\": [{\"role\": \"user\", \"content\": \"Explique en trois phrases a quoi sert un devis.\"}]}" 2>&1)"; then
+    if ! reponse="$(curl -fsS --max-time 300 -X POST "http://$HOTE/api/chat"         -H 'Content-Type: application/json'         -d "{\"model\": \"$modele\", \"stream\": false$think, \"options\": {\"num_predict\": 120}, \"messages\": [{\"role\": \"user\", \"content\": \"Explique en trois phrases a quoi sert un devis.\"}]}" 2>&1)"; then
       echo "[ia] ERREUR : le moteur n'a pas repondu. Verifiez : orion-ai.sh status" >&2
       return 1
     fi
@@ -269,13 +330,23 @@ cmd_bench() {
       echo "[ia] Debit : $debit jetons/seconde."
       # Reperes : en dessous de 8 jetons/s, une reponse de 300 jetons demande
       # plus de 35 secondes -- le flux la rend lisible, mais l'attente reste.
-      awk -v d="$debit" 'BEGIN{
-        if (d >= 20) print "[ia] Confortable : les reponses arrivent sans attente notable.";
-        else if (d >= 8) print "[ia] Acceptable avec le flux active : les premiers mots arrivent vite,
-[ia] la fin defile. Rien a changer.";
-        else print "[ia] LENT. Aucun reglage ne compensera ce debit. Essayez un modele
-[ia] plus petit : orion-ai.sh pull qwen2.5:1.5b-instruct
-[ia] puis selectionnez-le dans Parametres IA.";
+      #
+      # Les trois verdicts tenaient chacun dans UNE chaine awk coupee par de
+      # vrais retours a la ligne. C'est une erreur de syntaxe -- « awk:
+      # unterminated string » -- et sous « set -e » elle interrompait le
+      # script juste avant d'afficher le verdict : la seule ligne que la
+      # documentation demande de lire. Un print par ligne, donc.
+      awk -v d="$debit" -v petit="$MODELE_PLUS_PETIT" 'BEGIN{
+        if (d >= 20) {
+          print "[ia] Confortable : les reponses arrivent sans attente notable.";
+        } else if (d >= 8) {
+          print "[ia] Acceptable avec le flux active : les premiers mots";
+          print "[ia] arrivent vite, la fin defile. Rien a changer.";
+        } else {
+          print "[ia] LENT. Aucun reglage ne compensera ce debit. Essayez un";
+          print "[ia] modele plus petit : orion-ai.sh pull " petit;
+          print "[ia] puis selectionnez-le dans Parametres IA.";
+        }
       }'
     fi
   done
