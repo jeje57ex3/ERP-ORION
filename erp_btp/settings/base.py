@@ -342,6 +342,39 @@ ORION_2FA_REQUIRED_FOR_SUPERUSERS = config(
 
 DATABASE_ROUTERS = ['apps.core.db_router.CompanyDatabaseRouter']
 
+# ─── Cache ────────────────────────────────────────────────────────────────────
+#
+# Il n'y en avait AUCUN, et ce n'etait pas un manque de vitesse : c'etait un
+# defaut de correction.
+#
+# Sans reglage, Django retombe sur LocMemCache -- un cache par PROCESSUS.
+# orion-backend lance gunicorn avec « --workers 3 » : trois caches, chacun
+# invisible aux deux autres, tous perdus a chaque redemarrage. Or le cache
+# porte deja, dans ce depot, des choses qui ne supportent pas cela :
+#
+#   * apps/ecommerce/auth_views.py stocke le jeton de reinitialisation de mot
+#     de passe des boutiques UNIQUEMENT dans le cache. Le courriel est ecrit
+#     par un worker, le clic du client atterrit sur un autre : deux fois sur
+#     trois, « Lien expire ou invalide » sur un lien parfaitement valide. Et
+#     tout redemarrage d'orion-backend annule les liens en attente.
+#   * apps/websites/security.py et apps/configurator/public_api.py limitent le
+#     debit des formulaires publics. Un compteur par processus ne limite pas :
+#     la limite reelle valait jusqu'au triple de celle qui est ecrite (10
+#     soumissions par heure et par IP devenaient 30).
+#   * apps/websites/services/domain_resolver.py invalide par cache.delete().
+#     Un seul worker sur trois recevait l'invalidation ; les deux autres
+#     servaient l'ancien domaine jusqu'a expiration.
+#
+# Le defaut reste LocMemCache ICI, pour qu'un poste de developpement et la
+# suite de tests fonctionnent sans installer Redis. production.py le remplace
+# par le Redis qui tourne deja sur la VM.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'orion-local',
+    }
+}
+
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

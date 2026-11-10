@@ -99,3 +99,35 @@ LOGGING = {
 
 # ─── Sessions sécurisées ──────────────────────────────────────────────────────
 SESSION_COOKIE_AGE = 86400 * 7  # 7 jours en production
+
+# ─── Cache partage entre les workers ─────────────────────────────────────────
+#
+# Redis tourne deja sur cette machine, et il ne servait qu'a Celery :
+# orion-backend.service l'attend au demarrage
+# (« wait_for_port.sh 127.0.0.1 6379 60 », sans le prefixe « - », donc
+# bloquant). Le serveur de cache etait donc paye en memoire et personne ne lui
+# parlait, pendant que les trois workers gunicorn tenaient chacun son
+# LocMemCache. base.py detaille les trois defauts que cela provoquait --
+# jetons de reinitialisation perdus, limites de debit triplees,
+# invalidations recues par un worker sur trois.
+#
+# BASE 1, ET PAS 0, et ce n'est pas un detail : Celery tient sa file de taches
+# dans la base 0 (CELERY_BROKER_URL ci-dessus). Partager la base melerait le
+# cache applicatif et la file, et un vidage de cache -- operation anodine --
+# effacerait des taches en attente.
+#
+# KEY_PREFIX : un prefixe commun permet de reconnaitre les cles de l'ERP si un
+# jour la base est partagee avec autre chose, et de les vider seules.
+#
+# Pas d'IGNORE_EXCEPTIONS : le backend Redis integre a Django n'en a pas, et
+# c'est aussi bien. Un cache muet qui avale ses erreurs transformerait une
+# panne de Redis en comportements incomprehensibles -- limites de debit
+# inoperantes, jetons introuvables -- la ou une erreur franche se diagnostique.
+# Redis est de toute facon deja un prerequis bloquant au demarrage.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('CACHE_URL', default='redis://127.0.0.1:6379/1'),
+        'KEY_PREFIX': 'orion',
+    }
+}
