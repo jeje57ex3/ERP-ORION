@@ -580,3 +580,183 @@ class MaintenanceAnnonce(models.Model):
                     .first())
         except Exception:
             return None
+
+
+# ─── Réglages d'envoi des courriels ──────────────────────────────────────────
+
+CHIFFREMENT_MAIL_CHOIX = [
+    ('tls', 'STARTTLS (port 587, le cas le plus courant)'),
+    ('ssl', 'SSL/TLS direct (port 465)'),
+    ('aucun', 'Aucun (relais local sur 127.0.0.1:25)'),
+]
+
+
+class ReglagesMail(models.Model):
+    """Le serveur SMTP par lequel l'ERP envoie ses courriels.
+
+    **Pourquoi en base et non dans le .env.** Les réglages EMAIL_* n'existaient
+    que dans `/opt/orion/backend/.env`, donc modifiables uniquement par SSH,
+    suivis d'un redémarrage de gunicorn. Une fonction d'administration qui
+    exige un terminal n'est pas administrable.
+
+    **Pourquoi un seul jeu pour toute l'appliance.** L'adresse d'expédition,
+    elle, varie déjà par marque — apps/ecommerce/order_emails.py et
+    auth_views.py composent « no-reply@<marque>.fr ». Un serveur d'envoi
+    unique avec plusieurs adresses d'expéditeur est le montage habituel, et
+    c'est celui que le code fait déjà. Un SMTP par entreprise serait une
+    extension, pas une correction.
+
+    **Le mot de passe est chiffré** avec la même clé Fernet que les secrets de
+    boutique (ORION_SECRET_ENCRYPTION_KEY, générée au provisioning). Il n'est
+    jamais réaffiché : le formulaire le laisse vide et un champ vide conserve
+    ce qui est enregistré — sinon enregistrer la page pour changer le port
+    effacerait le mot de passe.
+    """
+
+    actif = models.BooleanField(
+        default=False,
+        verbose_name='Envoyer réellement les courriels',
+        help_text='Tant que cette case est décochée, l’ERP utilise le mode de '
+                  'repli (voir la page) et n’envoie rien vers l’extérieur.',
+    )
+
+    hote = models.CharField(
+        max_length=255, blank=True,
+        verbose_name='Serveur SMTP',
+        help_text='Exemple : smtp-relay.brevo.com, ou 127.0.0.1 pour le '
+                  'relais local installé par setup_mail_relay.sh.',
+    )
+    port = models.PositiveIntegerField(
+        default=587,
+        verbose_name='Port',
+        help_text='587 pour STARTTLS, 465 pour SSL direct, 25 pour un relais '
+                  'local.',
+    )
+    chiffrement = models.CharField(
+        max_length=10, choices=CHIFFREMENT_MAIL_CHOIX, default='tls',
+        verbose_name='Chiffrement',
+    )
+    utilisateur = models.CharField(
+        max_length=255, blank=True,
+        verbose_name='Identifiant',
+        help_text='Vide si le serveur n’exige pas d’authentification, ce qui '
+                  'est le cas d’un relais local.',
+    )
+    mot_de_passe_chiffre = models.TextField(
+        blank=True, default='',
+        verbose_name='Mot de passe (chiffré en base)',
+    )
+
+    adresse_expediteur = models.CharField(
+        max_length=255, blank=True,
+        verbose_name='Adresse d’expédition par défaut',
+        help_text='Utilisée quand l’appel ne précise rien. Doit appartenir au '
+                  'domaine autorisé par votre SPF, sinon le courriel part et '
+                  'finit en indésirable.',
+    )
+    delai_secondes = models.PositiveIntegerField(
+        default=10,
+        verbose_name='Délai d’attente (secondes)',
+        help_text='Au-delà, la tentative est abandonnée. Sans délai, un '
+                  'serveur injoignable fait attendre la page entière.',
+    )
+
+    # ── Mémoire du dernier diagnostic ───────────────────────────────────────
+    #
+    # Le motif de la panne doit survivre à la page qui l'a provoquée. « Les
+    # mails ne fonctionnent pas » sans message est précisément la situation
+    # qu'on corrige : un échec constaté par un envoi réel, parfois des heures
+    # plus tôt et dans une tâche de fond, doit rester lisible ici.
+    dernier_test_le = models.DateTimeField(null=True, blank=True)
+    dernier_test_reussi = models.BooleanField(null=True, blank=True)
+    derniere_erreur = models.TextField(blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Réglages d’envoi des courriels'
+        verbose_name_plural = 'Réglages d’envoi des courriels'
+
+    def __str__(self):
+        if not self.actif:
+            return 'Courriels — envoi désactivé'
+        return f'Courriels — {self.hote}:{self.port}'
+
+    @classmethod
+    def get_global(cls):
+        """L'unique jeu de réglages, créé au besoin."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @classmethod
+    def courants(cls):
+        """Les réglages, ou None si on ne peut pas les lire.
+
+        Jamais d'exception : appelée depuis le backend d'envoi, donc
+        potentiellement avant que la migration ne soit passée. Un courriel
+        qui ne part pas vaut mieux qu'une erreur 500 sur la page qui le
+        déclenche.
+        """
+        try:
+            return cls.objects.filter(pk=1).first()
+        except Exception:
+            return None
+
+    # ── Mot de passe ────────────────────────────────────────────────────────
+
+    @property
+    def mot_de_passe(self):
+        """Le mot de passe en clair, ou '' s'il n'y en a pas / s'il est illisible.
+
+        `decrypt_secret` rend '' aussi bien pour « aucun mot de passe » que
+        pour « clé Fernet changée », deux situations différentes. D'où
+        `mot_de_passe_illisible` ci-dessous, pour que la page puisse les
+        distinguer au lieu d'afficher un champ vide dans les deux cas.
+        """
+        if not self.mot_de_passe_chiffre:
+            return ''
+        from apps.website_shop_settings.crypto import decrypt_secret
+        return decrypt_secret(self.mot_de_passe_chiffre)
+
+    @mot_de_passe.setter
+    def mot_de_passe(self, valeur):
+        if not valeur:
+            self.mot_de_passe_chiffre = ''
+            return
+        from apps.website_shop_settings.crypto import encrypt_secret
+        self.mot_de_passe_chiffre = encrypt_secret(valeur)
+
+    @property
+    def mot_de_passe_enregistre(self):
+        """Un mot de passe est stocké (lisible ou non)."""
+        return bool(self.mot_de_passe_chiffre)
+
+    @property
+    def mot_de_passe_illisible(self):
+        """Stocké mais indéchiffrable : la clé de chiffrement a changé.
+
+        Arrive après une restauration de base sur une appliance dont le .env
+        a été régénéré. Sans ce signal, la page affiche « mot de passe
+        enregistré » et l'authentification échoue sans raison visible.
+        """
+        return bool(self.mot_de_passe_chiffre) and not self.mot_de_passe
+
+    # ── Aptitude à servir ───────────────────────────────────────────────────
+
+    @property
+    def utilisable(self):
+        """Assez de réglages pour tenter un envoi.
+
+        Le mot de passe n'en fait pas partie : un relais local sur
+        127.0.0.1:25 n'en demande aucun.
+        """
+        return bool(self.actif and self.hote and self.port)
+
+    @property
+    def use_tls(self):
+        return self.chiffrement == 'tls'
+
+    @property
+    def use_ssl(self):
+        return self.chiffrement == 'ssl'

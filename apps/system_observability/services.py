@@ -206,13 +206,71 @@ def check_cpu(company):
 
 
 def check_email(company):
+    """L'envoi des courriels est-il en état de marche ?
+
+    CE CONTRÔLE DÉCLARAIT « ok » QUAND RIEN NE PARTAIT. Son test était
+    « smtp dans le nom du backend » : un backend « console » ou « locmem »,
+    qui écrit les messages dans un journal ou les garde en mémoire, sortait
+    donc en vert avec « pas de SMTP à vérifier ». Un ERP qui n'envoie aucun
+    courriel se déclarait en bonne santé — et « les mails ne fonctionnent
+    pas » n'avait aucune page pour le dire.
+
+    Le nom du backend ne suffit plus à conclure, puisque apps.core.mail
+    délègue : il faut regarder ce qu'il délègue VRAIMENT, c'est-à-dire les
+    réglages en base, puis son repli.
+    """
     from django.conf import settings
     backend = getattr(settings, 'EMAIL_BACKEND', '')
-    if 'smtp' not in backend.lower():
+    court = backend.rsplit('.', 1)[-1]
+
+    # Les réglages de /orion-admin/courriels/ l'emportent sur le backend
+    # déclaré : c'est eux qui décident par où part un message.
+    try:
+        from apps.core.mail import reglages_utilisables
+        reglages = reglages_utilisables()
+    except Exception:
+        reglages = None
+
+    if reglages is None:
+        effectif = backend
+        try:
+            from apps.core.mail import chemin_du_repli
+            if 'apps.core.mail' in backend:
+                effectif = chemin_du_repli()
+        except Exception:
+            pass
+
+        if 'smtp' not in effectif.lower():
+            return record_health_check(
+                company, 'email', 'warning',
+                message=(
+                    f'Aucun envoi réel : backend {effectif.rsplit(".", 1)[-1]}. '
+                    'Les messages ne quittent pas le serveur. Configurez '
+                    '/orion-admin/courriels/.'
+                ),
+            )
+        if not getattr(settings, 'EMAIL_HOST', ''):
+            return record_health_check(
+                company, 'email', 'warning',
+                message=('SMTP sans serveur configuré : renseignez '
+                         '/orion-admin/courriels/.'),
+            )
+    elif 'smtp' not in backend.lower() and 'apps.core.mail' not in backend:
         return record_health_check(
-            company, 'email', 'ok',
-            message=f'Backend {backend.rsplit(".", 1)[-1]} actif (pas de SMTP à vérifier).',
+            company, 'email', 'warning',
+            message=(
+                f'Des réglages SMTP existent, mais le backend {court} ne les '
+                'emploie pas : les messages ne quittent pas le serveur.'
+            ),
         )
+    # Le serveur nommé dans le message doit être celui réellement joint,
+    # sinon un diagnostic exact envoie chercher la panne au mauvais endroit.
+    if reglages is not None:
+        cible = f'{reglages.hote}:{reglages.port}'
+    else:
+        cible = (f'{getattr(settings, "EMAIL_HOST", "?")}:'
+                 f'{getattr(settings, "EMAIL_PORT", "?")}')
+
     start = time.perf_counter()
     try:
         from django.core.mail import get_connection
@@ -222,7 +280,7 @@ def check_email(company):
         elapsed_ms = round((time.perf_counter() - start) * 1000)
         return record_health_check(
             company, 'email', 'ok',
-            message=f'Connexion SMTP {settings.EMAIL_HOST}:{settings.EMAIL_PORT} OK.',
+            message=f'Connexion SMTP {cible} OK.',
             response_time_ms=elapsed_ms,
         )
     except Exception as exc:

@@ -507,6 +507,31 @@ SESSION_COOKIE_HTTPONLY = True
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
+# ─── Courriels ────────────────────────────────────────────────────────────────
+#
+# Le backend passe par apps.core.mail, qui lit les reglages EN BASE
+# (core.ReglagesMail, page /orion-admin/courriels/) et retombe sur le repli
+# ci-dessous quand aucun n'est actif. Motif : EMAIL_HOST et les siens
+# n'existaient que dans le .env du serveur, donc modifiables seulement par
+# SSH et apres un redemarrage de gunicorn -- une fonction d'administration
+# qui exige un terminal n'est pas administrable.
+#
+# development.py et testing.py ecrasent EMAIL_BACKEND (console et memoire),
+# donc ni le poste de developpement ni la suite de tests ne passent par ce
+# backend.
+EMAIL_BACKEND = 'apps.core.mail.BackendMailOrion'
+
+# Ce que fait l'ERP tant qu'aucun reglage n'est actif en base.
+#
+# La cle lue est « EMAIL_BACKEND » du .env, et c'est voulu : elle y etait
+# documentee depuis toujours (.env.example la mentionne) et RIEN NE LA
+# LISAIT -- base.py ne la declarait pas et production.py ecrasait le backend
+# en dur. Un operateur qui y posait le backend « console » n'obtenait aucun
+# effet. Elle gouverne desormais le repli, c'est-a-dire exactement ce
+# qu'elle pretendait gouverner.
+ORION_MAIL_BACKEND_DE_REPLI = config(
+    'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@orion-erp.local')
 EMAIL_HOST = config('EMAIL_HOST', default='localhost')
 EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)

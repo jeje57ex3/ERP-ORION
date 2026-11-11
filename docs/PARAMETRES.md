@@ -60,14 +60,22 @@ Ces valeurs conditionnent l'accès à l'application. Deux erreurs reviennent san
 
 ## Courrier
 
+**Le serveur d'envoi se règle dans l'interface**, sur `/orion-admin/courriels/`
+(menu Super Admin → Courriels). Les réglages y sont stockés en base, le mot de
+passe chiffré, et la page porte un bouton de test qui affiche l'erreur exacte
+du serveur. Les paramètres ci-dessous ne servent plus que de **repli**, tant
+qu'aucun réglage n'est actif sur cette page.
+
 | Paramètre | Défaut | Rôle |
 |---|---|---|
 | `DEFAULT_FROM_EMAIL` | 'no-reply@orion-erp.local' | Expéditeur par défaut des messages envoyés par l'ERP. |
-| `EMAIL_HOST` | 'localhost' | Serveur SMTP sortant. |
-| `EMAIL_HOST_PASSWORD` | *(vide)* | Mot de passe SMTP. |
-| `EMAIL_HOST_USER` | *(vide)* | Compte SMTP. |
-| `EMAIL_PORT` | 25 · `int` | Port SMTP. |
-| `EMAIL_USE_TLS` | False · `bool` | STARTTLS sur la connexion SMTP. |
+| `EMAIL_BACKEND` | `…backends.smtp.EmailBackend` | **Le repli**, employé tant qu'aucun réglage n'est actif en base. Cette clé était documentée dans `.env.example` et n'était lue nulle part ; elle gouverne désormais ce repli. Le backend réellement installé est `apps.core.mail.BackendMailOrion`, qui délègue. |
+| `EMAIL_HOST` | 'localhost' | Serveur SMTP sortant du repli. |
+| `EMAIL_HOST_PASSWORD` | *(vide)* | Mot de passe SMTP du repli. |
+| `EMAIL_HOST_USER` | *(vide)* | Compte SMTP du repli. |
+| `EMAIL_PORT` | 25 · `int` | Port SMTP du repli. |
+| `EMAIL_USE_TLS` | False · `bool` | STARTTLS sur la connexion SMTP du repli. |
+| `ORION_SECRET_ENCRYPTION_KEY` | *(vide)* | Clé Fernet qui chiffre le mot de passe SMTP en base, générée au provisionnement. Sans elle, la page refuse d'enregistrer un mot de passe — et le dit, plutôt que de l'écrire en clair. |
 
 ## Domaines et DNS
 

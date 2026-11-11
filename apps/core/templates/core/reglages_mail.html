@@ -1,0 +1,241 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Courriels — Super Admin{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Super Admin · Courriels</p>
+    <h1 class="orion-page-title">Envoi des courriels</h1>
+  </div>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}
+{% endif %}
+
+{# ── État actuel, avant tout formulaire : la question posée en arrivant ── #}
+<div class="orion-card mb-4">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">État</h2>
+  </div>
+  <div style="padding:20px">
+
+    {% if reglages.actif and reglages.hote %}
+      <p style="margin:0 0 10px;font-size:13.5px">
+        <strong>Les courriels partent par {{ reglages.hote }}:{{ reglages.port }}.</strong>
+      </p>
+    {% elif reglages.actif %}
+      <div class="orion-alert danger" style="margin:0 0 12px">
+        L’envoi est activé mais aucun serveur SMTP n’est renseigné : rien ne part.
+      </div>
+    {% else %}
+      <div class="orion-alert warning" style="margin:0 0 12px">
+        <strong>L’envoi réel est désactivé.</strong>
+        L’ERP utilise son mode de repli :
+        <code>{{ repli }}</code>.
+        {% if repli_envoie_vraiment %}
+          Ce repli tente un envoi SMTP avec les valeurs du fichier
+          <code>.env</code> du serveur — s’il n’y en a pas, il essaie
+          <code>localhost:25</code>, où rien n’écoute en général.
+        {% else %}
+          Ce repli <strong>n’envoie rien vers l’extérieur</strong> : les
+          messages sont écrits dans les journaux ou gardés en mémoire.
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if reglages.dernier_test_le %}
+      <p style="margin:0;font-size:12.5px;opacity:.85">
+        Dernière tentative : {{ reglages.dernier_test_le|date:"d/m/Y à H:i" }} —
+        {% if reglages.dernier_test_reussi %}
+          <span style="color:var(--orion-success,#15803d);font-weight:600">réussie</span>.
+        {% else %}
+          <span style="color:var(--orion-danger,#b91c1c);font-weight:600">en échec</span>.
+        {% endif %}
+      </p>
+      {% if reglages.derniere_erreur %}
+        <pre style="margin:10px 0 0;padding:10px;border-radius:6px;background:var(--orion-code-bg,#f5f5f5);font-size:12px;white-space:pre-wrap">{{ reglages.derniere_erreur }}</pre>
+      {% endif %}
+    {% else %}
+      <p style="margin:0;font-size:12.5px;opacity:.85">
+        Aucune tentative enregistrée pour l’instant.
+      </p>
+    {% endif %}
+
+    {% if reglages.mot_de_passe_illisible %}
+      <div class="orion-alert danger" style="margin:12px 0 0">
+        Le mot de passe enregistré est <strong>illisible</strong> : la clé de
+        chiffrement de cette installation a changé depuis son enregistrement
+        (cas typique d’une restauration de base avec un <code>.env</code>
+        régénéré). Saisissez-le à nouveau ci-dessous.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h2 style="font-size:15px;font-weight:600;margin:0">Serveur d’envoi</h2>
+    </div>
+    <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div style="grid-column:span 2;padding:12px;border-radius:6px;background:var(--orion-info-bg,#eef4ff)">
+        <label style="font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="actif" {% if reglages.actif %}checked{% endif %}>
+          Envoyer réellement les courriels par ce serveur
+        </label>
+        <p style="font-size:12px;margin:6px 0 0;opacity:.8">
+          Vous pouvez remplir et tester les réglages sans cocher cette case :
+          le bouton de test essaie toujours un envoi réel, même désactivé.
+          Ne la cochez qu’une fois le test réussi.
+        </p>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Serveur SMTP</label>
+        <input type="text" name="hote" value="{{ reglages.hote }}" class="orion-input" style="width:100%" placeholder="smtp-relay.brevo.com">
+        <p style="font-size:11.5px;margin:6px 0 0;opacity:.75">
+          Ou <code>127.0.0.1</code> pour le relais local installé par
+          <code>setup_mail_relay.sh</code>.
+        </p>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Port</label>
+        <input type="number" name="port" value="{{ reglages.port }}" min="1" max="65535" class="orion-input" style="width:100%">
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Chiffrement</label>
+        <select name="chiffrement" class="orion-input" style="width:100%">
+          {% for code, libelle in chiffrements %}
+            <option value="{{ code }}" {% if reglages.chiffrement == code %}selected{% endif %}>{{ libelle }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Délai d’attente (secondes)</label>
+        <input type="number" name="delai_secondes" value="{{ reglages.delai_secondes }}" min="1" class="orion-input" style="width:100%">
+        <p style="font-size:11.5px;margin:6px 0 0;opacity:.75">
+          Sans délai, un serveur injoignable fait attendre la page entière.
+        </p>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Identifiant</label>
+        <input type="text" name="utilisateur" value="{{ reglages.utilisateur }}" class="orion-input" style="width:100%" autocomplete="off">
+        <p style="font-size:11.5px;margin:6px 0 0;opacity:.75">
+          Vide pour un relais local, qui n’authentifie pas.
+        </p>
+      </div>
+
+      <div>
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Mot de passe</label>
+        <input type="password" name="mot_de_passe" value="" class="orion-input" style="width:100%" autocomplete="new-password"
+               placeholder="{% if reglages.mot_de_passe_enregistre %}enregistré — laisser vide pour le conserver{% else %}aucun mot de passe enregistré{% endif %}">
+        <p style="font-size:11.5px;margin:6px 0 0;opacity:.75">
+          Jamais réaffiché. <strong>Un champ vide conserve</strong> le mot de
+          passe en place — sinon corriger un numéro de port l’effacerait.
+        </p>
+        {% if not cle_presente %}
+        <div class="orion-alert danger" style="margin:8px 0 0;font-size:11.5px">
+          Cette installation n’a pas de clé de chiffrement
+          (<code>ORION_SECRET_ENCRYPTION_KEY</code>) : un mot de passe saisi
+          ici ne pourra pas être enregistré. Le reste des réglages, lui,
+          fonctionne — un relais local n’a besoin d’aucun mot de passe.
+        </div>
+        {% endif %}
+        {% if reglages.mot_de_passe_enregistre %}
+        <label style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px">
+          <input type="checkbox" name="effacer_mot_de_passe">
+          Effacer le mot de passe enregistré
+        </label>
+        {% endif %}
+      </div>
+
+      <div style="grid-column:span 2">
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Adresse d’expédition par défaut</label>
+        <input type="text" name="adresse_expediteur" value="{{ reglages.adresse_expediteur }}" class="orion-input" style="width:100%;max-width:420px" placeholder="no-reply@votre-domaine.fr">
+        <p style="font-size:11.5px;margin:6px 0 0;opacity:.75">
+          Employée quand l’envoi ne précise rien. Les boutiques composent déjà
+          leur propre expéditeur par marque, et celui-ci ne les remplace pas.
+          L’adresse doit appartenir au domaine autorisé par votre SPF, sinon
+          le courriel part et finit en indésirable.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="orion-card mb-4">
+    <div class="orion-card-header">
+      <h2 style="font-size:15px;font-weight:600;margin:0">Tester</h2>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:12.5px;margin:0 0 12px;opacity:.85">
+        Le test enregistre d’abord les réglages ci-dessus, puis tente un envoi
+        réel avec eux — pas avec le mode de repli. L’erreur du serveur est
+        affichée mot pour mot : c’est la différence entre « ça ne marche pas »
+        et « authentification refusée ».
+      </p>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:6px">Envoyer un test à</label>
+          <input type="email" name="destinataire" value="{{ destinataire_propose }}" class="orion-input" style="width:100%" placeholder="vous@exemple.fr">
+        </div>
+        <button type="submit" name="action" value="tester" class="orion-btn">
+          <i class="bi bi-send me-1"></i>Enregistrer et envoyer un test
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:28px">
+    <button type="submit" name="action" value="enregistrer" class="orion-btn primary">
+      <i class="bi bi-check2 me-1"></i>Enregistrer
+    </button>
+  </div>
+</form>
+
+<div class="orion-card mb-4">
+  <div class="orion-card-header">
+    <h2 style="font-size:15px;font-weight:600;margin:0">Pourquoi un courriel peut partir sans arriver</h2>
+  </div>
+  <div style="padding:20px;font-size:12.5px;line-height:1.65">
+    <p style="margin:0 0 10px">
+      Un test réussi prouve que votre serveur accepte le message. Il ne prouve
+      pas la remise : Gmail et Outlook refusent ou classent en indésirable ce
+      qui n’est pas authentifié.
+    </p>
+    <ul style="margin:0;padding-left:20px">
+      <li style="margin-bottom:6px">
+        <strong>SPF</strong> — un enregistrement DNS qui autorise votre
+        serveur d’envoi à écrire au nom de votre domaine.
+      </li>
+      <li style="margin-bottom:6px">
+        <strong>DKIM</strong> — une signature. Le relais local
+        (<code>setup_mail_relay.sh</code>) en pose une et affiche
+        l’enregistrement à ajouter.
+      </li>
+      <li style="margin-bottom:6px">
+        <strong>DMARC</strong> — ce que les destinataires doivent faire quand
+        SPF ou DKIM échoue.
+      </li>
+      <li>
+        <strong>PTR (DNS inverse)</strong> — l’IP d’envoi doit se résoudre
+        vers le nom de votre serveur de mail. C’est la condition la plus
+        souvent bloquante en auto-hébergement, et elle se demande à
+        l’hébergeur de la machine. Avec un service d’envoi tiers, elle est
+        déjà remplie.
+      </li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

@@ -36,7 +36,16 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ─── Email SMTP production ────────────────────────────────────────────────────
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#
+# Cette ligne forcait le SMTP de Django, donc les valeurs EMAIL_* du .env, et
+# elle ecrasait la cle EMAIL_BACKEND que le meme .env documentait -- la
+# rendant inoperante. base.py installe desormais apps.core.mail, qui lit les
+# reglages de /orion-admin/courriels/ et retombe sur le SMTP du .env tant
+# qu'aucun n'est actif. Le comportement par defaut est donc inchange, et il
+# devient reglable sans terminal.
+#
+# Rien n'est redeclare ici : base.py suffit. La section reste pour que la
+# recherche de « EMAIL » dans ce fichier mene a cette explication.
 
 # ─── Logging production (fichiers rotatifs) ───────────────────────────────────
 LOG_DIR.mkdir(parents=True, exist_ok=True)

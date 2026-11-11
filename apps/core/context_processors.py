@@ -515,6 +515,10 @@ NAV_MODULES = [
             {'label': _('Réseau privé'),       'url_name': 'high_availability:admin_mesh',     'icon_img': 'noeuds_ha.png', 'icon': 'ti-shield-lock'},
             {'label': _('Basculement HA'),     'url_name': 'high_availability:admin_failover', 'icon_img': 'basculement_ha.png', 'icon': 'ti-arrows-left-right'},
             {'label': _('Paramètres'),         'url_name': 'private_saas:saas_settings',       'icon_img': 'params_saas.png', 'icon': 'ti-adjustments'},
+            # Sans cette entree la page existe et personne ne la trouve --
+            # le defaut que le commentaire d'« Ops — Fiabilite » decrit juste
+            # au-dessus.
+            {'label': _('Courriels'),          'url_name': 'core_mail:reglages',              'icon': 'ti-mail'},
             {'label': _('IA — Paramètres'),    'url_name': 'orion_ai:admin_ai_settings',      'icon_img': 'ia_params_audit.png', 'icon': 'ti-robot'},
             {'label': _('IA — Audit'),         'url_name': 'orion_ai:admin_ai_audit',         'icon_img': 'ia_params_audit.png', 'icon': 'ti-book'},
         ],
