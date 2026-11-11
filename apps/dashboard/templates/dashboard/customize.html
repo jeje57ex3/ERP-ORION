@@ -186,6 +186,21 @@
         </div>
         {% endfor %}
       </div>
+      {% comment %}
+        CE CHAMP ÉTAIT ABSENT, et il est REQUIS.
+
+        DashboardProfile.theme porte une valeur par défaut mais pas
+        « blank=True » : Django en fait donc un champ de formulaire
+        obligatoire — une valeur par défaut fournit l'initiale, elle ne rend
+        rien facultatif. Non rendu, il n'était jamais envoyé, le formulaire
+        refusait à chaque fois, et la vue redirigeait sans message : la page
+        se rechargeait, l'air de rien, et la disposition n'était jamais
+        enregistrée.
+      {% endcomment %}
+      <div class="mb-3" style="max-width:300px">
+        <label class="form-label fw-semibold">Thème</label>
+        {{ layout_form.theme }}
+      </div>
       <div class="mb-3" style="max-width:300px">
         <label class="form-label fw-semibold">Nom du dashboard</label>
         {{ layout_form.name }}

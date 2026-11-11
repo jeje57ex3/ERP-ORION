@@ -84,6 +84,20 @@ class DashboardCustomizeView(LoginRequiredMixin, TemplateView):
             if form.is_valid():
                 form.save()
                 messages.success(request, 'La disposition a été enregistrée.')
+            else:
+                # SANS CETTE BRANCHE, un formulaire refusé redirigeait en
+                # silence : la page se rechargeait, aucun message, et
+                # l'utilisateur en concluait que le bouton ne marchait pas.
+                # C'est ce qui a rendu l'absence du champ « thème »
+                # indiagnosticable pendant tout ce temps.
+                messages.error(
+                    request,
+                    'La disposition n’a pas pu être enregistrée : '
+                    + ' ; '.join(
+                        f'{form[nom].label} — {erreurs[0]}'
+                        for nom, erreurs in form.errors.items()
+                        if nom in form.fields
+                    ) or 'formulaire invalide.')
             return redirect('dashboard:customize')
 
         return redirect('dashboard:customize')
