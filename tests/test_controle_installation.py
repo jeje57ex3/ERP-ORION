@@ -372,3 +372,128 @@ def test_l_assistant_absent_renvoie_vers_la_mise_a_jour(monkeypatch):
     contexte = views._contexte_de_stockage()
     assert contexte['assistant_disponible'] is False
     assert 'system-updates' in contexte['erreur_assistant']
+
+
+# ── 6. L'assistant disque : trois états, trois gestes ────────────────────────
+#
+# Un rapport réel l'a montré : le script installé, sa règle sudo absente.
+# La première version du contrôle ne regardait que la présence de fichiers et
+# annonçait « les boutons ne s'afficheront pas ». C'était la mauvaise panne :
+# `est_disponible()` ne teste que le bit d'exécution, donc l'écran croit
+# l'assistant utilisable, appelle sudo et reçoit un refus — une erreur rouge,
+# pas une absence de bouton.
+
+@pytest.mark.django_db
+def test_le_script_absent_renvoie_vers_la_mise_a_jour(monkeypatch):
+    import os as _os
+
+    from apps.system_health import controle_installation as ci
+
+    monkeypatch.setattr(ci.os, 'name', 'posix')
+    monkeypatch.setattr(ci.os.path, 'exists', lambda chemin: False)
+
+    etat, message, detail = ci._assistants_privilegies()
+    assert etat == ci.AVERTISSEMENT
+    assert 'system-updates' in message
+    assert detail['script'] is False
+
+
+@pytest.mark.django_db
+def test_la_regle_sudo_absente_est_nommee_precisement(monkeypatch):
+    """LE CAS CONSTATÉ.
+
+    Le script est là, la règle non. Le message doit dire que l'interface
+    recevra un refus de sudo — et non qu'aucun bouton ne s'affichera.
+    """
+    from apps.system_health import controle_installation as ci
+
+    monkeypatch.setattr(ci.os, 'name', 'posix')
+    monkeypatch.setattr(
+        ci.os.path, 'exists',
+        lambda chemin: 'sudoers.d' not in chemin)
+
+    etat, message, detail = ci._assistants_privilegies()
+    assert etat == ci.AVERTISSEMENT
+    assert detail['script'] is True
+    assert detail['regle_sudo'] is False
+    assert 'sudo' in message.lower()
+    assert 'visudo' in message
+
+
+@pytest.mark.django_db
+def test_sudo_qui_refuse_est_distingue_d_un_fichier_absent(monkeypatch):
+    """Les deux fichiers sont là et sudo refuse quand même : la règle ne
+    correspond plus à ce que le code appelle."""
+    from apps.system_health import controle_installation as ci
+    from apps.system_health import stockage_privilegie as pont
+
+    monkeypatch.setattr(ci.os, 'name', 'posix')
+    monkeypatch.setattr(ci.os.path, 'exists', lambda chemin: True)
+
+    def _refuse():
+        raise pont.ActionPrivilegieeRefusee('sudo: a password is required')
+
+    monkeypatch.setattr(pont, 'lister_les_disques', _refuse)
+
+    etat, message, _ = ci._assistants_privilegies()
+    assert etat == ci.AVERTISSEMENT
+    assert 'refuse' in message.lower()
+    assert 'password' in message
+
+
+@pytest.mark.django_db
+def test_un_assistant_operationnel_compte_les_disques(monkeypatch):
+    """Le chemin qui aboutit. Sans lui, les trois tests précédents
+    pourraient passer grâce à un contrôle qui échoue toujours."""
+    from apps.system_health import controle_installation as ci
+    from apps.system_health import stockage_privilegie as pont
+
+    monkeypatch.setattr(ci.os, 'name', 'posix')
+    monkeypatch.setattr(ci.os.path, 'exists', lambda chemin: True)
+    monkeypatch.setattr(
+        pont, 'lister_les_disques',
+        lambda: {'disques': [{'peripherique': '/dev/sda'},
+                             {'peripherique': '/dev/sdb'}]})
+
+    etat, message, detail = ci._assistants_privilegies()
+    assert etat == ci.OK
+    assert detail['disques_vus'] == 2
+    assert '2 disque' in message
+
+
+@pytest.mark.django_db
+@override_settings(
+    ORION_MAIL_BACKEND_DE_REPLI='django.core.mail.backends.smtp.EmailBackend',
+    EMAIL_HOST='localhost')
+def test_sans_smtp_configure_le_constat_renvoie_a_la_page(monkeypatch):
+    """« Connection refused » est exact et inutile quand rien n'est réglé.
+
+    C'est le constat réel d'une appliance neuve : aucun serveur configuré,
+    l'ERP se rabat sur « localhost:25 » où rien n'écoute, et le message brut
+    envoie chercher une panne réseau là où il manque un réglage.
+
+    Le scénario est MONTÉ, et non deviné : en environnement de test le repli
+    est le backend mémoire, donc le contrôle s'arrêterait en avertissement
+    avant même d'essayer une connexion. Une première version de ce test
+    branchait sur l'état obtenu et ne vérifiait donc rien.
+    """
+    from apps.system_health import controle_installation as ci
+
+    class _ConnexionQuiRefuse:
+        def open(self):
+            raise ConnectionRefusedError('[Errno 111] Connection refused')
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        'django.core.mail.get_connection',
+        lambda *a, **k: _ConnexionQuiRefuse())
+
+    etat, message, _ = ci._courriels()
+
+    assert etat == ci.CRITIQUE
+    assert 'orion-admin/courriels' in message
+    assert 'localhost' in message
+    # L'erreur brute reste présente : elle sert quand la cause est ailleurs.
+    assert 'Connection refused' in message
