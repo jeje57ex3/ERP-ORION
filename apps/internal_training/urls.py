@@ -33,6 +33,20 @@ urlpatterns = [
     path('erp/formations/blocs/<int:pk>/modifier/', views.block_edit, name='block_edit'),
     path('erp/formations/blocs/<int:pk>/supprimer/', views.block_delete, name='block_delete'),
 
+    # ── Parcours : étapes, quiz, validation terrain ───────────────────────────
+    path('erp/formations/<int:pk>/parcours/', views.parcours_view,
+         name='parcours'),
+    path('erp/formations/<int:pk>/quiz/', views.quiz_passer,
+         name='quiz_passer'),
+    path('erp/formations/quiz/tentatives/<int:pk>/', views.quiz_resultat,
+         name='quiz_resultat'),
+    path('erp/formations/competences/mes-competences/', views.mes_competences,
+         name='mes_competences'),
+    path('erp/formations/competences/validations/',
+         views.validations_a_prononcer, name='validations_terrain'),
+    path('erp/formations/competences/validations/<int:pk>/prononcer/',
+         views.validation_prononcer, name='validation_prononcer'),
+
     # ── API ───────────────────────────────────────────────────────────────────
     path('api/v1/formations/pages/<int:pk>/terminer/', api.api_mark_page_complete, name='api_mark_complete'),
     path('api/v1/formations/pages/<int:page_pk>/blocs/ordre/', api.api_reorder_blocks, name='api_reorder_blocks'),

@@ -554,9 +554,17 @@
   <h2 class="h6 mb-1"><i class="bi bi-plus-circle me-2"></i>Ajouter un disque</h2>
 
   {% if not assistant_disponible %}
-    <div class="alert alert-secondary small mb-0">
+    <div class="alert alert-secondary small mb-2">
       {{ erreur_assistant }}
     </div>
+    {% comment %}
+      L'explication de l'étape hyperviseur vaut AUSSI ici. Les deux
+      prérequis sont indépendants : installer l'assistant ne sert à rien
+      s'il n'y a aucun disque branché sur la machine. La page n'en montrait
+      qu'un à la fois, et renvoyait donc à une étape qui pouvait ne rien
+      débloquer.
+    {% endcomment %}
+    {% include "system_health/_ajouter_un_disque_hyperviseur.html" %}
   {% elif erreur_assistant %}
     <div class="alert alert-danger small mb-0">{{ erreur_assistant }}</div>
   {% else %}
@@ -569,7 +577,7 @@
     </p>
 
     {% if not disques_physiques %}
-      <div class="text-muted small">Aucun disque détecté.</div>
+      {% include "system_health/_ajouter_un_disque_hyperviseur.html" %}
     {% endif %}
 
     {% for d in disques_physiques %}

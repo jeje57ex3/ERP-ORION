@@ -340,6 +340,11 @@ NAV_MODULES = [
             {'label': _('Tableau de bord'), 'url_name': 'internal_training:dashboard',      'icon': 'ti-gauge'},
             {'label': _('Formations'),      'url_name': 'internal_training:course_list',    'icon': 'ti-books'},
             {'label': _('Nouvelle'),        'url_name': 'internal_training:course_create',  'icon': 'ti-circle-plus'},
+            # Les deux faces de la validation terrain : ce que j'ai acquis,
+            # et ce que j'ai a constater pour les autres. Sans entree de
+            # menu, une page existe et personne ne la trouve.
+            {'label': _('Mes compétences'), 'url_name': 'internal_training:mes_competences', 'icon': 'ti-patch-check'},
+            {'label': _('Validations terrain'), 'url_name': 'internal_training:validations_terrain', 'icon': 'ti-clipboard-check'},
         ],
     },
     {
@@ -497,6 +502,7 @@ NAV_MODULES = [
             # (private_saas:health). On ne pouvait donc pas trouver le
             # tableau de bord des disques depuis l'interface.
             {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
+            {'label': _('Contrôle installation'), 'url_name': 'system_health:controle_installation', 'icon': 'ti-list-check'},
             {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
             # Meme raison que « Santé du système » ci-dessus : les pages de

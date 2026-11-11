@@ -1,0 +1,114 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Validations sur le terrain{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Formations</p>
+    <h1 class="orion-page-title">Validations sur le terrain</h1>
+  </div>
+</div>
+
+{% if messages %}{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}{% endif %}
+
+<div class="orion-card mb-3">
+  <p class="small text-muted mb-0">
+    Ces personnes ont lu la formation et réussi son quiz. Reste à constater
+    qu'elles savent faire. Vos propres demandes n'apparaissent pas ici :
+    personne ne valide sa propre compétence.
+  </p>
+</div>
+
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-3">En attente d'un constat ({{ attentes|length }})</h2>
+
+  {% for validation in attentes %}
+  <div class="border rounded p-3 mb-3">
+    <div class="fw-600">
+      {{ validation.apprenant.get_full_name|default:validation.apprenant }}
+      <span class="text-muted">— {{ validation.competence.code }} · {{ validation.competence.libelle }}</span>
+    </div>
+    {% if validation.competence.description %}
+    <p class="small text-muted mb-2 mt-1">{{ validation.competence.description|linebreaksbr }}</p>
+    {% endif %}
+    <div class="text-muted small mb-2">
+      Demandée le {{ validation.demandee_le|date:"d/m/Y" }}
+      {% if validation.course %}· formation « {{ validation.course.title }} »{% endif %}
+      {% if validation.competence.validite_mois %}
+        · validité {{ validation.competence.validite_mois }} mois
+      {% endif %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data"
+          action="{% url 'internal_training:validation_prononcer' validation.pk %}">
+      {% csrf_token %}
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small mb-1">Date du constat</label>
+          <input type="date" name="constatee_le" class="orion-input w-100">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Lieu ou chantier</label>
+          <input type="text" name="lieu" class="orion-input w-100"
+                 placeholder="Chantier Dupont, atelier…">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small mb-1">Commentaire</label>
+          <input type="text" name="commentaire" class="orion-input w-100"
+                 placeholder="Ce qui a été observé">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small mb-1">Pièce jointe (facultatif)</label>
+          <input type="file" name="piece_jointe" class="orion-input w-100">
+        </div>
+        <div class="col-md-7 d-flex gap-2 flex-wrap">
+          <button type="submit" name="statut" value="validee" class="orion-btn primary">
+            <i class="bi bi-check2 me-1"></i>Valider
+          </button>
+          <button type="submit" name="statut" value="a_revoir" class="orion-btn">
+            À revoir
+          </button>
+          <button type="submit" name="statut" value="refusee" class="orion-btn">
+            Refuser
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% empty %}
+  <p class="text-muted small mb-0">Rien n'attend de constat.</p>
+  {% endfor %}
+</div>
+
+{% if recentes %}
+<div class="orion-card">
+  <h2 class="h6 mb-2">Constats récents</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr><th>Personne</th><th>Compétence</th><th>Issue</th><th>Constaté</th><th>Lieu</th><th>Par</th></tr>
+      </thead>
+      <tbody>
+        {% for v in recentes %}
+        <tr>
+          <td class="small">{{ v.apprenant.get_full_name|default:v.apprenant }}</td>
+          <td class="small">{{ v.competence.code }}</td>
+          <td>
+            {% if v.est_acquise %}<span class="badge bg-success">Acquise</span>
+            {% elif v.est_expiree %}<span class="badge bg-warning text-dark">Expirée</span>
+            {% else %}<span class="badge bg-danger">{{ v.get_statut_display }}</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ v.constatee_le|date:"d/m/Y"|default:"—" }}</td>
+          <td class="small text-muted">{{ v.lieu|default:"—" }}</td>
+          <td class="small text-muted">{{ v.valide_par.get_full_name|default:v.valide_par|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

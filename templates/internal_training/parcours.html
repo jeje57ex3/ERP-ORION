@@ -1,0 +1,217 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block title %}{{ course.title }} — Parcours{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'internal_training:course_detail' course.pk %}">{{ course.title }}</a>
+    </p>
+    <h1 class="orion-page-title">Parcours</h1>
+  </div>
+  <div class="orion-page-actions">
+    <a href="{% url 'internal_training:mes_competences' %}" class="orion-btn">
+      <i class="bi bi-patch-check me-1"></i>Mes compétences
+    </a>
+  </div>
+</div>
+
+{% if messages %}{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}{% endif %}
+
+{# Les trois étapes, et ce qu'elles prouvent chacune. #}
+<div class="orion-card mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h6 mb-0">Avancement</h2>
+    <span class="fw-600">{{ etat.pourcentage }} %</span>
+  </div>
+  <div class="progress mb-3" style="height:8px">
+    <div class="progress-bar" role="progressbar" style="width: {{ etat.pourcentage }}%"></div>
+  </div>
+  <div class="row g-2 small">
+    <div class="col-md-4">
+      <div class="border rounded p-2 {% if etat.lecture_terminee %}border-success{% elif etat.etape == 'lecture' %}border-primary{% endif %}">
+        <div class="fw-600">1 · Lire</div>
+        <div class="text-muted">
+          {% if etat.lecture_terminee %}Terminé{% else %}En cours{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="border rounded p-2 {% if etat.quiz.reussi %}border-success{% elif etat.etape == 'quiz' %}border-primary{% endif %}">
+        <div class="fw-600">2 · Le quiz</div>
+        <div class="text-muted">
+          {% if not etat.quiz.existe %}Pas de quiz
+          {% elif etat.quiz.reussi %}Réussi
+          {% elif etat.quiz.accessible %}Ouvert
+          {% else %}Fermé{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="border rounded p-2 {% if etat.terrain.tout_acquis %}border-success{% elif etat.etape == 'terrain' %}border-primary{% endif %}">
+        <div class="fw-600">3 · Sur le terrain</div>
+        <div class="text-muted">
+          {% if not etat.terrain.existe %}Aucune compétence visée
+          {% elif etat.terrain.tout_acquis %}Validé
+          {% elif etat.terrain.accessible %}En attente d'un constat
+          {% else %}Fermé{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="text-muted small mb-0 mt-3">
+    Lire prouve qu'on a lu, le quiz qu'on a retenu. Ni l'un ni l'autre ne
+    prouve qu'on sait faire : c'est l'objet de la troisième étape, qu'un
+    responsable constate sur place.
+  </p>
+</div>
+
+{# ── Étape 1 : les chapitres ─────────────────────────────────────────── #}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-3">1 · Les chapitres</h2>
+
+  {% if course.progression_sequentielle %}
+  <p class="text-muted small">
+    <i class="bi bi-lock me-1"></i>Cette formation impose l'ordre : un
+    chapitre s'ouvre quand le précédent est entièrement lu.
+  </p>
+  {% endif %}
+
+  {% for bloc in etat.chapitres %}
+  <div class="border rounded p-2 mb-2 {% if bloc.verrouille %}bg-light{% endif %}">
+    <div class="d-flex justify-content-between align-items-center gap-2">
+      <div>
+        <span class="fw-600">{{ bloc.chapitre.title }}</span>
+        {% if bloc.verrouille %}
+          <span class="badge bg-secondary ms-1"><i class="bi bi-lock"></i> Fermé</span>
+        {% elif bloc.termine %}
+          <span class="badge bg-success ms-1">Lu</span>
+        {% endif %}
+        <div class="text-muted small">
+          {{ bloc.pages_faites }} / {{ bloc.pages_total }} page(s)
+          {% if bloc.pages_total == 0 %}· aucune page publiée{% endif %}
+        </div>
+      </div>
+      <div style="min-width:120px">
+        <div class="progress" style="height:6px">
+          <div class="progress-bar {% if bloc.termine %}bg-success{% endif %}"
+               style="width: {{ bloc.pourcentage }}%"></div>
+        </div>
+      </div>
+    </div>
+
+    {% if not bloc.verrouille and bloc.pages %}
+    <ul class="list-unstyled mb-0 mt-2 small">
+      {% for page in bloc.pages %}
+      <li class="py-1">
+        <a href="{% url 'internal_training:page_view' page.pk %}">{{ page.title }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% elif bloc.verrouille %}
+    <div class="text-muted small mt-1">
+      Finissez le chapitre précédent pour l'ouvrir.
+    </div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="text-muted small mb-0">Cette formation n'a pas encore de chapitre.</p>
+  {% endfor %}
+</div>
+
+{# ── Étape 2 : le quiz ───────────────────────────────────────────────── #}
+{% if etat.quiz.existe %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">2 · {{ etat.quiz.quiz.titre }}</h2>
+
+  <p class="text-muted small mb-2">
+    {{ etat.quiz.quiz.nombre_de_questions }} question(s) ·
+    {{ etat.quiz.quiz.note_minimale }} % exigés ·
+    {% if etat.quiz.illimite %}tentatives illimitées
+    {% else %}{{ etat.quiz.quiz.tentatives_max }} tentative(s) au total{% endif %}
+  </p>
+
+  {% if etat.quiz.quiz.consignes %}
+  <p class="small">{{ etat.quiz.quiz.consignes|linebreaksbr }}</p>
+  {% endif %}
+
+  {% if etat.quiz.meilleure %}
+  <p class="small mb-2">
+    Meilleur résultat : <strong>{{ etat.quiz.meilleure.score }} %</strong>
+    ({{ etat.quiz.tentatives_faites }} tentative(s) faite(s)) —
+    <a href="{% url 'internal_training:quiz_resultat' etat.quiz.meilleure.pk %}">voir le détail</a>
+  </p>
+  {% endif %}
+
+  {% if etat.quiz.reussi %}
+    <div class="orion-alert success mb-0">Quiz réussi.</div>
+  {% elif etat.quiz.accessible %}
+    <a href="{% url 'internal_training:quiz_passer' course.pk %}" class="orion-btn primary">
+      <i class="bi bi-pencil-square me-1"></i>
+      {% if etat.quiz.tentatives_faites %}Repasser le quiz{% else %}Passer le quiz{% endif %}
+    </a>
+    {% if not etat.quiz.illimite %}
+    <span class="text-muted small ms-2">
+      {{ etat.quiz.tentatives_restantes }} tentative(s) restante(s)
+    </span>
+    {% endif %}
+  {% else %}
+    <div class="orion-alert warning mb-0">{{ etat.quiz.raison }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# ── Étape 3 : le terrain ────────────────────────────────────────────── #}
+{% if etat.terrain.existe %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">3 · Validation sur le terrain</h2>
+
+  {% if not etat.terrain.accessible %}
+    <div class="orion-alert warning mb-0">{{ etat.terrain.raison }}</div>
+  {% else %}
+    <p class="text-muted small">
+      Un responsable doit vous voir à l'œuvre et le consigner. Vous ne pouvez
+      pas valider vous-même.
+    </p>
+    {% for validation in etat.terrain.validations %}
+    <div class="border rounded p-2 mb-2">
+      <div class="fw-600 small">{{ validation.competence.code }} — {{ validation.competence.libelle }}</div>
+      <div class="small">
+        {% if validation.est_acquise %}
+          <span class="badge bg-success">Acquise</span>
+          {% if validation.constatee_le %}
+            le {{ validation.constatee_le|date:"d/m/Y" }}
+            {% if validation.lieu %}à {{ validation.lieu }}{% endif %}
+          {% endif %}
+          {% if validation.valide_par %}· par {{ validation.valide_par.get_full_name|default:validation.valide_par }}{% endif %}
+          {% if validation.expire_le %}· expire le {{ validation.expire_le|date:"d/m/Y" }}{% endif %}
+        {% elif validation.est_expiree %}
+          <span class="badge bg-warning text-dark">Expirée</span>
+          le {{ validation.expire_le|date:"d/m/Y" }} — à renouveler
+        {% elif validation.statut == 'en_attente' %}
+          <span class="badge bg-secondary">En attente d'un constat</span>
+          depuis le {{ validation.demandee_le|date:"d/m/Y" }}
+        {% else %}
+          <span class="badge bg-danger">{{ validation.get_statut_display }}</span>
+          {% if validation.commentaire %}— {{ validation.commentaire }}{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-muted small mb-0">Aucune demande ouverte pour l'instant.</p>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+
+{% if etat.etape == 'termine' %}
+<div class="orion-alert success">
+  <strong>Parcours terminé.</strong> Lecture, quiz et constat sur le terrain.
+</div>
+{% endif %}
+
+{% endblock %}

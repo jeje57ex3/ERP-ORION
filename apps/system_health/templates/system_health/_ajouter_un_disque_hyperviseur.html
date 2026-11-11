@@ -1,0 +1,51 @@
+{% comment %}
+  L'étape que cet écran ne peut pas faire, et qu'il ne disait pas.
+
+  « Aucun disque détecté » était exact et ne menait nulle part. Le point
+  manquant : AJOUTER un disque à la machine ne se fait pas depuis l'ERP.
+  L'ERP tourne DANS la machine virtuelle ; lui brancher un disque est une
+  action de l'hyperviseur, au même titre que lui ajouter de la mémoire.
+  Aucun bouton d'ici ne peut la faire, et c'est pourquoi aucun bouton
+  n'apparaissait — l'assistant ne refusait rien, il n'avait rien à proposer.
+
+  Ce fragment est inclus à DEUX endroits, et c'est voulu : il vaut aussi
+  quand l'assistant privilégié est absent. Ce sont deux prérequis
+  indépendants, et la page n'en montrait qu'un à la fois — installer
+  l'assistant ne sert à rien s'il n'y a aucun disque à préparer.
+{% endcomment %}
+<div class="alert alert-info small mb-0">
+  <div class="fw-600 mb-2">
+    <i class="bi bi-info-circle me-1"></i>
+    Ajouter un disque se fait sur l'hyperviseur, pas ici.
+  </div>
+
+  <p class="mb-2">
+    Cet écran prépare, formate et monte un disque — il ne peut pas en
+    <strong>ajouter</strong> un. L'ERP tourne à l'intérieur de la machine
+    virtuelle ; lui brancher un disque est une opération de Proxmox, comme
+    lui ajouter de la mémoire. Tant que cette étape n'est pas faite, il n'y a
+    rien à préparer ici, et donc aucun bouton.
+  </p>
+
+  <p class="mb-1"><strong>1. Sur l'hôte Proxmox</strong>, ajoutez un disque à la VM :</p>
+  <pre class="mb-2 p-2 rounded" style="background:rgba(0,0,0,.05);font-size:11.5px;white-space:pre-wrap">qm set 100 --scsi1 local-lvm:500        # 500 Go, a adapter
+qm set 100 --scsi1 /dev/disk/by-id/...  # ou un disque physique entier</pre>
+  <p class="mb-2 text-muted">
+    Depuis l'interface Proxmox : sélectionnez la VM <strong>100</strong> →
+    <em>Hardware</em> → <em>Add</em> → <em>Hard Disk</em>. Le numéro de VM est
+    celui de cette appliance ; vérifiez-le avant d'exécuter la commande.
+  </p>
+
+  <p class="mb-1"><strong>2. Revenez ici</strong> et actualisez :</p>
+  <p class="mb-2">
+    <a href="{% url 'system_health:disk_dashboard' %}#ajouter-un-disque" class="orion-btn btn-sm">
+      <i class="bi bi-arrow-clockwise me-1"></i>Actualiser la détection
+    </a>
+  </p>
+  <p class="mb-0 text-muted">
+    Le disque apparaît normalement tout de suite. S'il n'apparaît pas, c'est
+    que l'ajout à chaud n'a pas été transmis au système : un redémarrage de la
+    VM le fera voir. Il s'affichera alors ici comme « Disponible », avec un
+    bouton pour le préparer.
+  </p>
+</div>

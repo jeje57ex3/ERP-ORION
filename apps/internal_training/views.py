@@ -400,3 +400,250 @@ def course_enroll(request, pk):
     enroll_user(course=course, user=request.user)
     messages.success(request, f'Vous êtes inscrit à « {course.title} ».')
     return redirect('internal_training:course_detail', pk=course.pk)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Parcours : étapes, quiz, validation terrain
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Toutes les règles vivent dans parcours.py. Ces vues ne font que les
+# appeler et afficher le résultat — y remettre une condition, c'est garantir
+# qu'elle divergera de celle du service.
+
+
+@login_required
+@require_company_module('internal_training')
+def parcours_view(request, pk):
+    """La page de l'apprenant : où j'en suis, et ce qui est ouvert."""
+    from . import parcours as moteur
+
+    company = request.current_company
+    course = get_object_or_404(
+        TrainingCourse.objects.prefetch_related('chapters__pages',
+                                                'competences'),
+        pk=pk, company=company,
+    )
+    inscription = get_enrollment(request.user, course)
+    if inscription is None:
+        messages.info(
+            request, 'Inscrivez-vous à cette formation pour suivre le '
+                     'parcours.')
+        return redirect('internal_training:course_detail', pk=course.pk)
+
+    return render(request, 'internal_training/parcours.html', {
+        'page_title': f'Parcours — {course.title}',
+        'course': course,
+        'enrollment': inscription,
+        'etat': moteur.etat_du_parcours(course, request.user),
+    })
+
+
+@login_required
+@require_company_module('internal_training')
+def quiz_passer(request, pk):
+    """Le quiz : GET affiche les questions, POST corrige.
+
+    La correction est faite PAR LE SERVEUR à partir des identifiants de
+    choix, et les choix d'une autre question sont ignorés — un identifiant
+    falsifié dans le formulaire ne compte pas et ne fait pas échouer la
+    correction.
+    """
+    from . import parcours as moteur
+
+    company = request.current_company
+    course = get_object_or_404(TrainingCourse, pk=pk, company=company)
+
+    if get_enrollment(request.user, course) is None:
+        raise Http404('Non inscrit à cette formation.')
+
+    try:
+        tentative = moteur.demarrer_une_tentative(course, request.user)
+    except moteur.ParcoursRefuse as refus:
+        messages.warning(request, str(refus))
+        return redirect('internal_training:parcours', pk=course.pk)
+
+    quiz = tentative.quiz
+    questions = list(quiz.questions.prefetch_related('choix'))
+    if quiz.melanger_les_questions and request.method == 'GET':
+        import random
+        random.shuffle(questions)
+
+    if request.method == 'POST':
+        choix_par_question = {}
+        for question in quiz.questions.all():
+            bruts = request.POST.getlist(f'question_{question.pk}')
+            retenus = []
+            for brut in bruts:
+                try:
+                    retenus.append(int(brut))
+                except (TypeError, ValueError):
+                    continue
+            choix_par_question[question.pk] = retenus
+
+        try:
+            tentative = moteur.corriger_une_tentative(
+                tentative, choix_par_question)
+        except moteur.ParcoursRefuse as refus:
+            messages.error(request, str(refus))
+            return redirect('internal_training:parcours', pk=course.pk)
+
+        if tentative.reussie:
+            messages.success(
+                request,
+                f'Quiz réussi avec {tentative.score} %. Les validations sur '
+                f'le terrain sont ouvertes.')
+        else:
+            messages.warning(
+                request,
+                f'{tentative.score} % — il en fallait '
+                f'{tentative.note_minimale_appliquee} %.')
+        return redirect('internal_training:quiz_resultat', pk=tentative.pk)
+
+    return render(request, 'internal_training/quiz.html', {
+        'page_title': quiz.titre,
+        'course': course,
+        'quiz': quiz,
+        'tentative': tentative,
+        'questions': questions,
+    })
+
+
+@login_required
+@require_company_module('internal_training')
+def quiz_resultat(request, pk):
+    """Le détail d'une tentative corrigée.
+
+    Une tentative n'est visible que par la personne qui l'a passée, ou par
+    un responsable : un score est une donnée personnelle.
+    """
+    from .models import TentativeDeQuiz
+
+    company = request.current_company
+    tentative = get_object_or_404(
+        TentativeDeQuiz.objects.select_related('quiz__course'),
+        pk=pk, quiz__course__company=company)
+
+    est_responsable = (request.user.is_superuser
+                       or request.user.is_staff)
+    if tentative.user_id != request.user.pk and not est_responsable:
+        raise Http404('Tentative introuvable.')
+
+    return render(request, 'internal_training/quiz_resultat.html', {
+        'page_title': f'Résultat — {tentative.quiz.titre}',
+        'tentative': tentative,
+        'course': tentative.quiz.course,
+        'reponses': tentative.reponses.select_related('question')
+                                      .prefetch_related('choix_retenus',
+                                                        'question__choix'),
+    })
+
+
+@login_required
+@require_company_module('internal_training')
+def validations_a_prononcer(request):
+    """L'écran du responsable : ce qui attend un constat de terrain.
+
+    On y voit les demandes de TOUTE l'entreprise sauf les siennes : une
+    personne ne valide pas sa propre compétence, donc lui montrer ses
+    propres demandes dans cette liste n'aurait aucun sens.
+    """
+    from .models import ValidationTerrain
+
+    company = request.current_company
+    attentes = (ValidationTerrain.objects
+                .filter(statut='en_attente',
+                        competence__company=company)
+                .exclude(apprenant=request.user)
+                .select_related('competence', 'apprenant', 'course')
+                .order_by('demandee_le'))
+
+    recentes = (ValidationTerrain.objects
+                .filter(competence__company=company)
+                .exclude(statut='en_attente')
+                .select_related('competence', 'apprenant', 'valide_par')
+                .order_by('-constatee_le')[:20])
+
+    return render(request, 'internal_training/validations_terrain.html', {
+        'page_title': 'Validations sur le terrain',
+        'attentes': attentes,
+        'recentes': recentes,
+    })
+
+
+@login_required
+@require_company_module('internal_training')
+def validation_prononcer(request, pk):
+    """Enregistre le constat d'un responsable. POST uniquement."""
+    from . import parcours as moteur
+    from .models import ValidationTerrain
+
+    company = request.current_company
+    validation = get_object_or_404(
+        ValidationTerrain, pk=pk, competence__company=company)
+
+    if request.method != 'POST':
+        return redirect('internal_training:validations_terrain')
+
+    constatee = None
+    brut = (request.POST.get('constatee_le') or '').strip()
+    if brut:
+        from django.utils.dateparse import parse_date, parse_datetime
+        from django.utils import timezone as tz
+        valeur = parse_datetime(brut)
+        if valeur is None:
+            jour = parse_date(brut)
+            if jour is not None:
+                import datetime
+                valeur = datetime.datetime.combine(jour, datetime.time(12, 0))
+        if valeur is not None:
+            constatee = (tz.make_aware(valeur)
+                         if tz.is_naive(valeur) else valeur)
+
+    try:
+        moteur.prononcer_une_validation(
+            validation,
+            request.user,
+            request.POST.get('statut', ''),
+            constatee_le=constatee,
+            lieu=(request.POST.get('lieu') or '').strip(),
+            commentaire=(request.POST.get('commentaire') or '').strip(),
+            piece_jointe=request.FILES.get('piece_jointe'),
+        )
+    except moteur.ParcoursRefuse as refus:
+        messages.error(request, str(refus))
+        return redirect('internal_training:validations_terrain')
+
+    messages.success(
+        request,
+        f'{validation.competence.code} — {validation.get_statut_display()} '
+        f'pour {validation.apprenant.get_full_name() or validation.apprenant}.')
+    return redirect('internal_training:validations_terrain')
+
+
+@login_required
+@require_company_module('internal_training')
+def mes_competences(request):
+    """Ce que la personne a acquis, et ce qui expire.
+
+    Une habilitation expirée n'est pas une habilitation : l'écran les sépare
+    au lieu de les mélanger dans une liste « validées ».
+    """
+    from .models import ValidationTerrain
+
+    company = request.current_company
+    toutes = (ValidationTerrain.objects
+              .filter(apprenant=request.user, competence__company=company)
+              .select_related('competence', 'valide_par', 'course'))
+
+    acquises = [v for v in toutes if v.est_acquise]
+    expirees = [v for v in toutes if v.est_expiree]
+    attente = [v for v in toutes if v.statut == 'en_attente']
+    refusees = [v for v in toutes if v.statut in ('refusee', 'a_revoir')]
+
+    return render(request, 'internal_training/mes_competences.html', {
+        'page_title': 'Mes compétences',
+        'acquises': acquises,
+        'expirees': expirees,
+        'attente': attente,
+        'refusees': refusees,
+    })

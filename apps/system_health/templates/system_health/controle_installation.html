@@ -1,0 +1,190 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Contrôle de l'installation — Santé système{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_title %}Contrôle de l'installation{% endblock %}
+{% block page_subtitle %}Ce qui dérive sans qu'une ligne de code change.{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="orion-card mb-3">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+    <div>
+      <h2 class="h6 mb-1">
+        {% if dernier %}
+          Dernier contrôle : <strong>{{ dernier.score }}/100</strong>
+          {% if dernier.etat == 'ok' %}
+            <span class="badge bg-success">Tout va bien</span>
+          {% elif dernier.etat == 'warning' %}
+            <span class="badge bg-warning text-dark">À surveiller</span>
+          {% else %}
+            <span class="badge bg-danger">À corriger</span>
+          {% endif %}
+        {% else %}
+          Aucun contrôle encore effectué
+        {% endif %}
+      </h2>
+      {% if dernier %}
+      <p class="text-muted small mb-0">
+        {{ dernier.lance_le|date:"d/m/Y à H:i" }} ·
+        {{ dernier.get_declencheur_display|lower }} ·
+        {{ dernier.duree_ms }} ms ·
+        {{ dernier.nombre_ok }} au vert,
+        {{ dernier.nombre_avertissements }} à surveiller,
+        {{ dernier.nombre_critiques }} à corriger
+      </p>
+      {% endif %}
+    </div>
+    {% if peut_lancer %}
+    <form method="post" action="{% url 'system_health:controle_installation_lancer' %}">
+      {% csrf_token %}
+      <button type="submit" class="orion-btn primary">
+        <i class="bi bi-play-circle me-1"></i>Lancer un contrôle maintenant
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <hr class="my-3">
+
+  {% if planifie %}
+    <p class="small mb-0 text-muted">
+      <i class="bi bi-calendar-check me-1"></i>
+      Planifié automatiquement : <strong>{{ planifie.interval }}</strong>.
+      {% if planifie.last_run_at %}
+        Dernière exécution automatique le {{ planifie.last_run_at|date:"d/m/Y à H:i" }}.
+      {% else %}
+        Pas encore exécuté automatiquement.
+      {% endif %}
+    </p>
+  {% else %}
+    <div class="alert alert-warning small mb-0">
+      <strong>Ce contrôle n'est pas planifié.</strong> Il ne tournera que si
+      vous le lancez à la main. Le planificateur lit ses horaires en base de
+      données ; la ligne attendue est absente ou désactivée.
+    </div>
+  {% endif %}
+</div>
+
+{% if dernier %}
+
+{% if dernier.problemes %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Ce qui demande une action</h2>
+  {% for r in dernier.problemes %}
+  <div class="border-start border-3 {% if r.etat == 'ok' %}border-success{% elif r.etat == 'warning' %}border-warning{% else %}border-danger{% endif %} ps-3 mb-3">
+    <div class="fw-600">{{ r.libelle }}</div>
+    <div class="small">{{ r.message }}</div>
+    {% if r.detail %}
+      <details class="small text-muted mt-1">
+        <summary>Détail</summary>
+        <pre class="mb-0 mt-1" style="white-space:pre-wrap;font-size:11.5px">{{ r.detail }}</pre>
+      </details>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">Tous les contrôles</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Famille</th><th>Contrôle</th><th>État</th><th>Constat</th><th class="text-end">Durée</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in dernier.resultats %}
+        <tr>
+          <td class="text-muted small">{{ r.famille }}</td>
+          <td class="small fw-600">{{ r.libelle }}</td>
+          <td>
+            {% if r.etat == 'ok' %}
+              <span class="badge bg-success">OK</span>
+            {% elif r.etat == 'warning' %}
+              <span class="badge bg-warning text-dark">Surveiller</span>
+            {% elif r.etat == 'erreur' %}
+              <span class="badge bg-dark">Inconnu</span>
+            {% else %}
+              <span class="badge bg-danger">Corriger</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ r.message }}</td>
+          <td class="text-end text-muted small">{{ r.duree_ms }} ms</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if controles|length > 1 %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">Historique</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr><th>Date</th><th>Déclencheur</th><th>Score</th><th>État</th><th>Problèmes</th></tr>
+      </thead>
+      <tbody>
+        {% for c in controles %}
+        <tr>
+          <td class="small">{{ c.lance_le|date:"d/m/Y H:i" }}</td>
+          <td class="small text-muted">{{ c.get_declencheur_display }}</td>
+          <td class="small fw-600">{{ c.score }}/100</td>
+          <td>
+            {% if c.etat == 'ok' %}<span class="badge bg-success">OK</span>
+            {% elif c.etat == 'warning' %}<span class="badge bg-warning text-dark">Surveiller</span>
+            {% else %}<span class="badge bg-danger">Corriger</span>{% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ c.nombre_critiques }} à corriger · {{ c.nombre_avertissements }} à surveiller
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="orion-card">
+  <h2 class="h6 mb-2">Pourquoi pas la suite de tests</h2>
+  <div class="small text-muted" style="line-height:1.65">
+    <p class="mb-2">
+      Le dépôt porte 3 230 tests automatisés. Ils ne conviennent pas à un
+      contrôle mensuel du serveur, pour trois raisons :
+    </p>
+    <ul class="mb-2">
+      <li><code>pytest</code> ne figure pas dans <code>requirements.txt</code>,
+        donc n'est pas installé ici. L'y ajouter mettrait l'outillage de test
+        en production.</li>
+      <li>La suite construit une base de données entière en rejouant toutes
+        les migrations, puis la détruit. Sur le serveur qui porte vos
+        données, ce n'est pas une opération qu'on planifie.</li>
+      <li>Surtout : elle vérifie le <strong>code</strong>, qui est exactement
+        celui qu'un commit a déjà validé. Le rejouer chaque mois ne révèle
+        rien de nouveau.</li>
+    </ul>
+    <p class="mb-0">
+      Ce qui dérive, c'est l'<strong>installation</strong> : une migration
+      oubliée, un service arrêté, un planificateur vide, une sauvegarde qui
+      date, un disque qui se remplit. C'est ce que vérifient les contrôles
+      ci-dessus. Trois d'entre eux sont repris de la suite parce qu'ils
+      portent bien sur l'installation : les vérifications système de Django,
+      l'absence de migration en attente et le chargement de l'arbre des
+      adresses.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

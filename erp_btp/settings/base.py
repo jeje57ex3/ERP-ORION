@@ -646,6 +646,43 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+# ─── Fiabilite des taches ────────────────────────────────────────────────────
+#
+# Ces quatre cles etaient ABSENTES, et le score Celery de la page Sante les
+# note : _check_celery_retry_config() dans apps/system_health/services.py
+# accorde 2 + 1 + 1 + 1 points. Il en donnait donc 0 sur 5. Mais elles ne
+# sont pas ajoutees pour le score -- elles repondent a un risque reel sur
+# cette appliance.
+#
+# ACKS_LATE : l'accuse de reception part APRES l'execution, non avant. Sans
+# cela, une tache perdue avec son worker est perdue pour de bon. Sur une VM
+# de 8 Go qui heberge aussi MySQL, Redis et un modele de langage de 3 Go, le
+# noyau tue des processus -- c'est le scenario central, pas une hypothese.
+#
+# REJECT_ON_WORKER_LOST : complete le precedent. La tache interrompue par la
+# mort du worker retourne dans la file au lieu d'etre comptee comme echouee.
+#
+# Ces deux reglages rendent une tache REJOUABLE, ce qui serait dangereux
+# pour une preparation de disque ou une copie de fichiers. Ce n'est pas le
+# cas ici : _executer_l_operation() dans apps/system_health/tasks.py refuse
+# toute operation qui n'est plus en « en_attente ». Une tache relivree apres
+# la mort d'un worker trouve donc « en_cours » et s'arrete -- elle ne
+# reformate pas un disque et ne recopie pas par-dessus une bascule faite.
+#
+# TIME_LIMIT a 24 heures, et c'est volontairement tres large. La tentation
+# est de mettre une heure ; elle tuerait copier_puis_basculer() au milieu
+# d'une copie de plusieurs teraoctets, c'est-a-dire exactement au moment ou
+# une interruption coute le plus cher. Une limite n'est la que pour arreter
+# ce qui est VRAIMENT bloque, et une tache figee depuis 24 heures l'est.
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_TIME_LIMIT = 86400
+
+# Recycle le processus enfant apres 100 taches : borne les fuites de memoire
+# d'une dependance tierce. Le recyclage a lieu ENTRE deux taches, donc il
+# n'interrompt jamais une copie en cours.
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
+
 # Borner les opérations réseau vers le courtier.
 #
 # Ces clés protègent du cas « Redis répond à la connexion mais ne répond
