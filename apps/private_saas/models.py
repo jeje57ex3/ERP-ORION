@@ -92,7 +92,13 @@ MODULE_NAV_IDS = {
     'messages':      [],
     'domains':       [],
     'domain_diagnostics': [],
-    'backups_module':     [],
+    # L'entree de menu « backups » (libelle « Sauvegardes ») n'etait activee
+    # par AUCUN code module : la liste etait vide alors que le code
+    # « backups_module » existe et ne demandait qu'a la gouverner. Pour un
+    # salarie non super-admin, cette section etait donc invisible quoi qu'on
+    # coche -- une autre facon dont « l'activation des modules ne
+    # fonctionne pas ».
+    'backups_module':     ['backups'],
     'site_builder':       [],
     # Identifiants relevés dans NAV_MODULES (apps/core/context_processors.py)
     # et non devinés : une liste vide masque le module de la navigation.
