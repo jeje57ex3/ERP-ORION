@@ -12,7 +12,33 @@
   quand l'assistant privilégié est absent. Ce sont deux prérequis
   indépendants, et la page n'en montrait qu'un à la fois — installer
   l'assistant ne sert à rien s'il n'y a aucun disque à préparer.
+
+  DEPUIS QUE L'HYPERVISEUR EST INTERROGÉ, deux situations se distinguent
+  enfin, là où « aucun disque détecté » les confondait :
+
+    * Proxmox n'en déclare qu'un → aucun disque n'a été ajouté, l'action est
+      sur l'hyperviseur ;
+    * Proxmox en déclare deux et le système en voit un → le disque EST
+      ajouté, mais l'ajout à chaud n'a pas été transmis au noyau. Un
+      redémarrage suffit, et c'est une action tout autre.
 {% endcomment %}
+
+{% if proxmox_comparaison.comparable and not proxmox_comparaison.coherent %}
+{# Le cas qui valait une page d'explication : le disque est là, invisible. #}
+<div class="alert alert-warning small mb-2">
+  <div class="fw-600 mb-1">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Le disque est bien branché — c'est le système qui ne le voit pas encore.
+  </div>
+  <p class="mb-2">{{ proxmox_comparaison.diagnostic }}</p>
+  <p class="mb-0 text-muted">
+    Redémarrez la VM depuis Proxmox (ou <code>qm reboot {{ proxmox.vmid }}</code>),
+    puis revenez ici : le disque s'affichera comme « Disponible », avec un
+    bouton pour le préparer.
+  </p>
+</div>
+{% endif %}
+
 <div class="alert alert-info small mb-0">
   <div class="fw-600 mb-2">
     <i class="bi bi-info-circle me-1"></i>
@@ -27,13 +53,58 @@
     rien à préparer ici, et donc aucun bouton.
   </p>
 
-  <p class="mb-1"><strong>1. Sur l'hôte Proxmox</strong>, ajoutez un disque à la VM :</p>
-  <pre class="mb-2 p-2 rounded" style="background:rgba(0,0,0,.05);font-size:11.5px;white-space:pre-wrap">qm set 100 --scsi1 local-lvm:500        # 500 Go, a adapter
-qm set 100 --scsi1 /dev/disk/by-id/...  # ou un disque physique entier</pre>
+  {% if proxmox.joignable %}
+  {# Ce que l'hyperviseur dit vraiment : on ne devine plus. #}
+  <div class="border rounded p-2 mb-2" style="background:rgba(255,255,255,.5)">
+    <div class="fw-600 mb-1">D'après Proxmox</div>
+    <p class="mb-1">
+      Machine {{ proxmox.vmid }}
+      {% if proxmox.nom_de_la_machine %}« {{ proxmox.nom_de_la_machine }} »{% endif %}
+      sur le nœud {{ proxmox.noeud }} :
+      <strong>{{ proxmox.disques|length }} disque(s) déclaré(s)</strong>.
+    </p>
+    <ul class="mb-1" style="padding-left:18px">
+      {% for d in proxmox.disques %}
+      <li>
+        <code>{{ d.cle }}</code> —
+        {% if d.taille_octets %}{{ d.taille_octets|filesizeformat }}{% else %}taille inconnue{% endif %}
+        {% if d.systeme %}(système){% endif %}
+        {% if d.detache %}(détaché){% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if proxmox.stockages %}
+    <p class="mb-0 text-muted">
+      Place libre sur l'hôte :
+      {% for s in proxmox.stockages %}<code>{{ s.nom }}</code> {{ s.libre_octets|filesizeformat }}{% if not forloop.last %} · {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+  </div>
+  {% elif proxmox.configure and proxmox.erreur %}
+  <div class="alert alert-danger small mb-2">
+    L'hyperviseur n'a pas répondu : {{ proxmox.erreur }}
+    <a href="{% url 'system_health:proxmox_reglages' %}">Revoir les réglages</a>
+  </div>
+  {% else %}
   <p class="mb-2 text-muted">
-    Depuis l'interface Proxmox : sélectionnez la VM <strong>100</strong> →
-    <em>Hardware</em> → <em>Add</em> → <em>Hard Disk</em>. Le numéro de VM est
-    celui de cette appliance ; vérifiez-le avant d'exécuter la commande.
+    <i class="bi bi-lightbulb me-1"></i>
+    L'ERP peut <a href="{% url 'system_health:proxmox_reglages' %}">interroger
+    l'hyperviseur</a> pour vous dire si un disque est déjà branché mais
+    invisible du système, et quelle place reste disponible. En lecture seule.
+  </p>
+  {% endif %}
+
+  <p class="mb-1"><strong>1. Sur l'hôte Proxmox</strong>, ajoutez un disque à la VM :</p>
+  <pre class="mb-2 p-2 rounded" style="background:rgba(0,0,0,.05);font-size:11.5px;white-space:pre-wrap">qm set {% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %} --scsi1 local-lvm:500        # 500 Go, a adapter
+qm set {% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %} --scsi1 /dev/disk/by-id/...  # ou un disque physique entier</pre>
+  <p class="mb-2 text-muted">
+    Depuis l'interface Proxmox : sélectionnez la VM
+    <strong>{% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %}</strong> →
+    <em>Hardware</em> → <em>Add</em> → <em>Hard Disk</em>.
+    {% if not proxmox.joignable %}
+    Le numéro de VM est celui de cette appliance ; vérifiez-le avant
+    d'exécuter la commande.
+    {% endif %}
   </p>
 
   <p class="mb-1"><strong>2. Revenez ici</strong> et actualisez :</p>

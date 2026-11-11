@@ -1,0 +1,265 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Hyperviseur Proxmox — Santé système{% endblock %}
+{% block page_eyebrow %}Super Admin · Santé du système{% endblock %}
+{% block page_title %}Hyperviseur Proxmox{% endblock %}
+{% block page_subtitle %}Lire ce que l'hôte sait, et que la VM ne voit pas.{% endblock %}
+
+{% block content %}
+
+{% if messages %}{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}{% endif %}
+
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">À quoi ça sert</h2>
+  <div class="small text-muted" style="line-height:1.65">
+    <p class="mb-2">
+      L'écran des disques voit ce que le système d'exploitation voit, et rien
+      de ce que l'hyperviseur sait. Deux questions restaient sans réponse :
+    </p>
+    <ul class="mb-2">
+      <li><strong>« ai-je bien branché un disque sur la VM ? »</strong> Un
+        disque correctement ajouté mais que le noyau n'a pas vu ressemble
+        exactement à un disque jamais ajouté.</li>
+      <li><strong>« quelle taille puis-je allouer ? »</strong> La place libre
+        est sur les pools de stockage de l'hôte, invisibles d'ici.</li>
+    </ul>
+    <p class="mb-0">
+      <strong>Lecture seule, par construction.</strong> Ce client n'émet que
+      des requêtes GET : il n'y a aucune méthode d'écriture à désactiver, il
+      n'en existe pas. Le jeton enregistré ici ne peut donc rien modifier sur
+      l'hyperviseur depuis l'ERP, même s'il en a le droit côté Proxmox.
+    </p>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">Créer le jeton dans Proxmox</h2>
+  <ol class="small mb-2" style="line-height:1.7">
+    <li><em>Datacenter → Permissions → API Tokens → Add</em></li>
+    <li>Choisissez un utilisateur, un nom de jeton, et <strong>décochez
+      « Privilege Separation »</strong> seulement si vous savez pourquoi.</li>
+    <li>Copiez le secret : <strong>Proxmox ne le réaffiche jamais.</strong></li>
+    <li><em>Datacenter → Permissions → Add → API Token Permission</em> :
+      donnez-lui le rôle <code>PVEAuditor</code> sur <code>/</code>.</li>
+  </ol>
+  <div class="alert alert-warning small mb-0">
+    <strong>Donnez-lui un rôle de lecture seule</strong>
+    (<code>PVEAuditor</code>, ou <code>VM.Audit</code> +
+    <code>Datastore.Audit</code>). Rien ici ne peut l'imposer : c'est une
+    consigne. Un jeton d'hyperviseur logé dans la machine virtuelle qu'il
+    gouverne renverse la confiance — autant qu'il ne puisse que regarder.
+  </div>
+</div>
+
+{# ── État de la dernière interrogation ───────────────────────────────── #}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">État</h2>
+
+  {% if not reglages.actif %}
+    <div class="alert alert-secondary small mb-0">
+      L'interrogation est désactivée : l'ERP n'émet aucun appel vers Proxmox.
+    </div>
+  {% elif inventaire.joignable %}
+    <p class="small mb-2">
+      <strong>Hôte joint.</strong>
+      Machine {{ inventaire.vmid }}
+      {% if inventaire.nom_de_la_machine %}« {{ inventaire.nom_de_la_machine }} »{% endif %}
+      sur le nœud {{ inventaire.noeud }} —
+      {{ inventaire.disques|length }} disque(s) déclaré(s).
+    </p>
+
+    {% if inventaire.disques %}
+    <div class="table-responsive mb-2">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Clé</th><th>Volume</th><th>Taille</th><th></th></tr></thead>
+        <tbody>
+          {% for d in inventaire.disques %}
+          <tr>
+            <td class="small"><code>{{ d.cle }}</code></td>
+            <td class="small text-muted">{{ d.volume }}</td>
+            <td class="small">
+              {% if d.taille_octets %}{{ d.taille_octets|filesizeformat }}
+              {% else %}<span class="text-muted">inconnue</span>{% endif %}
+            </td>
+            <td class="small">
+              {% if d.systeme %}<span class="badge bg-secondary">système</span>{% endif %}
+              {% if d.detache %}<span class="badge bg-warning text-dark">détaché</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if inventaire.stockages %}
+    <h3 class="h6 small fw-600 mb-1 mt-3">Place libre sur l'hôte</h3>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Pool</th><th>Type</th><th>Libre</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for s in inventaire.stockages %}
+          <tr>
+            <td class="small"><code>{{ s.nom }}</code></td>
+            <td class="small text-muted">{{ s.type }}</td>
+            <td class="small fw-600">{{ s.libre_octets|filesizeformat }}</td>
+            <td class="small text-muted">{{ s.total_octets|filesizeformat }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mb-0 mt-2">
+      C'est dans l'un de ces pools qu'un nouveau disque sera créé. La taille
+      que vous pouvez demander ne dépasse pas la place libre affichée ici.
+    </p>
+    {% endif %}
+
+  {% elif inventaire.erreur %}
+    <div class="alert alert-danger small mb-0">{{ inventaire.erreur }}</div>
+  {% else %}
+    <div class="alert alert-secondary small mb-0">
+      Aucune interrogation n'a encore abouti.
+    </div>
+  {% endif %}
+
+  {% if reglages.dernier_appel_le %}
+  <p class="small text-muted mb-0 mt-2">
+    Dernier appel : {{ reglages.dernier_appel_le|date:"d/m/Y à H:i" }} —
+    {% if reglages.dernier_appel_reussi %}réussi{% else %}en échec{% endif %}.
+  </p>
+  {% endif %}
+</div>
+
+{# ── Le formulaire ───────────────────────────────────────────────────── #}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="orion-card mb-3">
+    <h2 class="h6 mb-3">Connexion</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div style="grid-column:span 2;padding:12px;border-radius:6px;background:var(--orion-info-bg,#eef4ff)">
+        <label class="small fw-600 d-flex align-items-center gap-2 mb-0">
+          <input type="checkbox" name="actif" {% if reglages.actif %}checked{% endif %}>
+          Interroger l'hyperviseur
+        </label>
+        <p class="small mb-0 mt-1 opacity-75">
+          Le bouton de test fonctionne même décoché : vous pouvez vérifier
+          les réglages avant de les mettre en service.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Adresse de l'hôte</label>
+        <input type="text" name="hote" value="{{ reglages.hote }}" class="orion-input w-100" placeholder="192.168.1.10">
+        <p class="small text-muted mb-0 mt-1">
+          Telle que cette VM peut la joindre. Sans <code>https://</code> ni port.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Port de l'API</label>
+        <input type="number" name="port" value="{{ reglages.port }}" min="1" max="65535" class="orion-input w-100">
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Nom du nœud</label>
+        <input type="text" name="noeud" value="{{ reglages.noeud }}" class="orion-input w-100" placeholder="pve">
+        <p class="small text-muted mb-0 mt-1">
+          En haut de l'arborescence dans l'interface Proxmox.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Numéro de cette machine</label>
+        <input type="number" name="vmid" value="{{ reglages.vmid }}" min="1" class="orion-input w-100">
+        <p class="small text-muted mb-0 mt-1">
+          À vérifier : interroger le mauvais numéro décrirait une autre machine.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Type</label>
+        <select name="type_de_machine" class="orion-input w-100">
+          {% for code, libelle in types %}
+          <option value="{{ code }}" {% if reglages.type_de_machine == code %}selected{% endif %}>{{ libelle }}</option>
+          {% endfor %}
+        </select>
+        <p class="small text-muted mb-0 mt-1">
+          En cas de doute, le test essaie les deux et corrige celui-ci.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Délai d'attente (secondes)</label>
+        <input type="number" name="delai_secondes" value="{{ reglages.delai_secondes }}" min="1" class="orion-input w-100">
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Identifiant du jeton</label>
+        <input type="text" name="jeton_id" value="{{ reglages.jeton_id }}" class="orion-input w-100" placeholder="orion@pam!erp" autocomplete="off">
+        <p class="small text-muted mb-0 mt-1">
+          Forme <code>utilisateur@pam!nom-du-jeton</code>.
+        </p>
+      </div>
+
+      <div>
+        <label class="small fw-600 d-block mb-1">Secret du jeton</label>
+        <input type="password" name="jeton_secret" value="" class="orion-input w-100" autocomplete="new-password"
+               placeholder="{% if reglages.secret_enregistre %}enregistré — laisser vide pour le conserver{% else %}aucun secret enregistré{% endif %}">
+        <p class="small text-muted mb-0 mt-1">
+          Jamais réaffiché. <strong>Un champ vide conserve</strong> le secret
+          en place — sinon corriger un numéro de port couperait l'accès.
+        </p>
+        {% if reglages.secret_enregistre %}
+        <label class="small fw-600 d-flex align-items-center gap-2 mt-2 mb-0">
+          <input type="checkbox" name="effacer_secret">
+          Effacer le secret enregistré
+        </label>
+        {% endif %}
+      </div>
+
+      <div style="grid-column:span 2">
+        <label class="small fw-600 d-flex align-items-center gap-2 mb-0">
+          <input type="checkbox" name="verifier_le_certificat" {% if reglages.verifier_le_certificat %}checked{% endif %}>
+          Vérifier le certificat TLS
+        </label>
+        <p class="small text-muted mb-0 mt-1">
+          Proxmox s'installe avec un certificat auto-signé, que cette
+          vérification refuse. Décochée, rien ne distingue plus l'hôte d'une
+          machine qui se ferait passer pour lui — acceptable sur un réseau
+          que vous maîtrisez, pas ailleurs.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" name="action" value="enregistrer" class="orion-btn primary">
+      <i class="bi bi-check2 me-1"></i>Enregistrer
+    </button>
+    <button type="submit" name="action" value="tester" class="orion-btn">
+      <i class="bi bi-plug me-1"></i>Enregistrer et tester
+    </button>
+    <a href="{% url 'system_health:disk_dashboard' %}" class="orion-btn ghost">
+      <i class="bi bi-hdd me-1"></i>Disques & stockage
+    </a>
+  </div>
+</form>
+
+<div class="orion-card">
+  <h2 class="h6 mb-2">Ce que l'ERP ne fait pas</h2>
+  <p class="small text-muted mb-0" style="line-height:1.65">
+    <strong>Il n'ajoute pas de disque.</strong> Créer et rattacher un disque
+    est une écriture sur l'hyperviseur, et ce client ne sait que lire. Cette
+    page vous dit si un disque est branché, s'il est visible du système, et
+    quelle place reste disponible — l'ajout se fait dans Proxmox, puis
+    l'écran des disques prend le relais pour le partitionner, le formater et
+    le monter.
+  </p>
+</div>
+{% endblock %}

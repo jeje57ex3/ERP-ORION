@@ -504,6 +504,7 @@ NAV_MODULES = [
             {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
             {'label': _('Contrôle installation'), 'url_name': 'system_health:controle_installation', 'icon': 'ti-list-check'},
             {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
+            {'label': _('Hyperviseur Proxmox'), 'url_name': 'system_health:proxmox_reglages', 'icon': 'ti-server-cog'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
             # Meme raison que « Santé du système » ci-dessus : les pages de
             # apps.orion_ops n'etaient atteignables par aucune entree de
