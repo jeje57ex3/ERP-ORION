@@ -21,6 +21,7 @@
       <div class="orion-card-body p-4">
         <form method="post" novalidate>
           {% csrf_token %}
+          {% include "work_planning/_erreurs_du_formulaire.html" %}
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label fw-medium">{% trans 'Nom de la tâche' %} <span class="text-danger">*</span></label>
@@ -42,6 +43,19 @@
             <div class="col-6 col-md-4">
               <label class="form-label fw-medium">{% trans 'Heures estimées' %}</label>
               {{ form.estimated_hours }}
+            </div>
+            {% comment %}
+              MÊME DÉFAUT QUE SUR L'ÉCRAN DES EMPLOYÉS.
+
+              Le gabarit rendait « estimated_hours », qui est FACULTATIF, et
+              omettait « estimated_minutes », qui est REQUIS et que le
+              planificateur automatique utilise. La tâche ne pouvait donc
+              jamais être enregistrée, sans le moindre message.
+            {% endcomment %}
+            <div class="col-6 col-md-4">
+              <label class="form-label fw-medium">{% trans 'Minutes estimées' %} <span class="text-danger">*</span></label>
+              {{ form.estimated_minutes }}
+              <div class="form-text text-muted">{% trans 'Utilisé par la planification automatique.' %}</div>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-medium">{% trans 'Assignée à' %}</label>

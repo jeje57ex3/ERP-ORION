@@ -46,14 +46,29 @@ class EmployeeProfileForm(forms.ModelForm):
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
+        modification = bool(self.instance and self.instance.pk)
+        if modification:
             self.fields['skills_input'].initial = ', '.join(self.instance.skills or [])
+            # EN MODIFICATION, le gabarit ne rend pas « user » -- il est
+            # entoure de « {% if action == 'create' %} » -- alors que le
+            # champ restait REQUIS. Chaque enregistrement d'une fiche
+            # existante echouait donc sur « Ce champ est obligatoire »,
+            # pour un champ que personne ne voyait.
+            #
+            # On le retire plutot que de le rendre facultatif : changer
+            # l'utilisateur auquel une fiche de planning est rattachee
+            # n'est pas une modification ordinaire. Elle emporterait
+            # l'historique d'heures et les contraintes avec elle.
+            self.fields.pop('user', None)
         self.fields.pop('skills')
         self.fields['max_overtime_hours_per_week'].required = False
         self.fields['lunch_break_start'].required = False
         self.fields['lunch_break_end'].required = False
         self.fields['planning_notes'].required = False
-        if company is not None:
+        # « user » n'existe plus en modification : sans ce garde, la page de
+        # modification leverait une KeyError -- on remplacerait une panne
+        # muette par une erreur 500.
+        if company is not None and 'user' in self.fields:
             self.fields['user'].queryset = User.objects.filter(is_active=True, profile__companies=company)
 
     def save(self, commit=True):

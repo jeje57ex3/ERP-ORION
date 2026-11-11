@@ -1,0 +1,36 @@
+{% load i18n %}
+{% comment %}
+  POURQUOI CE FRAGMENT EXISTE
+
+  Les formulaires du planning n'affichaient les erreurs que d'un ou deux
+  champs choisis. Toute erreur portant sur un AUTRE champ restait invisible :
+  la vue réaffichait la même page, sans message, et l'utilisateur concluait
+  que le bouton ne marchait pas.
+
+  C'est exactement ce qui s'est produit avec « Ajouter un employé » : le
+  formulaire exigeait `weekly_capacity_hours`, que le gabarit ne rendait
+  nulle part. Le champ ne pouvait donc jamais être rempli, l'erreur ne
+  pouvait jamais s'afficher, et rien ne se passait.
+
+  Un formulaire qui refuse doit DIRE pourquoi. Ce fragment liste toutes les
+  erreurs, y compris celles des champs absents du gabarit — ce qui rend
+  visible, au passage, le défaut de gabarit lui-même.
+{% endcomment %}
+{% if form.errors %}
+<div class="alert alert-danger small" role="alert">
+  <div class="fw-semibold mb-1">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    {% trans "Le formulaire n'a pas pu être enregistré :" %}
+  </div>
+  <ul class="mb-0 ps-3">
+    {% for erreur in form.non_field_errors %}
+      <li>{{ erreur }}</li>
+    {% endfor %}
+    {% for champ in form %}
+      {% for erreur in champ.errors %}
+        <li><strong>{{ champ.label }}</strong> — {{ erreur }}</li>
+      {% endfor %}
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
