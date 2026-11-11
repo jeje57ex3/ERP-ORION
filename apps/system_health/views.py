@@ -365,7 +365,27 @@ def _contexte_de_stockage():
         except stockage_actions.ErreurDeStockage as exc:
             etats.append({'cle': cle, 'erreur': str(exc)})
 
+    # Ce que l'HYPERVISEUR déclare, et la comparaison avec ce que le système
+    # voit. C'est cette confrontation qui distingue les deux situations que
+    # l'écran confondait : « aucun disque n'a été ajouté » (l'action est sur
+    # Proxmox) et « le disque est ajouté mais le noyau ne l'a pas vu » (un
+    # redémarrage suffit). Les deux donnaient « aucun disque détecté ».
+    #
+    # `inventaire()` ne lève jamais et met son résultat en cache une minute :
+    # la page ne doit pas attendre dix secondes parce que l'hôte ne répond
+    # pas.
+    from . import proxmox as _proxmox
+
+    inventaire_proxmox = _proxmox.inventaire()
+    # `disques_vus` vaut None quand l'assistant privilégié n'a pas pu
+    # inventorier : « je ne sais pas » ne doit pas se lire « zéro disque ».
+    disques_vus = disques_physiques if inventaire is not None else None
+    comparaison = _proxmox.comparer_avec_le_systeme(
+        inventaire_proxmox, disques_vus)
+
     return {
+        'proxmox': inventaire_proxmox,
+        'proxmox_comparaison': comparaison,
         'disques_physiques': disques_physiques,
         # Les disques bruts que l'assistant juge préparables. Sert à
         # EXPLIQUER une liste de destinations vide : « un disque de 2,9 To
@@ -1221,3 +1241,123 @@ def controle_installation_lancer(request):
             f'{controle.nombre_critiques} point(s) à corriger.')
 
     return redirect('system_health:controle_installation')
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Interrogation de l'hyperviseur Proxmox
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _enregistrer_proxmox(request, reglages):
+    """Applique le formulaire. Rend la liste des avertissements."""
+    avertissements = []
+
+    reglages.actif = request.POST.get('actif') == 'on'
+    reglages.hote = (request.POST.get('hote') or '').strip()
+    reglages.noeud = (request.POST.get('noeud') or '').strip()
+    reglages.jeton_id = (request.POST.get('jeton_id') or '').strip()
+    reglages.verifier_le_certificat = (
+        request.POST.get('verifier_le_certificat') == 'on')
+
+    def _entier(nom, courant, minimum=1, maximum=None):
+        """Un champ vide, absent ou illisible CONSERVE la valeur en place.
+
+        Le remplacer par un défaut ferait d'un formulaire partiel une remise
+        à zéro silencieuse.
+        """
+        brut = request.POST.get(nom)
+        if brut is None or str(brut).strip() == '':
+            return courant
+        try:
+            valeur = int(str(brut).strip())
+        except (TypeError, ValueError):
+            return courant
+        if valeur < minimum or (maximum is not None and valeur > maximum):
+            return courant
+        return valeur
+
+    reglages.port = _entier('port', reglages.port, maximum=65535)
+    reglages.vmid = _entier('vmid', reglages.vmid)
+    reglages.delai_secondes = _entier(
+        'delai_secondes', reglages.delai_secondes)
+
+    type_demande = (request.POST.get('type_de_machine') or '').strip()
+    if type_demande in dict(reglages.TYPE_CHOICES):
+        reglages.type_de_machine = type_demande
+
+    # Même règle que pour le mot de passe SMTP : le secret n'est jamais
+    # réaffiché, donc un champ vide veut dire « je n'y touche pas » et non
+    # « efface-le ». Sans cela, corriger un numéro de port couperait l'accès
+    # à l'hyperviseur sans raison apparente.
+    if request.POST.get('effacer_secret') == 'on':
+        reglages.jeton_secret = ''
+    else:
+        nouveau = request.POST.get('jeton_secret') or ''
+        if nouveau:
+            try:
+                reglages.jeton_secret = nouveau
+            except Exception as exc:                            # noqa: BLE001
+                avertissements.append(
+                    'Le secret n’a pas été enregistré : cette installation '
+                    'n’a pas de clé de chiffrement '
+                    f'(ORION_SECRET_ENCRYPTION_KEY). Détail : {exc}')
+
+    reglages.save()
+
+    from . import proxmox
+    proxmox.oublier_l_inventaire()
+
+    if reglages.actif and not reglages.utilisable:
+        avertissements.append(
+            'L’interrogation est activée mais les réglages sont incomplets : '
+            'adresse, nœud, identifiant de jeton et secret sont nécessaires.')
+    if reglages.secret_illisible:
+        avertissements.append(
+            'Le secret enregistré est illisible : la clé de chiffrement de '
+            'cette installation a changé depuis son enregistrement.')
+    if reglages.jeton_id and '!' not in reglages.jeton_id:
+        avertissements.append(
+            'L’identifiant du jeton ne contient pas « ! ». Proxmox attend la '
+            'forme « utilisateur@pam!nom-du-jeton » — un identifiant '
+            'd’utilisateur seul ne suffit pas.')
+    if not reglages.verifier_le_certificat:
+        avertissements.append(
+            'La vérification du certificat est désactivée : rien ne '
+            'distingue plus l’hôte d’une machine qui se ferait passer pour '
+            'lui. Acceptable sur un réseau que vous maîtrisez.')
+
+    return avertissements
+
+
+@_require_perm('can_administrate')
+def proxmox_reglages(request):
+    """La page de réglage de l'interrogation de l'hyperviseur."""
+    from .models import ReglagesProxmox
+
+    reglages = ReglagesProxmox.get_global()
+
+    if request.method == 'POST':
+        from . import proxmox
+
+        _audit(request, 'action', description='Réglages Proxmox enregistrés')
+        for avertissement in _enregistrer_proxmox(request, reglages):
+            messages.warning(request, avertissement)
+
+        if (request.POST.get('action') or '') == 'tester':
+            reussi, motif = proxmox.tester(reglages)
+            if reussi:
+                messages.success(request, motif)
+            else:
+                messages.error(request, f'Test en échec — {motif}')
+        else:
+            messages.success(request, 'Réglages Proxmox enregistrés.')
+
+        return redirect('system_health:proxmox_reglages')
+
+    from . import proxmox
+    from .models import ReglagesProxmox as _R
+
+    return render(request, 'system_health/proxmox_reglages.html', {
+        'reglages': reglages,
+        'types': _R.TYPE_CHOICES,
+        'inventaire': proxmox.inventaire(reglages),
+    })

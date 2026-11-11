@@ -854,3 +854,176 @@ class ControleDeLInstallation(models.Model):
             (r for r in self.resultats if r.get('etat') != 'ok'),
             key=lambda r: rang.get(r.get('etat'), 2),
         )
+
+
+# ─── Interrogation de l'hyperviseur Proxmox ──────────────────────────────────
+
+class ReglagesProxmox(models.Model):
+    """De quoi INTERROGER l'hôte Proxmox depuis l'ERP.
+
+    POURQUOI C'EST UTILE, ET CE QUE ÇA RÉPARE
+
+    L'écran des disques disait « aucun disque détecté » et ne pouvait rien
+    dire de plus : il voit ce que le système d'exploitation voit, et rien de
+    ce que l'hyperviseur sait. Les deux questions que l'exploitant se pose
+    étaient donc sans réponse :
+
+      * « ai-je bien branché un disque sur la VM ? » — Proxmox le sait, le
+        système invité ne le voit qu'après un redémarrage si l'ajout à chaud
+        n'a pas été transmis. Sans cette comparaison, un disque correctement
+        ajouté et invisible ressemble à un disque jamais ajouté ;
+      * « quelle taille puis-je allouer ? » — la place libre est sur les
+        pools de stockage de l'hôte, invisible depuis la VM.
+
+    LECTURE SEULE, ET CE N'EST PAS UNE ÉTAPE PROVISOIRE
+
+    `apps/system_health/proxmox.py` n'implémente que GET. Le jeton stocké
+    ici ne peut donc rien écrire DEPUIS L'ERP, quels que soient ses droits
+    côté Proxmox. C'est volontaire : un jeton d'hyperviseur logé dans la
+    machine virtuelle qu'il gouverne est un renversement de confiance — la
+    VM la moins privilégiée se mettrait à commander la machine qui l'héberge.
+    Tant que le client ne sait que lire, le pire d'une compromission de l'ERP
+    reste la divulgation de l'inventaire, pas la destruction d'un disque.
+
+    Le jeton doit donc être créé en LECTURE SEULE côté Proxmox (rôle
+    PVEAuditor, ou VM.Audit + Datastore.Audit). Rien ici ne peut l'imposer :
+    c'est une consigne, et la page la rappelle.
+    """
+
+    actif = models.BooleanField(
+        default=False,
+        verbose_name='Interroger l’hyperviseur',
+        help_text='Décoché, l’ERP n’émet aucun appel vers Proxmox.',
+    )
+
+    hote = models.CharField(
+        max_length=255, blank=True,
+        verbose_name='Adresse de l’hôte Proxmox',
+        help_text='L’adresse de la machine qui héberge cette VM, telle que '
+                  'la VM peut la joindre — souvent l’IP du serveur sur le '
+                  'réseau local. Sans https:// ni port.',
+    )
+    port = models.PositiveIntegerField(
+        default=8006, verbose_name='Port de l’API')
+    noeud = models.CharField(
+        max_length=100, blank=True,
+        verbose_name='Nom du nœud',
+        help_text='Le nom de l’hôte dans Proxmox, par exemple « pve ». '
+                  'Visible en haut de l’arborescence de son interface.',
+    )
+    vmid = models.PositiveIntegerField(
+        default=100,
+        verbose_name='Numéro de cette machine',
+        help_text='Le VMID de l’appliance Orion. À vérifier : interroger le '
+                  'mauvais numéro décrirait une autre machine.',
+    )
+    TYPE_CHOICES = [
+        ('qemu', 'Machine virtuelle (qm)'),
+        ('lxc', 'Conteneur (pct)'),
+    ]
+    type_de_machine = models.CharField(
+        max_length=10, choices=TYPE_CHOICES, default='qemu',
+        verbose_name='Type',
+        help_text='Les deux n’ont pas la même adresse d’API. En cas de '
+                  'doute, le bouton de test essaie les deux et retient '
+                  'celui qui répond.',
+    )
+
+    jeton_id = models.CharField(
+        max_length=200, blank=True,
+        verbose_name='Identifiant du jeton',
+        help_text='De la forme « utilisateur@pam!nom-du-jeton ». Créé dans '
+                  'Proxmox : Datacenter → Permissions → API Tokens.',
+    )
+    jeton_secret_chiffre = models.TextField(
+        blank=True, default='',
+        verbose_name='Secret du jeton (chiffré en base)',
+    )
+
+    verifier_le_certificat = models.BooleanField(
+        default=True,
+        verbose_name='Vérifier le certificat TLS',
+        help_text='Proxmox s’installe avec un certificat auto-signé, que '
+                  'cette vérification refuse. Ne décochez que si l’hôte est '
+                  'joint sur un réseau que vous maîtrisez : sans '
+                  'vérification, rien ne distingue l’hôte d’une machine qui '
+                  'se fait passer pour lui.',
+    )
+    delai_secondes = models.PositiveIntegerField(
+        default=10, verbose_name='Délai d’attente (secondes)')
+
+    dernier_appel_le = models.DateTimeField(null=True, blank=True)
+    dernier_appel_reussi = models.BooleanField(null=True, blank=True)
+    derniere_erreur = models.TextField(blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Réglages Proxmox'
+        verbose_name_plural = 'Réglages Proxmox'
+
+    def __str__(self):
+        if not self.actif:
+            return 'Proxmox — interrogation désactivée'
+        return f'Proxmox — {self.hote}:{self.port} / {self.noeud} / {self.vmid}'
+
+    @classmethod
+    def get_global(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @classmethod
+    def courants(cls):
+        """Les réglages, ou None si on ne peut pas les lire.
+
+        Jamais d'exception : appelée depuis l'écran des disques, qui doit
+        rester consultable même entre le déploiement du code et la
+        migration.
+        """
+        try:
+            return cls.objects.filter(pk=1).first()
+        except Exception:
+            return None
+
+    # ── Le secret ───────────────────────────────────────────────────────────
+
+    @property
+    def jeton_secret(self):
+        if not self.jeton_secret_chiffre:
+            return ''
+        from apps.website_shop_settings.crypto import decrypt_secret
+        return decrypt_secret(self.jeton_secret_chiffre)
+
+    @jeton_secret.setter
+    def jeton_secret(self, valeur):
+        if not valeur:
+            self.jeton_secret_chiffre = ''
+            return
+        from apps.website_shop_settings.crypto import encrypt_secret
+        self.jeton_secret_chiffre = encrypt_secret(valeur)
+
+    @property
+    def secret_enregistre(self):
+        return bool(self.jeton_secret_chiffre)
+
+    @property
+    def secret_illisible(self):
+        """Stocké mais indéchiffrable : la clé de chiffrement a changé.
+
+        Même distinction que pour le mot de passe SMTP : « rien enregistré »
+        et « illisible » rendent tous deux une chaîne vide, et les confondre
+        envoie chercher une faute de frappe là où la base a été restaurée
+        sur une autre clé.
+        """
+        return bool(self.jeton_secret_chiffre) and not self.jeton_secret
+
+    @property
+    def utilisable(self):
+        """Assez de réglages pour tenter un appel."""
+        return bool(self.actif and self.hote and self.noeud
+                    and self.jeton_id and self.jeton_secret_chiffre)
+
+    @property
+    def base_url(self):
+        return f'https://{self.hote}:{self.port}/api2/json'

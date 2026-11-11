@@ -395,6 +395,35 @@ def _fraicheur_des_capteurs():
         f'{age.total_seconds() / 60:.0f} minute(s).'), detail
 
 
+def _hyperviseur():
+    """L'hyperviseur répond-il, quand l'ERP est réglé pour l'interroger ?
+
+    Non configuré n'est PAS un problème : c'est une fonction facultative, et
+    la signaler en avertissement remplirait le rapport d'un reproche
+    permanent pour une option que l'exploitant a le droit de ne pas
+    employer. Configuré mais muet, en revanche, est un vrai constat — le plus
+    souvent un jeton révoqué ou une adresse d'hôte qui a changé.
+    """
+    from .models import ReglagesProxmox
+
+    reglages = ReglagesProxmox.courants()
+    if reglages is None or not reglages.actif:
+        return OK, 'Interrogation de l’hyperviseur non activée (facultatif).', {}
+
+    from . import proxmox
+
+    resultat = proxmox.inventaire(reglages, use_cache=False)
+    if resultat.get('joignable'):
+        return OK, (
+            f'Hôte joint : {len(resultat["disques"])} disque(s) déclaré(s) '
+            f'pour la machine {resultat.get("vmid")}.'
+        ), {'disques': len(resultat['disques'])}
+
+    return AVERTISSEMENT, (
+        f'L’interrogation est activée et l’hôte ne répond pas : '
+        f'{resultat.get("erreur") or "motif inconnu"}'), {}
+
+
 def _reglages_de_fiabilite_celery():
     """Les quatre réglages que le score Celery note, et qui manquaient."""
     from django.conf import settings
@@ -436,6 +465,8 @@ def controles():
         Controle('courriels', 'Envoi des courriels', _courriels, 'Services'),
         Controle('assistants', 'Assistants privilégiés',
                  _assistants_privilegies, 'Services'),
+        Controle('hyperviseur', 'Hyperviseur Proxmox',
+                 _hyperviseur, 'Services'),
 
         Controle('place_disque', 'Place disque', _place_disque, 'Données'),
         Controle('sauvegardes', 'Sauvegardes', _sauvegardes, 'Données'),

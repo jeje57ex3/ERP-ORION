@@ -66,6 +66,9 @@ urlpatterns = [
     # Journal d'audit
     path(_P + 'audit/', views.health_audit_log, name='audit_log'),
 
+    # Interrogation de l'hyperviseur Proxmox (lecture seule)
+    path(_P + 'proxmox/', views.proxmox_reglages, name='proxmox_reglages'),
+
     # Contrôle périodique de l'installation
     path(_P + 'controle/', views.controle_installation_liste,
          name='controle_installation'),
