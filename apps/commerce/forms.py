@@ -24,9 +24,25 @@ class StoreForm(forms.ModelForm):
 
 
 class POSSessionForm(forms.ModelForm):
+    """Le formulaire d'OUVERTURE d'une session de caisse.
+
+    « status » et « closing_cash » en ont été retirés, et c'est ce qui
+    corrige une panne muette : `status` porte une valeur par défaut au
+    niveau du modèle mais pas `blank=True`, donc Django en faisait un champ
+    OBLIGATOIRE — une valeur par défaut fournit l'initiale, elle ne rend
+    rien facultatif. Le gabarit ne le rendait nulle part, il n'était donc
+    jamais envoyé, et l'ouverture d'une caisse échouait à chaque fois en
+    réaffichant la même page sans le moindre message.
+
+    Les retirer plutôt que les ajouter au gabarit est le bon sens : une
+    session qu'on ouvre est ouverte par définition, et son fond de caisse
+    de clôture n'existe pas encore. Le modèle pose « open » tout seul, et
+    la clôture passe par sa propre vue.
+    """
+
     class Meta:
         model = POSSession
-        fields = ['store', 'opening_cash', 'closing_cash', 'status']
+        fields = ['store', 'opening_cash']
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
