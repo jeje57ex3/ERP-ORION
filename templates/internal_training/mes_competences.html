@@ -1,0 +1,80 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Mes compétences{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">Formations</p>
+    <h1 class="orion-page-title">Mes compétences</h1>
+  </div>
+</div>
+
+{% if expirees %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2 text-warning">À renouveler ({{ expirees|length }})</h2>
+  <p class="small text-muted">
+    Une habilitation expirée n'est pas une habilitation. Elle est affichée à
+    part, et non mêlée aux compétences acquises.
+  </p>
+  {% for v in expirees %}
+  <div class="border rounded p-2 mb-2">
+    <div class="fw-600 small">{{ v.competence.code }} — {{ v.competence.libelle }}</div>
+    <div class="small text-muted">
+      Validée le {{ v.constatee_le|date:"d/m/Y" }}, expirée le {{ v.expire_le|date:"d/m/Y" }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">Acquises ({{ acquises|length }})</h2>
+  {% for v in acquises %}
+  <div class="border rounded p-2 mb-2">
+    <div class="fw-600 small">
+      {{ v.competence.code }} — {{ v.competence.libelle }}
+      <span class="badge bg-success ms-1">Acquise</span>
+    </div>
+    <div class="small text-muted">
+      Constatée le {{ v.constatee_le|date:"d/m/Y"|default:"—" }}
+      {% if v.lieu %}à {{ v.lieu }}{% endif %}
+      {% if v.valide_par %}par {{ v.valide_par.get_full_name|default:v.valide_par }}{% endif %}
+      {% if v.expire_le %}· valable jusqu'au {{ v.expire_le|date:"d/m/Y" }}{% endif %}
+    </div>
+    {% if v.commentaire %}<div class="small mt-1">{{ v.commentaire }}</div>{% endif %}
+  </div>
+  {% empty %}
+  <p class="text-muted small mb-0">Aucune compétence validée pour l'instant.</p>
+  {% endfor %}
+</div>
+
+{% if attente %}
+<div class="orion-card mb-3">
+  <h2 class="h6 mb-2">En attente d'un constat ({{ attente|length }})</h2>
+  <p class="small text-muted">
+    Un responsable doit vous voir à l'œuvre. Vous ne pouvez pas valider
+    vous-même.
+  </p>
+  {% for v in attente %}
+  <div class="border rounded p-2 mb-2 small">
+    <span class="fw-600">{{ v.competence.code }}</span> — {{ v.competence.libelle }}
+    <span class="text-muted">· demandée le {{ v.demandee_le|date:"d/m/Y" }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if refusees %}
+<div class="orion-card">
+  <h2 class="h6 mb-2">À revoir ({{ refusees|length }})</h2>
+  {% for v in refusees %}
+  <div class="border rounded p-2 mb-2 small">
+    <span class="fw-600">{{ v.competence.code }}</span> — {{ v.competence.libelle }}
+    <span class="badge bg-danger ms-1">{{ v.get_statut_display }}</span>
+    {% if v.commentaire %}<div class="text-muted mt-1">{{ v.commentaire }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

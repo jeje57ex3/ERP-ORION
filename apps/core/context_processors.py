@@ -340,6 +340,11 @@ NAV_MODULES = [
             {'label': _('Tableau de bord'), 'url_name': 'internal_training:dashboard',      'icon': 'ti-gauge'},
             {'label': _('Formations'),      'url_name': 'internal_training:course_list',    'icon': 'ti-books'},
             {'label': _('Nouvelle'),        'url_name': 'internal_training:course_create',  'icon': 'ti-circle-plus'},
+            # Les deux faces de la validation terrain : ce que j'ai acquis,
+            # et ce que j'ai a constater pour les autres. Sans entree de
+            # menu, une page existe et personne ne la trouve.
+            {'label': _('Mes compétences'), 'url_name': 'internal_training:mes_competences', 'icon': 'ti-patch-check'},
+            {'label': _('Validations terrain'), 'url_name': 'internal_training:validations_terrain', 'icon': 'ti-clipboard-check'},
         ],
     },
     {
@@ -497,6 +502,7 @@ NAV_MODULES = [
             # (private_saas:health). On ne pouvait donc pas trouver le
             # tableau de bord des disques depuis l'interface.
             {'label': _('Santé du système'),   'url_name': 'system_health:dashboard',      'icon': 'ti-heartbeat'},
+            {'label': _('Contrôle installation'), 'url_name': 'system_health:controle_installation', 'icon': 'ti-list-check'},
             {'label': _('Disques & stockage'), 'url_name': 'system_health:disk_dashboard', 'icon': 'ti-hdd'},
             {'label': _('Observabilité'),      'url_name': 'system_observability:dashboard',  'icon_img': 'observabilite.png', 'icon': 'ti-activity'},
             # Meme raison que « Santé du système » ci-dessus : les pages de
@@ -515,6 +521,10 @@ NAV_MODULES = [
             {'label': _('Réseau privé'),       'url_name': 'high_availability:admin_mesh',     'icon_img': 'noeuds_ha.png', 'icon': 'ti-shield-lock'},
             {'label': _('Basculement HA'),     'url_name': 'high_availability:admin_failover', 'icon_img': 'basculement_ha.png', 'icon': 'ti-arrows-left-right'},
             {'label': _('Paramètres'),         'url_name': 'private_saas:saas_settings',       'icon_img': 'params_saas.png', 'icon': 'ti-adjustments'},
+            # Sans cette entree la page existe et personne ne la trouve --
+            # le defaut que le commentaire d'« Ops — Fiabilite » decrit juste
+            # au-dessus.
+            {'label': _('Courriels'),          'url_name': 'core_mail:reglages',              'icon': 'ti-mail'},
             {'label': _('IA — Paramètres'),    'url_name': 'orion_ai:admin_ai_settings',      'icon_img': 'ia_params_audit.png', 'icon': 'ti-robot'},
             {'label': _('IA — Audit'),         'url_name': 'orion_ai:admin_ai_audit',         'icon_img': 'ia_params_audit.png', 'icon': 'ti-book'},
         ],

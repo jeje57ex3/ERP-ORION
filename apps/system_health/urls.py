@@ -65,4 +65,10 @@ urlpatterns = [
 
     # Journal d'audit
     path(_P + 'audit/', views.health_audit_log, name='audit_log'),
+
+    # Contrôle périodique de l'installation
+    path(_P + 'controle/', views.controle_installation_liste,
+         name='controle_installation'),
+    path(_P + 'controle/lancer/', views.controle_installation_lancer,
+         name='controle_installation_lancer'),
 ]

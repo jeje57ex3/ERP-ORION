@@ -507,6 +507,31 @@ SESSION_COOKIE_HTTPONLY = True
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
+# ─── Courriels ────────────────────────────────────────────────────────────────
+#
+# Le backend passe par apps.core.mail, qui lit les reglages EN BASE
+# (core.ReglagesMail, page /orion-admin/courriels/) et retombe sur le repli
+# ci-dessous quand aucun n'est actif. Motif : EMAIL_HOST et les siens
+# n'existaient que dans le .env du serveur, donc modifiables seulement par
+# SSH et apres un redemarrage de gunicorn -- une fonction d'administration
+# qui exige un terminal n'est pas administrable.
+#
+# development.py et testing.py ecrasent EMAIL_BACKEND (console et memoire),
+# donc ni le poste de developpement ni la suite de tests ne passent par ce
+# backend.
+EMAIL_BACKEND = 'apps.core.mail.BackendMailOrion'
+
+# Ce que fait l'ERP tant qu'aucun reglage n'est actif en base.
+#
+# La cle lue est « EMAIL_BACKEND » du .env, et c'est voulu : elle y etait
+# documentee depuis toujours (.env.example la mentionne) et RIEN NE LA
+# LISAIT -- base.py ne la declarait pas et production.py ecrasait le backend
+# en dur. Un operateur qui y posait le backend « console » n'obtenait aucun
+# effet. Elle gouverne desormais le repli, c'est-a-dire exactement ce
+# qu'elle pretendait gouverner.
+ORION_MAIL_BACKEND_DE_REPLI = config(
+    'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@orion-erp.local')
 EMAIL_HOST = config('EMAIL_HOST', default='localhost')
 EMAIL_PORT = config('EMAIL_PORT', default=25, cast=int)
@@ -620,6 +645,43 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# ─── Fiabilite des taches ────────────────────────────────────────────────────
+#
+# Ces quatre cles etaient ABSENTES, et le score Celery de la page Sante les
+# note : _check_celery_retry_config() dans apps/system_health/services.py
+# accorde 2 + 1 + 1 + 1 points. Il en donnait donc 0 sur 5. Mais elles ne
+# sont pas ajoutees pour le score -- elles repondent a un risque reel sur
+# cette appliance.
+#
+# ACKS_LATE : l'accuse de reception part APRES l'execution, non avant. Sans
+# cela, une tache perdue avec son worker est perdue pour de bon. Sur une VM
+# de 8 Go qui heberge aussi MySQL, Redis et un modele de langage de 3 Go, le
+# noyau tue des processus -- c'est le scenario central, pas une hypothese.
+#
+# REJECT_ON_WORKER_LOST : complete le precedent. La tache interrompue par la
+# mort du worker retourne dans la file au lieu d'etre comptee comme echouee.
+#
+# Ces deux reglages rendent une tache REJOUABLE, ce qui serait dangereux
+# pour une preparation de disque ou une copie de fichiers. Ce n'est pas le
+# cas ici : _executer_l_operation() dans apps/system_health/tasks.py refuse
+# toute operation qui n'est plus en « en_attente ». Une tache relivree apres
+# la mort d'un worker trouve donc « en_cours » et s'arrete -- elle ne
+# reformate pas un disque et ne recopie pas par-dessus une bascule faite.
+#
+# TIME_LIMIT a 24 heures, et c'est volontairement tres large. La tentation
+# est de mettre une heure ; elle tuerait copier_puis_basculer() au milieu
+# d'une copie de plusieurs teraoctets, c'est-a-dire exactement au moment ou
+# une interruption coute le plus cher. Une limite n'est la que pour arreter
+# ce qui est VRAIMENT bloque, et une tache figee depuis 24 heures l'est.
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_TIME_LIMIT = 86400
+
+# Recycle le processus enfant apres 100 taches : borne les fuites de memoire
+# d'une dependance tierce. Le recyclage a lieu ENTRE deux taches, donc il
+# n'interrompt jamais une copie en cours.
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
 
 # Borner les opérations réseau vers le courtier.
 #

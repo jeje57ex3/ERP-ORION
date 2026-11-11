@@ -338,11 +338,18 @@ def _contexte_de_stockage():
                 stockage_privilegie.ActionPrivilegieeRefusee) as exc:
             erreur_assistant = str(exc)
     else:
+        # Le message disait seulement que l'assistant manquait, sans dire
+        # comment l'obtenir -- or il s'installe tout seul : update_orion.sh
+        # pose /usr/local/sbin/orion-stockage et la regle sudo a chaque mise
+        # a jour. Sans cette phrase, l'exploitant conclut qu'il doit passer
+        # par SSH, alors qu'un bouton de l'ERP suffit.
         erreur_assistant = (
             'L\'assistant de préparation des disques n\'est pas installé sur '
             'ce serveur. La détection et le déplacement fonctionnent ; seuls '
             'le partitionnement et le montage d\'un disque neuf en ont '
-            'besoin.')
+            'besoin. Lancez une mise à jour depuis '
+            '/orion-admin/system-updates/ : elle l\'installe, ainsi que sa '
+            'règle sudo.')
 
     # L'etat de chaque categorie est lu sur le DISQUE : est-ce deja un lien,
     # et vers ou pointe-t-il. Aucune table ne double cette information.
@@ -1141,3 +1148,76 @@ def dashboard_api(request):
                             status__in=['open', 'investigating', 'identified']).count(),
         'timestamp':    health['timestamp'].isoformat(),
     })
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Contrôle périodique de l'installation
+# ──────────────────────────────────────────────────────────────────────────────
+
+@_require_perm('can_view_technical')
+def controle_installation_liste(request):
+    """L'historique des contrôles, le dernier en premier."""
+    from .models import ControleDeLInstallation
+
+    _audit(request, 'view_dashboard',
+           description='Consultation des contrôles de l’installation')
+
+    controles = ControleDeLInstallation.objects.all()[:24]
+    dernier = controles[0] if controles else None
+
+    # Les horaires réellement en place : un contrôle « mensuel » qui n'est
+    # pas planifié doit se voir comme tel, et non se deviner.
+    try:
+        from django_celery_beat.models import PeriodicTask
+        planifie = PeriodicTask.objects.filter(
+            task='system_health.controler_l_installation',
+            enabled=True).first()
+    except Exception:
+        planifie = None
+
+    return render(request, 'system_health/controle_installation.html', {
+        'controles': controles,
+        'dernier': dernier,
+        'planifie': planifie,
+        'peut_lancer': has_health_perm(request.user, 'can_administrate'),
+    })
+
+
+@_require_perm('can_administrate')
+@require_POST
+def controle_installation_lancer(request):
+    """Lance un contrôle maintenant, en synchrone.
+
+    EN SYNCHRONE, ET C'EST VOULU. Passer par Celery serait plus élégant,
+    et ferait échouer le contrôle exactement quand il est le plus utile :
+    quand les tâches de fond ne marchent pas. Un contrôle qui ne peut pas
+    s'exécuter sans le composant qu'il doit diagnostiquer ne diagnostique
+    rien.
+
+    Les douze vérifications sont bornées par des délais courts — ping
+    Celery 2 s, connexion SMTP selon son réglage — et aucune ne parcourt de
+    fichiers. La page revient en quelques secondes.
+    """
+    from . import controle_installation
+
+    _audit(request, 'action', description='Contrôle de l’installation lancé')
+
+    controle = controle_installation.executer(
+        declencheur='manuel', utilisateur=request.user)
+
+    if controle.etat == 'ok':
+        messages.success(
+            request,
+            f'Contrôle terminé : {controle.score}/100, aucun problème.')
+    elif controle.etat == 'warning':
+        messages.warning(
+            request,
+            f'Contrôle terminé : {controle.score}/100, '
+            f'{controle.nombre_avertissements} point(s) à surveiller.')
+    else:
+        messages.error(
+            request,
+            f'Contrôle terminé : {controle.score}/100, '
+            f'{controle.nombre_critiques} point(s) à corriger.')
+
+    return redirect('system_health:controle_installation')

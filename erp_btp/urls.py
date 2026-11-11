@@ -162,6 +162,21 @@ urlpatterns = [
          include('apps.performance_monitor.urls',
                  namespace='performance_monitor')),
 
+    # ── Courriels ─────────────────────────────────────────────────────────────
+    #
+    # Le prefixe est porte ICI, les routes d'apps/core/mail_urls.py etant
+    # relatives -- comme pour orion_ops. Monte APRES le include de
+    # private_saas sur « orion-admin/ », ce qui fonctionne parce qu'un
+    # include qui ne correspond a rien laisse Django essayer la regle
+    # suivante : « orion-admin/performance/ » et « orion-admin/ops/ » en
+    # dependent deja.
+    #
+    # Pourquoi une page plutot qu'un reglage de .env : EMAIL_HOST et les
+    # siens n'etaient modifiables que par SSH, suivi d'un redemarrage de
+    # gunicorn.
+    path('orion-admin/courriels/',
+         include('apps.core.mail_urls', namespace='core_mail')),
+
     # ── Personnalisation des sites, domaines, commandes ───────────────────────
     #
     # site_customization et orders ont des routes RELATIVES : leur prefixe

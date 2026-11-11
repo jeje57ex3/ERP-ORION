@@ -777,3 +777,80 @@ class OperationDeStockage(models.Model):
         if len(self.journal) > 60000:
             self.journal = (
                 '[...début tronqué...]\n' + self.journal[-50000:])
+
+
+# ─── Contrôle périodique de l'état de l'ERP ──────────────────────────────────
+
+class ControleDeLInstallation(models.Model):
+    """Le résultat d'un contrôle complet de CETTE installation.
+
+    **Pourquoi pas la suite de tests.** La question posée était d'employer
+    les 3 230 tests du dépôt comme contrôle mensuel. Ils ne conviennent pas,
+    pour trois raisons mesurées : pytest et pytest-django ne figurent pas
+    dans requirements.txt, donc ne sont pas installés dans l'environnement du
+    serveur ; la suite construit une base de test entière en rejouant toutes
+    les migrations, puis la détruit — sur une base de production, c'est une
+    opération qu'on ne planifie pas ; et surtout elle vérifie le CODE, qui
+    est exactement celui qu'un commit a déjà validé.
+
+    Ce qu'un contrôle mensuel doit vérifier est l'INSTALLATION, qui dérive
+    seule : migrations appliquées, services joignables, planificateur qui
+    tourne vraiment, assistants privilégiés présents, sauvegardes récentes,
+    place disque, courriels. Rien de cela n'est visible depuis un test
+    unitaire, et tout cela peut casser sans qu'une ligne de code change.
+
+    Quelques contrôles sont pourtant reprises de la suite, parce qu'ils
+    portent sur l'installation et non sur le code : les vérifications
+    système de Django, l'absence de migration en attente, et la résolution
+    de toutes les configurations d'URL incluses.
+    """
+
+    DECLENCHEUR_CHOICES = [
+        ('planifie', 'Planifié'),
+        ('manuel', 'Lancé à la main'),
+    ]
+    ETAT_CHOICES = [
+        ('ok', 'Tout va bien'),
+        ('warning', 'À surveiller'),
+        ('critical', 'À corriger'),
+        ('erreur', 'Le contrôle lui-même a échoué'),
+    ]
+
+    lance_le = models.DateTimeField(default=timezone.now, db_index=True)
+    duree_ms = models.PositiveIntegerField(default=0)
+    declencheur = models.CharField(
+        max_length=20, choices=DECLENCHEUR_CHOICES, default='planifie')
+    lance_par = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='controles_installation')
+
+    etat = models.CharField(max_length=20, choices=ETAT_CHOICES, default='ok')
+    score = models.PositiveSmallIntegerField(
+        default=0, help_text='Pourcentage de contrôles réussis.')
+    nombre_total = models.PositiveSmallIntegerField(default=0)
+    nombre_ok = models.PositiveSmallIntegerField(default=0)
+    nombre_avertissements = models.PositiveSmallIntegerField(default=0)
+    nombre_critiques = models.PositiveSmallIntegerField(default=0)
+
+    # Le détail complet, contrôle par contrôle. En JSON parce que la liste
+    # des contrôles évoluera : une table par contrôle obligerait à une
+    # migration à chaque ajout, et l'historique doit garder le libellé tel
+    # qu'il était au moment du contrôle.
+    resultats = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ['-lance_le']
+        verbose_name = 'Contrôle de l’installation'
+        verbose_name_plural = 'Contrôles de l’installation'
+
+    def __str__(self):
+        return f'Contrôle du {self.lance_le:%d/%m/%Y %H:%M} — {self.score}/100'
+
+    @property
+    def problemes(self):
+        """Les contrôles qui ne sont pas au vert, les plus graves d'abord."""
+        rang = {'critical': 0, 'warning': 1, 'erreur': 0}
+        return sorted(
+            (r for r in self.resultats if r.get('etat') != 'ok'),
+            key=lambda r: rang.get(r.get('etat'), 2),
+        )

@@ -1,0 +1,70 @@
+{% extends "erp_base.html" %}
+
+{% block title %}{{ quiz.titre }} — {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'internal_training:parcours' course.pk %}">{{ course.title }}</a>
+    </p>
+    <h1 class="orion-page-title">{{ quiz.titre }}</h1>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <p class="small mb-1">
+    Tentative n° {{ tentative.numero }} ·
+    {{ questions|length }} question(s) ·
+    <strong>{{ tentative.note_minimale_appliquee }} %</strong> exigés.
+  </p>
+  {% if quiz.consignes %}
+  <p class="small text-muted mb-0">{{ quiz.consignes|linebreaksbr }}</p>
+  {% endif %}
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  {% for question in questions %}
+  <div class="orion-card mb-3">
+    <div class="fw-600 mb-1">
+      {{ forloop.counter }}. {{ question.enonce|linebreaksbr }}
+    </div>
+    <p class="text-muted small mb-2">
+      {% if question.type_de_question == 'multiple' %}
+        Plusieurs réponses possibles — il faut toutes les bonnes, et aucune mauvaise.
+      {% else %}
+        Une seule réponse.
+      {% endif %}
+    </p>
+
+    {% for choix in question.choix.all %}
+    <label class="d-flex align-items-start gap-2 py-1 small">
+      <input
+        type="{% if question.type_de_question == 'multiple' %}checkbox{% else %}radio{% endif %}"
+        name="question_{{ question.pk }}"
+        value="{{ choix.pk }}">
+      <span>{{ choix.libelle }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <div class="orion-alert warning">Ce quiz ne contient aucune question.</div>
+  {% endfor %}
+
+  {% if questions %}
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" class="orion-btn primary"
+            onsubmit="return confirm('Remettre le quiz ?')">
+      <i class="bi bi-check2-circle me-1"></i>Remettre mes réponses
+    </button>
+    <a href="{% url 'internal_training:parcours' course.pk %}" class="orion-btn">Abandonner</a>
+  </div>
+  <p class="text-muted small">
+    Abandonner ne consomme pas la tentative : elle reste ouverte et vous la
+    reprendrez où vous l'avez laissée. Seule la remise est comptée.
+  </p>
+  {% endif %}
+</form>
+{% endblock %}

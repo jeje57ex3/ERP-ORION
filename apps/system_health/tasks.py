@@ -273,3 +273,31 @@ def supprimer_l_ancien_emplacement(operation_id):
         return resultat
 
     return _executer_l_operation(operation_id, travail)
+
+
+# ─── Contrôle périodique de l'installation ───────────────────────────────────
+
+@shared_task(name='system_health.controler_l_installation')
+def controler_l_installation():
+    """Vérifie l'état de CETTE installation et enregistre un rapport.
+
+    Planifié mensuellement. Ne répare rien : une action corrective lancée
+    sans témoin sur un serveur de production est la dernière chose qu'on
+    souhaite. Voir controle_installation.py pour le raisonnement complet,
+    notamment pourquoi la suite de tests ne convient pas à cet usage.
+    """
+    from . import controle_installation
+
+    controle = controle_installation.executer(declencheur='planifie')
+    logger.info(
+        'controle de l installation : %s/100 (%s) — %s critique(s), '
+        '%s avertissement(s)',
+        controle.score, controle.etat, controle.nombre_critiques,
+        controle.nombre_avertissements,
+    )
+    return {
+        'score': controle.score,
+        'etat': controle.etat,
+        'critiques': controle.nombre_critiques,
+        'avertissements': controle.nombre_avertissements,
+    }

@@ -1,0 +1,77 @@
+{% extends "erp_base.html" %}
+
+{% block title %}Résultat — {{ tentative.quiz.titre }}{% endblock %}
+
+{% block content %}
+<div class="orion-page-header">
+  <div>
+    <p class="orion-page-eyebrow">
+      <a href="{% url 'internal_training:parcours' course.pk %}">{{ course.title }}</a>
+    </p>
+    <h1 class="orion-page-title">Résultat</h1>
+  </div>
+</div>
+
+<div class="orion-card mb-3">
+  <div class="d-flex align-items-center gap-3">
+    <div style="font-size:32px;font-weight:700">{{ tentative.score }} %</div>
+    <div>
+      {% if tentative.reussie %}
+        <span class="badge bg-success">Réussi</span>
+      {% else %}
+        <span class="badge bg-danger">Échoué</span>
+      {% endif %}
+      <div class="text-muted small">
+        Tentative n° {{ tentative.numero }} ·
+        seuil appliqué : {{ tentative.note_minimale_appliquee }} %
+        {% if tentative.finie_le %}· le {{ tentative.finie_le|date:"d/m/Y à H:i" }}{% endif %}
+      </div>
+    </div>
+  </div>
+  <p class="text-muted small mb-0 mt-2">
+    Le seuil est celui qui s'appliquait au moment de la tentative. L'abaisser
+    plus tard ne transforme pas un échec en réussite.
+  </p>
+</div>
+
+{% if tentative.quiz.montrer_les_corrections %}
+<div class="orion-card">
+  <h2 class="h6 mb-3">Détail</h2>
+  {% for reponse in reponses %}
+  <div class="border-start border-3 {% if reponse.est_correcte %}border-success{% else %}border-danger{% endif %} ps-3 mb-3">
+    <div class="fw-600 small">{{ reponse.question.enonce|linebreaksbr }}</div>
+    <div class="small mt-1">
+      <span class="text-muted">Votre réponse :</span>
+      {% for choix in reponse.choix_retenus.all %}
+        <span class="badge {% if choix.est_correct %}bg-success{% else %}bg-danger{% endif %}">{{ choix.libelle }}</span>
+      {% empty %}
+        <em class="text-muted">aucune</em>
+      {% endfor %}
+    </div>
+    {% if not reponse.est_correcte %}
+    <div class="small mt-1">
+      <span class="text-muted">Attendu :</span>
+      {% for choix in reponse.question.choix.all %}
+        {% if choix.est_correct %}<span class="badge bg-success">{{ choix.libelle }}</span>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if reponse.question.explication %}
+    <div class="small text-muted mt-1">{{ reponse.question.explication|linebreaksbr }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="orion-alert">
+  Les corrections ne sont pas montrées pour ce quiz : il sert de contrôle et
+  non d'apprentissage.
+</div>
+{% endif %}
+
+<p class="mt-3">
+  <a href="{% url 'internal_training:parcours' course.pk %}" class="orion-btn">
+    <i class="bi bi-arrow-left me-1"></i>Retour au parcours
+  </a>
+</p>
+{% endblock %}
