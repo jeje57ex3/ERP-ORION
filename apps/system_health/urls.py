@@ -57,6 +57,7 @@ urlpatterns = [
     # Incidents
     path(_P + 'incidents/', views.incident_list, name='incident_list'),
     path(_P + 'incidents/nouveau/', views.incident_create, name='incident_create'),
+    path(_P + 'incidents/purger/', views.incident_purge, name='incident_purge'),
     path(_P + 'incidents/<int:pk>/', views.incident_detail, name='incident_detail'),
 
     # Administration permissions

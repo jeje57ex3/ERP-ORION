@@ -1088,16 +1088,40 @@ def check_and_alert(prev_criticals: list, curr_health: dict):
             .count()
         )
         if sustained >= 6:  # 6 snapshots × 5 min = 30 min en critique
+            # LE DÉDOUBLONNAGE NE DÉDOUBLONNAIT RIEN, et cela a produit
+            # plusieurs milliers d'incidents sur une installation réelle.
+            #
+            # Deux défauts dans la même requête :
+            #
+            # 1. elle cherchait « title__icontains=sensor », donc le CODE du
+            #    capteur (« disk_free_gb ») dans un titre qui ne porte que
+            #    son LIBELLÉ humain (« Dégradation prolongée : Espace disque
+            #    libre »). La correspondance était impossible ;
+            # 2. elle filtrait sur « open » et « identified », deux statuts
+            #    absents de INCIDENT_STATUSES, et créait avec « open ».
+            #
+            # Aucun incident existant n'était donc jamais trouvé, et un
+            # nouveau partait À CHAQUE passage — toutes les cinq minutes,
+            # pour chaque capteur critique depuis plus de trente minutes.
+            # Soit douze par heure et par capteur, qui ne se taisaient que
+            # lorsque le capteur repassait au vert.
+            #
+            # Le rapprochement se fait désormais sur « component », un champ
+            # EXACT et réservé à cela, et non sur une sous-chaîne de titre
+            # que la moindre reformulation aurait cassée.
+            composant = f'capteur:{sensor}'[:60]
             open_inc = SystemIncident.objects.filter(
-                status__in=['open', 'investigating', 'identified'],
-                title__icontains=sensor,
+                component=composant,
+                status__in=SystemIncident.STATUTS_OUVERTS,
             ).first()
             if not open_inc:
                 label = _SENSOR_LABELS.get(sensor, sensor)
                 inc = SystemIncident.objects.create(
                     title=f'Dégradation prolongée : {label}',
                     severity='major',
-                    status='open',
+                    status='detected',
+                    component=composant,
+                    auto_created=True,
                     description=(
                         f'Le capteur « {label} » ({sensor}) est en état critique '
                         f'depuis plus de 30 minutes. Escalade automatique.'

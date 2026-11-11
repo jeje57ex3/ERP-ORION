@@ -134,9 +134,17 @@ def _create_incident(rule, label: str, message: str) -> None:
         from django.utils import timezone as _tz
         SEVERITY_MAP = {'info': 'minor', 'warning': 'major',
                         'critical': 'critical', 'emergency': 'emergency'}
+        # Liste partagée avec apps/system_health, et non recopiee ici.
+        # Celle qui etait ecrite a la main etait JUSTE -- c'est l'autre
+        # module qui avait derive -- mais deux listes manuelles finissent
+        # toujours par diverger, et le prix de cette divergence a ete
+        # plusieurs milliers d'incidents en double.
+        #
+        # « monitoring » et « reopened » y entrent au passage : un incident
+        # sous surveillance ou rouvert est toujours actif.
         existing = SystemIncident.objects.filter(
             title__startswith=label,
-            status__in=['detected', 'confirmed', 'assigned', 'investigating', 'fixing'],
+            status__in=SystemIncident.STATUTS_OUVERTS,
         ).exists()
         if not existing:
             SystemIncident.objects.create(

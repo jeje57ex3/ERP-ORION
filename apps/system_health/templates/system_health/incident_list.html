@@ -17,6 +17,65 @@
 
 {% block content %}
 
+{% if messages %}{% for msg in messages %}
+<div class="orion-alert {% if msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}success{% endif %} mb-3">{{ msg }}</div>
+{% endfor %}{% endif %}
+
+{% comment %}
+  La purge n'est proposée qu'au-delà d'un certain volume : sur une
+  installation saine, un bouton de suppression de masse n'a rien à faire
+  en permanence sous les yeux.
+{% endcomment %}
+{% if can_administrate and total_incidents > conserver_par_defaut %}
+<details class="orion-card mb-3">
+  <summary style="cursor:pointer;font-weight:600">
+    <i class="bi bi-trash me-1"></i>
+    Purger l'historique — {{ total_incidents }} incident(s) enregistré(s)
+  </summary>
+
+  <div class="mt-3">
+    <p class="small text-muted mb-2">
+      Ne garder que les plus récents et supprimer les autres.
+      <strong>La suppression est définitive</strong> et emporte les fils de
+      discussion rattachés.
+    </p>
+
+    <div class="alert alert-info small">
+      Sur {{ total_incidents }} incident(s), <strong>{{ incidents_ouverts }}</strong>
+      sont encore ouverts. Ils sont <strong>épargnés</strong> : un incident en
+      cours porte du travail en train de se faire — son fil, ses actions, la
+      personne à qui il est assigné. En gardant les
+      {{ conserver_par_defaut }} plus récents,
+      <strong>{{ supprimables }}</strong> partiraient.
+    </div>
+
+    <form method="post" action="{% url 'system_health:incident_purge' %}"
+          onsubmit="return confirm('Supprimer définitivement les incidents les plus anciens ? Cette action est irréversible.')">
+      {% csrf_token %}
+      <div class="d-flex gap-2 align-items-end flex-wrap">
+        <div>
+          <label class="form-label small mb-1">Nombre à conserver</label>
+          <input type="number" name="conserver" value="{{ conserver_par_defaut }}"
+                 min="0" max="10000" class="orion-input" style="width:140px">
+        </div>
+        <button type="submit" class="orion-btn danger">
+          <i class="bi bi-trash me-1"></i>Supprimer les plus anciens
+        </button>
+      </div>
+
+      <label class="small d-flex align-items-center gap-2 mt-3 mb-0">
+        <input type="checkbox" name="emporter_les_ouverts">
+        Supprimer aussi les incidents encore ouverts
+      </label>
+      <p class="small text-muted mb-0 mt-1">
+        À ne cocher qu'en connaissance de cause : cela fait disparaître des
+        pannes non résolues, et plus personne ne saura qu'elles ont existé.
+      </p>
+    </form>
+  </div>
+</details>
+{% endif %}
+
 <form method="get" class="orion-card mb-3 d-flex gap-2 align-items-end">
   <div>
     <label class="form-label small">Statut</label>
