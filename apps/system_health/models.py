@@ -179,6 +179,26 @@ class SystemIncident(models.Model):
         ('reopened',      'Rouvert'),
     ]
 
+    # Les statuts qui désignent un incident ENCORE EN COURS.
+    #
+    # UNE SEULE SOURCE DE VÉRITÉ, et ce n'est pas de la coquetterie : deux
+    # modules dédoublonnaient leurs incidents automatiques avec des listes
+    # écrites à la main, et elles avaient divergé.
+    # apps/orion_ops/services/rule_engine.py employait le bon vocabulaire ;
+    # apps/system_health/services.py cherchait « open » et « identified »,
+    # qui n'existent NULLE PART dans les choix ci-dessus, et créait ses
+    # incidents avec « open ». Une valeur hors choix se range sans broncher
+    # — Django ne valide les choix que dans full_clean(), que `create()`
+    # n'appelle pas — donc rien ne signalait l'écart.
+    #
+    # « monitoring » en fait partie : un incident sous surveillance est
+    # toujours actif, et en ouvrir un second pour la même cause le
+    # dédoublerait.
+    STATUTS_OUVERTS = (
+        'detected', 'confirmed', 'assigned', 'investigating', 'fixing',
+        'monitoring', 'reopened',
+    )
+
     title              = models.CharField('Titre', max_length=300)
     severity           = models.CharField('Gravité', max_length=20, choices=INCIDENT_SEVERITIES, db_index=True)
     status             = models.CharField('Statut', max_length=20, choices=INCIDENT_STATUSES, default='detected', db_index=True)

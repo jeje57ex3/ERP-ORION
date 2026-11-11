@@ -971,11 +971,23 @@ def incident_list(request):
     paginator = Paginator(qs.order_by('-detected_at'), 20)
     page = paginator.get_page(request.GET.get('page'))
 
+    # Ce que la purge aurait à faire, calculé AVANT de la proposer : offrir
+    # « ne garder que les 20 derniers » sans dire combien partiraient
+    # reviendrait à faire signer un chèque en blanc.
+    total = SystemIncident.objects.count()
+    ouverts = SystemIncident.objects.filter(
+        status__in=SystemIncident.STATUTS_OUVERTS).count()
+
     return render(request, 'system_health/incident_list.html', {
         'page':     page,
         'filters':  {'status': status},
         'statuses': SystemIncident.INCIDENT_STATUSES,
         'can_manage': has_health_perm(request.user, 'can_manage_incidents'),
+        'can_administrate': has_health_perm(request.user, 'can_administrate'),
+        'total_incidents': total,
+        'incidents_ouverts': ouverts,
+        'conserver_par_defaut': NOMBRE_A_CONSERVER_PAR_DEFAUT,
+        'supprimables': max(0, total - ouverts - NOMBRE_A_CONSERVER_PAR_DEFAUT),
     })
 
 
@@ -1361,3 +1373,97 @@ def proxmox_reglages(request):
         'types': _R.TYPE_CHOICES,
         'inventaire': proxmox.inventaire(reglages),
     })
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Purge des incidents
+# ──────────────────────────────────────────────────────────────────────────────
+
+NOMBRE_A_CONSERVER_PAR_DEFAUT = 20
+TAILLE_DU_LOT_DE_SUPPRESSION = 500
+
+
+@_require_perm('can_administrate')
+@require_POST
+def incident_purge(request):
+    """Ne garde que les N incidents les plus récents, supprime les autres.
+
+    POURQUOI UNE PAGE ET NON UNE COMMANDE. La règle de cet ERP est qu'une
+    fonction d'administration se pilote depuis l'interface. Une suppression
+    de masse encore plus que les autres : elle doit être tracée, confirmée,
+    et faite par quelqu'un qui voit ce qu'il supprime.
+
+    LES INCIDENTS OUVERTS SONT ÉPARGNÉS PAR DÉFAUT, et c'est le choix
+    important. Un incident encore en cours porte du travail en train de se
+    faire : son fil, ses actions, la personne à qui il est assigné. Le
+    supprimer parce qu'il est vieux ferait disparaître une panne non
+    résolue, et personne ne saurait qu'elle a existé. Les emporter reste
+    possible, par une case à cocher distincte.
+
+    LA SUPPRESSION EST IRRÉVERSIBLE et elle entraîne les fils de discussion
+    rattachés. Le message rendu dit exactement ce qui est parti.
+    """
+    from .models import SystemIncident
+
+    try:
+        a_conserver = int(request.POST.get('conserver') or
+                          NOMBRE_A_CONSERVER_PAR_DEFAUT)
+    except (TypeError, ValueError):
+        a_conserver = NOMBRE_A_CONSERVER_PAR_DEFAUT
+    a_conserver = max(0, min(a_conserver, 10000))
+
+    emporter_les_ouverts = request.POST.get('emporter_les_ouverts') == 'on'
+
+    total = SystemIncident.objects.count()
+
+    # Les plus récents, par date de détection. On prend des identifiants et
+    # non des objets : la liste à garder est petite, celle à supprimer peut
+    # compter des milliers de lignes.
+    gardes = list(
+        SystemIncident.objects
+        .order_by('-detected_at', '-pk')
+        .values_list('pk', flat=True)[:a_conserver]
+    )
+
+    a_supprimer = SystemIncident.objects.exclude(pk__in=gardes)
+    if not emporter_les_ouverts:
+        a_supprimer = a_supprimer.exclude(
+            status__in=SystemIncident.STATUTS_OUVERTS)
+
+    identifiants = list(a_supprimer.values_list('pk', flat=True))
+    nombre = len(identifiants)
+
+    if not nombre:
+        messages.info(
+            request,
+            f'Rien à supprimer : {total} incident(s), et tous sont soit '
+            f'parmi les {a_conserver} plus récents, soit encore ouverts.')
+        return redirect('system_health:incident_list')
+
+    _audit(request, 'action',
+           description=f'Purge des incidents : {nombre} supprimé(s), '
+                       f'{a_conserver} conservé(s)')
+
+    # PAR LOTS. Un `.delete()` sur plusieurs milliers de lignes charge tout
+    # en mémoire pour propager les suppressions en cascade, et tient une
+    # seule transaction d'autant plus longue. Par tranches de 500, la base
+    # respire et une interruption laisse un état cohérent -- les lots déjà
+    # passés sont simplement supprimés.
+    supprimes = 0
+    for debut in range(0, nombre, TAILLE_DU_LOT_DE_SUPPRESSION):
+        lot = identifiants[debut:debut + TAILLE_DU_LOT_DE_SUPPRESSION]
+        resultat = SystemIncident.objects.filter(pk__in=lot).delete()
+        supprimes += resultat[1].get('system_health.SystemIncident', 0)
+
+    restants = SystemIncident.objects.count()
+    ouverts_epargnes = (restants - min(a_conserver, restants)
+                        if not emporter_les_ouverts else 0)
+
+    message = (f'{supprimes} incident(s) supprimé(s). '
+               f'{restants} conservé(s).')
+    if ouverts_epargnes > 0:
+        message += (f' Dont {ouverts_epargnes} incident(s) encore ouverts, '
+                    f'épargnés : ils portent du travail en cours.')
+    messages.success(request, message)
+
+    return redirect('system_health:incident_list')

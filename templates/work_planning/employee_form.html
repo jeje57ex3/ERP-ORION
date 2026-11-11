@@ -20,6 +20,7 @@
       <div class="orion-card-body p-4">
         <form method="post" novalidate>
           {% csrf_token %}
+          {% include "work_planning/_erreurs_du_formulaire.html" %}
           <div class="row g-3">
             {% if action == 'create' %}
             <div class="col-12">
@@ -39,6 +40,15 @@
             <div class="col-6 col-md-3">
               <label class="form-label fw-medium">{% trans 'H/jour max' %}</label>
               {{ form.default_hours_per_day }}
+            </div>
+            {% comment %}
+              Ce champ était ABSENT du gabarit alors que le formulaire
+              l'exige : il ne pouvait donc jamais être rempli, et l'ajout
+              d'un employé échouait sans aucun message.
+            {% endcomment %}
+            <div class="col-6 col-md-3">
+              <label class="form-label fw-medium">{% trans 'H/semaine' %} <span class="text-danger">*</span></label>
+              {{ form.weekly_capacity_hours }}
             </div>
             <div class="col-12">
               <label class="form-label fw-medium">{% trans 'Compétences' %}</label>

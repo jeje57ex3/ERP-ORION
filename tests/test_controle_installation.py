@@ -497,3 +497,284 @@ def test_sans_smtp_configure_le_constat_renvoie_a_la_page(monkeypatch):
     assert 'localhost' in message
     # L'erreur brute reste présente : elle sert quand la cause est ailleurs.
     assert 'Connection refused' in message
+
+
+# ── 7. Les sauvegardes : ce que l'ERP sait, et ce qui est sur le disque ──────
+#
+# Constat réel : « dans Santé il y a toujours une erreur sur sauvegarde alors
+# que sur la vm il y a des sauvegardes ». Les deux étaient vrais EN MÊME
+# TEMPS. Le capteur lit la table BackupJob — ce que l'ERP a lui-même produit
+# — et ne regarde AUCUN fichier. Des archives déposées par un script, par le
+# provisionnement ou par une sauvegarde Proxmox n'y figurent pas.
+
+@pytest.mark.django_db
+def test_des_fichiers_sans_travail_enregistre_sont_nommes_comme_tels(tmp_path):
+    """LE CAS CONSTATÉ.
+
+    Dire « aucune sauvegarde » serait faux, et ferait perdre confiance dans
+    tout le rapport : l'exploitant voit ses fichiers.
+    """
+    from apps.system_health import controle_installation as ci
+
+    (tmp_path / 'orion-2026-11-01.sql.gz').write_text('x')
+    (tmp_path / 'orion-2026-11-08.sql.gz').write_text('y')
+
+    with override_settings(BACKUP_DIR=tmp_path):
+        etat, message, detail = ci._sauvegardes()
+
+    assert etat == ci.AVERTISSEMENT
+    assert detail['fichiers_sur_disque'] == 2
+    assert '2 fichier' in message
+    assert 'produit par l’ERP' in message
+    # Et surtout : « aucune sauvegarde » ne doit PAS apparaître.
+    assert 'Aucune sauvegarde' not in message
+
+
+@pytest.mark.django_db
+def test_ni_travail_ni_fichier_reste_critique(tmp_path):
+    """La vraie absence, elle, doit rester critique."""
+    from apps.system_health import controle_installation as ci
+
+    with override_settings(BACKUP_DIR=tmp_path):
+        etat, message, _ = ci._sauvegardes()
+
+    assert etat == ci.CRITIQUE
+    assert 'Aucune sauvegarde' in message
+
+
+@pytest.mark.django_db
+def test_une_sauvegarde_recente_de_l_erp_passe_au_vert(tmp_path):
+    """Le chemin qui aboutit. Sans lui, les deux tests précédents
+    passeraient aussi avec un contrôle qui échoue toujours."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.backups.models import BackupJob
+    from apps.system_health import controle_installation as ci
+
+    BackupJob.objects.create(
+        name='orion-core', status='success',
+        finished_at=timezone.now() - timedelta(hours=3))
+
+    with override_settings(BACKUP_DIR=tmp_path):
+        etat, message, detail = ci._sauvegardes()
+
+    assert etat == ci.OK
+    assert 'orion-core' in message
+    assert detail['age_heures'] < 4
+
+
+@pytest.mark.django_db
+def test_une_sauvegarde_de_plus_d_une_semaine_est_critique(tmp_path):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.backups.models import BackupJob
+    from apps.system_health import controle_installation as ci
+
+    BackupJob.objects.create(
+        name='vieille', status='success',
+        finished_at=timezone.now() - timedelta(days=20))
+
+    with override_settings(BACKUP_DIR=tmp_path):
+        etat, message, _ = ci._sauvegardes()
+
+    assert etat == ci.CRITIQUE
+    assert '20 jours' in message
+
+
+@pytest.mark.django_db
+def test_un_travail_echoue_ne_compte_pas_comme_une_sauvegarde(tmp_path):
+    """« status=failed » est précisément l'inverse d'une sauvegarde."""
+    from django.utils import timezone
+
+    from apps.backups.models import BackupJob
+    from apps.system_health import controle_installation as ci
+
+    BackupJob.objects.create(
+        name='ratee', status='failed', finished_at=timezone.now())
+
+    with override_settings(BACKUP_DIR=tmp_path):
+        etat, _, _ = ci._sauvegardes()
+
+    assert etat == ci.CRITIQUE
+
+
+# ── 8. Les planifications de sauvegarde partaient-elles ? ────────────────────
+
+@pytest.mark.django_db
+def test_sans_planification_ce_n_est_pas_un_reproche():
+    from apps.system_health.controle_installation import (
+        OK, _planification_des_sauvegardes)
+
+    etat, message, _ = _planification_des_sauvegardes()
+    assert etat == OK
+    assert 'facultatif' in message
+
+
+@pytest.mark.django_db
+def test_une_planification_qui_n_a_jamais_tourne_est_signalee():
+    """C'était le cas de TOUTES, puisque rien ne les déclenchait."""
+    from apps.backups.models import BackupSchedule
+    from apps.system_health.controle_installation import (
+        AVERTISSEMENT, _planification_des_sauvegardes)
+
+    BackupSchedule.objects.create(name='Quotidienne', frequency='daily')
+
+    etat, message, detail = _planification_des_sauvegardes()
+    assert etat == AVERTISSEMENT
+    assert detail['jamais_executees'] == 1
+    assert 'jamais tourné' in message
+
+
+@pytest.mark.django_db
+def test_le_declencheur_est_planifie_par_la_migration():
+    """Sans cette ligne, `run_scheduled_backup` reste appelée par personne."""
+    from django_celery_beat.models import PeriodicTask
+
+    tache = PeriodicTask.objects.filter(
+        task='backups.declencher_les_planifications', enabled=True).first()
+    assert tache is not None
+    assert tache.interval.every == 15
+    assert tache.interval.period == 'minutes'
+
+
+# ── 9. La règle d'échéance du déclencheur ────────────────────────────────────
+
+def _planif_ancienne(**champs):
+    """Une planification créée il y a longtemps.
+
+    `created_at` sert de plancher quand aucune exécution n'a eu lieu : sans
+    reculer la date de création, chaque planification de test serait jugée
+    « créée après l'heure du jour » et jamais due.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.backups.models import BackupSchedule
+
+    planif = BackupSchedule.objects.create(**champs)
+    BackupSchedule.objects.filter(pk=planif.pk).update(
+        created_at=timezone.now() - timedelta(days=40))
+    planif.refresh_from_db()
+    return planif
+
+
+@pytest.mark.django_db
+def test_une_planification_du_jour_passee_est_due():
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.tasks import est_due
+
+    planif = _planif_ancienne(
+        name='Nuit', frequency='daily', time=datetime.time(2, 0))
+    maintenant = timezone.now().replace(hour=3, minute=0)
+    assert est_due(planif, maintenant) is True
+
+
+@pytest.mark.django_db
+def test_avant_l_heure_ce_n_est_pas_du():
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.tasks import est_due
+
+    planif = _planif_ancienne(
+        name='Nuit', frequency='daily', time=datetime.time(23, 0))
+    maintenant = timezone.now().replace(hour=10, minute=0)
+    assert est_due(planif, maintenant) is False
+
+
+@pytest.mark.django_db
+def test_une_planification_deja_partie_aujourd_hui_ne_repart_pas():
+    """LE PIÈGE DU DÉCLENCHEUR.
+
+    Il tourne toutes les quinze minutes : sans cette garde, une sauvegarde
+    quotidienne partirait quatre fois par heure jusqu'à minuit.
+    """
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.tasks import est_due
+
+    maintenant = timezone.now().replace(hour=5, minute=0)
+    planif = _planif_ancienne(
+        name='Nuit', frequency='daily', time=datetime.time(2, 0),
+        last_run_at=maintenant.replace(hour=2, minute=3))
+
+    assert est_due(planif, maintenant) is False
+
+
+@pytest.mark.django_db
+def test_une_planification_creee_apres_l_heure_n_est_pas_rattrapee():
+    """Saisir à quinze heures une sauvegarde prévue à deux heures ne doit
+    pas en déclencher une immédiatement : sur une grosse base, cela
+    bloquerait la machine en pleine journée."""
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.models import BackupSchedule
+    from apps.backups.tasks import est_due
+
+    planif = BackupSchedule.objects.create(
+        name='Nuit', frequency='daily', time=datetime.time(2, 0))
+    maintenant = timezone.now().replace(hour=15, minute=0)
+    assert est_due(planif, maintenant) is False
+
+
+@pytest.mark.django_db
+def test_une_planification_inactive_ne_part_pas():
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.tasks import est_due
+
+    planif = _planif_ancienne(
+        name='Coupee', frequency='daily', time=datetime.time(2, 0),
+        is_active=False)
+    assert est_due(planif, timezone.now().replace(hour=5)) is False
+
+
+@pytest.mark.django_db
+def test_l_hebdomadaire_ne_part_que_son_jour():
+    import datetime
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.backups.tasks import est_due
+
+    planif = _planif_ancienne(
+        name='Hebdo', frequency='weekly', time=datetime.time(2, 0),
+        day_of_week=0)
+
+    base = timezone.now().replace(hour=5, minute=0)
+    lundi = base - timedelta(days=base.weekday())
+    mardi = lundi + timedelta(days=1)
+
+    assert est_due(planif, lundi) is True
+    assert est_due(planif, mardi) is False
+
+
+@pytest.mark.django_db
+def test_la_purge_des_vieilles_sauvegardes_n_est_pas_planifiee():
+    """DÉLIBÉRÉ.
+
+    `cleanup_old_backup_files` SUPPRIME des fichiers et n'a jamais tourné :
+    la planifier d'un coup ferait disparaître en un seul passage tout ce qui
+    dépasse la rétention, y compris des archives que l'exploitant croyait
+    garder. Une purge se décide, elle ne s'allume pas dans une migration.
+    """
+    from django_celery_beat.models import PeriodicTask
+
+    taches = set(PeriodicTask.objects.values_list('task', flat=True))
+    assert not any('cleanup' in t for t in taches), taches
