@@ -147,27 +147,72 @@ def _confs_d_url():
 
 
 def _assistants_privilegies():
-    """Les ponts root sont-ils installés ?
+    """L'assistant disque FONCTIONNE-T-IL ? Pas « les fichiers existent-ils ».
 
-    Sans eux, des boutons de l'interface n'apparaissent pas — et rien ne
-    l'explique. C'est exactement ce qui fait dire « il n'y a pas de
-    bouton ».
+    La première version se contentait de regarder si deux fichiers étaient
+    présents. C'était trop faible, et un rapport réel l'a montré : le script
+    installé, sa règle sudo absente. Dans ce cas précis, `est_disponible()`
+    — qui ne teste que le bit d'exécution — rend True, l'écran des disques
+    croit l'assistant utilisable, appelle sudo, et reçoit un refus. Le
+    symptôme n'est donc pas « pas de bouton » mais « une erreur rouge », et
+    le message du contrôle décrivait la mauvaise panne.
+
+    On exerce donc le CHEMIN RÉEL : le même appel que fait l'interface.
+    Un `sudo -n` écrit une ligne dans les journaux d'authentification ;
+    `est_disponible()` l'évite pour cette raison, puisqu'il tourne à chaque
+    affichage de page. Ici c'est une fois par mois : le coût est nul et la
+    réponse est définitive.
+
+    Les trois situations sont distinguées, parce qu'elles n'appellent pas le
+    même geste.
     """
     if os.name != 'posix':
         return OK, 'Hors Linux : sans objet sur un poste de développement.', {}
 
-    attendus = {
-        '/usr/local/sbin/orion-stockage': 'préparation des disques',
-        '/etc/sudoers.d/orion-stockage': 'règles sudo des disques',
-    }
-    manquants = [f'{chemin} ({role})'
-                 for chemin, role in attendus.items()
-                 if not os.path.exists(chemin)]
-    if not manquants:
-        return OK, 'Les assistants privilégiés sont en place.', {}
-    return AVERTISSEMENT, (
-        'Assistant(s) absent(s) : les boutons correspondants ne '
-        's’afficheront pas.'), {'manquants': manquants}
+    from . import stockage_privilegie as pont
+
+    script = pont.CHEMIN_DU_SCRIPT
+    regle = '/etc/sudoers.d/orion-stockage'
+    detail = {'script': os.path.exists(script), 'regle_sudo': os.path.exists(regle)}
+
+    if not detail['script']:
+        return AVERTISSEMENT, (
+            f'{script} est absent : la préparation d’un disque neuf est '
+            f'impossible et aucun bouton ne s’affichera. Lancez une mise à '
+            f'jour depuis /orion-admin/system-updates/, qui l’installe.'
+        ), detail
+
+    if not detail['regle_sudo']:
+        # Le cas constaté. On le nomme précisément : le script est là, donc
+        # l'interface le croit utilisable et échoue à l'usage.
+        return AVERTISSEMENT, (
+            f'{regle} est absent alors que le script est installé. '
+            f'L’écran des disques croira l’assistant utilisable et recevra '
+            f'un refus de sudo. Une mise à jour pose cette règle ; si elle '
+            f'ne revient pas, c’est que « visudo -c » la refuse et la mise à '
+            f'jour l’écrit dans son journal.'
+        ), detail
+
+    # Les deux fichiers sont là : reste à savoir si sudo accepte vraiment.
+    try:
+        inventaire = pont.lister_les_disques()
+    except pont.StockagePrivilegieIndisponible as exc:
+        return AVERTISSEMENT, (
+            f'L’assistant est installé mais injoignable : {exc}'), detail
+    except pont.ActionPrivilegieeRefusee as exc:
+        return AVERTISSEMENT, (
+            f'sudo refuse l’assistant alors que la règle existe. Elle ne '
+            f'correspond probablement plus à ce que le code appelle. '
+            f'Détail : {exc}'), detail
+    except Exception as exc:                                    # noqa: BLE001
+        return AVERTISSEMENT, (
+            f'L’assistant a échoué : {type(exc).__name__}: {exc}'), detail
+
+    nombre = len(((inventaire or {}).get('disques')) or [])
+    detail['disques_vus'] = nombre
+    return OK, (
+        f'Assistant disque opérationnel : {nombre} disque(s) inventorié(s).'
+    ), detail
 
 
 def _planificateur():
@@ -298,9 +343,25 @@ def _courriels():
         connexion.open()
         connexion.close()
     except Exception as exc:                                    # noqa: BLE001
+        # DEUX ÉCHECS QUI SE RESSEMBLENT ET N'APPELLENT PAS LE MÊME GESTE.
+        #
+        # Rien n'est configuré : le repli tente « localhost:25 », où rien
+        # n'écoute sur cette appliance. L'erreur brute « Connection refused »
+        # est alors exacte et inutile — elle envoie chercher une panne
+        # réseau là où il manque simplement un réglage. Le geste est
+        # d'aller remplir la page.
+        #
+        # Un serveur EST configuré et ne répond pas : là, l'erreur du
+        # serveur est le renseignement principal.
+        motif = f'{type(exc).__name__}: {exc}'
+        if reglages is None:
+            return CRITIQUE, (
+                'Aucun serveur d’envoi n’est configuré : l’ERP se rabat sur '
+                '« localhost », où rien n’écoute. Renseignez votre SMTP sur '
+                f'/orion-admin/courriels/. Détail : {motif}'), {}
         return CRITIQUE, (
-            f'Connexion au serveur de courriel impossible — '
-            f'{type(exc).__name__}: {exc}'), {}
+            f'Connexion au serveur de courriel impossible '
+            f'({reglages.hote}:{reglages.port}) — {motif}'), {}
 
     cible = (f'{reglages.hote}:{reglages.port}' if reglages
              else f'{getattr(settings, "EMAIL_HOST", "?")}')
