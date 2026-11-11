@@ -391,36 +391,160 @@ def _place_disque():
     return OK, f'{libre_go:.1f} Go libres ({pourcent} %).', detail
 
 
+EXTENSIONS_DE_SAUVEGARDE = ('.sql', '.gz', '.zip', '.tar', '.dump', '.bak',
+                            '.sql.gz', '.tar.gz')
+
+
+def _fichiers_de_sauvegarde():
+    """Ce qui ressemble à une sauvegarde dans BACKUP_DIR. (nombre, plus récent)
+
+    On regarde le DISQUE, pas la base. Voir `_sauvegardes` pour pourquoi les
+    deux sont nécessaires.
+    """
+    from django.conf import settings
+
+    dossier = getattr(settings, 'BACKUP_DIR', None)
+    if dossier is None or not os.path.isdir(str(dossier)):
+        return 0, None, str(dossier or '')
+
+    nombre, plus_recent = 0, None
+    try:
+        for racine, _dossiers, fichiers in os.walk(str(dossier)):
+            for nom in fichiers:
+                if not nom.lower().endswith(EXTENSIONS_DE_SAUVEGARDE):
+                    continue
+                chemin = os.path.join(racine, nom)
+                try:
+                    date = os.path.getmtime(chemin)
+                except OSError:
+                    continue
+                nombre += 1
+                if plus_recent is None or date > plus_recent:
+                    plus_recent = date
+    except OSError:
+        return 0, None, str(dossier)
+
+    return nombre, plus_recent, str(dossier)
+
+
 def _sauvegardes():
-    """Une sauvegarde vieille de plus d'une semaine n'en est plus une."""
-    from datetime import timedelta
+    """Y a-t-il une sauvegarde récente, et l'ERP le sait-il ?
 
-    from .models import SensorReading
+    DEUX QUESTIONS DIFFÉRENTES, et c'est tout le sujet d'un constat qu'on a
+    eu sous les yeux : « il y a des sauvegardes sur la VM » et « l'ERP
+    signale une erreur » peuvent être vrais EN MÊME TEMPS, sans que l'un
+    contredise l'autre.
 
-    lecture = (SensorReading.objects
-               .filter(sensor_type='backup_age_hours')
-               .order_by('-collected_at')
-               .first())
-    if lecture is None or lecture.value is None:
-        return AVERTISSEMENT, (
-            'Aucune mesure d’ancienneté de sauvegarde. Le capteur n’a '
-            'jamais tourné, ou aucune sauvegarde n’existe.'), {}
+    Le capteur `backup_age_hours` lit la table BackupJob, c'est-à-dire ce
+    que l'ERP a lui-même produit et enregistré. Il ne regarde AUCUN fichier.
+    Des archives déposées par un script, par le provisionnement, par un
+    `mysqldump` à la main ou par une sauvegarde Proxmox n'y figurent pas :
+    l'ERP les ignore totalement, et ne peut donc ni en vérifier l'intégrité,
+    ni les restaurer, ni dire ce qu'elles contiennent.
 
-    if lecture.collected_at < timezone.now() - timedelta(days=2):
-        return AVERTISSEMENT, (
-            f'La dernière mesure date du '
-            f'{lecture.collected_at:%d/%m/%Y}. Elle ne dit rien de l’état '
-            f'actuel des sauvegardes.'), {'mesure_le': str(lecture.collected_at)}
+    Ce contrôle regarde les deux et NOMME L'ÉCART, au lieu de rendre une
+    erreur que l'exploitant sait être fausse en regardant son disque.
 
-    heures = lecture.value
-    detail = {'age_heures': heures}
+    Il interroge BackupJob directement plutôt que le capteur : pour une
+    vérification mensuelle, le coût est nul, et cela évite de dépendre d'une
+    collecte qui pourrait ne pas avoir tourné.
+    """
+    # `datetime.timezone` et non `django.utils.timezone` : le second expose
+    # bien un `utc`, mais déprécié depuis Django 4.2 et retiré en 5.0. Le
+    # premier est celui de la bibliothèque standard, et ne bougera pas.
+    from datetime import datetime, timezone as fuseau
+
+    nombre_fichiers, plus_recent, dossier = _fichiers_de_sauvegarde()
+    detail = {'fichiers_sur_disque': nombre_fichiers, 'dossier': dossier}
+
+    try:
+        from apps.backups.models import BackupJob
+        travail = (BackupJob.objects
+                   .filter(status='success', finished_at__isnull=False)
+                   .order_by('-finished_at')
+                   .first())
+    except Exception as exc:                                    # noqa: BLE001
+        return ERREUR, f'Table des sauvegardes illisible : {exc}', detail
+
+    if plus_recent is not None:
+        age_fichier = (timezone.now()
+                       - datetime.fromtimestamp(plus_recent, tz=fuseau.utc))
+        detail['fichier_le_plus_recent_jours'] = round(age_fichier.days)
+
+    if travail is None:
+        if nombre_fichiers:
+            # LE CAS CONSTATÉ. Des fichiers existent, l'ERP n'en a fait
+            # aucun. Dire « aucune sauvegarde » serait faux et ferait perdre
+            # confiance dans tout le rapport.
+            return AVERTISSEMENT, (
+                f'{nombre_fichiers} fichier(s) de sauvegarde sont présents '
+                f'dans {dossier}, mais AUCUN n’a été produit par l’ERP : '
+                f'il ne peut ni les vérifier, ni les restaurer depuis le '
+                f'Centre sauvegardes. Lancez-en une depuis l’ERP pour qu’il '
+                f'en ait une qu’il maîtrise.'), detail
+        return CRITIQUE, (
+            f'Aucune sauvegarde : ni travail enregistré par l’ERP, ni '
+            f'fichier dans {dossier}.'), detail
+
+    age = timezone.now() - travail.finished_at
+    heures = age.total_seconds() / 3600
+    detail['age_heures'] = round(heures, 1)
+    detail['derniere'] = travail.name
+
     if heures > 168:
         return CRITIQUE, (
-            f'Dernière sauvegarde il y a {heures / 24:.0f} jours.'), detail
+            f'La dernière sauvegarde faite par l’ERP date d’il y a '
+            f'{age.days} jours ({travail.name}).'), detail
     if heures > 48:
         return AVERTISSEMENT, (
-            f'Dernière sauvegarde il y a {heures:.0f} heures.'), detail
-    return OK, f'Sauvegarde datant de {heures:.0f} heure(s).', detail
+            f'La dernière sauvegarde faite par l’ERP date d’il y a '
+            f'{heures:.0f} heures ({travail.name}).'), detail
+    return OK, (
+        f'Sauvegarde de l’ERP datant de {heures:.0f} heure(s) '
+        f'({travail.name}) ; {nombre_fichiers} fichier(s) dans '
+        f'{dossier}.'), detail
+
+
+def _planification_des_sauvegardes():
+    """Une planification configurée est-elle réellement déclenchée ?
+
+    `run_scheduled_backup` existe, `BackupSchedule` existe, et RIEN
+    n'appelait la première — vérifié sur tout le dépôt. Une planification
+    saisie dans le Centre sauvegardes ne partait donc jamais, sans que rien
+    ne le signale : l'écran affichait une prochaine exécution qui
+    n'arrivait pas.
+    """
+    from datetime import timedelta
+
+    try:
+        from apps.backups.models import BackupSchedule
+        planifications = list(BackupSchedule.objects.filter(is_active=True))
+    except Exception as exc:                                    # noqa: BLE001
+        return ERREUR, f'Planifications illisibles : {exc}', {}
+
+    if not planifications:
+        return OK, (
+            'Aucune sauvegarde planifiée (facultatif). Le Centre '
+            'sauvegardes permet d’en créer une.'), {}
+
+    jamais = [p for p in planifications if p.last_run_at is None]
+    anciennes = [p for p in planifications
+                 if p.last_run_at is not None
+                 and p.last_run_at < timezone.now() - timedelta(days=2)]
+    detail = {'total': len(planifications), 'jamais_executees': len(jamais)}
+
+    if len(jamais) == len(planifications):
+        return AVERTISSEMENT, (
+            f'{len(planifications)} planification(s) active(s), aucune n’a '
+            f'jamais tourné. Normal juste après leur création ; anormal '
+            f'au-delà de leur première échéance.'), detail
+    if anciennes:
+        return AVERTISSEMENT, (
+            f'{len(anciennes)} planification(s) n’ont pas tourné depuis plus '
+            f'de deux jours.'), detail
+    return OK, (
+        f'{len(planifications)} planification(s) active(s), toutes '
+        f'exécutées récemment.'), detail
 
 
 def _fraicheur_des_capteurs():
@@ -531,6 +655,8 @@ def controles():
 
         Controle('place_disque', 'Place disque', _place_disque, 'Données'),
         Controle('sauvegardes', 'Sauvegardes', _sauvegardes, 'Données'),
+        Controle('planification_sauvegardes', 'Sauvegardes planifiées',
+                 _planification_des_sauvegardes, 'Données'),
         Controle('fraicheur_capteurs', 'Fraîcheur des mesures',
                  _fraicheur_des_capteurs, 'Données'),
     ]
