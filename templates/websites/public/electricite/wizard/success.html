@@ -1,0 +1,50 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Demande envoyée" %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-form-card site-reveal" style="text-align:center">
+      <i class="bi bi-check-circle-fill" style="font-size:3rem;color:var(--site-success)" aria-hidden="true"></i>
+      <h1 class="site-h-xxl" style="margin-top:1rem">{% trans "Demande envoyée avec succès !" %}</h1>
+
+      {% if quote_request %}
+      <p class="site-muted" style="margin-top:.5rem">{% trans "Référence :" %} <strong style="color:var(--site-accent)">{{ quote_request.reference }}</strong></p>
+
+      {% if estimate %}
+      <div class="site-calc-result" style="text-align:left;margin-top:2rem;background:var(--site-surface-2);border-radius:var(--site-radius-md);padding:1.5rem">
+        <h3 style="margin-bottom:1rem">{% trans "Votre pré-devis indicatif" %}</h3>
+        <table class="site-result-table">
+          {% for item in estimate.items.all %}
+          <tr><td>{{ item.description }} {% if item.quantity > 1 %}× {{ item.quantity }}{% endif %}</td><td style="text-align:right">{{ item.total_avg }} €</td></tr>
+          {% endfor %}
+        </table>
+        <p class="site-result-total" style="margin-top:1rem">{% blocktrans with total=estimate.total_ttc %}Total moyen TTC (indicatif) : {{ total }} €{% endblocktrans %}</p>
+        <p class="site-muted" style="font-size:.82rem;margin-top:.5rem">{{ estimate.disclaimer }}</p>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin-top:2rem">
+        <a href="{% url 'public_websites:electricite_wizard_photos' site.public_slug quote_request.pk %}" class="site-btn site-btn-outline">
+          <span class="site-btn-label"><i class="bi bi-camera" aria-hidden="true"></i>{% trans "Ajouter photos / plan" %}</span>
+        </a>
+        <a href="{% url 'public_websites:electricite_wizard_pdf' site.public_slug quote_request.pk %}" class="site-btn site-btn-outline">
+          <span class="site-btn-label"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>{% trans "Télécharger le PDF" %}</span>
+        </a>
+        {% if quote_request.create_portal_account %}
+        <a href="{% url 'client_portal:login' %}" class="site-btn site-btn-primary">
+          <span class="site-btn-label"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>{% trans "Accéder à mon espace client" %}</span>
+        </a>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="site-muted" style="margin-top:.5rem">{% trans "Nous revenons vers vous très rapidement." %}</p>
+      {% endif %}
+
+      <div style="margin-top:2.5rem">
+        <a href="{% url 'public_websites:electricite_home' site.public_slug %}" class="site-btn-ghost"><i class="bi bi-house" aria-hidden="true"></i> {% trans "Retour à l'accueil" %}</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

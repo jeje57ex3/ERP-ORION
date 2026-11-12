@@ -1,0 +1,52 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% trans 'Configurateur — Récapitulatif' %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Configurateur · Étape 4 sur 4' %}</span>
+      <h1 class="site-h-xxl">{% trans 'Récapitulatif de votre demande' %}</h1>
+    </div>
+
+    <div class="site-form-card site-reveal">
+      <div class="site-progress" role="progressbar" aria-valuenow="4" aria-valuemin="1" aria-valuemax="4">
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step current"></div>
+      </div>
+
+      <table class="site-result-table">
+        <tr><th>{% trans 'Type de bien' %}</th><td>{{ building_type|default:"—" }}</td></tr>
+        <tr><th>{% trans 'Type de projet' %}</th><td>{{ request_type }}</td></tr>
+        {% if request_type == "depannage" %}
+          <tr><th>{% trans 'Problème' %}</th><td>{{ answers.problem_type }}</td></tr>
+          <tr><th>{% trans 'Urgence' %}</th><td>{{ answers.urgency }}</td></tr>
+        {% else %}
+          <tr><th>{% trans 'Surface' %}</th><td>{{ answers.surface }}</td></tr>
+          <tr><th>{% trans 'Équipements' %}</th><td>{{ answers.equipments|join:", " }}</td></tr>
+          <tr><th>{% trans 'Niveau de gamme' %}</th><td>{{ quality_level }}</td></tr>
+        {% endif %}
+        <tr><th>{% trans 'Nom' %}</th><td>{{ contact.first_name }} {{ contact.last_name }}</td></tr>
+        <tr><th>Email</th><td>{{ contact.email }}</td></tr>
+        <tr><th>{% trans 'Téléphone' %}</th><td>{{ contact.phone|default:"—" }}</td></tr>
+        <tr><th>{% trans 'Adresse' %}</th><td>{{ contact.address }} {{ contact.zip_code }} {{ contact.city }}</td></tr>
+      </table>
+
+      <p class="site-muted" style="font-size:.85rem;margin-bottom:1.5rem">
+        <i class="bi bi-info-circle" aria-hidden="true"></i> {% blocktrans %}En validant, vous recevez un pré-devis indicatif immédiat. Un devis ferme
+        sera établi après diagnostic si nécessaire.{% endblocktrans %}
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="site-wizard-nav">
+          <a href="{% url 'public_websites:electricite_wizard_step3' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans 'Modifier' %}</span></a>
+          <button type="submit" class="site-btn site-btn-primary"><span class="site-btn-label"><i class="bi bi-send-check" aria-hidden="true"></i> {% trans 'Envoyer ma demande' %}</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktrans %}Configurateur de dépannage — Étape 2{% endblocktrans %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Dépannage · Étape 2 sur 4" %}</span>
+      <h1 class="site-h-xxl">{% trans "Quel est le problème ?" %}</h1>
+    </div>
+
+    <form method="post" class="site-form-card site-reveal">
+      {% csrf_token %}
+      <div class="site-progress" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="4">
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step current"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+      </div>
+
+      <div class="site-field">
+        <label for="problem_type">{% trans "Quel est votre problème ?" %}</label>
+        <select id="problem_type" name="problem_type" required>
+          {% for value, label in problem_type_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="site-field">
+        <label>{% trans "Urgence" %}</label>
+        <div class="site-pill-grid">
+          <label class="site-pill"><input type="radio" name="urgency" value="urgent"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> {% trans "Urgent" %}</label>
+          <label class="site-pill"><input type="radio" name="urgency" value="normal" checked>{% trans "Normal" %}</label>
+          <label class="site-pill"><input type="radio" name="urgency" value="flexible">{% trans "Flexible" %}</label>
+        </div>
+      </div>
+
+      <div class="site-field">
+        <label>{% trans "Situation dangereuse (odeur de brûlé, étincelles) ?" %}</label>
+        <div class="site-pill-grid">
+          <label class="site-pill"><input type="radio" name="safety_issue" value="yes">{% trans "Oui" %}</label>
+          <label class="site-pill"><input type="radio" name="safety_issue" value="no" checked>{% trans "Non" %}</label>
+        </div>
+      </div>
+
+      <div class="site-field">
+        <label for="availability">{% trans "Disponibilités pour l'intervention" %}</label>
+        <input type="text" id="availability" name="availability" placeholder="{% trans 'Ex : demain matin, cette semaine...' %}">
+      </div>
+
+      <div class="site-field">
+        <label style="display:flex;align-items:center;gap:.6rem;font-weight:500">
+          <input type="checkbox" name="has_photo" style="width:auto"> {% trans "J'ajouterai une photo du problème" %}
+        </label>
+      </div>
+
+      <div class="site-wizard-nav">
+        <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Retour" %}</span></a>
+        <button type="submit" class="site-btn site-btn-primary"><span class="site-btn-label">{% trans "Continuer" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

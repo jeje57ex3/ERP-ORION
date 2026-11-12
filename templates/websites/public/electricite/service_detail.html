@@ -1,0 +1,40 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    {% if website_service %}
+      {% if website_service.image %}<img src="{{ website_service.image.url }}" alt="{{ website_service.title }}" loading="lazy" style="border-radius:var(--site-radius-md);margin-bottom:2rem">{% endif %}
+      <span class="site-h-label"><i class="bi {{ website_service.icon|default:'bi-lightning-charge-fill' }}" aria-hidden="true"></i>{% trans "Service" %}</span>
+      <h1 class="site-h-xxl" style="margin-bottom:1rem">{{ website_service.title }}</h1>
+      <p class="site-muted" style="font-size:1.05rem;white-space:pre-line">{{ website_service.description }}</p>
+      {% if website_service.price %}<p class="site-result-total" style="margin-top:1.5rem">{% blocktrans with price=website_service.price %}À partir de {{ price }} € HT{% endblocktrans %}</p>{% endif %}
+    {% elif static_service %}
+      <span class="site-h-label"><i class="bi {{ static_service.icon }}" aria-hidden="true"></i>{% trans "Service" %}</span>
+      <h1 class="site-h-xxl" style="margin-bottom:1rem">{{ static_service.name }}</h1>
+      <p class="site-muted" style="font-size:1.05rem">{{ static_service.desc }}</p>
+
+      <div class="site-card site-reveal" style="margin-top:2rem">
+        <h3><i class="bi bi-shield-check" aria-hidden="true"></i> {% trans "Normes & garanties" %}</h3>
+        <p class="site-muted">{% trans "Interventions conformes NF C 15-100, garantie décennale sur les installations neuves." %}</p>
+      </div>
+      <div class="site-card site-reveal" style="margin-top:1.2rem">
+        <h3><i class="bi bi-question-circle" aria-hidden="true"></i> {% trans "Questions fréquentes" %}</h3>
+        <p class="site-muted">{% url 'public_websites:electricite_faq' site.public_slug as faq_url %}{% blocktrans %}Consultez notre <a href="{{ faq_url }}" style="color:var(--site-primary)">FAQ</a> pour les questions les plus courantes sur ce service.{% endblocktrans %}</p>
+      </div>
+    {% endif %}
+
+    <div style="display:flex;gap:1rem;margin-top:2.5rem;flex-wrap:wrap">
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-primary">
+        <span class="site-btn-label"><i class="bi bi-magic" aria-hidden="true"></i>{% trans "Configurer mon projet" %}</span>
+      </a>
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}?type=depannage" class="site-btn site-btn-outline">
+        <span class="site-btn-label"><i class="bi bi-tools" aria-hidden="true"></i>{% trans "Demander une intervention" %}</span>
+      </a>
+      <a href="{% url 'public_websites:electricite_contact' site.public_slug %}" class="site-btn site-btn-outline">
+        <span class="site-btn-label"><i class="bi bi-envelope" aria-hidden="true"></i>{% trans "Nous contacter" %}</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

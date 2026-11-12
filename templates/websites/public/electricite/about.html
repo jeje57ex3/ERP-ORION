@@ -1,0 +1,19 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <span class="site-h-label"><i class="bi bi-building" aria-hidden="true"></i>{% trans "À propos" %}</span>
+    <h1 class="site-h-xxl" style="margin-bottom:1.2rem">{{ site.company.name }}</h1>
+    <p class="site-muted" style="font-size:1.05rem;margin-bottom:2rem">
+      {% trans "Une équipe d'électriciens qualifiés au service de vos projets d'installation, de rénovation et de sécurisation électrique." as default_about_desc %}
+      {{ site.meta_description|default:default_about_desc }}
+    </p>
+    <div class="site-grid site-grid-3" style="margin-top:2.5rem">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-award-fill" aria-hidden="true"></i></div><h3>{% trans "Certifiés" %}</h3><p>{% trans "Interventions conformes aux normes NF C 15-100 et réglementations en vigueur." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></div><h3>{% trans "Équipe qualifiée" %}</h3><p>{% trans "Techniciens formés aux dernières technologies domotique et sécurité." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></div><h3>{% trans "Proximité" %}</h3><p>{% trans "Intervention rapide sur l'ensemble de notre zone de couverture." %}</p></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

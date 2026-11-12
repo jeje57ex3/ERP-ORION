@@ -1,0 +1,107 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Outil gratuit" %}</span>
+      <h1 class="site-h-xxl">{% trans "Calculateur énergétique" %}</h1>
+      <p>{% trans "Estimez votre consommation, votre coût annuel et le dimensionnement d'une installation solaire, d'une batterie ou d'une borne de recharge." %}</p>
+    </div>
+
+    <form id="elecEnergyCalcForm" class="site-form-card site-reveal" data-validate>
+      <div class="site-field-row">
+        <div class="site-field">
+          <label for="puissance">{% trans "Puissance souscrite (kVA)" %}</label>
+          <input type="number" id="puissance" name="puissance" min="0" step="0.1" placeholder="{% trans "Ex : 9" %}">
+        </div>
+        <div class="site-field">
+          <label for="consommation">{% trans "Consommation annuelle (kWh)" %}</label>
+          <input type="number" id="consommation" name="consommation" min="0" step="10" placeholder="{% trans "Ex : 4500" %}" required>
+        </div>
+      </div>
+      <div class="site-field">
+        <label for="prix_kwh">{% trans "Prix du kWh (€)" %}</label>
+        <input type="number" id="prix_kwh" name="prix_kwh" min="0" step="0.01" value="0.22">
+      </div>
+      <div class="site-field">
+        <label style="display:flex;align-items:center;gap:.6rem;font-weight:500">
+          <input type="checkbox" name="solaire" style="width:auto"> {% trans "Étudier une installation photovoltaïque + batterie" %}
+        </label>
+      </div>
+      <div class="site-field">
+        <label style="display:flex;align-items:center;gap:.6rem;font-weight:500">
+          <input type="checkbox" name="borne" style="width:auto"> {% trans "Étudier une borne de recharge véhicule électrique" %}
+        </label>
+      </div>
+      <button type="submit" class="site-btn site-btn-primary site-btn-block">
+        <span class="site-btn-label"><i class="bi bi-calculator" aria-hidden="true"></i>{% trans "Calculer" %}</span>
+      </button>
+
+      <div id="elecEnergyCalcResult" class="site-calc-result" style="display:none"></div>
+    </form>
+
+    <div style="text-align:center;margin-top:2.5rem">
+      <p class="site-muted" style="margin-bottom:1rem">{% trans "Ce résultat est indicatif. Pour un devis chiffré et engageant :" %}</p>
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label">{% trans "Lancer le configurateur de chantier" %}</span></a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_css %}
+<style>
+  .site-calc-result { background: var(--site-surface-2); border-radius: var(--site-radius-md); padding: 1.5rem; margin-top: 1.5rem; }
+  .site-calc-result-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  @media (max-width: 600px) { .site-calc-result-grid { grid-template-columns: 1fr; } }
+  .site-calc-result-item { display: flex; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid var(--site-border); }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+{% trans "Coût annuel estimé" as lbl_annual_cost %}
+{% trans "Puissance souscrite" as lbl_power %}
+{% trans "Dimensionnement solaire conseillé" as lbl_solar_size %}
+{% trans "Économies annuelles estimées" as lbl_solar_savings %}
+{% trans "Coût installation estimé" as lbl_install_cost %}
+{% trans "Retour sur investissement" as lbl_roi %}
+{% trans "Batterie de stockage conseillée" as lbl_battery %}
+{% trans "Borne de recharge conseillée" as lbl_borne %}
+{% trans "Estimation indicative. Utilisez le configurateur de chantier pour un pré-devis précis." as lbl_disclaimer %}
+{% trans "ans" as lbl_years %}
+document.getElementById('elecEnergyCalcForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const form = e.target;
+  const resultBox = document.getElementById('elecEnergyCalcResult');
+  const power = parseFloat(form.puissance.value) || 0;
+  const consumption = parseFloat(form.consommation.value) || 0;
+  const priceKwh = parseFloat(form.prix_kwh.value) || 0.22;
+  const wantsSolar = form.solaire.checked;
+  const wantsBorne = form.borne.checked;
+
+  const annualCost = consumption * priceKwh;
+  const solarKwc = wantsSolar ? Math.max(1, Math.round((consumption * 0.5) / 1100)) : 0;
+  const solarSavings = wantsSolar ? Math.round(solarKwc * 1100 * priceKwh * 0.5) : 0;
+  const solarCost = solarKwc * 1800;
+  const roiYears = wantsSolar && solarSavings > 0 ? (solarCost / solarSavings).toFixed(1) : null;
+  const batteryKwh = wantsSolar ? Math.round(consumption / 365 * 0.4) : 0;
+  const borneKw = wantsBorne ? 7.4 : 0;
+
+  resultBox.innerHTML = `
+    <div class="site-calc-result-grid">
+      <div class="site-calc-result-item"><span>{{ lbl_annual_cost }}</span><strong>${annualCost.toFixed(0)} €</strong></div>
+      <div class="site-calc-result-item"><span>{{ lbl_power }}</span><strong>${power || '—'} kVA</strong></div>
+      ${wantsSolar ? `
+      <div class="site-calc-result-item"><span>{{ lbl_solar_size }}</span><strong>${solarKwc} kWc</strong></div>
+      <div class="site-calc-result-item"><span>{{ lbl_solar_savings }}</span><strong>${solarSavings} €</strong></div>
+      <div class="site-calc-result-item"><span>{{ lbl_install_cost }}</span><strong>${solarCost} €</strong></div>
+      <div class="site-calc-result-item"><span>{{ lbl_roi }}</span><strong>${roiYears ? roiYears + ' {{ lbl_years }}' : '—'}</strong></div>
+      <div class="site-calc-result-item"><span>{{ lbl_battery }}</span><strong>${batteryKwh} kWh</strong></div>` : ''}
+      ${wantsBorne ? `<div class="site-calc-result-item"><span>{{ lbl_borne }}</span><strong>${borneKw} kW</strong></div>` : ''}
+    </div>
+    <p class="site-muted" style="margin-top:1rem;font-size:.8rem">
+      {{ lbl_disclaimer }}
+    </p>`;
+  resultBox.style.display = 'block';
+});
+</script>
+{% endblock %}

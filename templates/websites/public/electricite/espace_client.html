@@ -1,0 +1,46 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Espace client" %}</span>
+      <h1 class="site-h-xxl">{% trans "Suivez votre projet" %}</h1>
+      <p>{% trans "Devis, factures, interventions, planning, documents et messagerie — tout au même endroit." %}</p>
+    </div>
+
+    <div class="site-grid" style="grid-template-columns:1fr 1fr;gap:2rem">
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i></div>
+        <h3>{% trans "Déjà client ?" %}</h3>
+        <p>{% trans "Connectez-vous à votre espace pour suivre vos demandes en cours." %}</p>
+        <a href="{% url 'client_portal:login' %}" class="site-btn site-btn-primary site-btn-block" style="margin-top:1rem"><span class="site-btn-label">{% trans "Se connecter" %}</span></a>
+      </div>
+
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi bi-person-plus" aria-hidden="true"></i></div>
+        <h3>{% trans "Demander l'accès" %}</h3>
+        <p>{% trans "Renseignez vos informations, nous activons votre accès rapidement." %}</p>
+
+        {% if access_success %}
+        <p style="margin-top:1rem;color:var(--site-success)"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> {% trans "Demande envoyée avec succès." %}</p>
+        {% else %}
+        <form method="post" style="margin-top:1rem" data-validate novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="access_request">
+          <input type="text" name="website_url_field" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
+          <div class="site-field-row">
+            <div class="site-field"><label for="ea-first">{% trans "Prénom" %}</label><input type="text" id="ea-first" name="first_name" required></div>
+            <div class="site-field"><label for="ea-last">{% trans "Nom" %}</label><input type="text" id="ea-last" name="last_name" required></div>
+          </div>
+          <div class="site-field"><label for="ea-email">{% trans "Email" %}</label><input type="email" id="ea-email" name="email" required></div>
+          <div class="site-field"><label for="ea-ref">{% trans "Référence devis/facture (optionnel)" %}</label><input type="text" id="ea-ref" name="reference"></div>
+          <div class="site-field"><label for="ea-msg">{% trans "Message" %}</label><textarea id="ea-msg" name="message" rows="3"></textarea></div>
+          <button type="submit" class="site-btn site-btn-outline site-btn-block"><span class="site-btn-label">{% trans "Envoyer la demande" %}</span></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

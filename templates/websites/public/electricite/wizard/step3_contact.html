@@ -1,0 +1,48 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktrans %}Configurateur — Vos coordonnées{% endblocktrans %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Configurateur · Étape 3 sur 4" %}</span>
+      <h1 class="site-h-xxl">{% trans "Vos coordonnées" %}</h1>
+    </div>
+
+    <form method="post" class="site-form-card site-reveal" data-validate novalidate>
+      {% csrf_token %}
+      <div class="site-progress" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="4">
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step done"></div>
+        <div class="site-progress-step current"></div>
+        <div class="site-progress-step"></div>
+      </div>
+
+      <div class="site-field-row">
+        <div class="site-field"><label for="first_name">{% trans "Prénom" %}</label><input type="text" id="first_name" name="first_name" required></div>
+        <div class="site-field"><label for="last_name">{% trans "Nom" %}</label><input type="text" id="last_name" name="last_name" required></div>
+      </div>
+      <div class="site-field-row">
+        <div class="site-field"><label for="email">Email</label><input type="email" id="email" name="email" required></div>
+        <div class="site-field"><label for="phone">{% trans "Téléphone" %}</label><input type="tel" id="phone" name="phone"></div>
+      </div>
+      <div class="site-field"><label for="address">{% trans "Adresse d'intervention" %}</label><input type="text" id="address" name="address"></div>
+      <div class="site-field-row">
+        <div class="site-field"><label for="zip_code">{% trans "Code postal" %}</label><input type="text" id="zip_code" name="zip_code"></div>
+        <div class="site-field"><label for="city">{% trans "Ville" %}</label><input type="text" id="city" name="city"></div>
+      </div>
+      <div class="site-field"><label for="client_notes">{% trans "Message (optionnel)" %}</label><textarea id="client_notes" name="client_notes" rows="3"></textarea></div>
+      <div class="site-field">
+        <label style="display:flex;align-items:center;gap:.6rem;font-weight:500">
+          <input type="checkbox" name="create_portal" style="width:auto"> {% trans "Créer mon espace client pour suivre ma demande" %}
+        </label>
+      </div>
+
+      <div class="site-wizard-nav">
+        <a href="{% url 'public_websites:electricite_wizard_step2' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Retour" %}</span></a>
+        <button type="submit" class="site-btn site-btn-primary"><span class="site-btn-label">{% trans "Voir le récapitulatif" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <span class="site-h-label">{% trans "Informations légales" %}</span>
+    <h1 class="site-h-xxl" style="margin-bottom:1.5rem">{% trans "Mentions légales" %}</h1>
+    <div class="site-muted" style="line-height:1.9">
+      <p><strong style="color:var(--site-text)">{% trans "Éditeur du site" %}</strong><br>
+      {% firstof site.legal_company_name site.company.name %}
+      {% if site.legal_siret %}<br>{% blocktrans with siret=site.legal_siret %}SIRET : {{ siret }}{% endblocktrans %}{% endif %}
+      {% if site.address %}<br>{{ site.address|linebreaksbr }}{% endif %}
+      {% if site.contact_email %}<br>{% blocktrans with email=site.contact_email %}Email : {{ email }}{% endblocktrans %}{% endif %}
+      {% if site.contact_phone %}<br>{% blocktrans with phone=site.contact_phone %}Téléphone : {{ phone }}{% endblocktrans %}{% endif %}
+      </p>
+      <p style="margin-top:1.5rem"><strong style="color:var(--site-text)">{% trans "Hébergement" %}</strong><br>
+      {% trans "Information disponible sur demande." as default_hosting %}
+      {{ site.hosting_provider|default:default_hosting }}</p>
+      <p style="margin-top:1.5rem"><strong style="color:var(--site-text)">{% trans "Directeur de publication" %}</strong><br>
+      {{ site.legal_director|default:"—" }}</p>
+      <p style="margin-top:1.5rem">{% trans "Conformément aux dispositions légales, toute reproduction du contenu de ce site est interdite sans autorisation préalable." %}</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1081,3 +1081,77 @@ def creer_vitrine_etancheite(request):
             f'réécrit : vos modifications sont conservées.')
 
     return redirect('websites:website_detail', pk=site.pk)
+
+
+# ─── Site Électricité ────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def creer_site_electricite(request):
+    """Crée le site Électricité pour l'entreprise active.
+
+    POURQUOI UN BOUTON PLUTÔT QUE LA COMMANDE EXISTANTE.
+    `manage.py seed_electricity_site` fabrique une entreprise de
+    DÉMONSTRATION (« ÉlecPro Solutions ») avec ses tarifs et ses avis : très
+    utile pour développer, inutilisable pour un exploitant qui veut le site
+    de SA société. Et une fonction d'administration qui passe par un
+    terminal n'en est pas une.
+
+    Les pages du site lisent leur contenu de modules de code
+    (electricite_public_views) : un enregistrement Website suffit donc à les
+    rendre. Réalisations, avis et services s'ajoutent ensuite depuis l'ERP,
+    et les pages les affichent dès qu'ils existent.
+
+    IDEMPOTENT : rappeler le bouton mène au site existant sans rien
+    réécrire.
+    """
+    from .models import WebsiteTheme
+
+    company = request.current_company
+    if company is None:
+        messages.error(
+            request, 'Sélectionnez une entreprise avant de créer un site.')
+        return redirect('websites:website_list')
+
+    site = Website.objects.filter(
+        company=company, site_type='electricite').first()
+    if site is not None:
+        messages.info(
+            request,
+            f'Le site « {site.name} » existe déjà. Rien n’a été réécrit.')
+        return redirect('websites:website_detail', pk=site.pk)
+
+    theme, _cree = WebsiteTheme.objects.get_or_create(
+        company=company, name='Électricité',
+        defaults={
+            'primary_color': '#0B1220', 'secondary_color': '#131E33',
+            'accent_color': '#F5B93D', 'background_color': '#FFFFFF',
+            'text_color': '#0B1220', 'button_color': '#F5B93D',
+            'header_bg_color': '#0B1220', 'footer_bg_color': '#0B1220',
+        },
+    )
+
+    site = Website.objects.create(
+        company=company,
+        name=f'{company.name} — Électricité',
+        slug=slugify(f'{company.name}-electricite')[:100],
+        site_type='electricite',
+        status='published',
+        is_active=True,
+        is_published=True,
+        published_at=timezone.now(),
+        theme=theme,
+        contact_email=getattr(company, 'email', '') or '',
+        contact_phone=getattr(company, 'phone', '') or '',
+        meta_title=f'{company.name} — Électricité, domotique & sécurité',
+        meta_description=(
+            'Installation, rénovation et mise aux normes électriques, '
+            'domotique, réseaux et sécurité.'),
+    )
+
+    messages.success(
+        request,
+        f'Site « {site.name} » créé. Il est visible sur '
+        f'/sites/{site.slug}/electricite/ — le configurateur de devis est '
+        f'sur /sites/{site.slug}/electricite/devis/.')
+    return redirect('websites:website_detail', pk=site.pk)

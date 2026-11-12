@@ -1,0 +1,47 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Nos services" %}</span>
+      <h1 class="site-h-xxl">{% trans "Une expertise électrique complète" %}</h1>
+      <p>{% trans "Chaque prestation, du diagnostic au chantier, avec tarifs indicatifs et devis instantané." %}</p>
+    </div>
+    <div class="site-grid site-grid-3">
+      {% for s in services %}
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi {{ s.icon }}" aria-hidden="true"></i></div>
+        <h3>{{ s.name }}</h3>
+        <p>{{ s.desc }}</p>
+        <ul class="site-card-advantages">
+          <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>{% trans "Devis instantané" %}</li>
+          <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>{% trans "Intervention garantie" %}</li>
+        </ul>
+        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+          <a href="{% url 'public_websites:electricite_service_detail' site.public_slug s.slug %}" class="site-btn site-btn-outline site-btn-sm"><span class="site-btn-label">{% trans "Détails" %}</span></a>
+          <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-primary site-btn-sm"><span class="site-btn-label">{% trans "Devis" %}</span></a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if website_services %}
+    <div class="site-section-header site-reveal" style="margin-top:4rem">
+      <span class="site-h-label">{% trans "Prestations sur-mesure" %}</span>
+      <h2 class="site-h-xxl">{% trans "Services complémentaires" %}</h2>
+    </div>
+    <div class="site-grid site-grid-3">
+      {% for ws in website_services %}
+      <div class="site-card site-reveal">
+        {% if ws.image %}<img src="{{ ws.image.url }}" alt="{{ ws.title }}" loading="lazy" style="border-radius:10px;margin-bottom:1rem">{% endif %}
+        <h3>{{ ws.title }}</h3>
+        <p>{{ ws.description|truncatewords:22 }}</p>
+        {% if ws.price %}<div class="site-card-price">{% blocktrans with price=ws.price %}à partir de {{ price }} €{% endblocktrans %}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

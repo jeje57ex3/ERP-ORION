@@ -1,0 +1,26 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <span class="site-h-label">{% trans "Confidentialité" %}</span>
+    <h1 class="site-h-xxl" style="margin-bottom:1.5rem">{% trans "Politique de confidentialité" %}</h1>
+    <div class="site-muted" style="line-height:1.9">
+      <p><strong style="color:var(--site-text)">{% trans "Données collectées" %}</strong><br>
+      {% blocktrans %}Les informations transmises via nos formulaires (contact, configurateur de devis, dépannage, espace client)
+      sont utilisées exclusivement pour traiter votre demande : identité, coordonnées, adresse d'intervention et
+      description du projet.{% endblocktrans %}</p>
+      <p style="margin-top:1.5rem"><strong style="color:var(--site-text)">{% trans "Utilisation" %}</strong><br>
+      {% blocktrans %}Ces données sont enregistrées dans notre outil de gestion (Orion ERP) et ne sont jamais cédées à des tiers
+      à des fins commerciales.{% endblocktrans %}</p>
+      <p style="margin-top:1.5rem"><strong style="color:var(--site-text)">{% trans "Vos droits" %}</strong><br>
+      {% trans "l'adresse indiquée en page Contact" as default_contact_email %}
+      {% blocktrans with email=site.contact_email|default:default_contact_email %}Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données.
+      Pour l'exercer, contactez-nous à {{ email }}.{% endblocktrans %}</p>
+      <p style="margin-top:1.5rem"><strong style="color:var(--site-text)">{% trans "Cookies" %}</strong><br>
+      {% blocktrans %}Ce site utilise des cookies techniques nécessaires à son fonctionnement et, le cas échéant, des cookies de
+      mesure d'audience.{% endblocktrans %}</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
