@@ -1,0 +1,19 @@
+{% load i18n %}
+{% comment %}
+  Toutes les erreurs du formulaire, et pas seulement celles d'un champ
+  choisi. Un formulaire qui refuse sans le dire laisse le visiteur croire
+  que le bouton ne marche pas — c'est le défaut trouvé sur plusieurs écrans
+  de l'ERP, et il n'a pas sa place sur une vitrine, où chaque message perdu
+  est un client perdu.
+{% endcomment %}
+{% if form.errors %}
+<div class="alert alert-danger small">
+  <div class="fw-semibold mb-1">{% trans "Votre demande n'a pas pu être envoyée :" %}</div>
+  <ul class="mb-0 ps-3">
+    {% for erreur in form.non_field_errors %}<li>{{ erreur }}</li>{% endfor %}
+    {% for champ in form %}{% for erreur in champ.errors %}
+      <li><strong>{{ champ.label }}</strong> — {{ erreur }}</li>
+    {% endfor %}{% endfor %}
+  </ul>
+</div>
+{% endif %}

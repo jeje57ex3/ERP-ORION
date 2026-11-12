@@ -1,0 +1,177 @@
+{% extends "websites/public/etancheite/base.html" %}
+{% load i18n %}
+
+{% block content %}
+
+{% comment %}
+  Chaque bloc est conditionné à SA section. Supprimer « Nos réalisations »
+  depuis l'éditeur de sites doit retirer la bande, pas casser la page.
+{% endcomment %}
+
+{# ── Hero ───────────────────────────────────────────────────────────── #}
+{% if hero %}
+<section style="position:relative;background:var(--ardoise);color:#fff;overflow:hidden">
+  {% if hero.image %}
+    <img src="{{ hero.image.url }}" alt=""
+         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55">
+  {% endif %}
+  <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(28,42,51,.94) 0%,rgba(28,42,51,.78) 42%,rgba(28,42,51,.35) 100%)"></div>
+
+  <div class="container-xl position-relative" style="padding-top:5.5rem;padding-bottom:5.5rem">
+    <div style="max-width:40rem">
+      {% if hero.subtitle %}<div class="eyebrow eyebrow--clair mb-3">{{ hero.subtitle }}</div>{% endif %}
+      <h1 class="display-4 mb-3" style="color:#fff;line-height:1.08">{{ hero.title }}</h1>
+      {% if hero.content %}
+      <p class="mb-4" style="color:rgba(255,255,255,.82);max-width:34rem;font-size:1.02rem">{{ hero.content }}</p>
+      {% endif %}
+      <div class="d-flex flex-wrap gap-3">
+        {% if hero.button_text %}
+        <a href="{% url 'etancheite:devis' site.slug %}" class="btn btn-sable">
+          <i class="bi bi-file-earmark-text me-2"></i>{{ hero.button_text }}
+          <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+        {% endif %}
+        {% if hero.button_secondary_text %}
+        <a href="{% url 'etancheite:realisations' site.slug %}" class="btn btn-contour">
+          {{ hero.button_secondary_text }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Les quatre gages ───────────────────────────────────────────────── #}
+{% if garanties %}
+<section class="bande-garanties border-bottom" style="border-color:rgba(28,42,51,.08)!important">
+  <div class="container-xl py-4">
+    <div class="row g-4">
+      {% for item in garanties.extra_config.items %}
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="d-flex gap-3 align-items-start h-100
+                    {% if not forloop.last %}border-end-lg{% endif %}">
+          <span class="icone"><i class="bi {{ item.icone|default:'bi-check2' }}"></i></span>
+          <div>
+            <div class="fw-semibold" style="font-size:.94rem">{{ item.titre }}</div>
+            <div class="text-muted" style="font-size:.84rem;line-height:1.45">{{ item.texte }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Services ───────────────────────────────────────────────────────── #}
+{% if bloc_services %}
+<section style="background:#fff">
+  <div class="container-xl py-5">
+    <div class="row g-4 align-items-start">
+      <div class="col-12 col-lg-4">
+        {% if bloc_services.subtitle %}<div class="eyebrow mb-3">{{ bloc_services.subtitle }}</div>{% endif %}
+        <h2 class="h2 mb-4" style="line-height:1.22">{{ bloc_services.title }}</h2>
+        {% if bloc_services.button_text %}
+        <a href="{% url 'etancheite:services' site.slug %}" class="btn btn-outline-dark">
+          {{ bloc_services.button_text }} <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="col-12 col-lg-8">
+        <div class="row g-3">
+          {% for service in bloc_services.extra_config.items %}
+          <div class="col-12 col-sm-6 col-xl-3">
+            <a href="{% url 'etancheite:service_detail' site.slug service.slug %}"
+               class="carte-service d-block text-decoration-none text-reset">
+              <div class="visuel">
+                {% if service.image %}
+                  <img src="{{ service.image }}" alt="{{ service.titre }}">
+                {% else %}
+                  <i class="bi {{ service.icone|default:'bi-tools' }}"></i>
+                {% endif %}
+              </div>
+              <div class="p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <i class="bi {{ service.icone|default:'bi-tools' }}" style="color:var(--or)"></i>
+                  <span class="fw-semibold" style="font-size:.95rem">{{ service.titre }}</span>
+                </div>
+                <div class="text-muted" style="font-size:.84rem;line-height:1.45">{{ service.texte }}</div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Réalisations ───────────────────────────────────────────────────── #}
+{% if bloc_realisations %}
+<section class="bande-sombre">
+  <div class="container-xl py-5">
+    <div class="row g-4 align-items-start">
+      <div class="col-12 col-lg-4">
+        {% if bloc_realisations.subtitle %}<div class="eyebrow eyebrow--clair mb-3">{{ bloc_realisations.subtitle }}</div>{% endif %}
+        <h2 class="h2 mb-4" style="line-height:1.22">{{ bloc_realisations.title }}</h2>
+        {% if bloc_realisations.button_text %}
+        <a href="{% url 'etancheite:realisations' site.slug %}" class="btn btn-sable">
+          {{ bloc_realisations.button_text }} <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="col-12 col-lg-8">
+        {% comment %}
+          Les filtres sont des LIENS et non des boutons JavaScript : une
+          page filtrée reste une adresse qu'on peut envoyer, mettre en
+          favori, et que les moteurs de recherche voient.
+        {% endcomment %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <a href="{% url 'etancheite:realisations' site.slug %}" class="filtre actif">{% trans 'Tous' %}</a>
+          {% for filtre in bloc_realisations.extra_config.filtres %}
+          <a href="{% url 'etancheite:realisations' site.slug %}?categorie={{ filtre.slug }}" class="filtre">{{ filtre.libelle }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="row g-3">
+          {% for projet in bloc_realisations.extra_config.items %}
+          <div class="col-6 col-xl-3">
+            <div class="vignette mb-2">
+              {% if projet.image %}
+                <img src="{{ projet.image }}" alt="{{ projet.titre }}">
+              {% else %}
+                <i class="bi bi-image"></i>
+              {% endif %}
+            </div>
+            <div class="fw-semibold" style="font-size:.86rem">{{ projet.titre }}</div>
+            <div style="font-size:.78rem;color:rgba(255,255,255,.6)">{{ projet.texte }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Appel final ────────────────────────────────────────────────────── #}
+{% if appel %}
+<section class="bande-garanties">
+  <div class="container-xl py-5 text-center">
+    <h2 class="h2 mb-2">{{ appel.title }}</h2>
+    {% if appel.content %}<p class="text-muted mb-4 mx-auto" style="max-width:46ch">{{ appel.content }}</p>{% endif %}
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a href="{% url 'etancheite:devis' site.slug %}" class="btn btn-ardoise">
+        {{ appel.button_text|default:_('Demander un devis') }} <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+      <a href="{% url 'etancheite:contact' site.slug %}" class="btn btn-outline-dark">{% trans 'Nous contacter' %}</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

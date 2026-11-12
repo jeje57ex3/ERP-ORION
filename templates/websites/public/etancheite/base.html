@@ -1,0 +1,247 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ site.language|default:'fr' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block meta_title %}{% if page_title %}{{ page_title }} — {% endif %}{{ site.name }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ site.meta_description }}{% endblock %}">
+  {% if site.favicon %}<link rel="icon" href="{{ site.favicon.url }}">{% endif %}
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* La palette vient du THÈME du site, pas du gabarit : l'éditeur de
+       thèmes de l'ERP doit pouvoir la changer sans toucher au code. Les
+       valeurs écrites ici ne servent que si aucun thème n'est associé. */
+    :root {
+      --ardoise:      {{ theme.primary_color|default:'#1C2A33' }};
+      --ardoise-clair:{{ theme.secondary_color|default:'#2E3F4A' }};
+      --or:           {{ theme.accent_color|default:'#C9A227' }};
+      --sable:        {{ theme.button_color|default:'#E8D9BE' }};
+      --fond:         {{ theme.background_color|default:'#FBF8F3' }};
+      --texte:        {{ theme.text_color|default:'#1C2A33' }};
+      --entete:       {{ theme.header_bg_color|default:'#FFFFFF' }};
+      --pied:         {{ theme.footer_bg_color|default:'#1C2A33' }};
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--texte);
+      background: #fff;
+      font-size: 15px;
+    }
+    h1, h2, h3, .serif {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 500;
+      letter-spacing: -.01em;
+    }
+
+    .eyebrow {
+      font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+      font-weight: 600; color: var(--or);
+    }
+    .eyebrow--clair { color: var(--sable); }
+    .eyebrow::after {
+      content: ''; display: inline-block; width: 46px; height: 1px;
+      background: currentColor; vertical-align: middle; margin-left: 14px;
+      opacity: .55;
+    }
+
+    .btn-sable {
+      background: var(--sable); color: var(--ardoise); border: 0;
+      font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
+    }
+    .btn-sable:hover { filter: brightness(.95); color: var(--ardoise); }
+    .btn-contour {
+      border: 1px solid rgba(255,255,255,.55); color: #fff;
+      font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
+      background: transparent;
+    }
+    .btn-contour:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .btn-ardoise {
+      background: var(--ardoise); color: #fff; border: 0;
+      font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
+    }
+    .btn-ardoise:hover { background: var(--ardoise-clair); color: #fff; }
+
+    /* ── En-tête ── */
+    .entete {
+      background: var(--entete);
+      border-bottom: 1px solid rgba(28,42,51,.08);
+      position: sticky; top: 0; z-index: 30;
+    }
+    .marque-nom {
+      font-family: 'Fraunces', Georgia, serif; font-size: 1.22rem;
+      letter-spacing: .06em; line-height: 1.05; color: var(--ardoise);
+    }
+    .marque-sous {
+      font-size: .62rem; letter-spacing: .22em; text-transform: uppercase;
+      color: #7b8894;
+    }
+    .nav-lien {
+      color: var(--ardoise); text-decoration: none; font-weight: 500;
+      padding: .4rem 0; font-size: .93rem;
+    }
+    .nav-lien:hover { color: var(--or); }
+    .nav-lien.actif { color: var(--ardoise); border-bottom: 2px solid var(--or); }
+
+    /* ── Fragments de page ── */
+    .bande-garanties { background: var(--fond); }
+    .bande-garanties .icone {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      border: 1px solid rgba(201,162,39,.4); border-radius: 50%;
+      color: var(--or); font-size: 1.05rem; flex: 0 0 auto;
+    }
+
+    .carte-service {
+      background: #fff; border: 1px solid rgba(28,42,51,.09);
+      border-radius: 10px; overflow: hidden; height: 100%;
+    }
+    .carte-service .visuel {
+      aspect-ratio: 16 / 10; background: var(--fond);
+      display: grid; place-items: center; color: var(--or); font-size: 1.6rem;
+      border-bottom: 1px solid rgba(28,42,51,.07);
+    }
+    .carte-service .visuel img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    .bande-sombre { background: var(--ardoise); color: #fff; }
+    .bande-sombre h2 { color: #fff; }
+    .filtre {
+      border: 1px solid rgba(255,255,255,.25); background: transparent;
+      color: rgba(255,255,255,.85); border-radius: 999px;
+      padding: .34rem 1rem; font-size: .86rem; text-decoration: none;
+      display: inline-block;
+    }
+    .filtre:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+    .filtre.actif { background: #fff; color: var(--ardoise); border-color: #fff; }
+
+    .vignette {
+      aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;
+      background: var(--ardoise-clair); display: grid; place-items: center;
+      color: rgba(255,255,255,.35); font-size: 1.8rem;
+    }
+    .vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .pied { background: var(--pied); color: rgba(255,255,255,.72); }
+    .pied a { color: rgba(255,255,255,.72); text-decoration: none; }
+    .pied a:hover { color: #fff; }
+
+    @media (max-width: 991px) {
+      .nav-bureau { display: none; }
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% url 'etancheite:home' site.slug as url_accueil %}
+{% url 'etancheite:services' site.slug as url_services %}
+{% url 'etancheite:realisations' site.slug as url_realisations %}
+{% url 'etancheite:entreprise' site.slug as url_entreprise %}
+{% url 'etancheite:contact' site.slug as url_contact %}
+{% url 'etancheite:devis' site.slug as url_devis %}
+
+<header class="entete">
+  <div class="container-xl d-flex align-items-center gap-3 py-3">
+    <a href="{{ url_accueil }}" class="d-flex align-items-center gap-2 text-decoration-none">
+      {% if site.logo %}
+        <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="height:42px">
+      {% else %}
+        {% comment %}
+          Pas de logo téléversé : on dessine une marque lisible plutôt
+          qu'un carré vide. L'image se pose depuis l'ERP, sans toucher au
+          code.
+        {% endcomment %}
+        <span style="width:42px;height:42px;border:1.5px solid var(--or);border-radius:7px;display:grid;place-items:center;color:var(--or)">
+          <i class="bi bi-lightning-charge-fill"></i>
+        </span>
+      {% endif %}
+      <span>
+        <span class="marque-nom d-block">{{ site.name }}</span>
+        <span class="marque-sous">{% trans 'Électricité & Étanchéité' %}</span>
+      </span>
+    </a>
+
+    <nav class="nav-bureau ms-auto d-flex align-items-center gap-4">
+      <a href="{{ url_accueil }}" class="nav-lien {% if request.path == url_accueil %}actif{% endif %}">{% trans 'Accueil' %}</a>
+      <a href="{{ url_services }}" class="nav-lien {% if request.path == url_services %}actif{% endif %}">{% trans 'Nos services' %}</a>
+      <a href="{{ url_realisations }}" class="nav-lien {% if request.path == url_realisations %}actif{% endif %}">{% trans 'Réalisations' %}</a>
+      <a href="{{ url_entreprise }}" class="nav-lien {% if request.path == url_entreprise %}actif{% endif %}">{% trans 'L’entreprise' %}</a>
+      <a href="{{ url_contact }}" class="nav-lien {% if request.path == url_contact %}actif{% endif %}">{% trans 'Contact' %}</a>
+    </nav>
+
+    <div class="d-flex align-items-center gap-2 ms-auto ms-lg-0">
+      {% if site.contact_phone %}
+      <a href="tel:{{ site.contact_phone|cut:' ' }}" class="btn btn-sm btn-ardoise d-none d-md-inline-flex align-items-center gap-2">
+        <i class="bi bi-telephone-fill"></i>{{ site.contact_phone }}
+      </a>
+      {% endif %}
+      <a href="{{ url_devis }}" class="btn btn-sm btn-sable">
+        {% trans 'Demander un devis' %} <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+
+  <nav class="d-lg-none border-top">
+    <div class="container-xl d-flex gap-3 py-2 overflow-auto">
+      <a href="{{ url_accueil }}" class="nav-lien text-nowrap">{% trans 'Accueil' %}</a>
+      <a href="{{ url_services }}" class="nav-lien text-nowrap">{% trans 'Services' %}</a>
+      <a href="{{ url_realisations }}" class="nav-lien text-nowrap">{% trans 'Réalisations' %}</a>
+      <a href="{{ url_entreprise }}" class="nav-lien text-nowrap">{% trans 'L’entreprise' %}</a>
+      <a href="{{ url_contact }}" class="nav-lien text-nowrap">{% trans 'Contact' %}</a>
+    </div>
+  </nav>
+</header>
+
+{% if messages %}
+<div class="container-xl pt-3">
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} mb-0">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<footer class="pied pt-5 pb-4 mt-0">
+  <div class="container-xl">
+    <div class="row g-4">
+      <div class="col-12 col-lg-4">
+        <div class="marque-nom text-white">{{ site.name }}</div>
+        <div class="marque-sous mb-3">{% trans 'Électricité & Étanchéité' %}</div>
+        <p class="small mb-0" style="max-width:34ch">{{ site.meta_description }}</p>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="text-white fw-semibold mb-2 small">{% trans 'Navigation' %}</div>
+        <div class="d-flex flex-column gap-1 small">
+          <a href="{{ url_services }}">{% trans 'Nos services' %}</a>
+          <a href="{{ url_realisations }}">{% trans 'Réalisations' %}</a>
+          <a href="{{ url_entreprise }}">{% trans 'L’entreprise' %}</a>
+          <a href="{{ url_contact }}">{% trans 'Contact' %}</a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-5">
+        <div class="text-white fw-semibold mb-2 small">{% trans 'Nous joindre' %}</div>
+        <div class="d-flex flex-column gap-1 small">
+          {% if site.contact_phone %}<a href="tel:{{ site.contact_phone|cut:' ' }}"><i class="bi bi-telephone me-2"></i>{{ site.contact_phone }}</a>{% endif %}
+          {% if site.contact_email %}<a href="mailto:{{ site.contact_email }}"><i class="bi bi-envelope me-2"></i>{{ site.contact_email }}</a>{% endif %}
+          {% if site.address %}<span><i class="bi bi-geo-alt me-2"></i>{{ site.address|linebreaksbr }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <hr class="my-4" style="border-color:rgba(255,255,255,.15)">
+    <div class="small d-flex flex-wrap gap-2 justify-content-between">
+      <span>© {% now 'Y' %} {{ site.legal_company_name|default:site.name }}. {% trans 'Tous droits réservés.' %}</span>
+      {% if site.legal_siret %}<span>SIRET {{ site.legal_siret }}</span>{% endif %}
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
