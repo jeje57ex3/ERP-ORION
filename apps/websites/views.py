@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+# POST uniquement pour la création du site vitrine : une création ne doit
+# pas pouvoir partir d'un simple lien, ni d'un rechargement de page.
+from django.views.decorators.http import require_POST
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.utils.text import slugify
@@ -1036,3 +1039,45 @@ def website_preview(request, pk):
         'page_title': f'Prévisualisation — {website.name}',
         'active_module': 'websites',
     })
+
+
+# ─── Site vitrine Électricité & Étanchéité ───────────────────────────────────
+
+@login_required
+@require_POST
+def creer_vitrine_etancheite(request):
+    """Crée le site vitrine Électricité & Étanchéité pour l'entreprise active.
+
+    UN BOUTON ET NON UNE MIGRATION. Semer ce site dans une migration le
+    déposerait sur TOUTES les installations, y compris celles d'un autre
+    métier, qui hériteraient d'une vitrine d'électricien que personne n'a
+    demandée. Le code arrive par la mise à jour ; la création reste un
+    geste, fait depuis l'interface — jamais par une commande.
+
+    IDEMPOTENT : rappeler le bouton ne crée pas un second site. Il mène à
+    celui qui existe, et ne réécrit pas son contenu — des textes retouchés
+    à la main ne doivent pas disparaître parce qu'on a recliqué.
+    """
+    from . import vitrine_etancheite
+
+    company = request.current_company
+    if company is None:
+        messages.error(
+            request, 'Sélectionnez une entreprise avant de créer un site.')
+        return redirect('websites:website_list')
+
+    site, cree = vitrine_etancheite.creer_le_site(company, user=request.user)
+
+    if cree:
+        messages.success(
+            request,
+            f'Site « {site.name} » créé. Il est visible sur '
+            f'/sites/{site.slug}/etancheite/ — ajoutez-y votre logo et vos '
+            f'photos depuis la fiche du site.')
+    else:
+        messages.info(
+            request,
+            f'Le site « {site.name} » existe déjà. Son contenu n’a pas été '
+            f'réécrit : vos modifications sont conservées.')
+
+    return redirect('websites:website_detail', pk=site.pk)

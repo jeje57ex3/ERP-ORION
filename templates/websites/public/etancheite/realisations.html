@@ -1,0 +1,51 @@
+{% extends "websites/public/etancheite/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<section class="bande-sombre">
+  <div class="container-xl py-5">
+    <div class="eyebrow eyebrow--clair mb-3">{% trans 'NOS RÉALISATIONS' %}</div>
+    <h1 class="h1 mb-4" style="max-width:26ch;line-height:1.18">
+      {% if bloc.title %}{{ bloc.title }}{% else %}{% trans 'Des réalisations concrètes' %}{% endif %}
+    </h1>
+
+    {% comment %}
+      Les filtres sont des LIENS. Une page filtrée reste ainsi une adresse
+      qu'on peut envoyer, mettre en favori, et que les moteurs de recherche
+      indexent — ce qu'un filtre JavaScript ne permet pas.
+    {% endcomment %}
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'etancheite:realisations' site.slug %}"
+         class="filtre {% if not categorie %}actif{% endif %}">{% trans 'Tous' %}</a>
+      {% for filtre in filtres %}
+      <a href="{% url 'etancheite:realisations' site.slug %}?categorie={{ filtre.slug }}"
+         class="filtre {% if categorie == filtre.slug %}actif{% endif %}">{{ filtre.libelle }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="background:#fff">
+  <div class="container-xl py-5">
+    <div class="row g-4">
+      {% for projet in realisations %}
+      <div class="col-6 col-lg-3">
+        <div class="vignette mb-2" style="background:var(--fond);color:var(--or)">
+          {% if projet.image %}<img src="{{ projet.image }}" alt="{{ projet.titre }}">
+          {% else %}<i class="bi bi-image"></i>{% endif %}
+        </div>
+        <div class="fw-semibold" style="font-size:.9rem">{{ projet.titre }}</div>
+        <div class="text-muted" style="font-size:.8rem;line-height:1.45">{{ projet.texte }}</div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <p class="text-muted mb-0">
+          {% trans 'Aucune réalisation dans cette catégorie pour le moment.' %}
+          <a href="{% url 'etancheite:realisations' site.slug %}">{% trans 'Voir toutes les réalisations' %}</a>
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

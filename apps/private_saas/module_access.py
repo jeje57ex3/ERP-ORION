@@ -48,6 +48,23 @@ def seed_company_modules(company, enabled_modules=None, user=None, force_enable_
     """Crée les lignes CompanyModule manquantes pour une entreprise.
 
     Ne détruit pas les réglages existants sauf si force_enable_defaults=True.
+
+    ATTENTION, HOMONYME — ET IL A DÉJÀ TROMPÉ UN LECTEUR.
+
+    apps/private_saas/services.py porte une AUTRE fonction du même nom, dont
+    le deuxième paramètre est un TYPE D'ENTREPRISE (« btp », « generic »)
+    et non une liste de codes. C'est celle-là que la vue des modules
+    importe.
+
+    Les deux ne sont pas interchangeables, et aucune ne proteste : passer
+    un type d'entreprise ICI ferait parcourir la chaîne LETTRE PAR LETTRE
+    (« btp » → {'b', 't', 'p'}), n'activerait aucun module, et ne lèverait
+    rien. Un diagnostic a déjà été écrit sur cette confusion avant qu'une
+    reproduction ne le démente.
+
+    Les fusionner demanderait de trancher entre deux conventions d'appel
+    employées à plusieurs endroits ; en attendant, chacune porte cet
+    avertissement.
     """
     if not company:
         return []

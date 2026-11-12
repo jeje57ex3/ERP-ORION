@@ -1,0 +1,41 @@
+{% extends "websites/public/etancheite/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<section class="bande-sombre">
+  <div class="container-xl py-5">
+    <div class="eyebrow eyebrow--clair mb-3">{% trans 'L’ENTREPRISE' %}</div>
+    <h1 class="h1 mb-3" style="max-width:24ch;line-height:1.18">
+      {% trans 'Un savoir-faire en électricité et en étanchéité' %}
+    </h1>
+    <p class="mb-0" style="color:rgba(255,255,255,.78);max-width:54ch">{{ site.meta_description }}</p>
+  </div>
+</section>
+
+{% if garanties %}
+<section style="background:#fff">
+  <div class="container-xl py-5">
+    <div class="row g-4">
+      {% for item in garanties.extra_config.items %}
+      <div class="col-12 col-sm-6 col-lg-3">
+        <span class="d-inline-grid mb-3" style="width:46px;height:46px;place-items:center;border:1px solid rgba(201,162,39,.4);border-radius:50%;color:var(--or)">
+          <i class="bi {{ item.icone|default:'bi-check2' }}"></i>
+        </span>
+        <div class="fw-semibold mb-1">{{ item.titre }}</div>
+        <div class="text-muted" style="font-size:.86rem;line-height:1.5">{{ item.texte }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="bande-garanties">
+  <div class="container-xl py-5 text-center">
+    <h2 class="h3 mb-3">{% trans 'Parlons de votre projet' %}</h2>
+    <a href="{% url 'etancheite:contact' site.slug %}" class="btn btn-ardoise">
+      {% trans 'Nous contacter' %} <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+  </div>
+</section>
+{% endblock %}

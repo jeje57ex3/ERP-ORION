@@ -1,0 +1,44 @@
+{% extends "websites/public/etancheite/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<section class="bande-sombre">
+  <div class="container-xl py-5">
+    <a href="{% url 'etancheite:services' site.slug %}" class="eyebrow eyebrow--clair d-inline-block mb-3 text-decoration-none">
+      {% trans 'NOS SERVICES' %}
+    </a>
+    <h1 class="h1 mb-3" style="max-width:22ch;line-height:1.18">{{ service.titre }}</h1>
+    <p class="mb-0" style="color:rgba(255,255,255,.78);max-width:52ch">{{ service.texte }}</p>
+  </div>
+</section>
+
+<section style="background:#fff">
+  <div class="container-xl py-5">
+    <div class="row g-5">
+      <div class="col-12 col-lg-7">
+        <h2 class="h4 mb-3">{% trans 'Notre intervention' %}</h2>
+        <p class="text-muted" style="line-height:1.7">
+          {% blocktrans with nom=service.titre %}Nous étudions votre besoin sur place, vous remettons un devis détaillé, puis réalisons les travaux dans le respect des normes en vigueur. {{ nom }} fait partie des prestations que nous assurons de bout en bout.{% endblocktrans %}
+        </p>
+        <a href="{% url 'etancheite:devis' site.slug %}" class="btn btn-ardoise mt-2">
+          {% trans 'Demander un devis' %} <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <div class="col-12 col-lg-5">
+        <div class="fw-semibold mb-3">{% trans 'Nos autres services' %}</div>
+        <div class="d-flex flex-column gap-2">
+          {% for autre in autres %}
+          <a href="{% url 'etancheite:service_detail' site.slug autre.slug %}"
+             class="d-flex align-items-center gap-3 p-3 text-decoration-none text-reset"
+             style="border:1px solid rgba(28,42,51,.1);border-radius:8px">
+            <i class="bi {{ autre.icone|default:'bi-tools' }}" style="color:var(--or)"></i>
+            <span style="font-size:.92rem">{{ autre.titre }}</span>
+            <i class="bi bi-arrow-right ms-auto" style="color:var(--or)"></i>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -40,8 +40,40 @@ def create_private_company(name: str, company_type: str = 'generic', created_by=
     return company
 
 
-def seed_company_modules(company, company_type: str = 'generic', user=None):
-    """Initialise tous les CompanyModule pour une entreprise."""
+def seed_company_modules(company, company_type: str = 'generic', user=None,
+                         *, reinitialiser: bool = False):
+    """Crée les CompanyModule manquants. NE RÉÉCRIT RIEN par défaut.
+
+    CE QUI NE MARCHAIT PAS, ET POURQUOI C'ÉTAIT INVISIBLE
+
+    Cette fonction s'appelle « seed », et elle RÉINITIALISAIT : son dernier
+    bloc forçait chaque module à la valeur par défaut du secteur, y compris
+    pour les lignes déjà existantes.
+
+    Or la vue des modules (private_saas.views.company_modules) l'appelle au
+    début de CHAQUE requête. Le déroulé était donc :
+
+      1. POST  → réinitialisation aux défauts du secteur ;
+      2.         puis la boucle applique les cases cochées — correctement ;
+      3.         « Modules mis à jour. », redirection ;
+      4. GET   → réinitialisation AUX DÉFAUTS DU SECTEUR, qui efface le
+                 choix qu'on vient d'enregistrer, avant même l'affichage.
+
+    L'exploitant cochait, lisait « Modules mis à jour. », et voyait revenir
+    exactement les modules par défaut. Tout fonctionnait sauf la dernière
+    étape, et c'est elle qu'on voyait. Mesuré : après un POST ne cochant que
+    « btp », la liste active était identique aux douze défauts du secteur.
+
+    `reinitialiser=True` rend l'ancien comportement, pour qui veut vraiment
+    remettre une entreprise aux défauts de son secteur. Ce n'est plus ce
+    qu'on fait en affichant une page.
+
+    ATTENTION, HOMONYME. apps/private_saas/module_access.py porte une AUTRE
+    fonction nommée `seed_company_modules`, dont le deuxième paramètre est
+    une LISTE de codes et non un type d'entreprise. Les deux coexistent et
+    ne sont pas interchangeables : passer un type à l'une ou une liste à
+    l'autre ne lève rien et produit un résultat faux en silence.
+    """
     from .models import CompanyModule, DEFAULT_MODULES_BY_TYPE, MODULE_LABELS, ALL_MODULE_CODES
 
     enabled_codes = set(DEFAULT_MODULES_BY_TYPE.get(company_type, DEFAULT_MODULES_BY_TYPE['generic']))
@@ -59,7 +91,9 @@ def seed_company_modules(company, company_type: str = 'generic', user=None):
                 'enabled_by': user if is_enabled else None,
             },
         )
-        if not created and obj.is_enabled != is_enabled:
+        # Une ligne qui EXISTE porte un choix d'exploitant. On ne l'écrase
+        # que s'il l'a explicitement demandé.
+        if not created and reinitialiser and obj.is_enabled != is_enabled:
             obj.is_enabled = is_enabled
             obj.save(update_fields=['is_enabled'])
 

@@ -1,0 +1,76 @@
+{% extends "websites/public/etancheite/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<section class="bande-sombre">
+  <div class="container-xl py-5">
+    <div class="eyebrow eyebrow--clair mb-3">{% trans 'CONTACT' %}</div>
+    <h1 class="h1 mb-0" style="max-width:22ch;line-height:1.18">{% trans 'Parlons de votre projet' %}</h1>
+  </div>
+</section>
+
+<section style="background:#fff">
+  <div class="container-xl py-5">
+    <div class="row g-5">
+      <div class="col-12 col-lg-7">
+        {% include "websites/public/etancheite/_erreurs.html" %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">{% trans 'Nom' %} <span class="text-danger">*</span></label>
+              {{ form.name }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">{% trans 'Email' %} <span class="text-danger">*</span></label>
+              {{ form.email }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">{% trans 'Téléphone' %}</label>
+              {{ form.phone }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">{% trans 'Sujet' %}</label>
+              {{ form.subject }}
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">{% trans 'Message' %} <span class="text-danger">*</span></label>
+              {{ form.message }}
+            </div>
+          </div>
+          {% comment %}
+            Pot de miel : un champ que seul un robot remplit. Masqué par la
+            feuille de style et non par « type=hidden », qu'un robot
+            reconnaît.
+          {% endcomment %}
+          <div class="d-none">{{ form.website_url_field }}</div>
+          <button type="submit" class="btn btn-ardoise mt-3">
+            {% trans 'Envoyer le message' %} <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </form>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="p-4" style="background:var(--fond);border-radius:10px">
+          <div class="fw-semibold mb-3">{% trans 'Nous joindre directement' %}</div>
+          <div class="d-flex flex-column gap-3 small">
+            {% if site.contact_phone %}
+            <a href="tel:{{ site.contact_phone|cut:' ' }}" class="d-flex gap-3 text-decoration-none text-reset">
+              <i class="bi bi-telephone-fill" style="color:var(--or)"></i>{{ site.contact_phone }}
+            </a>
+            {% endif %}
+            {% if site.contact_email %}
+            <a href="mailto:{{ site.contact_email }}" class="d-flex gap-3 text-decoration-none text-reset">
+              <i class="bi bi-envelope-fill" style="color:var(--or)"></i>{{ site.contact_email }}
+            </a>
+            {% endif %}
+            {% if site.address %}
+            <div class="d-flex gap-3"><i class="bi bi-geo-alt-fill" style="color:var(--or)"></i>{{ site.address|linebreaksbr }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

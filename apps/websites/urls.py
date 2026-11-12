@@ -8,6 +8,10 @@ urlpatterns = [
 
     # ─── Sites web ────────────────────────────────────────────────────────────
     path('sites/', views.website_list, name='website_list'),
+    # Creation en un clic du site vitrine Electricite & Etancheite.
+    # Le code arrive par la mise a jour ; la creation reste un geste.
+    path('sites/creer/vitrine-etancheite/', views.creer_vitrine_etancheite,
+         name='creer_vitrine_etancheite'),
     path('sites/nouveau/', views.website_create, name='website_create'),
     path('sites/nouveau/vitrine/', views.website_create_showcase, name='website_create_showcase'),
     path('sites/nouveau/boutique/', views.website_create_store, name='website_create_store'),

@@ -225,6 +225,16 @@ urlpatterns = [
     path('', include('apps.user_security.urls', namespace='user_security')),
 
     # Sites web publics (doit être en dernier)
+    # Site vitrine Electricite & Etancheite. AVANT l'include generique :
+    # sa toute premiere regle est « <slug:site_slug>/ », qui absorbe tout
+    # ce qui suit -- une branche montee apres ne serait jamais atteinte.
+    #
+    # Monte ICI et non dans public_urls.py, parce que ce fichier porte un
+    # travail en cours dont les imports visent des modules absents du
+    # depot : le committer casserait l'arbre des adresses entier.
+    path('sites/<slug:site_slug>/etancheite/',
+         include('apps.websites.etancheite_urls', namespace='etancheite')),
+
     path('sites/', include('apps.websites.public_urls', namespace='public_websites')),
 ]
 
