@@ -139,3 +139,86 @@ def pull_latest():
 
 def hard_reset_to_commit(commit):
     return run_command(f'git reset --hard {commit}', cwd=get_project_root(), timeout=600)
+
+
+# ─── LES SORTIES DE BUILD, ET POURQUOI ELLES CASSENT LA MISE À JOUR ──────────
+
+# Ces deux dossiers sont des SORTIES DE BUILD, et ils sont pourtant suivis par
+# git : l'appliance n'a pas toujours de quoi compiler, on lui livre donc des
+# assets déjà construits.
+#
+# Seulement, la mise à jour RECONSTRUIT les deux frontends juste après avoir
+# tiré le code. Chaque mise à jour réussie laisse donc ces fichiers modifiés
+# dans la copie de travail — et c'est exactement ce qui fait échouer le
+# « git pull » de la SUIVANTE :
+#
+#     error: Your local changes to the following files would be overwritten
+#     by merge: static/siecle-store/index.html
+#
+# Autrement dit, chaque mise à jour posait la mine sur laquelle la suivante
+# sautait. Le défaut ne pouvait pas se voir lors d'une mise à jour isolée :
+# il fallait deux mises à jour de suite, dont une touchant la boutique.
+CHEMINS_GENERES = (
+    'static/siecle-store',
+    'apps/lunea/static/lunea/dist',
+)
+
+
+def _est_genere(chemin):
+    """Ce chemin est-il une sortie de build connue ?"""
+    chemin = chemin.replace('\\', '/').strip()
+    return any(chemin == base or chemin.startswith(base + '/')
+               for base in CHEMINS_GENERES)
+
+
+def fichiers_modifies(racine=None):
+    """Les fichiers SUIVIS dont le contenu diffère de HEAD."""
+    resultat = run_command('git diff --name-only',
+                           cwd=racine or get_project_root())
+    if not resultat['ok']:
+        return []
+    return [ligne.strip() for ligne in resultat['stdout'].splitlines()
+            if ligne.strip()]
+
+
+def restaurer_les_fichiers_generes(racine=None):
+    """Rend aux sorties de build leur état commité, avant de tirer le code.
+
+    ON NE RESTAURE QUE CE QU'ON SAIT REGÉNÉRER.
+
+    Un « git reset --hard » règlerait le symptôme et détruirait au passage
+    tout réglage local posé sur la machine. Ici on ne touche qu'aux chemins
+    listés dans CHEMINS_GENERES, et ils sont reconstruits quelques étapes
+    plus loin dans la même mise à jour : les écraser ne perd rien.
+
+    Les fichiers modifiés HORS de ces chemins sont laissés intacts et
+    RAPPORTÉS. Si le « pull » échoue encore, l'exploitant lit alors le nom
+    d'un fichier qui lui appartient, au lieu d'un fichier généré qu'il n'a
+    jamais édité et dont le nom ne lui dit rien.
+
+    Rend (restaurés, autres_modifiés).
+    """
+    racine = racine or get_project_root()
+    modifies = fichiers_modifies(racine)
+
+    restaures = [c for c in modifies if _est_genere(c)]
+    autres = [c for c in modifies if not _est_genere(c)]
+
+    # On restaure par DOSSIER plutôt que fichier par fichier : la ligne de
+    # commande reste courte quel que soit le nombre d'assets, et les fichiers
+    # supprimés sous ces dossiers reviennent aussi.
+    dossiers = [base for base in CHEMINS_GENERES
+                if any(_est_genere(c) and (c == base or c.startswith(base + '/'))
+                       for c in restaures)]
+
+    for base in dossiers:
+        # « -- » sépare les chemins des révisions : sans lui, un chemin qui
+        # ressemble à un nom de branche serait pris pour une révision.
+        run_command('git checkout -- %s' % base, cwd=racine, timeout=600)
+        # Un build laisse aussi des bundles NON SUIVIS, aux noms hachés. Ils
+        # s'accumulent, et un fichier entrant portant le même nom ferait
+        # échouer le pull a son tour (« untracked working tree files would be
+        # overwritten »). Ils sont reconstruits juste apres.
+        run_command('git clean -fdq -- %s' % base, cwd=racine, timeout=600)
+
+    return restaures, autres
