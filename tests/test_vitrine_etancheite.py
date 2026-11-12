@@ -361,3 +361,124 @@ def test_les_adresses_n_importent_aucun_module_absent_du_depot():
             < racine.index('apps.websites.public_urls')), (
         'la branche étanchéité est montée après l’include générique : elle '
         'ne serait jamais atteinte')
+
+
+# ── 6. Une seule couleur de fond, pilotée par le thème ───────────────────────
+#
+# Constat : « donne la même couleur à toutes les pages ». Le fond était
+# écrit en dur (« #fff ») dans huit sections réparties sur sept gabarits :
+# le thème ne pilotait que les bandes d'accentuation, et changer la couleur
+# du site laissait toutes les pages blanches.
+
+PAGES_DU_SITE = [
+    '', 'services/', 'realisations/', 'entreprise/', 'contact/', 'devis/',
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('chemin', PAGES_DU_SITE)
+def test_chaque_page_prend_la_couleur_du_theme(client, site, chemin):
+    """Toutes les pages doivent suivre LE MÊME réglage de thème."""
+    site.theme.background_color = '#123456'
+    site.theme.save()
+
+    reponse = client.get(f'/sites/{site.slug}/etancheite/{chemin}')
+    assert reponse.status_code == 200
+    contenu = reponse.content.decode()
+
+    assert '--page:         #123456' in contenu or '#123456' in contenu, (
+        f'/{chemin} ne suit pas la couleur de fond du thème')
+
+
+@pytest.mark.django_db
+def test_aucune_section_ne_fige_son_fond(site):
+    """Le garde-fou de la correction.
+
+    Un « background:#fff » réintroduit dans une section rendrait cette page
+    insensible au thème — et c'est exactement le défaut qu'on vient de
+    corriger. Le blanc reste permis comme couleur de TEXTE sur les bandes
+    sombres, et comme couleur de carte via `--carte`.
+    """
+    from pathlib import Path
+
+    fautifs = []
+    for chemin in sorted(
+            Path('templates/websites/public/etancheite').glob('*.html')):
+        for numero, ligne in enumerate(
+                chemin.read_text(encoding='utf-8').splitlines(), 1):
+            if 'background:#fff' in ligne.replace(' ', ''):
+                fautifs.append(f'{chemin.name}:{numero}')
+
+    assert not fautifs, (
+        f'fond figé en dur, insensible au thème : {fautifs}')
+
+
+@pytest.mark.django_db
+def test_les_cartes_restent_lisibles_sur_le_fond(client, site):
+    """La contrepartie de l'unification : si les cartes prenaient la même
+    couleur que la page, la grille des services deviendrait illisible."""
+    reponse = client.get(f'/sites/{site.slug}/etancheite/')
+    contenu = reponse.content.decode()
+
+    assert '--carte:' in contenu
+    assert 'background: var(--carte)' in contenu
+
+
+# ── 7. Le logo se remplace depuis l'ERP ──────────────────────────────────────
+#
+# Constat : « attention ancien logo toujours présent sur les pages ». Et
+# pour cause : le formulaire d'édition d'un site n'exposait NI « logo » NI
+# « favicon ». Les champs existaient sur le modèle, aucun écran ne les
+# proposait, et le seul recours était l'admin Django.
+
+def test_le_formulaire_de_site_expose_le_logo():
+    from apps.websites.forms import WebsiteAdminForm
+
+    champs = set(WebsiteAdminForm().fields)
+    assert 'logo' in champs, 'le logo reste impossible à remplacer depuis l’ERP'
+    assert 'favicon' in champs
+
+
+def test_le_gabarit_du_formulaire_accepte_les_fichiers():
+    """LE SECOND MAILLON, ET LE PLUS SOURNOIS.
+
+    Sans « enctype="multipart/form-data" », un navigateur n'envoie PAS les
+    fichiers. Le champ s'afficherait, l'image serait choisie,
+    l'enregistrement réussirait — et rien n'aurait changé. Ajouter le champ
+    sans l'enctype aurait donné l'illusion d'une correction.
+    """
+    from pathlib import Path
+
+    gabarit = Path('templates/websites/website_form.html').read_text(
+        encoding='utf-8')
+    assert 'enctype="multipart/form-data"' in gabarit
+    assert 'form.logo' in gabarit
+    assert 'form.favicon' in gabarit
+
+
+@pytest.mark.django_db
+def test_le_logo_televerse_remplace_le_marqueur(client, site):
+    """Le chemin qui aboutit : un logo posé doit s'afficher à la place du
+    marqueur dessiné par défaut, sur toutes les pages."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    # Un GIF d'un pixel : assez pour qu'ImageField l'accepte.
+    pixel = (b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!'
+             b'\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00'
+             b'\x00\x02\x02D\x01\x00;')
+    site.logo = SimpleUploadedFile('logo.gif', pixel, content_type='image/gif')
+    site.save()
+
+    for chemin in ('', 'services/', 'contact/'):
+        contenu = client.get(
+            f'/sites/{site.slug}/etancheite/{chemin}').content.decode()
+        assert 'logo' in contenu and '<img src="/media/' in contenu, (
+            f'/{chemin} n’affiche pas le logo téléversé')
+
+
+@pytest.mark.django_db
+def test_sans_logo_un_marqueur_est_dessine(client, site):
+    """Un site neuf ne doit pas montrer un carré vide."""
+    assert not site.logo
+    contenu = client.get(f'/sites/{site.slug}/etancheite/').content.decode()
+    assert 'bi-lightning-charge-fill' in contenu

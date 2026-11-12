@@ -25,7 +25,38 @@ GABARITS = 'websites/public/etancheite/'
 
 
 def _contexte(site, **extra):
+    """Le contexte commun, avec des textes LISIBLES sur les fonds choisis.
+
+    POURQUOI LE TEXTE EST DÉDUIT ET NON LU.
+
+    Le fond des pages suit désormais le thème. Tant qu'il reste clair, le
+    texte sombre du thème convient ; dès qu'on choisit un bleu profond, ce
+    même texte devient illisible — et rien ne le signale, parce qu'on ne
+    relit pas une page dont on vient seulement de changer une couleur.
+
+    Trois surfaces portent du texte et peuvent être colorées
+    indépendamment : la page, l'en-tête et le pied. Chacune reçoit donc sa
+    couleur de texte, calculée depuis sa propre luminance. Le choix de
+    l'exploitant est conservé quand il contraste assez : on ne corrige que
+    ce qui serait illisible.
+    """
+    from .couleurs import texte_lisible_sur
+
     contexte = _base_context(site)
+    theme = site.theme
+
+    fond_page = getattr(theme, 'background_color', '') if theme else ''
+    fond_entete = getattr(theme, 'header_bg_color', '') if theme else ''
+    fond_pied = getattr(theme, 'footer_bg_color', '') if theme else ''
+    texte_theme = getattr(theme, 'text_color', '') if theme else ''
+
+    contexte.update({
+        'texte_sur_page': texte_lisible_sur(fond_page or '#FBF8F3',
+                                            texte_theme),
+        'texte_sur_entete': texte_lisible_sur(fond_entete or '#FFFFFF',
+                                              texte_theme),
+        'texte_sur_pied': texte_lisible_sur(fond_pied or '#1C2A33'),
+    })
     contexte.update(extra)
     return contexte
 

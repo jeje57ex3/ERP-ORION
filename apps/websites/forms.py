@@ -62,9 +62,18 @@ class QuoteRequestForm(forms.ModelForm):
 class WebsiteAdminForm(forms.ModelForm):
     class Meta:
         model = Website
+        # « logo » et « favicon » MANQUAIENT, et c'est ce qui empêchait de
+        # remplacer le logo d'un site depuis l'ERP : les champs existent
+        # sur le modèle, mais aucun écran ne les proposait. Le seul recours
+        # était l'admin Django -- autant dire : pas de recours.
+        #
+        # Le gabarit de ce formulaire n'avait pas non plus
+        # « enctype="multipart/form-data" » : sans lui, un navigateur
+        # n'envoie PAS les fichiers, et le champ serait resté décoratif.
         fields = [
             'name', 'site_type', 'status', 'domain', 'subdomain', 'language',
             'currency', 'country', 'contact_email', 'contact_phone', 'address',
+            'logo', 'favicon',
             'meta_title', 'meta_description', 'google_analytics_id',
             'facebook_url', 'instagram_url', 'twitter_url', 'linkedin_url',
             'youtube_url', 'tiktok_url', 'is_active',
