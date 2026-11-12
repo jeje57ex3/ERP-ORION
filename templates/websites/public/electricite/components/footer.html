@@ -1,0 +1,76 @@
+{% load static i18n %}
+<footer class="site-footer">
+  <div class="site-container">
+    <div class="site-footer-grid">
+
+      <div>
+        {% if site.logo %}
+          <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="height:34px">
+        {% else %}
+          <div style="display:flex;align-items:center;gap:.5rem;font-weight:800;color:var(--site-text)">
+            <i class="bi bi-lightning-charge-fill" style="color:var(--site-accent);font-size:1.3rem" aria-hidden="true"></i>
+            {{ site.company.name }}
+          </div>
+        {% endif %}
+        {% trans 'Électricité générale, domotique, sécurité et réseaux — installation, dépannage et maintenance.' as elec_footer_tagline %}
+        <p style="margin-top:.9rem;font-size:.88rem">
+          {{ site.meta_description|default:elec_footer_tagline }}
+        </p>
+        {% if site.contact_phone %}
+        <a href="tel:{{ site.contact_phone }}" style="display:flex;align-items:center;gap:.5rem;margin-top:1rem;color:var(--site-accent);font-weight:700">
+          <i class="bi bi-telephone-fill" aria-hidden="true"></i>{{ site.contact_phone }}
+        </a>
+        {% endif %}
+        <div class="site-footer-social">
+          {% if site.facebook_url %}<a href="{{ site.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="bi bi-facebook" aria-hidden="true"></i></a>{% endif %}
+          {% if site.instagram_url %}<a href="{{ site.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram" aria-hidden="true"></i></a>{% endif %}
+          {% if site.linkedin_url %}<a href="{{ site.linkedin_url }}" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="bi bi-linkedin" aria-hidden="true"></i></a>{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <h4>{% trans 'Nos services' %}</h4>
+        <ul>
+          <li><a href="{% url 'public_websites:electricite_services' site.public_slug %}">{% trans 'Tous les services' %}</a></li>
+          <li><a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}">{% trans 'Réalisations' %}</a></li>
+          <li><a href="{% url 'public_websites:electricite_calculateur' site.public_slug %}">{% trans 'Calculateur énergétique' %}</a></li>
+          <li><a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}">{% trans 'Configurateur de chantier' %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>{% trans 'Accès rapide' %}</h4>
+        <ul>
+          <li><a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}">{% trans 'Demander un devis' %}</a></li>
+          <li><a href="{% url 'public_websites:electricite_client_access' site.public_slug %}">{% trans 'Espace client' %}</a></li>
+          <li><a href="{% url 'client_portal:login' %}">{% trans 'Se connecter' %}</a></li>
+          <li><a href="{% url 'public_websites:electricite_faq' site.public_slug %}">FAQ</a></li>
+          <li><a href="{% url 'public_websites:electricite_contact' site.public_slug %}">{% trans 'Contact' %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>{% trans 'Newsletter' %}</h4>
+        <p style="font-size:.85rem">{% trans 'Actualités et conseils électricité, une fois par mois.' %}</p>
+        <form class="site-newsletter" method="post" action="{% url 'public_websites:newsletter_subscribe' %}">
+          {% csrf_token %}
+          <label for="footerNewsletterEmail" class="visually-hidden" style="position:absolute;left:-9999px">{% trans 'Adresse email' %}</label>
+          <input type="email" id="footerNewsletterEmail" name="email" placeholder="{% trans 'Votre email' %}" required>
+          {% trans "S'inscrire à la newsletter" as elec_newsletter_submit_label %}
+          <button type="submit" class="site-btn site-btn-accent site-btn-sm" aria-label="{{ elec_newsletter_submit_label }}">
+            <i class="bi bi-send" aria-hidden="true"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="site-footer-bottom">
+      <p>&copy; {% now "Y" %} {{ site.company.name }}. {% trans 'Tous droits réservés.' %}</p>
+      <p style="display:flex;gap:1.5rem;flex-wrap:wrap">
+        <a href="{% url 'public_websites:electricite_mentions_legales' site.public_slug %}">{% trans 'Mentions légales' %}</a>
+        <a href="{% url 'public_websites:electricite_confidentialite' site.public_slug %}">{% trans 'Confidentialité' %}</a>
+        <a href="{% url 'public_websites:sitemap_public' site.public_slug %}">Sitemap</a>
+      </p>
+    </div>
+  </div>
+</footer>

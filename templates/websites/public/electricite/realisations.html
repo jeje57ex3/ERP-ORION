@@ -1,0 +1,40 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Portfolio" %}</span>
+      <h1 class="site-h-xxl">{% trans "Nos réalisations" %}</h1>
+      <p>{% trans "Avant / après sur nos derniers chantiers électriques et domotiques." %}</p>
+    </div>
+
+    {% if portfolio_projects %}
+    <div class="site-grid site-grid-3">
+      {% for p in portfolio_projects %}
+      <div class="site-gallery-card site-reveal" data-category="{{ p.work_type }}">
+        <div class="site-ba">
+          <figure>
+            {% if p.before_image %}<a href="#" data-lightbox="{{ p.before_image.url }}" data-lightbox-alt="{% blocktrans with title=p.title %}Avant — {{ title }}{% endblocktrans %}"><img src="{{ p.before_image.url }}" alt="{% blocktrans with title=p.title %}Avant — {{ title }}{% endblocktrans %}" loading="lazy"></a>{% endif %}
+            <figcaption>{% trans "Avant" %}</figcaption>
+          </figure>
+          <figure>
+            {% if p.after_image %}<a href="#" data-lightbox="{{ p.after_image.url }}" data-lightbox-alt="{% blocktrans with title=p.title %}Après — {{ title }}{% endblocktrans %}"><img src="{{ p.after_image.url }}" alt="{% blocktrans with title=p.title %}Après — {{ title }}{% endblocktrans %}" loading="lazy"></a>{% endif %}
+            <figcaption>{% trans "Après" %}</figcaption>
+          </figure>
+        </div>
+        <div class="site-gallery-body">
+          <h3>{{ p.title }}</h3>
+          <p class="site-muted">{{ p.city }}{% if p.completion_date %} · {{ p.completion_date|date:"m/Y" }}{% endif %}</p>
+          {% if p.description %}<p style="margin-top:.6rem;font-size:.9rem">{{ p.description|truncatewords:20 }}</p>{% endif %}
+          {% if p.customer_review %}<p class="site-muted" style="margin-top:.6rem;font-style:italic">"{{ p.customer_review|truncatewords:18 }}"</p>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="site-muted" style="text-align:center">{% trans "Nos réalisations seront bientôt publiées ici." %}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -5,28 +5,29 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib import messages as django_messages
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .models import (
     Website, BlogPost, BTPPortfolioProject, BTPWebsiteReview,
     BTPClientAccessRequest, BTPEmergencyRequest,
 )
-from .public_views import _get_site, _base_context, _get_ip, _create_crm_lead
+from .public_views import _get_site, _base_context, _get_ip, _create_crm_lead, translate_static_items, _translated
 
 
 WORK_CATEGORIES = [
-    {'icon': 'bi-lightning-charge',    'name': 'Électricité',         'desc': 'Installation, mise aux normes, dépannage électrique.'},
-    {'icon': 'bi-droplet-fill',        'name': 'Plomberie',           'desc': 'Canalisations, sanitaires, fuite d\'eau, chauffe-eau.'},
-    {'icon': 'bi-thermometer-half',    'name': 'Chauffage',           'desc': 'Chaudière, pompe à chaleur, radiateurs, plancher chauffant.'},
-    {'icon': 'bi-brush',               'name': 'Peinture',            'desc': 'Enduits, peintures intérieur / extérieur.'},
-    {'icon': 'bi-bricks',              'name': 'Maçonnerie',          'desc': 'Gros œuvre, dalle, fondations, mur.'},
-    {'icon': 'bi-door-open',           'name': 'Menuiserie',          'desc': 'Fenêtres, portes, parquet, agencement bois.'},
-    {'icon': 'bi-house-check',         'name': 'Isolation',           'desc': 'Combles, murs, façade — amélioration énergétique.'},
-    {'icon': 'bi-building',            'name': 'Toiture',             'desc': 'Couverture, zinguerie, entretien toiture.'},
-    {'icon': 'bi-grid-3x3-gap',        'name': 'Revêtement sol',      'desc': 'Carrelage, parquet, stratifié, moquette.'},
-    {'icon': 'bi-droplet-half',        'name': 'Salle de bain',       'desc': 'Rénovation complète, douche, baignoire, WC.'},
-    {'icon': 'bi-egg-fried',           'name': 'Cuisine',             'desc': 'Pose de cuisine équipée, plan de travail, électroménager.'},
-    {'icon': 'bi-house-gear',          'name': 'Rénovation complète', 'desc': 'Coordination de tous les corps de métier.'},
-    {'icon': 'bi-arrows-expand',       'name': 'Extension',           'desc': 'Agrandissement, véranda, surélévation.'},
+    {'slug': 'electricite',          'icon': 'bi-lightning-charge',    'name': 'Électricité',         'desc': 'Installation, mise aux normes, dépannage électrique.'},
+    {'slug': 'plomberie',            'icon': 'bi-droplet-fill',        'name': 'Plomberie',           'desc': 'Canalisations, sanitaires, fuite d\'eau, chauffe-eau.'},
+    {'slug': 'chauffage',            'icon': 'bi-thermometer-half',    'name': 'Chauffage',           'desc': 'Chaudière, pompe à chaleur, radiateurs, plancher chauffant.'},
+    {'slug': 'peinture',             'icon': 'bi-brush',               'name': 'Peinture',            'desc': 'Enduits, peintures intérieur / extérieur.'},
+    {'slug': 'maconnerie',           'icon': 'bi-bricks',              'name': 'Maçonnerie',          'desc': 'Gros œuvre, dalle, fondations, mur.'},
+    {'slug': 'menuiserie',           'icon': 'bi-door-open',           'name': 'Menuiserie',          'desc': 'Fenêtres, portes, parquet, agencement bois.'},
+    {'slug': 'isolation',            'icon': 'bi-house-check',         'name': 'Isolation',           'desc': 'Combles, murs, façade — amélioration énergétique.'},
+    {'slug': 'toiture',              'icon': 'bi-building',            'name': 'Toiture',             'desc': 'Couverture, zinguerie, entretien toiture.'},
+    {'slug': 'revetement-sol',       'icon': 'bi-grid-3x3-gap',        'name': 'Revêtement sol',      'desc': 'Carrelage, parquet, stratifié, moquette.'},
+    {'slug': 'salle-de-bain',        'icon': 'bi-droplet-half',        'name': 'Salle de bain',       'desc': 'Rénovation complète, douche, baignoire, WC.'},
+    {'slug': 'cuisine',              'icon': 'bi-egg-fried',           'name': 'Cuisine',             'desc': 'Pose de cuisine équipée, plan de travail, électroménager.'},
+    {'slug': 'renovation-complete',  'icon': 'bi-house-gear',          'name': 'Rénovation complète', 'desc': 'Coordination de tous les corps de métier.'},
+    {'slug': 'extension',            'icon': 'bi-arrows-expand',       'name': 'Extension',           'desc': 'Agrandissement, véranda, surélévation.'},
 ]
 
 EMERGENCY_TYPES = [
@@ -75,8 +76,8 @@ def btp_services(request, site_slug):
     ctx  = _btp_context(site)
     ctx.update({
         'featured_services': site.services.filter(is_active=True).order_by('order'),
-        'default_services':  WORK_CATEGORIES[:6],
-        'page_title': 'Nos services',
+        'default_services':  translate_static_items(WORK_CATEGORIES, 'btp.work')[:6],
+        'page_title': _('Nos services'),
     })
     return render(request, 'websites/public/btp/services.html', ctx)
 
@@ -84,7 +85,7 @@ def btp_services(request, site_slug):
 def btp_works(request, site_slug):
     site = _get_btp_site(site_slug)
     ctx  = _btp_context(site)
-    ctx.update({'work_categories': WORK_CATEGORIES, 'page_title': 'Types de travaux'})
+    ctx.update({'work_categories': translate_static_items(WORK_CATEGORIES, 'btp.work'), 'page_title': _('Types de travaux')})
     return render(request, 'websites/public/btp/works.html', ctx)
 
 
@@ -101,7 +102,7 @@ def btp_portfolio(request, site_slug):
         'portfolio_projects': qs,
         'work_types':        BTPPortfolioProject.WORK_TYPES,
         'work_type_filter':  work_type_filter,
-        'page_title': 'Nos réalisations',
+        'page_title': _('Nos réalisations'),
     })
     return render(request, 'websites/public/btp/portfolio.html', ctx)
 
@@ -116,14 +117,14 @@ def btp_reviews(request, site_slug):
         total = sum(r.rating for r in reviews)
         avg_rating = total / reviews.count()
 
-    ctx.update({'reviews': reviews, 'avg_rating': avg_rating, 'page_title': 'Avis clients'})
+    ctx.update({'reviews': reviews, 'avg_rating': avg_rating, 'page_title': _('Avis clients')})
     return render(request, 'websites/public/btp/reviews.html', ctx)
 
 
 def btp_emergency(request, site_slug):
     site = _get_btp_site(site_slug)
     ctx  = _btp_context(site)
-    ctx.update({'emergency_types': EMERGENCY_TYPES, 'page_title': 'Dépannage urgent'})
+    ctx.update({'emergency_types': EMERGENCY_TYPES, 'page_title': _('Dépannage urgent')})
 
     if request.method == 'POST':
         honeypot = request.POST.get('website_url_field', '')
@@ -158,7 +159,7 @@ def btp_emergency(request, site_slug):
 def btp_contact(request, site_slug):
     site = _get_btp_site(site_slug)
     ctx  = _btp_context(site)
-    ctx['page_title'] = 'Contact'
+    ctx['page_title'] = _('Contact')
 
     if request.method == 'POST':
         honeypot = request.POST.get('website_url_field', '')
@@ -184,7 +185,7 @@ def btp_contact(request, site_slug):
 def btp_client_access(request, site_slug):
     site = _get_btp_site(site_slug)
     ctx  = _btp_context(site)
-    ctx['page_title'] = 'Espace client'
+    ctx['page_title'] = _('Espace client')
 
     if request.method == 'POST':
         honeypot = request.POST.get('website_url_field', '')
@@ -223,17 +224,21 @@ def btp_blog(request, site_slug):
     if current_category:
         posts = posts.filter(category__slug=current_category)
 
+    posts = [_translated(post, ('title', 'excerpt')) for post in posts]
+
     ctx.update({'posts': posts, 'categories': categories,
-                'current_category': current_category, 'page_title': 'Blog'})
+                'current_category': current_category, 'page_title': _('Blog')})
     return render(request, 'websites/public/btp/blog_list.html', ctx)
 
 
 def btp_blog_detail(request, site_slug, post_slug):
     site = _get_btp_site(site_slug)
     post = get_object_or_404(BlogPost, website=site, slug=post_slug, status='published')
+    post = _translated(post, ('title', 'excerpt', 'content', 'meta_title', 'meta_description'))
     related = site.blog_posts.filter(
         status='published', category=post.category
     ).exclude(pk=post.pk).order_by('-published_at')[:3]
+    related = [_translated(r, ('title', 'excerpt')) for r in related]
 
     ctx = _btp_context(site)
     ctx.update({'post': post, 'related_posts': related, 'page_title': post.title})

@@ -1,0 +1,35 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Ajouter photos et plan" %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% blocktrans with ref=quote_request.reference %}Référence {{ ref }}{% endblocktrans %}</span>
+      <h1 class="site-h-xxl">{% trans "Photos et plan du projet" %}</h1>
+      <p>{% trans "Ajoutez des photos de la zone concernée et, si disponible, votre plan (PDF)." %}</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="site-form-card site-reveal">
+      {% csrf_token %}
+      <div class="site-field">
+        <label for="photos">{% trans "Photos" %}</label>
+        <input type="file" id="photos" name="photos" accept="image/*" multiple>
+      </div>
+      <div class="site-field">
+        <label for="caption">{% trans "Légende (optionnel)" %}</label>
+        <input type="text" id="caption" name="caption" placeholder="{% trans 'Ex : tableau électrique existant' %}">
+      </div>
+      <div class="site-field">
+        <label for="documents">{% trans "Plan du projet (PDF)" %}</label>
+        <input type="file" id="documents" name="documents" accept="application/pdf" multiple>
+      </div>
+      <button type="submit" class="site-btn site-btn-primary site-btn-block"><span class="site-btn-label"><i class="bi bi-upload" aria-hidden="true"></i>{% trans "Envoyer" %}</span></button>
+    </form>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="{% url 'public_websites:electricite_wizard_success' site.public_slug %}" class="site-btn-ghost">{% trans "Passer cette étape" %}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Contact" %}</span>
+      <h1 class="site-h-xxl">{% trans "Nous contacter" %}</h1>
+    </div>
+
+    {% if success %}
+    <div class="site-form-card site-reveal" style="text-align:center">
+      <i class="bi bi-check-circle-fill" style="font-size:2.5rem;color:var(--site-success)" aria-hidden="true"></i>
+      <h3 style="margin-top:1rem">{% trans "Message envoyé" %}</h3>
+      <p class="site-muted">{% trans "Nous revenons vers vous rapidement." %}</p>
+    </div>
+    {% else %}
+    <form method="post" class="site-form-card site-reveal" data-validate novalidate>
+      {% csrf_token %}
+      <input type="text" name="website_url_field" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
+      <div class="site-field-row">
+        <div class="site-field">
+          <label for="cf-name">{% trans "Nom complet" %}</label>
+          <input type="text" id="cf-name" name="name" required>
+          <span class="site-error-msg">{% trans "Merci d'indiquer votre nom." %}</span>
+        </div>
+        <div class="site-field">
+          <label for="cf-email">{% trans "Email" %}</label>
+          <input type="email" id="cf-email" name="email" required>
+          <span class="site-error-msg">{% trans "Adresse email invalide." %}</span>
+        </div>
+      </div>
+      <div class="site-field-row">
+        <div class="site-field"><label for="cf-phone">{% trans "Téléphone" %}</label><input type="tel" id="cf-phone" name="phone"></div>
+        <div class="site-field"><label for="cf-subject">{% trans "Sujet" %}</label><input type="text" id="cf-subject" name="subject"></div>
+      </div>
+      <div class="site-field">
+        <label for="cf-message">{% trans "Message" %}</label>
+        <textarea id="cf-message" name="message" rows="5" required></textarea>
+        <span class="site-error-msg">{% trans "Merci de décrire votre demande." %}</span>
+      </div>
+      <button type="submit" class="site-btn site-btn-primary site-btn-block"><span class="site-btn-label"><i class="bi bi-send" aria-hidden="true"></i>{% trans "Envoyer" %}</span></button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Configurateur de chantier — Étape 2" %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Configurateur de chantier · Étape 2 sur 4" %}</span>
+      <h1 class="site-h-xxl">{% trans "Détails de votre projet" %}</h1>
+      <p>{% trans "Surface, pièces, équipements et niveau de gamme — 5 sous-étapes rapides." %}</p>
+    </div>
+
+    <form method="post" class="site-form-card site-reveal" id="chantierForm" data-wizard>
+      {% csrf_token %}
+      <div class="site-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="5">
+        <div class="site-progress-step current"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+      </div>
+
+      <!-- 3. Surface -->
+      <div class="site-step-panel active">
+        <h3 style="margin-bottom:1rem"><i class="bi bi-rulers" aria-hidden="true"></i> {% trans "Surface du bien" %}</h3>
+        <div class="site-field">
+          <label for="surface">{% trans "Surface habitable (m²)" %}</label>
+          <select id="surface" name="surface">
+            <option value="less30">{% trans "Moins de 30 m²" %}</option>
+            <option value="30-60">{% trans "30 à 60 m²" %}</option>
+            <option value="60-100">{% trans "60 à 100 m²" %}</option>
+            <option value="100-150">{% trans "100 à 150 m²" %}</option>
+            <option value="more150">{% trans "Plus de 150 m²" %}</option>
+            <option value="unknown">{% trans "Je ne sais pas" %}</option>
+          </select>
+        </div>
+        <div class="site-wizard-nav" style="justify-content:flex-end">
+          <button type="button" class="site-btn site-btn-primary" data-wizard-next><span class="site-btn-label">{% trans "Suivant" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+
+      <!-- 4. Pièces -->
+      <div class="site-step-panel">
+        <h3 style="margin-bottom:1rem"><i class="bi bi-door-open" aria-hidden="true"></i> {% trans "Pièces concernées" %}</h3>
+        <div class="site-field-row" style="grid-template-columns:1fr 1fr;row-gap:.8rem">
+          {% for value, label in room_choices %}
+          <div class="site-field" style="margin-bottom:0">
+            <label for="room_{{ value }}">{{ label }}</label>
+            <input type="number" id="room_{{ value }}" name="room_{{ value }}" min="0" value="0" style="max-width:100px">
+          </div>
+          {% endfor %}
+        </div>
+        <div class="site-wizard-nav">
+          <button type="button" class="site-btn site-btn-outline" data-wizard-prev><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Précédent" %}</span></button>
+          <button type="button" class="site-btn site-btn-primary" data-wizard-next><span class="site-btn-label">{% trans "Suivant" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+
+      <!-- 5. Équipements -->
+      <div class="site-step-panel">
+        <h3 style="margin-bottom:1rem"><i class="bi bi-plug" aria-hidden="true"></i> {% trans "Équipements souhaités" %}</h3>
+        <div class="site-pill-grid">
+          {% for value, label, category in equipment_choices %}
+          <label class="site-pill">
+            <input type="checkbox" name="equipments" value="{{ value }}">{{ label }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="site-wizard-nav">
+          <button type="button" class="site-btn site-btn-outline" data-wizard-prev><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Précédent" %}</span></button>
+          <button type="button" class="site-btn site-btn-primary" data-wizard-next><span class="site-btn-label">{% trans "Suivant" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+
+      <!-- 6. Qualité -->
+      <div class="site-step-panel">
+        <h3 style="margin-bottom:1rem"><i class="bi bi-gem" aria-hidden="true"></i> {% trans "Niveau de gamme" %}</h3>
+        <div class="site-choice-grid">
+          {% for value, label in quality_choices %}
+          <label class="site-choice-card">
+            <input type="radio" name="quality_level" value="{{ value }}" {% if value == "standard" %}checked{% endif %}>
+            <i class="bi bi-star-fill" aria-hidden="true"></i>{{ label }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="site-wizard-nav">
+          <button type="button" class="site-btn site-btn-outline" data-wizard-prev><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Précédent" %}</span></button>
+          <button type="button" class="site-btn site-btn-primary" data-wizard-next><span class="site-btn-label">{% trans "Suivant" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+
+      <!-- 9. Commentaires -->
+      <div class="site-step-panel">
+        <h3 style="margin-bottom:1rem"><i class="bi bi-chat-left-text" aria-hidden="true"></i> {% trans "Commentaires" %}</h3>
+        <div class="site-field">
+          <label for="comments">{% trans "Précisions utiles pour votre projet (optionnel)" %}</label>
+          <textarea id="comments" name="comments" rows="4" placeholder="{% trans "Contraintes d'accès, délais souhaités, éléments particuliers..." %}"></textarea>
+        </div>
+        <p class="site-muted" style="font-size:.85rem;margin-bottom:1rem">
+          <i class="bi bi-info-circle" aria-hidden="true"></i> {% trans "Vous pourrez ajouter des photos et votre plan une fois la demande envoyée." %}
+        </p>
+        <div class="site-wizard-nav">
+          <button type="button" class="site-btn site-btn-outline" data-wizard-prev><span class="site-btn-label"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% trans "Précédent" %}</span></button>
+          <button type="submit" class="site-btn site-btn-primary"><span class="site-btn-label">{% trans "Continuer" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

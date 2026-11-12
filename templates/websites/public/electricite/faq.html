@@ -1,0 +1,27 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Questions fréquentes" %}</span>
+      <h1 class="site-h-xxl">FAQ</h1>
+    </div>
+    <div>
+      {% for question, answer in faq_items %}
+      <div class="site-faq-item site-reveal">
+        <button class="site-faq-q" type="button" aria-expanded="false">
+          {{ question }}
+          <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="site-faq-a"><p>{{ answer }}</p></div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <p class="site-muted" style="margin-bottom:1rem">{% trans "Une autre question ?" %}</p>
+      <a href="{% url 'public_websites:electricite_contact' site.public_slug %}" class="site-btn site-btn-outline"><span class="site-btn-label">{% trans "Nous contacter" %}</span></a>
+    </div>
+  </div>
+</section>
+{% endblock %}

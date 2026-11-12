@@ -1,0 +1,30 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Témoignages" %}</span>
+      <h1 class="site-h-xxl">{% trans "Avis clients" %}</h1>
+      {% if avg_rating %}
+      <p style="font-size:1.4rem;color:var(--site-accent);font-weight:700;margin-top:.5rem">
+        {{ avg_rating|floatformat:1 }} / 5 <span class="site-muted" style="font-size:.9rem;font-weight:400">({% blocktrans with count=reviews.count %}{{ count }} avis{% endblocktrans %})</span>
+      </p>
+      {% endif %}
+    </div>
+    {% if reviews %}
+    <div class="site-grid site-grid-3">
+      {% for r in reviews %}
+      <div class="site-testimonial-card site-reveal" style="max-width:none;text-align:left">
+        <div class="site-testimonial-stars">{% for i in "12345" %}<i class="bi {% if forloop.counter <= r.rating %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</div>
+        <p>{{ r.comment }}</p>
+        <p class="site-muted" style="margin-top:1rem;font-weight:600">{{ r.customer_name }} — {{ r.customer_city }}{% if r.work_type %} · {{ r.get_work_type_display }}{% endif %}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="site-muted" style="text-align:center">{% trans "Aucun avis publié pour le moment." %}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

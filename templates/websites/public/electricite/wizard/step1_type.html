@@ -1,0 +1,47 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktrans %}Configurateur — Étape 1{% endblocktrans %}{% endblock %}
+{% block content %}
+<section class="site-section">
+  <div class="site-container-sm">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans "Configurateur · Étape 1 sur 4" %}</span>
+      <h1 class="site-h-xxl">{% trans "Quel est votre projet ?" %}</h1>
+    </div>
+
+    <form method="post" class="site-form-card site-reveal">
+      {% csrf_token %}
+      <div class="site-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4">
+        <div class="site-progress-step current"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+        <div class="site-progress-step"></div>
+      </div>
+
+      <h3 style="margin-bottom:1rem"><i class="bi bi-house-door" aria-hidden="true"></i> {% trans "Type de bâtiment" %}</h3>
+      <div class="site-choice-grid" style="margin-bottom:2rem">
+        {% for value, label in building_type_choices %}
+        <label class="site-choice-card">
+          <input type="radio" name="building_type" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+          <i class="bi bi-building" aria-hidden="true"></i>{{ label }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <h3 style="margin-bottom:1rem"><i class="bi bi-clipboard-check" aria-hidden="true"></i> {% trans "Type de projet" %}</h3>
+      <div class="site-choice-grid">
+        {% for value, label in project_type_choices %}
+        <label class="site-choice-card">
+          <input type="radio" name="request_type" value="{{ value }}" {% if value == "depannage" %}checked{% endif %}>
+          <i class="bi bi-lightning-charge" aria-hidden="true"></i>{{ label }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="site-wizard-nav" style="justify-content:flex-end">
+        <button type="submit" class="site-btn site-btn-primary"><span class="site-btn-label">{% trans "Continuer" %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span></button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "websites/public/electricite/base.html" %}
+{% load static i18n %}
+{% block content %}
+
+<section class="site-hero">
+  <div class="site-hero-bg" aria-hidden="true">
+    <span class="site-blob site-blob-1"></span>
+    <span class="site-blob site-blob-2"></span>
+  </div>
+  <div class="site-container site-hero-grid">
+    <div>
+      <span class="site-h-label"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>{% trans 'Électricité · Domotique · Sécurité' %}</span>
+      <h1 class="site-hero-title">{% blocktrans with company=site.company.name %}{{ company }} — votre expert électricité nouvelle génération{% endblocktrans %}</h1>
+      <p class="site-hero-lead">
+        {% trans 'Installation, domotique, réseau informatique, vidéosurveillance, alarmes, bornes de recharge. Obtenez un pré-devis instantané en ligne, sans rendez-vous.' %}
+      </p>
+      <div class="site-hero-actions">
+        <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-primary site-btn-lg">
+          <span class="site-btn-label"><i class="bi bi-magic" aria-hidden="true"></i>{% trans 'Configurer mon projet' %}</span>
+        </a>
+        <a href="{% url 'public_websites:electricite_services' site.public_slug %}" class="site-btn site-btn-outline site-btn-lg">
+          <span class="site-btn-label"><i class="bi bi-compass" aria-hidden="true"></i>{% trans 'Découvrir' %}</span>
+        </a>
+      </div>
+      <div class="site-hero-trust">
+        <div class="site-hero-trust-item"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>{% trans 'Devis instantané' %}</div>
+        <div class="site-hero-trust-item"><i class="bi bi-shield-check" aria-hidden="true"></i>{% trans 'Normes NF C 15-100' %}</div>
+        <div class="site-hero-trust-item"><i class="bi bi-clock-history" aria-hidden="true"></i>{% trans 'Intervention rapide' %}</div>
+      </div>
+    </div>
+    <div class="site-hero-card site-glass site-reveal">
+      <h3 style="margin-bottom:1rem"><i class="bi bi-lightning-charge-fill" style="color:var(--site-accent)" aria-hidden="true"></i> {% trans 'Pré-devis en 2 minutes' %}</h3>
+      <p class="site-muted" style="margin-bottom:1.2rem">{% trans 'Type de bien, projet, équipements, niveau de gamme — recevez une estimation chiffrée immédiate.' %}</p>
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-primary site-btn-block">
+        <span class="site-btn-label">{% trans 'Commencer' %} <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+      </a>
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}?type=depannage" class="site-btn site-btn-outline site-btn-block" style="margin-top:.8rem">
+        <span class="site-btn-label"><i class="bi bi-tools" aria-hidden="true"></i> {% trans 'Dépannage urgent' %}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="site-section site-section-alt site-reveal" aria-label="{% trans 'Chiffres clés' %}">
+  <div class="site-container site-stats">
+    <div><div class="site-stat-num" data-count="500">0</div><div class="site-stat-label">{% trans 'Chantiers réalisés' %}</div></div>
+    <div><div class="site-stat-num" data-count="15">0</div><div class="site-stat-label">{% trans "Ans d'expérience" %}</div></div>
+    <div><div class="site-stat-num" data-count="98">0</div><div class="site-stat-label">{% trans '% clients satisfaits' %}</div></div>
+    <div><div class="site-stat-num" data-count="24">0</div><div class="site-stat-label">{% trans 'h intervention urgence' %}</div></div>
+  </div>
+</section>
+
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Nos savoir-faire' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Une expertise complète, un seul interlocuteur' %}</h2>
+      <p>{% trans "De l'installation électrique classique aux solutions connectées les plus avancées." %}</p>
+    </div>
+    <div class="site-grid site-grid-4">
+      {% for s in services|slice:":8" %}
+      <div class="site-card site-reveal">
+        <div class="site-card-icon"><i class="bi {{ s.icon }}" aria-hidden="true"></i></div>
+        <h3>{{ s.name }}</h3>
+        <p>{{ s.desc }}</p>
+        <a href="{% url 'public_websites:electricite_service_detail' site.public_slug s.slug %}" class="site-btn-ghost" style="display:inline-flex;margin-top:.8rem;padding:0">
+          {% trans 'En savoir plus' %} <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <a href="{% url 'public_websites:electricite_services' site.public_slug %}" class="site-btn site-btn-outline">{% trans 'Voir tous les services' %}</a>
+    </div>
+  </div>
+</section>
+
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Comment ça marche' %}</span>
+      <h2 class="site-h-xxl">{% trans 'De la demande au chantier, en 4 étapes' %}</h2>
+    </div>
+    <div class="site-grid site-grid-4">
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-sliders" aria-hidden="true"></i></div><h3>{% trans '1. Configurez' %}</h3><p>{% trans 'Décrivez votre projet ou votre panne en quelques clics.' %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-receipt" aria-hidden="true"></i></div><h3>{% trans '2. Recevez le pré-devis' %}</h3><p>{% trans 'Estimation chiffrée immédiate, envoyée par email.' %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i></div><h3>{% trans '3. Planifiez' %}</h3><p>{% trans "Nous validons ensemble les créneaux d'intervention." %}</p></div>
+      <div class="site-card site-reveal"><div class="site-card-icon"><i class="bi bi-tools" aria-hidden="true"></i></div><h3>{% trans '4. Réalisation' %}</h3><p>{% trans 'Suivez votre chantier depuis votre espace client.' %}</p></div>
+    </div>
+  </div>
+</section>
+
+{% if elec_portfolio %}
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Réalisations' %}</span>
+      <h2 class="site-h-xxl">{% trans 'Nos derniers chantiers' %}</h2>
+    </div>
+    <div class="site-grid site-grid-3">
+      {% for p in elec_portfolio %}
+      <div class="site-gallery-card site-reveal">
+        <div class="site-ba">
+          <figure>
+            {% blocktrans asvar elec_before_alt with title=p.title %}Avant — {{ title }}{% endblocktrans %}
+            {% if p.before_image %}<a href="#" data-lightbox="{{ p.before_image.url }}" data-lightbox-alt="{{ elec_before_alt }}"><img src="{{ p.before_image.url }}" alt="{{ elec_before_alt }}" loading="lazy"></a>{% endif %}
+            <figcaption>{% trans 'Avant' %}</figcaption>
+          </figure>
+          <figure>
+            {% blocktrans asvar elec_after_alt with title=p.title %}Après — {{ title }}{% endblocktrans %}
+            {% if p.after_image %}<a href="#" data-lightbox="{{ p.after_image.url }}" data-lightbox-alt="{{ elec_after_alt }}"><img src="{{ p.after_image.url }}" alt="{{ elec_after_alt }}" loading="lazy"></a>{% endif %}
+            <figcaption>{% trans 'Après' %}</figcaption>
+          </figure>
+        </div>
+        <div class="site-gallery-body">
+          <h3>{{ p.title }}</h3>
+          <p class="site-muted">{{ p.city }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}" class="site-btn site-btn-outline">{% trans 'Toutes nos réalisations' %}</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if elec_reviews %}
+<section class="site-section site-section-alt">
+  <div class="site-container">
+    <div class="site-section-header site-reveal">
+      <span class="site-h-label">{% trans 'Avis clients' %}</span>
+      <h2 class="site-h-xxl">{% trans "Ce qu'en disent nos clients" %}</h2>
+    </div>
+    <div class="site-testimonial-slider site-reveal">
+      <div class="site-testimonial-track">
+        {% for r in elec_reviews %}
+        <div class="site-testimonial-slide">
+          <div class="site-testimonial-card">
+            <div class="site-testimonial-avatar" aria-hidden="true"><i class="bi bi-person-circle" style="font-size:2.5rem;color:var(--site-muted)"></i></div>
+            <div class="site-testimonial-stars">{% for i in "12345" %}<i class="bi {% if forloop.counter <= r.rating %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>{% endfor %}</div>
+            <p>{{ r.comment }}</p>
+            <p class="site-muted" style="margin-top:1rem;font-weight:600">{{ r.customer_name }} — {{ r.customer_city }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="site-testimonial-nav"></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="site-section">
+  <div class="site-container">
+    <div class="site-cta-banner site-reveal">
+      <h2 class="site-h-xxl">{% trans 'Un projet ? Une panne ? Obtenez votre pré-devis maintenant.' %}</h2>
+      <p style="margin:1rem 0 1.8rem">{% trans 'Sans engagement, en moins de 2 minutes.' %}</p>
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-accent site-btn-lg">
+        <span class="site-btn-label"><i class="bi bi-magic" aria-hidden="true"></i>{% trans 'Démarrer le configurateur' %}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -17,6 +17,12 @@
     sections. Tout reste éditable ensuite depuis la fiche du site — ce ne
     sont pas des pages figées, mais des WebsiteSection ordinaires.
   {% endcomment %}
+  <form method="post" action="{% url 'websites:creer_site_electricite' %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="orion-btn orion-btn-outline">
+      <i class="bi bi-plug me-1"></i>{% trans "Site Électricité" %}
+    </button>
+  </form>
   <form method="post" action="{% url 'websites:creer_vitrine_etancheite' %}" class="d-inline">
     {% csrf_token %}
     <button type="submit" class="orion-btn orion-btn-outline">
