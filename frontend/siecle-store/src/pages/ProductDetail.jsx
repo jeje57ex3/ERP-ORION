@@ -224,7 +224,13 @@ export default function ProductDetail() {
                 style={{
                   flex: 1, minWidth: 200, padding: '16px 24px',
                   background: added ? '#4CAF50' : product.stock_quantity === 0 ? 'var(--siecle-gray)' : 'var(--siecle-beige)',
-                  color: added ? 'var(--siecle-white)' : 'var(--siecle-black)',
+                  // En rupture, le fond passait au gris sombre SANS changer la
+                  // couleur du texte, restee noire : « #090909 » sur « #292929 »,
+                  // soit un contraste de 1,3 — l'intitule du bouton etait la,
+                  // mais illisible.
+                  color: added
+                    ? 'var(--siecle-white)'
+                    : product.stock_quantity === 0 ? 'var(--siecle-muted-soft)' : 'var(--siecle-black)',
                   border: 'none', cursor: product.stock_quantity === 0 ? 'not-allowed' : 'pointer',
                   fontSize: 12, fontWeight: 800, letterSpacing: '0.14em',
                   transition: 'background 0.3s, color 0.3s',
