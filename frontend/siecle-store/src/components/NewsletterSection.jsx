@@ -33,7 +33,9 @@ export default function NewsletterSection() {
 
   return (
     <section style={{
-      background: '#f7f1e8',
+      background: 'var(--siecle-deep)',
+      borderTop: '1px solid var(--siecle-border)',
+      borderBottom: '1px solid var(--siecle-border)',
       padding: '96px 24px',
       textAlign: 'center',
     }}>
@@ -44,7 +46,7 @@ export default function NewsletterSection() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         style={{ maxWidth: 560, margin: '0 auto' }}
       >
-        <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.25em', color: '#c9a45c', marginBottom: 20 }}>
+        <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.25em', color: 'var(--siecle-gold)', marginBottom: 20 }}>
           NEWSLETTER
         </p>
 
@@ -52,13 +54,13 @@ export default function NewsletterSection() {
           fontFamily: 'var(--font-heading)',
           fontSize: 'clamp(32px, 5vw, 52px)',
           fontWeight: 500, lineHeight: 1.08,
-          color: '#090807', letterSpacing: '-0.02em',
+          color: 'var(--siecle-white)', letterSpacing: '-0.02em',
           margin: '0 0 20px',
         }}>
           Restez dans le secret.
         </h2>
 
-        <p style={{ fontSize: 15, lineHeight: 1.75, color: '#86796e', marginBottom: 40 }}>
+        <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--siecle-muted-soft)', marginBottom: 40 }}>
           Nouveautés, lancements exclusifs, conseils beauté et offres réservées à nos abonnés — inscrivez-vous pour ne rien manquer.
         </p>
 
@@ -75,10 +77,10 @@ export default function NewsletterSection() {
                 borderRadius: 2,
               }}
             >
-              <p style={{ fontSize: 15, color: '#4a3426', fontWeight: 600, margin: 0 }}>
+              <p style={{ fontSize: 15, color: 'var(--siecle-white)', fontWeight: 600, margin: 0 }}>
                 ✓ {msg}
               </p>
-              <p style={{ fontSize: 13, color: '#86796e', marginTop: 8, marginBottom: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--siecle-muted-soft)', marginTop: 8, marginBottom: 0 }}>
                 Vous recevrez nos prochaines actualités en avant-première.
               </p>
             </motion.div>
@@ -97,31 +99,31 @@ export default function NewsletterSection() {
                 style={{
                   flex: 1,
                   padding: '16px 20px',
-                  background: 'var(--siecle-white)',
-                  border: `1px solid ${status === 'error' ? '#c0392b' : '#ddd0be'}`,
+                  background: 'transparent',
+                  border: `1px solid ${status === 'error' ? '#ff7a6b' : 'var(--siecle-line)'}`,
                   borderRight: 'none',
-                  fontSize: 14, color: '#090807',
+                  fontSize: 14, color: 'var(--siecle-white)',
                   outline: 'none',
                   fontFamily: 'Inter, sans-serif',
                 }}
-                onFocus={e => { e.target.style.borderColor = '#c9a45c' }}
-                onBlur={e => { e.target.style.borderColor = status === 'error' ? '#c0392b' : '#ddd0be' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--siecle-gold)' }}
+                onBlur={e => { e.target.style.borderColor = status === 'error' ? '#ff7a6b' : 'var(--siecle-line)' }}
               />
               <button
                 type="submit"
                 disabled={status === 'loading'}
                 style={{
                   padding: '16px 24px',
-                  background: '#090807',
-                  color: '#f7f1e8',
+                  background: 'var(--siecle-white)',
+                  color: 'var(--siecle-black)',
                   border: 'none', cursor: 'pointer',
                   fontSize: 12, fontWeight: 700,
                   letterSpacing: '0.1em',
                   whiteSpace: 'nowrap',
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#c9a45c' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#090807' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--siecle-gold)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--siecle-white)' }}
               >
                 {status === 'loading' ? '…' : "S'inscrire"}
               </button>
@@ -130,10 +132,10 @@ export default function NewsletterSection() {
         </AnimatePresence>
 
         {status === 'error' && (
-          <p style={{ marginTop: 12, fontSize: 13, color: '#c0392b' }}>{msg}</p>
+          <p style={{ marginTop: 12, fontSize: 13, color: '#ff7a6b' }}>{msg}</p>
         )}
 
-        <p style={{ marginTop: 16, fontSize: 11, color: '#86796e', lineHeight: 1.6 }}>
+        <p style={{ marginTop: 16, fontSize: 11, color: 'var(--siecle-muted-soft)', lineHeight: 1.6 }}>
           En vous inscrivant, vous acceptez notre politique de confidentialité. Désinscription possible à tout moment.
         </p>
       </motion.div>

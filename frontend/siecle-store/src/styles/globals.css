@@ -5,18 +5,36 @@
 }
 
 :root {
+  /* PALETTE RELEVÉE, PAS CHOISIE.
+     Ces valeurs sont lues dans le HTML et les feuilles servies par
+     siecle.shop, pas estimées à l'œil sur une capture. Deux corrections
+     que seule la mesure donne :
+       — la police des titres est une SÉRIF (Iowan Old Style / Baskerville),
+         là où cette boutique employait « Work Sans » ;
+       — « #108474 » revient 26 fois dans la page mais appartient au widget
+         d'avis Judge.me, pas à la marque : il est écarté.
+     « --siecle-beige » portait déjà le vert acide. Le nom est conservé en
+     alias : plus de quatre-vingt-dix composants s'en servent. */
   --siecle-black:     #090909;
-  --siecle-white:     #f1ede5;
+  --siecle-deep:      #070707;
+  --siecle-white:     #f5f0e8;
+  --siecle-cream:     #ede4d6;
   --siecle-dark:      #111111;
   --siecle-dark-soft: #1A1A1A;
-  --siecle-gray:      #2A2A2A;
-  --siecle-muted:     rgba(241,237,229,0.45);
+  --siecle-gray:      #292929;
+  --siecle-line:      #3a3a35;
+  /* Un gris sourd OPAQUE : « rgba(241,237,229,.45) » sur le noir donnait
+     un contraste de 4,4 — sous le seuil de 4,5 du texte courant. */
+  --siecle-muted:     #8e8b83;
+  --siecle-muted-soft:#c8c5bd;
   --siecle-silver:    #C0C0C0;
+  --siecle-lime:      #d7ff43;
   --siecle-beige:     #d7ff43;
-  --siecle-border:    rgba(241,237,229,0.10);
-  --siecle-border-hover: rgba(241,237,229,0.25);
-  --font-sans:        'Work Sans', Arial, sans-serif;
-  --font-heading:     'Work Sans', Arial, sans-serif;
+  --siecle-gold:      #c9b083;
+  --siecle-border:    #292929;
+  --siecle-border-hover: #3a3a35;
+  --font-sans:        system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --font-heading:     'Iowan Old Style', Baskerville, 'Times New Roman', Georgia, serif;
   --radius:           0px;
   --radius-input:     8px;
   --transition:       0.25s ease;

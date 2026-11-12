@@ -7,20 +7,36 @@ const PremiumSearchExperience = lazy(() => import('./search/PremiumSearchExperie
 
 const MAKEUP_SITE_URL = '/maquillage'
 
+/* Les quatre univers numerotes, dans l'ordre du site de reference, puis
+   les destinations secondaires. « ACCUEIL » disparait : le logo y mene,
+   comme sur la reference. */
 const NAV_LINKS = [
-  { to: '/',              label: 'ACCUEIL' },
+  {
+    to: '/vetements', label: 'VÊTEMENTS', num: '01',
+    sub: [
+      { label: 'Streetwear',        to: '/vetements' },
+      { label: 'BACKCOURT 86',      to: '/boutique?category=backcourt-86' },
+      { label: 'Costumes italiens', to: '/vetements?categorie=tailleur' },
+    ],
+  },
+  { to: '/montres',       label: 'MONTRES',     num: '02' },
+  { to: '/boutique?category=accessoires', label: 'ACCESSOIRES', num: '03' },
+  { to: MAKEUP_SITE_URL,  label: 'LUNEA',       num: '04', newTab: true },
   { to: '/maison-siecle', label: 'MAISON' },
-  { to: '/vetements',     label: 'VÊTEMENTS' },
-  { to: '/montres',       label: 'MONTRES' },
-  { to: MAKEUP_SITE_URL,  label: 'LUNEA', newTab: true },
   { to: '/packs',         label: 'PACKS' },
   { to: '/drops',         label: 'DROPS' },
   { to: '/communaute',    label: 'COMMUNAUTÉ' },
 ]
 
+/* Le numero d'univers, en petites capitales sourdes devant l'intitule. */
+const Num = ({ children }) => children
+  ? <span style={{ fontSize: 8, letterSpacing: '0.18em', color: 'var(--siecle-muted)', marginRight: 6, verticalAlign: 'super' }}>{children}</span>
+  : null
+
 export default function Header() {
   const [scrolled, setScrolled]     = useState(false)
   const [menuOpen, setMenuOpen]     = useState(false)
+  const [sousMenu, setSousMenu]     = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const { count, setIsOpen }        = useCart()
   const navigate                    = useNavigate()
@@ -89,22 +105,67 @@ export default function Header() {
 
           {/* Desktop nav */}
           <nav style={{ ...s.nav, ['@media(max-width:768px)']: { display: 'none' } }} className="siecle-desktop-nav">
-            {NAV_LINKS.map(({ to, label, newTab }) => (
-              newTab
-                ? <a key={to} href={to} target="_blank" rel="noopener noreferrer"
-                    style={s.navLink(false)}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--siecle-beige)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--siecle-white)' }}
-                  >
-                    {label}
-                  </a>
-                : <NavLink key={to} to={to}
-                    style={({ isActive }) => s.navLink(isActive)}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--siecle-beige)'}
-                    onMouseLeave={e => { if (!e.currentTarget.closest('a')?.classList?.contains('active')) e.currentTarget.style.color = 'var(--siecle-white)' }}
-                  >
-                    {label}
-                  </NavLink>
+            {NAV_LINKS.map(({ to, label, newTab, num, sub }) => (
+              <div
+                key={to}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setSousMenu(sub ? to : null)}
+                onMouseLeave={() => setSousMenu(null)}
+                onFocus={() => setSousMenu(sub ? to : null)}
+                onBlur={e => {
+                  // Ne refermer que lorsque le focus quitte VRAIMENT le
+                  // groupe : sans ce test, passer d'un lien du sous-menu au
+                  // suivant le ferait a chaque tabulation.
+                  if (!e.currentTarget.contains(e.relatedTarget)) setSousMenu(null)
+                }}
+              >
+                {newTab
+                  ? <a href={to} target="_blank" rel="noopener noreferrer"
+                      style={s.navLink(false)}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--siecle-beige)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--siecle-white)' }}
+                    >
+                      <Num>{num}</Num>{label}
+                    </a>
+                  : <NavLink to={to}
+                      style={({ isActive }) => s.navLink(isActive)}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--siecle-beige)'}
+                      onMouseLeave={e => { if (!e.currentTarget.classList.contains('active')) e.currentTarget.style.color = 'var(--siecle-white)' }}
+                    >
+                      <Num>{num}</Num>{label}
+                    </NavLink>
+                }
+
+                {sub && sousMenu === to && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: -18,
+                    marginTop: 10, minWidth: 210, padding: '14px 0',
+                    background: 'rgba(9,9,9,0.98)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid var(--siecle-border)',
+                    display: 'flex', flexDirection: 'column',
+                  }}>
+                    {sub.map(e => (
+                      <Link
+                        key={e.to + e.label}
+                        to={e.to}
+                        onClick={() => setSousMenu(null)}
+                        style={{
+                          display: 'flex', alignItems: 'center',
+                          justifyContent: 'space-between', gap: 16,
+                          padding: '9px 18px',
+                          fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
+                          color: 'var(--siecle-white)',
+                        }}
+                        onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--siecle-beige)' }}
+                        onMouseLeave={ev => { ev.currentTarget.style.color = 'var(--siecle-white)' }}
+                      >
+                        {e.label}<span aria-hidden="true">↗</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -149,7 +210,7 @@ export default function Header() {
               onClick={() => setMenuOpen(false)}
               style={{ position: 'absolute', top: 20, right: 24, background: 'none', border: 'none', color: 'var(--siecle-white)', fontSize: 24 }}
             >×</button>
-            {NAV_LINKS.map(({ to, label, newTab }, i) => (
+            {NAV_LINKS.map(({ to, label, newTab, num, sub }, i) => (
               <motion.div
                 key={to}
                 initial={{ opacity: 0, x: 20 }}
@@ -158,13 +219,23 @@ export default function Header() {
                 {newTab
                   ? <a href={to} target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)}
                       style={{ fontFamily: 'var(--font-heading)', fontSize: 32, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--siecle-beige)', textTransform: 'uppercase' }}>
-                      {label} ↗
+                      <Num>{num}</Num>{label} ↗
                     </a>
                   : <Link to={to} onClick={() => setMenuOpen(false)}
                       style={{ fontFamily: 'var(--font-heading)', fontSize: 32, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--siecle-white)', textTransform: 'uppercase' }}>
-                      {label}
+                      <Num>{num}</Num>{label}
                     </Link>
                 }
+                {sub && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingLeft: 2 }}>
+                    {sub.map(e => (
+                      <Link key={e.to + e.label} to={e.to} onClick={() => setMenuOpen(false)}
+                        style={{ fontSize: 13, letterSpacing: '0.12em', color: 'var(--siecle-muted-soft)', textTransform: 'uppercase' }}>
+                        {e.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ))}
           </motion.div>

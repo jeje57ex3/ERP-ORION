@@ -1,0 +1,548 @@
+/* siecle-home.css — L'habillage de la page d'accueil, repris de siecle.shop.
+ *
+ * CE QUI EST REPRODUIT, ET D'OÙ IL VIENT
+ *
+ * Les couleurs, la police et les textes ne sont pas estimés à l'œil sur une
+ * capture : ils sont relevés dans le HTML et les feuilles de style servies
+ * par siecle.shop. Les titres sont donc en SÉRIF, les fonds en « #090909 »,
+ * le vert acide « #d7ff43 » n'est qu'un accent, et l'or « #c9b083 » ne sert
+ * qu'aux appels à l'action de l'ensemble urbain.
+ *
+ * POURQUOI UNE FEUILLE ET NON DES STYLES EN LIGNE
+ *
+ * L'ancienne page portait ses couleurs dans des attributs « style » : un
+ * fond ou une couleur de texte y échappe à toute relecture d'ensemble, et
+ * c'est ainsi qu'on finit avec du clair sur clair. Ici chaque surface tire
+ * sa couleur d'un jeton, et le texte qui va dessus est posé sur la même
+ * règle : les deux ne peuvent plus se désaccorder sans qu'on le voie.
+ */
+
+/* ── Communs ──────────────────────────────────────────────────────────── */
+
+.sh-page {
+  background: var(--siecle-black);
+  color: var(--siecle-white);
+}
+
+.sh-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* L'œil de surtitre : un numéro ou une étiquette, en petites capitales très
+   espacées. Le gris est opaque et mesuré à 6,1 de contraste sur le noir. */
+.sh-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--siecle-muted);
+  margin: 0 0 14px;
+}
+
+.sh-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  color: var(--siecle-white);
+  margin: 0;
+}
+
+.sh-title--xl { font-size: clamp(38px, 7.4vw, 104px); }
+.sh-title--lg { font-size: clamp(30px, 4.6vw, 64px); }
+.sh-title--md { font-size: clamp(24px, 3.2vw, 44px); }
+
+/* La marque souligne un fragment de titre — « URBAN SET _001._ ». Le
+   fragment est détaché, en italique sérif, dans l'ivoire sourd. */
+.sh-accent {
+  display: block;
+  font-style: italic;
+  color: var(--siecle-cream);
+}
+
+.sh-lede {
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--siecle-muted-soft);
+  margin: 18px 0 0;
+}
+
+/* Le lien-flèche, signature du site : capitales espacées + « ↗ ». */
+.sh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--siecle-white);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--siecle-line);
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.sh-link:hover {
+  color: var(--siecle-lime);
+  border-bottom-color: var(--siecle-lime);
+}
+
+.sh-link__arrow { font-size: 13px; line-height: 1; }
+
+/* Le bouton plein s'inverse au survol : ivoire plein, texte noir. C'est le
+   geste employé sur la précommande du site de référence. */
+.sh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 30px;
+  border: 1px solid var(--siecle-white);
+  background: transparent;
+  color: var(--siecle-white);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition);
+}
+
+.sh-btn:hover {
+  background: var(--siecle-white);
+  color: var(--siecle-black);
+}
+
+.sh-btn--gold { border-color: var(--siecle-gold); color: var(--siecle-gold); }
+.sh-btn--gold:hover { background: var(--siecle-gold); color: var(--siecle-black); }
+
+.sh-section { padding: 110px 0; }
+.sh-section--tight { padding: 72px 0; }
+.sh-rule { border-top: 1px solid var(--siecle-border); }
+
+/* ── Bandeau « EXPLORER LES UNIVERS 001 — 004 » ───────────────────────── */
+
+.sh-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: var(--header-h);
+  padding: 11px 24px;
+  background: var(--siecle-deep);
+  border-bottom: 1px solid var(--siecle-border);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--siecle-muted-soft);
+}
+
+.sh-bar__count { color: var(--siecle-lime); }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.sh-hero {
+  position: relative;
+  min-height: min(82vh, 760px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 0 64px;
+  background: radial-gradient(120% 90% at 50% 8%, #1a1a18 0%, var(--siecle-black) 62%);
+  border-bottom: 1px solid var(--siecle-border);
+  overflow: hidden;
+}
+
+/* La campagne est une image quand le site en fournit une, et un dégradé
+   sinon. Une page d'accueil qui se vide parce qu'un visuel manque est une
+   panne ; une page sobre n'en est pas une. */
+.sh-hero__media {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  opacity: 0.55;
+}
+
+.sh-hero__veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9,9,9,.35) 0%, rgba(9,9,9,.12) 38%, rgba(9,9,9,.92) 100%);
+}
+
+.sh-hero__inner { position: relative; }
+
+.sh-hero__mark {
+  font-family: var(--font-heading);
+  font-size: clamp(56px, 15vw, 210px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+  margin: 0;
+  color: var(--siecle-white);
+}
+
+.sh-hero__place {
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--siecle-muted-soft);
+  margin: 0 0 20px;
+}
+
+.sh-hero__claim {
+  font-family: var(--font-heading);
+  font-size: clamp(16px, 2.1vw, 26px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--siecle-cream);
+  margin: 22px 0 0;
+}
+
+.sh-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+/* ── Les quatre univers ───────────────────────────────────────────────── */
+
+.sh-universes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--siecle-border);
+}
+
+.sh-universe {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 360px;
+  padding: 28px 24px;
+  border-right: 1px solid var(--siecle-border);
+  border-bottom: 1px solid var(--siecle-border);
+  background: linear-gradient(170deg, #17171a 0%, var(--siecle-dark) 58%, var(--siecle-black) 100%);
+  overflow: hidden;
+  transition: background var(--transition);
+}
+
+.sh-universe:last-child { border-right: 0; }
+.sh-universe:hover { background: linear-gradient(170deg, #202024 0%, var(--siecle-dark-soft) 60%, var(--siecle-dark) 100%); }
+
+.sh-universe__num {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: var(--siecle-muted);
+}
+
+.sh-universe__arrow {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  font-size: 14px;
+  color: var(--siecle-muted);
+  transition: color var(--transition), transform var(--transition);
+}
+
+.sh-universe:hover .sh-universe__arrow {
+  color: var(--siecle-lime);
+  transform: translate(2px, -2px);
+}
+
+.sh-universe__tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--siecle-muted-soft);
+  margin: 0 0 10px;
+}
+
+.sh-universe__name {
+  font-family: var(--font-heading);
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--siecle-white);
+  margin: 0;
+}
+
+/* ── Le vestiaire ─────────────────────────────────────────────────────── */
+
+.sh-vestiaire__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 52px;
+}
+
+/* Un catalogue vide ne doit pas laisser un trou muet : on le dit. */
+.sh-empty {
+  padding: 56px 24px;
+  border: 1px solid var(--siecle-border);
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--siecle-muted);
+}
+
+/* ── Ensemble urbain 001 ──────────────────────────────────────────────── */
+
+.sh-urban {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--siecle-border);
+  border-bottom: 1px solid var(--siecle-border);
+}
+
+.sh-urban__visual {
+  min-height: 560px;
+  background: linear-gradient(145deg, #15150f 0%, var(--siecle-black) 72%);
+  background-size: cover;
+  background-position: center;
+  border-right: 1px solid var(--siecle-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sh-urban__sigil {
+  font-family: var(--font-heading);
+  font-size: clamp(40px, 6vw, 96px);
+  letter-spacing: 0.18em;
+  color: var(--siecle-line);
+}
+
+.sh-urban__body {
+  padding: clamp(32px, 5vw, 76px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sh-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sh-specs li {
+  padding: 7px 14px;
+  border: 1px solid var(--siecle-line);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--siecle-muted-soft);
+}
+
+.sh-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 32px 0 0;
+  font-family: var(--font-heading);
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 700;
+  color: var(--siecle-white);
+}
+
+.sh-price__cur { font-size: 0.5em; color: var(--siecle-muted-soft); }
+
+.sh-note {
+  margin: 26px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--siecle-muted);
+}
+
+/* ── Précommande SIÈCLE × CHAMPION ────────────────────────────────────── */
+
+.sh-drop {
+  position: relative;
+  padding: clamp(72px, 10vw, 140px) 0;
+  background: var(--siecle-deep);
+  border-bottom: 1px solid var(--siecle-border);
+  text-align: center;
+}
+
+.sh-drop__x {
+  margin: 20px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--siecle-lime);
+}
+
+.sh-drop__actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+
+.sh-center { text-align: center; }
+.sh-center .sh-lede,
+.sh-lede.sh-center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+/* ── Le stylisme ──────────────────────────────────────────────────────── */
+
+.sh-styling { border-bottom: 1px solid var(--siecle-border); }
+
+.sh-styling__mark {
+  font-size: 15px;
+  color: var(--siecle-lime);
+  margin: 28px 0 10px;
+}
+
+/* ── Notre histoire ──────────────────────────────────────────────────── */
+
+.sh-story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(32px, 6vw, 88px);
+}
+
+.sh-story__visual {
+  min-height: 460px;
+  background: linear-gradient(145deg, var(--siecle-dark-soft) 0%, var(--siecle-black) 78%);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--siecle-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Bandeau « RUE. ÉLÉGANCE. VISION. » ───────────────────────────────── */
+
+.sh-manifesto {
+  padding: clamp(80px, 11vw, 160px) 0;
+  background: var(--siecle-deep);
+  border-top: 1px solid var(--siecle-border);
+  border-bottom: 1px solid var(--siecle-border);
+  text-align: center;
+}
+
+.sh-manifesto__word {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: clamp(34px, 8vw, 118px);
+  font-weight: 700;
+  line-height: 0.98;
+  text-transform: uppercase;
+  color: var(--siecle-white);
+}
+
+.sh-manifesto__word:nth-child(2) { color: var(--siecle-cream); }
+.sh-manifesto__word:nth-child(3) { color: var(--siecle-muted); }
+
+.sh-manifesto__sign {
+  margin: 32px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--siecle-muted-soft);
+}
+
+/* ── Les services ─────────────────────────────────────────────────────── */
+
+.sh-services {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--siecle-border);
+}
+
+.sh-service {
+  padding: 40px 28px;
+  border-right: 1px solid var(--siecle-border);
+  text-align: center;
+}
+
+.sh-service:last-child { border-right: 0; }
+
+.sh-service__glyph {
+  font-size: 18px;
+  color: var(--siecle-lime);
+  margin-bottom: 14px;
+}
+
+.sh-service__name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--siecle-white);
+  margin: 0 0 6px;
+}
+
+.sh-service__hint {
+  font-size: 12px;
+  color: var(--siecle-muted);
+  margin: 0;
+}
+
+/* ── Adaptation aux petits écrans ─────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .sh-universes { grid-template-columns: repeat(2, 1fr); }
+  .sh-universe:nth-child(2n) { border-right: 0; }
+  .sh-services  { grid-template-columns: repeat(2, 1fr); }
+  .sh-service:nth-child(2n) { border-right: 0; }
+  .sh-service:nth-child(-n+2) { border-bottom: 1px solid var(--siecle-border); }
+}
+
+@media (max-width: 860px) {
+  .sh-urban,
+  .sh-story { grid-template-columns: 1fr; }
+  .sh-urban__visual {
+    min-height: 340px;
+    border-right: 0;
+    border-bottom: 1px solid var(--siecle-border);
+  }
+  .sh-story__visual { min-height: 300px; order: -1; }
+  .sh-section { padding: 72px 0; }
+}
+
+@media (max-width: 560px) {
+  .sh-universes { grid-template-columns: 1fr; }
+  .sh-universe {
+    min-height: 260px;
+    border-right: 0;
+  }
+  .sh-services { grid-template-columns: 1fr; }
+  .sh-service {
+    border-right: 0;
+    border-bottom: 1px solid var(--siecle-border);
+  }
+  .sh-hero { min-height: 78vh; }
+}
