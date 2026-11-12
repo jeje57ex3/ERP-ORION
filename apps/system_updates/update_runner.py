@@ -14,7 +14,8 @@ from apps.core.maintenance import (
     disable_maintenance_mode,
     enable_maintenance_mode,
 )
-from apps.system_updates.git_service import build_pull_command, get_current_commit, run_command
+from apps.system_updates.git_service import (build_pull_command, get_current_commit,
+                                             restaurer_les_fichiers_generes, run_command)
 from apps.system_updates.health_checks import run_post_update_health_checks
 from apps.system_updates.models import SystemUpdateRun, SystemUpdateStepLog
 from apps.system_updates.selectors import get_update_settings
@@ -196,6 +197,23 @@ def run_system_update(started_by=None):
                 backup_cmd = f'{shlex.quote(sys.executable)} manage.py backup_all'
             run_shell_step(update_run, 'backup', 'Sauvegarde avant mise à jour',
                            backup_cmd, cwd=backend_path, timeout=3600)
+
+        # Les frontends sont reconstruits plus bas, et leur sortie est
+        # suivie par git : sans cette remise a l'etat commite, le « pull »
+        # ci-dessous echoue sur les fichiers qu'a laisses la mise a jour
+        # PRECEDENTE.
+        restaures, autres = restaurer_les_fichiers_generes(project_root)
+        if restaures or autres:
+            log_step(
+                update_run, 'restore_generated', 'Remise a zero des fichiers generes',
+                'success' if not autres else 'warning',
+                message=(
+                    '%d fichier(s) genere(s) restaure(s).' % len(restaures)
+                    + (' %d fichier(s) modifie(s) hors build, laisses intacts : %s'
+                       % (len(autres), ', '.join(autres[:10])) if autres else '')
+                ),
+                output='\n'.join(restaures[:50]),
+            )
 
         pull_command, pull_display = build_pull_command(remote, branch)
         run_shell_step(update_run, 'git_pull', 'Récupération du code',

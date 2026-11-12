@@ -283,7 +283,40 @@ importer_catalogues_fabricants() {
 # notait « terminee » et l'unite systemd se declarait reussie, sur un ERP
 # dont le schema ne correspondait pas au code. C'est ainsi qu'une base a
 # moitie migree a survecu a plusieurs mises a jour « reussies ».
+# LES SORTIES DE BUILD CASSENT LE PULL DE LA MISE A JOUR SUIVANTE
+#
+# « static/siecle-store » et « apps/lunea/static/lunea/dist » sont des
+# sorties de build, et elles sont pourtant suivies par git : l'appliance
+# n'a pas toujours de quoi compiler, on lui livre donc des assets prets.
+#
+# Mais cette mise a jour RECONSTRUIT les frontends plus bas. Chaque mise a
+# jour reussie laissait donc ces fichiers modifies, et le pull de la
+# SUIVANTE refusait de s'executer :
+#
+#   error: Your local changes to the following files would be overwritten
+#   by merge: static/siecle-store/index.html
+#
+# On ne remet a zero QUE ces dossiers — ils sont regeneres quelques etapes
+# plus loin. Un « reset --hard » debloquerait aussi le pull, en detruisant
+# au passage tout reglage local pose sur la machine.
+CHEMINS_GENERES=(
+  "static/siecle-store"
+  "apps/lunea/static/lunea/dist"
+)
+
+restaurer_les_fichiers_generes() {
+  local depot="$ORION_HOME/backend" chemin
+  for chemin in "${CHEMINS_GENERES[@]}"; do
+    [ -e "$depot/$chemin" ] || continue
+    sudo -u orion git -C "$depot" checkout -- "$chemin" 2>/dev/null || true
+    # Les bundles non suivis, aux noms haches, s'accumulent a chaque build :
+    # un fichier entrant du meme nom ferait echouer le pull a son tour.
+    sudo -u orion git -C "$depot" clean -fdq -- "$chemin" 2>/dev/null || true
+  done
+}
+
 maj_directe() {
+  restaurer_les_fichiers_generes
   if ! sudo -u orion git -C "$ORION_HOME/backend" pull --ff-only; then
     echo "  ERREUR: git pull impossible (arbre modifié, ou branche suivie différente)." >&2
     echo "          Vérifiez : git -C $ORION_HOME/backend status" >&2
