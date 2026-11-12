@@ -55,7 +55,7 @@
 
   {% if proxmox.joignable %}
   {# Ce que l'hyperviseur dit vraiment : on ne devine plus. #}
-  <div class="border rounded p-2 mb-2" style="background:rgba(255,255,255,.5)">
+  <div class="border rounded p-2 mb-2" style="background:rgba(127,127,127,.14)">
     <div class="fw-600 mb-1">D'après Proxmox</div>
     <p class="mb-1">
       Machine {{ proxmox.vmid }}
@@ -95,7 +95,7 @@
   {% endif %}
 
   <p class="mb-1"><strong>1. Sur l'hôte Proxmox</strong>, ajoutez un disque à la VM :</p>
-  <pre class="mb-2 p-2 rounded" style="background:rgba(0,0,0,.05);font-size:11.5px;white-space:pre-wrap">qm set {% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %} --scsi1 local-lvm:500        # 500 Go, a adapter
+  <pre class="mb-2 p-2 rounded" style="background:rgba(127,127,127,.14);font-size:11.5px;white-space:pre-wrap">qm set {% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %} --scsi1 local-lvm:500        # 500 Go, a adapter
 qm set {% if proxmox.vmid %}{{ proxmox.vmid }}{% else %}100{% endif %} --scsi1 /dev/disk/by-id/...  # ou un disque physique entier</pre>
   <p class="mb-2 text-muted">
     Depuis l'interface Proxmox : sélectionnez la VM
