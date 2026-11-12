@@ -20,16 +20,28 @@
       --ardoise-clair:{{ theme.secondary_color|default:'#2E3F4A' }};
       --or:           {{ theme.accent_color|default:'#C9A227' }};
       --sable:        {{ theme.button_color|default:'#E8D9BE' }};
-      --fond:         {{ theme.background_color|default:'#FBF8F3' }};
       --texte:        {{ theme.text_color|default:'#1C2A33' }};
       --entete:       {{ theme.header_bg_color|default:'#FFFFFF' }};
       --pied:         {{ theme.footer_bg_color|default:'#1C2A33' }};
+
+      /* LE FOND DE PAGE, ET IL EST UNIQUE.
+         Il était écrit en dur (« #fff ») dans huit sections réparties sur
+         sept gabarits : le thème ne pilotait donc que les bandes
+         d'accentuation, et changer la couleur du site laissait toutes les
+         pages blanches. Une seule variable désormais, pour que toutes les
+         pages aient la même couleur et qu'elle suive le thème. */
+      --page:         {{ theme.background_color|default:'#FBF8F3' }};
+
+      /* Les cartes restent plus claires que la page : sans cet écart,
+         elles se fondraient dans le fond et la grille des services
+         deviendrait illisible. */
+      --carte:        #FFFFFF;
     }
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--texte);
-      background: #fff;
+      background: var(--page);
       font-size: 15px;
     }
     h1, h2, h3, .serif {
@@ -88,7 +100,7 @@
     .nav-lien.actif { color: var(--ardoise); border-bottom: 2px solid var(--or); }
 
     /* ── Fragments de page ── */
-    .bande-garanties { background: var(--fond); }
+    .bande-garanties { background: var(--page); }
     .bande-garanties .icone {
       width: 42px; height: 42px; display: grid; place-items: center;
       border: 1px solid rgba(201,162,39,.4); border-radius: 50%;
@@ -96,11 +108,11 @@
     }
 
     .carte-service {
-      background: #fff; border: 1px solid rgba(28,42,51,.09);
+      background: var(--carte); border: 1px solid rgba(28,42,51,.09);
       border-radius: 10px; overflow: hidden; height: 100%;
     }
     .carte-service .visuel {
-      aspect-ratio: 16 / 10; background: var(--fond);
+      aspect-ratio: 16 / 10; background: var(--page);
       display: grid; place-items: center; color: var(--or); font-size: 1.6rem;
       border-bottom: 1px solid rgba(28,42,51,.07);
     }
@@ -117,7 +129,8 @@
       display: inline-block;
     }
     .filtre:hover { color: #fff; border-color: rgba(255,255,255,.5); }
-    .filtre.actif { background: #fff; color: var(--ardoise); border-color: #fff; }
+    .filtre.actif { background: var(--carte); color: var(--ardoise);
+                border-color: var(--carte); }
 
     .vignette {
       aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;

@@ -13,7 +13,13 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
+{% comment %}
+  « enctype » est INDISPENSABLE depuis que ce formulaire porte un logo et
+  un favicon : sans lui, le navigateur n'envoie pas les fichiers. Le champ
+  s'afficherait, l'image serait choisie, l'enregistrement réussirait — et
+  rien n'aurait changé. Une panne silencieuse de plus.
+{% endcomment %}
+<form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
   <div class="row g-3">
     <div class="col-12 col-lg-8">
@@ -44,6 +50,29 @@
             <div class="col-12">
               <label class="form-label form-label-sm">{% trans "Adresse" %}</label>
               {{ form.address }}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">{% trans "Logo" %}</label>
+              {% if website.logo %}
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <img src="{{ website.logo.url }}" alt="" style="height:38px;border-radius:4px">
+                <span class="small text-muted">{% trans "Logo actuel" %}</span>
+              </div>
+              {% endif %}
+              {{ form.logo }}
+              <div class="form-text">{% trans "Remplace celui affiché sur toutes les pages du site." %}</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">{% trans "Favicon" %}</label>
+              {% if website.favicon %}
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <img src="{{ website.favicon.url }}" alt="" style="height:22px">
+                <span class="small text-muted">{% trans "Favicon actuel" %}</span>
+              </div>
+              {% endif %}
+              {{ form.favicon }}
+              <div class="form-text">{% trans "L’icône de l’onglet. Les navigateurs la gardent longtemps en cache." %}</div>
             </div>
           </div>
         </div>
