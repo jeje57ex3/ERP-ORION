@@ -19,6 +19,9 @@ urlpatterns = [
     path('sync-tunnels/',           v.cloudflare_sync_tunnels, name='cloudflare_sync_tunnels'),
     path('import-one/',             v.cloudflare_import_one,   name='cloudflare_import_one'),
 
+    # ─── Service local cloudflared ────────────────────────────────────────────
+    path('service/<str:action>/',   v.cloudflared_action,      name='cloudflared_action'),
+
     # ─── API JSON ─────────────────────────────────────────────────────────────
     path('api/tester-token/',       v.api_test_token,          name='cloudflare_api_test_token'),
     path('<int:pk>/api/zones/',     v.api_cloudflare_zones,    name='cloudflare_api_zones'),

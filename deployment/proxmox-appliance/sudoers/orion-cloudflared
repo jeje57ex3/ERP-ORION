@@ -1,0 +1,53 @@
+# Orion ERP — droit de piloter le tunnel Cloudflare depuis l'interface.
+#
+# À installer dans /etc/sudoers.d/orion-cloudflared, propriétaire root:root,
+# en mode 0440. Le fichier doit être validé par « visudo -c » AVANT d'être
+# mis en place : un fichier malformé dans /etc/sudoers.d/ casse sudo pour
+# TOUT LE MONDE, y compris pour le réparer.
+#
+# Pourquoi ce fichier existe : orion-backend.service tourne sous
+# « User=orion », qui n'est pas administrateur. Sans cette règle, les
+# boutons « Démarrer / Arrêter le tunnel » de l'écran Cloudflare échouent
+# avec « orion is not in the sudoers file » — l'écran existe, les boutons
+# s'affichent, et rien ne se passe.
+#
+# Ce qu'il remplace : le lancement à la main depuis l'hôte Proxmox,
+#
+#     qm exec 100 -- cloudflared tunnel run <uuid>
+#
+# qui ne pouvait pas tenir. « qm guest exec » attend la fin de la commande
+# alors que « tunnel run » ne se termine jamais : l'appel bloque, dépasse
+# son délai, et le tunnel meurt avec lui. Un processus lancé ainsi ne
+# survit d'ailleurs ni au redémarrage ni au plantage.
+#
+# AUCUN JOKER, et c'est le point essentiel. Dix lignes de commande exactes
+# sont autorisées, pas une de plus. Une règle du genre
+# « systemctl * cloudflared » paraîtrait équivalente et ne l'est pas : sudo
+# compare la commande demandée à ce motif, et un joker accepte beaucoup
+# plus que ce qu'on croit lui avoir accordé.
+#
+# La liste est figée ici ET dans apps/websites/cloudflared_service.py
+# (ACTIONS). Un test compare les deux : si elles divergent, les boutons
+# cessent de fonctionner sans que rien ne le signale, à l'endroit le moins
+# pratique pour s'en apercevoir.
+#
+# Les deux chemins sont listés parce que « systemctl » se trouve dans
+# /usr/bin sur certaines distributions et /bin sur d'autres. Le chemin
+# ABSOLU est obligatoire : « sudo systemctl » dépendrait du PATH du
+# processus, que systemd ne garantit pas.
+#
+# Lire l'état ne figure pas ici : « systemctl is-active » et « is-enabled »
+# répondent à un utilisateur ordinaire. L'écran peut donc montrer la
+# situation même si ce fichier n'a jamais été installé — et c'est
+# précisément le moment où il faut pouvoir le dire.
+
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl start cloudflared
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl stop cloudflared
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl restart cloudflared
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl enable cloudflared
+orion ALL=(root) NOPASSWD: /usr/bin/systemctl disable cloudflared
+orion ALL=(root) NOPASSWD: /bin/systemctl start cloudflared
+orion ALL=(root) NOPASSWD: /bin/systemctl stop cloudflared
+orion ALL=(root) NOPASSWD: /bin/systemctl restart cloudflared
+orion ALL=(root) NOPASSWD: /bin/systemctl enable cloudflared
+orion ALL=(root) NOPASSWD: /bin/systemctl disable cloudflared

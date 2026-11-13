@@ -34,6 +34,85 @@
 
 {% block content %}
 
+{% comment %}
+  LE TUNNEL SE PILOTE D'ICI, PLUS EN LIGNE DE COMMANDE.
+
+  Il se lancait a la main depuis l'hote Proxmox, par
+  « qm guest exec 100 -- cloudflared tunnel run <uuid> ». Cet appel ne
+  pouvait pas tenir : « guest exec » attend la fin de la commande alors que
+  « tunnel run » ne se termine jamais, et un processus lance ainsi ne
+  survit ni au redemarrage ni au plantage.
+
+  L'etat est LU sans aucun droit particulier, donc il s'affiche meme quand
+  le fichier sudoers n'a pas ete installe -- c'est justement le moment ou
+  il faut pouvoir le dire.
+{% endcomment %}
+<div class="orion-card mb-4">
+  <div class="orion-orion-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h6 class="card-title mb-0">
+      <i class="bi bi-hdd-network me-1 text-primary"></i>{% trans "Service du tunnel sur ce serveur" %}
+    </h6>
+    {% if cloudflared.disponible and cloudflared.installe %}
+      {% if cloudflared.actif %}
+      <span class="badge" style="background:rgba(34,197,94,.18);color:#22c55e">
+        <i class="bi bi-check-circle me-1"></i>{% trans "Actif" %}
+      </span>
+      {% else %}
+      <span class="badge" style="background:rgba(239,68,68,.18);color:#ef4444">
+        <i class="bi bi-x-circle me-1"></i>{% trans "Arrêté" %}
+      </span>
+      {% endif %}
+      {% if cloudflared.au_demarrage %}
+      <span class="badge" style="background:rgba(127,127,127,.18)">{% trans "Démarre au boot" %}</span>
+      {% else %}
+      <span class="badge" style="background:rgba(245,185,61,.18);color:#f5b93d">{% trans "Ne démarre pas au boot" %}</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="orion-orion-card-body">
+
+    {% if not cloudflared.disponible %}
+      <p class="mb-0 small text-muted">
+        <i class="bi bi-info-circle me-1"></i>{{ cloudflared.detail }}
+        {% trans "Le pilotage du tunnel n’est disponible que sur l’appliance." %}
+      </p>
+
+    {% elif not cloudflared.installe %}
+      {% comment %}
+        « Arrete » et « pas installe » appellent des gestes tres differents.
+        Les confondre enverrait chercher une panne la ou il n'y a qu'un
+        paquet absent.
+      {% endcomment %}
+      <div class="orion-alert warning mb-0">
+        <div>
+          <strong>{% trans "Le tunnel n’est pas installé sur ce serveur." %}</strong>
+          <div class="small mt-1">{{ cloudflared.detail }}</div>
+        </div>
+      </div>
+
+    {% elif not request.user.is_superuser %}
+      <p class="mb-0 small text-muted">
+        <i class="bi bi-lock me-1"></i>{% trans "Seul un super-administrateur peut démarrer ou arrêter le tunnel : cette action coupe l’accès de toute l’installation depuis l’extérieur." %}
+      </p>
+
+    {% else %}
+      <div class="d-flex flex-wrap gap-2">
+        {% for cle, libelle in cloudflared_actions %}
+        <form method="post" action="{% url 'websites:cloudflared_action' cle %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">{{ libelle }}</button>
+        </form>
+        {% endfor %}
+      </div>
+      <p class="small text-muted mt-3 mb-0">
+        {% trans "État systemd :" %}
+        <span class="font-monospace">{{ cloudflared.etat_brut }}</span> /
+        <span class="font-monospace">{{ cloudflared.demarrage_brut }}</span>
+      </p>
+    {% endif %}
+  </div>
+</div>
+
 {# ── Bannière statut ───────────────────────────────────────────────────────── #}
 {% if active_account %}
 <div class="orion-alert success mb-4" style="align-items:flex-start">

@@ -49,7 +49,15 @@ def tunnel_detail(request, pk):
     rules = tunnel.ingress_rules.select_related('website').order_by('order', 'hostname')
     cf_status = get_cloudflared_status()
     config_preview = generate_config_yml(tunnel)
+
+    # L'ecran montrait la COMMANDE a taper. On montre desormais l'etat du
+    # service et des boutons : une commande affichee n'est pas un pilotage,
+    # c'est un pense-bete qui oblige a ouvrir un terminal.
+    from .cloudflared_service import ACTIONS, etat as etat_cloudflared
+
     return render(request, 'websites/tunnel/tunnel_detail.html', {
+        'cloudflared': etat_cloudflared(),
+        'cloudflared_actions': [(cle, libelle) for cle, (_, libelle) in ACTIONS.items()],
         'tunnel': tunnel,
         'rules': rules,
         'cf_status': cf_status,
