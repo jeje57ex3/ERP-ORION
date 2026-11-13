@@ -68,16 +68,52 @@ def index(request):
 
 @login_required
 def website_list(request):
+    """La liste des sites de l'entreprise active.
+
+    POURQUOI UN SUPER-ADMIN PEUT ÉLARGIR, ET PERSONNE D'AUTRE
+
+    Le filtre par entreprise n'avait AUCUNE dérogation : un site rattaché à
+    une autre entreprise que l'active était introuvable, y compris pour un
+    super-admin. Pire, l'écran affirmait alors « Aucun site web n'a encore
+    été créé » — une phrase fausse, qui envoyait en créer un second plutôt
+    que chercher où était le premier.
+
+    La cloison reste entière pour tout le monde sauf le super-admin, et même
+    pour lui l'élargissement est EXPLICITE : il faut demander « ?toutes=1 ».
+    Par défaut il voit son entreprise active, comme avant. Une liste qui
+    s'élargirait d'elle-même selon qui regarde serait precisement la fuite
+    multi-entreprises déjà corrigée ailleurs dans cet ERP.
+    """
     company = request.current_company
-    qs = Website.objects.filter(company=company)
+    est_super_admin = request.user.is_superuser
+
+    # L'élargissement n'existe QUE pour un super-admin qui le demande.
+    toutes = est_super_admin and request.GET.get('toutes') == '1'
+
+    portee = Website.objects.all() if toutes else Website.objects.filter(company=company)
+
+    qs = portee.select_related('company')
     site_type = request.GET.get('type', '')
     status = request.GET.get('status', '')
     if site_type:
         qs = qs.filter(site_type=site_type)
     if status:
         qs = qs.filter(status=status)
-    published_count = Website.objects.filter(company=company, status='published').count()
-    ecommerce_count = Website.objects.filter(company=company, site_type='ecommerce').count()
+
+    published_count = portee.filter(status='published').count()
+    ecommerce_count = portee.filter(site_type='ecommerce').count()
+
+    # Combien de sites vivent AILLEURS — et chez qui. Sans cette mention,
+    # l'absence d'un site ne se distingue pas de son inexistence.
+    autres = []
+    if est_super_admin and not toutes:
+        depuis_ailleurs = (Website.objects
+                           .exclude(company=company)
+                           .select_related('company')
+                           .order_by('company__name', 'name'))
+        for site in depuis_ailleurs[:50]:
+            autres.append(site)
+
     return render(request, 'websites/website_list.html', {
         'page_title': 'Sites web',
         'websites': qs,
@@ -88,6 +124,10 @@ def website_list(request):
         'published_count': published_count,
         'ecommerce_count': ecommerce_count,
         'total': qs.count(),
+        'est_super_admin': est_super_admin,
+        'toutes_entreprises': toutes,
+        'sites_ailleurs': autres,
+        'nb_sites_ailleurs': len(autres),
     })
 
 
