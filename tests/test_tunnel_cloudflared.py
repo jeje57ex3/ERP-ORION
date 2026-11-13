@@ -226,3 +226,42 @@ def test_chaque_fichier_sudoers_est_installe_par_la_mise_a_jour():
             oublies.append(f'{fichier.name} absent de 02-deploy-orion.sh')
 
     assert not oublies, oublies
+
+
+# ── 6. Plus de commande a taper ──────────────────────────────────────────────
+
+ECRANS_TUNNEL = (
+    Path('templates/websites/tunnel/tunnel_detail.html'),
+    Path('templates/websites/cloudflare/cloudflare_dashboard.html'),
+)
+
+
+def test_aucun_ecran_ne_propose_une_commande_a_taper():
+    """« Je ne veux pas de commande, seulement des boutons. »
+
+    L'ecran du tunnel affichait un encadre « Demarrage » dont tout le
+    contenu etait la ligne a recopier dans un terminal. Ce n'etait pas un
+    pilotage : c'etait un pense-bete qui obligeait a sortir de l'ERP.
+
+    Le test interdit la phrase d'invitation, pas le mot « tunnel run » : une
+    MENTION explicative au fil d'une phrase reste legitime (le mode
+    « --token-file » doit pouvoir etre explique). Ce qui est proscrit, c'est
+    de PRESENTER une commande comme la facon de demarrer.
+    """
+    fautifs = []
+    for gabarit in ECRANS_TUNNEL:
+        texte = gabarit.read_text(encoding='utf-8')
+        for interdit in ('Commande pour lancer', 'Commande de lancement'):
+            if interdit in texte:
+                fautifs.append(f'{gabarit.name} : « {interdit} »')
+    assert not fautifs, fautifs
+
+
+def test_l_ecran_du_tunnel_propose_les_boutons():
+    """L'autre moitie : avoir retire la commande ne suffit pas, il faut que
+    les boutons soient la."""
+    texte = ECRANS_TUNNEL[0].read_text(encoding='utf-8')
+
+    assert "'websites:cloudflared_action'" in texte, 'aucun bouton d’action'
+    assert 'cloudflared_actions' in texte, 'la liste des actions n’est pas parcourue'
+    assert 'csrf_token' in texte, 'une action qui change l’etat exige un jeton CSRF'
