@@ -196,7 +196,10 @@ def restaurer_les_fichiers_generes(racine=None):
     d'un fichier qui lui appartient, au lieu d'un fichier généré qu'il n'a
     jamais édité et dont le nom ne lui dit rien.
 
-    Rend (restaurés, autres_modifiés).
+    Rend (restaurés, autres_modifiés, erreurs). Les erreurs ne sont PAS
+    levées : la mise à jour continue et le « pull » dira peut-être autre
+    chose. Mais elles sont journalisées avant lui, pour qu'on lise la vraie
+    cause — « Permission denied » — et non seulement son symptôme.
     """
     racine = racine or get_project_root()
     modifies = fichiers_modifies(racine)
@@ -211,14 +214,40 @@ def restaurer_les_fichiers_generes(racine=None):
                 if any(_est_genere(c) and (c == base or c.startswith(base + '/'))
                        for c in restaures)]
 
+    erreurs = []
     for base in dossiers:
-        # « -- » sépare les chemins des révisions : sans lui, un chemin qui
-        # ressemble à un nom de branche serait pris pour une révision.
-        run_command('git checkout -- %s' % base, cwd=racine, timeout=600)
-        # Un build laisse aussi des bundles NON SUIVIS, aux noms hachés. Ils
-        # s'accumulent, et un fichier entrant portant le même nom ferait
-        # échouer le pull a son tour (« untracked working tree files would be
-        # overwritten »). Ils sont reconstruits juste apres.
-        run_command('git clean -fdq -- %s' % base, cwd=racine, timeout=600)
+        commandes = (
+            # « -- » sépare les chemins des révisions : sans lui, un chemin
+            # qui ressemble à un nom de branche serait pris pour une révision.
+            'git checkout -- %s' % base,
+            # Un build laisse aussi des bundles NON SUIVIS, aux noms hachés.
+            # Ils s'accumulent, et un fichier entrant portant le même nom
+            # ferait échouer le pull à son tour (« untracked working tree
+            # files would be overwritten »). Ils sont reconstruits juste après.
+            'git clean -fdq -- %s' % base,
+        )
+        for commande in commandes:
+            resultat = run_command(commande, cwd=racine, timeout=600)
+            if not resultat['ok']:
+                detail = (resultat['stderr'] or resultat['stdout'] or '').strip()
+                erreurs.append('%s : %s' % (commande, detail[:800]))
 
-    return restaures, autres
+    # ON REVÉRIFIE PLUTÔT QUE DE CROIRE LE CODE DE RETOUR.
+    #
+    # Sur une machine où un build a tourné en root, les fichiers générés ne
+    # sont plus accessibles en écriture à l'utilisateur « orion » qui fait
+    # tourner l'ERP. git répond alors « Permission denied » et ne restaure
+    # rien — mais la première version de cette fonction ignorait le code de
+    # retour, et la mise à jour échouait ensuite sur le « pull », avec un
+    # message qui ne parlait que du fichier et jamais de la permission.
+    #
+    # C'était le même défaut que celui qu'on corrige ici : quelque chose qui
+    # échoue sans le dire.
+    restants = [c for c in fichiers_modifies(racine) if _est_genere(c)]
+    if restants:
+        erreurs.append(
+            '%d fichier(s) généré(s) encore modifié(s) après restauration '
+            '(droits d\'écriture ?) : %s'
+            % (len(restants), ', '.join(restants[:5])))
+
+    return restaures, autres, erreurs
