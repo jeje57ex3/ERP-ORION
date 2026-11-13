@@ -236,7 +236,9 @@ ORPHELINS_CONNUS = {
     'competitor_intelligence',
     'lunea_beauty_profile',
     'qualite',
-    'siecle_creations',
+    # « siecle_creations » a quitte cette liste le 13/11/2026 : le module du
+    # meme nom la gouverne desormais, et le menu peut enfin s'activer depuis
+    # l'interface. Six orphelines restent.
     'smart',
     'support',
 }
