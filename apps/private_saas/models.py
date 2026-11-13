@@ -37,6 +37,16 @@ ALL_MODULE_CODES = [
     'continuous_improvement',
     'orion_ai',
     'website_shop_settings',
+    # SIÈCLE Création. Son entrée de navigation existait dans NAV_MODULES
+    # depuis le début, mais AUCUN code module ne la gouvernait : elle était
+    # absente des trois structures ci-dessous. Un super-admin la voyait par
+    # court-circuit (filter_nav_modules lui rend la liste entière), ce qui a
+    # masqué le défaut ; pour tout autre utilisateur elle était invisible, et
+    # aucune case de l'interface ne pouvait l'activer.
+    #
+    # C'est le huitième cas de cette famille dans ce fichier. Les sept
+    # précédents sont décrits plus haut.
+    'siecle_creations',
 ]
 
 MODULE_LABELS = {
@@ -69,6 +79,7 @@ MODULE_LABELS = {
     'continuous_improvement': 'Amélioration continue',
     'orion_ai':               'Intelligence artificielle',
     'website_shop_settings':  'Réglages boutique',
+    'siecle_creations':       'SIÈCLE Création',
 }
 
 MODULE_NAV_IDS = {
@@ -115,6 +126,10 @@ MODULE_NAV_IDS = {
     # Réglages de boutique : servis sous l'entrée « websites », donc sans
     # identifiant propre.
     'website_shop_settings':  [],
+    # L'identifiant est RELEVÉ dans NAV_MODULES (apps/core/context_processors.py,
+    # « 'id': 'siecle_creations' ») et non deviné : une faute de frappe ici
+    # ne produirait aucune erreur, juste un menu qui reste invisible.
+    'siecle_creations':       ['siecle_creations'],
 }
 
 DEFAULT_MODULES_BY_TYPE = {

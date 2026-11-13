@@ -1,4 +1,16 @@
 from django.contrib.auth.decorators import login_required
+
+from apps.private_saas.decorators import require_company_module
+
+# POURQUOI GARDER AUSSI LES VUES, ET PAS SEULEMENT LE MENU
+#
+# Un module qui se contente de cacher une entree de navigation laisse
+# l'adresse ouverte : il suffit de la taper. Ce ne serait pas un module,
+# seulement un menu escamotable.
+#
+# Le decorateur laisse passer les super-admins (voir
+# apps/private_saas/decorators.py), donc poser cette garde ne retire l'acces
+# a personne qui l'avait deja a ce titre.
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Creation, CreationOrder
@@ -6,6 +18,7 @@ from . import services
 
 
 @login_required
+@require_company_module('siecle_creations')
 def dashboard(request):
     company = request.current_company
     stats = services.get_creation_stats(company)
@@ -17,6 +30,7 @@ def dashboard(request):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def catalog(request):
     company = request.current_company
     category = request.GET.get('category', '')
@@ -31,6 +45,7 @@ def catalog(request):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def creation_detail(request, pk):
     company = request.current_company
     creation = get_object_or_404(Creation, pk=pk, company=company)
@@ -42,6 +57,7 @@ def creation_detail(request, pk):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def publish_creation(request, pk):
     company = request.current_company
     creation = get_object_or_404(Creation, pk=pk, company=company)
@@ -52,6 +68,7 @@ def publish_creation(request, pk):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def archive_creation(request, pk):
     company = request.current_company
     creation = get_object_or_404(Creation, pk=pk, company=company)
@@ -62,6 +79,7 @@ def archive_creation(request, pk):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def collections_view(request):
     """Éditions limitées et pièces uniques — alias URL /erp/siecle/creation/collections/"""
     company = request.current_company
@@ -77,6 +95,7 @@ def collections_view(request):
 
 
 @login_required
+@require_company_module('siecle_creations')
 def campaigns_view(request):
     """Vue campagnes/commandes — alias URL /erp/siecle/creation/campaigns/"""
     company = request.current_company
