@@ -202,17 +202,29 @@ def run_system_update(started_by=None):
         # suivie par git : sans cette remise a l'etat commite, le « pull »
         # ci-dessous echoue sur les fichiers qu'a laisses la mise a jour
         # PRECEDENTE.
-        restaures, autres = restaurer_les_fichiers_generes(project_root)
-        if restaures or autres:
+        restaures, autres, erreurs_restauration = restaurer_les_fichiers_generes(project_root)
+        if restaures or autres or erreurs_restauration:
+            if erreurs_restauration:
+                niveau = 'error'
+            elif autres:
+                niveau = 'warning'
+            else:
+                niveau = 'success'
             log_step(
                 update_run, 'restore_generated', 'Remise a zero des fichiers generes',
-                'success' if not autres else 'warning',
+                niveau,
                 message=(
                     '%d fichier(s) genere(s) restaure(s).' % len(restaures)
                     + (' %d fichier(s) modifie(s) hors build, laisses intacts : %s'
                        % (len(autres), ', '.join(autres[:10])) if autres else '')
+                    + (" LA RESTAURATION A ECHOUE — le « pull » va probablement"
+                       " echouer a son tour. Cause la plus frequente : un build"
+                       " a tourne en root et les fichiers generes n'appartiennent"
+                       " plus a l'utilisateur qui fait tourner l'ERP."
+                       if erreurs_restauration else '')
                 ),
                 output='\n'.join(restaures[:50]),
+                error_output='\n'.join(erreurs_restauration),
             )
 
         pull_command, pull_display = build_pull_command(remote, branch)

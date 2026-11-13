@@ -308,10 +308,19 @@ restaurer_les_fichiers_generes() {
   local depot="$ORION_HOME/backend" chemin
   for chemin in "${CHEMINS_GENERES[@]}"; do
     [ -e "$depot/$chemin" ] || continue
-    sudo -u orion git -C "$depot" checkout -- "$chemin" 2>/dev/null || true
+    # On NE MASQUE PAS l'erreur : si un build a tourne en root, « orion » ne
+    # peut plus ecrire ici et git repond « Permission denied ». Avale, ce
+    # message laissait le pull echouer juste apres en ne parlant que du
+    # fichier, jamais des droits.
+    if ! sudo -u orion git -C "$depot" checkout -- "$chemin" 2>&1; then
+      echo "  ATTENTION: restauration impossible de $chemin." >&2
+      echo "             Cause frequente : un build a tourne en root et les" >&2
+      echo "             fichiers n'appartiennent plus a l'utilisateur orion." >&2
+      echo "             Verifiez : ls -la $depot/$chemin" >&2
+    fi
     # Les bundles non suivis, aux noms haches, s'accumulent a chaque build :
     # un fichier entrant du meme nom ferait echouer le pull a son tour.
-    sudo -u orion git -C "$depot" clean -fdq -- "$chemin" 2>/dev/null || true
+    sudo -u orion git -C "$depot" clean -fdq -- "$chemin" 2>&1 || true
   done
 }
 

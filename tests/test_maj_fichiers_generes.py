@@ -113,10 +113,11 @@ def test_la_restauration_debloque_la_mise_a_jour(depots):
     """LA GARANTIE CENTRALE : le même scénario passe après restauration."""
     ecrire(depots, GENERE, '<html>sortie du build local</html>')
 
-    restaures, autres = restaurer_les_fichiers_generes(depots)
+    restaures, autres, erreurs = restaurer_les_fichiers_generes(depots)
 
     assert GENERE in restaures
     assert autres == []
+    assert erreurs == []
 
     tire = git('pull', 'origin', 'main', cwd=depots)
     assert tire.returncode == 0, tire.stdout + tire.stderr
@@ -133,8 +134,9 @@ def test_le_travail_en_cours_de_l_exploitant_n_est_pas_touche(depots):
     ecrire(depots, GENERE, '<html>sortie du build local</html>')
     ecrire(depots, A_MOI, '# une correction que je viens d’ecrire\n')
 
-    restaures, autres = restaurer_les_fichiers_generes(depots)
+    restaures, autres, erreurs = restaurer_les_fichiers_generes(depots)
 
+    assert erreurs == []
     assert restaures == [GENERE]
     assert autres == [A_MOI], 'le fichier hors build doit être signalé'
     assert 'correction' in (depots / A_MOI).read_text(encoding='utf-8'), (
@@ -156,4 +158,59 @@ def test_les_bundles_non_suivis_sont_balayes(depots):
 def test_sans_rien_de_modifie_la_restauration_ne_fait_rien(depots):
     """Le cas courant : une mise à jour sur une copie propre."""
     assert fichiers_modifies(depots) == []
-    assert restaurer_les_fichiers_generes(depots) == ([], [])
+    assert restaurer_les_fichiers_generes(depots) == ([], [], [])
+
+
+# ── Les deux cas relevés sur la VM 100 ───────────────────────────────────────
+
+def test_des_fichiers_supprimes_par_le_build_sont_remis(depots):
+    """LE CAS EXACT DE LA MACHINE.
+
+    « git status » y montrait des lignes « D » et non « M » : le build avait
+    SUPPRIMÉ les anciens bundles avant d'écrire les siens. Restaurer fichier
+    par fichier depuis la liste des modifiés suffirait ici, mais restaurer le
+    DOSSIER ramène aussi ceux que personne n'a pensé à lister.
+    """
+    import shutil
+
+    shutil.rmtree(depots / 'static/siecle-store')
+
+    restaures, autres, erreurs = restaurer_les_fichiers_generes(depots)
+
+    assert GENERE in restaures
+    assert erreurs == []
+    assert (depots / GENERE).exists(), 'le fichier supprimé n’est pas revenu'
+
+    tire = git('pull', 'origin', 'main', cwd=depots)
+    assert tire.returncode == 0, tire.stdout + tire.stderr
+
+
+def test_un_echec_de_restauration_est_rapporte_et_non_avale(monkeypatch):
+    """CE QUI A MANQUÉ LA PREMIÈRE FOIS.
+
+    Sur la VM, un build avait tourné en root : « orion » ne pouvait plus
+    écrire dans les dossiers générés, git répondait « Permission denied » et
+    ne restaurait rien. La première version de cette fonction ignorait le
+    code de retour — la mise à jour échouait ensuite sur le « pull », avec un
+    message qui ne parlait jamais des droits.
+
+    On ne peut pas reproduire des droits POSIX de façon portable ici ; on
+    vérifie donc le câblage : si git échoue, l'échec REMONTE.
+    """
+    from apps.system_updates import git_service
+
+    monkeypatch.setattr(git_service, 'fichiers_modifies',
+                        lambda racine=None: [GENERE])
+    monkeypatch.setattr(
+        git_service, 'run_command',
+        lambda *a, **k: {'returncode': 1, 'stdout': '', 'ok': False,
+                         'stderr': 'error: unable to create file '
+                                   'static/siecle-store/assets/x.js: '
+                                   'Permission denied',
+                         'command': a[0] if a else ''})
+
+    restaures, autres, erreurs = git_service.restaurer_les_fichiers_generes('/tmp/x')
+
+    assert restaures == [GENERE]
+    assert erreurs, 'un echec silencieux est exactement le defaut a eviter'
+    assert any('Permission denied' in e for e in erreurs)
