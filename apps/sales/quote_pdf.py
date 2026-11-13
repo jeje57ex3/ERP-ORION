@@ -245,6 +245,11 @@ def valeurs_du_devis(quote):
         'telephone_client': (
             getattr(client, 'phone', '') or getattr(client, 'mobile', '') or ''
         ),
+        # « getattr » et non « client.nif » : le devis peut porter un client
+        # d'un autre modele, et une fiche sans NIF ne doit pas faire tomber
+        # l'impression. Un cadre sans valeur reste vide (voir
+        # _texte_du_champ), il n'imprime pas « None ».
+        'nif_client': getattr(client, 'nif', '') or '',
         'objet': quote.subject or '',
         'total_ht': _format_montant(quote.total_ht),
         'total_tva': _format_montant(quote.total_tva),

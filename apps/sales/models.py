@@ -489,6 +489,7 @@ class QuoteTemplateField(models.Model):
         ('adresse_client', 'Adresse du client'),
         ('email_client',   'Email du client'),
         ('telephone_client', 'Téléphone du client'),
+        ('nif_client',     'NIF du client'),
         ('objet',          'Objet du devis'),
         ('total_ht',       'Total HT'),
         ('total_tva',      'Total TVA'),

@@ -24,6 +24,17 @@ class Customer(models.Model):
     country = models.CharField('Pays', max_length=100, default='France')
     siret = models.CharField('SIRET', max_length=14, blank=True)
     vat_number = models.CharField('N° TVA', max_length=20, blank=True)
+    # « blank=True » est ce qui rend le champ FACULTATIF au formulaire. Une
+    # valeur par defaut ne le ferait pas : elle ne fournit que la valeur
+    # initiale, et le champ resterait obligatoire — le formulaire refuserait
+    # alors tout client sans NIF, en silence pour qui ne lit pas l'erreur.
+    #
+    # Trente caracteres : un NIF n'a pas la meme longueur d'un pays a
+    # l'autre (neuf chiffres au Portugal et en Espagne, davantage ailleurs).
+    # Calibrer sur un seul pays obligerait a migrer des qu'on en ajoute un.
+    nif = models.CharField(
+        'NIF', max_length=30, blank=True,
+        help_text='Numéro d’identification fiscale du client.')
     website = models.URLField('Site web', blank=True)
     payment_terms = models.PositiveIntegerField('Délai paiement (j)', default=30)
     credit_limit = models.DecimalField('Limite crédit', max_digits=12, decimal_places=2, null=True, blank=True)
