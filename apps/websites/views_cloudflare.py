@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from .models_domains import CloudflareAccount, CloudflareTunnel, TunnelIngressRule
 from .forms_domains import CloudflareAccountForm
 from .cloudflare_service import test_token, get_zones, refresh_account, fetch_cf_tunnels, fetch_tunnel_ingress
+from .cloudflared_service import ACTIONS, CloudflaredError, etat as etat_cloudflared, executer
 
 
 def _company(request):
@@ -53,6 +54,11 @@ def cloudflare_dashboard(request):
                 cf_error = tresult.get('error')
 
     return render(request, 'websites/cloudflare/cloudflare_dashboard.html', {
+        # L'etat du service local : « arrete » et « pas installe » appellent
+        # des gestes tres differents, et les confondre enverrait chercher
+        # une panne la ou il n'y a qu'un paquet absent.
+        'cloudflared':       etat_cloudflared(),
+        'cloudflared_actions': [(cle, libelle) for cle, (_, libelle) in ACTIONS.items()],
         'accounts':       accounts,
         'active_account': active_account,
         'db_tunnels':     db_tunnels,
@@ -363,3 +369,63 @@ def api_cloudflare_zones(request, pk):
     account = get_object_or_404(CloudflareAccount, pk=pk, company=company)
     result = get_zones(account.api_token)
     return JsonResponse(result)
+
+
+# ─── Pilotage du service cloudflared local ───────────────────────────────────
+
+@login_required
+@require_POST
+def cloudflared_action(request, action):
+    """Demarre, arrete ou redemarre le tunnel, depuis l'interface.
+
+    CE QUE CETTE VUE REMPLACE
+
+    Le tunnel se lancait a la main depuis l'hote Proxmox :
+
+        qm guest exec 100 -- cloudflared tunnel run <uuid>
+
+    Cet appel ne pouvait pas tenir : « qm guest exec » attend la fin de la
+    commande alors que « tunnel run » ne se termine jamais. L'appel bloque,
+    depasse son delai, et le tunnel meurt avec lui — sans parler du fait
+    qu'un processus lance ainsi ne survit ni au redemarrage ni au plantage.
+
+    L'appliance installe pourtant deja « cloudflared.service ». On le
+    pilote, on ne lance plus de processus a la main.
+
+    RESERVE AU SUPER-ADMIN : demarrer ou couper le tunnel coupe l'acces de
+    TOUTE l'installation depuis l'exterieur. Ce n'est pas un reglage de
+    site, c'est une action sur la machine.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, "Seul un super-administrateur peut piloter le tunnel.")
+        return redirect('websites:cloudflare_dashboard')
+
+    if action not in ACTIONS:
+        messages.error(request, f"Action inconnue : {action}.")
+        return redirect('websites:cloudflare_dashboard')
+
+    libelle = ACTIONS[action][1]
+    try:
+        executer(action)
+    except CloudflaredError as exc:
+        # On rend le message TEL QUEL : il nomme deja le fichier sudoers a
+        # installer quand c'est la permission qui manque. Le remplacer par
+        # un « echec » generique rendrait la panne indechiffrable.
+        messages.error(request, f"{libelle} : {exc}")
+        return redirect('websites:cloudflare_dashboard')
+
+    # On RELIT l'etat plutot que de supposer que l'action a produit son
+    # effet : « systemctl start » rend 0 alors que l'unite peut echouer a
+    # demarrer juste apres. Annoncer un succes sans verifier serait une
+    # panne silencieuse de plus.
+    apres = etat_cloudflared()
+    if action in ('demarrer', 'redemarrer') and not apres.get('actif'):
+        messages.warning(
+            request,
+            f"{libelle} : la commande a ete acceptee mais le service n'est "
+            f"pas actif (etat : {apres.get('etat_brut') or 'inconnu'}). "
+            "Consultez le journal du tunnel.")
+    else:
+        messages.success(request, f"{libelle} : fait.")
+
+    return redirect('websites:cloudflare_dashboard')

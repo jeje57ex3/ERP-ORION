@@ -567,7 +567,10 @@ completer_env ORION_NODE_PRIORITY 1
 
 echo "[5/7] Rafraîchissement des droits et assistants privilégiés..."
 SUDOERS_DIR="$ORION_HOME/backend/deployment/proxmox-appliance/sudoers"
-for nom in orion-serveur orion-stockage orion-maj; do
+# orion-cloudflared : sans lui, les boutons de l'ecran Cloudflare
+# echouent sur « orion is not in the sudoers file » -- l'ecran existe,
+# les boutons s'affichent, et rien ne se passe.
+for nom in orion-serveur orion-stockage orion-maj orion-cloudflared; do
   src="$SUDOERS_DIR/$nom"
   if [ ! -f "$src" ]; then
     echo "  $nom : source absente, ignoré."
