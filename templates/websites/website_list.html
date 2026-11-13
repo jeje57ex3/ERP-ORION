@@ -65,6 +65,38 @@
   {% endfor %}
 </div>
 
+{% comment %}
+  Un site rattache a une autre entreprise etait tout simplement invisible,
+  et l'ecran annoncait qu'aucun site n'existait. On le dit maintenant, et
+  on donne le moyen d'aller voir -- pour un super-admin seulement.
+{% endcomment %}
+{% if est_super_admin and nb_sites_ailleurs %}
+<div class="orion-card mb-3" style="border-left:3px solid var(--bs-warning, #f5b93d)">
+  <div class="orion-orion-card-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <strong>{% blocktrans count n=nb_sites_ailleurs %}{{ n }} site appartient a une autre entreprise{% plural %}{{ n }} sites appartiennent a d'autres entreprises{% endblocktrans %}</strong>
+        <div class="small text-muted mt-1">
+          {% for s in sites_ailleurs %}{{ s.name }} <span class="text-muted">({{ s.company.name }})</span>{% if not forloop.last %} &middot; {% endif %}{% endfor %}
+        </div>
+      </div>
+      <a href="?toutes=1" class="orion-btn orion-btn-outline orion-orion-btn sm">
+        <i class="bi bi-eye me-1"></i>{% trans "Afficher tous les sites" %}
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if toutes_entreprises %}
+<div class="orion-card mb-3">
+  <div class="orion-orion-card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span><i class="bi bi-globe2 me-1"></i>{% trans "Tous les sites, toutes entreprises confondues." %}</span>
+    <a href="?" class="orion-btn orion-btn-outline orion-orion-btn sm">{% trans "Revenir a mon entreprise" %}</a>
+  </div>
+</div>
+{% endif %}
+
 {% if websites %}
 <div class="row g-3">
   {% for site in websites %}
@@ -152,8 +184,13 @@
   <div class="orion-orion-orion-card-body">
     <div class="orion-empty">
       <div class="orion-empty-icon"><i class="bi bi-globe"></i></div>
+      {% if est_super_admin and nb_sites_ailleurs %}
+      <div class="orion-empty-title">{% trans "Aucun site pour cette entreprise" %}</div>
+      <div class="orion-empty-text">{% blocktrans count n=nb_sites_ailleurs %}Mais {{ n }} site existe dans une autre entreprise.{% plural %}Mais {{ n }} sites existent dans d'autres entreprises.{% endblocktrans %}</div>
+      {% else %}
       <div class="orion-empty-title">{% trans "Aucun site web n'a encore été créé" %}</div>
       <div class="orion-empty-text">{% trans "Créez un site vitrine ou une boutique en ligne pour développer votre présence en ligne." %}</div>
+      {% endif %}
       <div class="d-flex gap-2 justify-content-center mt-3">
         <a href="{% url 'websites:website_create_showcase' %}" class="orion-btn orion-btn-outline"><i class="bi bi-building me-1"></i>{% trans "Créer un site vitrine" %}</a>
         <a href="{% url 'websites:website_create_store' %}" class="orion-btn orion-orion-btn primary"><i class="bi bi-shop me-1"></i>{% trans "Créer une boutique en ligne" %}</a>
