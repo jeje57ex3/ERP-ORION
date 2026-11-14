@@ -30,6 +30,7 @@ urlpatterns = [
     path('<int:tunnel_pk>/regles/<int:rule_pk>/supprimer/', v.ingress_delete,         name='ingress_delete'),
     path('<int:tunnel_pk>/regles/<int:rule_pk>/port/',      v.ingress_update_port,    name='ingress_update_port'),
     path('<int:tunnel_pk>/regles/<int:rule_pk>/dns/',       v.ingress_sync_dns,       name='ingress_sync_dns'),
+    path('<int:tunnel_pk>/regles/<int:rule_pk>/diagnostic/', v.ingress_diagnostic,    name='ingress_diagnostic'),
 
     # ─── API JSON ─────────────────────────────────────────────────────────────
     path('api/status/',                                     v.api_tunnel_status,       name='tunnel_api_status'),

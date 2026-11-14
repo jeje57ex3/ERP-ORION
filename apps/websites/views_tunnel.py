@@ -586,3 +586,30 @@ def api_preview_config_yml(request):
 @login_required
 def api_tunnel_status(request):
     return JsonResponse(get_cloudflared_status())
+
+
+@login_required
+def ingress_diagnostic(request, tunnel_pk, rule_pk):
+    """Pourquoi ce nom d'hote ne repond-il pas ?
+
+    « Error 1033 » ne dit pas laquelle de ses deux causes s'applique :
+    aucun connecteur relie, ou aucune route publiee pour ce nom. Les deux
+    produisent le meme ecran. Sans les distinguer, on redemarre un
+    connecteur qui tournait deja, ou l'on republie une route qui existait.
+    """
+    from .tunnel_service import diagnostiquer_hote
+
+    company = _company(request)
+    tunnel = get_object_or_404(CloudflareTunnel, pk=tunnel_pk, company=company)
+    rule = get_object_or_404(TunnelIngressRule, pk=rule_pk, tunnel=tunnel)
+
+    etapes = diagnostiquer_hote(rule)
+
+    return render(request, 'websites/tunnel/diagnostic.html', {
+        'page_title': f'Diagnostic — {rule.hostname}',
+        'tunnel': tunnel,
+        'rule': rule,
+        'etapes': etapes,
+        'bloquants': [e for e in etapes if e['etat'] == 'erreur'],
+        'active_module': 'websites',
+    })

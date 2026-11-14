@@ -756,3 +756,149 @@ def sync_tunnel_dns(rule: "TunnelIngressRule", remplacer: bool = False) -> tuple
 
     return True, (f"{prefixe}Enregistrement DNS CNAME {action} : {hostname} → "
                   f"{cname_target} (zone {zone.get('name')}).{rappel}")
+
+
+# ─── Diagnostic de l'erreur 1033 ─────────────────────────────────────────────
+
+def diagnostiquer_hote(rule: "TunnelIngressRule") -> list[dict]:
+    """Pourquoi ce nom d'hôte ne répond-il pas ? Étape par étape.
+
+    POURQUOI CE DIAGNOSTIC EXISTE
+
+    « Error 1033 — Cloudflare is currently unable to resolve it » ne dit pas
+    laquelle de ses deux causes s'applique :
+
+      — aucun connecteur n'est relié au tunnel ;
+      — le tunnel tourne, mais sa configuration DISTANTE ne contient aucune
+        route pour ce nom d'hôte.
+
+    Les deux produisent le même écran. Sans les distinguer, on redémarre un
+    connecteur qui tournait déjà, ou l'on republie une route qui existait.
+
+    Brancher un domaine demande cinq maillons (DNS, connecteur, route,
+    service local, domaine déclaré). Cette fonction les interroge tous et
+    rend, pour chacun, un verdict et ce qu'il reste à faire.
+
+    Chaque étape est indépendante : une étape qui échoue n'empêche pas les
+    suivantes d'être évaluées. Un diagnostic qui s'arrête au premier défaut
+    oblige à autant d'allers-retours qu'il y a de défauts.
+    """
+    from .cloudflare_service import (fetch_cf_tunnels, fetch_tunnel_ingress,
+                                     _normaliser_hostname)
+
+    tunnel = rule.tunnel
+    account = tunnel.cloudflare_account
+    hostname = _normaliser_hostname(rule.hostname or '')
+    etapes = []
+
+    def etape(nom, etat, detail, action=''):
+        etapes.append({'nom': nom, 'etat': etat, 'detail': detail,
+                       'action': action})
+
+    # ── 1. Le compte et l'UUID ───────────────────────────────────────────
+    if account is None or not account.api_token:
+        etape('Compte Cloudflare', 'erreur',
+              "Aucun compte rattaché à ce tunnel.",
+              "Rattachez un compte dans « Modifier le tunnel ».")
+        return etapes
+    if not tunnel.tunnel_id:
+        etape('Identifiant du tunnel', 'erreur',
+              "Ce tunnel n'a pas d'UUID.",
+              "Renseignez-le, ou réimportez le tunnel depuis Cloudflare.")
+        return etapes
+    etape('Compte Cloudflare', 'ok', f'Compte « {account.label} » rattaché.')
+
+    # ── 2. Le connecteur est-il relie ? ──────────────────────────────────
+    #
+    # C'est la PREMIERE des deux causes de l'erreur 1033, et la plus
+    # trompeuse : « cloudflared actif » sur la machine ne prouve pas que le
+    # processus parle a CE tunnel-ci. On demande donc son avis a Cloudflare.
+    liste = fetch_cf_tunnels(account)
+    if not liste.get('success'):
+        etape('Connecteur', 'inconnu',
+              f"Cloudflare n'a pas répondu : {liste.get('error')}",
+              "Vérifiez le jeton d'API du compte.")
+    else:
+        distant = next((t for t in liste['tunnels']
+                        if t.get('id') == tunnel.tunnel_id), None)
+        if distant is None:
+            etape('Connecteur', 'erreur',
+                  "Ce tunnel n'existe pas (ou plus) chez Cloudflare.",
+                  "Vérifiez l'UUID, ou recréez le tunnel.")
+        else:
+            statut = (distant.get('status') or '').lower()
+            connexions = distant.get('connections') or []
+            if statut == 'healthy' or connexions:
+                etape('Connecteur', 'ok',
+                      f"Tunnel « {distant.get('name')} » : {statut or 'connecté'}"
+                      f" ({len(connexions)} connexion(s)).")
+            else:
+                etape('Connecteur', 'erreur',
+                      f"Aucun connecteur relié (statut : {statut or 'inconnu'}). "
+                      "C'est l'une des deux causes de l'erreur 1033.",
+                      "Démarrez le service depuis la carte « Démarrage » "
+                      "de cet écran.")
+
+    # ── 3. La route existe-t-elle chez Cloudflare ? ──────────────────────
+    #
+    # SECONDE cause de l'erreur 1033, et la plus frequente ici : un tunnel
+    # lance par jeton ignore le config.yml local. Sa liste de routes est
+    # detenue par Cloudflare, et tant que la regle n'y est pas PUBLIEE, le
+    # nom ne mene nulle part — meme avec un DNS parfait.
+    ingress = fetch_tunnel_ingress(account, tunnel.tunnel_id)
+    if not ingress.get('success'):
+        etape('Route distante', 'inconnu',
+              f"Configuration illisible : {ingress.get('error')}",
+              "Le jeton doit pouvoir lire « Cloudflare Tunnel ».")
+    else:
+        regles = ingress.get('ingress') or ingress.get('rules') or []
+        hotes = {_normaliser_hostname(r.get('hostname') or '')
+                 for r in regles if r.get('hostname')}
+        if hostname in hotes:
+            etape('Route distante', 'ok',
+                  f"« {hostname} » figure dans la configuration distante.")
+        else:
+            connus = ', '.join(sorted(h for h in hotes if h)) or 'aucun'
+            etape('Route distante', 'erreur',
+                  f"« {hostname} » est ABSENT de la configuration distante. "
+                  f"C'est la cause la plus fréquente de l'erreur 1033. "
+                  f"Noms actuellement publiés : {connus}.",
+                  "Cliquez « Publier chez Cloudflare » sur cet écran.")
+
+    # ── 4. Le service local vise-t-il le bon port ? ──────────────────────
+    #
+    # On ne peut pas savoir ce qui ecoute derriere, mais on peut signaler
+    # une incoherence frequente : une vitrine est rendue par DJANGO, et
+    # Django n'ecoute pas sur les ports des frontends compiles.
+    service = (rule.service or '').strip()
+    if rule.website_id and any(f':{port}' in service for port in (5172, 5173, 5174)):
+        etape('Service local', 'attention',
+              f"La règle vise « {service} », un port de frontend compilé. "
+              "Une vitrine rendue par Django répond sur le port du backend.",
+              "Vérifiez le port : le backend Django écoute sur 9000.")
+    elif not service:
+        etape('Service local', 'erreur', "Aucun service local renseigné.",
+              "Indiquez par exemple « http://localhost:9000 ».")
+    else:
+        etape('Service local', 'ok', f"La règle vise « {service} ».")
+
+    # ── 5. Le domaine est-il declare dans l'ERP ? ────────────────────────
+    #
+    # Sans WebsiteDomain actif, Django repond 400 DisallowedHost et le site
+    # n'est pas resolu : le tunnel aurait beau fonctionner, la page serait
+    # une erreur.
+    from .models import WebsiteDomain
+    from django.db.models import Q
+
+    declare = WebsiteDomain.objects.filter(
+        Q(status='active') | Q(dns_verified=True), domain=hostname).exists()
+    if declare:
+        etape('Domaine dans l’ERP', 'ok',
+              f"« {hostname} » est déclaré et actif.")
+    else:
+        etape('Domaine dans l’ERP', 'erreur',
+              f"Aucun domaine actif « {hostname} » dans l'ERP. Django "
+              "refusera la requête (400) même si le tunnel fonctionne.",
+              "Ajoutez-le dans « Domaines » et passez-le en actif.")
+
+    return etapes

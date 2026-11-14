@@ -1,0 +1,77 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% blocktrans with h=rule.hostname %}Diagnostic — {{ h }}{% endblocktrans %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+
+{% comment %}
+  « Error 1033 » ne dit pas laquelle de ses deux causes s'applique : aucun
+  connecteur relie, ou aucune route publiee pour ce nom. Les deux produisent
+  le meme ecran. Cette page les distingue, et verifie au passage les trois
+  autres maillons -- DNS, service local, domaine declare dans l'ERP.
+
+  Toutes les etapes sont evaluees, meme apres un echec : un diagnostic qui
+  s'arrete au premier defaut oblige a autant d'allers-retours qu'il y a de
+  defauts.
+{% endcomment %}
+
+{% if bloquants %}
+<div class="orion-alert danger mb-3">
+  <div>
+    <strong>{% blocktrans count n=bloquants|length %}{{ n }} point bloque l’accès à ce nom d’hôte.{% plural %}{{ n }} points bloquent l’accès à ce nom d’hôte.{% endblocktrans %}</strong>
+    <div class="small mt-1">{% trans "Corrigez-les dans l’ordre : chacun est indépendant." %}</div>
+  </div>
+</div>
+{% else %}
+<div class="orion-alert success mb-3">
+  <div>
+    <strong>{% trans "Tous les points sont au vert." %}</strong>
+    <div class="small mt-1">
+      {% trans "Si le nom ne répond toujours pas, laissez une minute à Cloudflare de propager la configuration, puis réessayez." %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="orion-card mb-3">
+  <div class="orion-orion-card-body p-0">
+    {% for etape in etapes %}
+    <div class="d-flex gap-3 p-3" style="border-top:1px solid var(--orion-border, rgba(127,127,127,.18))">
+      <div style="flex-shrink:0;width:28px;text-align:center">
+        {% if etape.etat == 'ok' %}
+        <i class="bi bi-check-circle-fill" style="color:#22c55e"></i>
+        {% elif etape.etat == 'erreur' %}
+        <i class="bi bi-x-circle-fill" style="color:#ef4444"></i>
+        {% elif etape.etat == 'attention' %}
+        <i class="bi bi-exclamation-triangle-fill" style="color:#f5b93d"></i>
+        {% else %}
+        <i class="bi bi-question-circle-fill" style="color:#8e8b83"></i>
+        {% endif %}
+      </div>
+      <div>
+        <div class="fw-semibold">{{ etape.nom }}</div>
+        <div class="small text-muted mt-1">{{ etape.detail }}</div>
+        {% if etape.action %}
+        <div class="small mt-2"><i class="bi bi-arrow-right-short"></i> {{ etape.action }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2">
+  <a href="{% url 'websites:tunnel_detail' tunnel.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-arrow-left me-1"></i>{% trans "Retour au tunnel" %}
+  </a>
+  <a href="{% url 'websites:ingress_diagnostic' tunnel.pk rule.pk %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-arrow-repeat me-1"></i>{% trans "Relancer le diagnostic" %}
+  </a>
+</div>
+
+{% endblock %}
