@@ -177,6 +177,13 @@ urlpatterns = [
     path('orion-admin/courriels/',
          include('apps.core.mail_urls', namespace='core_mail')),
 
+    # L'installeur Windows est produit hors du depot (c'est un binaire de
+    # plusieurs dizaines de Mo). L'exploitant le depose ici, et le bouton de
+    # telechargement apparait de lui-meme sur le profil de chacun.
+    path('orion-admin/application-pc/',
+         include('apps.core.application_pc_urls',
+                 namespace='core_application_pc')),
+
     # ── Personnalisation des sites, domaines, commandes ───────────────────────
     #
     # site_customization et orders ont des routes RELATIVES : leur prefixe

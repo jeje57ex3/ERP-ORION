@@ -1,0 +1,119 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% trans "Application PC" %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-upload me-1 text-primary"></i>{% trans "Publier une version" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body">
+
+        {% comment %}
+          « enctype » est INDISPENSABLE : sans lui le navigateur n'envoie
+          PAS le fichier. Le champ s'afficherait, l'installeur serait
+          choisi, l'enregistrement reussirait -- et rien n'aurait ete
+          depose. Ce defaut precis s'est deja produit sur le formulaire des
+          sites web de cet ERP.
+        {% endcomment %}
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Version" %} *</label>
+            <input type="text" name="version" class="form-control"
+                   placeholder="1.4.2" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Fichier d’installation" %} *</label>
+            <input type="file" name="fichier" class="form-control" required>
+            <div class="form-text">
+              {% trans "L’installeur Windows produit par Inno Setup (.exe)." %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Nouveautés" %}</label>
+            <textarea name="notes" rows="3" class="form-control"
+                      placeholder="{% trans 'Ce que cette version apporte.' %}"></textarea>
+          </div>
+
+          <button type="submit" class="orion-btn primary">
+            <i class="bi bi-check-circle me-1"></i>{% trans "Publier" %}
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-clock-history me-1 text-primary"></i>{% trans "Versions déposées" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body">
+
+        {% if courante %}
+        <p class="small mb-3">
+          {% blocktrans with v=courante.version %}Version proposée au téléchargement : <strong>{{ v }}</strong>{% endblocktrans %}
+        </p>
+        {% else %}
+        <div class="orion-alert warning mb-3">
+          <div>
+            {% trans "Aucune version publiée : le bouton de téléchargement n’apparaît sur aucun profil." %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if versions %}
+        <div class="d-flex flex-column gap-2">
+          {% for v in versions %}
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2"
+               style="padding:10px 0;border-top:1px solid var(--orion-border, rgba(127,127,127,.18))">
+            <div>
+              <strong>{{ v.version }}</strong>
+              {% if v.est_publiee %}
+              <span class="badge" style="background:rgba(34,197,94,.18);color:#22c55e">{% trans "Publiée" %}</span>
+              {% else %}
+              <span class="badge" style="background:rgba(127,127,127,.18)">{% trans "Retirée" %}</span>
+              {% endif %}
+              <div class="small text-muted">
+                {{ v.deposee_le|date:"d/m/Y H:i" }}
+                {% if v.taille_lisible %} · {{ v.taille_lisible }}{% endif %}
+                {% if not v.taille_lisible %} · <span class="text-danger">{% trans "fichier introuvable" %}</span>{% endif %}
+              </div>
+              {% if v.notes %}<div class="small mt-1">{{ v.notes|linebreaksbr }}</div>{% endif %}
+            </div>
+            <form method="post" action="{% url 'core_application_pc:basculer' v.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn orion-btn-outline orion-orion-btn sm">
+                {% if v.est_publiee %}{% trans "Retirer" %}{% else %}{% trans "Publier" %}{% endif %}
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="small text-muted mb-0">{% trans "Aucune version n’a encore été déposée." %}</p>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
