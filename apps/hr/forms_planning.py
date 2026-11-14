@@ -26,6 +26,8 @@ CLASSE_NOMBRE = {'class': 'form-control', 'step': '0.25', 'min': '0',
                  'max': '24'}
 
 
+from apps.core.form_widgets import DateISO
+
 class WorkScheduleForm(forms.ModelForm):
     """Rythme hebdomadaire d'un salarié."""
 
@@ -111,11 +113,11 @@ class WorkStoppageForm(forms.ModelForm):
         widgets = {
             'employee': forms.Select(attrs={'class': 'form-select'}),
             'kind': forms.Select(attrs={'class': 'form-select'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control',
+            'start_date': DateISO(attrs={'class': 'form-control',
                                                  'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control',
+            'end_date': DateISO(attrs={'class': 'form-control',
                                                'type': 'date'}),
-            'certificate_date': forms.DateInput(
+            'certificate_date': DateISO(
                 attrs={'class': 'form-control', 'type': 'date'}),
             'certificate_reference': forms.TextInput(
                 attrs={'class': 'form-control'}),

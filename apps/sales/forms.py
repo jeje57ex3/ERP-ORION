@@ -14,6 +14,8 @@ from .models import (
 )
 
 
+from apps.core.form_widgets import DateISO
+
 class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
@@ -25,9 +27,9 @@ class QuoteForm(forms.ModelForm):
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
             'subject': forms.TextInput(attrs={'class': 'form-control'}),
-            'issue_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'validity_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'issue_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'validity_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'delivery_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'payment_terms': forms.NumberInput(attrs={'class': 'form-control'}),
             'discount_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'cout_materiels': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
@@ -171,8 +173,8 @@ class SalesOrderForm(forms.ModelForm):
         fields = ['customer', 'order_date', 'delivery_date', 'delivery_address', 'notes', 'salesperson']
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
-            'order_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'order_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'delivery_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'delivery_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'salesperson': forms.Select(attrs={'class': 'form-select'}),
@@ -187,8 +189,8 @@ class InvoiceForm(forms.ModelForm):
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
             'subject': forms.TextInput(attrs={'class': 'form-control'}),
-            'issue_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'issue_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'due_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'payment_terms': forms.NumberInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'salesperson': forms.Select(attrs={'class': 'form-select'}),

@@ -2,6 +2,8 @@ from django import forms
 from .models import Equipment, AudioEvent, EquipmentReservation, Technician
 
 
+from apps.core.form_widgets import DateISO
+
 class EquipmentForm(forms.ModelForm):
     class Meta:
         model = Equipment
@@ -14,9 +16,9 @@ class EquipmentForm(forms.ModelForm):
             'description', 'notes', 'is_active',
         ]
         widgets = {
-            'purchase_date': forms.DateInput(attrs={'type': 'date'}),
-            'last_maintenance_date': forms.DateInput(attrs={'type': 'date'}),
-            'next_maintenance_date': forms.DateInput(attrs={'type': 'date'}),
+            'purchase_date': DateISO(attrs={'type': 'date'}),
+            'last_maintenance_date': DateISO(attrs={'type': 'date'}),
+            'next_maintenance_date': DateISO(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 3}),
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
@@ -48,9 +50,9 @@ class AudioEventForm(forms.ModelForm):
             'description', 'technical_notes', 'notes',
         ]
         widgets = {
-            'event_date': forms.DateInput(attrs={'type': 'date'}),
-            'setup_date': forms.DateInput(attrs={'type': 'date'}),
-            'teardown_date': forms.DateInput(attrs={'type': 'date'}),
+            'event_date': DateISO(attrs={'type': 'date'}),
+            'setup_date': DateISO(attrs={'type': 'date'}),
+            'teardown_date': DateISO(attrs={'type': 'date'}),
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
             'end_time': forms.TimeInput(attrs={'type': 'time'}),
             'venue_address': forms.Textarea(attrs={'rows': 2}),
@@ -82,8 +84,8 @@ class ReservationForm(forms.ModelForm):
             'daily_rate', 'total_amount', 'deposit_amount', 'notes',
         ]
         widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': DateISO(attrs={'type': 'date'}),
+            'end_date': DateISO(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
 

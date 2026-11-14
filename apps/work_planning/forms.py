@@ -6,6 +6,8 @@ from .models import (
 )
 
 
+from apps.core.form_widgets import DateISO
+
 class EmployeeProfileForm(forms.ModelForm):
     class Meta:
         model = EmployeeProfile
@@ -129,8 +131,8 @@ class WorkMissionForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'start_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.5'}),
             'color_code': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
         }
@@ -157,7 +159,7 @@ class WorkTaskForm(forms.ModelForm):
             'estimated_minutes': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '15', 'placeholder': '60'}),
             'customer_request': forms.Select(attrs={'class': 'form-select'}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
-            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'due_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
     def __init__(self, *args, company=None, **kwargs):
@@ -194,7 +196,7 @@ class CustomerRequestForm(forms.ModelForm):
             'source': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'urgency': forms.Select(attrs={'class': 'form-select'}),
-            'requested_deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'requested_deadline': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'estimated_minutes': forms.NumberInput(attrs={'class': 'form-control', 'min': '5', 'step': '5'}),
             'required_skill': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'support, ecommerce, logistique...'}),
             'assigned_employee': forms.Select(attrs={'class': 'form-select'}),
@@ -233,7 +235,7 @@ class DedicatedTimeBlockForm(forms.ModelForm):
             'employee': forms.Select(attrs={'class': 'form-select'}),
             'mission': forms.Select(attrs={'class': 'form-select'}),
             'task': forms.Select(attrs={'class': 'form-select'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '0.5', 'max': '24', 'step': '0.5'}),
             'note': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }

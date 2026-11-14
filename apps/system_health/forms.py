@@ -8,6 +8,8 @@ from .models import (
 )
 
 
+from apps.core.form_widgets import DateISO
+
 class SystemErrorForm(forms.ModelForm):
     class Meta:
         model = SystemError
@@ -102,9 +104,9 @@ class RiskRegisterForm(forms.ModelForm):
             'impact_justification':      forms.Textarea(attrs={'rows': 2}),
             'existing_measures':         forms.Textarea(attrs={'rows': 3}),
             'corrective_actions':        forms.Textarea(attrs={'rows': 3}),
-            'detected_at':               forms.DateInput(attrs={'type': 'date'}),
-            'target_date':               forms.DateInput(attrs={'type': 'date'}),
-            'last_review':               forms.DateInput(attrs={'type': 'date'}),
+            'detected_at':               DateISO(attrs={'type': 'date'}),
+            'target_date':               DateISO(attrs={'type': 'date'}),
+            'last_review':               DateISO(attrs={'type': 'date'}),
         }
 
 

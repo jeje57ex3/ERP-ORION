@@ -2,6 +2,8 @@ from django import forms
 from .models import Supplier, PurchaseOrder, SupplierInvoice
 
 
+from apps.core.form_widgets import DateISO
+
 class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier
@@ -38,7 +40,7 @@ class PurchaseOrderForm(forms.ModelForm):
         widgets = {
             'supplier': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'expected_delivery': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'expected_delivery': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
 
@@ -55,8 +57,8 @@ class SupplierInvoiceForm(forms.ModelForm):
             'purchase_order': forms.Select(attrs={'class': 'form-select'}),
             'supplier_ref': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'issue_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'issue_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'due_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'total_ht': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'total_tva': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'total_ttc': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
