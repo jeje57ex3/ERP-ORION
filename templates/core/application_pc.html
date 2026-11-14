@@ -48,7 +48,10 @@
             <label class="form-label">{% trans "Fichier d’installation" %}</label>
             <input type="file" name="fichier" class="form-control">
             <div class="form-text">
-              {% trans "Pour un fichier de moins de 100 Mo. Au-delà, le tunnel Cloudflare refuse l’envoi — utilisez le lien ci-dessous." %}
+              {% trans "Django accepte un fichier de n’importe quelle taille ici : la limite de 20 Mo des réglages ne compte que les champs texte, pas les fichiers." %}
+              <br>
+              <strong>{% trans "C’est le tunnel Cloudflare qui bloque à 100 Mo." %}</strong>
+              {% trans "Pour un installeur plus lourd, deux solutions : ouvrir cet écran par l’adresse locale du serveur (hors tunnel), ou coller le lien ci-dessous." %}
             </div>
           </div>
 
