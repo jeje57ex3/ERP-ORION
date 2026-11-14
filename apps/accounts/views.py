@@ -114,14 +114,9 @@ def profile(request):
             messages.success(request, 'Profil mis à jour avec succès.')
             return redirect('accounts:profile')
 
-    # Rend None tant qu'aucune version n'est deposee : le bouton ne
-    # s'affiche alors pas du tout, plutot que de pointer vers le vide.
-    from apps.core.models import VersionApplicationBureau
-
     return render(request, 'accounts/profile.html', {
         'user_form': user_form,
         'profile_form': profile_form,
-        'application_pc': VersionApplicationBureau.courante(),
         'page_title': 'Mon profil',
     })
 

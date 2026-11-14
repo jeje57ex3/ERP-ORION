@@ -353,6 +353,61 @@
 
 </div>
 
+{% comment %}
+  VERSION PC. Le bouton vivait sur la fiche de profil, ou personne ne va
+  chercher une application a installer. Il est ici, sur l'ecran que tout le
+  monde ouvre en arrivant.
+
+  La carte ne s'affiche que si une version est publiee : un bouton qui ne
+  mene nulle part est pire que pas de bouton. Un super-administrateur voit
+  a la place le lien pour en deposer une, les autres ne voient rien --
+  inutile de montrer a un salarie une absence qu'il ne peut pas corriger.
+{% endcomment %}
+{% if application_pc or request.user.is_superuser %}
+<div class="card erp-card mb-4">
+  <div class="orion-orion-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-pc-display me-2"></i>{% trans "Version PC" %}
+    </h5>
+    {% if application_pc and request.user.is_superuser %}
+    <a href="{% url 'core_application_pc:publier' %}" class="btn btn-xs btn-outline-secondary">
+      <i class="bi bi-upload me-1"></i>{% trans "Gérer les versions" %}
+    </a>
+    {% endif %}
+  </div>
+  <div class="orion-orion-card-body">
+    {% if application_pc %}
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <div class="fw-semibold">
+          {% blocktrans with v=application_pc.version %}Orion ERP pour Windows — version {{ v }}{% endblocktrans %}
+        </div>
+        <div class="small text-muted">
+          {% trans "Installez l’application sur votre poste pour retrouver Orion sans passer par le navigateur." %}
+          {% if application_pc.taille_lisible %} · {{ application_pc.taille_lisible }}{% endif %}
+        </div>
+        {% if application_pc.notes %}
+        <div class="small mt-2">{{ application_pc.notes|linebreaksbr }}</div>
+        {% endif %}
+      </div>
+      <a href="{% url 'core_application_pc:telecharger' %}" class="orion-btn primary text-nowrap">
+        <i class="bi bi-download me-1"></i>{% trans "Télécharger l’application PC" %}
+      </a>
+    </div>
+    {% else %}
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="small text-muted">
+        {% trans "Aucune version de l’application PC n’est publiée pour le moment." %}
+      </div>
+      <a href="{% url 'core_application_pc:publier' %}" class="orion-btn orion-btn-outline text-nowrap">
+        <i class="bi bi-upload me-1"></i>{% trans "Publier une version" %}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <!-- Activité récente -->
 {% if recent_activity %}
 <div class="card erp-card">

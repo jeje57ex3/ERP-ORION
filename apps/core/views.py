@@ -29,6 +29,12 @@ def dashboard(request):
         audit_qs = audit_qs.filter(company=company)
     ctx['recent_activity'] = audit_qs.order_by('-created_at')[:10]
 
+    # La version PC proposee au telechargement. Rend None tant qu'aucune
+    # n'est publiee : la carte ne s'affiche alors pas du tout, plutot que
+    # de montrer un bouton qui ne mene nulle part.
+    from apps.core.models import VersionApplicationBureau
+    ctx['application_pc'] = VersionApplicationBureau.courante()
+
     return render(request, 'core/dashboard.html', ctx)
 
 
