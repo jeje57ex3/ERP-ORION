@@ -66,3 +66,20 @@ node_modules/
 # d'URL deja visitees, propres a chaque machine et reconstructibles. Les
 # versionner ferait des conflits a chaque execution.
 var/
+
+# ── Application PC (desktop/) ────────────────────────────────────────────────
+#
+# Les SOURCES sont versionnees ; les produits de construction ne le sont
+# jamais. Le build fait 673 Mo (dont 639 Mo de PySide6) et l'installeur
+# 169 Mo : les commiter les inscrirait dans l'historique POUR TOUJOURS,
+# tires a chaque clone et a chaque mise a jour. Ce n'est pas une question
+# de place, c'est irreversible.
+#
+# L'installeur se publie par un lien externe, depuis
+# /orion-admin/application-pc/ (voir apps/core/models.VersionApplicationBureau).
+desktop/*/dist/
+desktop/*/build/
+desktop/*/output/
+desktop/*/.venv/
+*.exe
+*.msi
