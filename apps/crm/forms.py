@@ -10,7 +10,7 @@ class CustomerForm(forms.ModelForm):
             'customer_type', 'code', 'name', 'contact_name',
             'email', 'phone', 'mobile',
             'address', 'city', 'zip_code', 'country',
-            'siret', 'vat_number', 'website',
+            'siret', 'vat_number', 'nif', 'website',
             'payment_terms', 'credit_limit', 'discount_rate',
             'salesperson', 'notes', 'is_active',
         ]
@@ -28,6 +28,7 @@ class CustomerForm(forms.ModelForm):
             'country': forms.TextInput(attrs={'class': 'form-control'}),
             'siret': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 14}),
             'vat_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'nif': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Numéro d’identification fiscale'}),
             'website': forms.URLInput(attrs={'class': 'form-control'}),
             'payment_terms': forms.NumberInput(attrs={'class': 'form-control'}),
             'credit_limit': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),

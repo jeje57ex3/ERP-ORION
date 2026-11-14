@@ -94,6 +94,7 @@
       <div class="info-grid">
         <div class="info-item"><label>{% trans "SIRET" %}</label><div class="value">{{ customer.siret|default:"—" }}</div></div>
         <div class="info-item"><label>{% trans "N° TVA" %}</label><div class="value">{{ customer.vat_number|default:"—" }}</div></div>
+        <div class="info-item"><label>{% trans "NIF" %}</label><div class="value">{{ customer.nif|default:"—" }}</div></div>
         <div class="info-item"><label>{% trans "Délai paiement" %}</label><div class="value">{{ customer.payment_terms }} {% trans "jours" %}</div></div>
         <div class="info-item"><label>{% trans "Remise" %}</label><div class="value">{{ customer.discount_rate }} %</div></div>
         {% if customer.credit_limit %}<div class="info-item"><label>{% trans "Limite crédit" %}</label><div class="value">{{ customer.credit_limit|floatformat:2 }} €</div></div>{% endif %}

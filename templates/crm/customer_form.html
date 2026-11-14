@@ -108,6 +108,12 @@
               <label class="form-label">{% trans "N° TVA intracommunautaire" %}</label>
               {{ form.vat_number }}
             </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "NIF" %}</label>
+              {{ form.nif }}
+              {% if form.nif.errors %}<div class="invalid-feedback d-block">{{ form.nif.errors.as_text }}</div>{% endif %}
+              <div class="form-text">{% trans "Numéro d’identification fiscale. Reportable sur les devis." %}</div>
+            </div>
           </div>
         </div>
       </div>
