@@ -14,12 +14,36 @@ def generate_verification_token(domain: str) -> str:
 
 
 def normalize_domain(domain: str) -> str:
-    """Normalise un nom de domaine (minuscules, sans http/www en tête optionnel)."""
+    """Normalise un nom de domaine : minuscules, sans schéma, sans www, SANS PORT.
+
+    LE PORT ÉTAIT CONSERVÉ, ET C'EST UN DÉFAUT MESURÉ.
+
+    Cette fonction sert aussi à résoudre le site depuis l'en-tête « Host »
+    de la requête (`get_website_by_host`). Or cet en-tête porte le port dès
+    qu'il n'est pas celui par défaut : « s-peace.com:443 », ou
+    « 192.168.1.50:9000 » pour un accès direct depuis le réseau local.
+
+    Le nom était alors cherché tel quel, port compris, ne correspondait à
+    aucun WebsiteDomain, et le site n'était pas résolu — donc pas servi. Le
+    même domaine fonctionnait derrière le tunnel et échouait en accès
+    direct, ce qui ressemble à une panne intermittente.
+
+    Le port est aussi retiré à la SAISIE : « exemple.fr:8000 » collé dans
+    l'écran des domaines désignait un domaine qui n'existe pas.
+    """
     domain = domain.strip().lower()
     for prefix in ('https://', 'http://', 'www.'):
         if domain.startswith(prefix):
             domain = domain[len(prefix):]
-    return domain.rstrip('/')
+    domain = domain.rstrip('/')
+
+    # On coupe au premier « : ». Une adresse IPv6 entre crochets
+    # (« [::1]:9000 ») n'est pas un nom de domaine valide ici : aucun
+    # WebsiteDomain ne peut en porter, et la couper ne retire donc rien.
+    if ':' in domain:
+        domain = domain.split(':', 1)[0]
+
+    return domain.rstrip('.')
 
 
 def validate_domain_format(domain: str) -> tuple[bool, str]:
