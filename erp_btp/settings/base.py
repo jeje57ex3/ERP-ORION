@@ -211,6 +211,11 @@ ORION_SLOW_REQUEST_MS = config('ORION_SLOW_REQUEST_MS', default=800, cast=int)
 ORION_PERF_SAMPLE_RATE = config('ORION_PERF_SAMPLE_RATE', default=20, cast=int)
 
 MIDDLEWARE = [
+    # EN PREMIER, et c'est indispensable : Django refuse un hote inconnu
+    # (400 DisallowedHost) des le premier appel a get_host(). Ce middleware
+    # doit donc avoir autorise le domaine AVANT que quoi que ce soit ne
+    # l'interroge.
+    'apps.websites.domaine_vitrine_middleware.HotesDesSitesMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # EN HAUT DE LA PILE, et c'est le point : place plus bas, il ne
     # mesurerait que ce qui reste apres les middlewares qui le precedent, et
@@ -253,6 +258,11 @@ MIDDLEWARE = [
     'apps.core.middleware.AuditLogMiddleware',
     'apps.translations.middleware.OrionLanguageMiddleware',
     'apps.websites.middleware.WebsiteResolverMiddleware',
+    # APRES le resolveur, qui pose « request.website » : celui-ci s'en sert
+    # pour reecrire « / » vers la vitrine du site attache au nom d'hote.
+    # Sans lui, un domaine branche sur un site arrivait sur la racine de
+    # l'ERP — l'ecran de connexion — et non sur le site.
+    'apps.websites.domaine_vitrine_middleware.VitrineParDomaineMiddleware',
     'apps.high_availability.middleware.HAActiveNodeWriteProtectionMiddleware',
     'apps.core.middleware.NoCacheMiddleware',
 ]
