@@ -1,0 +1,115 @@
+"""apps/core/application_pc_views.py — Publier et télécharger l'application PC.
+
+DEUX ÉCRANS, DEUX PUBLICS
+
+Un exploitant dépose l'installeur Windows depuis `/orion-admin/application-pc/`.
+Tout utilisateur connecté le télécharge depuis son profil. L'installeur est
+produit sur un poste Windows (voir `desktop/orion_desktop_app/installer/`) et
+n'a pas sa place dans le dépôt : un binaire de plusieurs dizaines de
+méga-octets, qui changerait à chaque version.
+
+POURQUOI LE TÉLÉCHARGEMENT PASSE PAR UNE VUE
+
+Le fichier pourrait être servi directement depuis `media/`. Mais `media/` est
+public sur cette installation : l'adresse de l'installeur circulerait alors
+hors de l'ERP, et n'importe qui la connaissant pourrait l'aspirer. Une vue
+sous `@login_required` restreint le téléchargement aux comptes de la maison,
+et c'est le minimum pour un exécutable signé du nom de l'entreprise.
+"""
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404
+from django.shortcuts import redirect, render
+
+from apps.core.models import VersionApplicationBureau
+from apps.orion_ai.permissions import user_is_super_admin
+
+
+@login_required
+def publier_application(request):
+    """Dépôt d'une version, réservé au super-administrateur."""
+    if not user_is_super_admin(request.user):
+        messages.error(
+            request, "Seul un super-administrateur peut publier l’application.")
+        return redirect('accounts:profile')
+
+    if request.method == 'POST':
+        version = (request.POST.get('version') or '').strip()
+        fichier = request.FILES.get('fichier')
+        notes = (request.POST.get('notes') or '').strip()
+
+        # On refuse EXPLICITEMENT, avec le motif. Un formulaire qui se
+        # recharge sans rien dire est lu comme une panne — c'est arrivé
+        # ailleurs dans cet ERP, plusieurs fois.
+        if not version:
+            messages.error(request, 'Indiquez le numéro de version.')
+        elif not fichier:
+            messages.error(
+                request, 'Choisissez le fichier d’installation. '
+                         'Sans « enctype="multipart/form-data" » sur le '
+                         'formulaire, le navigateur ne l’envoie pas.')
+        else:
+            VersionApplicationBureau.objects.create(
+                version=version, fichier=fichier, notes=notes,
+                deposee_par=request.user,
+            )
+            messages.success(
+                request, f'Version {version} publiée. Le bouton de '
+                         'téléchargement est actif pour tous les utilisateurs.')
+            return redirect('core_application_pc:publier')
+
+    return render(request, 'core/application_pc.html', {
+        'page_title': 'Application PC',
+        'versions': VersionApplicationBureau.objects.all()[:20],
+        'courante': VersionApplicationBureau.courante(),
+    })
+
+
+@login_required
+def basculer_publication(request, pk):
+    """Retire une version du bouton, ou l'y remet."""
+    if not user_is_super_admin(request.user):
+        messages.error(request, "Action réservée aux super-administrateurs.")
+        return redirect('accounts:profile')
+
+    if request.method != 'POST':
+        raise Http404
+
+    try:
+        version = VersionApplicationBureau.objects.get(pk=pk)
+    except VersionApplicationBureau.DoesNotExist:
+        raise Http404('Version inconnue.')
+
+    version.est_publiee = not version.est_publiee
+    version.save(update_fields=['est_publiee'])
+    messages.success(
+        request,
+        f'Version {version.version} '
+        + ('publiée.' if version.est_publiee else 'retirée du téléchargement.'))
+    return redirect('core_application_pc:publier')
+
+
+@login_required
+def telecharger_application(request):
+    """Sert l'installeur de la version courante.
+
+    404 plutôt qu'une page d'erreur quand rien n'est publié : le bouton ne
+    s'affiche que s'il existe une version, et une adresse tapée à la main ne
+    doit pas produire un rapport d'incident.
+    """
+    version = VersionApplicationBureau.courante()
+    if version is None or not version.fichier:
+        raise Http404('Aucune version publiée.')
+
+    try:
+        flux = version.fichier.open('rb')
+    except (OSError, ValueError):
+        # Le fichier est reference en base mais absent du disque. On le dit,
+        # plutot que de renvoyer un telechargement de zero octet que
+        # l'utilisateur essaierait d'installer.
+        raise Http404(
+            'Le fichier de cette version est introuvable sur le serveur.')
+
+    nom = version.fichier.name.rsplit('/', 1)[-1] or 'OrionERP-Setup.exe'
+    return FileResponse(flux, as_attachment=True, filename=nom)

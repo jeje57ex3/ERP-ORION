@@ -114,10 +114,65 @@ def profile(request):
             messages.success(request, 'Profil mis à jour avec succès.')
             return redirect('accounts:profile')
 
+    # Rend None tant qu'aucune version n'est deposee : le bouton ne
+    # s'affiche alors pas du tout, plutot que de pointer vers le vide.
+    from apps.core.models import VersionApplicationBureau
+
     return render(request, 'accounts/profile.html', {
         'user_form': user_form,
         'profile_form': profile_form,
+        'application_pc': VersionApplicationBureau.courante(),
         'page_title': 'Mon profil',
+    })
+
+
+@login_required
+def changer_mot_de_passe(request):
+    """Son propre mot de passe, par soi-même.
+
+    CE QUI N'EXISTAIT PAS
+
+    Aucune route ne permettait de changer son mot de passe. Seul un
+    administrateur pouvait le réinitialiser pour quelqu'un d'autre
+    (`user_reset_password`), ce qui oblige à le lui communiquer — donc à le
+    faire transiter par un canal que personne ne maîtrise.
+
+    `PasswordChangeForm` était d'ailleurs déjà importé dans forms.py, sans
+    être employé nulle part.
+
+    LE PIÈGE : CHANGER SON MOT DE PASSE DÉCONNECTE
+
+    La session porte une empreinte du mot de passe. Dès qu'il change,
+    l'empreinte ne correspond plus et Django ferme la session à la requête
+    SUIVANTE. Sans `update_session_auth_hash`, l'utilisateur serait donc
+    renvoyé à l'écran de connexion juste après avoir réussi son changement —
+    et lirait cela comme un échec, voire comme un mot de passe qui n'aurait
+    pas été pris en compte.
+
+    L'ancien mot de passe est EXIGÉ (c'est le propre de PasswordChangeForm) :
+    sans lui, un poste laissé déverrouillé suffirait à s'approprier un
+    compte.
+    """
+    from django.contrib.auth import update_session_auth_hash
+    from django.contrib.auth.forms import PasswordChangeForm
+
+    form = PasswordChangeForm(request.user, request.POST or None)
+    # Les widgets de Django ne portent aucune classe : sans cela les champs
+    # s'afficheraient nus au milieu d'un formulaire stylé.
+    for champ in form.fields.values():
+        champ.widget.attrs.setdefault('class', 'form-control')
+
+    if request.method == 'POST' and form.is_valid():
+        utilisateur = form.save()
+        # L'ordre compte : on rafraîchit l'empreinte APRÈS l'enregistrement.
+        update_session_auth_hash(request, utilisateur)
+        messages.success(
+            request, 'Votre mot de passe a été modifié. Vous restez connecté.')
+        return redirect('accounts:profile')
+
+    return render(request, 'accounts/password_change.html', {
+        'form': form,
+        'page_title': 'Changer mon mot de passe',
     })
 
 

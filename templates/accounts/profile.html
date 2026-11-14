@@ -157,5 +157,67 @@
     </div>
   </div>
 
+  {% comment %}
+    DEUX CHOSES QUI MANQUAIENT A CETTE PAGE.
+
+    1. Changer son mot de passe. Aucune route ne le permettait : seul un
+       administrateur pouvait le reinitialiser pour quelqu'un d'autre, ce
+       qui oblige a le lui transmettre -- donc a le faire passer par un
+       canal que personne ne maitrise.
+
+    2. Telecharger l'application PC. L'installeur existe (voir
+       desktop/orion_desktop_app) mais aucun ecran ne le proposait.
+  {% endcomment %}
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-shield-lock me-1 text-primary"></i>{% trans "Sécurité" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body">
+        <p class="small text-muted mb-3">
+          {% trans "Votre mot de passe vous est personnel : personne d’autre, pas même un administrateur, n’a besoin de le connaître." %}
+        </p>
+        <a href="{% url 'accounts:changer_mot_de_passe' %}" class="orion-btn orion-btn-outline">
+          <i class="bi bi-key me-1"></i>{% trans "Changer mon mot de passe" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="orion-card">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-pc-display me-1 text-primary"></i>{% trans "Application PC" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body">
+
+        {% if application_pc %}
+        <p class="small text-muted mb-2">
+          {% blocktrans with v=application_pc.version %}Orion ERP pour Windows — version {{ v }}{% endblocktrans %}
+          {% if application_pc.taille_lisible %} · {{ application_pc.taille_lisible }}{% endif %}
+        </p>
+        {% if application_pc.notes %}
+        <p class="small mb-3">{{ application_pc.notes|linebreaksbr }}</p>
+        {% endif %}
+        <a href="{% url 'core_application_pc:telecharger' %}" class="orion-btn primary">
+          <i class="bi bi-download me-1"></i>{% trans "Télécharger l’application PC" %}
+        </a>
+        {% else %}
+        <p class="small text-muted mb-0">
+          {% trans "Aucune version n’est publiée pour le moment." %}
+          {% if request.user.is_superuser %}
+          <a href="{% url 'core_application_pc:publier' %}">{% trans "En publier une" %}</a>.
+          {% endif %}
+        </p>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

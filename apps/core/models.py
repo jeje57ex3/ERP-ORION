@@ -760,3 +760,88 @@ class ReglagesMail(models.Model):
     @property
     def use_ssl(self):
         return self.chiffrement == 'ssl'
+
+
+class VersionApplicationBureau(models.Model):
+    """Une version publiée de l'application PC d'Orion ERP.
+
+    POURQUOI UN MODÈLE PLUTÔT QU'UN LIEN EN DUR
+
+    L'installeur est produit sur un poste Windows (voir
+    `desktop/orion_desktop_app/installer/*.iss`) et n'a pas sa place dans le
+    dépôt : c'est un binaire de plusieurs dizaines de méga-octets, qui
+    changerait à chaque version. Écrire son adresse en dur dans un gabarit
+    obligerait à livrer une mise à jour du code pour publier une version de
+    l'application — autrement dit, à passer par un développeur.
+
+    L'exploitant dépose donc le fichier depuis l'interface, et le bouton de
+    téléchargement apparaît de lui-même.
+
+    POURQUOI PLUSIEURS LIGNES ET NON UN RÉGLAGE UNIQUE
+
+    Garder l'historique permet de republier la version précédente quand la
+    dernière pose problème — sans quoi il faudrait retrouver l'ancien
+    fichier ailleurs, au pire moment.
+    """
+
+    version = models.CharField(
+        'Version', max_length=40,
+        help_text='Par exemple « 1.4.2 ». Affichée à côté du bouton.')
+
+    fichier = models.FileField(
+        'Fichier d’installation', upload_to='application-bureau/',
+        help_text='L’installeur Windows (.exe) produit par Inno Setup.')
+
+    notes = models.TextField(
+        'Nouveautés', blank=True,
+        help_text='Ce que cette version apporte. Affiché aux utilisateurs.')
+
+    # « blank=True » n'a pas de sens sur une case à cocher : une case non
+    # cochée vaut False, elle n'est jamais « vide ». C'est « default » qui
+    # compte ici.
+    est_publiee = models.BooleanField(
+        'Publiée', default=True,
+        help_text='Décochez pour retirer cette version du bouton de '
+                  'téléchargement sans la supprimer.')
+
+    deposee_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='versions_application_deposees')
+    deposee_le = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Version de l’application PC'
+        verbose_name_plural = 'Versions de l’application PC'
+        ordering = ['-deposee_le']
+
+    def __str__(self):
+        return f'Orion ERP {self.version}'
+
+    @property
+    def taille_lisible(self):
+        """La taille du fichier, ou une chaîne vide s'il a disparu.
+
+        Un fichier référencé en base mais absent du disque (restauration
+        partielle, media/ non sauvegardé) ferait lever `FileNotFoundError`
+        au rendu de la page. Un écran qui tombe pour afficher une taille
+        serait un mauvais échange.
+        """
+        try:
+            octets = self.fichier.size
+        except (OSError, ValueError):
+            return ''
+        for unite in ('o', 'Ko', 'Mo', 'Go'):
+            if octets < 1024 or unite == 'Go':
+                return f'{octets:.0f} {unite}' if unite == 'o' else f'{octets:.1f} {unite}'
+            octets /= 1024
+        return ''
+
+    @classmethod
+    def courante(cls):
+        """La version à proposer au téléchargement, ou None.
+
+        Rend None plutôt que de lever : tant qu'aucune version n'est
+        déposée, le bouton ne doit pas s'afficher — pas faire tomber la
+        page qui le porte.
+        """
+        return cls.objects.filter(est_publiee=True).first()
