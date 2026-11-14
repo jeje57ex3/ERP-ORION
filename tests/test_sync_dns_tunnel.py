@@ -280,3 +280,113 @@ def test_sans_compte_cloudflare_le_message_est_clair(regle):
 
     assert ok is False
     assert 'compte Cloudflare' in message
+
+
+# ── 4. Remplacer l'enregistrement qui bloque ─────────────────────────────────
+
+"""LE CAS REELLEMENT RENCONTRE
+
+    Cloudflare API : An A, AAAA, or CNAME record with that host already
+    exists.
+
+Un enregistrement existait deja sur « s-peace.com ». Savoir pourquoi ne
+suffit pas : il faut pouvoir le regler depuis l'interface. Un second bouton
+« Remplacer » supprime l'enregistrement bloquant puis pose le CNAME.
+
+Il est SEPARE du premier, et c'est tout le propos : cet enregistrement peut
+servir a autre chose que ce tunnel.
+"""
+
+
+def _get_avec_A(url, **k):
+    if url.endswith('/zones'):
+        return FausseReponse(_zones('exemple.fr'))
+    return FausseReponse({'success': True, 'result': [
+        {'id': 'r1', 'type': 'A', 'content': '203.0.113.7'},
+        {'id': 'r2', 'type': 'AAAA', 'content': '2001:db8::1'},
+    ]})
+
+
+@pytest.mark.django_db
+def test_sans_demande_explicite_rien_n_est_supprime(regle, monkeypatch):
+    """LA GARANTIE LA PLUS IMPORTANTE DE CETTE SECTION."""
+    suppressions = []
+    monkeypatch.setattr(requests, 'get', _get_avec_A)
+    monkeypatch.setattr(requests, 'delete',
+                        lambda *a, **k: suppressions.append(a) or FausseReponse({'success': True}))
+
+    ok, message = tunnel_service.sync_tunnel_dns(regle)
+
+    assert ok is False
+    assert suppressions == [], 'un enregistrement a ete supprime sans demande'
+    assert 'Remplacer' in message
+
+
+@pytest.mark.django_db
+def test_remplacer_supprime_tous_les_enregistrements_bloquants(regle, monkeypatch):
+    """TOUS, pas seulement le premier : un nom peut porter un A ET un AAAA,
+    et en laisser un suffirait a faire echouer la creation du CNAME."""
+    supprimes = []
+
+    def delete(url, **k):
+        supprimes.append(url.rsplit('/', 1)[-1])
+        return FausseReponse({'success': True})
+
+    monkeypatch.setattr(requests, 'get', _get_avec_A)
+    monkeypatch.setattr(requests, 'delete', delete)
+    monkeypatch.setattr(requests, 'post',
+                        lambda *a, **k: FausseReponse({'success': True}))
+
+    ok, message = tunnel_service.sync_tunnel_dns(regle, remplacer=True)
+
+    assert ok is True, message
+    assert sorted(supprimes) == ['r1', 'r2']
+    assert '203.0.113.7' in message, 'le message doit dire ce qui a ete supprime'
+
+
+@pytest.mark.django_db
+def test_un_refus_de_suppression_est_rapporte(regle, monkeypatch):
+    """Si Cloudflare refuse la suppression, on ne doit pas enchainer sur la
+    creation du CNAME : elle echouerait avec le meme message qu'avant, et
+    l'on tournerait en rond."""
+    monkeypatch.setattr(requests, 'get', _get_avec_A)
+    monkeypatch.setattr(
+        requests, 'delete',
+        lambda *a, **k: FausseReponse(
+            {'success': False,
+             'errors': [{'message': 'Record is locked'}]}))
+
+    ok, message = tunnel_service.sync_tunnel_dns(regle, remplacer=True)
+
+    assert ok is False
+    assert 'Record is locked' in message
+
+
+@pytest.mark.django_db
+def test_remplacer_sans_rien_a_supprimer_fonctionne(regle, monkeypatch):
+    """Cliquer « Remplacer » alors qu'aucun enregistrement ne bloque doit
+    simplement creer le CNAME, pas echouer."""
+    def get(url, **k):
+        if url.endswith('/zones'):
+            return FausseReponse(_zones('exemple.fr'))
+        return FausseReponse({'success': True, 'result': []})
+
+    monkeypatch.setattr(requests, 'get', get)
+    monkeypatch.setattr(requests, 'post',
+                        lambda *a, **k: FausseReponse({'success': True}))
+
+    ok, message = tunnel_service.sync_tunnel_dns(regle, remplacer=True)
+
+    assert ok is True, message
+
+
+def test_l_ecran_propose_les_deux_boutons_separement():
+    """Le remplacement ne doit pas pouvoir se declencher par megarde : deux
+    formulaires distincts, et une confirmation sur le second."""
+    from pathlib import Path
+
+    gabarit = Path('templates/websites/tunnel/tunnel_detail.html').read_text(
+        encoding='utf-8')
+
+    assert 'name="remplacer" value="1"' in gabarit
+    assert 'onclick="return confirm(' in gabarit

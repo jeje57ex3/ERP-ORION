@@ -156,6 +156,25 @@
                       <i class="bi bi-cloud-upload me-1"></i>{% trans "Sync DNS" %}
                     </button>
                   </form>
+                  {% comment %}
+                    « Cloudflare interdit un A et un CNAME sur le meme nom.
+                    Ce second bouton supprime l'enregistrement qui bloque,
+                    puis pose le CNAME. Il est SEPARE du premier et porte
+                    une confirmation : cet enregistrement A peut servir a
+                    autre chose que ce tunnel, et l'effacer d'office
+                    reglerait un symptome en creant une panne ailleurs.
+                  {% endcomment %}
+                  <form method="post" action="{% url 'websites:ingress_sync_dns' tunnel.pk rule.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="remplacer" value="1">
+                    <button type="submit" class="orion-btn orion-btn-outline sm" style="font-size:.7rem;padding:2px 8px"
+                            title="{% trans 'Supprime l’enregistrement A/AAAA existant puis pose le CNAME' %}"
+                            onclick="return confirm('{% trans "Supprimer l’enregistrement DNS existant de ce nom d’hôte, puis le remplacer par le CNAME du tunnel ?
+
+Si cet enregistrement sert à autre chose, ce service cessera de répondre." %}')">
+                      <i class="bi bi-arrow-repeat me-1"></i>{% trans "Remplacer" %}
+                    </button>
+                  </form>
                   {% endif %}
                 </td>
                 <td class="py-2">

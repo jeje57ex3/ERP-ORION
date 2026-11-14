@@ -610,7 +610,7 @@ def _trouver_la_zone(api_token: str, hostname: str):
 
 
 
-def sync_tunnel_dns(rule: "TunnelIngressRule") -> tuple[bool, str]:
+def sync_tunnel_dns(rule: "TunnelIngressRule", remplacer: bool = False) -> tuple[bool, str]:
     """
     Crée ou met à jour l'enregistrement DNS CNAME pour cette règle d'ingress
     chez Cloudflare (hostname → <tunnel_id>.cfargotunnel.com).
@@ -670,13 +670,45 @@ def sync_tunnel_dns(rule: "TunnelIngressRule") -> tuple[bool, str]:
     bloquant = next(
         (e for e in existants if e.get('type') in ('A', 'AAAA')), None)
 
-    if bloquant is not None:
+    if bloquant is not None and not remplacer:
+        # ON NE SUPPRIME RIEN SANS QU'ON L'AIT DEMANDE.
+        #
+        # Cet enregistrement A peut servir a autre chose que ce tunnel : un
+        # serveur de courriel, un hote historique, un service qu'on a
+        # oublie. L'effacer d'office reglerait ce symptome-ci en en creant
+        # un autre, ailleurs, sans trace. On nomme donc ce qui bloque, et
+        # on laisse decider.
         return False, (
             f"Un enregistrement {bloquant.get('type')} existe deja pour "
             f"« {hostname} » (il pointe vers {bloquant.get('content')}). "
             "Un tunnel exige un CNAME, et Cloudflare interdit les deux sur "
-            "le meme nom. Supprimez-le dans le tableau de bord Cloudflare, "
-            "puis relancez la synchronisation.")
+            "le meme nom. Employez « Remplacer » pour le supprimer et poser "
+            "le CNAME a sa place.")
+
+    if remplacer:
+        # Tous les enregistrements A/AAAA du nom, pas seulement le premier :
+        # un nom peut en porter plusieurs, et en laisser un seul suffirait a
+        # faire echouer la creation du CNAME.
+        a_supprimer = [e for e in existants if e.get('type') in ('A', 'AAAA')]
+        for enregistrement in a_supprimer:
+            try:
+                reponse = requests.delete(
+                    f"{list_url}/{enregistrement['id']}",
+                    headers=headers, timeout=10)
+                resultat = reponse.json()
+            except Exception as exc:
+                return False, f"Suppression impossible : {exc}"
+            if not resultat.get('success'):
+                erreurs = resultat.get('errors') or []
+                detail = erreurs[0].get('message') if erreurs else 'erreur inconnue'
+                return False, (
+                    f"Suppression de l’enregistrement {enregistrement.get('type')} "
+                    f"refusee par Cloudflare : {detail}")
+        if a_supprimer:
+            supprimes = ', '.join(
+                f"{e.get('type')} → {e.get('content')}" for e in a_supprimer)
+        else:
+            supprimes = ''
 
     charge = {'type': 'CNAME', 'name': hostname,
               'content': cname_target, 'proxied': True}
@@ -718,5 +750,9 @@ def sync_tunnel_dns(rule: "TunnelIngressRule") -> tuple[bool, str]:
               "l’ingress chez Cloudflare : sans cette route, le nom "
               "repondra « erreur 1033 » malgre un DNS correct.")
 
-    return True, (f"Enregistrement DNS CNAME {action} : {hostname} → "
+    prefixe = ''
+    if remplacer and locals().get('supprimes'):
+        prefixe = f"Enregistrement(s) supprime(s) : {supprimes}. "
+
+    return True, (f"{prefixe}Enregistrement DNS CNAME {action} : {hostname} → "
                   f"{cname_target} (zone {zone.get('name')}).{rappel}")
