@@ -25,6 +25,8 @@ from .models import (
 
 # ─── Écrire un modèle ────────────────────────────────────────────────────────
 
+from apps.core.form_widgets import DateISO
+
 class ProjectTemplateForm(forms.ModelForm):
     class Meta:
         model = ProjectTemplate
@@ -152,9 +154,9 @@ class EtapeDuChantierForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'step_type': forms.Select(attrs={'class': 'form-select'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
-            'planned_date': forms.DateInput(attrs={'class': 'form-control',
+            'planned_date': DateISO(attrs={'class': 'form-control',
                                                    'type': 'date'}),
-            'actual_date': forms.DateInput(attrs={'class': 'form-control',
+            'actual_date': DateISO(attrs={'class': 'form-control',
                                                   'type': 'date'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'progress_percent': forms.NumberInput(attrs={
@@ -254,7 +256,7 @@ class PointsDeLEtapeForm(forms.Form):
 
             elif point.answer_type == 'date':
                 self.fields[cle] = forms.DateField(
-                    widget=forms.DateInput(attrs={'class': 'form-control',
+                    widget=DateISO(attrs={'class': 'form-control',
                                                   'type': 'date'}),
                     **commun)
                 self.initial[cle] = point.answer_date

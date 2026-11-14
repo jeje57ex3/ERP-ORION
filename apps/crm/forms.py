@@ -3,6 +3,8 @@ from django import forms
 from .models import Customer, Prospect, Opportunity, Contact, CRMActivity
 
 
+from apps.core.form_widgets import DateISO
+
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
@@ -57,7 +59,7 @@ class ProspectForm(forms.ModelForm):
             'source': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Site web, salon, recommandation...'}),
             'estimated_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'salesperson': forms.Select(attrs={'class': 'form-select'}),
-            'next_action_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'next_action_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
@@ -78,7 +80,7 @@ class OpportunityForm(forms.ModelForm):
             'stage': forms.Select(attrs={'class': 'form-select'}),
             'probability': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
             'expected_revenue': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'close_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'close_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'salesperson': forms.Select(attrs={'class': 'form-select'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

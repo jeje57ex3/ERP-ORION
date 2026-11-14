@@ -34,6 +34,16 @@
         <div class="orion-orion-orion-card-body">
           <div class="row g-3">
             <div class="col-12">
+              <label class="form-label fw-semibold" for="recherche-article">
+                {% trans "Rechercher un article" %}
+              </label>
+              <input type="search" id="recherche-article" class="form-control"
+                     autocomplete="off"
+                     placeholder="{% trans 'Désignation, référence, catégorie ou fournisseur…' %}">
+              <div class="form-text" id="recherche-compte"></div>
+            </div>
+
+            <div class="col-12">
               <label class="form-label fw-semibold">{{ form.material.label }}</label>
               {{ form.material }}
               <div class="form-text">{{ form.material.help_text }}</div>
@@ -140,4 +150,95 @@
     </form>
   </div>
 </div>
+
+{% comment %}
+  DEUX AIDES A LA SAISIE, ET AUCUNE REQUETE SUPPLEMENTAIRE.
+
+  1. La barre de recherche filtre les options de la liste. Les valeurs sur
+     lesquelles on cherche voyagent deja avec la page, en « data-recherche »
+     pose par SelectArticleCatalogue.
+
+  2. Choisir un article remplit la designation, l'unite, le prix d'achat et
+     la TVA. Le serveur fait deja cette deduction a l'enregistrement
+     (ProjectSupplyForm.clean) ; ici on la montre AVANT de valider, pour
+     qu'on puisse corriger un prix remise avant d'enregistrer plutot que
+     de decouvrir la valeur retenue apres coup.
+
+  LE REMPLISSAGE N'ECRASE JAMAIS UNE SAISIE.
+
+  Si quelqu'un a deja tape un prix, l'article choisi ne le remplace pas :
+  la remise de negoce est le cas courant, pas l'exception. On ne remplit
+  que les champs laisses vides -- exactement la regle du serveur.
+{% endcomment %}
+<script>
+(function () {
+  var liste = document.getElementById('id_material');
+  var recherche = document.getElementById('recherche-article');
+  if (!liste) { return; }
+
+  var champ = function (nom) { return document.getElementById('id_' + nom); };
+  var options = Array.prototype.slice.call(liste.options);
+
+  // ── Remplissage depuis l'article choisi ──────────────────────────────
+  var remplir = function () {
+    var choisie = liste.options[liste.selectedIndex];
+    if (!choisie || !choisie.value) { return; }
+
+    var valeurs = {
+      description: choisie.getAttribute('data-designation'),
+      reference:   choisie.getAttribute('data-reference'),
+      unit:        choisie.getAttribute('data-unite'),
+      unit_price:  choisie.getAttribute('data-prix'),
+      vat_rate:    choisie.getAttribute('data-tva')
+    };
+
+    Object.keys(valeurs).forEach(function (nom) {
+      var cible = champ(nom);
+      // On ne remplit que ce qui est VIDE : une saisie deja faite est un
+      // choix, pas un oubli.
+      if (cible && !cible.value && valeurs[nom]) {
+        cible.value = valeurs[nom];
+      }
+    });
+
+    var fournisseur = champ('supplier');
+    var idFournisseur = choisie.getAttribute('data-fournisseur');
+    if (fournisseur && !fournisseur.value && idFournisseur) {
+      fournisseur.value = idFournisseur;
+    }
+  };
+
+  liste.addEventListener('change', remplir);
+
+  // ── Filtre de la barre de recherche ──────────────────────────────────
+  if (recherche) {
+    var compte = document.getElementById('recherche-compte');
+
+    recherche.addEventListener('input', function () {
+      var terme = recherche.value.trim().toLowerCase();
+      var visibles = 0;
+
+      options.forEach(function (option) {
+        if (!option.value) { return; }   // l'entree vide reste toujours la
+        var cible = option.getAttribute('data-recherche') || option.text.toLowerCase();
+        var garde = !terme || cible.indexOf(terme) !== -1;
+        option.hidden = !garde;
+        option.disabled = !garde;
+        if (garde) { visibles++; }
+      });
+
+      if (compte) {
+        compte.textContent = terme
+          ? visibles + ' article(s) correspondent'
+          : '';
+      }
+
+      // Une option masquee qui reste selectionnee enverrait un article
+      // que l'ecran n'affiche plus. On deselectionne alors.
+      var choisie = liste.options[liste.selectedIndex];
+      if (choisie && choisie.value && choisie.hidden) { liste.value = ''; }
+    });
+  }
+})();
+</script>
 {% endblock %}

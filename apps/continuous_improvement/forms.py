@@ -3,6 +3,8 @@ from django import forms
 from .models import PDCACycle, PDCAPlan, PDCADo, PDCACheck, PDCAAct, PDCAAction, PDCAKPI
 
 
+from apps.core.form_widgets import DateISO
+
 class PDCACycleCreateForm(forms.ModelForm):
     class Meta:
         model = PDCACycle
@@ -20,8 +22,8 @@ class PDCACycleCreateForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'owner': forms.Select(attrs={'class': 'form-select'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'target_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'start_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'target_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'root_cause': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'success_criteria': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'expected_result': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -108,7 +110,7 @@ class PDCAActionForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
-            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'due_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
         }

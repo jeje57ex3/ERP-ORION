@@ -145,9 +145,13 @@ def _deposer(version='1.4.2', publiee=True):
 
 @pytest.mark.django_db
 def test_sans_version_publiee_aucun_bouton(utilisateur):
-    """Un bouton qui pointe vers le vide est pire que pas de bouton."""
+    """Un bouton qui pointe vers le vide est pire que pas de bouton.
+
+    Le bouton vit sur le TABLEAU DE BORD : la fiche de profil n'est pas
+    l'endroit ou l'on va chercher une application a installer.
+    """
     contenu = utilisateur['client'].get(
-        reverse('accounts:profile')).content.decode()
+        reverse('core:dashboard')).content.decode()
 
     assert reverse('core_application_pc:telecharger') not in contenu
 
@@ -157,10 +161,23 @@ def test_une_version_publiee_fait_apparaitre_le_bouton(utilisateur):
     _deposer(version='1.4.2')
 
     contenu = utilisateur['client'].get(
-        reverse('accounts:profile')).content.decode()
+        reverse('core:dashboard')).content.decode()
 
     assert reverse('core_application_pc:telecharger') in contenu
     assert '1.4.2' in contenu
+    assert 'Version PC' in contenu
+
+
+@pytest.mark.django_db
+def test_le_profil_ne_porte_plus_l_application(utilisateur):
+    """Le bouton a DEMENAGE : le laisser aux deux endroits donnerait deux
+    chemins a maintenir pour la meme action."""
+    _deposer()
+
+    contenu = utilisateur['client'].get(
+        reverse('accounts:profile')).content.decode()
+
+    assert reverse('core_application_pc:telecharger') not in contenu
 
 
 @pytest.mark.django_db

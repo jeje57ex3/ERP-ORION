@@ -15,6 +15,8 @@ from .models import (
 )
 
 
+from apps.core.form_widgets import DateISO
+
 class BTPProjectForm(forms.ModelForm):
     """Création et modification d'un chantier.
 
@@ -65,10 +67,10 @@ class BTPProjectForm(forms.ModelForm):
             'zip_code': forms.TextInput(attrs={'class': 'form-control'}),
             'project_manager': forms.Select(attrs={'class': 'form-select'}),
             'site_foreman': forms.TextInput(attrs={'class': 'form-control'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'actual_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'actual_end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'start_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'actual_start_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'actual_end_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'estimated_budget': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'retention_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'market_type': forms.TextInput(attrs={'class': 'form-control'}),
@@ -126,8 +128,8 @@ class BTPQuoteForm(forms.ModelForm):
             'project': forms.Select(attrs={'class': 'form-select'}),
             'customer': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'issue_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'validity_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'issue_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'validity_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'subject': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
@@ -141,8 +143,8 @@ class SituationForm(forms.ModelForm):
             'project': forms.Select(attrs={'class': 'form-select'}),
             'number': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'period_start': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'period_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'period_start': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
+            'period_end': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'cumulative_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'previous_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -172,7 +174,7 @@ class BTPTimesheetForm(forms.ModelForm):
         widgets = {
             'project': forms.Select(attrs={'class': 'form-select'}),
             'employee': forms.Select(attrs={'class': 'form-select'}),
-            'work_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'work_date': DateISO(attrs={'class': 'form-control', 'type': 'date'}),
             'hours': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25'}),
             'overtime_hours': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.25'}),
             'task_description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -319,6 +321,69 @@ class MaterialForm(forms.ModelForm):
         return reference
 
 
+class SelectArticleCatalogue(forms.Select):
+    """Une liste d'articles qui PORTE les valeurs de chaque article.
+
+    POURQUOI LES DONNÉES VOYAGENT AVEC LA PAGE
+
+    Le remplissage automatique pourrait interroger le serveur à chaque
+    choix. Mais ces valeurs sont déjà connues au moment où la page est
+    construite : les redemander ajouterait un aller-retour, donc une
+    latence et un cas d'échec (réseau coupé, session expirée) pour une
+    information qu'on avait déjà sous la main.
+
+    Elles sont donc posées en attributs « data- » sur chaque option. Aucune
+    requête, et le formulaire se remplit instantanément.
+
+    CE QUI N'EST PAS EXPOSÉ
+
+    Le prix de VENTE et la marge restent côté serveur. Seul le prix
+    d'ACHAT part dans la page, parce que c'est lui que le chantier coûte et
+    que la saisie demande. Exposer la marge dans le HTML d'un écran
+    accessible à tout salarié serait un choix, pas un oubli — et ce n'est
+    pas celui qu'on fait.
+    """
+
+    def __init__(self, *args, articles=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # On garde la SOURCE et non une carte deja construite : batie dans
+        # __init__, elle forcait une requete a chaque instanciation du
+        # formulaire, y compris quand aucune option n'est rendue (une
+        # simple validation de POST, par exemple).
+        self._source = articles
+        self._carte_articles = None
+
+    def _carte(self):
+        if self._carte_articles is None:
+            self._carte_articles = {
+                str(article.pk): article for article in (self._source or [])
+            }
+        return self._carte_articles
+
+    def create_option(self, name, value, label, selected, index,
+                      subindex=None, attrs=None):
+        option = super().create_option(
+            name, value, label, selected, index, subindex=subindex, attrs=attrs)
+
+        article = self._carte().get(str(value))
+        if article is not None:
+            option['attrs'].update({
+                'data-designation': article.name or '',
+                'data-reference': article.reference or '',
+                'data-unite': article.unit or 'u',
+                'data-prix': str(article.purchase_price or 0),
+                'data-tva': str(article.vat_rate or 0),
+                'data-fournisseur': str(article.supplier_id or ''),
+                # Sert au filtre de la barre de recherche : on y concatene
+                # tout ce sur quoi il est naturel de chercher.
+                'data-recherche': ' '.join(filter(None, (
+                    article.name, article.reference, article.category,
+                    getattr(article.supplier, 'name', ''),
+                ))).lower(),
+            })
+        return option
+
+
 class ProjectSupplyForm(forms.ModelForm):
     """Un achat réel rattaché à un chantier."""
 
@@ -339,7 +404,7 @@ class ProjectSupplyForm(forms.ModelForm):
             'vat_rate': forms.NumberInput(attrs={'class': 'form-control',
                                                  'step': '0.01'}),
             'supplier': forms.Select(attrs={'class': 'form-select'}),
-            'purchase_date': forms.DateInput(attrs={'class': 'form-control',
+            'purchase_date': DateISO(attrs={'class': 'form-control',
                                                     'type': 'date'}),
             'invoice_reference': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -351,8 +416,23 @@ class ProjectSupplyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.company = company
         from apps.purchases.models import Supplier
-        self.fields['material'].queryset = Material.objects.filter(
-            company=company, is_active=True)
+        articles = (Material.objects
+                    .filter(company=company, is_active=True)
+                    .select_related('supplier')
+                    .order_by('name'))
+        self.fields['material'].queryset = articles
+        # Le widget porte les valeurs de chaque article : la barre de
+        # recherche filtre dessus, et le choix remplit le formulaire sans
+        # aller-retour serveur.
+        self.fields['material'].widget = SelectArticleCatalogue(
+            attrs={'class': 'form-select', 'id': 'id_material'},
+            articles=articles,
+        )
+        # SANS CETTE LIGNE LA LISTE SORT VIDE. Les choix d'un
+        # ModelChoiceField sont poses sur le widget au moment ou la
+        # queryset lui est affectee ; remplacer le widget ensuite les
+        # laisse derriere. Le champ paraissait alors n'avoir aucun article.
+        self.fields['material'].widget.choices = self.fields['material'].choices
         self.fields['material'].required = False
         self.fields['material'].label = 'Article du catalogue'
         self.fields['material'].help_text = (

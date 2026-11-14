@@ -2,6 +2,8 @@ from django import forms
 from .models import BillOfMaterials, ManufacturingOrder, WorkCenter
 
 
+from apps.core.form_widgets import DateISO
+
 class BOMForm(forms.ModelForm):
     class Meta:
         model = BillOfMaterials
@@ -31,8 +33,8 @@ class ManufacturingOrderForm(forms.ModelForm):
         fields = ['product', 'bom', 'quantity_planned', 'status',
                   'planned_start', 'planned_end', 'notes']
         widgets = {
-            'planned_start': forms.DateInput(attrs={'type': 'date'}),
-            'planned_end': forms.DateInput(attrs={'type': 'date'}),
+            'planned_start': DateISO(attrs={'type': 'date'}),
+            'planned_end': DateISO(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 
