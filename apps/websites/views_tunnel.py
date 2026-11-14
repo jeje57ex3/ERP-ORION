@@ -232,7 +232,12 @@ def ingress_sync_dns(request, tunnel_pk, rule_pk):
     company = _company(request)
     tunnel = get_object_or_404(CloudflareTunnel, pk=tunnel_pk, company=company)
     rule = get_object_or_404(TunnelIngressRule, pk=rule_pk, tunnel=tunnel)
-    success, msg = sync_tunnel_dns(rule)
+    # « remplacer » supprime l'enregistrement A/AAAA qui bloque le CNAME.
+    # Il ne vient que d'un second clic delibere, jamais du premier : effacer
+    # un enregistrement DNS peut couper un service qui n'a rien a voir avec
+    # ce tunnel.
+    remplacer = request.POST.get('remplacer') == '1'
+    success, msg = sync_tunnel_dns(rule, remplacer=remplacer)
     if success:
         messages.success(request, msg)
     else:

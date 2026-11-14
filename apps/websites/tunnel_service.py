@@ -517,24 +517,100 @@ def _cf_headers(api_token: str) -> dict:
 
 
 def _get_zone_id(api_token: str, zone_name: str) -> str | None:
-    """Trouve l'ID de zone Cloudflare pour un domaine racine."""
+    """Trouve l'ID de zone Cloudflare pour un nom de zone EXACT."""
+    zone, _ = _trouver_la_zone(api_token, zone_name)
+    return zone['id'] if zone else None
+
+
+def _trouver_la_zone(api_token: str, hostname: str):
+    """La zone Cloudflare qui contient ce nom d'hôte.
+
+    POURQUOI ON NE DÉCOUPE PLUS LE NOM
+
+    La version précédente prenait « les deux derniers segments » comme nom
+    de zone. C'est faux dès que le suffixe en compte deux : « .co.uk »,
+    « .com.br », « .asso.fr »… Pour « boutique.exemple.co.uk » elle
+    cherchait la zone « co.uk », qui n'existe évidemment pas, et concluait
+    « zone introuvable ».
+
+    On demande donc à Cloudflare SES zones, et on retient la plus longue
+    qui termine le nom d'hôte. Le plus long l'emporte : si le compte
+    héberge « exemple.fr » ET « client.exemple.fr », c'est la seconde qui
+    gouverne « www.client.exemple.fr ».
+
+    Rend (zone, erreur). L'erreur est une PHRASE EXPLOITABLE, jamais None
+    silencieux : la version précédente avalait toute exception — jeton
+    invalide, réseau coupé, délai dépassé — et rendait None, si bien qu'un
+    problème d'authentification se lisait « zone introuvable ». On
+    cherchait alors un domaine mal orthographié pendant que le vrai
+    coupable était le jeton.
+    """
     try:
         import requests
-        r = requests.get(
-            'https://api.cloudflare.com/client/v4/zones',
-            params={'name': zone_name},
-            headers=_cf_headers(api_token),
-            timeout=10,
-        )
-        data = r.json()
-        if data.get('success') and data.get('result'):
-            return data['result'][0]['id']
-    except Exception:
-        pass
-    return None
+    except ImportError:
+        return None, "Le package 'requests' n'est pas installé."
+
+    hostname = (hostname or '').strip().rstrip('.').lower()
+    if not hostname:
+        return None, "Nom d'hôte vide."
+
+    zones = []
+    page = 1
+    while True:
+        try:
+            reponse = requests.get(
+                'https://api.cloudflare.com/client/v4/zones',
+                params={'per_page': 50, 'page': page},
+                headers=_cf_headers(api_token),
+                timeout=10,
+            )
+        except Exception as exc:
+            return None, f"Cloudflare injoignable : {exc}"
+
+        try:
+            data = reponse.json()
+        except ValueError:
+            return None, (f"Réponse illisible de Cloudflare "
+                          f"(code HTTP {reponse.status_code}).")
+
+        if not data.get('success'):
+            erreurs = data.get('errors') or []
+            detail = erreurs[0].get('message') if erreurs else 'erreur inconnue'
+            # 9109 / 10000 : jeton invalide ou droits insuffisants. Le dire,
+            # plutot que de laisser chercher un domaine mal ecrit.
+            return None, (f"Cloudflare refuse la lecture des zones : {detail}. "
+                          "Vérifiez le jeton d’API et ses permissions "
+                          "(Zone → DNS → Modifier).")
+
+        lot = data.get('result') or []
+        zones.extend(lot)
+
+        infos = data.get('result_info') or {}
+        if page >= (infos.get('total_pages') or 1) or not lot:
+            break
+        page += 1
+
+    if not zones:
+        return None, ("Aucune zone n’est visible avec ce jeton d’API. "
+                      "Le jeton doit avoir accès à la zone du domaine.")
+
+    candidates = [
+        z for z in zones
+        if hostname == (z.get('name') or '').lower()
+        or hostname.endswith('.' + (z.get('name') or '').lower())
+    ]
+    if not candidates:
+        connues = ', '.join(sorted((z.get('name') or '') for z in zones)[:8])
+        return None, (f"Aucune zone Cloudflare ne contient « {hostname} ». "
+                      f"Zones visibles avec ce jeton : {connues}.")
+
+    # La plus longue l'emporte : « client.exemple.fr » prime sur
+    # « exemple.fr » pour « www.client.exemple.fr ».
+    return max(candidates, key=lambda z: len(z.get('name') or '')), ""
 
 
-def sync_tunnel_dns(rule: "TunnelIngressRule") -> tuple[bool, str]:
+
+def sync_tunnel_dns(rule: "TunnelIngressRule", remplacer: bool = False) -> tuple[bool, str]:
     """
     Crée ou met à jour l'enregistrement DNS CNAME pour cette règle d'ingress
     chez Cloudflare (hostname → <tunnel_id>.cfargotunnel.com).
@@ -555,40 +631,128 @@ def sync_tunnel_dns(rule: "TunnelIngressRule") -> tuple[bool, str]:
     except ImportError:
         return False, "Le package 'requests' n'est pas installé."
 
-    hostname = rule.hostname
-    # Trouver le domaine racine (les 2 derniers segments)
-    parts = hostname.split('.')
-    zone_name = '.'.join(parts[-2:]) if len(parts) >= 2 else hostname
-    zone_id = _get_zone_id(account.api_token, zone_name)
-    if not zone_id:
-        return False, f"Zone Cloudflare introuvable pour '{zone_name}'."
+    hostname = (rule.hostname or '').strip().rstrip('.').lower()
+    if not hostname:
+        return False, "Cette règle n’a pas de nom d’hôte."
 
+    zone, erreur = _trouver_la_zone(account.api_token, hostname)
+    if zone is None:
+        return False, erreur
+
+    zone_id = zone['id']
     cname_target = f'{tunnel.tunnel_id}.cfargotunnel.com'
     headers = _cf_headers(account.api_token)
-
-    # Chercher un enregistrement existant
     list_url = f'https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records'
-    r = requests.get(list_url, params={'type': 'CNAME', 'name': hostname}, headers=headers, timeout=10)
-    existing = r.json().get('result', [])
 
-    if existing:
-        record_id = existing[0]['id']
-        patch_url = f'{list_url}/{record_id}'
-        payload = {'type': 'CNAME', 'name': hostname, 'content': cname_target, 'proxied': True}
-        resp = requests.put(patch_url, json=payload, headers=headers, timeout=10)
-        action = 'mis à jour'
-    else:
-        payload = {'type': 'CNAME', 'name': hostname, 'content': cname_target, 'proxied': True}
-        resp = requests.post(list_url, json=payload, headers=headers, timeout=10)
-        action = 'créé'
+    # On cherche TOUS les types, pas seulement les CNAME.
+    #
+    # La version precedente ne listait que les CNAME. Quand un
+    # enregistrement A existait deja pour ce nom — le cas courant d'un
+    # domaine qui pointait vers un serveur avant de passer au tunnel —
+    # elle n'en trouvait aucun, tentait de CREER un CNAME, et Cloudflare
+    # refusait : un nom ne peut pas porter a la fois un A et un CNAME. Le
+    # message renvoye parlait de conflit d'enregistrement, sans dire lequel
+    # ni ou le trouver.
+    try:
+        reponse = requests.get(list_url, params={'name': hostname},
+                               headers=headers, timeout=10)
+        donnees = reponse.json()
+    except Exception as exc:
+        return False, f"Cloudflare injoignable : {exc}"
 
-    data = resp.json()
-    if data.get('success'):
-        rule.dns_synced = True
-        rule.dns_synced_at = timezone.now()
-        rule.save(update_fields=['dns_synced', 'dns_synced_at'])
-        return True, f"Enregistrement DNS CNAME {action} : {hostname} → {cname_target}"
-    else:
-        errors = data.get('errors', [])
+    if not donnees.get('success'):
+        erreurs = donnees.get('errors') or []
+        detail = erreurs[0].get('message') if erreurs else 'erreur inconnue'
+        return False, f"Lecture DNS refusee par Cloudflare : {detail}"
+
+    existants = donnees.get('result') or []
+    cname = next((e for e in existants if e.get('type') == 'CNAME'), None)
+    bloquant = next(
+        (e for e in existants if e.get('type') in ('A', 'AAAA')), None)
+
+    if bloquant is not None and not remplacer:
+        # ON NE SUPPRIME RIEN SANS QU'ON L'AIT DEMANDE.
+        #
+        # Cet enregistrement A peut servir a autre chose que ce tunnel : un
+        # serveur de courriel, un hote historique, un service qu'on a
+        # oublie. L'effacer d'office reglerait ce symptome-ci en en creant
+        # un autre, ailleurs, sans trace. On nomme donc ce qui bloque, et
+        # on laisse decider.
+        return False, (
+            f"Un enregistrement {bloquant.get('type')} existe deja pour "
+            f"« {hostname} » (il pointe vers {bloquant.get('content')}). "
+            "Un tunnel exige un CNAME, et Cloudflare interdit les deux sur "
+            "le meme nom. Employez « Remplacer » pour le supprimer et poser "
+            "le CNAME a sa place.")
+
+    if remplacer:
+        # Tous les enregistrements A/AAAA du nom, pas seulement le premier :
+        # un nom peut en porter plusieurs, et en laisser un seul suffirait a
+        # faire echouer la creation du CNAME.
+        a_supprimer = [e for e in existants if e.get('type') in ('A', 'AAAA')]
+        for enregistrement in a_supprimer:
+            try:
+                reponse = requests.delete(
+                    f"{list_url}/{enregistrement['id']}",
+                    headers=headers, timeout=10)
+                resultat = reponse.json()
+            except Exception as exc:
+                return False, f"Suppression impossible : {exc}"
+            if not resultat.get('success'):
+                erreurs = resultat.get('errors') or []
+                detail = erreurs[0].get('message') if erreurs else 'erreur inconnue'
+                return False, (
+                    f"Suppression de l’enregistrement {enregistrement.get('type')} "
+                    f"refusee par Cloudflare : {detail}")
+        if a_supprimer:
+            supprimes = ', '.join(
+                f"{e.get('type')} → {e.get('content')}" for e in a_supprimer)
+        else:
+            supprimes = ''
+
+    charge = {'type': 'CNAME', 'name': hostname,
+              'content': cname_target, 'proxied': True}
+
+    try:
+        if cname is not None:
+            resp = requests.put(f"{list_url}/{cname['id']}", json=charge,
+                                headers=headers, timeout=10)
+            action = 'mis à jour'
+        else:
+            resp = requests.post(list_url, json=charge, headers=headers,
+                                 timeout=10)
+            action = 'créé'
+        data = resp.json()
+    except Exception as exc:
+        return False, f"Cloudflare injoignable : {exc}"
+
+    if not data.get('success'):
+        errors = data.get('errors') or []
         msg = errors[0].get('message', 'Erreur inconnue') if errors else 'Erreur inconnue'
         return False, f"Cloudflare API : {msg}"
+
+    rule.dns_synced = True
+    rule.dns_synced_at = timezone.now()
+    rule.save(update_fields=['dns_synced', 'dns_synced_at'])
+
+    # LE DNS NE SUFFIT PAS, ET C'EST LA SECONDE MOITIE DU PROBLEME.
+    #
+    # Un tunnel lance PAR JETON ignore le config.yml local : sa liste de
+    # routes est detenue par Cloudflare. Le CNAME peut donc etre parfait et
+    # le nom repondre « erreur 1033 » tant que la regle d'ingress n'a pas
+    # ete PUBLIEE chez Cloudflare. On le dit dans le message de succes,
+    # sans quoi on croit la synchronisation terminee.
+    # Le rappel est INCONDITIONNEL, et c'est volontaire : aucun champ ne
+    # retient si l'ingress a ete publie chez Cloudflare. Pretendre le
+    # savoir — en testant un attribut qui n'existe pas — donnerait un
+    # silence rassurant dans le cas meme ou l'avertissement est utile.
+    rappel = (" Si le connecteur est lance par jeton, pensez a publier "
+              "l’ingress chez Cloudflare : sans cette route, le nom "
+              "repondra « erreur 1033 » malgre un DNS correct.")
+
+    prefixe = ''
+    if remplacer and locals().get('supprimes'):
+        prefixe = f"Enregistrement(s) supprime(s) : {supprimes}. "
+
+    return True, (f"{prefixe}Enregistrement DNS CNAME {action} : {hostname} → "
+                  f"{cname_target} (zone {zone.get('name')}).{rappel}")
