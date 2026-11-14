@@ -37,6 +37,7 @@ def publier_application(request):
     if request.method == 'POST':
         version = (request.POST.get('version') or '').strip()
         fichier = request.FILES.get('fichier')
+        url_externe = (request.POST.get('url_externe') or '').strip()
         notes = (request.POST.get('notes') or '').strip()
 
         # On refuse EXPLICITEMENT, avec le motif. Un formulaire qui se
@@ -44,14 +45,15 @@ def publier_application(request):
         # ailleurs dans cet ERP, plusieurs fois.
         if not version:
             messages.error(request, 'Indiquez le numéro de version.')
-        elif not fichier:
+        elif not fichier and not url_externe:
             messages.error(
-                request, 'Choisissez le fichier d’installation. '
-                         'Sans « enctype="multipart/form-data" » sur le '
-                         'formulaire, le navigateur ne l’envoie pas.')
+                request, 'Choisissez un fichier d’installation, ou collez le '
+                         'lien de téléchargement si le fichier est hébergé '
+                         'ailleurs.')
         else:
             VersionApplicationBureau.objects.create(
-                version=version, fichier=fichier, notes=notes,
+                version=version, fichier=fichier or None,
+                url_externe=url_externe, notes=notes,
                 deposee_par=request.user,
             )
             messages.success(
@@ -99,8 +101,18 @@ def telecharger_application(request):
     doit pas produire un rapport d'incident.
     """
     version = VersionApplicationBureau.courante()
-    if version is None or not version.fichier:
+    if version is None:
         raise Http404('Aucune version publiée.')
+
+    # Version hebergee ailleurs : on renvoie vers son adresse. On ne la
+    # relaie PAS a travers l'ERP — faire transiter des centaines de Mo par
+    # gunicorn occuperait un processus pour chaque telechargement, et le
+    # tunnel refuserait de toute facon la reponse au-dela de sa limite.
+    if version.url_externe:
+        return redirect(version.url_externe)
+
+    if not version.fichier:
+        raise Http404('Cette version n’a ni fichier ni lien.')
 
     try:
         flux = version.fichier.open('rb')

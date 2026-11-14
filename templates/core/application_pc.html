@@ -35,11 +35,32 @@
                    placeholder="1.4.2" required>
           </div>
 
+          {% comment %}
+            DEUX FACONS DE PUBLIER, ET LA SECONDE N'EST PAS UN LUXE.
+
+            L'application pese 673 Mo decompressee, dont 639 Mo de PySide6.
+            Meme comprimee, elle depasse les 100 Mo que le plan Cloudflare
+            accepte par requete -- or l'ERP est servi par un tunnel
+            Cloudflare. Un televersement serait REFUSE AVANT d'atteindre
+            Django, et le message viendrait de Cloudflare, pas de nous.
+          {% endcomment %}
           <div class="mb-3">
-            <label class="form-label">{% trans "Fichier d’installation" %} *</label>
-            <input type="file" name="fichier" class="form-control" required>
+            <label class="form-label">{% trans "Fichier d’installation" %}</label>
+            <input type="file" name="fichier" class="form-control">
             <div class="form-text">
-              {% trans "L’installeur Windows produit par Inno Setup (.exe)." %}
+              {% trans "Django accepte un fichier de n’importe quelle taille ici : la limite de 20 Mo des réglages ne compte que les champs texte, pas les fichiers." %}
+              <br>
+              <strong>{% trans "C’est le tunnel Cloudflare qui bloque à 100 Mo." %}</strong>
+              {% trans "Pour un installeur plus lourd, deux solutions : ouvrir cet écran par l’adresse locale du serveur (hors tunnel), ou coller le lien ci-dessous." %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "…ou lien de téléchargement" %}</label>
+            <input type="url" name="url_externe" class="form-control"
+                   placeholder="https://github.com/…/releases/download/v1.0.0/OrionERP-Desktop-Setup.exe">
+            <div class="form-text">
+              {% trans "L’adresse du fichier hébergé ailleurs. Une « release » GitHub accepte 2 Go par fichier et les sert depuis son réseau : rien de lourd ne transite alors par l’ERP." %}
             </div>
           </div>
 
@@ -93,8 +114,9 @@
               {% endif %}
               <div class="small text-muted">
                 {{ v.deposee_le|date:"d/m/Y H:i" }}
-                {% if v.taille_lisible %} · {{ v.taille_lisible }}{% endif %}
-                {% if not v.taille_lisible %} · <span class="text-danger">{% trans "fichier introuvable" %}</span>{% endif %}
+                {% if v.est_hebergee_ailleurs %} · <span title="{{ v.url_externe }}">{% trans "hébergée ailleurs" %}</span>
+                {% elif v.taille_lisible %} · {{ v.taille_lisible }}
+                {% else %} · <span class="text-danger">{% trans "fichier introuvable" %}</span>{% endif %}
               </div>
               {% if v.notes %}<div class="small mt-1">{{ v.notes|linebreaksbr }}</div>{% endif %}
             </div>

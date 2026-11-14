@@ -788,9 +788,29 @@ class VersionApplicationBureau(models.Model):
         'Version', max_length=40,
         help_text='Par exemple « 1.4.2 ». Affichée à côté du bouton.')
 
+    # DEUX FACONS DE PUBLIER, ET LA SECONDE N'EST PAS UN LUXE.
+    #
+    # L'application pese 673 Mo decompressee, dont 639 Mo de PySide6 (Qt et
+    # son navigateur embarque). Meme comprimee par Inno Setup, elle depasse
+    # largement les 100 Mo que le plan Cloudflare accepte par requete — or
+    # l'ERP est servi par un tunnel Cloudflare. Un televersement depuis
+    # l'interface serait donc REFUSE AVANT d'atteindre Django, et le message
+    # viendrait de Cloudflare, pas de nous.
+    #
+    # Une version peut donc designer un fichier heberge ailleurs (une
+    # « release » GitHub, par exemple : 2 Go par fichier, servis par leur
+    # reseau). Le bouton y renvoie, et rien de lourd ne transite ni par
+    # git, ni par le tunnel, ni par media/.
     fichier = models.FileField(
-        'Fichier d’installation', upload_to='application-bureau/',
-        help_text='L’installeur Windows (.exe) produit par Inno Setup.')
+        'Fichier d’installation', upload_to='application-bureau/', blank=True,
+        help_text='Pour un fichier de moins de 100 Mo. Au-delà, le tunnel '
+                  'Cloudflare refuse l’envoi : utilisez plutôt le lien.')
+
+    url_externe = models.URLField(
+        'Lien de téléchargement', max_length=500, blank=True,
+        help_text='L’adresse du fichier hébergé ailleurs (release GitHub, '
+                  'serveur de fichiers…). À employer pour les installeurs '
+                  'volumineux.')
 
     notes = models.TextField(
         'Nouveautés', blank=True,
@@ -817,6 +837,35 @@ class VersionApplicationBureau(models.Model):
     def __str__(self):
         return f'Orion ERP {self.version}'
 
+    def clean(self):
+        """Un fichier OU un lien, mais pas rien.
+
+        Sans cette verification, on pourrait publier une version qui ne
+        mene nulle part : le bouton s'afficherait et ne telechargerait
+        rien. C'est precisement le genre de panne qu'on ne voit qu'au
+        moment ou quelqu'un en a besoin.
+        """
+        from django.core.exceptions import ValidationError
+
+        if not self.fichier and not self.url_externe:
+            raise ValidationError(
+                'Indiquez un fichier d’installation ou un lien de '
+                'téléchargement.')
+
+    @property
+    def lien_de_telechargement(self):
+        """Ce vers quoi le bouton doit mener, quelle que soit la methode."""
+        if self.url_externe:
+            return self.url_externe
+        if self.fichier:
+            from django.urls import reverse
+            return reverse('core_application_pc:telecharger')
+        return ''
+
+    @property
+    def est_hebergee_ailleurs(self):
+        return bool(self.url_externe and not self.fichier)
+
     @property
     def taille_lisible(self):
         """La taille du fichier, ou une chaîne vide s'il a disparu.
@@ -826,6 +875,8 @@ class VersionApplicationBureau(models.Model):
         au rendu de la page. Un écran qui tombe pour afficher une taille
         serait un mauvais échange.
         """
+        if not self.fichier:
+            return ''
         try:
             octets = self.fichier.size
         except (OSError, ValueError):

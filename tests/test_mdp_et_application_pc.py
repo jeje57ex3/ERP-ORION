@@ -243,3 +243,84 @@ def test_le_formulaire_de_depot_envoie_bien_les_fichiers():
     gabarit = Path('templates/core/application_pc.html').read_text(encoding='utf-8')
 
     assert 'enctype="multipart/form-data"' in gabarit
+
+
+# ── 3. Une version hébergée ailleurs ─────────────────────────────────────────
+
+"""POURQUOI CETTE SECONDE VOIE EXISTE
+
+L'application pèse 673 Mo décompressée, dont 639 Mo de PySide6 (Qt et son
+navigateur embarqué). Même comprimée, elle dépasse les 100 Mo que le plan
+Cloudflare accepte par requête — or l'ERP est servi par un tunnel
+Cloudflare. Un téléversement depuis l'interface serait REFUSÉ AVANT
+d'atteindre Django, et le message viendrait de Cloudflare, pas de nous.
+
+Une version peut donc désigner un fichier hébergé ailleurs.
+"""
+
+
+@pytest.mark.django_db
+def test_une_version_peut_pointer_vers_un_lien(utilisateur):
+    from apps.core.models import VersionApplicationBureau
+
+    VersionApplicationBureau.objects.create(
+        version='1.0.0',
+        url_externe='https://github.com/exemple/releases/OrionERP-Setup.exe')
+
+    reponse = utilisateur['client'].get(
+        reverse('core_application_pc:telecharger'))
+
+    assert reponse.status_code == 302
+    assert reponse['Location'].endswith('OrionERP-Setup.exe')
+
+
+@pytest.mark.django_db
+def test_le_bouton_apparait_aussi_pour_une_version_hebergee_ailleurs(utilisateur):
+    from apps.core.models import VersionApplicationBureau
+
+    VersionApplicationBureau.objects.create(
+        version='2.1.0', url_externe='https://exemple.test/setup.exe')
+
+    contenu = utilisateur['client'].get(
+        reverse('core:dashboard')).content.decode()
+
+    assert reverse('core_application_pc:telecharger') in contenu
+    assert '2.1.0' in contenu
+
+
+@pytest.mark.django_db
+def test_une_version_sans_fichier_ni_lien_est_refusee():
+    """Sans cette verification on publierait un bouton qui ne telecharge
+    rien — une panne qu'on ne decouvre qu'au moment ou quelqu'un en a
+    besoin."""
+    from django.core.exceptions import ValidationError
+    from apps.core.models import VersionApplicationBureau
+
+    with pytest.raises(ValidationError):
+        VersionApplicationBureau(version='3.0.0').clean()
+
+
+@pytest.mark.django_db
+def test_une_version_hebergee_ailleurs_n_annonce_pas_de_taille():
+    """Pas de fichier local, donc pas de taille a lire : l'ecran ne doit
+    pas tomber en essayant."""
+    from apps.core.models import VersionApplicationBureau
+
+    version = VersionApplicationBureau.objects.create(
+        version='4.0.0', url_externe='https://exemple.test/x.exe')
+
+    assert version.taille_lisible == ''
+    assert version.est_hebergee_ailleurs is True
+
+
+def test_l_ecran_de_depot_propose_les_deux_voies():
+    from pathlib import Path
+
+    gabarit = Path('templates/core/application_pc.html').read_text(
+        encoding='utf-8')
+
+    assert 'name="url_externe"' in gabarit
+    assert 'name="fichier"' in gabarit
+    # Le fichier ne doit plus etre obligatoire : c'est le lien qui sert aux
+    # installeurs volumineux.
+    assert 'name="fichier" class="form-control" required' not in gabarit
