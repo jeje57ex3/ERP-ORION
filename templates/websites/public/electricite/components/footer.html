@@ -7,8 +7,15 @@
         {% if site.logo %}
           <img src="{{ site.logo.url }}" alt="{{ site.name }}" style="height:34px">
         {% else %}
-          <div style="display:flex;align-items:center;gap:.5rem;font-weight:800;color:var(--site-text)">
-            <i class="bi bi-lightning-charge-fill" style="color:var(--site-accent);font-size:1.3rem" aria-hidden="true"></i>
+          {% comment %}
+            Le logo livre avec le site, comme dans l'en-tete. « #FFFFFF »
+            est ecrit ici et non herite : le pied est passe a l'anthracite,
+            et « --site-text » y donnerait du sombre sur sombre.
+          {% endcomment %}
+          <div style="display:flex;align-items:center;gap:.6rem;font-weight:700;color:#FFFFFF">
+            <img src="{% static 'img/sites/sparkling-peace-logo.png' %}"
+                 alt="" width="34" height="34"
+                 style="height:34px;width:34px;object-fit:contain">
             {{ site.company.name }}
           </div>
         {% endif %}

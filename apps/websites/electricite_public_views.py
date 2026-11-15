@@ -63,6 +63,10 @@ FAQ_ITEMS = [
 def _elec_context(site):
     ctx = _base_context(site)
     ctx.update({
+        # Opaque par defaut : seule l'accueil pose son en-tete sur une
+        # photo. Le defaut le plus sur est celui qui reste lisible.
+        'entete_sur_photo': False,
+        'page_courante': '',
         'elec_portfolio': site.btp_portfolio_projects.filter(is_published=True).order_by('order')[:6],
         'elec_reviews': site.btp_reviews.filter(is_published=True).order_by('order')[:6],
         'services': translate_static_items(ELECTRICITE_SERVICES, 'electricite.service'),
@@ -73,9 +77,23 @@ def _elec_context(site):
 def electricite_home(request, site_slug):
     site = _get_electricite_site(site_slug)
     ctx = _elec_context(site)
+    # « entete_sur_photo » : sur l'accueil l'en-tete est POSE sur la photo
+    # du hero, donc transparent avec du texte clair. Ailleurs il n'y a pas
+    # de photo derriere — il redevient opaque, sans quoi ce meme texte
+    # clair se poserait sur un fond clair. Un seul gabarit d'en-tete, deux
+    # situations, et c'est ce drapeau qui les distingue.
+    #
+    # La photo du hero vient de la premiere realisation publiee : elle
+    # montre un vrai chantier de l'entreprise plutot qu'une image de
+    # banque. Facultative — sans elle le degrade tient la page.
+    vedette = next((p for p in ctx['elec_portfolio'] if p.after_image), None)
+
     ctx.update({
         'featured_services': site.services.filter(is_active=True).order_by('order')[:6] or None,
-        'page_title': site.meta_title or f'{site.company.name} — Électricité, Domotique & Sécurité',
+        'hero_image': vedette.after_image.url if vedette else '',
+        'entete_sur_photo': True,
+        'page_courante': 'accueil',
+        'page_title': site.meta_title or f'{site.company.name} — Électricité & Étanchéité',
     })
     return render(request, 'websites/public/electricite/home.html', ctx)
 

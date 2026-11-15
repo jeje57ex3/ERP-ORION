@@ -29,9 +29,20 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  {% comment %}
+    « Playfair Display » porte les titres. C'est le trait le plus visible
+    du dessin, et celui qu'on perd le plus facilement : une sans-serif a la
+    place, et tout le caractere tombe sans qu'on sache dire pourquoi.
+  {% endcomment %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="{% static 'css/sites/orion-site-theme.css' %}?v=lang3" rel="stylesheet">
+  {% comment %}
+    APRES la feuille commune, et c'est indispensable : celle-ci redefinit
+    ses jetons. Chargee avant, elle serait ecrasee par le bleu et l'orange
+    qui habillent les autres vitrines de l'ERP.
+  {% endcomment %}
+  <link href="{% static 'css/sites/sparkling-peace.css' %}?v=1" rel="stylesheet">
 
   <style>
     :root {
@@ -69,7 +80,7 @@
 
   {% block extra_css %}{% endblock %}
 </head>
-<body class="orion-site elec-brand">
+<body class="orion-site elec-brand sp-site">
 <a href="#site-main" class="site-skip-link">{% trans "Aller au contenu principal" %}</a>
 
 {% include "websites/public/electricite/components/header.html" %}
