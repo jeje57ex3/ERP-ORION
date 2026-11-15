@@ -50,16 +50,40 @@ CHEMINS_RESERVES = (
 def _prefixe_public(site):
     """Le chemin sous lequel ce site est servi.
 
-    La vitrine « étanchéité » a ses propres adresses et son propre dessin ;
-    les autres sites passent par les vues publiques génériques. On choisit
-    sur le SLUG, qui est la seule marque que porte le site — il n'existe pas
-    de champ « gabarit » sur le modèle.
+    LE TYPE D'ABORD, LE SLUG ENSUITE — ET C'EST UNE CORRECTION.
+
+    La premiere version ne connaissait qu'un seul cas, la vitrine
+    « etancheite », reconnue a son slug. Tout le reste tombait sur les vues
+    publiques generiques. Un site de type « electricite » — « SPARKLING
+    PEACE – Electricite », par exemple — etait donc servi par le mauvais
+    dessin, sans que rien ne le signale : la page s'affichait, simplement
+    ce n'etait pas la bonne.
+
+    On s'aligne desormais sur « home_redirect » (erp_btp/urls.py), qui
+    route deja par site_type a la racine. Deux endroits qui decident du
+    meme routage avec des regles differentes finissent toujours par se
+    contredire ; ici, le symptome aurait ete une page d'accueil correcte et
+    des pages internes fausses.
+
+    « public_slug » et non « slug » : un site sans slug retombe sur celui
+    de son entreprise, et c'est ce que les adresses publiques emploient.
     """
     from .vitrine_etancheite import SLUG as SLUG_ETANCHEITE
 
+    slug = site.public_slug
+
+    # La vitrine etancheite a ses propres adresses, reconnues au slug : elle
+    # n'a pas de site_type dedie.
     if site.slug == SLUG_ETANCHEITE:
-        return f'/sites/{site.slug}/etancheite/'
-    return f'/sites/{site.slug}/'
+        return f'/sites/{slug}/etancheite/'
+
+    if site.site_type == 'electricite':
+        return f'/sites/{slug}/electricite/'
+
+    if site.site_type == 'btp':
+        return f'/sites/{slug}/btp/'
+
+    return f'/sites/{slug}/'
 
 
 class VitrineParDomaineMiddleware(MiddlewareMixin):

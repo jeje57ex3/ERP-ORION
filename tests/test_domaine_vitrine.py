@@ -270,3 +270,70 @@ def test_le_port_et_la_casse_ne_trompent_pas_le_filtre(client, site_et_domaine):
     reponse = client.get('/', HTTP_HOST='S-PEACE.COM:443')
 
     assert reponse.status_code == 200
+
+
+# ── 5. Le routage suit le TYPE du site ───────────────────────────────────────
+
+"""La premiere version ne connaissait qu'un cas, la vitrine « etancheite »,
+reconnue a son slug. Un site de type « electricite » — « SPARKLING PEACE –
+Electricite » — tombait sur les vues generiques : la page s'affichait,
+simplement ce n'etait pas la bonne.
+
+On s'aligne desormais sur « home_redirect » (erp_btp/urls.py), qui route
+deja par site_type. Deux endroits qui decident du meme routage avec des
+regles differentes finissent toujours par se contredire."""
+
+
+@pytest.mark.parametrize('site_type, slug, attendu', [
+    ('electricite', 'sparkling-peace-electricite',
+     '/sites/sparkling-peace-electricite/electricite/'),
+    ('btp', 'neostructura', '/sites/neostructura/btp/'),
+    ('showcase', 'vitrine-simple', '/sites/vitrine-simple/'),
+    ('ecommerce', 'siecle', '/sites/siecle/'),
+])
+@pytest.mark.django_db
+def test_chaque_type_de_site_a_son_prefixe(db, site_type, slug, attendu):
+    from apps.core.models import Company
+    from apps.websites.domaine_vitrine_middleware import _prefixe_public
+    from apps.websites.models import Website
+
+    entreprise = Company.objects.create(name='T SA', slug='t-sa')
+    site = Website.objects.create(
+        company=entreprise, name='Site', slug=slug, site_type=site_type)
+
+    assert _prefixe_public(site) == attendu
+
+
+@pytest.mark.django_db
+def test_la_vitrine_etancheite_garde_son_prefixe(db):
+    """Elle n'a pas de site_type dedie : elle se reconnait au slug, et ce
+    cas doit passer AVANT le type."""
+    from apps.core.models import Company
+    from apps.websites.domaine_vitrine_middleware import _prefixe_public
+    from apps.websites.models import Website
+    from apps.websites.vitrine_etancheite import SLUG
+
+    entreprise = Company.objects.create(name='V SA', slug='v-sa')
+    site = Website.objects.create(
+        company=entreprise, name='Vitrine', slug=SLUG, site_type='showcase')
+
+    assert _prefixe_public(site) == f'/sites/{SLUG}/etancheite/'
+
+
+@pytest.mark.django_db
+def test_un_site_sans_slug_retombe_sur_celui_de_l_entreprise(db):
+    """« public_slug » et non « slug » : c'est ce que les adresses publiques
+    emploient."""
+    from apps.core.models import Company
+    from apps.websites.domaine_vitrine_middleware import _prefixe_public
+    from apps.websites.models import Website
+
+    entreprise = Company.objects.create(name='Sans Slug SA', slug='sans-slug')
+    site = Website.objects.create(
+        company=entreprise, name='Site', site_type='electricite')
+    # « save() » recalcule le slug depuis le nom : on ecrit donc en base
+    # sans passer par lui, pour obtenir l'etat qu'on veut eprouver.
+    Website.objects.filter(pk=site.pk).update(slug='')
+    site.refresh_from_db()
+
+    assert _prefixe_public(site) == '/sites/sans-slug/electricite/'
