@@ -5,6 +5,7 @@ from . import views_materials as vm
 from . import views_catalogue as vc
 from . import views_detection as vd
 from . import views_etapes as ve
+from . import views_documents as vdoc
 
 app_name = 'btp'
 
@@ -170,6 +171,19 @@ urlpatterns = [
     path('detection/', vd.catalogue_detection, name='catalogue_detection'),
     path('detection/importer/', vd.catalogue_detection_import,
          name='catalogue_detection_import'),
+
+    # Documents d'un chantier.
+    #
+    # Le modele ProjectDocument existait, avec dix-huit types et une
+    # visibilite client — mais AUCUN ecran ne le servait. Faute de porte,
+    # les factures de chantier finissaient dans le module Documents
+    # general, melees aux pieces de l'entreprise.
+    path('chantiers/<int:project_pk>/documents/',
+         vdoc.project_documents, name='project_documents'),
+    path('documents/<int:pk>/telecharger/',
+         vdoc.project_document_download, name='project_document_download'),
+    path('documents/<int:pk>/supprimer/',
+         vdoc.project_document_delete, name='project_document_delete'),
 
     # Fournitures et materiel achetes pour un chantier
     path('chantiers/<int:project_pk>/fournitures/ajouter/',

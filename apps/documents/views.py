@@ -12,6 +12,35 @@ def index(request):
     return redirect('documents:document_list')
 
 
+# Les deux listes de types ne se recouvrent pas tout a fait : celle du
+# chantier en compte dix-huit, celle de l'entreprise huit. Les noms communs
+# sont repris tels quels, le reste tombe sur « other » — mieux vaut un type
+# approximatif qu'un enregistrement refuse pour un libelle absent.
+TYPES_VERS_CHANTIER = {
+    'contract': 'contract', 'invoice': 'invoice', 'quote': 'quote',
+    'plan': 'plan', 'report': 'daily_report', 'certificate': 'certificate',
+    'photo': 'photo', 'other': 'other',
+}
+
+
+def _vers_le_chantier(form, chantier, utilisateur):
+    """Cree le document DANS le chantier plutot que dans l'entreprise."""
+    from apps.btp.models import ProjectDocument
+
+    donnees = form.cleaned_data
+    fichier = donnees.get('file')
+
+    return ProjectDocument.objects.create(
+        project=chantier,
+        doc_type=TYPES_VERS_CHANTIER.get(donnees.get('document_type'), 'other'),
+        name=(donnees.get('title') or getattr(fichier, 'name', 'Document'))[:200],
+        file=fichier,
+        description=donnees.get('description') or '',
+        version=donnees.get('version') or '1.0',
+        added_by=utilisateur,
+    )
+
+
 @login_required
 def document_list(request):
     company = request.current_company
@@ -63,6 +92,24 @@ def document_create(request):
     if request.method == 'POST':
         form = DocumentForm(request.POST, request.FILES, company=company)
         if form.is_valid():
+            chantier = form.cleaned_data.get('chantier')
+
+            if chantier is not None:
+                # LE DOCUMENT PART AU CHANTIER, ET NE RESTE PAS ICI.
+                #
+                # C'est le defaut rapporte : les factures de chantier
+                # s'accumulaient dans cette liste, melees aux pieces de
+                # l'entreprise, sans lien avec le chantier auquel elles
+                # appartiennent. Faute d'ecran cote chantier, c'etait le
+                # seul endroit qui offrait un bouton.
+                document = _vers_le_chantier(form, chantier, request.user)
+                messages.success(
+                    request,
+                    f'Document classé dans les documents du chantier '
+                    f'« {chantier.name} ».')
+                return redirect('btp:project_documents',
+                                project_pk=document.project_id)
+
             doc = form.save(commit=False)
             doc.company = company
             doc.uploaded_by = request.user
