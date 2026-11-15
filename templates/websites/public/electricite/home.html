@@ -104,27 +104,22 @@
       vide : un site sans service renseigne doit montrer ce que
       l'entreprise sait faire, pas un blanc.
     {% endcomment %}
+    {% comment %}
+      Les visuels sont RESOLUS PAR LA VUE : image de l'exploitant si elle
+      existe, photo livree sinon. Choisir ici demanderait un filtre sur
+      mesure pour indexer une liste par le compteur de boucle, et le
+      gabarit deviendrait illisible.
+    {% endcomment %}
     <div class="sp-cartes">
-      {% for service in featured_services|slice:":4" %}
+      {% for carte in cartes_services %}
       <article class="sp-carte">
-        <div class="sp-carte__visuel"{% if service.image %} style="background-image:url('{{ service.image.url }}')"{% endif %}></div>
+        <div class="sp-carte__visuel" style="background-image:url('{{ carte.image }}')"></div>
         <div class="sp-carte__corps">
-          <i class="bi {{ service.icon|default:'bi-lightning-charge-fill' }} sp-carte__icone" aria-hidden="true"></i>
-          <h3 class="sp-carte__titre">{{ service.title }}</h3>
-          <p class="sp-carte__texte">{{ service.description|truncatewords:14 }}</p>
+          <i class="bi {{ carte.icone }} sp-carte__icone" aria-hidden="true"></i>
+          <h3 class="sp-carte__titre">{{ carte.titre }}</h3>
+          <p class="sp-carte__texte">{{ carte.texte|truncatewords:14 }}</p>
         </div>
       </article>
-      {% empty %}
-      {% for service in services|slice:":4" %}
-      <article class="sp-carte">
-        <div class="sp-carte__visuel"></div>
-        <div class="sp-carte__corps">
-          <i class="bi {{ service.icon }} sp-carte__icone" aria-hidden="true"></i>
-          <h3 class="sp-carte__titre">{{ service.name }}</h3>
-          <p class="sp-carte__texte">{{ service.desc }}</p>
-        </div>
-      </article>
-      {% endfor %}
       {% endfor %}
     </div>
 
@@ -160,29 +155,22 @@
       </div>
 
       <div class="sp-photos">
-        {% for projet in elec_portfolio|slice:":4" %}
-        <a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}" class="sp-photo"
-           {% if projet.after_image %}style="background-image:url('{{ projet.after_image.url }}')"{% elif projet.before_image %}style="background-image:url('{{ projet.before_image.url }}')"{% endif %}
-           title="{{ projet.title }}">
-          {% if not projet.after_image and not projet.before_image %}
-          <i class="bi bi-image" aria-hidden="true"></i>
-          {% endif %}
-        </a>
-        {% empty %}
-        {% comment %}
-          Aucune realisation publiee : on montre quatre emplacements plutot
-          qu'une bande vide, et on dit quoi faire. Un trou muet ressemble a
-          une page cassee.
-        {% endcomment %}
-        {% for i in "1234" %}
-        <div class="sp-photo"><i class="bi bi-image" aria-hidden="true"></i></div>
-        {% endfor %}
+        {% for vignette in vignettes %}
+        <a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}"
+           class="sp-photo" style="background-image:url('{{ vignette.image }}')"
+           {% if vignette.titre %}title="{{ vignette.titre }}"{% endif %}></a>
         {% endfor %}
       </div>
 
       {% if not elec_portfolio %}
-      <p class="mt-3 mb-0" style="font-size:13.5px;color:rgba(255,255,255,.6)">
-        {% trans "Les réalisations publiées depuis l’ERP apparaîtront ici." %}
+      {% comment %}
+        La mention disait « les realisations apparaitront ici » au-dessus de
+        quatre vignettes bien visibles : elle se lisait comme une panne. Des
+        photos d'illustration SONT affichees — la phrase doit dire ce
+        qu'elles sont et ce qui les remplacera.
+      {% endcomment %}
+      <p class="mt-3 mb-0" style="font-size:13.5px;color:rgba(255,255,255,.55)">
+        {% trans "Photos d’illustration. Vos réalisations publiées depuis l’ERP prendront leur place." %}
       </p>
       {% endif %}
     </div>
