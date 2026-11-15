@@ -35,6 +35,23 @@
       </div>
     </div>
     <div class="col-12 col-lg-4">
+      {% comment %}
+        LE DEFAUT RAPPORTE : les factures de chantier s'accumulaient dans
+        le module Documents general, melees aux pieces de l'entreprise.
+        Faute d'ecran cote chantier, c'etait le seul endroit qui offrait un
+        bouton de depot.
+
+        Choisir un chantier ici envoie le document dans SES documents, et
+        non dans cette liste.
+      {% endcomment %}
+      <div class="erp-card mb-3">
+        <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-cone-striped me-1 text-primary"></i>{% trans "Chantier" %}</h6></div>
+        <div class="p-3">
+          {{ form.chantier }}
+          {% if form.chantier.errors %}<div class="invalid-feedback d-block">{{ form.chantier.errors.as_text }}</div>{% endif %}
+          <p class="small text-muted mt-2 mb-0">{{ form.chantier.help_text }}</p>
+        </div>
+      </div>
       <div class="erp-card">
         <div class="orion-orion-card-header"><h6 class="card-title"><i class="bi bi-shield me-1 text-primary"></i>{% trans "Confidentialité" %}</h6></div>
         <div class="p-3">

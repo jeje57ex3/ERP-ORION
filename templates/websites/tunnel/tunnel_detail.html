@@ -175,6 +175,16 @@ Si cet enregistrement sert à autre chose, ce service cessera de répondre." %}'
                       <i class="bi bi-arrow-repeat me-1"></i>{% trans "Remplacer" %}
                     </button>
                   </form>
+                  {% comment %}
+                    « Error 1033 » a deux causes qui produisent le meme
+                    ecran. Ce lien va les departager, et verifie au passage
+                    les trois autres maillons.
+                  {% endcomment %}
+                  <a href="{% url 'websites:ingress_diagnostic' tunnel.pk rule.pk %}"
+                     class="orion-btn orion-btn-outline sm" style="font-size:.7rem;padding:2px 8px"
+                     title="{% trans 'Pourquoi ce nom d’hôte ne répond-il pas ?' %}">
+                    <i class="bi bi-stethoscope me-1"></i>{% trans "Diagnostic" %}
+                  </a>
                   {% endif %}
                 </td>
                 <td class="py-2">

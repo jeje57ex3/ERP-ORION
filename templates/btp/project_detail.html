@@ -38,6 +38,13 @@
     <a href="?tab=timesheet" class="erp-tab {% if tab == 'timesheet' %}active{% endif %}"><i class="bi bi-clock me-1"></i>{% trans "Pointage" %}</a>
     <a href="?tab=supplies" class="erp-tab {% if tab == 'supplies' %}active{% endif %}"><i class="bi bi-box-seam me-1"></i>{% blocktrans with c=supplies.count %}Fournitures ({{ c }}){% endblocktrans %}</a>
     <a href="?tab=photos" class="erp-tab {% if tab == 'photos' %}active{% endif %}"><i class="bi bi-images me-1"></i>{% blocktrans with c=nb_photos %}Photos ({{ c }}){% endblocktrans %}</a>
+    {% comment %}
+      L'onglet pointe vers un ECRAN A PART et non vers « ?tab= » : le depot
+      de fichier demande son propre formulaire multipart, et la liste a ses
+      propres filtres. Les coudre dans cette page melerait deux cycles de
+      requetes qui n'ont rien a voir.
+    {% endcomment %}
+    <a href="{% url 'btp:project_documents' project.pk %}" class="erp-tab"><i class="bi bi-folder me-1"></i>{% blocktrans with c=project.project_documents.count %}Documents ({{ c }}){% endblocktrans %}</a>
     {% if nb_corbeille %}
     <a href="?tab=corbeille" class="erp-tab {% if tab == 'corbeille' %}active{% endif %}"><i class="bi bi-trash me-1"></i>{% blocktrans with c=nb_corbeille %}Corbeille ({{ c }}){% endblocktrans %}</a>
     {% endif %}

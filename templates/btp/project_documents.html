@@ -1,0 +1,137 @@
+{% extends "erp_base.html" %}
+{% load i18n %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'btp:project_list' %}">{% trans "Chantiers" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'btp:project_detail' project.pk %}">{{ project.name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Documents" %}</li>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1 class="page-title">{% blocktrans with n=project.name %}Documents — {{ n }}{% endblocktrans %}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <div class="col-12 col-lg-4">
+    <div class="orion-card">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-upload me-1 text-primary"></i>{% trans "Ajouter un document" %}
+        </h6>
+      </div>
+      <div class="orion-orion-card-body">
+
+        {% comment %}
+          « enctype » est INDISPENSABLE : sans lui le navigateur n'envoie
+          PAS le fichier. Le champ s'afficherait, la facture serait
+          choisie, l'enregistrement reussirait -- et rien n'aurait ete
+          depose. Ce defaut precis s'est deja produit deux fois dans cet
+          ERP, sur les sites web et sur l'application PC.
+        {% endcomment %}
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Fichier" %} *</label>
+            <input type="file" name="file" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Type" %}</label>
+            <select name="doc_type" class="form-select">
+              {% for valeur, libelle in type_choices %}
+              <option value="{{ valeur }}" {% if valeur == 'invoice' %}selected{% endif %}>{{ libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Nom" %}</label>
+            <input type="text" name="name" class="form-control"
+                   placeholder="{% trans 'Laissez vide pour reprendre le nom du fichier' %}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">{% trans "Description" %}</label>
+            <textarea name="description" rows="2" class="form-control"></textarea>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" name="visible_to_client" class="form-check-input" id="vis-client">
+            <label class="form-check-label small" for="vis-client">
+              {% trans "Visible par le client dans son portail" %}
+            </label>
+          </div>
+
+          <button type="submit" class="orion-btn primary w-100">
+            <i class="bi bi-check-circle me-1"></i>{% trans "Ajouter" %}
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a href="?" class="orion-filter-chip {% if not type_demande %}active{% endif %}">{% trans "Tous" %}</a>
+      {% for valeur, libelle in type_choices %}
+      <a href="?type={{ valeur }}" class="orion-filter-chip {% if type_demande == valeur %}active{% endif %}">{{ libelle }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-orion-card-body p-0">
+        {% if documents %}
+        {% for doc in documents %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3"
+             style="border-top:1px solid var(--orion-border, rgba(127,127,127,.18))">
+          <div>
+            <div class="fw-semibold">{{ doc.name }}</div>
+            <div class="small text-muted">
+              {{ doc.get_doc_type_display }} ·
+              {{ doc.added_at|date:"d/m/Y H:i" }}
+              {% if doc.added_by %} · {% firstof doc.added_by.get_full_name doc.added_by.username %}{% endif %}
+              {% if doc.visible_to_client %} · <span style="color:#22c55e">{% trans "visible client" %}</span>{% endif %}
+            </div>
+            {% if doc.description %}
+            <div class="small mt-1">{{ doc.description }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{% url 'btp:project_document_download' doc.pk %}"
+               class="orion-btn orion-btn-outline orion-orion-btn sm">
+              <i class="bi bi-download me-1"></i>{% trans "Télécharger" %}
+            </a>
+            <form method="post" action="{% url 'btp:project_document_delete' doc.pk %}"
+                  onsubmit="return confirm('{% trans "Mettre ce document à la corbeille du chantier ?" %}')">
+              {% csrf_token %}
+              <button type="submit" class="orion-btn danger orion-orion-btn sm">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="p-4 text-center">
+          <div class="small text-muted">
+            {% if type_demande %}
+            {% trans "Aucun document de ce type sur ce chantier." %}
+            {% else %}
+            {% trans "Aucun document sur ce chantier. Déposez-en un avec le formulaire ci-contre." %}
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

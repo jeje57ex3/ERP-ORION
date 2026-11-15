@@ -390,3 +390,124 @@ def test_l_ecran_propose_les_deux_boutons_separement():
 
     assert 'name="remplacer" value="1"' in gabarit
     assert 'onclick="return confirm(' in gabarit
+
+
+# ── 5. Le diagnostic de l'erreur 1033 ────────────────────────────────────────
+
+"""« Error 1033 — Cloudflare is currently unable to resolve it » ne dit pas
+laquelle de ses deux causes s'applique : aucun connecteur relie, ou aucune
+route publiee pour ce nom. Les deux produisent le meme ecran. Sans les
+distinguer, on redemarre un connecteur qui tournait deja, ou l'on republie
+une route qui existait.
+"""
+
+
+def _verdict(etapes, nom):
+    return next(e for e in etapes if e['nom'] == nom)
+
+
+@pytest.mark.django_db
+def test_une_route_absente_est_nommee_comme_cause(regle, monkeypatch):
+    """LA CAUSE LA PLUS FRÉQUENTE : le tunnel tourne, la route manque."""
+    from apps.websites import cloudflare_service
+
+    monkeypatch.setattr(cloudflare_service, 'fetch_cf_tunnels',
+                        lambda c: {'success': True, 'tunnels': [
+                            {'id': regle.tunnel.tunnel_id, 'name': 'T',
+                             'status': 'healthy', 'connections': [{}]}]})
+    monkeypatch.setattr(cloudflare_service, 'fetch_tunnel_ingress',
+                        lambda c, t: {'success': True, 'ingress': [
+                            {'hostname': 'autre.exemple.fr',
+                             'service': 'http://localhost:9000'}]})
+
+    etapes = tunnel_service.diagnostiquer_hote(regle)
+
+    assert _verdict(etapes, 'Connecteur')['etat'] == 'ok'
+    route = _verdict(etapes, 'Route distante')
+    assert route['etat'] == 'erreur'
+    assert 'Publier' in route['action']
+    # Les noms REELLEMENT publies sont cites : sans eux on ne sait pas si
+    # l'on s'est trompe de tunnel ou de nom d'hote.
+    assert 'autre.exemple.fr' in route['detail']
+
+
+@pytest.mark.django_db
+def test_un_connecteur_absent_est_distingue_de_la_route(regle, monkeypatch):
+    """L'AUTRE CAUSE. « cloudflared actif » sur la machine ne prouve pas que
+    le processus parle a CE tunnel : on demande son avis a Cloudflare."""
+    from apps.websites import cloudflare_service
+
+    monkeypatch.setattr(cloudflare_service, 'fetch_cf_tunnels',
+                        lambda c: {'success': True, 'tunnels': [
+                            {'id': regle.tunnel.tunnel_id, 'name': 'T',
+                             'status': 'down', 'connections': []}]})
+    monkeypatch.setattr(cloudflare_service, 'fetch_tunnel_ingress',
+                        lambda c, t: {'success': True, 'ingress': [
+                            {'hostname': regle.hostname,
+                             'service': 'http://localhost:9000'}]})
+
+    etapes = tunnel_service.diagnostiquer_hote(regle)
+
+    assert _verdict(etapes, 'Connecteur')['etat'] == 'erreur'
+    assert _verdict(etapes, 'Route distante')['etat'] == 'ok'
+
+
+@pytest.mark.django_db
+def test_toutes_les_etapes_sont_evaluees_malgre_un_echec(regle, monkeypatch):
+    """Un diagnostic qui s'arrete au premier defaut oblige a autant
+    d'allers-retours qu'il y a de defauts."""
+    from apps.websites import cloudflare_service
+
+    monkeypatch.setattr(cloudflare_service, 'fetch_cf_tunnels',
+                        lambda c: {'success': False, 'tunnels': [],
+                                   'error': 'jeton invalide'})
+    monkeypatch.setattr(cloudflare_service, 'fetch_tunnel_ingress',
+                        lambda c, t: {'success': False, 'ingress': [],
+                                      'error': 'illisible'})
+
+    etapes = tunnel_service.diagnostiquer_hote(regle)
+
+    noms = {e['nom'] for e in etapes}
+    assert {'Connecteur', 'Route distante', 'Service local'} <= noms
+
+
+@pytest.mark.django_db
+def test_un_port_de_frontend_est_signale(regle, monkeypatch):
+    """Le piege rencontre : une vitrine est rendue par DJANGO, et Django
+    n'ecoute pas sur les ports des frontends compiles."""
+    from apps.core.models import Company
+    from apps.websites import cloudflare_service
+    from apps.websites.models import Website
+
+    site = Website.objects.create(
+        company=regle.tunnel.company, name='Sparkling Peace', slug='sp')
+    regle.website = site
+    regle.service = 'http://localhost:5172'
+    regle.save()
+
+    monkeypatch.setattr(cloudflare_service, 'fetch_cf_tunnels',
+                        lambda c: {'success': True, 'tunnels': []})
+    monkeypatch.setattr(cloudflare_service, 'fetch_tunnel_ingress',
+                        lambda c, t: {'success': True, 'ingress': []})
+
+    etapes = tunnel_service.diagnostiquer_hote(regle)
+    service = _verdict(etapes, 'Service local')
+
+    assert service['etat'] == 'attention'
+    assert '9000' in service['action']
+
+
+@pytest.mark.django_db
+def test_un_domaine_absent_de_l_ERP_est_signale(regle, monkeypatch):
+    """Sans WebsiteDomain actif, Django repond 400 : le tunnel aurait beau
+    fonctionner, la page serait une erreur."""
+    from apps.websites import cloudflare_service
+
+    monkeypatch.setattr(cloudflare_service, 'fetch_cf_tunnels',
+                        lambda c: {'success': True, 'tunnels': []})
+    monkeypatch.setattr(cloudflare_service, 'fetch_tunnel_ingress',
+                        lambda c, t: {'success': True, 'ingress': []})
+
+    etapes = tunnel_service.diagnostiquer_hote(regle)
+
+    assert _verdict(etapes, 'Domaine dans l’ERP')['etat'] == 'erreur'
