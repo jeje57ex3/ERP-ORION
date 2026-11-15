@@ -123,3 +123,77 @@ def test_les_couleurs_retenues_sont_lisibles(fond, texte, seuil):
     ecart = contraste(fond, texte)
     assert ecart >= seuil, (
         f'{texte} sur {fond} : contraste {ecart:.1f}, en dessous de {seuil}')
+
+
+# ── Les photographies livrées avec le site ───────────────────────────────────
+
+"""Neuf photos accompagnent le site (Pexels, licence libre). Elles ne sont
+qu'un REPLI : dès qu'un service ou une réalisation porte sa propre image,
+c'est elle qui s'affiche. L'exploitant les remplace une par une depuis
+l'ERP, sans jamais passer par le code — et sans qu'une page reste vide en
+attendant."""
+
+PHOTOS = Path('static/img/sites/sparkling-peace')
+
+
+def test_les_neuf_photos_sont_livrees():
+    from apps.websites.electricite_public_views import (PHOTOS_DE_REALISATION,
+                                                        PHOTOS_DE_SERVICE)
+
+    attendues = ['hero-villa.jpg'] + PHOTOS_DE_SERVICE + PHOTOS_DE_REALISATION
+    manquantes = [n for n in attendues if not (PHOTOS / n).exists()]
+
+    assert not manquantes, manquantes
+
+
+def test_les_photos_restent_legeres():
+    """Elles partent sur chaque page d'accueil : une seule photo lourde se
+    paie à chaque visite, et d'abord par ceux qui sont en 4G."""
+    lourdes = [(f.name, f.stat().st_size // 1024)
+               for f in PHOTOS.glob('*.jpg') if f.stat().st_size > 350 * 1024]
+
+    assert not lourdes, f'photo(s) de plus de 350 Ko : {lourdes}'
+
+    total = sum(f.stat().st_size for f in PHOTOS.glob('*.jpg'))
+    assert total < 1600 * 1024, f'{total // 1024} Ko au total, c’est trop'
+
+
+def test_la_provenance_est_tracee():
+    """Une image sans source devient inutilisable le jour où quelqu'un
+    demande d'où elle vient."""
+    credits = (PHOTOS / 'CREDITS.md').read_text(encoding='utf-8')
+
+    assert 'pexels.com/license' in credits
+    assert 'Attribution facultative' in credits
+
+
+@pytest.mark.django_db
+def test_l_image_de_l_exploitant_prime_sur_la_notre():
+    """LE CONTRAT : nos photos comblent un vide, elles ne l'occupent pas."""
+    from apps.websites.electricite_public_views import _cartes_de_services
+
+    class FauxService:
+        title = 'Dépannage 24/7'
+        description = 'Intervention rapide.'
+        icon = 'bi-tools'
+
+        class image:
+            url = '/media/websites/services/depannage.jpg'
+
+    cartes = _cartes_de_services([FauxService()], [])
+
+    assert cartes[0]['image'] == '/media/websites/services/depannage.jpg'
+    assert cartes[0]['titre'] == 'Dépannage 24/7'
+
+
+@pytest.mark.django_db
+def test_sans_rien_les_quatre_cartes_tiennent_quand_meme():
+    """Un site neuf doit montrer ce que l'entreprise sait faire, pas un
+    blanc."""
+    from apps.websites.electricite_public_views import (ELECTRICITE_SERVICES,
+                                                        _cartes_de_services)
+
+    cartes = _cartes_de_services([], ELECTRICITE_SERVICES)
+
+    assert len(cartes) == 4
+    assert all(c['image'] and c['titre'] for c in cartes)

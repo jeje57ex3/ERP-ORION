@@ -10,6 +10,7 @@ from .models import Website, BTPPortfolioProject, BTPWebsiteReview, BTPClientAcc
 from .public_views import _base_context, _get_ip, translate_static_items, translate_faq_items
 from .btp_public_views import _notify_erp
 from .electricite_wizard_views import _get_electricite_site
+from django.templatetags.static import static
 
 
 ELECTRICITE_SERVICES = [
@@ -74,6 +75,90 @@ def _elec_context(site):
     return ctx
 
 
+# ─── Les visuels livres avec le site ─────────────────────────────────────────
+#
+# Neuf photographies accompagnent le site (voir
+# static/img/sites/sparkling-peace/CREDITS.md). Elles ne sont qu'un REPLI :
+# des qu'un service ou une realisation porte sa propre image, c'est elle qui
+# s'affiche. L'exploitant remplace donc les visuels un par un, depuis l'ERP,
+# sans jamais passer par le code — et sans qu'une page reste vide en
+# attendant qu'il le fasse.
+
+PHOTOS_DE_SERVICE = [
+    'service-electricite.jpg',
+    'service-mise-aux-normes.jpg',
+    'service-etancheite-toiture.jpg',
+    'service-etancheite-terrasse.jpg',
+]
+
+PHOTOS_DE_REALISATION = [
+    'realisation-electricite.jpg',
+    'realisation-etancheite.jpg',
+    'realisation-renovation.jpg',
+    'realisation-maintenance.jpg',
+]
+
+
+def _photo_livree(nom):
+    return static(f'img/sites/sparkling-peace/{nom}')
+
+
+def _cartes_de_services(proposes, types):
+    """Les quatre cartes de la page d'accueil, visuel resolu.
+
+    La resolution se fait ICI et non dans le gabarit : un gabarit qui doit
+    choisir entre l'image d'un objet et une liste indexee par le compteur de
+    boucle demande un filtre sur mesure, et devient illisible. La vue rend
+    quatre dictionnaires prets a afficher.
+    """
+    cartes = []
+    source = proposes or []
+
+    for index in range(4):
+        photo = _photo_livree(PHOTOS_DE_SERVICE[index])
+
+        if index < len(source):
+            service = source[index]
+            cartes.append({
+                'titre': service.title,
+                'texte': service.description,
+                'icone': service.icon or 'bi-lightning-charge-fill',
+                # L'image de l'exploitant prime ; la notre comble le vide.
+                'image': service.image.url if service.image else photo,
+            })
+        elif index < len(types):
+            cartes.append({
+                'titre': types[index]['name'],
+                'texte': types[index]['desc'],
+                'icone': types[index]['icon'],
+                'image': photo,
+            })
+
+    return cartes
+
+
+def _vignettes(portfolio):
+    """Les quatre vignettes de realisations, visuel resolu."""
+    vignettes = []
+    projets = list(portfolio)[:4]
+
+    for index in range(4):
+        if index < len(projets):
+            projet = projets[index]
+            image = projet.after_image or projet.before_image
+            vignettes.append({
+                'titre': projet.title,
+                'image': image.url if image else _photo_livree(PHOTOS_DE_REALISATION[index]),
+            })
+        else:
+            vignettes.append({
+                'titre': '',
+                'image': _photo_livree(PHOTOS_DE_REALISATION[index]),
+            })
+
+    return vignettes
+
+
 def electricite_home(request, site_slug):
     site = _get_electricite_site(site_slug)
     ctx = _elec_context(site)
@@ -87,10 +172,14 @@ def electricite_home(request, site_slug):
     # montre un vrai chantier de l'entreprise plutot qu'une image de
     # banque. Facultative — sans elle le degrade tient la page.
     vedette = next((p for p in ctx['elec_portfolio'] if p.after_image), None)
+    proposes = list(site.services.filter(is_active=True).order_by('order')[:4])
 
     ctx.update({
-        'featured_services': site.services.filter(is_active=True).order_by('order')[:6] or None,
-        'hero_image': vedette.after_image.url if vedette else '',
+        'featured_services': proposes or None,
+        'cartes_services': _cartes_de_services(proposes, ctx['services']),
+        'vignettes': _vignettes(ctx['elec_portfolio']),
+        'hero_image': (vedette.after_image.url if vedette
+                       else static('img/sites/sparkling-peace/hero-villa.jpg')),
         'entete_sur_photo': True,
         'page_courante': 'accueil',
         'page_title': site.meta_title or f'{site.company.name} — Électricité & Étanchéité',
