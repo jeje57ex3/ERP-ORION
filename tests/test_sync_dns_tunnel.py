@@ -511,3 +511,38 @@ def test_un_domaine_absent_de_l_ERP_est_signale(regle, monkeypatch):
     etapes = tunnel_service.diagnostiquer_hote(regle)
 
     assert _verdict(etapes, 'Domaine dans l’ERP')['etat'] == 'erreur'
+
+
+def test_les_actions_restent_visibles_une_fois_le_dns_synchronise():
+    """LE DEFAUT RAPPORTE : « je n'ai pas de bouton diagnostic ».
+
+    « Remplacer » et « Diagnostic » etaient places dans la branche
+    « {% else %} » de « {% if rule.dns_synced %} ». Des que la
+    synchronisation avait reussi, ils disparaissaient — c'est-a-dire
+    PRECISEMENT quand on en a besoin : un CNAME pose ne garantit ni que le
+    connecteur tourne, ni que la route est publiee, ni que le CNAME vise le
+    bon tunnel.
+
+    Le cas reel : un CNAME correct vers un tunnel sans connecteur. Le badge
+    affichait « Sync », le site repondait 1033, et le bouton qui l'aurait
+    explique etait cache.
+
+    Le test lit la STRUCTURE du gabarit : le lien de diagnostic doit se
+    trouver APRES la fermeture du bloc conditionnel.
+    """
+    from pathlib import Path
+
+    gabarit = Path('templates/websites/tunnel/tunnel_detail.html').read_text(
+        encoding='utf-8')
+
+    debut = gabarit.index('{% if rule.dns_synced %}')
+    fin = gabarit.index('{% endif %}', debut)
+    conditionnel = gabarit[debut:fin]
+
+    assert 'ingress_diagnostic' not in conditionnel, (
+        'le bouton Diagnostic est cache des que le DNS est synchronise')
+    assert 'name="remplacer"' not in conditionnel, (
+        'le bouton Remplacer est cache des que le DNS est synchronise')
+    # Et ils doivent bien exister quelque part.
+    assert 'ingress_diagnostic' in gabarit
+    assert 'name="remplacer" value="1"' in gabarit
