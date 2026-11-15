@@ -1,0 +1,556 @@
+/* sparkling-peace.css — L'habillage du site Électricité & Étanchéité.
+ *
+ * LES COULEURS SONT RELEVÉES, PAS CHOISIES
+ *
+ * Elles proviennent de moyennes de zones prises dans la maquette fournie,
+ * et non d'une estimation à l'œil : l'or des boutons mesure #C8A47C, la
+ * bande de confiance #EDE5DC, le fond des cartes #EFE9E2, la section des
+ * réalisations #222220. Estimer une couleur chaude est précisément ce qu'on
+ * rate le plus souvent — on la rend trop saturée.
+ *
+ * POURQUOI UNE FEUILLE À PART
+ *
+ * « orion-site-theme.css » habille TOUS les sites de l'ERP, en bleu et
+ * orange. La modifier repeindrait les autres vitrines. Celle-ci ne fait que
+ * redéfinir les jetons et ajouter les composants propres à ce dessin ; elle
+ * se charge après, et uniquement pour les sites de type électricité.
+ *
+ * LES TITRES SONT EN SÉRIF
+ *
+ * C'est le trait le plus visible de la maquette, et celui qu'on perd le
+ * plus facilement : une sans-serif à la place et tout le caractère tombe,
+ * sans qu'on sache dire pourquoi.
+ */
+
+/* ── Les jetons ───────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  --site-primary:     #C8A47C;   /* l'or des boutons et des traits */
+  --site-primary-600: #B08F68;
+  --site-accent:      #C8A47C;
+  --site-secondary:   #FFFFFF;
+
+  --site-bg:          #FBF9F6;   /* le fond général, crème très clair */
+  --site-surface:     #FFFFFF;
+  --site-surface-2:   #EDE5DC;   /* la bande de confiance */
+  --site-carte:       #EFE9E2;   /* le corps des cartes de service */
+  --site-sombre:      #222220;   /* la section des réalisations */
+  --site-sombre-2:    #2C2B28;
+
+  --site-text:        #1C1A18;
+  /* Assombri de #6E6962 a #66615A : sur la bande creme (#EDE5DC) l'ancien
+     ton mesurait 4,36 de contraste, sous le seuil de 4,5 du texte courant.
+     L'ecart est invisible a l'oeil — c'est precisement pourquoi il faut le
+     mesurer. */
+  --site-muted:       #66615A;
+  --site-border:      #E3DACF;
+
+  --site-shadow:      0 10px 30px rgba(34, 34, 32, .07);
+  --site-shadow-lg:   0 24px 60px rgba(34, 34, 32, .12);
+
+  --sp-serif: 'Playfair Display', 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+/* ── Les titres ───────────────────────────────────────────────────────── */
+
+.sp-site h1, .sp-site h2, .sp-site h3,
+.sp-site .sp-titre {
+  font-family: var(--sp-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.14;
+  color: var(--site-text);
+}
+
+/* Le surtitre : petites capitales très espacées, suivies d'un filet.
+   Le filet est un pseudo-élément — un trait dessiné en HTML serait un
+   élément vide de plus à lire pour un lecteur d'écran. */
+.sp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--site-primary);
+  margin: 0 0 22px;
+}
+
+.sp-eyebrow::after {
+  content: '';
+  flex: 0 0 56px;
+  height: 1px;
+  background: currentColor;
+  opacity: .55;
+}
+
+.sp-eyebrow--centre { justify-content: center; }
+
+/* ── Les boutons ──────────────────────────────────────────────────────── */
+
+.sp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 26px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .22s ease, color .22s ease, border-color .22s ease;
+}
+
+.sp-btn--or {
+  background: var(--site-primary);
+  color: #26201A;
+}
+
+.sp-btn--or:hover { background: var(--site-primary-600); color: #1C1712; }
+
+.sp-btn--clair {
+  background: transparent;
+  border-color: rgba(255, 255, 255, .55);
+  color: #FFFFFF;
+}
+
+.sp-btn--clair:hover { background: rgba(255, 255, 255, .12); }
+
+.sp-btn--contour {
+  background: transparent;
+  border-color: var(--site-border);
+  color: var(--site-text);
+}
+
+.sp-btn--contour:hover { border-color: var(--site-primary); color: var(--site-primary-600); }
+
+/* ── L'en-tête ────────────────────────────────────────────────────────── */
+
+.sp-entete {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 30;
+  padding: 18px 0;
+}
+
+/* Sur les pages intérieures l'en-tête n'a pas de photo derrière : il
+   redevient opaque, sans quoi le texte clair se poserait sur du clair. */
+.sp-entete--opaque {
+  position: static;
+  background: var(--site-sombre);
+}
+
+.sp-entete__inner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.sp-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #FFFFFF;
+}
+
+.sp-logo__marque {
+  font-family: var(--sp-serif);
+  font-size: 21px;
+  letter-spacing: .12em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.sp-logo__sous {
+  display: block;
+  font-family: system-ui, sans-serif;
+  font-size: 9.5px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  opacity: .78;
+  margin-top: 3px;
+}
+
+.sp-nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-left: auto;
+}
+
+.sp-nav a {
+  position: relative;
+  font-size: 15px;
+  color: rgba(255, 255, 255, .92);
+  padding-bottom: 5px;
+}
+
+.sp-nav a.actif,
+.sp-nav a:hover { color: #FFFFFF; }
+
+.sp-nav a.actif::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--site-primary);
+}
+
+.sp-entete__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sp-tel {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: var(--site-text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── Le hero ──────────────────────────────────────────────────────────── */
+
+.sp-hero {
+  position: relative;
+  min-height: 560px;
+  display: flex;
+  align-items: center;
+  padding: 150px 0 72px;
+  background: var(--site-sombre);
+  overflow: hidden;
+}
+
+/* La photo est facultative. Sans elle le dégradé tient la page : une
+   vitrine qui se vide parce qu'un visuel manque est une panne, une page
+   sobre n'en est pas une. */
+.sp-hero__photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.sp-hero__voile {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg,
+              rgba(20, 19, 17, .92) 0%,
+              rgba(20, 19, 17, .72) 38%,
+              rgba(20, 19, 17, .25) 72%,
+              rgba(20, 19, 17, .12) 100%);
+}
+
+.sp-hero__inner { position: relative; max-width: 620px; }
+
+.sp-hero h1 {
+  font-size: clamp(34px, 4.6vw, 58px);
+  color: #FFFFFF;
+  margin: 0 0 20px;
+}
+
+.sp-hero__lead {
+  font-size: 17px;
+  line-height: 1.72;
+  color: rgba(255, 255, 255, .86);
+  margin: 0 0 34px;
+  max-width: 50ch;
+}
+
+.sp-hero__actions { display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* ── La bande de confiance ────────────────────────────────────────────── */
+
+.sp-confiance {
+  background: var(--site-surface-2);
+  padding: 34px 0;
+}
+
+.sp-confiance__grille {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.sp-confiance__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 0 28px;
+  border-right: 1px solid rgba(34, 34, 32, .12);
+}
+
+.sp-confiance__item:last-child { border-right: 0; }
+.sp-confiance__item:first-child { padding-left: 0; }
+
+.sp-confiance__icone {
+  flex: 0 0 auto;
+  font-size: 27px;
+  color: var(--site-primary);
+  line-height: 1;
+}
+
+.sp-confiance__titre {
+  font-weight: 600;
+  font-size: 15.5px;
+  margin: 0 0 5px;
+  color: var(--site-text);
+}
+
+.sp-confiance__texte {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--site-muted);
+  margin: 0;
+}
+
+/* ── Les services ─────────────────────────────────────────────────────── */
+
+.sp-services { background: var(--site-bg); padding: 92px 0; }
+
+.sp-services__grille {
+  display: grid;
+  grid-template-columns: 0.82fr 2fr;
+  gap: 54px;
+  align-items: start;
+}
+
+.sp-services__intro h2 { font-size: clamp(26px, 2.6vw, 36px); margin: 0 0 30px; }
+
+.sp-cartes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.sp-carte {
+  background: var(--site-carte);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+
+.sp-carte:hover { transform: translateY(-4px); box-shadow: var(--site-shadow); }
+
+.sp-carte__visuel {
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(140deg, #D9CDBE 0%, #B9A991 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.sp-carte__corps { padding: 20px 20px 24px; }
+
+.sp-carte__icone {
+  font-size: 21px;
+  color: var(--site-primary-600);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.sp-carte__titre {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: var(--site-text);
+}
+
+.sp-carte__texte {
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--site-muted);
+  margin: 0;
+}
+
+/* ── Les réalisations ─────────────────────────────────────────────────── */
+
+.sp-realisations {
+  background: var(--site-sombre);
+  padding: 86px 0;
+  color: #FFFFFF;
+}
+
+.sp-realisations h2 { color: #FFFFFF; font-size: clamp(26px, 2.6vw, 36px); margin: 0 0 30px; }
+.sp-realisations .sp-eyebrow { color: var(--site-primary); }
+
+.sp-realisations__grille {
+  display: grid;
+  grid-template-columns: 0.82fr 2fr;
+  gap: 54px;
+  align-items: start;
+}
+
+.sp-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.sp-filtre {
+  padding: 9px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, .78);
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.sp-filtre:hover { color: #FFFFFF; }
+
+.sp-filtre.actif {
+  /* Une pastille CLAIRE sur bande sombre : le texte doit donc être sombre,
+     écrit ici. Hériter la couleur de la section donnerait du blanc sur
+     blanc — défaut déjà rencontré sur l'autre vitrine. */
+  background: #F4EFE8;
+  color: #221F1B;
+}
+
+.sp-photos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.sp-photo {
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(140deg, #3A3733 0%, #262320 100%);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, .32);
+  font-size: 26px;
+}
+
+.sp-fleches { display: flex; gap: 10px; }
+
+.sp-fleche {
+  width: 38px; height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  background: transparent;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sp-fleche:hover { border-color: var(--site-primary); color: var(--site-primary); }
+
+/* ── Petits écrans ────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .sp-services__grille,
+  .sp-realisations__grille { grid-template-columns: 1fr; gap: 34px; }
+  .sp-cartes,
+  .sp-photos { grid-template-columns: repeat(2, 1fr); }
+  .sp-confiance__grille { grid-template-columns: repeat(2, 1fr); row-gap: 26px; }
+  .sp-confiance__item:nth-child(2n) { border-right: 0; }
+  .sp-confiance__item:nth-child(3) { padding-left: 0; }
+}
+
+@media (max-width: 680px) {
+  .sp-nav { display: none; }
+  .sp-hero { min-height: 480px; padding-top: 120px; }
+  .sp-cartes,
+  .sp-photos,
+  .sp-confiance__grille { grid-template-columns: 1fr; }
+  .sp-confiance__item { border-right: 0; padding-left: 0; }
+}
+
+/* ── Corrections mesurées au rendu ────────────────────────────────────── */
+
+/* LE NOM DU LOGO ET LE SECOND BOUTON SORTAIENT INVISIBLES.
+ *
+ * « orion-site-theme.css » pose « .orion-site a { color: inherit } », de
+ * spécificité 0,1,1. Mes règles « .sp-logo » et « .sp-btn--clair » n'en
+ * pesaient que 0,1,0 : malgré l'ordre de chargement, c'est « inherit » qui
+ * l'emportait, et les liens prenaient la couleur sombre du corps — sur un
+ * en-tête noir.
+ *
+ * L'ordre de chargement ne suffit donc pas : c'est la spécificité qui
+ * tranche, et il faut la nommer. On qualifie par « .sp-site » et par le
+ * sélecteur d'élément.
+ */
+.sp-site a.sp-logo,
+.sp-site a.sp-logo .sp-logo__marque,
+.sp-site a.sp-logo .sp-logo__sous { color: #FFFFFF; }
+
+.sp-site .sp-nav a { color: rgba(255, 255, 255, .92); white-space: nowrap; }
+.sp-site .sp-nav a.actif,
+.sp-site .sp-nav a:hover { color: #FFFFFF; }
+
+.sp-site a.sp-btn--or { color: #26201A; }
+.sp-site a.sp-btn--clair { color: #FFFFFF; }
+.sp-site a.sp-btn--contour { color: var(--site-text); }
+.sp-site a.sp-tel { color: var(--site-text); white-space: nowrap; }
+.sp-site .sp-filtre { color: rgba(255, 255, 255, .78); }
+.sp-site .sp-filtre.actif { color: #221F1B; }
+
+/* Le numéro et les intitulés de menu ne doivent pas se couper en deux :
+   « 06 12 34 56 / 78 » se lit comme deux numéros. */
+.sp-tel, .sp-nav a { white-space: nowrap; }
+
+/* La colonne de gauche était trop étroite : le titre s'y brisait en six
+   lignes là où la maquette en montre trois. */
+.sp-services__grille,
+.sp-realisations__grille { grid-template-columns: 0.95fr 2fr; }
+
+.sp-services__intro h2,
+.sp-realisations h2 { font-size: clamp(23px, 2.1vw, 31px); }
+
+/* Le hero de la maquette commence plus a gauche que le conteneur commun. */
+.sp-hero__inner { max-width: 680px; }
+
+/* ── Finitions relevées au second rendu ───────────────────────────────── */
+
+/* Le bouton d'en-tête se coupait en deux lignes. */
+.sp-entete__actions .sp-btn { white-space: nowrap; }
+
+/* LE PIED RESTAIT BLEU NUIT.
+ *
+ * « .site-footer » tire son fond de « --site-secondary », que la feuille
+ * commune met à blanc et que le thème sombre passe à #060A14. Le reste de
+ * la page est désormais crème et anthracite : un pied bleu nuit y faisait
+ * une pièce rapportée. On l'aligne sur l'anthracite des réalisations,
+ * plutôt que de réécrire le gabarit — il est partagé par toutes les pages.
+ */
+.sp-site .site-footer {
+  background: var(--site-sombre);
+  color: rgba(255, 255, 255, .62);
+  border-top: 0;
+  margin-top: 0;
+}
+
+.sp-site .site-footer h4 { color: #FFFFFF; font-family: var(--sp-serif); font-weight: 500; }
+.sp-site .site-footer a { color: rgba(255, 255, 255, .72); }
+.sp-site .site-footer a:hover { color: var(--site-primary); }
+
+/* Les cartes de service étaient trop étroites : le texte s'y brisait mot à
+   mot. On rend à la colonne de gauche sa juste part. */
+.sp-services__grille { grid-template-columns: 0.8fr 2.5fr; }
+
+/* La mention des réalisations collait aux vignettes. */
+.sp-photos + p { margin-top: 18px !important; }
+
+/* Le titre des services se brisait en six lignes. La maquette en montre
+   trois : la colonne reprend un peu de largeur, et le corps baisse — c'est
+   le rapport entre les deux qui fait le nombre de lignes, pas l'un ou
+   l'autre pris seul. */
+.sp-services__grille { grid-template-columns: 1fr 2.3fr; }
+.sp-services__intro h2 { font-size: clamp(21px, 1.85vw, 27px); }

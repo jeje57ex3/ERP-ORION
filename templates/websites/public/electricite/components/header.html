@@ -1,64 +1,65 @@
 {% load static i18n %}
-<header class="site-header">
-  <div class="site-header-inner">
+{% comment %}
+  L'EN-TETE DE LA MAQUETTE.
 
-    <a href="{% url 'public_websites:electricite_home' site.public_slug %}" class="site-logo">
+  Il est POSE SUR la photo du hero sur la page d'accueil (position
+  absolue, fond transparent), et redevient opaque ailleurs : sans photo
+  derriere, du texte clair sur fond clair serait illisible. C'est le
+  gabarit qui le dit, par « entete_sur_photo ».
+{% endcomment %}
+<header class="sp-entete {% if not entete_sur_photo %}sp-entete--opaque{% endif %}">
+  <div class="site-container sp-entete__inner">
+
+    <a href="{% url 'public_websites:electricite_home' site.public_slug %}" class="sp-logo">
       {% if site.logo %}
-        <img src="{{ site.logo.url }}" alt="{{ site.name }}">
-      {% elif site.company.logo %}
-        <img src="{{ site.company.logo.url }}" alt="{{ site.company.name }}">
+      <img src="{{ site.logo.url }}" alt="{{ site.company.name }}" style="height:44px;width:auto">
       {% else %}
-        <i class="bi bi-lightning-charge-fill" style="color:var(--site-accent);font-size:1.4rem" aria-hidden="true"></i>
+      {% comment %}
+        LE LOGO DE LA MARQUE, LIVRE AVEC LE SITE.
+
+        Il sert tant qu'aucun fichier n'a ete televerse depuis l'ERP : un
+        exploitant qui depose le sien le voit prendre la place, sans
+        toucher au code. Un cadre vide a la place d'un logo donne
+        l'impression d'un site casse — mieux vaut un repli juste.
+      {% endcomment %}
+      <img src="{% static 'img/sites/sparkling-peace-logo.png' %}"
+           alt="{{ site.company.name }}" width="52" height="52"
+           style="height:52px;width:52px;object-fit:contain">
       {% endif %}
-      <span>{{ site.company.name|truncatechars:26 }}</span>
+      <span>
+        <span class="sp-logo__marque">{{ site.company.name }}</span>
+        <span class="sp-logo__sous">{% trans "Électricité & Étanchéité" %}</span>
+      </span>
     </a>
 
-    <nav class="site-nav" id="siteNav" aria-label="Navigation principale">
-      {% if menu_items %}
-        {% for item in menu_items %}
-        <a href="{{ item.url }}" class="site-nav-link {% if request.path == item.url %}active{% endif %}">{{ item.label }}</a>
-        {% endfor %}
-      {% else %}
-        <a href="{% url 'public_websites:electricite_home' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_home' %}active{% endif %}">{% trans 'Accueil' %}</a>
-        <a href="{% url 'public_websites:electricite_about' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_about' %}active{% endif %}">{% trans 'À propos' %}</a>
-        <a href="{% url 'public_websites:electricite_services' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_services' %}active{% endif %}">{% trans 'Services' %}</a>
-        <a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_portfolio' %}active{% endif %}">{% trans 'Réalisations' %}</a>
-        <a href="{% url 'public_websites:electricite_calculateur' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_calculateur' %}active{% endif %}">{% trans 'Calculateur' %}</a>
-        <a href="{% url 'public_websites:electricite_reviews' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_reviews' %}active{% endif %}">{% trans 'Avis' %}</a>
-        <a href="{% url 'public_websites:electricite_faq' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_faq' %}active{% endif %}">FAQ</a>
-        <a href="{% url 'public_websites:electricite_contact' site.public_slug %}" class="site-nav-link {% if request.resolver_match.url_name == 'electricite_contact' %}active{% endif %}">{% trans 'Contact' %}</a>
-      {% endif %}
+    <nav class="sp-nav" aria-label="{% trans 'Navigation principale' %}">
+      <a href="{% url 'public_websites:electricite_home' site.public_slug %}"
+         class="{% if page_courante == 'accueil' %}actif{% endif %}">{% trans "Accueil" %}</a>
+      <a href="{% url 'public_websites:electricite_services' site.public_slug %}"
+         class="{% if page_courante == 'services' %}actif{% endif %}">{% trans "Nos services" %}</a>
+      <a href="{% url 'public_websites:electricite_portfolio' site.public_slug %}"
+         class="{% if page_courante == 'realisations' %}actif{% endif %}">{% trans "Réalisations" %}</a>
+      <a href="{% url 'public_websites:electricite_about' site.public_slug %}"
+         class="{% if page_courante == 'entreprise' %}actif{% endif %}">{% trans "L’entreprise" %}</a>
+      <a href="{% url 'public_websites:electricite_contact' site.public_slug %}"
+         class="{% if page_courante == 'contact' %}actif{% endif %}">{% trans "Contact" %}</a>
     </nav>
 
-    {% include "websites/public/components/language_switcher.html" %}
-
-    <form class="site-header-search" id="siteSearchForm" role="search" action="{% url 'public_websites:electricite_services' site.public_slug %}" method="get">
-      <i class="bi bi-search" aria-hidden="true"></i>
-      <label for="siteSearchInput" class="visually-hidden" style="position:absolute;left:-9999px">{% trans 'Rechercher un service' %}</label>
-      <input type="search" id="siteSearchInput" name="q" placeholder="{% trans 'Rechercher...' %}">
-    </form>
-
-    {% if site.contact_phone %}
-    <a href="tel:{{ site.contact_phone }}" class="site-header-phone">
-      <i class="bi bi-telephone-fill" aria-hidden="true"></i>{{ site.contact_phone }}
-    </a>
-    {% endif %}
-
-    <button class="site-icon-btn" id="siteThemeToggle" aria-label="{% trans 'Changer de thème' %}" type="button">
-      <i class="bi bi-sun-fill" aria-hidden="true"></i>
-    </button>
-
-    <a href="{% url 'client_portal:login' %}" class="site-icon-btn" aria-label="{% trans 'Connexion espace client' %}">
-      <i class="bi bi-person" aria-hidden="true"></i>
-    </a>
-
-    <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="site-btn site-btn-primary site-btn-sm">
-      <span class="site-btn-label"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i> {% trans 'Devis' %}</span>
-    </a>
-
-    <button class="site-menu-toggle" id="siteMenuToggle" aria-label="{% trans 'Ouvrir le menu' %}" aria-expanded="false" aria-controls="siteNav" type="button">
-      <i class="bi bi-list" aria-hidden="true"></i>
-    </button>
+    <div class="sp-entete__actions">
+      {% if site.contact_phone %}
+      {% comment %}
+        Le numero est un LIEN « tel: ». Sur un telephone — d'ou viennent la
+        plupart des demandes de devis — un numero qu'on ne peut pas
+        toucher oblige a le recopier a la main.
+      {% endcomment %}
+      <a href="tel:{{ site.contact_phone|cut:' ' }}" class="sp-tel">
+        <i class="bi bi-telephone-fill" aria-hidden="true"></i>{{ site.contact_phone }}
+      </a>
+      {% endif %}
+      <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="sp-btn sp-btn--or">
+        {% trans "Demander un devis" %} <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
 
   </div>
 </header>
