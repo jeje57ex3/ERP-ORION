@@ -37,12 +37,74 @@ from . import assinatura, atcud, isencao, qr, taxas
 
 #: Le format que le SAF-T (PT) impose au numéro de document.
 #:
-#: Le schéma XSD de l'AT valide « InvoiceNo » contre « [^ ]+ [^/^ ]+/[0-9]+ » :
-#: un type, une espace, une série sans barre oblique, une barre oblique, un
-#: numéro. « FT A/1 » passe ; « FAC-2026-0042 » ne passe pas — ni espace, ni
-#: barre oblique. Un export entier serait rejeté pour cette seule raison, et
-#: le numéro, lui, a l'air parfaitement normal.
-MOTIF_NUMERO_SAFT = re.compile(r'^[^ ]+ [^/ ]+/[0-9]+$')
+#: Recopié EXACTEMENT du schéma de l'AT, où `InvoiceNo` porte le motif
+#: « [^ ]+ [^/^ ]+/[0-9]+ » : un type, une espace, une série sans barre
+#: oblique ni accent circonflexe, une barre oblique, un numéro. « FT A/1 »
+#: passe ; « FAC-2026-0042 » ne passe pas — ni espace, ni barre oblique.
+#: Un export entier serait rejeté pour cette seule raison, et le numéro,
+#: lui, a l'air parfaitement normal.
+#:
+#: L'ACCENT CIRCONFLEXE EXCLU N'EST PAS UN DÉTAIL DE COPIE. Une première
+#: version écrivait « [^/ ]+ », qui laissait passer une série nommée
+#: « A^B » : le numéro était accepté ici et refusé par le schéma. Un test
+#: compare désormais ce motif à celui du XSD, caractère par caractère.
+MOTIF_NUMERO_SAFT = re.compile(r'[^ ]+ [^/^ ]+/[0-9]+')
+
+#: Les bornes du NIF portugais, telles que le schéma les fixe sur
+#: `TaxRegistrationNumber` : un entier de 100000000 à 999999999, donc
+#: neuf chiffres dont le premier n'est pas zéro.
+NIF_MINIMUM = 100000000
+NIF_MAXIMUM = 999999999
+
+
+def valider_nif(valeur, obligatoire=True):
+    """Le NIF portugais : neuf chiffres, et le chiffre de contrôle juste.
+
+    POURQUOI LE CHIFFRE DE CONTRÔLE EST VÉRIFIÉ ICI
+
+    Le schéma de l'AT n'impose que les bornes : neuf chiffres. Un NIF mal
+    recopié — deux chiffres intervertis — les respecte parfaitement, passe
+    la validation du fichier, et désigne quelqu'un d'autre ou personne.
+
+    L'erreur ne se découvre alors ni à la saisie, ni à la remise du
+    SAF-T : elle apparaît quand l'administration ne retrouve pas
+    l'entreprise, des mois après. Le contrôle modulo 11 l'attrape
+    immédiatement, et il coûte dix lignes.
+    """
+    texte = str(valeur or '').strip().replace(' ', '')
+
+    if not texte:
+        if obligatoire:
+            raise ValidationError(
+                'Le NIF est absent. Il figure dans le code QR et dans '
+                'l’en-tête du SAF-T.')
+        return ''
+
+    if not texte.isdigit() or len(texte) != 9:
+        raise ValidationError(
+            f'« {texte} » n’est pas un NIF portugais : le schéma de l’AT en '
+            'exige neuf chiffres, sans préfixe de pays ni séparateur.')
+
+    if not (NIF_MINIMUM <= int(texte) <= NIF_MAXIMUM):
+        raise ValidationError(
+            f'« {texte} » est hors des bornes du schéma '
+            f'({NIF_MINIMUM} à {NIF_MAXIMUM}).')
+
+    # Modulo 11 sur les huit premiers chiffres, pondérés de 9 à 2.
+    somme = sum(int(chiffre) * poids
+                for chiffre, poids in zip(texte[:8], range(9, 1, -1)))
+    reste = somme % 11
+    attendu = 0 if reste in (0, 1) else 11 - reste
+
+    if int(texte[8]) != attendu:
+        raise ValidationError(
+            f'« {texte} » a un chiffre de contrôle incorrect : {attendu} '
+            f'était attendu en dernière position. Deux chiffres intervertis '
+            'suffisent, et l’erreur ne se verrait ni à la saisie ni à la '
+            'remise du fichier — seulement quand l’administration ne '
+            'retrouverait pas l’entreprise.')
+
+    return texte
 
 #: Les types de documents de facturation, tels que l'AT les nomme. Ce sont
 #: les valeurs du champ D du code QR et de « InvoiceType » du SAF-T.
@@ -117,6 +179,7 @@ def ligne_figee(contenu, region=taxas.CONTINENT, date_document=None):
     # fautive une fois sur dix, et c'est une mention légale du document.
     code_exoneration = ''
     motif_exoneration = ''
+    mention_facture = ''
     if code_de_taux == 'ISE':
         try:
             code_exoneration = isencao.valider(
@@ -124,7 +187,15 @@ def ligne_figee(contenu, region=taxas.CONTINENT, date_document=None):
         except isencao.MotifInvalide as exc:
             raise ValidationError(
                 f'Ligne « {description[:60]} » : {exc}')
-        motif_exoneration = isencao.mencao(code_exoneration)
+
+        # DEUX MENTIONS, ET CE N'EST PAS UNE REDONDANCE.
+        #
+        # Celle de la facture a valeur légale sur le document imprimé.
+        # Celle du SAF-T entre dans un champ borné à 60 caractères, que la
+        # mention officielle de M15 dépasse d'un caractère. Les confondre
+        # ferait soit rejeter le fichier, soit amputer la facture.
+        mention_facture = isencao.mencao(code_exoneration)
+        motif_exoneration = isencao.mencao_saft(code_exoneration)
 
     return {
         'description': description[:200],
@@ -138,6 +209,7 @@ def ligne_figee(contenu, region=taxas.CONTINENT, date_document=None):
         'tva': tva,
         'code_de_taux': code_de_taux,
         'motif_exoneration': motif_exoneration,
+        'mention_facture': mention_facture,
         'code_exoneration': code_exoneration,
     }
 
@@ -222,11 +294,26 @@ class ParametresFiscauxPT(models.Model):
                     self.numero_de_certificat)
             except assinatura.ErreurDeSignature as exc:
                 raise ValidationError({'numero_de_certificat': str(exc)})
-        if self.est_actif and not self.nif:
+        # Le NIF est valide des qu'il est saisi, actif ou non : une
+        # faute laissee dans un champ inactif ressortirait le jour de
+        # l'activation, c'est-a-dire le jour ou l'on a le moins envie de
+        # chercher.
+        if self.nif:
+            try:
+                self.nif = valider_nif(self.nif)
+            except ValidationError as exc:
+                raise ValidationError({'nif': exc.messages})
+        elif self.est_actif:
             raise ValidationError({
                 'nif': 'Le NIF est obligatoire pour émettre un document au '
                        'Portugal : il figure dans le code QR et dans le '
                        'SAF-T.'})
+
+        if self.nif_editeur:
+            try:
+                self.nif_editeur = valider_nif(self.nif_editeur)
+            except ValidationError as exc:
+                raise ValidationError({'nif_editeur': exc.messages})
 
     @classmethod
     def de(cls, company):

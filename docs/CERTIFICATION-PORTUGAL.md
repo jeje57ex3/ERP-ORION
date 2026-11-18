@@ -186,12 +186,19 @@ dépendance compilée de plus dans un projet qui n'en a pas besoin
 ailleurs. Le XSD est du XML : on en extrait le modèle de contenu avec la
 bibliothèque standard.
 
-**Ce qui n'est donc pas vérifié**, et c'est dit franchement : les types
-simples — longueurs maximales, motifs, énumérations, bornes numériques.
-Un `TaxRegistrationNumber` de douze chiffres passerait ici et serait
-refusé par l'AT. La vérification porte sur la STRUCTURE : ordre des
-éléments, éléments obligatoires absents, éléments inconnus, et les
-`choice` dont il faut exactement un membre.
+**Ce qui est vérifié** : la structure — ordre des éléments, éléments
+obligatoires absents, éléments inconnus, `choice` dont il faut exactement
+un membre — sur 78 chemins, **et les valeurs** sur 387 : motifs,
+énumérations, longueurs, bornes numériques.
+
+Les constantes écrites à la main sont confrontées au schéma : les types
+de document, les états, la base comptable, les régions fiscales, les
+codes de taux, la version annoncée, et le motif du numéro de document.
+
+**Ce qui n'est pas vérifié**, et c'est dit franchement : les règles qu'un
+XSD ne sait pas exprimer — que `GrossTotal` égale `NetTotal` plus
+`TaxPayable`, que les numéros soient uniques, que les séries ne sautent
+aucun numéro. Ces règles ont leurs propres contrôles ailleurs.
 
 **La subtilité qui commande toute la conception.** Le schéma définit
 **quatre** `Line` et quatre `DocumentStatus`, un par famille de
@@ -200,6 +207,37 @@ documents. Celui des mouvements de marchandises n'a ni `TaxBase` ni
 validateur qui chercherait les définitions par *nom* en prendrait une au
 hasard, et accepterait un fichier faux ou refuserait un fichier juste. Le
 modèle est donc indexé par **chemin**.
+
+#### Deux trouvailles de cette confrontation
+
+**L'accent circonflexe du motif de numéro.** Le schéma écrit
+`[^ ]+ [^/^ ]+/[0-9]+` : la série exclut la barre oblique, l'espace **et
+l'accent circonflexe**. Une première copie écrivait `[^/ ]+`, qui
+laissait passer une série nommée « A^B » — acceptée par l'ERP, refusée
+par le schéma. Un test compare désormais les deux motifs caractère par
+caractère.
+
+**Deux documents officiels se contredisent sur M15.** La table des
+motifs publie « Regime da margem de lucro – Objetos de coleção e
+antiguidades », qui fait **61 caractères**. Le schéma plafonne
+`TaxExemptionReason` à **60**. Une entreprise qui facture des objets
+d'art sous le régime de la marge produirait donc un fichier rejeté, en
+employant le texte publié par l'administration elle-même.
+
+Tronquer au soixantième caractère couperait « antiguidade|s » au milieu
+d'un mot. Le module abrège donc explicitement, en remplaçant « e » par
+« / » — tous les mots sont conservés. **La mention imprimée sur la
+facture reste celle de la table** : c'est elle qui a valeur légale sur le
+document ; l'abrègement ne concerne que le champ du fichier. Un test
+garde la mesure, et échouera si une version future de l'un ou l'autre
+texte lève la contradiction.
+
+**Le NIF est validé à la saisie, clé comprise.** Le schéma n'impose que
+les bornes — neuf chiffres de 100000000 à 999999999. Un NIF mal recopié,
+deux chiffres intervertis, les respecte parfaitement : le fichier passe,
+et le NIF désigne quelqu'un d'autre ou personne. L'erreur n'apparaîtrait
+que lorsque l'administration ne retrouverait pas l'entreprise. Le
+contrôle modulo 11 l'attrape à la saisie, et il coûte dix lignes.
 
 ### 2.10 Les écrans
 

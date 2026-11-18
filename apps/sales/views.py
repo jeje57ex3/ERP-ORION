@@ -364,7 +364,11 @@ def invoice_detail(request, pk):
         # c'est une mention legale. Cinq lignes au meme motif ne doivent
         # pourtant l'afficher qu'une fois.
         for ligne_figee in document_fiscal.lignes:
-            motif = ligne_figee.get('motif_exoneration') or ''
+            # La mention de la FACTURE, pas celle du fichier : elles ne
+            # different que pour M15, et c'est celle-ci qui a valeur
+            # legale sur le document imprime.
+            motif = (ligne_figee.get('mention_facture')
+                     or ligne_figee.get('motif_exoneration') or '')
             code = ligne_figee.get('code_exoneration') or ''
             if motif and (code, motif) not in mentions_d_exoneration:
                 mentions_d_exoneration.append((code, motif))

@@ -108,6 +108,34 @@ EN_VIGUEUR_DEPUIS = {
     'M35': date(2026, 7, 1),
 }
 
+#: La longueur maximale du champ `TaxExemptionReason` du SAF-T, lue dans
+#: le schéma de l'AT (`SAFPTPortugueseTaxExemptionReason` : de 6 à 60
+#: caractères).
+LONGUEUR_MAXIMALE_SAFT = 60
+
+#: Les mentions trop longues pour le champ du SAF-T, et leur forme abrégée.
+#:
+#: DEUX DOCUMENTS OFFICIELS SE CONTREDISENT, ET IL FAUT TRANCHER.
+#:
+#: La table des motifs publie pour M15 « Regime da margem de lucro –
+#: Objetos de coleção e antiguidades », qui fait 61 caractères. Le schéma
+#: SAF-T, lui, plafonne `TaxExemptionReason` à 60. Une entreprise qui
+#: facture des objets d'art sous le régime de la marge produirait donc un
+#: fichier rejeté — en employant le texte publié par l'administration
+#: elle-même.
+#:
+#: Tronquer au soixantième caractère couperait « antiguidade|s » au milieu
+#: d'un mot, ce qui ressemble à un défaut du logiciel. On abrège donc
+#: explicitement, en remplaçant « e » par « / » : tous les mots sont
+#: conservés, et la forme reste reconnaissable.
+#:
+#: LA MENTION IMPRIMÉE SUR LA FACTURE RESTE CELLE DE LA TABLE. C'est elle
+#: qui a valeur légale sur le document ; l'abrègement ne concerne que le
+#: champ du fichier.
+MENTION_SAFT_ABREGEE = {
+    'M15': 'Regime da margem de lucro – Objetos de coleção/antiguidades',
+}
+
 #: Les codes qui désignent une autoliquidation (inversion du redevable) et
 #: non une exonération au sens strict. La distinction compte à l'écran :
 #: le client paie la TVA lui-même, l'opération n'est pas « exonérée ».
@@ -155,6 +183,16 @@ def mencao(code):
     fautive une fois sur dix.
     """
     return CODES[valider(code)][0]
+
+
+def mencao_saft(code):
+    """La mention telle qu'elle entre dans le champ du SAF-T.
+
+    Identique à celle de la facture, sauf pour les rares mentions que le
+    schéma ne peut pas contenir — voir `MENTION_SAFT_ABREGEE`.
+    """
+    texte = valider(code)
+    return MENTION_SAFT_ABREGEE.get(texte, CODES[texte][0])
 
 
 def norma(code):

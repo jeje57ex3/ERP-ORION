@@ -20,12 +20,21 @@ on en extrait le modèle de contenu avec la bibliothèque standard, et on
 vérifie ce qui fait rejeter un fichier en pratique — ordre des éléments,
 éléments obligatoires absents, éléments inconnus.
 
-CE QUE CE VALIDATEUR NE FAIT PAS
+CE QU'IL VÉRIFIE
 
-Il ne vérifie pas les types simples : longueurs maximales, motifs,
-énumérations, bornes numériques. Il vérifie la STRUCTURE. Un
-`TaxRegistrationNumber` de douze chiffres passerait ici et serait refusé
-par l'AT — c'est dit franchement plutôt que laissé à supposer.
+La STRUCTURE — ordre des éléments, éléments obligatoires absents,
+éléments inconnus, groupes de `choice` — et les VALEURS : motifs,
+énumérations, longueurs, bornes numériques. Soit 78 chemins pour la
+structure et 387 pour les valeurs.
+
+CE QU'IL NE VÉRIFIE PAS, ET C'EST DIT FRANCHEMENT
+
+Les règles que le schéma n'exprime pas : que `GrossTotal` égale bien
+`NetTotal` plus `TaxPayable`, que les numéros soient uniques, que les
+séries ne sautent aucun numéro. Un XSD ne sait pas dire cela. Ces règles
+ont leurs propres contrôles ailleurs dans le module — l'écran de
+vérification des chaînes pour la continuité, les contraintes de base de
+données pour l'unicité.
 
 LA SUBTILITÉ QUI COMMANDE TOUTE LA CONCEPTION
 
@@ -40,6 +49,8 @@ fichier juste. Le modèle est donc indexé par CHEMIN, et c'est pour cela
 qu'il se construit en descendant depuis `AuditFile`.
 """
 
+import re
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -87,10 +98,11 @@ class Modele:
     — dont il faut exactement un membre et non chacun.
     """
 
-    def __init__(self, enfants, obligatoires, alternatives):
+    def __init__(self, enfants, obligatoires, alternatives, facettes=None):
         self.enfants = enfants
         self.obligatoires = obligatoires
         self.alternatives = alternatives
+        self.facettes = facettes or {}
 
     def ordre(self, chemin):
         return self.enfants.get(chemin)
@@ -100,6 +112,9 @@ class Modele:
 
     def alternatives_de(self, chemin):
         return self.alternatives.get(chemin, ())
+
+    def contraintes(self, chemin):
+        return self.facettes.get(chemin)
 
 
 #: Nombre minimal de chemins attendus dans le modèle.
@@ -118,9 +133,79 @@ class Modele:
 CHEMINS_MINIMAUX = 60
 
 
+#: Les facettes que l'on sait vérifier. Le schéma n'en emploie pas
+#: d'autres — mesuré sur la version 1.04_01 : minLength et maxLength
+#: vingt-trois fois chacune, pattern treize fois, enumeration onze fois,
+#: minInclusive six fois, maxInclusive quatre fois.
+FACETTES_LUES = ('pattern', 'enumeration', 'minLength', 'maxLength',
+                 'minInclusive', 'maxInclusive')
+
+
 def _types_nommes(racine):
     return {ct.get('name'): ct for ct in racine.findall(f'{XS}complexType')
             if ct.get('name')}
+
+
+def _facettes_de(restriction):
+    """Les contraintes d'une restriction, en dictionnaire.
+
+    `pattern` et `enumeration` peuvent se répéter ; les autres non. On
+    garde donc des listes pour les deux premières et une valeur simple
+    pour les autres, ce qui évite d'avoir à se souvenir desquelles sont
+    multiples au moment de la vérification.
+    """
+    facettes = {'base': (restriction.get('base') or '').split(':')[-1],
+                'pattern': [], 'enumeration': []}
+
+    for facette in restriction:
+        nom = facette.tag.replace(XS, '')
+        if nom not in FACETTES_LUES:
+            continue
+        if nom in ('pattern', 'enumeration'):
+            facettes[nom].append(facette.get('value'))
+        else:
+            facettes[nom] = facette.get('value')
+
+    return facettes
+
+
+def _types_simples(racine):
+    """Les `simpleType` nommés, avec leurs contraintes.
+
+    Aucun ne restreint un autre type nommé dans la version 1.04_01 —
+    vérifié — donc pas de chaîne de restriction à remonter.
+    """
+    rendu = {}
+    for st in racine.findall(f'{XS}simpleType'):
+        nom = st.get('name')
+        restriction = st.find(f'{XS}restriction')
+        if nom and restriction is not None:
+            rendu[nom] = _facettes_de(restriction)
+    return rendu
+
+
+def _facettes_de_declaration(declaration, simples):
+    """Les contraintes de valeur d'une déclaration d'élément.
+
+    Trois cas, et le schéma emploie les trois : un type nommé, un
+    `simpleType` en ligne, ou un type XSD de base sans contrainte.
+    """
+    en_ligne = declaration.find(f'{XS}simpleType')
+    if en_ligne is not None:
+        restriction = en_ligne.find(f'{XS}restriction')
+        if restriction is not None:
+            return _facettes_de(restriction)
+
+    nom_de_type = declaration.get('type')
+    if nom_de_type:
+        nom_de_type = nom_de_type.split(':')[-1]
+        if nom_de_type in simples:
+            return simples[nom_de_type]
+        # Un type XSD de base : pas de contrainte propre, mais son nom
+        # sert à savoir comment comparer les bornes.
+        return {'base': nom_de_type, 'pattern': [], 'enumeration': []}
+
+    return None
 
 
 def _elements_globaux(racine):
@@ -216,6 +301,7 @@ def charger(fichier=None):
             f'Schéma illisible ({chemin_xsd}) : {exc}')
 
     types = _types_nommes(racine)
+    simples = _types_simples(racine)
     globaux = _elements_globaux(racine)
 
     depart = globaux.get('AuditFile')
@@ -227,6 +313,7 @@ def charger(fichier=None):
     enfants = {}
     obligatoires = {}
     alternatives = {}
+    facettes = {}
 
     def descendre(declaration, chemin, profondeur):
         if profondeur > PROFONDEUR_MAXIMALE:
@@ -236,6 +323,12 @@ def charger(fichier=None):
 
         sous_elements = _modele_de_contenu(declaration, types)
         if not sous_elements:
+            # Une FEUILLE : c'est ici que vivent les contraintes de valeur.
+            # On les lit sur la declaration locale si elle en porte, sinon
+            # sur la declaration globale que le `ref=` designe.
+            contraintes = _facettes_de_declaration(declaration, simples)
+            if contraintes:
+                facettes[chemin] = contraintes
             return
 
         enfants[chemin] = [_nom_de_declaration(e)
@@ -277,7 +370,106 @@ def charger(fichier=None):
             '« structure conforme » sur n’importe quel fichier. Lecture du '
             'schéma à revoir avant de s’y fier.')
 
-    return Modele(enfants, obligatoires, alternatives)
+    return Modele(enfants, obligatoires, alternatives, facettes)
+
+
+def _comparable(valeur, base):
+    """La valeur sous une forme comparable aux bornes du schéma.
+
+    Les bornes de `minInclusive` sont du texte dans le XSD. Les comparer
+    comme du texte donnerait « 9 » supérieur à « 100000000 », ce qui
+    laisserait passer un NIF à un chiffre. On convertit donc selon la
+    base déclarée.
+
+    Les dates ISO, elles, se comparent correctement comme du texte :
+    « 2026-03-07 » et « 2000-01-01 » s'ordonnent bien caractère par
+    caractère. C'est voulu, et c'est la seule raison pour laquelle on
+    peut s'en passer de `datetime`.
+    """
+    if base in ('decimal', 'integer', 'long', 'int', 'short',
+                'nonNegativeInteger', 'positiveInteger'):
+        return Decimal(valeur)
+    return valeur
+
+
+def verifier_la_valeur(texte, contraintes):
+    """Les écarts d'une valeur à ses contraintes. Liste de messages.
+
+    On rend TOUS les écarts d'une même valeur plutôt que le premier : un
+    champ qui viole à la fois sa longueur et son motif a sans doute un
+    autre problème que celui qu'on corrigerait d'abord.
+    """
+    ecarts = []
+    valeur = texte or ''
+    base = contraintes.get('base', 'string')
+
+    attendues = contraintes.get('enumeration')
+    if attendues and valeur not in attendues:
+        ecarts.append(
+            f'« {valeur} » n’est pas une valeur admise. Le schéma accepte : '
+            f'{", ".join(attendues)}.')
+
+    for motif in contraintes.get('pattern') or ():
+        # Un motif XSD est ancré implicitement aux deux bouts : `fullmatch`
+        # et non `match`. Avec `match`, « FTX » passerait un motif qui ne
+        # décrit que « FT ».
+        try:
+            if not re.fullmatch(motif, valeur):
+                ecarts.append(
+                    f'« {_tronquer(valeur)} » ne suit pas le format exigé '
+                    f'({_motif_lisible(motif)}).')
+        except re.error:
+            # Un motif XSD que Python ne sait pas lire : on le dit plutôt
+            # que de l'ignorer, sinon le champ ne serait jamais vérifié et
+            # rien ne le signalerait.
+            ecarts.append(
+                f'Format du schéma illisible par ce validateur : {motif}. '
+                'Ce champ n’a donc pas été vérifié.')
+
+    minimum = contraintes.get('minLength')
+    if minimum is not None and len(valeur) < int(minimum):
+        ecarts.append(
+            f'{len(valeur)} caractère(s), au moins {minimum} attendu(s).')
+
+    maximum = contraintes.get('maxLength')
+    if maximum is not None and len(valeur) > int(maximum):
+        ecarts.append(
+            f'{len(valeur)} caractères, au plus {maximum} admis. '
+            'L’AT tronque rien : elle rejette.')
+
+    for facette, symbole in (('minInclusive', '>='), ('maxInclusive', '<=')):
+        borne = contraintes.get(facette)
+        if borne is None:
+            continue
+        try:
+            gauche = _comparable(valeur, base)
+            droite = _comparable(borne, base)
+        except (InvalidOperation, ValueError):
+            ecarts.append(
+                f'« {_tronquer(valeur)} » n’est pas un {base} : la borne '
+                f'{facette} ne peut pas être vérifiée.')
+            continue
+        if symbole == '>=' and gauche < droite:
+            ecarts.append(f'« {valeur} » est inférieur au minimum {borne}.')
+        if symbole == '<=' and gauche > droite:
+            ecarts.append(f'« {valeur} » dépasse le maximum {borne}.')
+
+    return ecarts
+
+
+def _tronquer(valeur, longueur=40):
+    return valeur if len(valeur) <= longueur else valeur[:longueur] + '…'
+
+
+def _motif_lisible(motif):
+    """Un motif de schéma lisible par un humain, quand c'est possible.
+
+    Les listes de pays et de devises font plus de mille caractères : les
+    afficher noierait le message. On les annonce donc par leur nature.
+    """
+    if len(motif) > 120:
+        return 'liste fermée de codes'
+    return motif
 
 
 def _nom_local(element):
@@ -332,6 +524,12 @@ def valider(contenu, modele=None):
                     chemin,
                     f'Le schéma attend une valeur simple ici, et le fichier '
                     f'contient {", ".join(observes)}.'))
+                return
+
+            contraintes = modele.contraintes(chemin)
+            if contraintes:
+                for ecart in verifier_la_valeur(element.text, contraintes):
+                    anomalies.append(Anomalie(chemin, ecart))
             return
 
         inconnus = [nom for nom in observes if nom not in attendus]
@@ -396,9 +594,11 @@ def valider(contenu, modele=None):
 def resume(anomalies):
     """Une phrase pour l'écran, et la liste pour le détail."""
     if not anomalies:
-        return ('Structure conforme au schéma SAF-T (PT) 1.04_01. '
-                'Les types simples — longueurs, motifs, énumérations — ne '
-                'sont pas vérifiés ici.')
+        return ('Conforme au schéma SAF-T (PT) 1.04_01 : structure et '
+                'valeurs. Restent hors de portée de cette vérification les '
+                'règles que le schéma n’exprime pas — cohérence des totaux '
+                'avec les lignes, unicité des numéros, continuité des '
+                'séries. Elles ont leurs propres contrôles.')
     nombre = len(anomalies)
     return (f'{nombre} anomalie{"s" if nombre > 1 else ""} de structure. '
             'L’AT rejette le fichier entier pour une seule d’entre elles.')
