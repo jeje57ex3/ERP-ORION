@@ -55,9 +55,13 @@ LIBELLES_DE_TAUX = {
 NIF_CONSOMMATEUR_FINAL = '999999990'
 CLIENT_CONSOMMATEUR_FINAL = 'Consumidor final'
 
-#: L'ordre des éléments, tel que le schéma les énumère. Chaque liste se
-#: relit directement contre le XSD — c'est là tout l'intérêt de les
-#: écrire plutôt que de les coder en dur dans la construction.
+#: L'ordre des éléments, tel que le schéma les énumère.
+#:
+#: Ces listes ne sont pas recopiées à l'aveugle : `tests/
+#: test_fiscal_pt_schema.py` les compare une par une au fichier XSD de
+#: l'AT, versé dans `schemas/SAFTPT1.04_01.xsd`. Un élément ajouté ici au
+#: mauvais rang, ou un élément que le schéma déplacerait dans une version
+#: future, se voit donc au test et non à la remise du fichier.
 ORDRE_ADRESSE = ('BuildingNumber', 'StreetName', 'AddressDetail', 'City',
                  'PostalCode', 'Region', 'Country')
 
@@ -74,7 +78,8 @@ ORDRE_CLIENT = ('CustomerID', 'AccountID', 'CustomerTaxID', 'CompanyName',
                 'Fax', 'Email', 'Website', 'SelfBillingIndicator')
 
 ORDRE_PRODUIT = ('ProductType', 'ProductCode', 'ProductGroup',
-                 'ProductDescription', 'ProductNumberCode')
+                 'ProductDescription', 'ProductNumberCode',
+                 'CustomsDetails')
 
 ORDRE_TAUX = ('TaxType', 'TaxCountryRegion', 'TaxCode', 'Description',
               'TaxExpirationDate', 'TaxPercentage', 'TaxAmount')
@@ -90,13 +95,14 @@ ORDRE_DOCUMENT = ('InvoiceNo', 'ATCUD', 'DocumentStatus', 'Hash',
                   'SpecialRegimes', 'SourceID', 'EACCode', 'SystemEntryDate',
                   'TransactionID', 'CustomerID', 'ShipTo', 'ShipFrom',
                   'MovementEndTime', 'MovementStartTime', 'Line',
-                  'DocumentTotals')
+                  'DocumentTotals', 'WithholdingTax')
 
 ORDRE_LIGNE = ('LineNumber', 'OrderReferences', 'ProductCode',
                'ProductDescription', 'Quantity', 'UnitOfMeasure', 'UnitPrice',
                'TaxBase', 'TaxPointDate', 'References', 'Description',
                'ProductSerialNumber', 'DebitAmount', 'CreditAmount', 'Tax',
-               'TaxExemptionReason', 'TaxExemptionCode', 'SettlementAmount')
+               'TaxExemptionReason', 'TaxExemptionCode', 'SettlementAmount',
+               'CustomsInformation')
 
 ORDRE_TAXE_DE_LIGNE = ('TaxType', 'TaxCountryRegion', 'TaxCode',
                        'TaxPercentage', 'TaxAmount')

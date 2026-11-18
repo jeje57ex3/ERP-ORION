@@ -29,6 +29,40 @@
   </div>
 </form>
 
+{% if anomalies %}
+<div class="orion-card mt-3" style="max-width:720px">
+  <div class="orion-card-header">
+    <h6 class="erp-card-title text-danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ resume }}
+    </h6>
+  </div>
+  <div class="p-3">
+    <p class="text-muted small mb-2">
+      Le fichier a été comparé au schéma <code>SAFTPT1.04_01.xsd</code> publié par l'AT.
+      Le message de l'AT, lui, désigne l'élément <em>suivant</em> celui qui manque —
+      ce qui envoie chercher la cause au mauvais endroit.
+    </p>
+    <ul class="small mb-0">
+      {% for anomalie in anomalies %}
+      <li><code>{{ anomalie.chemin }}</code> — {{ anomalie.message }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <form method="post" class="p-3 border-top">
+    {% csrf_token %}
+    <input type="hidden" name="debut" value="{{ debut }}">
+    <input type="hidden" name="fin" value="{{ fin }}">
+    <input type="hidden" name="ignorer_les_anomalies" value="1">
+    <button type="submit" class="orion-btn orion-btn-outline">
+      <i class="bi bi-download me-1"></i>Télécharger quand même
+    </button>
+    <div class="form-text mt-1">
+      Pour inspecter le fichier. En l'état, l'AT le rejetterait.
+    </div>
+  </form>
+</div>
+{% endif %}
+
 <div class="alert alert-secondary mt-3" style="max-width:560px">
   <i class="bi bi-info-circle me-1"></i>
   Le fichier couvre la <strong>facturation</strong> (<code>TaxAccountingBasis</code> « F ») :

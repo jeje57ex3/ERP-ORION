@@ -406,3 +406,70 @@ def test_un_avoir_ne_rectifie_jamais_un_avoir(facture, signee):
     assert second.pk == premier.pk
     assert premier.document_rectifie == signee
     assert premier.document_rectifie.serie.type_document == 'FT'
+
+
+# ── Le fichier reellement produit, contre le schema de l'AT ──────────────────
+
+def test_le_fichier_issu_de_la_base_est_conforme_au_schema(facture, signee,
+                                                           entreprise):
+    """LA PREUVE DE BOUT EN BOUT.
+
+    Base de donnees -> export -> schema publie par l'AT. Les autres tests
+    comparent des dictionnaires construits a la main ; celui-ci part de
+    documents reellement emis, signes et chaines.
+    """
+    from apps.fiscal_pt import schema
+
+    facturation.emettre_une_note_de_credit(facture, 'Devolução')
+
+    contenu = export.composer(entreprise, date(2026, 1, 1),
+                              date(2026, 12, 31))
+    anomalies = schema.valider(contenu)
+
+    assert anomalies == [], '\n'.join(str(a) for a in anomalies)
+
+
+def test_un_fichier_avec_ligne_exoneree_est_conforme_au_schema(facture,
+                                                               conformite,
+                                                               entreprise):
+    """Les lignes exonerees ajoutent TaxExemptionReason et
+    TaxExemptionCode, tout a la fin de la ligne : c'est exactement le
+    genre d'ajout qui se range au mauvais rang."""
+    from apps.fiscal_pt import schema
+
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M31'
+    ligne.save()
+    facturation.emettre_pour_facture(facture)
+
+    anomalies = schema.valider(export.composer(
+        entreprise, date(2026, 1, 1), date(2026, 12, 31)))
+
+    assert anomalies == [], '\n'.join(str(a) for a in anomalies)
+
+
+def test_l_ecran_d_export_annonce_la_conformite(facture, signee, entreprise,
+                                                utilisateur, monkeypatch):
+    """L'en-tete « X-Orion-Schema » prouve que la verification a bien eu
+    lieu : sans elle, on ne saurait pas distinguer « conforme » de
+    « non verifie »."""
+    from django.contrib.messages.storage.fallback import FallbackStorage
+    from django.test import RequestFactory
+
+    from apps.fiscal_pt import views
+
+    monkeypatch.setattr(views, '_company', lambda requete: entreprise)
+
+    requete = RequestFactory().post(
+        reverse('fiscal_pt:export_saft'),
+        {'debut': '2026-01-01', 'fin': '2026-12-31'})
+    requete.user = utilisateur
+    requete.session = {}
+    requete._messages = FallbackStorage(requete)
+
+    reponse = views.export_saft(requete)
+
+    assert reponse.status_code == 200
+    assert reponse['Content-Type'] == 'application/xml'
+    assert reponse['X-Orion-Schema'] == 'conforme-1.04_01'

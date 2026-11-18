@@ -158,7 +158,50 @@ L'écran est accessible d'un bouton sur la facture.
 - L'ordre des éléments est écrit sous forme de listes nommées,
   relisibles contre le schéma, et **figé par des tests**.
 
-### 2.9 Les écrans
+### 2.9 La vérification contre le schéma de l'AT — `schema.py`
+
+Le schéma publié par l'administration, `SAFTPT1.04_01.xsd`, est **versé
+dans le dépôt** (`apps/fiscal_pt/schemas/`, 104 Ko, sha256
+`292c0ab4…`). La vérification est donc reproductible sans accès au
+réseau.
+
+Deux usages :
+
+1. **Les tests comparent les listes d'ordre au schéma lui-même**, élément
+   par élément. Elles sont recopiées à la main dans `saft.py` ; sans
+   cette comparaison, un test écrit d'après la même lecture confirmerait
+   la même erreur. Les onze listes correspondent exactement.
+2. **L'écran d'export vérifie le fichier avant de le remettre.** Un
+   élément déplacé découvert ici coûte une minute ; découvert dans le
+   courriel de rejet, il coûte une remise — et le message de l'AT désigne
+   l'élément *suivant*, ce qui envoie chercher la cause au mauvais
+   endroit.
+
+Le fichier reste téléchargeable d'un second clic malgré les anomalies :
+un validateur qui empêche de récupérer son propre travail se fait
+contourner, et c'est alors plus personne qui vérifie.
+
+**Pourquoi pas `lxml`.** Il valide un XSD complètement, et c'est une
+dépendance compilée de plus dans un projet qui n'en a pas besoin
+ailleurs. Le XSD est du XML : on en extrait le modèle de contenu avec la
+bibliothèque standard.
+
+**Ce qui n'est donc pas vérifié**, et c'est dit franchement : les types
+simples — longueurs maximales, motifs, énumérations, bornes numériques.
+Un `TaxRegistrationNumber` de douze chiffres passerait ici et serait
+refusé par l'AT. La vérification porte sur la STRUCTURE : ordre des
+éléments, éléments obligatoires absents, éléments inconnus, et les
+`choice` dont il faut exactement un membre.
+
+**La subtilité qui commande toute la conception.** Le schéma définit
+**quatre** `Line` et quatre `DocumentStatus`, un par famille de
+documents. Celui des mouvements de marchandises n'a ni `TaxBase` ni
+`References` ; celui des paiements n'a même pas de `ProductCode`. Un
+validateur qui chercherait les définitions par *nom* en prendrait une au
+hasard, et accepterait un fichier faux ou refuserait un fichier juste. Le
+modèle est donc indexé par **chemin**.
+
+### 2.10 Les écrans
 
 `/conformite-portugal/` — tout se pilote à l'écran, sans terminal :
 
@@ -175,7 +218,7 @@ Les mentions légales (ATCUD, code QR, mention du programme certifié)
 figurent aussi **sur la facture elle-même**, et pas seulement dans
 l'écran d'administration.
 
-### 2.10 Le branchement
+### 2.11 Le branchement
 
 `invoice_send` signe **avant** de changer le statut, dans la même
 transaction. Si la signature échoue, la facture reste en brouillon et
@@ -195,7 +238,6 @@ facture sortirait sans preuve et rien ne le signalerait.
 | **Documents de mouvement de marchandises** | `MovementOfGoods` du SAF-T n'est pas produit. Obligatoire seulement si l'entreprise transporte des marchandises. |
 | **Documents de travail** | `WorkingDocuments` (devis, bons) n'est pas produit. |
 | **Reçus (FR / RG)** | La mention « sans signature » existe, l'émission non. |
-| **Validation contre le XSD officiel** | Les tests figent l'ordre et les champs d'après le schéma, mais aucune validation automatique contre le fichier `.xsd` de l'AT n'est branchée. |
 
 ### 3.2 Un défaut à corriger dans la facturation française
 
@@ -276,6 +318,7 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_fiscal_pt_isencao.py` | La table des motifs, et que les codes absents sont refusés. |
 | `tests/test_lignes_de_facture.py` | La saisie des lignes, les totaux, et l'étanchéité entre entreprises. |
 | `tests/test_fiscal_pt_avoir.py` | Qu'un avoir désigne sa facture, porte son motif, et ne crédite pas deux fois. |
+| `tests/test_fiscal_pt_schema.py` | Que les listes d'ordre sont celles du XSD, que les fichiers produits passent, et que les fichiers cassés sont refusés. |
 
 Deux limites, dites franchement :
 

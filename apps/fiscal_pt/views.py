@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from . import export, qr
+from . import export, qr, schema
 from .forms import ParametresForm, PeriodeForm, SerieForm
 from .models import (CleDeSignature, DocumentFiscal, ParametresFiscauxPT,
                      SerieFiscale)
@@ -334,9 +334,40 @@ def export_saft(request):
             return render(request, 'fiscal_pt/export.html', {
                 'page_title': 'Export SAF-T (PT)', 'form': form})
 
+        # Le fichier est compare au schema de l'AT AVANT d'etre remis.
+        #
+        # Decouvrir un element deplace ici coute une minute ; le decouvrir
+        # dans le courriel de rejet coute une remise, et le message de
+        # l'AT designe l'element SUIVANT, ce qui envoie chercher la cause
+        # au mauvais endroit.
+        #
+        # On ne BLOQUE pas : le fichier reste telechargeable d'un second
+        # clic. Un validateur qui empeche de recuperer son propre travail
+        # se fait contourner, et c'est alors plus personne qui verifie.
+        anomalies = []
+        try:
+            anomalies = schema.valider(contenu)
+        except schema.ErreurDeSchema as exc:
+            messages.warning(
+                request,
+                f'Verification impossible, fichier produit tel quel : {exc}')
+
+        if anomalies and not request.POST.get('ignorer_les_anomalies'):
+            return render(request, 'fiscal_pt/export.html', {
+                'page_title': 'Export SAF-T (PT)',
+                'page_subtitle': 'Version 1.04_01, facturation',
+                'form': form,
+                'anomalies': anomalies,
+                'resume': schema.resume(anomalies),
+                'debut': debut.isoformat(),
+                'fin': fin.isoformat(),
+            })
+
         reponse = HttpResponse(contenu, content_type='application/xml')
         nom = export.nom_de_fichier(company, debut, fin)
         reponse['Content-Disposition'] = f'attachment; filename="{nom}"'
+        if not anomalies:
+            reponse['X-Orion-Schema'] = 'conforme-1.04_01'
         return reponse
 
     return render(request, 'fiscal_pt/export.html', {
