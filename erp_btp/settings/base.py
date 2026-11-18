@@ -51,6 +51,7 @@ LOCAL_APPS = [
     'apps.crm',
     'apps.sales',
     'apps.accounting',
+    'apps.fiscal_pt',
     'apps.purchases',
     'apps.inventory',
     'apps.documents',

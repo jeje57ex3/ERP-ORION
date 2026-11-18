@@ -1,0 +1,95 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Conformité Portugal{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Conformité Portugal</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'fiscal_pt:verification' %}" class="orion-btn orion-btn-outline"><i class="bi bi-shield-check me-1"></i>Vérifier les chaînes</a>
+<a href="{% url 'fiscal_pt:export_saft' %}" class="orion-btn primary"><i class="bi bi-filetype-xml me-1"></i>Export SAF-T</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card mb-3">
+  <div class="orion-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-list-check me-2"></i>État de la conformité — {{ prets }} / {{ total_etapes }}</h6>
+  </div>
+  <div class="p-0">
+    <table class="table table-sm mb-0 align-middle">
+      <tbody>
+        {% for etape in etapes %}
+        <tr>
+          <td style="width:42px" class="text-center">
+            {% if etape.fait %}<i class="bi bi-check-circle-fill text-success"></i>
+            {% else %}<i class="bi bi-exclamation-circle text-warning"></i>{% endif %}
+          </td>
+          <td><strong>{{ etape.titre }}</strong><div class="text-muted small">{{ etape.detail }}</div></td>
+          <td class="text-end" style="width:120px">
+            <a href="{% url etape.lien %}" class="orion-btn orion-btn-outline btn-sm">Ouvrir</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if not parametres.est_actif %}
+<div class="alert alert-secondary">
+  <i class="bi bi-info-circle me-1"></i>
+  La conformité portugaise est <strong>inactive</strong> : rien ne change dans la facturation existante.
+  <a href="{% url 'fiscal_pt:parametres' %}">Activer</a> une fois le NIF et la clé en place.
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="orion-card h-100">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-collection me-2"></i>Séries</h6></div>
+      <div class="p-0">
+        {% if series %}
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Série</th><th>Région</th><th>ATCUD</th><th class="text-end">Prochain n°</th></tr></thead>
+          <tbody>
+            {% for serie in series %}
+            <tr>
+              <td><a href="{% url 'fiscal_pt:serie_modifier' serie.pk %}">{{ serie }}</a></td>
+              <td>{{ serie.get_region_display }}</td>
+              <td>
+                {% if serie.est_communiquee %}<span class="badge bg-success-subtle text-success">{{ serie.code_de_validation }}</span>
+                {% else %}<span class="badge bg-warning-subtle text-warning" title="Les documents porteront un ATCUD « 0 »">Non communiquée</span>{% endif %}
+              </td>
+              <td class="text-end">{{ serie.prochain_numero }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="p-3 text-muted">Aucune série. Il en faut au moins une par type de document émis.</div>
+        {% endif %}
+      </div>
+      <div class="p-2 border-top">
+        <a href="{% url 'fiscal_pt:serie_creer' %}" class="orion-btn orion-btn-outline btn-sm"><i class="bi bi-plus-circle me-1"></i>Nouvelle série</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="orion-card h-100">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-text me-2"></i>Documents signés</h6></div>
+      <div class="p-3">
+        <div class="display-6">{{ nombre_documents }}</div>
+        {% if dernier %}
+        <div class="text-muted small">Dernier : <a href="{% url 'fiscal_pt:document_detail' dernier.pk %}">{{ dernier.numero }}</a> du {{ dernier.date_document|date:"d/m/Y" }}</div>
+        {% else %}
+        <div class="text-muted small">Aucun document émis pour l’instant.</div>
+        {% endif %}
+      </div>
+      <div class="p-2 border-top">
+        <a href="{% url 'fiscal_pt:documents' %}" class="orion-btn orion-btn-outline btn-sm">Voir les documents</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

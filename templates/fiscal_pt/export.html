@@ -1,0 +1,42 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Export SAF-T (PT){% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Export SAF-T</li>
+{% endblock %}
+
+{% block content %}
+<form method="post" class="orion-card" style="max-width:560px">
+  {% csrf_token %}
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-filetype-xml me-2"></i>Export SAF-T (PT) 1.04_01</h6></div>
+  <div class="p-3">
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+      {% for champ in form %}
+      <div class="col-6">
+        <label class="form-label" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+        {{ champ }}
+        {% for erreur in champ.errors %}<div class="text-danger small">{{ erreur }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="p-3 border-top">
+    <button type="submit" class="orion-btn primary"><i class="bi bi-download me-1"></i>Produire le fichier</button>
+    <a href="{% url 'fiscal_pt:index' %}" class="orion-btn orion-btn-outline">Retour</a>
+  </div>
+</form>
+
+<div class="alert alert-secondary mt-3" style="max-width:560px">
+  <i class="bi bi-info-circle me-1"></i>
+  Le fichier couvre la <strong>facturation</strong> (<code>TaxAccountingBasis</code> « F ») :
+  en-tête, clients, produits, table des taux et tous les documents de la période.
+  Il ne contient ni la comptabilité, ni les documents de mouvement de marchandises.
+  <div class="mt-2 small">
+    Les lignes exportées sont celles <strong>figées à l'émission</strong>, et non l'état actuel des
+    factures : le fichier remis doit correspondre à la signature qui l'accompagne.
+  </div>
+</div>
+{% endblock %}

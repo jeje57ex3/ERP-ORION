@@ -334,10 +334,30 @@ def invoice_detail(request, pk):
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
     lines = invoice.lines.all()
+
+    # Les mentions légales portugaises, si la facture a été signée.
+    #
+    # Elles figurent SUR LE DOCUMENT, et pas seulement dans l'écran de
+    # conformité : l'ATCUD, le code QR et la mention « Processado por
+    # programa certificado » sont des mentions obligatoires de la facture
+    # elle-même. Les tenir à l'écart dans un module d'administration
+    # donnerait un logiciel conforme dont les factures ne le sont pas.
+    from apps.fiscal_pt.facturation import document_pour
+    from apps.fiscal_pt.models import ParametresFiscauxPT
+
+    document_fiscal = document_pour(invoice)
+    mention_legale = ''
+    if document_fiscal is not None:
+        numero = (ParametresFiscauxPT.de(company).numero_de_certificat
+                  or '0')
+        mention_legale = document_fiscal.mention_legale(numero)
+
     return render(request, 'sales/invoice_detail.html', {
         'page_title': f'Facture {invoice.number or pk}',
         'invoice': invoice,
         'lines': lines,
+        'document_fiscal': document_fiscal,
+        'mention_legale': mention_legale,
     })
 
 
@@ -420,9 +440,58 @@ def invoice_mark_paid(request, pk):
 
 @login_required
 def invoice_send(request, pk):
+    """Marque une facture comme envoyée — et la signe si la loi l'exige.
+
+    L'ORDRE DES DEUX OPÉRATIONS EST LE POINT IMPORTANT.
+
+    La signature est produite AVANT le changement de statut, et dans la
+    même transaction. Si elle échoue — clé absente, série non déclarée,
+    taux étranger sur une ligne — la facture reste en brouillon et rien
+    n'est remis au client.
+
+    L'inverse paraît plus accommodant et serait bien pire : la facture
+    partirait sans preuve, l'anomalie ne se verrait nulle part, et des
+    mois de facturation sortiraient hors la loi avant que quiconque s'en
+    aperçoive.
+
+    Hors conformité portugaise, `ConformiteInactive` est levée et le
+    comportement reste exactement celui d'avant.
+    """
+    from django.db import transaction
+
+    from apps.fiscal_pt import facturation
+
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
-    invoice.status = 'sent'
-    invoice.save()
-    messages.success(request, f'Facture {invoice.number} marquée comme envoyée.')
+
+    # On interroge l'état AVANT d'ouvrir la transaction.
+    #
+    # Appeler l'émission pour la voir refuser créerait une ligne de
+    # paramètres aussitôt annulée par l'exception — inoffensif, et inutile
+    # à chaque envoi de facture d'une installation qui ne facture pas au
+    # Portugal.
+    document = None
+    if not facturation.est_active(company):
+        invoice.status = 'sent'
+        invoice.save()
+    else:
+        try:
+            with transaction.atomic():
+                document = facturation.emettre_pour_facture(invoice)
+                invoice.status = 'sent'
+                invoice.save()
+        except Exception as exc:
+            messages.error(
+                request,
+                f'Facture non envoyée : la signature légale a échoué — {exc}')
+            return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    if document is not None:
+        messages.success(
+            request,
+            f'Facture {document.numero} envoyée et signée '
+            f'(ATCUD {document.atcud}).')
+    else:
+        messages.success(
+            request, f'Facture {invoice.number} marquée comme envoyée.')
     return redirect('sales:invoice_detail', pk=invoice.pk)

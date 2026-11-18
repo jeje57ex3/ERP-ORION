@@ -1,0 +1,38 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Documents fiscaux{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Documents</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'fiscal_pt:verification' %}" class="orion-btn orion-btn-outline"><i class="bi bi-shield-check me-1"></i>Vérifier les chaînes</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-text me-2"></i>Documents signés</h6></div>
+  <div class="p-0">
+    {% if documents %}
+    <table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>Numéro</th><th>Date</th><th>ATCUD</th><th>Acquéreur</th><th class="text-end">Total</th><th>Clé</th></tr></thead>
+      <tbody>
+        {% for document in documents %}
+        <tr>
+          <td><a href="{% url 'fiscal_pt:document_detail' document.pk %}"><strong>{{ document.numero }}</strong></a></td>
+          <td>{{ document.date_document|date:"d/m/Y" }}</td>
+          <td><code class="small">{{ document.atcud }}</code></td>
+          <td>{{ document.nif_acquereur|default:"Consommateur final" }}</td>
+          <td class="text-end">{{ document.total }} €</td>
+          <td>v{{ document.version_cle }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="p-3 text-muted">Aucun document fiscal émis.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

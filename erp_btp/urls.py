@@ -43,6 +43,7 @@ urlpatterns = [
     path('crm/', include('apps.crm.urls', namespace='crm')),
     path('sales/', include('apps.sales.urls', namespace='sales')),
     path('accounting/', include('apps.accounting.urls', namespace='accounting')),
+    path('conformite-portugal/', include('apps.fiscal_pt.urls', namespace='fiscal_pt')),
     path('purchases/', include('apps.purchases.urls', namespace='purchases')),
     path('inventory/', include('apps.inventory.urls', namespace='inventory')),
     path('documents/', include('apps.documents.urls', namespace='documents')),

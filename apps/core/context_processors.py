@@ -149,6 +149,13 @@ NAV_MODULES = [
         'color': '#0891B2',
     },
     {
+        'id': 'fiscal_pt',
+        'label': _('Conformite Portugal'),
+        'icon': 'ti-shield-check',
+        'url_name': 'fiscal_pt:index',
+        'color': '#047857',
+    },
+    {
         'id': 'purchases',
         'label': _('Achats'),
         'icon_img': 'fournisseurs.png',
