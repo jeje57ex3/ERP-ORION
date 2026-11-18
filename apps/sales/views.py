@@ -342,15 +342,32 @@ def invoice_detail(request, pk):
     # programa certificado » sont des mentions obligatoires de la facture
     # elle-même. Les tenir à l'écart dans un module d'administration
     # donnerait un logiciel conforme dont les factures ne le sont pas.
-    from apps.fiscal_pt.facturation import document_pour
+    from apps.fiscal_pt.facturation import document_pour, rectifications_de
     from apps.fiscal_pt.models import ParametresFiscauxPT
 
     document_fiscal = document_pour(invoice)
+    # Les avoirs deja emis. Une facture rectifiee qui ne le dirait pas se
+    # lirait comme une facture due : c'est l'information qui manque le
+    # plus souvent sur un ecran de facture.
+    rectifications = list(rectifications_de(invoice)) if document_fiscal else []
     mention_legale = ''
+    mentions_d_exoneration = []
     if document_fiscal is not None:
         numero = (ParametresFiscauxPT.de(company).numero_de_certificat
                   or '0')
         mention_legale = document_fiscal.mention_legale(numero)
+
+        # Les mentions d'exoneration, DISTINCTES et dans l'ordre.
+        #
+        # Elles doivent figurer sur la facture : la « menção que consta da
+        # fatura » de la table de l'AT n'est pas une etiquette d'interface,
+        # c'est une mention legale. Cinq lignes au meme motif ne doivent
+        # pourtant l'afficher qu'une fois.
+        for ligne_figee in document_fiscal.lignes:
+            motif = ligne_figee.get('motif_exoneration') or ''
+            code = ligne_figee.get('code_exoneration') or ''
+            if motif and (code, motif) not in mentions_d_exoneration:
+                mentions_d_exoneration.append((code, motif))
 
     return render(request, 'sales/invoice_detail.html', {
         'page_title': f'Facture {invoice.number or pk}',
@@ -358,33 +375,62 @@ def invoice_detail(request, pk):
         'lines': lines,
         'document_fiscal': document_fiscal,
         'mention_legale': mention_legale,
+        'mentions_d_exoneration': mentions_d_exoneration,
+        'rectifications': rectifications,
     })
 
 
 @login_required
 def invoice_create(request):
+    from django.db import transaction
+
+    from apps.sales.forms import InvoiceLineFormSet
+
     company = request.current_company
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
-        if form.is_valid():
-            invoice = form.save(commit=False)
-            invoice.company = company
-            invoice.created_by = request.user
-            last = Invoice.objects.filter(company=company).count()
-            prefix = getattr(company, 'invoice_prefix', 'FAC') or 'FAC'
-            invoice.number = f'{prefix}-{str(last + 1).zfill(4)}'
-            invoice.save()
+
+        # Le client doit etre borne a l'entreprise A LA VALIDATION aussi, et
+        # pas seulement a l'affichage. Sans cette ligne, un identifiant forge
+        # dans la requete designait le client d'une AUTRE entreprise, et la
+        # facture lui etait rattachee. La vue des devis, juste au-dessus,
+        # appelle cela « la regle centrale de cet ERP » -- elle manquait ici.
+        form.fields['customer'].queryset = clients
+
+        lignes = InvoiceLineFormSet(request.POST)
+
+        if form.is_valid() and lignes.is_valid():
+            # Tout ou rien : une facture enregistree dont les lignes
+            # echoueraient ensuite serait une facture a zero euro, et son
+            # ecran afficherait fidelement une liste vide.
+            with transaction.atomic():
+                invoice = form.save(commit=False)
+                invoice.company = company
+                invoice.created_by = request.user
+                last = Invoice.objects.filter(company=company).count()
+                prefix = getattr(company, 'invoice_prefix', 'FAC') or 'FAC'
+                invoice.number = f'{prefix}-{str(last + 1).zfill(4)}'
+                invoice.save()
+
+                lignes.instance = invoice
+                lignes.save()
+                _recalculer_les_totaux(invoice)
+
             messages.success(request, f'Facture {invoice.number} créée.')
             return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceForm()
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
         customer_pk = request.GET.get('customer')
         if customer_pk:
             form.fields['customer'].initial = customer_pk
+        lignes = InvoiceLineFormSet()
 
     return render(request, 'sales/invoice_form.html', {
         'page_title': 'Nouvelle facture',
+        'lignes': lignes,
         'form': form,
         'action': 'create',
     })
@@ -392,24 +438,73 @@ def invoice_create(request):
 
 @login_required
 def invoice_edit(request, pk):
+    from django.db import transaction
+
+    from apps.sales.forms import InvoiceLineFormSet
+
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
-        if form.is_valid():
-            form.save()
+        form.fields['customer'].queryset = clients
+        lignes = InvoiceLineFormSet(request.POST, instance=invoice)
+
+        if form.is_valid() and lignes.is_valid():
+            with transaction.atomic():
+                form.save()
+                lignes.save()
+                _recalculer_les_totaux(invoice)
+
             messages.success(request, 'Facture mise à jour.')
             return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceForm(instance=invoice)
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
+        lignes = InvoiceLineFormSet(instance=invoice)
 
     return render(request, 'sales/invoice_form.html', {
         'page_title': f'Modifier facture {invoice.number}',
         'form': form,
+        'lignes': lignes,
         'invoice': invoice,
         'action': 'edit',
     })
+
+
+def _recalculer_les_totaux(invoice):
+    """Recalcule les totaux de la facture depuis ses lignes.
+
+    POURQUOI DEPUIS LES LIGNES, ET A CHAQUE FOIS
+
+    Les totaux etaient a zero sur toutes les factures, puisque rien ne
+    creait de lignes. Maintenant qu'il y en a, les tenir a part dans un
+    cumul mis a jour « au passage » finirait par deriver d'un centime apres
+    une suppression de ligne. Au Portugal, ce centime est signe : la preuve
+    cesserait de correspondre au document.
+
+    `InvoiceLine.save()` calcule deja `total_ht` et `total_tva` par ligne ;
+    on ne fait donc que les sommer, et on ecrit avec `update()` pour ne pas
+    repasser par la garde d'immuabilite de `Invoice.save()` -- un
+    recalcul de totaux n'est pas une modification de facture au sens ou
+    cette garde l'entend.
+    """
+    from decimal import Decimal
+
+    from django.db.models import Sum
+
+    cumuls = invoice.lines.aggregate(
+        ht=Sum('total_ht'), tva=Sum('total_tva'))
+    total_ht = cumuls['ht'] or Decimal('0')
+    total_tva = cumuls['tva'] or Decimal('0')
+
+    Invoice.objects.filter(pk=invoice.pk).update(
+        total_ht=total_ht,
+        total_tva=total_tva,
+        total_ttc=total_ht + total_tva,
+    )
+    invoice.refresh_from_db()
 
 
 @login_required

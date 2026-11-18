@@ -33,7 +33,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
-from . import assinatura, atcud, qr, taxas
+from . import assinatura, atcud, isencao, qr, taxas
 
 #: Le format que le SAF-T (PT) impose au numéro de document.
 #:
@@ -54,6 +54,12 @@ TYPES_DE_DOCUMENT = (
     ('NC', 'Nota de crédito'),
 )
 
+#: Les types qui RECTIFIENT un autre document. La constante vit dans
+#: `saft`, parce que c'est elle qui decide du sens debit/credit dans le
+#: fichier ; on l'importe plutot que de la recopier, deux listes jumelles
+#: finissant toujours par diverger.
+from .saft import TYPES_AU_DEBIT  # noqa: E402
+
 #: Les états possibles d'un document (champ E du code QR).
 ETATS_DE_DOCUMENT = (
     ('N', 'Normal'),
@@ -73,7 +79,7 @@ def valider_numero_saft(valeur):
             'par exemple « FT A/1 ».')
 
 
-def ligne_figee(contenu, region=taxas.CONTINENT):
+def ligne_figee(contenu, region=taxas.CONTINENT, date_document=None):
     """Normalise une ligne de facture en la forme que le SAF-T attend.
 
     On exige le minimum indispensable et on complète le reste : une
@@ -82,6 +88,11 @@ def ligne_figee(contenu, region=taxas.CONTINENT):
     ici, à l'émission, vaut mieux que de les inventer à l'export — à ce
     moment-là la facture d'origine a pu changer, et on ne saurait plus ce
     qui avait réellement été facturé.
+
+    UNE LIGNE SANS TVA DOIT PORTER SON MOTIF, et il est exigé ICI plutôt
+    qu'à l'export. À l'export, la facture est déjà partie chez le client :
+    on ne peut plus que constater le manque. À l'émission, on peut encore
+    demander le motif à celui qui facture.
     """
     description = str(contenu.get('description') or '').strip()
     if not description:
@@ -99,6 +110,22 @@ def ligne_figee(contenu, region=taxas.CONTINENT):
     prix = (Decimal(str(prix)) if prix is not None
             else (base / quantite if quantite else Decimal('0')))
 
+    code_de_taux = taxas.code_saft(taux, region)
+
+    # Le motif n'est PAS recopié de la saisie : il est relu dans la table
+    # officielle d'après le code. Une mention tapée à la main serait
+    # fautive une fois sur dix, et c'est une mention légale du document.
+    code_exoneration = ''
+    motif_exoneration = ''
+    if code_de_taux == 'ISE':
+        try:
+            code_exoneration = isencao.valider(
+                contenu.get('code_exoneration'), date_document)
+        except isencao.MotifInvalide as exc:
+            raise ValidationError(
+                f'Ligne « {description[:60]} » : {exc}')
+        motif_exoneration = isencao.mencao(code_exoneration)
+
     return {
         'description': description[:200],
         'code_produit': str(contenu.get('code_produit')
@@ -109,9 +136,9 @@ def ligne_figee(contenu, region=taxas.CONTINENT):
         'base': base,
         'taux': taux,
         'tva': tva,
-        'code_de_taux': taxas.code_saft(taux, region),
-        'motif_exoneration': str(contenu.get('motif_exoneration') or ''),
-        'code_exoneration': str(contenu.get('code_exoneration') or ''),
+        'code_de_taux': code_de_taux,
+        'motif_exoneration': motif_exoneration,
+        'code_exoneration': code_exoneration,
     }
 
 
@@ -450,6 +477,18 @@ class DocumentFiscal(models.Model):
     #: preuve qui l'accompagne, et rien ne le signalerait.
     lignes = models.JSONField('Lignes figées', default=list, blank=True)
 
+    #: Le document que celui-ci rectifie, pour une note de crédit.
+    #:
+    #: `PROTECT` et non `CASCADE` : supprimer la facture d'origine
+    #: laisserait l'avoir orphelin, et le SAF-T exige qu'il la désigne. De
+    #: toute façon `delete()` refuse déjà la suppression — la contrainte
+    #: est là pour le cas où quelqu'un passerait par la base.
+    document_rectifie = models.ForeignKey(
+        'self', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='rectifications', verbose_name='Document rectifié')
+    motif_rectification = models.CharField('Motif de la rectification',
+                                           max_length=200, blank=True)
+
     # Le document d'origine dans l'ERP, sans dépendre d'un modèle précis :
     # une facture de vente aujourd'hui, un ticket de caisse demain.
     source_app = models.CharField('Application source', max_length=50,
@@ -506,7 +545,8 @@ class DocumentFiscal(models.Model):
     @classmethod
     def emettre(cls, *, serie, date_document, lignes, nif_emetteur,
                 nif_acquereur='', pays_acquereur='PT', etat='N',
-                source=None, horodatage=None, numero_de_certificat='0'):
+                source=None, horodatage=None, numero_de_certificat='0',
+                document_rectifie=None, motif_rectification=''):
         """Numérote, signe et enregistre un document — tout ou rien.
 
         `lignes` est un itérable de dictionnaires. Les clés attendues sont
@@ -536,6 +576,24 @@ class DocumentFiscal(models.Model):
             cle = verrouillee.cle or CleDeSignature.active_de(
                 verrouillee.company)
 
+            # Une note de crédit SANS document rectifié est un avoir dans
+            # le vide. Le contrôle est ici, à l'émission, parce qu'à
+            # l'export l'avoir est déjà parti chez le client.
+            if verrouillee.type_document in TYPES_AU_DEBIT:
+                if document_rectifie is None:
+                    raise ValidationError(
+                        'Une note de crédit doit désigner la facture '
+                        'qu’elle rectifie : l’administration rapproche les '
+                        'deux, et le SAF-T l’exige.')
+                if document_rectifie.company_id != verrouillee.company_id:
+                    raise ValidationError(
+                        'La facture rectifiée appartient à une autre '
+                        'entreprise.')
+            elif document_rectifie is not None:
+                raise ValidationError(
+                    f'Un document de type « {verrouillee.type_document} » ne '
+                    'rectifie rien. Employez une série de type « NC ».')
+
             sequentiel = verrouillee.prochain_numero
             numero = verrouillee.numero_du_document(sequentiel)
             valider_numero_saft(numero)
@@ -545,7 +603,7 @@ class DocumentFiscal(models.Model):
                          .values_list('signature', flat=True)
                          .first()) or ''
 
-            figees = [ligne_figee(contenu, verrouillee.region)
+            figees = [ligne_figee(contenu, verrouillee.region, date_document)
                       for contenu in lignes]
             if not figees:
                 raise ValidationError(
@@ -607,6 +665,8 @@ class DocumentFiscal(models.Model):
                 atcud=code_atcud,
                 contenu_qr=contenu,
                 lignes=[_pour_json(f) for f in figees],
+                document_rectifie=document_rectifie,
+                motif_rectification=motif_rectification[:200],
             )
 
             if source is not None:

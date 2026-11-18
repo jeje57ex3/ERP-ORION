@@ -27,6 +27,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from .models import DocumentFiscal, ParametresFiscauxPT, SerieFiscale
 
@@ -54,11 +55,37 @@ def document_pour(invoice):
     Sert à l'affichage : une facture déjà signée doit montrer son ATCUD,
     son code QR et sa mention légale, et ne doit surtout pas être signée
     une seconde fois.
+
+    `document_rectifie__isnull=True` N'EST PAS UN DÉTAIL.
+
+    Les avoirs portent le MÊME lien source que la facture qu'ils
+    rectifient — c'est voulu, pour la traçabilité. Sans ce filtre, la
+    requête rendait le plus récent, donc l'avoir : le deuxième appel
+    rectifiait alors l'AVOIR au lieu de la facture, et l'écran de la
+    facture affichait l'avoir comme sa propre preuve.
+
+    Mesure : un deuxième avoir sur la même facture donnait « NC A/2 »
+    rectifiant « NC A/1 », au lieu de rendre le premier. Les deux
+    documents étaient parfaitement signés, et le client était crédité
+    deux fois.
+
+    Le document propre d'une facture est celui qui ne rectifie rien.
     """
     return DocumentFiscal.objects.filter(
         company_id=invoice.company_id,
         source_app='sales', source_modele='invoice',
-        source_id=invoice.pk).first()
+        source_id=invoice.pk,
+        document_rectifie__isnull=True).first()
+
+
+def rectifications_de(invoice):
+    """Les avoirs déjà émis sur une facture, du plus ancien au plus récent."""
+    return (DocumentFiscal.objects
+            .filter(company_id=invoice.company_id,
+                    source_app='sales', source_modele='invoice',
+                    source_id=invoice.pk,
+                    document_rectifie__isnull=False)
+            .order_by('date_document', 'numero_sequentiel'))
 
 
 def serie_pour(company, type_document=TYPE_PAR_DEFAUT):
@@ -96,6 +123,7 @@ def lignes_de_la_facture(invoice):
             'base': Decimal(str(ligne.total_ht or 0)),
             'taux': Decimal(str(ligne.vat_rate or 0)),
             'tva': Decimal(str(ligne.total_tva or 0)),
+            'code_exoneration': ligne.code_exoneration or '',
         })
 
     return lignes
@@ -160,6 +188,88 @@ def emettre_pour_facture(invoice, type_document=TYPE_PAR_DEFAUT):
             invoice.number = document.numero
 
         return document
+
+
+def emettre_une_note_de_credit(invoice, motif, lignes=None):
+    """Émet l'avoir qui rectifie une facture déjà signée.
+
+    POURQUOI CETTE FONCTION DOIT EXISTER
+
+    `DocumentFiscal.save()` refuse de modifier un document émis, et son
+    message dit « Émettez une note de crédit pour le corriger ». Sans
+    cette fonction, ce message désignerait quelque chose qui n'existe
+    pas — et la seule voie légale de correction serait fermée.
+
+    `lignes` permet un avoir PARTIEL. Omis, l'avoir reprend toutes les
+    lignes de la facture : c'est l'annulation complète, le cas courant.
+    """
+    company = invoice.company
+    parametres = ParametresFiscauxPT.de(company)
+
+    if not parametres.est_actif:
+        raise ConformiteInactive(
+            'La conformité portugaise n’est pas activée pour cette '
+            'entreprise.')
+
+    origine = document_pour(invoice)
+    if origine is None:
+        raise ValidationError(
+            f'La facture {invoice.number} n’a pas été signée : il n’y a '
+            'rien à rectifier. Une facture encore en brouillon se modifie '
+            'directement.')
+
+    motif = (motif or '').strip()
+    if not motif:
+        raise ValidationError(
+            'Un avoir doit porter son motif. C’est lui qui distingue un '
+            'geste commercial d’une erreur de facturation, et le SAF-T le '
+            'transporte dans le champ « Reason ».')
+
+    with transaction.atomic():
+        # Un seul avoir d'annulation par facture.
+        #
+        # Deux avoirs complets créditeraient deux fois le client, et rien
+        # dans la chaîne de signatures ne le signalerait : les deux
+        # documents sont parfaitement valides pris séparément.
+        if lignes is None:
+            deja = DocumentFiscal.objects.filter(
+                document_rectifie=origine,
+                total=origine.total).first()
+            if deja is not None:
+                return deja
+
+        return DocumentFiscal.emettre(
+            serie=serie_pour(company, 'NC'),
+            date_document=timezone.now().date(),
+            lignes=lignes if lignes is not None else _lignes_figees(origine),
+            nif_emetteur=parametres.nif,
+            nif_acquereur=origine.nif_acquereur,
+            pays_acquereur=origine.pays_acquereur,
+            source=invoice,
+            numero_de_certificat=parametres.numero_de_certificat or '0',
+            document_rectifie=origine,
+            motif_rectification=motif,
+        )
+
+
+def _lignes_figees(document):
+    """Les lignes d'un document émis, remises en forme pour une réémission.
+
+    On repart des lignes FIGÉES du document fiscal, et non de la facture
+    de l'ERP : la facture a pu changer depuis, et un avoir doit créditer
+    ce qui a réellement été facturé, pas l'état actuel du dossier.
+    """
+    return [{
+        'description': figee['description'],
+        'code_produit': figee['code_produit'],
+        'quantite': Decimal(figee['quantite']),
+        'unite': figee['unite'],
+        'prix_unitaire': Decimal(figee['prix_unitaire']),
+        'base': Decimal(figee['base']),
+        'taux': Decimal(figee['taux']),
+        'tva': Decimal(figee['tva']),
+        'code_exoneration': figee.get('code_exoneration') or '',
+    } for figee in document.lignes]
 
 
 def _pays_de(customer):

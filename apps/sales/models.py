@@ -381,6 +381,21 @@ class InvoiceLine(models.Model):
     total_tva = models.DecimalField('Total TVA', max_digits=12, decimal_places=2, default=0)
     order = models.PositiveIntegerField(default=0)
 
+    # Le motif d'exoneration, obligatoire au Portugal sur toute ligne sans
+    # TVA. Le champ reste vide partout ailleurs et ne change rien a la
+    # facturation francaise.
+    #
+    # Il n'y a PAS de `choices` ici, deliberement : la table officielle de
+    # l'AT evolue (M35 est entre en vigueur le 1er juillet 2026), et des
+    # `choices` figes dans une migration obligeraient a migrer la base a
+    # chaque revision du texte. La validation vit dans
+    # `apps.fiscal_pt.isencao`, qui est la seule table a tenir a jour.
+    code_exoneration = models.CharField(
+        'Motif d’exonération (PT)', max_length=4, blank=True,
+        help_text='Code de la table de l’AT, par exemple M31 pour '
+                  'l’autoliquidation en sous-traitance de construction. '
+                  'Obligatoire au Portugal sur une ligne sans TVA.')
+
     class Meta:
         ordering = ['order']
 

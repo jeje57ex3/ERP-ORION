@@ -313,3 +313,118 @@ def test_un_pays_inconnu_est_declare_inconnu_et_non_devine(facture,
     document = facturation.emettre_pour_facture(facture)
 
     assert '*C:Desconhecido*' in document.contenu_qr
+
+
+# ── Les motifs d'exoneration ─────────────────────────────────────────────────
+
+def test_une_ligne_sans_tva_sans_motif_est_refusee(facture, conformite):
+    """CE QUE CE REFUS EVITE.
+
+    Le SAF-T exige le motif des que la ligne est a 0 %. Sans ce controle a
+    l'emission, la facture partait, le client la payait, et le fichier
+    etait rejete en entier des mois plus tard -- quand il n'y a plus qu'a
+    constater le manque.
+    """
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.save()
+
+    with pytest.raises(ValidationError, match='motif'):
+        facturation.emettre_pour_facture(facture)
+
+    assert DocumentFiscal.objects.count() == 0
+    conformite.refresh_from_db()
+    assert conformite.prochain_numero == 1   # aucun numero brule
+
+
+def test_une_ligne_exoneree_avec_son_motif_passe(facture, conformite):
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M07'
+    ligne.save()
+
+    document = facturation.emettre_pour_facture(facture)
+
+    figee = document.lignes[0]
+    assert figee['code_de_taux'] == 'ISE'
+    assert figee['code_exoneration'] == 'M07'
+    # La mention est RELUE dans la table officielle, pas recopiee d'une
+    # saisie : c'est une mention legale du document.
+    assert figee['motif_exoneration'] == 'Isento artigo 9.º do CIVA'
+
+
+def test_l_autoliquidation_du_btp_passe_avec_m31(facture, conformite):
+    """Le cas courant d'un ERP de travaux : inversion du redevable sur la
+    sous-traitance de construction civile, facturee sans TVA."""
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M31'
+    ligne.save()
+
+    document = facturation.emettre_pour_facture(facture)
+
+    assert document.lignes[0]['code_exoneration'] == 'M31'
+    assert document.total_taxes == Decimal('0')
+    assert document.total == Decimal('100.00')
+    # La base exoneree va dans I2, et non dans la base au taux normal.
+    assert '*I2:100.00*' in document.contenu_qr
+    assert 'I7:' not in document.contenu_qr
+
+
+def test_un_motif_inexistant_est_refuse_a_l_emission(facture, conformite):
+    """M08 n'existe pas, et se devine pourtant entre M07 et M09."""
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M08'
+    ligne.save()
+
+    with pytest.raises(ValidationError, match='contigu'):
+        facturation.emettre_pour_facture(facture)
+
+
+def test_m35_est_refuse_sur_une_facture_anterieure_a_son_entree_en_vigueur(
+        facture, conformite):
+    """M35 ne s'applique qu'aux factures emises a partir du 1er juillet
+    2026. La date du DOCUMENT decide, pas celle du jour."""
+    facture.issue_date = date(2026, 6, 1)
+    facture.save()
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M35'
+    ligne.save()
+
+    with pytest.raises(ValidationError, match='01/07/2026'):
+        facturation.emettre_pour_facture(facture)
+
+
+def test_le_saft_porte_le_motif_et_son_code(facture, conformite):
+    """Le schema exige TaxExemptionReason ET TaxExemptionCode des que le
+    code de taux vaut ISE. L'un sans l'autre fait rejeter le fichier."""
+    from xml.etree import ElementTree as ET
+
+    from apps.fiscal_pt import export
+
+    ligne = facture.lines.first()
+    ligne.vat_rate = Decimal('0')
+    ligne.code_exoneration = 'M31'
+    ligne.save()
+    facturation.emettre_pour_facture(facture)
+
+    racine = ET.fromstring(export.composer(
+        facture.company, date(2026, 1, 1), date(2026, 12, 31)))
+    espace = '{urn:OECD:StandardAuditFile-Tax:PT_1.04_01}'
+
+    # On cherche DANS LA LIGNE, et non le premier `TaxCode` du document.
+    #
+    # `MasterFiles/TaxTable` precede `SourceDocuments` : un `iter()` sur
+    # la racine rend d'abord un code de la table des taux, qui n'a rien a
+    # voir avec la ligne facturee. Le test passait alors a cote de ce
+    # qu'il croyait verifier.
+    ligne = racine.find(
+        f'{espace}SourceDocuments/{espace}SalesInvoices/'
+        f'{espace}Invoice/{espace}Line')
+
+    assert ligne.find(f'{espace}Tax/{espace}TaxCode').text == 'ISE'
+    assert ligne.find(
+        f'{espace}TaxExemptionReason').text == 'IVA - autoliquidação'
+    assert ligne.find(f'{espace}TaxExemptionCode').text == 'M31'

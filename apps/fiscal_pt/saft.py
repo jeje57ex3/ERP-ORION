@@ -285,6 +285,24 @@ def entree_de_taux(code, pourcentage, region='PT'):
     return element
 
 
+def references(document_rectifie, motif):
+    """Le bloc `References` d'une ligne de note de crédit.
+
+    POURQUOI IL EST OBLIGATOIRE ICI
+
+    Une note de crédit qui ne désigne pas le document qu'elle rectifie est
+    un avoir dans le vide : l'administration ne peut pas rapprocher les
+    deux, et le SAF-T l'exige pour cette raison. Le motif, lui, est ce qui
+    distingue un geste commercial d'une erreur de facturation.
+    """
+    element = ET.Element('References')
+    if document_rectifie:
+        ET.SubElement(element, 'Reference').text = str(document_rectifie)
+    if motif:
+        ET.SubElement(element, 'Reason').text = str(motif)[:50]
+    return element
+
+
 def ligne(numero, donnees, type_document='FT'):
     """Une `Line` de document.
 
@@ -318,6 +336,26 @@ def ligne(numero, donnees, type_document='FT'):
         champ_montant: _montant(donnees.get('montant', 0)),
         'Tax': taxe,
     }
+
+    # Une note de crédit DOIT désigner le document qu'elle rectifie.
+    #
+    # Sans cette référence, l'administration ne peut pas rapprocher
+    # l'avoir de la facture d'origine : le fichier est valide au schéma et
+    # l'avoir reste orphelin, ce qui est exactement ce qu'un contrôle
+    # cherche.
+    if type_document in TYPES_AU_DEBIT:
+        rectifie = donnees.get('document_rectifie')
+        if not rectifie:
+            raise ErreurSAFT(
+                f'Ligne {numero} : une note de crédit doit désigner le '
+                'document qu’elle rectifie. Un avoir sans référence reste '
+                'orphelin dans le fichier, et le contrôle le relève.')
+        valeurs['References'] = references(rectifie,
+                                           donnees.get('motif_rectification'))
+    elif donnees.get('document_rectifie'):
+        valeurs['References'] = references(
+            donnees['document_rectifie'],
+            donnees.get('motif_rectification'))
 
     # Une ligne exonérée DOIT porter son motif d'exonération. C'est une
     # obligation du schéma, et la facture, elle, n'a l'air de rien manquer.

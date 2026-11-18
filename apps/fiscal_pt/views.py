@@ -344,3 +344,61 @@ def export_saft(request):
         'page_subtitle': 'Version 1.04_01, facturation',
         'form': form,
     })
+
+
+@login_required
+def note_de_credit(request, pk):
+    """Emet l'avoir qui rectifie une facture signee.
+
+    POURQUOI CET ECRAN EXISTE
+
+    Un document emis ne se modifie plus : sa signature couvre son contenu,
+    et tous les suivants de la serie signent la sienne. La seule voie
+    legale de correction est l'avoir -- et le message d'erreur du modele
+    le dit deja. Sans cet ecran, il designerait une fonction inexistante.
+    """
+    from apps.sales.models import Invoice
+
+    from .facturation import ConformiteInactive, emettre_une_note_de_credit
+
+    company = _company(request)
+    facture = get_object_or_404(Invoice, pk=pk, company=company)
+    origine = facturation_document(facture)
+
+    if request.method == 'POST':
+        motif = (request.POST.get('motif') or '').strip()
+        try:
+            avoir = emettre_une_note_de_credit(facture, motif)
+        except ConformiteInactive:
+            messages.error(
+                request,
+                'La conformite portugaise n\'est pas activee : il n\'y a pas '
+                'de document signe a rectifier.')
+            return redirect('sales:invoice_detail', pk=facture.pk)
+        except Exception as exc:
+            messages.error(request, f'Avoir non emis : {exc}')
+            return render(request, 'fiscal_pt/note_de_credit.html', {
+                'page_title': f'Avoir sur {facture.number}',
+                'facture': facture, 'origine': origine, 'motif': motif})
+
+        messages.success(
+            request,
+            f'Note de credit {avoir.numero} emise (ATCUD {avoir.atcud}).')
+        return redirect('fiscal_pt:document_detail', pk=avoir.pk)
+
+    return render(request, 'fiscal_pt/note_de_credit.html', {
+        'page_title': f'Avoir sur {facture.number}',
+        'page_subtitle': 'La seule voie legale de correction d\'un document emis',
+        'facture': facture,
+        'origine': origine,
+    })
+
+
+def facturation_document(invoice):
+    """Le document fiscal d'une facture, importe tardivement.
+
+    `facturation` importe `models`, qui importe `saft` : l'importer en
+    tete de ce module creerait une boucle a l'initialisation de Django.
+    """
+    from .facturation import document_pour
+    return document_pour(invoice)

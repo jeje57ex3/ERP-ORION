@@ -56,7 +56,7 @@ def rassembler(company, debut, fin):
     documents = (DocumentFiscal.objects
                  .filter(company=company,
                          date_document__gte=debut, date_document__lte=fin)
-                 .select_related('serie')
+                 .select_related('serie', 'document_rectifie')
                  .order_by('date_document', 'numero_sequentiel'))
 
     entete = {
@@ -91,6 +91,13 @@ def rassembler(company, debut, fin):
         })
 
         region = document.serie.region
+
+        # La référence au document rectifié est portée par LE DOCUMENT, et
+        # recopiée sur chaque ligne parce que c'est là que le SAF-T
+        # l'attend. La stocker une fois et la distribuer ici évite de la
+        # dupliquer dans les lignes figées, où elle pourrait diverger.
+        rectifie = (document.document_rectifie.numero
+                    if document.document_rectifie_id else '')
         lignes = []
 
         for figee in document.lignes:
@@ -116,6 +123,8 @@ def rassembler(company, debut, fin):
                 'date': document.date_document,
                 'motif_exoneration': figee.get('motif_exoneration') or '',
                 'code_exoneration': figee.get('code_exoneration') or '',
+                'document_rectifie': rectifie,
+                'motif_rectification': document.motif_rectification,
             })
 
         sortie.append({
@@ -126,6 +135,7 @@ def rassembler(company, debut, fin):
             'date': document.date_document,
             'type': document.serie.type_document,
             'etat': document.etat,
+            'motif': document.motif_rectification,
             'horodatage': document.horodatage,
             'client': identifiant,
             'lignes': lignes,

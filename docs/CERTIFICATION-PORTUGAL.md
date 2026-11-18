@@ -19,6 +19,7 @@ référence.
 | **Portaria n.º 302/2016** | Le format SAF-T (PT), version 1.04_01. |
 | **Portaria n.º 195/2020** | L'ATCUD et le code QR. |
 | **Especificações Técnicas Código QR** (AT) | Le contenu champ par champ du code QR. |
+| **Códigos de Motivo de Isenção** (AT), v4.0 du 18/06/2026 | La table des motifs d'exonération (`TaxExemptionCode`). |
 
 Deux remarques qui surprennent et qui sont pourtant la règle :
 
@@ -75,7 +76,67 @@ Madère et n'existe pas sur le continent. La table couvre les trois
 régions, et un taux étranger (20 %, par exemple) **arrête l'émission**
 au lieu d'être rangé dans le palier voisin.
 
-### 2.5 Les garanties structurelles — `models.py`
+### 2.5 Les motifs d'exonération — `isencao.py`
+
+La table officielle de l'AT, **version 4.0 du 18 juin 2026**, recopiée
+depuis le PDF publié et non d'après un site qui la reproduit : plusieurs
+reproductions omettent M35, le plus récent.
+
+Trois pièges que le module ferme :
+
+- **Les codes ne sont pas contigus.** M03, M08, M17, M18, M22 à M24,
+  M27 à M29 et M36 à M39 **n'existent pas**. Un code choisi par analogie
+  — on voit M07 et M09, on écrit M08 — fait rejeter le fichier entier
+  tout en ayant l'air aussi normal que les autres.
+- **La « menção » est une mention légale du document**, pas une étiquette
+  d'interface. Elle est relue dans la table d'après le code, jamais
+  saisie à la main, et figure sur la facture.
+- **M35 a une date d'entrée en vigueur** : factures émises à partir du
+  1er juillet 2026 seulement. L'employer avant est un refus assuré.
+
+**Ce qui concerne directement le BTP.** Deux codes servent à l'inversion
+du redevable sur les travaux, et la liste déroulante les met en tête :
+
+- **M31** — autoliquidation sur les services de construction civile en
+  régime d'entreprise ou de sous-traitance, entre assujettis établis au
+  Portugal. C'est le cas courant de la sous-traitance de chantier.
+- **M35** — chantiers de construction ou de réhabilitation d'immeubles
+  destinés à l'habitation propre et permanente de l'acquéreur, ou à la
+  location à usage d'habitation (Decreto-Lei n.º 97/2026).
+
+Le motif est exigé **à l'émission**, et non à l'export : à l'export, la
+facture est déjà partie chez le client et on ne peut plus que constater
+le manque.
+
+### 2.6 La note de crédit — `facturation.py`
+
+**Pourquoi elle est indispensable, et pas optionnelle.** Un document émis
+ne se modifie plus : sa signature couvre son contenu, et tous les
+suivants de la série signent la sienne. Le message d'erreur du modèle dit
+donc « Émettez une note de crédit pour le corriger » — et sans cette
+fonction, il désignerait quelque chose d'inexistant. La seule voie légale
+de correction serait fermée.
+
+L'avoir :
+
+- **désigne toujours** le document qu'il rectifie, dans
+  `Line/References/Reference` du SAF-T. Un avoir orphelin donne un
+  fichier valide au schéma dont le contrôle relève l'incohérence ;
+- **porte son motif**, dans `DocumentStatus/Reason` et
+  `Line/References/Reason` — le schéma l'attend aux deux endroits. C'est
+  lui qui distingue un geste commercial d'une erreur de facturation ;
+- **reprend les lignes figées** du document d'origine, et non la facture
+  de l'ERP, qui a pu changer depuis ;
+- **va au débit** là où la facture va au crédit ;
+- **ouvre sa propre chaîne**, dans la série NC : une chaîne par série ;
+- **ne peut pas être émis deux fois** pour le même montant. Deux avoirs
+  complets créditeraient deux fois le client, et pris séparément les deux
+  documents sont parfaitement valides — rien dans la chaîne de signatures
+  ne le dénoncerait.
+
+L'écran est accessible d'un bouton sur la facture.
+
+### 2.7 Les garanties structurelles — `models.py`
 
 | Garantie | Comment |
 |---|---|
@@ -87,7 +148,7 @@ au lieu d'être rangé dans le palier voisin.
 | Lignes figées | Le détail est recopié à l'émission, jamais relu depuis la facture vivante. |
 | Clé privée chiffrée | Fernet au repos ; un échec de déchiffrement **le dit** au lieu de rendre une chaîne vide. |
 
-### 2.6 Le SAF-T (PT) — `saft.py` et `export.py`
+### 2.8 Le SAF-T (PT) — `saft.py` et `export.py`
 
 - Version **1.04_01**, `TaxAccountingBasis` = `F` (facturation).
 - En-tête, clients, produits, table des taux, documents de vente.
@@ -97,7 +158,7 @@ au lieu d'être rangé dans le palier voisin.
 - L'ordre des éléments est écrit sous forme de listes nommées,
   relisibles contre le schéma, et **figé par des tests**.
 
-### 2.7 Les écrans
+### 2.9 Les écrans
 
 `/conformite-portugal/` — tout se pilote à l'écran, sans terminal :
 
@@ -114,7 +175,7 @@ Les mentions légales (ATCUD, code QR, mention du programme certifié)
 figurent aussi **sur la facture elle-même**, et pas seulement dans
 l'écran d'administration.
 
-### 2.8 Le branchement
+### 2.10 Le branchement
 
 `invoice_send` signe **avant** de changer le statut, dans la même
 transaction. Si la signature échoue, la facture reste en brouillon et
@@ -130,11 +191,10 @@ facture sortirait sans preuve et rien ne le signalerait.
 | Reste | Pourquoi ce n'est pas fait |
 |---|---|
 | **Communication des séries à l'AT par webservice** | Le service SOAP de l'AT demande un certificat client délivré à l'entreprise. Le code de validation se saisit donc à la main aujourd'hui, ce qui est légal mais manuel. |
-| **Notes de crédit (NC) et autres types** | La mécanique les accepte (`TYPES_DE_DOCUMENT`, débit/crédit au SAF-T), mais aucun écran ne les émet encore depuis l'ERP. |
+| **Autres types de documents** | `FS` (facture simplifiée), `FR` (facture-reçu) et `ND` (note de débit) sont déclarables en série, mais aucun écran ne les émet encore. |
 | **Documents de mouvement de marchandises** | `MovementOfGoods` du SAF-T n'est pas produit. Obligatoire seulement si l'entreprise transporte des marchandises. |
 | **Documents de travail** | `WorkingDocuments` (devis, bons) n'est pas produit. |
 | **Reçus (FR / RG)** | La mention « sans signature » existe, l'émission non. |
-| **Motifs d'exonération** | Le SAF-T les exige dès qu'une ligne est à 0 % ; il faut un champ par ligne dans l'ERP pour les saisir (`M01`…`M99`). Aujourd'hui l'export **refuse** une ligne exonérée sans motif, ce qui est préférable à un fichier rejeté, mais bloque la facturation exonérée. |
 | **Validation contre le XSD officiel** | Les tests figent l'ordre et les champs d'après le schéma, mais aucune validation automatique contre le fichier `.xsd` de l'AT n'est branchée. |
 
 ### 3.2 Un défaut à corriger dans la facturation française
@@ -150,11 +210,38 @@ conséquences mesurables :
 - deux créations simultanées obtiennent le même numéro.
 
 Le service atomique `apps/core/numbering.py:next_number` existe pourtant
-et n'est pas appelé ici. Ce n'est pas un problème portugais — les
+et n'est pas appelé ici — alors que la vue des devis, dans le même
+fichier, l'appelle avec un commentaire qui explique précisément pourquoi
+`count() + 1` est faux. **Ce point reste ouvert** : le corriger changerait
+le format des numéros français (`FAC-0001` → `FAC-2026-0001`), ce qui est
+visible par vos clients. Ce n'est pas un problème portugais — les
 factures portugaises passent par les séries — mais c'en est un pour la
 facturation française.
 
-### 3.3 Les démarches auprès de l'AT
+### 3.3 Un manque comblé en chemin : les lignes de facture
+
+`InvoiceLine` était importé dans `apps/sales/forms.py` et instancié
+**nulle part** dans l'application. Le modèle existait, l'écran de détail
+affichait `invoice.lines`, et aucun chemin de code n'en créait jamais.
+
+Le défaut ne se voyait pas : l'écran affichait fidèlement une liste vide,
+et les totaux des factures restaient à zéro sans qu'aucune erreur
+n'apparaisse. Au Portugal il était bloquant — le SAF-T exige au moins
+une ligne par document, donc aucune facture conforme n'était possible.
+
+Un éditeur de lignes a donc été ajouté au formulaire de facture :
+désignation, référence, quantité, unité, prix, remise, taux et motif
+d'exonération. Les totaux se recalculent depuis les lignes à chaque
+enregistrement, plutôt que d'être tenus à part — un cumul mis à jour
+« au passage » dériverait après la suppression d'une ligne, et au
+Portugal ce centime est signé.
+
+Au passage, le client n'était borné à l'entreprise qu'à l'affichage : un
+identifiant forgé dans la requête rattachait la facture au client d'une
+**autre** entreprise. Le contrôle existait dans la vue des devis, qui
+l'appelle « la règle centrale de cet ERP », et manquait ici.
+
+### 3.4 Les démarches auprès de l'AT
 
 Le code ne suffit pas. La certification est une **demande
 administrative** :
@@ -186,6 +273,9 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_fiscal_pt_models.py` | Numérotation sans trou, immuabilité, chaînage, rotation de clé. |
 | `tests/test_fiscal_pt_vues.py` | Que chaque geste se fait réellement à l'écran. |
 | `tests/test_fiscal_pt_facturation.py` | Qu'une facture ne peut pas partir sans sa signature. |
+| `tests/test_fiscal_pt_isencao.py` | La table des motifs, et que les codes absents sont refusés. |
+| `tests/test_lignes_de_facture.py` | La saisie des lignes, les totaux, et l'étanchéité entre entreprises. |
+| `tests/test_fiscal_pt_avoir.py` | Qu'un avoir désigne sa facture, porte son motif, et ne crédite pas deux fois. |
 
 Deux limites, dites franchement :
 

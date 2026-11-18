@@ -315,8 +315,11 @@ def test_la_version_de_la_cle_est_conservee(entreprise, chiffrement):
 def test_les_totaux_se_calculent_depuis_les_lignes(serie):
     document = DocumentFiscal.emettre(
         serie=serie, date_document=date(2026, 1, 2),
+        # La ligne a 0 % porte son motif : il est desormais exige a
+        # l'emission, et ce test le montre en passant.
         lignes=[ligne(), ligne(taux='6', base='50.00', tva='3.00'),
-                ligne(taux='0', base='10.00', tva='0.00')],
+                dict(ligne(taux='0', base='10.00', tva='0.00'),
+                     code_exoneration='M07')],
         nif_emetteur='123456789')
 
     assert document.total_base == Decimal('160.00')

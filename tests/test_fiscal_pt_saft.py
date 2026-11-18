@@ -174,7 +174,11 @@ def test_les_totaux_sont_recalcules_depuis_les_documents():
 def test_une_note_de_credit_va_au_debit():
     """Les inverser donne un fichier qui s’équilibre à l’envers, et le
     validateur l’accepte sans rien dire : seul le contrôle le relève."""
-    avoir = dict(DOCUMENT, numero='NC A/1', type='NC')
+    # L'avoir DESIGNE la facture qu'il rectifie : le composer sans cette
+    # reference est desormais refuse, et c'est le sujet d'un autre test.
+    avoir = dict(DOCUMENT, numero='NC A/1', type='NC',
+                 lignes=[dict(LIGNE, document_rectifie='FT A/1',
+                              motif_rectification='Devolução')])
     ventes = _trouver(_racine([DOCUMENT, avoir]),
                       'SourceDocuments/SalesInvoices')
     espace = f'{{{saft.ESPACE_DE_NOMS}}}'

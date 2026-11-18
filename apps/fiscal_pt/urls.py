@@ -21,4 +21,7 @@ urlpatterns = [
 
     path('verification/', views.verifier_les_chaines, name='verification'),
     path('saft/', views.export_saft, name='export_saft'),
+
+    path('factures/<int:pk>/avoir/', views.note_de_credit,
+         name='note_de_credit'),
 ]

@@ -153,9 +153,34 @@
               <label>{% trans "Mention au pied du document" %}</label>
               <div class="value small" style="word-break:break-all">{{ mention_legale }}</div>
             </div>
+            {% if mentions_d_exoneration %}
+            <div class="info-item mt-2">
+              <label>{% trans "Mentions d'exoneration" %}</label>
+              {% for code, motif in mentions_d_exoneration %}
+              <div class="value small">{{ motif }} <span class="text-muted">({{ code }})</span></div>
+              {% endfor %}
+            </div>
+            {% endif %}
             <a href="{% url 'fiscal_pt:document_detail' document_fiscal.pk %}" class="orion-btn orion-btn-outline btn-sm mt-2">
               <i class="bi bi-fingerprint me-1"></i>{% trans "Voir la preuve" %}
             </a>
+            {% if rectifications %}
+            <div class="info-item mt-2">
+              <label>{% trans "Avoirs emis" %}</label>
+              {% for avoir in rectifications %}
+              <div class="value small">
+                <a href="{% url 'fiscal_pt:document_detail' avoir.pk %}">{{ avoir.numero }}</a>
+                — {{ avoir.total }} € — {{ avoir.motif_rectification }}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <a href="{% url 'fiscal_pt:note_de_credit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm mt-2">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Emettre un avoir" %}
+            </a>
+            <div class="form-text mt-1">
+              {% trans "Un document signe ne se modifie plus : l'avoir est la seule voie legale de correction." %}
+            </div>
           </div>
         </div>
       </div>

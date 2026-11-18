@@ -198,6 +198,137 @@ class InvoiceForm(forms.ModelForm):
         }
 
 
+class InvoiceLineForm(forms.ModelForm):
+    """Une ligne de facture.
+
+    POURQUOI CE FORMULAIRE N'EXISTAIT PAS
+
+    `InvoiceLine` etait importe dans ce fichier et instancie NULLE PART
+    dans l'application. Le modele existait, `invoice_detail.html`
+    affichait `invoice.lines`, et aucun chemin de code n'en creait jamais.
+    Les factures n'avaient donc jamais de lignes, et leurs totaux
+    restaient a zero -- un defaut qui ne se voit pas, puisque l'ecran
+    affiche fidelement une liste vide.
+
+    Au Portugal, c'est bloquant : le SAF-T exige au moins une ligne par
+    document, et une facture sans ligne ne peut pas etre emise.
+    """
+
+    class Meta:
+        model = InvoiceLine
+        fields = ['description', 'reference', 'quantity', 'unit',
+                  'unit_price', 'discount_rate', 'vat_rate',
+                  'code_exoneration']
+        widgets = {
+            'description': forms.TextInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'placeholder': 'Désignation'}),
+            'reference': forms.TextInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'placeholder': 'Réf.'}),
+            'quantity': forms.NumberInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'step': '0.001'}),
+            'unit': forms.TextInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'placeholder': 'u'}),
+            'unit_price': forms.NumberInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'step': '0.0001'}),
+            'discount_rate': forms.NumberInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'step': '0.01'}),
+            'vat_rate': forms.NumberInput(
+                attrs={'class': 'form-control form-control-sm',
+                       'step': '0.01'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Les motifs d'exoneration viennent de la table officielle de l'AT,
+        # et non de `choices` figes sur le modele : la table evolue (M35 est
+        # entre en vigueur le 1er juillet 2026), et des choix inscrits dans
+        # une migration obligeraient a migrer la base a chaque revision du
+        # texte.
+        from apps.fiscal_pt import isencao
+
+        self.fields['code_exoneration'] = forms.ChoiceField(
+            label='Motif d’exonération (PT)',
+            required=False,
+            choices=[('', '—')] + isencao.choix(),
+            widget=forms.Select(
+                attrs={'class': 'form-select form-select-sm'}),
+            help_text='Obligatoire au Portugal sur une ligne sans TVA.',
+        )
+
+        for champ in self.fields.values():
+            champ.required = False
+
+        # Une ligne NEUVE ne doit porter AUCUNE valeur initiale.
+        #
+        # C'est le piege exact que le detail des devis documente dans ce
+        # meme fichier, et il s'est reproduit ici a l'identique. Les
+        # defauts du modele -- quantity=1, vat_rate=20, discount_rate=0 --
+        # deviennent valeurs initiales du formulaire. Le formset compare
+        # alors la ligne VIDE envoyee a ces initiales, la croit modifiee,
+        # et l'ENREGISTRE.
+        #
+        # Mesure : sur une facture creee avec deux lignes remplies et une
+        # troisieme laissee vide, la facture sortait avec TROIS lignes,
+        # dont une a zero euro et sans designation. Elle serait partie
+        # ainsi chez le client.
+        #
+        # On neutralise TOUS les champs plutot qu'une liste : un futur
+        # champ dote d'un defaut rouvrirait sinon le meme piege.
+        if not self.instance.pk:
+            for nom in self.fields:
+                self.initial[nom] = ''
+
+    def clean(self):
+        """Une ligne entierement vide est une ligne non remplie.
+
+        Le formset propose trois lignes d'avance ; celles qu'on ne remplit
+        pas ne doivent ni etre enregistrees ni lever « ce champ est
+        obligatoire ».
+        """
+        donnees = super().clean()
+
+        if not self.has_changed():
+            return donnees
+
+        description = (donnees.get('description') or '').strip()
+
+        if not description:
+            self.add_error('description',
+                           'Une ligne facturee doit porter une désignation.')
+
+        # Les defauts du modele ne s'appliquent pas a un champ laisse vide
+        # dans un formulaire : `quantity` vaudrait None, et le calcul de
+        # `total_ht` leverait au premier enregistrement.
+        if donnees.get('quantity') in (None, ''):
+            donnees['quantity'] = Decimal('1')
+        if donnees.get('unit_price') in (None, ''):
+            donnees['unit_price'] = Decimal('0')
+        if donnees.get('discount_rate') in (None, ''):
+            donnees['discount_rate'] = Decimal('0')
+        if donnees.get('vat_rate') in (None, ''):
+            donnees['vat_rate'] = Decimal('0')
+        if not (donnees.get('unit') or '').strip():
+            donnees['unit'] = 'u'
+
+        return donnees
+
+
+InvoiceLineFormSet = forms.inlineformset_factory(
+    Invoice,
+    InvoiceLine,
+    form=InvoiceLineForm,
+    extra=3,
+    can_delete=True,
+)
+
+
 # ─── Modèles de devis ────────────────────────────────────────────────────────
 
 class QuoteTemplateForm(forms.ModelForm):
