@@ -102,7 +102,10 @@ TYPES_RECTIFICATIFS = ('NC', 'ND')
 #: Une facture-reçu vaut quittance : le client peut l'opposer comme preuve
 #: de paiement. En émettre une sans enregistrer le paiement produit un
 #: document qui atteste un encaissement dont le fichier ne porte pas trace.
-TYPES_QUI_ATTESTENT_UN_PAIEMENT = ('FR',)
+#:
+#: Le reçu « RG » y figure pour la même raison, et c'est même sa seule
+#: raison d'être : un reçu qui ne dit pas ce qu'il a reçu n'est rien.
+TYPES_QUI_ATTESTENT_UN_PAIEMENT = ('FR', 'RG')
 
 
 def exige_une_rectification(type_document):
@@ -113,6 +116,153 @@ def exige_une_rectification(type_document):
 def atteste_un_paiement(type_document):
     """Ce type vaut-il quittance ?"""
     return type_document in TYPES_QUI_ATTESTENT_UN_PAIEMENT
+
+
+# ── Les états d'un document ──────────────────────────────────────────────────
+
+#: Les cinq états d'un document de FACTURATION, relevés dans l'énumération
+#: « InvoiceStatus » du schéma, avec le sens que sa documentation leur
+#: donne — « R » est un document de RÉSUMÉ d'autres documents créés dans
+#: une autre application, et non un « autre » état fourre-tout.
+ETATS_DE_FACTURATION = (
+    ('N', 'Normal'),
+    ('S', 'Autofacturation'),
+    ('A', 'Annulé'),
+    ('R', 'Résumé d’autres documents'),
+    ('F', 'Facturé'),
+)
+
+CODES_D_ETAT_DE_FACTURATION = tuple(code for code, _ in ETATS_DE_FACTURATION)
+
+#: Les états d'un REÇU. Le schéma n'en accepte que DEUX : « PaymentStatus »
+#: vaut « N » ou « A », là où un document de facturation en accepte cinq.
+#:
+#: LES DEUX LISTES SE RESSEMBLENT ASSEZ POUR QU'ON SOIT TENTÉ DE N'EN
+#: TENIR QU'UNE. Un reçu marqué « F » passerait alors de notre côté et
+#: serait refusé par le schéma de l'AT — sur un document déjà figé, et en
+#: bloquant le fichier entier. C'est le même piège que les deux listes de
+#: types rectificatifs, à un endroit différent.
+ETATS_DE_RECU = (
+    ('N', 'Normal'),
+    ('A', 'Annulé'),
+)
+
+CODES_D_ETAT_DE_RECU = tuple(code for code, _ in ETATS_DE_RECU)
+
+
+def valider_l_etat(etat, type_document):
+    """Refuse un état hors énumération, AVANT la signature.
+
+    LE DÉFAUT QUE CE CONTRÔLE FERME, ET C'EST LE TROISIÈME DE SA FAMILLE
+
+    `etat` arrivait jusqu'au document sans contrôle : les `choices` du
+    modèle ne sont vérifiés qu'au `full_clean()` d'un formulaire, et
+    l'émission n'en fait pas. Un état hors liste était donc signé,
+    inscrit dans le champ E du code QR et dans « InvoiceStatus » — où le
+    schéma, lui, l'énumère. Le document s'émettait, et c'est l'EXPORT du
+    fichier ENTIER qui échouait, sur un document que plus rien ne
+    modifie.
+
+    Exactement le même défaut que le type de série hors liste, et au même
+    endroit du chemin. Un défaut de cette famille ne se corrige pas une
+    fois : il se cherche partout où une énumération du schéma entre dans
+    le logiciel sans passer par un formulaire.
+    """
+    admis = (CODES_D_ETAT_DE_RECU if est_un_recu(type_document)
+             else CODES_D_ETAT_DE_FACTURATION)
+
+    if etat not in admis:
+        raise RegleDeType(
+            f'« {etat} » n’est pas un état possible pour un document de '
+            f'type « {type_document} ». Le schéma n’en accepte que '
+            f'{len(admis)} : {", ".join(admis)}. Un état hors liste serait '
+            'signé sans protester et ferait refuser l’export entier, alors '
+            'que le document ne serait plus modifiable.')
+    return etat
+
+
+# ── Les reçus, qui ne sont pas des documents de facturation ──────────────────
+
+#: Les types de reçus, relevés dans l'énumération « SAFTPTPaymentType » du
+#: schéma : elle n'en accepte que DEUX. « RC » est le reçu du régime de
+#: TVA sur les encaissements (regime de IVA de caixa), « RG » tout autre
+#: reçu émis.
+#:
+#: CE LOGICIEL N'ÉMET QUE « RG », ET LE REFUS DE « RC » EST EXPLICITE.
+#:
+#: Le schéma impose à CHAQUE ligne d'un « RC » de porter son bloc `Tax` —
+#: il l'écrit dans un `xs:assert`, et notre validateur ne lit pas les
+#: asserts. Un « RC » composé comme un « RG » passerait donc notre
+#: contrôle et serait refusé par celui de l'AT. Offrir un type qu'on ne
+#: sait pas remplir est le piège que `valider_le_type` a déjà fermé une
+#: fois : la série se déclare, les documents se signent, et l'export les
+#: refuse quand il est trop tard pour les reprendre.
+TYPES_DE_RECU = (
+    ('RG', 'Recibo'),
+)
+
+#: Le type que le schéma connaît et que ce logiciel n'émet pas.
+TYPE_DE_RECU_NON_COUVERT = 'RC'
+
+CODES_DE_RECU = tuple(code for code, _ in TYPES_DE_RECU)
+
+#: Les types qu'une SÉRIE peut porter. Un reçu se numérote dans une série
+#: déclarée à l'AT comme n'importe quel document, avec son propre code de
+#: validation et son propre compteur : c'est la même table.
+TYPES_DE_SERIE = TYPES_DE_DOCUMENT + TYPES_DE_RECU
+
+#: Les types de documents dont le RÈGLEMENT fait SORTIR l'argent, donc
+#: dont la ligne de reçu va au débit.
+#:
+#: Régler une facture fait entrer de l'argent — ligne au crédit.
+#: Rembourser un avoir en fait sortir — ligne au débit.
+#:
+#: CETTE LISTE COÏNCIDE AUJOURD'HUI AVEC `saft.TYPES_AU_DEBIT`, POUR UNE
+#: AUTRE RAISON. Là-bas, « NC » va au débit parce que l'avoir diminue le
+#: chiffre d'affaires ; ici, parce que l'argent part. Les deux
+#: raisonnements se rejoignent sur « NC » et rien ne garantit qu'ils se
+#: rejoignent sur le type suivant — c'est mot pour mot la confusion qui
+#: rendait illégale toute note de débit. Deux listes, donc, et un test
+#: qui échoue si quelqu'un les réunit.
+TYPES_REGLES_AU_DEBIT = ('NC',)
+
+
+def est_un_recu(type_document):
+    """Ce type relève-t-il de la table 4.4 du SAF-T, et non de la 4.1 ?"""
+    return type_document in CODES_DE_RECU
+
+
+def valider_le_type_de_recu(type_recu):
+    """Refuse un type de reçu que ce logiciel ne sait pas composer."""
+    if type_recu == TYPE_DE_RECU_NON_COUVERT:
+        raise RegleDeType(
+            f'Le reçu « {TYPE_DE_RECU_NON_COUVERT} » relève du régime de TVA '
+            'sur les encaissements (regime de IVA de caixa), que ce logiciel '
+            'ne couvre pas : le schéma exige que chacune de ses lignes porte '
+            'sa TVA, et ce reçu serait refusé par l’AT après avoir été émis. '
+            'Employez une série de type « RG ».')
+    if type_recu not in CODES_DE_RECU:
+        raise RegleDeType(
+            f'« {type_recu} » n’est pas un type de reçu. Le schéma n’en '
+            f'accepte que deux — « RG » et « {TYPE_DE_RECU_NON_COUVERT} » — '
+            f'et ce logiciel émet « {", ".join(CODES_DE_RECU)} ».')
+    return type_recu
+
+
+def regle_au_debit(type_du_document):
+    """Le règlement de ce document fait-il sortir l'argent ?
+
+    `type_du_document` est le type du document RÉGLÉ, pas celui du reçu.
+    Absent, on répond « non » : un reçu règle une facture dans
+    l'immense majorité des cas, et c'est la seule valeur par défaut qui
+    ne crée pas de mouvement imaginaire. Fourni, il est validé — un type
+    inconnu serait silencieusement traité comme une facture, et un
+    remboursement compterait comme une recette.
+    """
+    if not type_du_document:
+        return False
+    valider_le_type(type_du_document)
+    return type_du_document in TYPES_REGLES_AU_DEBIT
 
 
 # ── Les moyens de paiement ───────────────────────────────────────────────────
@@ -319,10 +469,11 @@ def valider_les_paiements(paiements, total, type_document):
 
     if not paiements:
         raise RegleDeType(
-            'Une facture-reçu atteste un encaissement : elle doit porter au '
-            'moins un paiement. Sans cela le document vaut quittance pour un '
-            'paiement dont le fichier ne garde aucune trace. Pour une facture '
-            'à régler plus tard, employez une série de type « FT ».')
+            f'Un document de type « {type_document} » atteste un '
+            'encaissement : il doit porter au moins un paiement. Sans cela '
+            'il vaut quittance pour un règlement dont le fichier ne garde '
+            'aucune trace. Pour une facture à régler plus tard, employez une '
+            'série de type « FT ».')
 
     encaisse = sum((Decimal(str(p.get('montant') or 0)) for p in paiements),
                    Decimal('0'))
@@ -332,19 +483,129 @@ def valider_les_paiements(paiements, total, type_document):
         sens = 'inférieure' if encaisse < attendu else 'supérieure'
         raise RegleDeType(
             f'La somme encaissée ({_lisible(encaisse)} €) est {sens} au '
-            f'total de la facture-reçu ({_lisible(attendu)} €). Une '
-            'facture-reçu vaut quittance du total : un écart en moins '
-            'atteste un solde payé qui ne l’est pas, un écart en plus '
-            'déclare un encaissement qui n’a pas eu lieu. Pour un acompte, '
-            'émettez une facture « FT » et un reçu séparé.')
+            f'total du document « {type_document} » '
+            f'({_lisible(attendu)} €). Ce document vaut quittance de son '
+            'total : un écart en moins atteste un solde payé qui ne l’est '
+            'pas, un écart en plus déclare un encaissement qui n’a pas eu '
+            'lieu. Pour un acompte, émettez une facture « FT » et un reçu '
+            '« RG » du montant reçu.')
 
     return []
+
+
+# ── Ce qu'un reçu affecte ────────────────────────────────────────────────────
+
+#: La longueur du champ `OriginatingON` du SAF-T, qui porte le numéro du
+#: document réglé.
+LONGUEUR_DU_RENVOI = 60
+
+
+def valider_les_affectations(affectations):
+    """Les documents qu'un reçu solde, et le montant affecté à chacun.
+
+    POURQUOI UN REÇU NE PEUT PAS ÊTRE ORPHELIN
+
+    Le schéma impose à chaque ligne un `SourceDocumentID` — le numéro du
+    document réglé et sa date. Ce n'est pas une formalité : un reçu qui ne
+    dit pas ce qu'il solde ne solde rien de vérifiable, et
+    l'administration rapproche les deux tables. La loi dit la même chose
+    autrement : un reçu est la quittance D'UNE créance.
+
+    POURQUOI UN REÇU NE MÉLANGE PAS LES DEUX SENS
+
+    Encaisser le règlement d'une facture et rembourser un avoir sont deux
+    mouvements opposés. Un reçu qui porterait les deux n'aurait pas de
+    total : la table 4.4 tient ses sommes de contrôle SÉPARÉMENT au débit
+    et au crédit, et `GrossTotal` est un nombre unique. Le document
+    s'imprimerait avec un total net qui ne correspondrait à aucun des
+    deux mouvements.
+
+    LA FONCTION MODIFIE LES DICTIONNAIRES REÇUS, comme
+    `valider_les_paiements` : la date normalisée et le sens calculé
+    doivent atteindre le document figé.
+
+    Rend (liste normalisée, total, au_debit). Lève `RegleDeType`.
+    """
+    affectations = list(affectations or [])
+
+    if not affectations:
+        raise RegleDeType(
+            'Un reçu doit dire ce qu’il règle : au moins un document et le '
+            'montant affecté. Le schéma exige « SourceDocumentID » sur '
+            'chaque ligne, et un reçu sans affectation ne solde rien que '
+            'l’administration puisse rapprocher.')
+
+    total = Decimal('0')
+    sens_vus = set()
+
+    for rang, affectation in enumerate(affectations, start=1):
+        renvoi = str(affectation.get('document') or '').strip()
+        if not renvoi:
+            raise RegleDeType(
+                f'L’affectation {rang} ne désigne aucun document. Un reçu '
+                'est la quittance d’une créance : il doit nommer le document '
+                'qu’il solde, et le SAF-T le porte dans « OriginatingON ».')
+        if len(renvoi) > LONGUEUR_DU_RENVOI:
+            raise RegleDeType(
+                f'Le numéro « {renvoi[:20]}… » dépasse '
+                f'{LONGUEUR_DU_RENVOI} caractères, la taille du champ '
+                '« OriginatingON ». Le fichier entier serait refusé.')
+        affectation['document'] = renvoi
+
+        affectation['date'] = _date_certaine(affectation.get('date'), rang)
+
+        montant = Decimal(str(affectation.get('montant') or 0))
+        if montant <= 0:
+            raise RegleDeType(
+                f'L’affectation {rang} porte {_lisible(montant)} €. Un reçu '
+                'atteste une somme reçue ou rendue : zéro n’atteste rien, et '
+                'un montant négatif ne peut pas être imprimé — le Despacho '
+                '8632/2014 (2.2.6) l’interdit sur les documents émis, et '
+                'c’est à un avoir qu’il revient d’inverser un mouvement.')
+        affectation['montant'] = montant
+        total += montant
+
+        au_debit = regle_au_debit(affectation.get('type_du_document'))
+        affectation['au_debit'] = au_debit
+        sens_vus.add(au_debit)
+
+    if len(sens_vus) > 1:
+        raise RegleDeType(
+            'Ce reçu encaisse et rembourse à la fois. Les deux mouvements '
+            'sont opposés et la table 4.4 du SAF-T tient ses sommes de '
+            'contrôle séparément au débit et au crédit : un reçu mixte '
+            'n’aurait pas de total, et s’imprimerait avec un net qui ne '
+            'correspond à aucun des deux. Émettez deux reçus.')
+
+    return affectations, total, sens_vus.pop()
+
+
+def verifier_un_recu(type_recu, affectations, paiements, etat='N'):
+    """Toutes les règles d'un reçu, avant qu'il soit figé.
+
+    Rend (affectations normalisées, total, au_debit, avertissements).
+    Lève `RegleDeType` au premier refus.
+
+    Le total n'est pas un paramètre : il EST la somme des affectations, et
+    le calculer ici plutôt que de le recevoir ferme la porte qu'a déjà
+    ouverte la facture-reçu — un cumul tenu ailleurs, qui dérive d'un
+    centime, et qui se retrouve signé dans une quittance.
+    """
+    avertissements = []
+
+    valider_le_type_de_recu(type_recu)
+    valider_l_etat(etat, type_recu)
+
+    affectations, total, au_debit = valider_les_affectations(affectations)
+    avertissements += valider_les_paiements(paiements, total, type_recu)
+
+    return affectations, total, au_debit, avertissements
 
 
 # ── Le tout ──────────────────────────────────────────────────────────────────
 
 def verifier(type_document, total_base, total, document_rectifie=None,
-             paiements=None, regime=REGIME_SIMPLIFIEE_PAR_DEFAUT):
+             paiements=None, regime=REGIME_SIMPLIFIEE_PAR_DEFAUT, etat='N'):
     """Toutes les règles du type, en un appel, avant que le document soit figé.
 
     Rend la liste des avertissements. Lève `RegleDeType` au premier refus.
@@ -357,6 +618,7 @@ def verifier(type_document, total_base, total, document_rectifie=None,
     avertissements = []
 
     valider_le_type(type_document)
+    valider_l_etat(etat, type_document)
 
     if exige_une_rectification(type_document):
         if document_rectifie is None:

@@ -503,3 +503,263 @@ def test_une_reference_sur_une_facture_ordinaire_n_est_pas_une_anomalie():
 
     assert schema.valider(racine) == []
     assert coherence.verifier(racine) == []
+
+
+# ── Les reçus (table 4.4) ────────────────────────────────────────────────────
+
+AFFECTATION = {'document': 'FT A/1', 'date': date(2026, 3, 7),
+               'montant': Decimal('60.00'), 'au_debit': False,
+               'description': 'Adiantamento'}
+
+RECU = {
+    'numero': 'RG A/1', 'atcud': 'JFFNVTC7-1',
+    'date': date(2026, 3, 20), 'type': 'RG', 'etat': 'N',
+    'horodatage': datetime(2026, 3, 20, 9, 30, 0), 'client': 'C1',
+    'affectations': [AFFECTATION],
+    'paiements': [{'mecanisme': 'TB', 'montant': Decimal('60.00'),
+                   'date': date(2026, 3, 20)}],
+    'total_base': Decimal('60.00'), 'total_taxes': Decimal('0.00'),
+    'total': Decimal('60.00'),
+}
+
+RECU_DE_RECU = 'SourceDocuments/Payments/Payment'
+
+
+def _racine_avec_recu(recus=None, documents=None):
+    return ET.fromstring(saft.composer(
+        ENTETE, CLIENTS, PRODUITS, TAUX,
+        documents if documents is not None else [FACTURE],
+        recus if recus is not None else [RECU]))
+
+
+def _casser_le_recu(transformation, recus=None, documents=None):
+    """Un fichier conforme, cassé d'une seule façon.
+
+    On vérifie D'ABORD que le schéma accepte encore le fichier. C'est tout
+    l'intérêt de ces tests : sans cela on ne saurait pas si l'anomalie est
+    relevée par le contrôle de cohérence, ou si elle aurait été attrapée
+    bien plus tôt.
+    """
+    racine = _racine_avec_recu(recus, documents)
+    transformation(racine)
+    assert schema.valider(racine) == [], 'le schéma, lui, doit accepter'
+    return coherence.verifier(racine)
+
+
+def test_un_fichier_avec_un_recu_est_coherent():
+    racine = _racine_avec_recu()
+
+    assert schema.valider(racine) == []
+    anomalies = coherence.verifier(racine)
+    assert anomalies == [], '\n'.join(str(a) for a in anomalies)
+
+
+def test_un_recu_sans_renvoi_au_document_est_detecte():
+    """Le numéro du document réglé, perdu en chemin.
+
+    On le VIDE plutôt que de retirer l'élément : un élément absent casse
+    le groupe et serait attrapé par le schéma, alors qu'un texte blanc y
+    passe. C'est aussi le cas réel — un champ recopié vide.
+    """
+    def vider(racine):
+        _champ(racine,
+               f'{RECU_DE_RECU}/Line/SourceDocumentID/OriginatingON').text = ' '
+
+    anomalies = _casser_le_recu(vider)
+
+    assert any('OriginatingON' in str(a) for a in anomalies)
+
+
+def test_un_recu_sans_moyen_de_paiement_est_detecte():
+    """Le schéma rend `PaymentMethod` optionnel ; un reçu, non.
+
+    Un reçu qui ne dit pas comment la somme a été reçue n'atteste rien de
+    vérifiable, et le fichier est pourtant parfaitement valide.
+    """
+    def retirer(racine):
+        recu = _champ(racine, RECU_DE_RECU)
+        recu.remove(recu.find(f'{E}PaymentMethod'))
+
+    anomalies = _casser_le_recu(retirer)
+
+    assert any('moyen de paiement' in str(a) for a in anomalies)
+
+
+@pytest.mark.parametrize('montant, sens', [
+    ('40.00', 'inférieure'),
+    ('80.00', 'supérieure'),
+])
+def test_un_encaissement_qui_ne_fait_pas_le_total_du_recu_est_detecte(
+        montant, sens):
+    def fausser(racine):
+        _champ(racine,
+               f'{RECU_DE_RECU}/PaymentMethod/PaymentAmount').text = montant
+
+    anomalies = _casser_le_recu(fausser)
+
+    assert any(sens in str(a) for a in anomalies)
+
+
+def test_un_total_de_recu_qui_ne_suit_pas_ses_affectations_est_detecte():
+    def fausser(racine):
+        _champ(racine, f'{RECU_DE_RECU}/Line/CreditAmount').text = '10.00'
+
+    anomalies = _casser_le_recu(fausser)
+
+    assert any('affectation' in str(a) for a in anomalies)
+
+
+def test_un_recu_qui_encaisse_et_rembourse_a_la_fois_est_detecte():
+    """Le schéma accepte les deux sens dans le même reçu — il offre un
+    `choice` par LIGNE, pas par document. Le total unique du reçu ne
+    correspond alors à aucun des deux mouvements."""
+    mixte = dict(RECU, affectations=[
+        dict(AFFECTATION, montant=Decimal('30.00')),
+        dict(AFFECTATION, document='NC A/1', montant=Decimal('30.00'),
+             au_debit=True),
+    ], total_base=Decimal('0.00'), total=Decimal('0.00'))
+
+    racine = _racine_avec_recu([mixte])
+    assert schema.valider(racine) == []
+    anomalies = coherence.verifier(racine)
+
+    assert any('encaisse et rembourse' in str(a) for a in anomalies)
+
+
+def test_un_recu_du_regime_de_tva_de_caisse_sans_taxe_est_detecte():
+    """L'`xs:assert` que notre validateur de structure n'évalue pas.
+
+    Le XSD le dit noir sur blanc : « if (../PaymentType eq 'RC' and
+    not(Tax)) then false() ». Ce sont des assertions XSD 1.1, que le
+    validateur de ce dépôt ne lit pas et que celui de l'AT lit. Le fichier
+    passerait donc ici et serait refusé là-bas, pour une règle écrite dans
+    le fichier qu'on vient de lire.
+    """
+    racine = _racine_avec_recu([dict(RECU, type='RC')])
+
+    assert schema.valider(racine) == []
+    anomalies = coherence.verifier(racine)
+
+    assert any('RC' in str(a) and 'Tax' in str(a) for a in anomalies)
+
+
+def test_un_total_de_controle_des_recus_faux_est_detecte():
+    def fausser(racine):
+        _champ(racine, 'SourceDocuments/Payments/TotalCredit').text = '999.00'
+
+    anomalies = _casser_le_recu(fausser)
+
+    assert any('TotalCredit' in str(a) and 'reçus' in str(a)
+               for a in anomalies)
+
+
+def test_un_nombre_de_recus_annonce_a_faux_est_detecte():
+    def fausser(racine):
+        _champ(racine,
+               'SourceDocuments/Payments/NumberOfEntries').text = '7'
+
+    anomalies = _casser_le_recu(fausser)
+
+    assert any('NumberOfEntries' in str(a) for a in anomalies)
+
+
+def test_un_recu_dont_le_client_n_est_pas_declare_est_detecte():
+    def fausser(racine):
+        _champ(racine, f'{RECU_DE_RECU}/CustomerID').text = 'C999'
+
+    anomalies = _casser_le_recu(fausser)
+
+    assert any('C999' in str(a) for a in anomalies)
+
+
+# ── Les totaux de contrôle excluent ce que le nombre de registres compte ─────
+
+ANNULEE = dict(FACTURE, numero='FT A/2', atcud='CSDF7T5H-2', etat='A',
+               lignes=[LIGNE])
+
+
+def test_un_document_annule_est_compte_mais_pas_additionne():
+    """Portaria n.º 302/2016, champs 4.1.1 à 4.1.3.
+
+    `NumberOfEntries` « deve conter o número total de documentos,
+    INCLUINDO os documentos cujo valor do campo Estado atual
+    (InvoiceStatus) seja do tipo "A" ou "F" » ; `TotalDebit` et
+    `TotalCredit` somment « dela EXCLUINDO » ces mêmes documents.
+
+    Deux règles opposées sur les mêmes documents : l'annulé reste dans le
+    fichier pour prouver que la série ne saute aucun numéro, et son
+    montant ne compte plus. Le composeur sommait tout, et le contrôle de
+    cohérence appliquait la MÊME règle fausse — donc il confirmait le
+    fichier que l'AT refusait.
+    """
+    racine = _racine([FACTURE, ANNULEE])
+    ventes = _champ(racine, 'SourceDocuments/SalesInvoices')
+
+    assert ventes.find(f'{E}NumberOfEntries').text == '2'
+    assert ventes.find(f'{E}TotalCredit').text == '100.00'
+    assert coherence.verifier(racine) == []
+
+
+def test_un_document_facture_est_exclu_lui_aussi():
+    """« F » — document déjà facturé ailleurs — est exclu au même titre que
+    « A ». Les deux états sont nommés ensemble par le texte."""
+    facturee = dict(FACTURE, numero='FT A/3', atcud='CSDF7T5H-3', etat='F',
+                    lignes=[LIGNE])
+    racine = _racine([FACTURE, facturee])
+    ventes = _champ(racine, 'SourceDocuments/SalesInvoices')
+
+    assert ventes.find(f'{E}NumberOfEntries').text == '2'
+    assert ventes.find(f'{E}TotalCredit').text == '100.00'
+    assert coherence.verifier(racine) == []
+
+
+def test_un_total_qui_inclurait_un_document_annule_est_detecte():
+    """La preuve que le contrôle mord désormais : on remet l'ancien total.
+
+    200,00 € est exactement ce que le composeur écrivait avant — la somme
+    des deux documents, annulé compris.
+    """
+    racine = _racine([FACTURE, ANNULEE])
+    _champ(racine,
+           'SourceDocuments/SalesInvoices/TotalCredit').text = '200.00'
+    assert schema.valider(racine) == []
+
+    anomalies = coherence.verifier(racine)
+    assert any('TotalCredit' in str(a) and 'non annulés' in str(a)
+               for a in anomalies)
+
+
+def test_un_recu_annule_est_compte_mais_pas_additionne():
+    """Pour un reçu, seul « A » existe : `PaymentStatus` n'énumère que
+    « N » et « A », là où un document de facturation exclut aussi « F »."""
+    annule = dict(RECU, numero='RG A/2', atcud='JFFNVTC7-2', etat='A')
+    racine = _racine_avec_recu([RECU, annule])
+    table = _champ(racine, 'SourceDocuments/Payments')
+
+    assert table.find(f'{E}NumberOfEntries').text == '2'
+    assert table.find(f'{E}TotalCredit').text == '60.00'
+    assert coherence.verifier(racine) == []
+
+
+def test_une_reference_faite_d_espaces_ne_vaut_pas_reference():
+    """Les champs texte du SAF-T ont une longueur MINIMALE de 1.
+
+    Une seule espace la respecte : « <Reference> </Reference> » passe le
+    schéma. Un contrôle qui testerait seulement la présence de l'élément
+    la laisserait passer aussi, et l'avoir resterait orphelin dans le
+    fichier tout en ayant l'air de désigner quelque chose.
+
+    Ce trou a été trouvé par le test du renvoi d'un reçu, qui vidait le
+    champ au lieu de retirer l'élément — parce que retirer l'élément
+    aurait été attrapé par le schéma, donc n'aurait rien prouvé. Le même
+    trou existait sur la référence des documents rectificatifs.
+    """
+    def vider(racine):
+        _champ(racine, f'{DOCUMENT}/Line/References/Reference').text = '   '
+
+    racine = _racine([AVOIR])
+    vider(racine)
+    assert schema.valider(racine) == [], 'le schéma, lui, doit accepter'
+
+    anomalies = coherence.verifier(racine)
+    assert any('36.º' in str(a) for a in anomalies)

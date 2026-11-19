@@ -24,7 +24,7 @@ référence.
 | **Código do IVA, art. 29.º n.º 7 et art. 36.º n.º 6** | Les documents rectificatifs — avoir **et note de débit** — et l'obligation de désigner la facture corrigée. |
 | **Ofício-Circulado n.º 30141** du 04/01/2013 | Que les montants de l'article 40.º s'entendent **hors TVA**, et que l'acquéreur peut émettre une note de débit. |
 
-Deux remarques qui surprennent et qui sont pourtant la règle :
+Trois remarques qui surprennent et qui sont pourtant la règle :
 
 - **RSA-1024 et SHA-1 sont obligatoires.** Ils sont aujourd'hui
   considérés comme faibles. Une signature plus solide serait **refusée**
@@ -34,6 +34,11 @@ Deux remarques qui surprennent et qui sont pourtant la règle :
 - **Le numéro de certificat vaut `0`** tant que l'AT n'en a pas attribué
   un. C'est la valeur correcte, et non une erreur à corriger. Y inscrire
   un numéro d'emprunt serait une fausse déclaration.
+- **Les reçus ne sont pas signés.** Le Despacho les exclut expressément
+  de l'obligation (point 1.1), et la table 4.4 du SAF-T n'a aucun champ
+  pour porter une signature. Ils portent en revanche une mention
+  différente de celle des factures — « Emitido por » et non « Processado
+  por » — et une seconde mention que les factures n'ont pas. Voir § 2.12.
 
 ---
 
@@ -154,10 +159,16 @@ L'écran est accessible d'un bouton sur la facture.
 ### 2.8 Le SAF-T (PT) — `saft.py` et `export.py`
 
 - Version **1.04_01**, `TaxAccountingBasis` = `F` (facturation).
-- En-tête, clients, produits, table des taux, documents de vente.
+- En-tête, clients, produits, table des taux, documents de vente
+  (table 4.1) et **reçus** (table 4.4). La table des reçus est omise
+  quand il n'y en a aucun : une table annoncée à zéro enregistrement se
+  lirait comme une déclaration là où il n'y a rien à déclarer.
 - `Hash` porte la signature, `HashControl` la **version de la clé** —
-  pas un contrôle du hachage, en dépit du nom.
-- Totaux **recalculés** depuis les documents, jamais repris d'un cumul.
+  pas un contrôle du hachage, en dépit du nom. La table 4.4 n'a ni l'un
+  ni l'autre, et c'est conforme : voir § 2.12.
+- Totaux **recalculés** depuis les documents, jamais repris d'un cumul,
+  et calculés sur les montants de **lignes** en excluant les documents
+  annulés — deux règles du texte qui n'étaient pas appliquées (§ 2.12).
 - L'ordre des éléments est écrit sous forme de listes nommées,
   relisibles contre le schéma, et **figé par des tests**.
 
@@ -431,11 +442,37 @@ validateur inutile sans le casser.
   document **et** continuité de la chaîne, deux contrôles distincts ;
 - export SAF-T de la période ;
 - émission d'une **note de débit** depuis une facture signée, avec saisie
-  des lignes à facturer en plus.
+  des lignes à facturer en plus ;
+- émission d'un **reçu** depuis une facture signée, avec le reste à
+  encaisser proposé par défaut et modifiable — un acompte est précisément
+  le cas où ce n'est pas le solde ;
+- liste des reçus, détail avec son code QR, ses affectations, son moyen
+  de paiement et ses **deux** mentions imprimées.
 
 Les mentions légales (ATCUD, code QR, mention du programme certifié)
 figurent aussi **sur la facture elle-même**, et pas seulement dans
 l'écran d'administration.
+
+#### Un défaut d'écran, trouvé par un test qui existait déjà
+
+Trois commentaires `{# … #}` du gabarit de la facture s'étalaient sur
+plusieurs lignes. **Django ne les traite alors pas comme des
+commentaires** : son analyseur cherche `{#.*?#}` sans l'option qui laisse
+le point franchir un retour à la ligne, donc le texte — accolades
+comprises — est rendu dans la page. Mesuré :
+
+```
+>>> Template('avant {# une ligne
+une autre #} apres').render(Context({}))
+'avant {# une ligne
+une autre #} apres'
+```
+
+L'écran de détail d'une facture affichait donc en clair l'explication du
+choix de la forme légale, à l'endroit même où le client lit sa facture.
+`tests/test_gabarits_sains.py` le disait depuis le début ; il fallait
+regarder la suite entière pour l'entendre. Les quatre commentaires
+fautifs sont passés en `{% comment %} … {% endcomment %}`.
 
 ### 2.11 Le branchement
 
@@ -456,6 +493,221 @@ Le menu n'offre que les formes dont une **série active** existe. Proposer
 désigne un problème au mauvais endroit, alors que la seule chose à faire
 est de déclarer la série.
 
+### 2.12 Le reçu, et la table que rien ne remplissait — `RecuFiscal`
+
+Un reçu n'est pas une facture, ni un document rectificatif. Il ne corrige
+rien et ne remplace rien : il **atteste de l'argent reçu** sur un document
+déjà émis. Il part dans la **table 4.4 `Payments`** du SAF-T, qui n'était
+pas produite.
+
+La facture-reçu `FR` existait déjà, et elle ne suffit pas : elle vaut
+quittance de **son total** et le logiciel refuse qu'elle en atteste une
+autre somme. Elle ne couvre donc que la facture payée à l'instant où elle
+est émise. Un acompte, un règlement partiel, un paiement reçu trois
+semaines plus tard — tout cela demandait un document qui n'existait pas.
+
+#### Un reçu n'est pas signé, et c'est le texte qui le dit
+
+> « Os programas informáticos de faturação devem assinar quaisquer
+> documentos emitidos com eficácia externa, **com exceção dos recibos**,
+> nos termos dos artigos 6.º e 7.º da Portaria n.º 363/2010 »
+> — Despacho n.º 8632/2014, point 1.1
+
+Le schéma dit la même chose à sa manière : la table 4.4 n'a **ni `Hash`
+ni `HashControl`**. Deux sources indépendantes qui concordent, et c'est
+ce qui permet d'en être sûr — la loi et le format auraient pu divergir.
+
+**Le reçu est pourtant signé, et ce choix doit être défendu.** Les
+spécifications du code QR rendent le champ `Q` **obligatoire** — « 4
+carateres do Hash », « preencher de acordo com a Portaria n.º 363/2010 » —
+et ne prévoient aucune exception pour les reçus ; elles nomment au
+contraire la table 4.4 à propos du champ `I1`. Il faut donc quatre
+caractères de signature, et la seule façon honnête d'en avoir est d'en
+produire une. Signer n'est pas interdit : le texte **dispense**, il ne
+défend pas. La signature ne sort jamais dans le fichier, puisque la table
+ne la porte pas ; elle sert au code QR et à la chaîne de la série.
+
+Le point reste **contesté**. Une réponse de l'AT rapportée sur un forum
+professionnel conseille de remplir le champ par « 0 » ; ce n'est pas une
+source officielle, et « 0 » n'a pas quatre caractères. La décision prise
+ici est celle qui satisfait littéralement le champ obligatoire et reste
+vérifiable : les quatre caractères correspondent à une vraie signature,
+que l'AT peut recalculer.
+
+#### Un défaut dans une mention légale, et un test qui le figeait
+
+Le Despacho emploie **deux verbes**, à deux points différents :
+
+| Point | Documents | Mention |
+|---|---|---|
+| 2.2.2 | signés | quatre caractères + `-` + « **Processado** por programa certificado n.º 0000/AT » |
+| 2.2.3 | non signés, « nomeadamente os **recibos** » | « **Emitido** por programa certificado n.º 0000/AT » |
+
+Chacune des deux expressions figure **une seule fois** dans le texte, et
+pas au même endroit. `assinatura.mention_sans_signature()` rendait
+« Processado » : la mention légale imprimée au pied de chaque reçu aurait
+été celle des documents signés.
+
+Rien ne l'aurait signalé — le reçu s'imprime, le fichier passe, et seule
+une lecture du texte officiel relève l'écart. **Un test figeait même la
+faute**, parce qu'il comparait la sortie de la fonction au code de la
+fonction, et non au texte qu'elle prétend citer. Un test n'est utile que
+s'il compare à autre chose qu'à ce qu'il teste.
+
+Le point 1.2 ajoute une **seconde** mention, et il nomme la table :
+
+> « Quaisquer documentos que não sejam faturas ou documentos retificativos
+> de fatura, devem conter de forma evidente a sua natureza e, se
+> suscetíveis de apresentação ao cliente, **incluindo os que devam constar
+> nas tabelas 4.2, 4.3 e 4.4 do SAF-T (PT)**, conter a expressão "Este
+> documento não serve de fatura". »
+
+Un reçu porte donc **deux** mentions, et non une.
+
+#### Trois pièges du schéma, qu'il fallait relever un par un
+
+**1. Le même type sous deux noms d'élément.** Le type `PaymentMethod` du
+schéma est employé deux fois, et le nom de l'élément change selon la
+table : `Payment` dans les totaux d'une facture, `PaymentMethod` au
+niveau d'un reçu. C'est le nom de l'**élément** qui paraît dans le
+fichier. Composer un reçu par analogie avec la facture donne un élément
+inconnu à cet endroit, et fait refuser le fichier entier pour un nom.
+
+**2. L'ordre des totaux est inversé entre les deux tables.**
+
+| Table | Ordre de `DocumentTotals` |
+|---|---|
+| 4.1 — factures | TaxPayable, NetTotal, GrossTotal, **Currency, Settlement**, Payment |
+| 4.4 — reçus | TaxPayable, NetTotal, GrossTotal, **Settlement, Currency** |
+
+Rien ne le justifie et le schéma ne s'en explique pas. Réemployer l'ordre
+des factures produit un fichier dont seul l'ordre de deux éléments
+**optionnels** diffère — et qui est refusé en entier.
+
+**3. Le schéma porte des `xs:assert` que notre validateur ne lit pas.**
+La table 4.4 en porte quatre, dont « si `PaymentType` vaut `RC`, chaque
+ligne doit porter son bloc `Tax` ». Ce sont des assertions XSD 1.1 ; le
+validateur de ce dépôt lit le modèle de contenu, pas les asserts. Celui
+de l'AT les évalue. Un fichier pouvait donc passer notre contrôle et
+échouer chez l'administration **pour une règle écrite noir sur blanc dans
+le fichier qu'on venait de lire**. Les asserts sont désormais vérifiés
+dans `coherence.py`, où l'on sait les dire en français.
+
+#### Le reçu du régime de TVA de caisse n'est pas émis, et le refus est explicite
+
+Le schéma n'accepte que deux types de reçu : `RG` (tout reçu) et `RC`
+(régime de TVA sur les encaissements, *regime de IVA de caixa*). Seul
+`RG` est émis. `RC` est **refusé par un message qui nomme la raison**,
+plutôt que d'être offert et incomplet : offrir un type qu'on ne sait pas
+remplir est le piège que la validation des types de série a déjà fermé
+une fois — la série se déclare, les documents se signent, et l'export les
+refuse quand plus rien ne les reprend.
+
+#### Un troisième défaut de la même famille : l'état du document
+
+`etat` arrivait jusqu'au document **sans contrôle**. Les `choices` d'un
+modèle Django ne sont vérifiés qu'au `full_clean()` d'un formulaire, et
+l'émission n'en fait pas. Un état hors liste était donc signé, inscrit
+dans le champ `E` du code QR et dans `InvoiceStatus` — où le schéma,
+lui, l'énumère. Le document s'émettait ; c'est l'export du fichier
+**entier** qui échouait, sur un document que plus rien ne modifie.
+
+Exactement le défaut du type de série hors liste, au même endroit du
+chemin. Un défaut de cette famille ne se corrige pas une fois : il se
+cherche **partout** où une énumération du schéma entre dans le logiciel
+sans passer par un formulaire.
+
+Au passage, deux listes qui se ressemblent et qui ne sont pas la même :
+`InvoiceStatus` énumère cinq états (`N S A R F`), `PaymentStatus` **deux**
+(`N A`). Un reçu marqué « F » passerait de notre côté et serait refusé
+par le schéma. Un test échoue si quelqu'un réunit les deux listes.
+
+Et un libellé qui désinformait : l'état `R` était nommé « Autre ». Le
+schéma le documente autrement — « R para Documento de resumo doutros
+documentos criados noutras aplicacoes ».
+
+#### Un défaut dans le code déjà livré : les totaux de contrôle
+
+Portaria n.º 302/2016, champs 4.1.1 à 4.1.3 et 4.4.1 à 4.4.3 :
+
+> `NumberOfEntries` « deve conter o número total de documentos,
+> **incluindo** os documentos cujo valor do campo Estado atual
+> (InvoiceStatus) seja do tipo "A" ou "F" »
+>
+> `TotalDebit` / `TotalCredit` « deve conter a soma de controlo do campo
+> Valor a débito (DebitAmount), **dela excluindo** os documentos em que o
+> campo Estado atual do documento (InvoiceStatus) seja do tipo "A" ou "F" »
+
+Deux règles **opposées** sur les mêmes documents, et chacune pour sa
+raison : un document annulé reste dans le fichier pour prouver que la
+série ne saute aucun numéro, mais son montant ne compte plus.
+
+`saft.composer` sommait **tous** les documents, sans regarder leur état.
+Un seul document annulé dans la période gonflait donc `TotalCredit` de
+son montant, et le validateur de l'AT — qui recompte — refusait le
+fichier entier.
+
+Le pire n'était pas là. **Le contrôle de cohérence appliquait la même
+règle fausse**, donc il confirmait le fichier : un défaut qu'on vérifie
+avec la méthode qui l'a produit n'apparaît jamais. Aujourd'hui aucun
+document n'est annulé — rien dans le logiciel ne le permet —, ce qui
+rend le défaut **latent** plutôt que visible : il attendait la première
+annulation.
+
+Les deux côtés ont été corrigés, et le test qui le prouve remet l'ancien
+total (200,00 € au lieu de 100,00 €) pour vérifier qu'il est désormais
+relevé.
+
+#### Ce que le logiciel exige d'un reçu, et que le schéma n'exige pas
+
+| Règle | Pourquoi |
+|---|---|
+| Au moins une affectation, et chacune désigne un document par son numéro **et sa date** | Un reçu est la quittance d'**une** créance. Sans renvoi, l'administration ne peut pas rapprocher les deux tables. La date évite de supposer que la numérotation soit chronologique. |
+| Un montant strictement positif | Zéro n'atteste rien, et un négatif ne peut pas être imprimé : le Despacho (2.2.6) l'interdit sur les documents émis. |
+| Un seul sens par reçu | Encaisser et rembourser sont deux mouvements opposés. La table 4.4 tient ses sommes de contrôle séparément au débit et au crédit, et `GrossTotal` est un nombre unique : un reçu mixte s'imprimerait avec un net qui ne correspond à aucun des deux. Le schéma, lui, offre un `choice` par **ligne**. |
+| Au moins un moyen de paiement, dont la somme égale le total | `PaymentMethod` est optionnel au schéma ; un reçu qui ne dit pas comment la somme a été reçue n'atteste rien de vérifiable. |
+| Un reçu ne peut pas quittancer une facture-reçu | Elle vaut déjà quittance de son total. Un reçu de plus attesterait deux fois le même règlement, et les deux documents seraient réguliers pris séparément. |
+| La somme des reçus ne peut pas dépasser le document réglé | Des reçus qui dépassent la créance attestent un argent que personne ne devait. |
+
+Le **sens** vient du document réglé et non d'une saisie : un avoir rend
+l'argent, donc la ligne du reçu va au débit. Deux listes distinctes le
+décident, et **pour deux raisons différentes** — `saft.TYPES_AU_DEBIT`
+met `NC` au débit parce qu'un avoir diminue le chiffre d'affaires,
+`tipos.TYPES_REGLES_AU_DEBIT` parce que l'argent sort. Les deux
+raisonnements se rejoignent sur `NC` et rien ne garantit qu'ils se
+rejoignent sur le type suivant. C'est mot pour mot la confusion qui
+rendait illégale toute note de débit ; un test échoue si quelqu'un
+remplace une liste par l'autre.
+
+#### Le total n'existe qu'en un seul endroit
+
+Le total d'un reçu **est** la somme de ses affectations, calculée à
+l'émission. Il n'est pas un paramètre, et le montant du moyen de paiement
+n'est pas passé non plus : un seul paiement sans montant vaut le total.
+
+C'est la leçon de la facture-reçu, dont l'écran prenait le montant dans
+`invoice.total_ttc` — un cumul tenu à part qui valait zéro. Un nombre qui
+existe en deux endroits finit par différer d'un centime, et dans une
+quittance ce centime est signé.
+
+#### La numérotation est partagée, et c'est le point
+
+Les documents de facturation et les reçus vivent dans deux tables, avec
+la même discipline : compteur et dernière signature lus sous **le même
+verrou**, pris sur la série. L'écrire deux fois la ferait diverger un
+jour — et ce serait la seule divergence à la fois invisible et
+irréparable, car une chaîne rompue ne se répare pas, elle se constate au
+contrôle. `models._attribuer_le_numero` est donc appelée par les deux.
+
+Le même raisonnement a fait déplacer un verrou. Le **reste à encaisser**
+était lu avant que la série ne soit verrouillée : deux demandes
+simultanées lisaient donc le même reste, chacune voyait 98,40 € à
+quittancer, le verrou les sérialisait ensuite, et les deux
+s'enregistraient. Le document aurait été quittancé deux fois, par deux
+reçus parfaitement réguliers pris séparément. Le verrou est maintenant
+pris **avant** la lecture : la lecture et l'écriture doivent être sous le
+même verrou, pas seulement l'écriture.
+
 ---
 
 ## 3. Ce qui reste à faire
@@ -467,8 +719,9 @@ est de déclarer la série.
 | **Communication des séries à l'AT par webservice** | Le service SOAP de l'AT demande un certificat client délivré à l'entreprise. Le code de validation se saisit donc à la main aujourd'hui, ce qui est légal mais manuel. |
 | **Documents de mouvement de marchandises** | `MovementOfGoods` du SAF-T n'est pas produit. Obligatoire seulement si l'entreprise transporte des marchandises. |
 | **Documents de travail** | `WorkingDocuments` (devis, bons) n'est pas produit. |
-| **Reçus autonomes (`RG`)** | La facture-reçu `FR` est émise ; le reçu séparé d'un acompte ne l'est pas. Il relève de la table `Payments` du SAF-T, qui n'est pas produite. |
-| **Plusieurs moyens de paiement sur une même facture-reçu** | Le modèle et le SAF-T en acceptent plusieurs — le schéma rend `Payment` répétable — mais l'écran n'en propose qu'un. La limite est dans la saisie, pas dans le fichier. |
+| **Reçus du régime de TVA de caisse (`RC`)** | Seul `RG` est émis. Le schéma impose à chaque ligne d'un `RC` son bloc `Tax`, par un `xs:assert`. Le type est **refusé explicitement** plutôt qu'offert et incomplet. |
+| **Annulation d'un document émis** | `save()` refuse toute modification, donc l'état `A` ne peut pas être posé sur un document existant. La seule voie de correction est l'avoir, qui est légale — mais un programme certifié peut aussi annuler. Les totaux de contrôle excluent désormais correctement les états `A` et `F`, de sorte que la fonction pourra être ajoutée sans refaire le calcul. |
+| **Plusieurs moyens de paiement sur un même document** | Le modèle, les règles et le SAF-T en acceptent plusieurs — le schéma rend l'élément répétable — mais l'écran n'en propose qu'un, pour la facture-reçu comme pour le reçu. La limite est dans la saisie, pas dans le fichier. |
 
 ### 3.2 Un défaut à corriger dans la facturation française
 
@@ -553,6 +806,8 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_fiscal_pt_coherence.py` | Que les totaux s'accordent, que les renvois au référentiel existent, et que chaque incohérence est nommée. |
 | `tests/test_fiscal_pt_tipos.py` | Les règles du CIVA propres à chaque type, mesurées hors base : plafond de la facture simplifiée, encaissement de la facture-reçu, référence des rectificatifs, les quatorze moyens de paiement relus dans le XSD. |
 | `tests/test_fiscal_pt_formes_de_facture.py` | Que le chemin réel — formulaire, série, signature, gel, export — applique ces règles **avant** que le document devienne immuable, et que le fichier produit porte les quatre formes en restant conforme. |
+| `tests/test_fiscal_pt_recu_regles.py` | Les règles d'un reçu, mesurées hors base : les deux types et les deux états relus dans le XSD, le sens du mouvement, le refus d'un reçu mixte, les deux mentions imprimées comparées au texte du Despacho. |
+| `tests/test_fiscal_pt_recu.py` | Le chemin réel d'un reçu — série, numérotation, signature, gel, écrans, table 4.4 du SAF-T — et que le fichier produit passe le schéma **et** la cohérence. |
 
 Deux limites, dites franchement :
 

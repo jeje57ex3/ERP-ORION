@@ -105,6 +105,22 @@ LISTES = [
      'ORDRE_TAXE_DE_LIGNE'),
     ('AuditFile/SourceDocuments/SalesInvoices/Invoice/DocumentTotals',
      'ORDRE_TOTAUX'),
+    ('AuditFile/SourceDocuments/SalesInvoices/Invoice/DocumentTotals/Payment',
+     'ORDRE_PAIEMENT'),
+    # La table 4.4, dont AUCUNE liste ne peut etre reprise de la 4.1 :
+    # la ligne n'a pas de produit, l'etat s'appelle autrement, et les
+    # totaux rangent « Settlement » avant « Currency » au lieu de l'inverse.
+    ('AuditFile/SourceDocuments/Payments/Payment', 'ORDRE_RECU'),
+    ('AuditFile/SourceDocuments/Payments/Payment/DocumentStatus',
+     'ORDRE_ETAT_DE_RECU'),
+    ('AuditFile/SourceDocuments/Payments/Payment/PaymentMethod',
+     'ORDRE_PAIEMENT'),
+    ('AuditFile/SourceDocuments/Payments/Payment/Line',
+     'ORDRE_LIGNE_DE_RECU'),
+    ('AuditFile/SourceDocuments/Payments/Payment/Line/SourceDocumentID',
+     'ORDRE_DOCUMENT_SOURCE'),
+    ('AuditFile/SourceDocuments/Payments/Payment/DocumentTotals',
+     'ORDRE_TOTAUX_DE_RECU'),
 ]
 
 

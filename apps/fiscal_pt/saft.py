@@ -24,7 +24,17 @@ Il n'exporte pas la comptabilité (TaxAccountingBasis « C »), ni les
 documents de mouvement de marchandises (MovementOfGoods), ni les
 documents de travail (WorkingDocuments). Il couvre la facturation —
 « F » —, qui est le périmètre de la certification d'un logiciel de
-facturation.
+facturation : la table 4.1 des documents de vente et la table 4.4 des
+reçus.
+
+LA TABLE 4.4 N'EST PAS LA TABLE 4.1 AVEC D'AUTRES NOMS
+
+Sa ligne n'a pas de produit, son état s'appelle autrement et n'admet que
+deux valeurs, son moyen de paiement porte un autre nom d'élément pour le
+même type, et ses totaux rangent « Settlement » AVANT « Currency » au
+lieu de l'inverse. Aucune liste d'ordre ne peut donc être reprise de
+l'une à l'autre, et c'est pourquoi elles sont écrites séparément plutôt
+que dérivées.
 """
 
 from decimal import Decimal, ROUND_HALF_UP
@@ -127,6 +137,70 @@ TYPES_AU_DEBIT = ('NC',)
 #: L'ordre du schéma pour un paiement (`PaymentMethod`). Le mécanisme est
 #: optionnel, le montant et la date ne le sont pas.
 ORDRE_PAIEMENT = ('PaymentMechanism', 'PaymentAmount', 'PaymentDate')
+
+#: LE MÊME TYPE, SOUS DEUX NOMS D'ÉLÉMENT DIFFÉRENTS.
+#:
+#: Le type `PaymentMethod` du schéma est employé deux fois, et le nom de
+#: l'élément change selon la table :
+#:
+#:   table 4.1, dans `DocumentTotals` → élément « Payment »
+#:   table 4.4, au niveau du reçu     → élément « PaymentMethod »
+#:
+#: C'est le NOM DE L'ÉLÉMENT qui paraît dans le fichier, pas celui du
+#: type. Composer un reçu avec « Payment », par analogie avec la facture,
+#: donne un élément inconnu à cet endroit du schéma — et fait refuser le
+#: fichier entier pour un nom.
+ELEMENT_PAIEMENT_DE_FACTURE = 'Payment'
+ELEMENT_PAIEMENT_DE_RECU = 'PaymentMethod'
+
+#: Les états dont les documents sont EXCLUS des sommes de contrôle d'une
+#: table, alors qu'ils sont COMPTÉS dans `NumberOfEntries`.
+#:
+#: Portaria n.º 302/2016, champs 4.1.1 à 4.1.3 : `NumberOfEntries` « deve
+#: conter o número total de documentos, incluindo os documentos cujo valor
+#: do campo Estado atual (InvoiceStatus) seja do tipo "A" ou "F" », tandis
+#: que `TotalDebit` et `TotalCredit` contiennent la somme de contrôle
+#: « dela excluindo os documentos em que o campo Estado atual do documento
+#: (InvoiceStatus) seja do tipo "A" ou "F" ».
+#:
+#: Les deux règles sont opposées sur les MÊMES documents, et c'est voulu :
+#: un document annulé reste dans le fichier pour prouver qu'aucun numéro
+#: ne manque dans la série, mais son montant ne compte plus.
+ETATS_HORS_TOTAUX = ('A', 'F')
+
+#: Pour les reçus, champs 4.4.1 à 4.4.3 de la même Portaria : seul « A »
+#: existe, parce que `PaymentStatus` n'énumère que « N » et « A ». Reprendre
+#: la liste des documents de facturation reviendrait à exclure un état qui
+#: ne peut pas se produire — inoffensif aujourd'hui, faux à relire.
+ETATS_DE_RECU_HORS_TOTAUX = ('A',)
+
+ORDRE_ETAT_DE_RECU = ('PaymentStatus', 'PaymentStatusDate', 'Reason',
+                      'SourceID', 'SourcePayment')
+
+ORDRE_DOCUMENT_SOURCE = ('OriginatingON', 'InvoiceDate', 'Description')
+
+ORDRE_LIGNE_DE_RECU = ('LineNumber', 'SourceDocumentID', 'SettlementAmount',
+                       'DebitAmount', 'CreditAmount', 'Tax',
+                       'TaxExemptionReason', 'TaxExemptionCode')
+
+#: L'ordre des totaux D'UN REÇU, et il n'est PAS celui d'une facture.
+#:
+#: Table 4.1 : TaxPayable, NetTotal, GrossTotal, Currency, Settlement, Payment
+#: Table 4.4 : TaxPayable, NetTotal, GrossTotal, Settlement, Currency
+#:
+#: `Currency` et `Settlement` sont INVERSÉS entre les deux tables. Rien ne
+#: le justifie et le schéma ne s'en explique pas ; il faut l'avoir relevé.
+#: Réemployer `ORDRE_TOTAUX` pour un reçu paraît évident, produit un
+#: fichier dont seul l'ordre de deux éléments optionnels diffère, et le
+#: fait refuser en entier.
+ORDRE_TOTAUX_DE_RECU = ('TaxPayable', 'NetTotal', 'GrossTotal', 'Settlement',
+                        'Currency')
+
+ORDRE_RECU = ('PaymentRefNo', 'ATCUD', 'Period', 'TransactionID',
+              'TransactionDate', 'PaymentType', 'Description', 'SystemID',
+              'DocumentStatus', 'PaymentMethod', 'SourceID',
+              'SystemEntryDate', 'CustomerID', 'Line', 'DocumentTotals',
+              'WithholdingTax')
 
 
 class ErreurSAFT(Exception):
@@ -396,12 +470,14 @@ def ligne(numero, donnees, type_document='FT'):
     return element
 
 
-def paiement(donnees):
-    """Un `Payment` de `DocumentTotals` — ce qu'une facture-reçu atteste.
+def paiement(donnees, nom=ELEMENT_PAIEMENT_DE_FACTURE):
+    """Un moyen de paiement — ce qu'une facture-reçu ou un reçu atteste.
 
-    Le schéma nomme le TYPE « PaymentMethod » et l'ÉLÉMENT « Payment ».
-    Les deux noms désignent la même structure ; c'est le nom de l'élément
-    qui doit paraître dans le fichier.
+    Le schéma nomme le TYPE « PaymentMethod » et l'ÉLÉMENT « Payment »
+    dans `DocumentTotals` d'une facture, « PaymentMethod » au niveau d'un
+    reçu. Les trois noms désignent la même structure ; c'est le nom de
+    l'élément qui doit paraître dans le fichier, et il dépend de la table.
+    `nom` le porte donc, plutôt que d'être écrit en dur.
 
     `PaymentMechanism` est optionnel au schéma, mais une quittance qui ne
     dit pas comment la somme a été reçue ne prouve pas grand-chose : on le
@@ -423,11 +499,133 @@ def paiement(donnees):
             'Un paiement sans date ne peut pas être exporté : '
             '« PaymentDate » est obligatoire au schéma.')
 
-    element = ET.Element('Payment')
+    element = ET.Element(nom)
     _ajouter(element, ORDRE_PAIEMENT, {
         'PaymentMechanism': mecanisme,
         'PaymentAmount': _montant(donnees['montant']),
         'PaymentDate': _date(donnees['date']),
+    })
+    return element
+
+
+# ── Les reçus (table 4.4) ────────────────────────────────────────────────────
+
+def document_source(donnees):
+    """Le `SourceDocumentID` d'une ligne de reçu : ce que le reçu solde.
+
+    Le numéro ET la date du document réglé. La date n'est pas une
+    redondance : elle permet à l'administration de rapprocher les deux
+    tables sans supposer que la numérotation soit chronologique.
+    """
+    _exiger(donnees, ('document', 'date'), 'Affectation d’un reçu')
+
+    element = ET.Element('SourceDocumentID')
+    _ajouter(element, ORDRE_DOCUMENT_SOURCE, {
+        'OriginatingON': str(donnees['document'])[:60],
+        'InvoiceDate': _date(donnees['date']),
+        'Description': (str(donnees.get('description'))[:200]
+                        if donnees.get('description') else None),
+    })
+    return element
+
+
+def ligne_de_recu(numero, donnees):
+    """Une `Line` de reçu, qui n'a rien de commun avec une ligne de facture.
+
+    Pas de produit, pas de quantité, pas de prix unitaire : une ligne de
+    reçu affecte une somme à un document. Le schéma définit d'ailleurs
+    quatre `Line` différents, et celui des reçus n'a même pas de
+    `ProductCode`.
+
+    Le montant va au DÉBIT quand le règlement fait sortir l'argent — le
+    remboursement d'un avoir — et au CRÉDIT quand il en fait entrer.
+    Aucun bloc `Tax` n'est composé : un reçu « RG » n'indique pas de taux,
+    et le schéma ne l'exige que des reçus « RC » du régime de TVA sur les
+    encaissements, qui ne sont pas émis ici. Déclarer un `Tax` à zéro
+    obligerait en outre à porter un motif d'exonération, qu'un reçu n'a
+    pas à inventer.
+    """
+    champ = 'DebitAmount' if donnees.get('au_debit') else 'CreditAmount'
+
+    element = ET.Element('Line')
+    _ajouter(element, ORDRE_LIGNE_DE_RECU, {
+        'LineNumber': numero,
+        'SourceDocumentID': document_source(donnees),
+        champ: _montant(donnees.get('montant', 0)),
+    })
+    return element
+
+
+def recu(donnees):
+    """Un `Payment` de la table 4.4 — un reçu émis.
+
+    CE QU'IL NE PORTE PAS, ET POURQUOI CE N'EST PAS UN OUBLI
+
+    Ni `Hash` ni `HashControl` : la table 4.4 n'a pas ces champs. Le
+    Despacho 8632/2014 (1.1) exclut expressément les reçus de l'obligation
+    de signature — « devem assinar quaisquer documentos emitidos com
+    eficácia externa, com exceção dos recibos ». Le schéma et le texte
+    disent donc la même chose, chacun à sa manière.
+
+    `ATCUD`, en revanche, est OBLIGATOIRE ici — le schéma le rend
+    `minOccurs` par défaut, c'est-à-dire exigé. Un reçu se numérote donc
+    dans une série déclarée à l'AT, exactement comme une facture.
+    """
+    _exiger(donnees, ('numero', 'atcud', 'date', 'type', 'horodatage',
+                      'client'),
+            f'Reçu {donnees.get("numero", "?")}')
+
+    etat = ET.Element('DocumentStatus')
+    _ajouter(etat, ORDRE_ETAT_DE_RECU, {
+        'PaymentStatus': donnees.get('etat', 'N'),
+        'PaymentStatusDate': _horodatage(donnees['horodatage']),
+        'Reason': donnees.get('motif'),
+        'SourceID': donnees.get('operateur') or 'Orion',
+        'SourcePayment': donnees.get('origine', 'P'),  # P = produit ici
+    })
+
+    affectations = donnees.get('affectations') or []
+    if not affectations:
+        raise ErreurSAFT(
+            f'Le reçu {donnees["numero"]} n’affecte aucune somme à aucun '
+            'document. Le schéma exige au moins une ligne, et chaque ligne '
+            'doit nommer le document réglé : un reçu orphelin ne solde rien '
+            'que l’administration puisse rapprocher.')
+
+    encaissements = donnees.get('paiements') or []
+    if not encaissements:
+        raise ErreurSAFT(
+            f'Le reçu {donnees["numero"]} ne dit pas comment la somme a été '
+            'reçue. Le schéma rend « PaymentMethod » optionnel ; un reçu '
+            'qui ne porte aucun moyen de paiement n’atteste pourtant rien '
+            'de vérifiable.')
+
+    totaux = ET.Element('DocumentTotals')
+    _ajouter(totaux, ORDRE_TOTAUX_DE_RECU, {
+        'TaxPayable': _montant(donnees.get('total_taxes', 0)),
+        'NetTotal': _montant(donnees.get('total_base', 0)),
+        'GrossTotal': _montant(donnees.get('total', 0)),
+    })
+
+    periode = donnees.get('periode') or int(_date(donnees['date'])[5:7])
+
+    element = ET.Element('Payment')
+    _ajouter(element, ORDRE_RECU, {
+        'PaymentRefNo': donnees['numero'],
+        'ATCUD': donnees['atcud'],
+        'Period': periode,
+        'TransactionDate': _date(donnees['date']),
+        'PaymentType': donnees['type'],
+        'Description': donnees.get('description'),
+        'DocumentStatus': etat,
+        'PaymentMethod': [paiement(contenu, ELEMENT_PAIEMENT_DE_RECU)
+                          for contenu in encaissements],
+        'SourceID': donnees.get('operateur') or 'Orion',
+        'SystemEntryDate': _horodatage(donnees['horodatage']),
+        'CustomerID': donnees['client'],
+        'Line': [ligne_de_recu(rang, contenu)
+                 for rang, contenu in enumerate(affectations, start=1)],
+        'DocumentTotals': totaux,
     })
     return element
 
@@ -505,13 +703,90 @@ def document(donnees):
     return element
 
 
-def composer(donnees_entete, clients, produits, taux, documents):
+def _sommes_de_controle(enregistrements, champ_etat_exclu, montants):
+    """Les deux sommes de contrôle d'une table, et ce qu'elles excluent.
+
+    LA RÈGLE, ET POURQUOI ELLE EST CONTRE-INTUITIVE
+
+    Portaria n.º 302/2016, champs 4.1.1 à 4.1.3 et 4.4.1 à 4.4.3 :
+    `NumberOfEntries` compte TOUS les documents, « incluindo os
+    documentos cujo valor do campo Estado atual seja do tipo "A" ou "F" » ;
+    `TotalDebit` et `TotalCredit` somment les montants de lignes « dela
+    excluindo » ces mêmes documents.
+
+    Deux règles opposées sur les mêmes documents, donc, et chacune pour sa
+    raison : un document annulé reste dans le fichier pour prouver que la
+    série ne saute aucun numéro, mais son montant ne compte plus nulle
+    part.
+
+    LE DÉFAUT QUE CETTE FONCTION FERME
+
+    Les totaux étaient calculés sur TOUS les documents, sans regarder leur
+    état. Un seul document annulé dans la période gonflait donc
+    `TotalCredit` de son montant, et le validateur de l'AT — qui recompte —
+    refusait le fichier entier.
+
+    Le pire n'était pas là : notre propre contrôle de cohérence appliquait
+    la MÊME règle fausse, donc il confirmait le fichier. Un défaut qu'on
+    vérifie avec la méthode qui l'a produit n'apparaît jamais. Aucun
+    document n'est annulé aujourd'hui — rien dans le logiciel ne le
+    permet —, ce qui rend le défaut latent plutôt que visible : il
+    attendait la première annulation.
+
+    `montants` rend, pour un enregistrement, la liste (montant, au_debit)
+    de ses lignes. On somme les LIGNES et non le total du document, parce
+    que c'est ce que le texte nomme : « a soma de controlo do campo Valor
+    a crédito (CreditAmount) ».
+    """
+    debit = Decimal('0')
+    credit = Decimal('0')
+
+    for enregistrement in enregistrements:
+        if enregistrement.get('etat') in champ_etat_exclu:
+            continue
+        for montant, au_debit in montants(enregistrement):
+            if au_debit:
+                debit += Decimal(str(montant or 0))
+            else:
+                credit += Decimal(str(montant or 0))
+
+    return debit, credit
+
+
+def _montants_d_un_document(donnees):
+    """Les montants de lignes d'une facture, et leur sens.
+
+    Le sens est celui du DOCUMENT : toutes les lignes d'un avoir vont au
+    débit, toutes celles d'une facture au crédit.
+    """
+    au_debit = donnees.get('type') in TYPES_AU_DEBIT
+    return [(ligne.get('montant', 0), au_debit)
+            for ligne in (donnees.get('lignes') or [])]
+
+
+def _montants_d_un_recu(donnees):
+    """Les montants d'affectation d'un reçu, et leur sens.
+
+    Le sens est porté par CHAQUE LIGNE et non par le reçu : c'est le
+    document réglé qui décide si l'argent entre ou sort. `tipos` refuse
+    d'ailleurs un reçu qui mêlerait les deux.
+    """
+    return [(ligne.get('montant', 0), bool(ligne.get('au_debit')))
+            for ligne in (donnees.get('affectations') or [])]
+
+
+def composer(donnees_entete, clients, produits, taux, documents, recus=()):
     """Le fichier complet, en octets prêts à écrire.
 
-    Les totaux de `SalesInvoices` sont RECALCULÉS ici depuis les documents,
+    Les totaux de chaque table sont RECALCULÉS ici depuis les documents,
     jamais repris d'un cumul tenu ailleurs. Le validateur de l'AT les
     recompte : un cumul entretenu à côté finirait par dériver d'un centime,
     et l'export serait refusé sans qu'on sache pourquoi.
+
+    `recus` alimente la table 4.4 `Payments`. Elle est OMISE quand il n'y
+    a aucun reçu dans la période — le schéma la rend optionnelle, et une
+    table annoncée à zéro enregistrement se lirait comme une déclaration
+    là où il n'y a rien à déclarer.
     """
     racine = ET.Element('AuditFile', {'xmlns': ESPACE_DE_NOMS})
     racine.append(entete(donnees_entete))
@@ -527,26 +802,34 @@ def composer(donnees_entete, clients, produits, taux, documents):
         table.append(entree_de_taux(code, pourcentage, region))
 
     sources = ET.SubElement(racine, 'SourceDocuments')
-    ventes = ET.SubElement(sources, 'SalesInvoices')
 
-    credit = Decimal('0')
-    debit = Decimal('0')
-    elements = []
-    for donnees in documents:
-        elements.append(document(donnees))
-        base = Decimal(str(donnees.get('total_base') or 0))
-        if donnees.get('type') in TYPES_AU_DEBIT:
-            debit += base
-        else:
-            credit += base
+    # `SalesInvoices` d'abord, `Payments` en dernier : c'est l'ordre de la
+    # séquence `SourceDocuments`, où s'intercalent MovementOfGoods et
+    # WorkingDocuments, que ce module ne produit pas.
+    documents = list(documents)
+    ventes = ET.SubElement(sources, 'SalesInvoices')
+    debit, credit = _sommes_de_controle(documents, ETATS_HORS_TOTAUX,
+                                        _montants_d_un_document)
 
     # NumberOfEntries, TotalDebit et TotalCredit précèdent les documents :
     # l'ordre du schéma, encore une fois.
-    ET.SubElement(ventes, 'NumberOfEntries').text = str(len(elements))
+    ET.SubElement(ventes, 'NumberOfEntries').text = str(len(documents))
     ET.SubElement(ventes, 'TotalDebit').text = _montant(debit)
     ET.SubElement(ventes, 'TotalCredit').text = _montant(credit)
-    for element in elements:
-        ventes.append(element)
+    for donnees in documents:
+        ventes.append(document(donnees))
+
+    recus = list(recus or [])
+    if recus:
+        table_des_recus = ET.SubElement(sources, 'Payments')
+        debit, credit = _sommes_de_controle(recus, ETATS_DE_RECU_HORS_TOTAUX,
+                                            _montants_d_un_recu)
+        ET.SubElement(table_des_recus, 'NumberOfEntries').text = str(
+            len(recus))
+        ET.SubElement(table_des_recus, 'TotalDebit').text = _montant(debit)
+        ET.SubElement(table_des_recus, 'TotalCredit').text = _montant(credit)
+        for donnees in recus:
+            table_des_recus.append(recu(donnees))
 
     ET.indent(racine, space='  ')
     return (b'<?xml version="1.0" encoding="UTF-8"?>\n'

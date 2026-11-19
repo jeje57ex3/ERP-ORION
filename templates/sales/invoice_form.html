@@ -44,9 +44,9 @@
       </div>
     </div>
   </div>
-  {# Les lignes de la facture. Elles n'etaient saisissables NULLE PART :
+  {% comment %} Les lignes de la facture. Elles n'etaient saisissables NULLE PART :
      le modele existait, l'ecran de detail les affichait, et aucun chemin
-     de code n'en creait jamais. Les factures restaient donc a zero euro. #}
+     de code n'en creait jamais. Les factures restaient donc a zero euro. {% endcomment %}
   <div class="erp-card mb-3">
     <div class="orion-orion-card-header">
       <h6 class="card-title"><i class="bi bi-list-ul me-1 text-primary"></i>{% trans "Lignes de la facture" %}</h6>

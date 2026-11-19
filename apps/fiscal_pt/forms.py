@@ -200,3 +200,41 @@ class EncaissementForm(forms.Form):
         if not self.is_bound:
             self.fields['montant'].initial = total
             self.fields['date'].initial = timezone.now().date()
+
+
+class RecuForm(forms.Form):
+    """L'encaissement qu'un reçu séparé atteste.
+
+    POURQUOI LE MONTANT EST PRÉ-REMPLI ET NON IMPOSÉ
+
+    Le défaut est le RESTE À ENCAISSER, parce que c'est le cas courant :
+    on quittance ce qu'on vient de recevoir, et c'est le solde. Mais un
+    acompte est précisément le cas où ce n'est pas le solde — c'est même
+    la raison d'être du reçu séparé. Le champ reste donc modifiable, et
+    c'est l'émission qui refuse un montant supérieur au reste : un reçu
+    qui dépasse la créance atteste un argent que personne ne devait.
+    """
+
+    mecanisme = forms.ChoiceField(
+        label='Moyen de paiement', choices=tipos.MECANISMES_DE_PAIEMENT,
+        initial='TB',
+        widget=forms.Select(attrs={'class': 'form-select'}))
+    montant = forms.DecimalField(
+        label='Montant reçu', max_digits=14, decimal_places=2,
+        min_value=Decimal('0.01'),
+        widget=forms.NumberInput(attrs={'class': 'form-control',
+                                        'step': '0.01'}))
+    date_encaissement = forms.DateField(
+        label='Date de l’encaissement',
+        widget=DateISO(attrs={'class': 'form-control'}))
+    description = forms.CharField(
+        label='Précision (facultatif)', max_length=200, required=False,
+        widget=forms.TextInput(
+            attrs={'class': 'form-control',
+                   'placeholder': 'Ex. « Acompte de 30 % »'}))
+
+    def __init__(self, *args, reste=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound:
+            self.fields['montant'].initial = reste
+            self.fields['date_encaissement'].initial = timezone.now().date()

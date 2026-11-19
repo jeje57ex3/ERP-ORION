@@ -18,7 +18,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 
 from . import saft
-from .models import DocumentFiscal, ParametresFiscauxPT
+from .models import DocumentFiscal, ParametresFiscauxPT, RecuFiscal
 from .taxas import PALIERS_PAR_REGION
 
 
@@ -28,6 +28,11 @@ def _client_du_document(document):
     Un document sans NIF d'acquéreur est une vente au consommateur final :
     le schéma impose alors le NIF conventionnel et un client générique,
     pas un champ vide.
+
+    Sert aux documents de facturation COMME aux reçus : les deux portent
+    un NIF d'acquéreur et un lien vers la facture d'origine, et les deux
+    doivent désigner le même `CustomerID` — sans quoi le reçu renverrait à
+    un client que `MasterFiles` ne déclare pas.
     """
     if not document.nif_acquereur:
         return (saft.CLIENT_CONSOMMATEUR_FINAL, saft.CLIENT_CONSOMMATEUR_FINAL,
@@ -45,7 +50,7 @@ def _client_du_document(document):
 
 
 def rassembler(company, debut, fin):
-    """Les quatre jeux de données du SAF-T, pour la période donnée."""
+    """Les cinq jeux de données du SAF-T, pour la période donnée."""
     parametres = ParametresFiscauxPT.de(company)
     if not parametres.nif:
         raise ValidationError(
@@ -58,6 +63,12 @@ def rassembler(company, debut, fin):
                          date_document__gte=debut, date_document__lte=fin)
                  .select_related('serie', 'document_rectifie')
                  .order_by('date_document', 'numero_sequentiel'))
+
+    recus = (RecuFiscal.objects
+             .filter(company=company,
+                     date_document__gte=debut, date_document__lte=fin)
+             .select_related('serie')
+             .order_by('date_document', 'numero_sequentiel'))
 
     entete = {
         'nif': parametres.nif,
@@ -148,6 +159,44 @@ def rassembler(company, debut, fin):
             'total': document.total,
         })
 
+    # LES REÇUS, APRÈS LES DOCUMENTS ET POUR UNE RAISON.
+    #
+    # Un reçu n'ajoute ni produit ni taux au référentiel — il n'a ni ligne
+    # de produit ni taux de TVA. Il ajoute en revanche un CLIENT, et il
+    # faut qu'il tombe sur le MÊME identifiant que la facture qu'il règle :
+    # c'est pourquoi les deux passent par `_client_du_document`, et non par
+    # deux calculs qui se ressembleraient.
+    sortie_des_recus = []
+
+    for recu in recus:
+        identifiant, nom, nif = _client_du_document(recu)
+        clients.setdefault(identifiant, {
+            'identifiant': identifiant, 'nom': nom, 'nif': nif,
+            'adresse': {'adresse': 'Desconhecido', 'ville': 'Desconhecido',
+                        'code_postal': '0000-000', 'pays': 'PT'},
+        })
+
+        sortie_des_recus.append({
+            'numero': recu.numero,
+            'atcud': recu.atcud,
+            'date': recu.date_document,
+            'type': recu.serie.type_document,
+            'etat': recu.etat,
+            'horodatage': recu.horodatage,
+            'client': identifiant,
+            'affectations': [{
+                'document': affectation['document'],
+                'date': affectation['date'],
+                'montant': affectation['montant'],
+                'au_debit': affectation.get('au_debit', False),
+                'description': affectation.get('description') or '',
+            } for affectation in (recu.affectations or [])],
+            'paiements': recu.paiements or [],
+            'total_base': recu.total_base,
+            'total_taxes': recu.total_taxes,
+            'total': recu.total,
+        })
+
     # La table des taux doit couvrir tous les codes employés. On l'enrichit
     # des paliers de la région même s'ils n'ont pas servi : le validateur
     # accepte une table plus large, jamais une table incomplète.
@@ -159,13 +208,15 @@ def rassembler(company, debut, fin):
     table = [(code, pourcentage, region)
              for (code, region), pourcentage in sorted(taux.items())]
 
-    return entete, list(clients.values()), list(produits.values()), table, sortie
+    return (entete, list(clients.values()), list(produits.values()), table,
+            sortie, sortie_des_recus)
 
 
 def composer(company, debut, fin):
     """Le fichier SAF-T de la période, en octets."""
-    entete, clients, produits, taux, documents = rassembler(company, debut, fin)
-    return saft.composer(entete, clients, produits, taux, documents)
+    entete, clients, produits, taux, documents, recus = rassembler(
+        company, debut, fin)
+    return saft.composer(entete, clients, produits, taux, documents, recus)
 
 
 def nom_de_fichier(company, debut, fin):

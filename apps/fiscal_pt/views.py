@@ -17,10 +17,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from . import coherence, export, qr, schema
+from . import coherence, export, qr, schema, tipos
 from .forms import ParametresForm, PeriodeForm, SerieForm
-from .models import (TYPES_DE_DOCUMENT, CleDeSignature, DocumentFiscal,
-                     ParametresFiscauxPT, SerieFiscale)
+from .models import (CleDeSignature, DocumentFiscal, ParametresFiscauxPT,
+                     RecuFiscal, SerieFiscale)
 
 
 def _company(request):
@@ -74,14 +74,15 @@ def index(request):
                 ('Types déclarés : '
                  + ', '.join(sorted({s.type_document for s in series}))
                  + '. Manquants : '
-                 + (', '.join(code for code, _ in TYPES_DE_DOCUMENT
+                 + (', '.join(code for code, _ in tipos.TYPES_DE_SERIE
                               if code not in {s.type_document
                                               for s in series})
                     or 'aucun'))
                 if series else
                 'Aucune série : il en faut au moins une par type de '
                 'document émis — « FT » pour facturer, « NC » pour un '
-                'avoir, « ND » pour une note de débit.'),
+                'avoir, « ND » pour une note de débit, « RG » pour un '
+                'reçu.'),
             'lien': 'fiscal_pt:series',
         },
         {
@@ -118,6 +119,7 @@ def index(request):
         'total_etapes': len(etapes),
         'nombre_documents': documents.count(),
         'dernier': documents.order_by('-cree_le').first(),
+        'nombre_recus': RecuFiscal.objects.filter(company=company).count(),
     })
 
 
@@ -294,7 +296,18 @@ def verifier_les_chaines(request):
 
     for serie in SerieFiscale.objects.filter(company=company).order_by(
             'type_document', 'nom'):
-        liste = list(DocumentFiscal.objects.filter(serie=serie)
+        # LA SÉRIE DIT DANS QUELLE TABLE CHERCHER, et l'oublier serait
+        # pire que de ne rien vérifier.
+        #
+        # Les reçus vivent dans leur propre table. Une boucle qui ne
+        # regarderait que les documents de facturation trouverait une
+        # série de reçus VIDE — zéro document, aucune rupture, aucun
+        # trou — et l'afficherait donc « intacte ». L'écran dirait que
+        # tout va bien de ce qu'il n'a pas regardé, ce qui est exactement
+        # ce qu'un contrôle de conformité ne doit jamais faire.
+        modele = RecuFiscal if tipos.est_un_recu(serie.type_document) \
+            else DocumentFiscal
+        liste = list(modele.objects.filter(serie=serie)
                      .order_by('numero_sequentiel'))
 
         ruptures = []
@@ -536,4 +549,129 @@ def note_de_debit(request, pk):
         'origine': origine,
         'motif': motif,
         'formset': formset,
+    })
+
+
+# ── Les reçus (table 4.4 du SAF-T) ───────────────────────────────────────────
+
+@login_required
+def recus(request):
+    liste = (RecuFiscal.objects.filter(company=_company(request))
+             .select_related('serie')
+             .order_by('-date_document', '-numero_sequentiel')[:200])
+    return render(request, 'fiscal_pt/recus.html', {
+        'page_title': 'Reçus',
+        'page_subtitle': 'Quittances d’encaissement — table 4.4 du SAF-T',
+        'recus': liste,
+    })
+
+
+@login_required
+def recu_detail(request, pk):
+    company = _company(request)
+    recu = get_object_or_404(RecuFiscal.objects.select_related('serie'),
+                             pk=pk, company=company)
+    parametres = ParametresFiscauxPT.de(company)
+
+    return render(request, 'fiscal_pt/recu_detail.html', {
+        'page_title': recu.numero,
+        'page_subtitle': 'Reçu émis, non modifiable',
+        'recu': recu,
+        'verifie': recu.verifier(),
+        'mentions': recu.mentions_legales(
+            parametres.numero_de_certificat or '0'),
+        'encaissements': [
+            {'montant': paiement.get('montant'),
+             'date': paiement.get('date'),
+             'libelle': tipos.libelle_de_mecanisme(paiement.get('mecanisme'))}
+            for paiement in (recu.paiements or [])
+        ],
+    })
+
+
+@login_required
+def recu_qr(request, pk):
+    """L'image du code QR d'un reçu.
+
+    Un reçu porte un code QR comme une facture : les spécifications de
+    l'AT nomment la table 4.4 à propos du champ I1, et la Portaria
+    195/2020 impose le code aux « faturas e demais documentos fiscalmente
+    relevantes », dont les reçus font partie.
+    """
+    company = _company(request)
+    recu = get_object_or_404(RecuFiscal, pk=pk, company=company)
+
+    try:
+        image = qr.image(recu.contenu_qr)
+    except qr.ErreurQR as exc:
+        raise Http404(str(exc))
+
+    tampon = io.BytesIO()
+    image.save(tampon, format='PNG')
+    tampon.seek(0)
+    return FileResponse(tampon, content_type='image/png',
+                        filename=f'qr-recu-{recu.numero_sequentiel}.png')
+
+
+@login_required
+def recu_sur_facture(request, pk):
+    """Émet le reçu d'un encaissement sur une facture déjà signée.
+
+    POURQUOI CET ÉCRAN EXISTE À CÔTÉ DE LA FACTURE-REÇU
+
+    La facture-reçu « FR » vaut quittance DE SON TOTAL, et le logiciel
+    refuse qu'elle atteste une autre somme. Elle ne couvre donc que la
+    facture payée au moment où elle est émise. Un acompte, un règlement
+    partiel, un paiement reçu trois semaines plus tard : tout cela passe
+    par un reçu séparé, qui est un document à part, dans sa propre série,
+    et qui va dans une autre table du SAF-T.
+
+    Le montant proposé est le RESTE À ENCAISSER, et il reste modifiable —
+    un acompte est précisément le cas où ce n'est pas le solde.
+    """
+    from apps.sales.models import Invoice
+
+    from .facturation import (ConformiteInactive, document_pour,
+                              emettre_un_recu, reste_a_encaisser, recus_de)
+    from .forms import RecuForm
+
+    company = _company(request)
+    facture = get_object_or_404(Invoice, pk=pk, company=company)
+    origine = document_pour(facture)
+    reste = reste_a_encaisser(facture, origine) if origine else None
+
+    formulaire = RecuForm(request.POST or None, reste=reste)
+
+    if request.method == 'POST' and formulaire.is_valid():
+        try:
+            recu = emettre_un_recu(
+                facture,
+                mecanisme=formulaire.cleaned_data['mecanisme'],
+                montant=formulaire.cleaned_data['montant'],
+                date_encaissement=formulaire.cleaned_data['date_encaissement'],
+                description=formulaire.cleaned_data.get('description') or '',
+            )
+        except ConformiteInactive:
+            messages.error(
+                request,
+                'La conformité portugaise n’est pas activée : il n’y a pas '
+                'de document signé à quittancer.')
+            return redirect('sales:invoice_detail', pk=facture.pk)
+        except Exception as exc:
+            messages.error(request, f'Reçu non émis : {exc}')
+        else:
+            messages.success(
+                request, f'Reçu {recu.numero} émis (ATCUD {recu.atcud}).')
+            for avertissement in getattr(recu, 'avertissements', ()) or ():
+                messages.warning(request, avertissement)
+            return redirect('fiscal_pt:recu_detail', pk=recu.pk)
+
+    return render(request, 'fiscal_pt/recu.html', {
+        'page_title': f'Reçu sur {facture.number}',
+        'page_subtitle': 'Quittancer un encaissement sur une facture signée',
+        'facture': facture,
+        'origine': origine,
+        'reste': reste,
+        'deja': list(recus_de(facture)) if origine else [],
+        'formulaire': formulaire,
     })

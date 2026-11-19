@@ -16,7 +16,7 @@ utilité tout en donnant une cible.
 from django.contrib import admin
 
 from .models import (CleDeSignature, DocumentFiscal, ParametresFiscauxPT,
-                     SerieFiscale)
+                     RecuFiscal, SerieFiscale)
 
 
 @admin.register(ParametresFiscauxPT)
@@ -75,4 +75,29 @@ class DocumentAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Supprimer un document rompt la chaîne de la série, et
         l'administration le constate au premier contrôle."""
+        return False
+
+
+@admin.register(RecuFiscal)
+class RecuAdmin(admin.ModelAdmin):
+    """Les reçus, en lecture seule pour les mêmes raisons.
+
+    Un reçu prend un numéro dans une série qui ne doit sauter aucun
+    numéro : l'ajouter à la main depuis l'administration contournerait le
+    compteur verrouillé et la chaîne de signatures.
+    """
+
+    list_display = ('numero', 'company', 'date_document', 'total',
+                    'au_debit', 'atcud', 'etat')
+    list_filter = ('serie', 'etat', 'au_debit', 'date_document')
+    search_fields = ('numero', 'atcud', 'nif_acquereur')
+    date_hierarchy = 'date_document'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False

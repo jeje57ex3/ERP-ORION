@@ -19,6 +19,10 @@ urlpatterns = [
     path('documents/<int:pk>/', views.document_detail, name='document_detail'),
     path('documents/<int:pk>/qr.png', views.document_qr, name='document_qr'),
 
+    path('recus/', views.recus, name='recus'),
+    path('recus/<int:pk>/', views.recu_detail, name='recu_detail'),
+    path('recus/<int:pk>/qr.png', views.recu_qr, name='recu_qr'),
+
     path('verification/', views.verifier_les_chaines, name='verification'),
     path('saft/', views.export_saft, name='export_saft'),
 
@@ -26,4 +30,6 @@ urlpatterns = [
          name='note_de_credit'),
     path('factures/<int:pk>/note-de-debit/', views.note_de_debit,
          name='note_de_debit'),
+    path('factures/<int:pk>/recu/', views.recu_sur_facture,
+         name='recu_sur_facture'),
 ]

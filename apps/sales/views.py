@@ -345,7 +345,8 @@ def invoice_detail(request, pk):
     from apps.fiscal_pt import tipos
     from apps.fiscal_pt.facturation import (document_pour,
                                             formes_legales_disponibles,
-                                            rectifications_de)
+                                            rectifications_de, recus_de,
+                                            reste_a_encaisser)
     from apps.fiscal_pt.models import ParametresFiscauxPT
 
     document_fiscal = document_pour(invoice)
@@ -373,6 +374,21 @@ def invoice_detail(request, pk):
          'libelle': tipos.libelle_de_mecanisme(paiement.get('mecanisme'))}
         for paiement in (document_fiscal.paiements if document_fiscal else [])
     ]
+
+    # Les recus deja emis, et ce qui reste a encaisser.
+    #
+    # Le bouton n'est propose que si le document peut encore etre
+    # quittance. Une facture-recu « FR » vaut deja quittance de son total
+    # : offrir d'en emettre un recu donnerait un ecran qui propose une
+    # action que l'emission refuse, et c'est le genre de bouton qu'on
+    # clique pour comprendre pourquoi il est la.
+    recus = list(recus_de(invoice)) if document_fiscal else []
+    reste = None
+    peut_quittancer = False
+    if document_fiscal is not None and not tipos.atteste_un_paiement(
+            document_fiscal.serie.type_document):
+        reste = reste_a_encaisser(invoice, document_fiscal)
+        peut_quittancer = reste > 0
 
     formes_legales = []
     if document_fiscal is None and invoice.status == 'draft':
@@ -412,6 +428,9 @@ def invoice_detail(request, pk):
         'rectifications': rectifications,
         'notes_de_debit': notes_de_debit,
         'encaissements': encaissements,
+        'recus': recus,
+        'reste_a_encaisser': reste,
+        'peut_quittancer': peut_quittancer,
         'formes_legales': formes_legales,
         'mecanismes_de_paiement': tipos.MECANISMES_DE_PAIEMENT,
     })

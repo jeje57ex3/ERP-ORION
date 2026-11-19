@@ -38,7 +38,8 @@ large laisserait passer une vraie incohérence.
 from decimal import Decimal, InvalidOperation
 
 from . import tipos
-from .saft import ESPACE_DE_NOMS, TYPES_AU_DEBIT
+from .saft import (ESPACE_DE_NOMS, ETATS_DE_RECU_HORS_TOTAUX,
+                   ETATS_HORS_TOTAUX, TYPES_AU_DEBIT)
 from .schema import Anomalie
 
 #: La tolérance d'arrondi, par ligne de document.
@@ -56,6 +57,21 @@ def _texte(element, nom):
         return None
     trouve = element.find(_etiquette(nom))
     return trouve.text if trouve is not None else None
+
+
+def _renseigne(element, nom):
+    """Le texte d'un sous-élément, vide s'il n'apporte rien.
+
+    POURQUOI LE `strip()` N'EST PAS UNE COQUETTERIE
+
+    Les champs texte du SAF-T ont une longueur MINIMALE de 1. Une seule
+    espace la respecte : « <OriginatingON> </OriginatingON> » passe le
+    schéma, et un contrôle qui testerait seulement la présence le
+    laisserait passer aussi. Une référence faite d'espaces est pourtant
+    aussi inutile qu'une référence absente — c'est même le cas réel, un
+    champ recopié vide.
+    """
+    return (_texte(element, nom) or '').strip()
 
 
 def _montant(element, nom):
@@ -78,6 +94,12 @@ def _documents(racine):
     return racine.findall(
         f'{_etiquette("SourceDocuments")}/{_etiquette("SalesInvoices")}/'
         f'{_etiquette("Invoice")}')
+
+
+def _recus(racine):
+    return racine.findall(
+        f'{_etiquette("SourceDocuments")}/{_etiquette("Payments")}/'
+        f'{_etiquette("Payment")}')
 
 
 def _referentiels(racine):
@@ -204,7 +226,8 @@ def _verifier_le_type(document, anomalies):
         lignes = document.findall(_etiquette('Line'))
         sans_reference = [
             rang for rang, ligne in enumerate(lignes, start=1)
-            if not _texte(ligne.find(_etiquette('References')), 'Reference')
+            if not _renseigne(ligne.find(_etiquette('References')),
+                              'Reference')
         ]
         if sans_reference:
             rangs = ', '.join(str(r) for r in sans_reference)
@@ -259,6 +282,188 @@ def _verifier_le_type(document, anomalies):
             'lieu.'))
 
 
+# ── Les reçus (table 4.4) ────────────────────────────────────────────────────
+
+def _verifier_un_recu(recu, anomalies):
+    """L'arithmétique et les renvois d'un reçu.
+
+    CE QUE LE SCHÉMA DIT ET QUE NOTRE VALIDATEUR NE LIT PAS
+
+    Le XSD de la table 4.4 porte quatre `xs:assert` — notamment « si
+    PaymentType vaut RC, chaque ligne doit porter son bloc Tax ». Ce sont
+    des assertions XSD 1.1 ; notre validateur, qui lit le modèle de
+    contenu, ne les évalue pas. Celui de l'AT, si.
+
+    Un fichier peut donc passer notre contrôle de schéma et échouer chez
+    l'administration pour une règle qui était écrite noir sur blanc dans
+    le fichier qu'on a lu. Les asserts sont donc vérifiés ici, où l'on
+    sait les dire.
+    """
+    numero = _texte(recu, 'PaymentRefNo') or '(sans numéro)'
+    type_recu = _texte(recu, 'PaymentType') or ''
+
+    totaux = recu.find(_etiquette('DocumentTotals'))
+    net = _montant(totaux, 'NetTotal')
+    taxe = _montant(totaux, 'TaxPayable')
+    brut = _montant(totaux, 'GrossTotal')
+
+    if None in (net, taxe, brut):
+        anomalies.append(Anomalie(
+            numero, 'Un total du reçu est absent ou illisible : la '
+                    'cohérence ne peut pas être vérifiée.'))
+        return
+
+    if brut != net + taxe:
+        anomalies.append(Anomalie(
+            numero,
+            f'GrossTotal ({brut}) ne vaut pas NetTotal + TaxPayable '
+            f'({net} + {taxe} = {net + taxe}).'))
+
+    lignes = recu.findall(_etiquette('Line'))
+    if not lignes:
+        anomalies.append(Anomalie(numero, 'Reçu sans aucune affectation.'))
+        return
+
+    somme = ZERO
+    sens_vus = set()
+
+    for rang, ligne in enumerate(lignes, start=1):
+        # 1. Chaque ligne doit nommer le document réglé.
+        source = ligne.find(_etiquette('SourceDocumentID'))
+        renvoi = _renseigne(source, 'OriginatingON')
+        if not renvoi:
+            anomalies.append(Anomalie(
+                f'{numero} ligne {rang}',
+                'L’affectation ne désigne aucun document. Un reçu est la '
+                'quittance d’une créance ; sans « OriginatingON », '
+                'l’administration ne peut rapprocher les deux tables.'))
+        elif not _renseigne(source, 'InvoiceDate'):
+            anomalies.append(Anomalie(
+                f'{numero} ligne {rang}',
+                f'L’affectation désigne « {renvoi} » sans sa date. Le '
+                'rapprochement suppose alors que la numérotation soit '
+                'chronologique, ce que rien ne garantit.'))
+
+        # 2. Le montant, et son sens.
+        debit = _montant(ligne, 'DebitAmount')
+        credit = _montant(ligne, 'CreditAmount')
+        if debit is None and credit is None:
+            anomalies.append(Anomalie(
+                f'{numero} ligne {rang}',
+                'L’affectation ne porte aucun montant, ni au débit ni au '
+                'crédit.'))
+            continue
+        if debit is not None and credit is not None:
+            anomalies.append(Anomalie(
+                f'{numero} ligne {rang}',
+                'L’affectation porte un montant au débit ET au crédit. Le '
+                'schéma n’en autorise qu’un des deux ; les sommes de '
+                'contrôle compteraient la somme deux fois.'))
+            continue
+
+        somme += debit if debit is not None else credit
+        sens_vus.add(debit is not None)
+
+        # 3. L'assert du schéma sur les reçus du régime de TVA de caisse.
+        if type_recu == 'RC' and ligne.find(_etiquette('Tax')) is None:
+            anomalies.append(Anomalie(
+                f'{numero} ligne {rang}',
+                'Un reçu « RC » relève du régime de TVA sur les '
+                'encaissements : le schéma impose son bloc « Tax » à '
+                'chaque ligne, par un « assert » que notre validateur de '
+                'structure n’évalue pas et que celui de l’AT évalue.'))
+
+    # 4. Un reçu ne mêle pas les deux sens.
+    if len(sens_vus) > 1:
+        anomalies.append(Anomalie(
+            numero,
+            'Ce reçu encaisse et rembourse à la fois. La table 4.4 tient ses '
+            'sommes de contrôle séparément au débit et au crédit : son '
+            'total unique ne correspond alors à aucun des deux mouvements.'))
+
+    # 5. NetTotal = somme des affectations.
+    if somme != net:
+        anomalies.append(Anomalie(
+            numero,
+            f'NetTotal ({net}) ne vaut pas la somme des {len(lignes)} '
+            f'affectation(s) ({somme}).'))
+
+    # 6. Les moyens de paiement, et leur somme.
+    #
+    # `PaymentMethod` est l'élément du reçu — et non « Payment », qui est
+    # son nom dans les totaux d'une facture. Le même type sous deux noms.
+    encaissements = recu.findall(_etiquette('PaymentMethod'))
+    if not encaissements:
+        anomalies.append(Anomalie(
+            numero,
+            'Reçu sans aucun moyen de paiement : il n’atteste rien de '
+            'vérifiable. Le schéma rend « PaymentMethod » optionnel ; un '
+            'reçu, non.'))
+        return
+
+    encaisse = ZERO
+    for rang, encaissement in enumerate(encaissements, start=1):
+        montant = _montant(encaissement, 'PaymentAmount')
+        if montant is None:
+            anomalies.append(Anomalie(
+                f'{numero} paiement {rang}',
+                'Montant du paiement absent ou illisible.'))
+            return
+        encaisse += montant
+
+    if encaisse != brut:
+        sens = 'inférieure' if encaisse < brut else 'supérieure'
+        anomalies.append(Anomalie(
+            numero,
+            f'La somme des moyens de paiement ({encaisse}) est {sens} au '
+            f'total du reçu ({brut}). Un reçu est la quittance de ce qu’il '
+            'déclare avoir reçu : l’écart dit que l’un des deux nombres est '
+            'faux, et c’est le document remis au client qui tranche.'))
+
+
+def _verifier_les_totaux_des_recus(racine, recus, anomalies):
+    table = racine.find(
+        f'{_etiquette("SourceDocuments")}/{_etiquette("Payments")}')
+    if table is None:
+        return
+
+    annonce = _texte(table, 'NumberOfEntries')
+    if annonce is not None and annonce.strip() != str(len(recus)):
+        anomalies.append(Anomalie(
+            'Payments',
+            f'NumberOfEntries annonce {annonce.strip()} reçu(s) et le '
+            f'fichier en contient {len(recus)}.'))
+
+    debit = ZERO
+    credit = ZERO
+    for recu in recus:
+        # Pour un reçu, seul « A » existe comme état exclu : `PaymentStatus`
+        # n'énumère que « N » et « A », là où un document de facturation
+        # exclut aussi « F ».
+        etat = _texte(recu.find(_etiquette('DocumentStatus')), 'PaymentStatus')
+        if etat in ETATS_DE_RECU_HORS_TOTAUX:
+            continue
+        for ligne in recu.findall(_etiquette('Line')):
+            montant = _montant(ligne, 'DebitAmount')
+            if montant is not None:
+                debit += montant
+                continue
+            montant = _montant(ligne, 'CreditAmount')
+            if montant is not None:
+                credit += montant
+
+    for nom, calcule in (('TotalCredit', credit), ('TotalDebit', debit)):
+        annonce = _montant(table, nom)
+        if annonce is None:
+            anomalies.append(Anomalie('Payments',
+                                      f'{nom} est absent ou illisible.'))
+        elif annonce != calcule:
+            anomalies.append(Anomalie(
+                'Payments',
+                f'{nom} annonce {annonce} et la somme des lignes des reçus '
+                f'non annulés donne {calcule}.'))
+
+
 # ── Les totaux du fichier ────────────────────────────────────────────────────
 
 def _verifier_les_totaux_du_fichier(racine, documents, anomalies):
@@ -274,17 +479,41 @@ def _verifier_les_totaux_du_fichier(racine, documents, anomalies):
             f'NumberOfEntries annonce {annonce.strip()} document(s) et le '
             f'fichier en contient {len(documents)}.'))
 
+    # LES TOTAUX EXCLUENT CE QUE `NumberOfEntries` COMPTE.
+    #
+    # Portaria n.º 302/2016, champs 4.1.1 à 4.1.3 : le nombre de registres
+    # compte TOUS les documents, « incluindo os documentos cujo valor do
+    # campo Estado atual (InvoiceStatus) seja do tipo "A" ou "F" », et les
+    # deux sommes de contrôle les EXCLUENT.
+    #
+    # Ce contrôle appliquait la même règle que le composeur, et la même
+    # erreur : il sommait tous les documents, annulés compris. Un défaut
+    # qu'on vérifie avec la méthode qui l'a produit n'apparaît jamais —
+    # le fichier était déclaré cohérent et l'AT le refusait.
     credit = ZERO
     debit = ZERO
     for document in documents:
-        net = _montant(document.find(_etiquette('DocumentTotals')),
-                       'NetTotal')
-        if net is None:
+        etat = _texte(document.find(_etiquette('DocumentStatus')),
+                      'InvoiceStatus')
+        if etat in ETATS_HORS_TOTAUX:
             continue
-        if (_texte(document, 'InvoiceType') or '') in TYPES_AU_DEBIT:
-            debit += net
-        else:
-            credit += net
+
+        au_debit = (_texte(document, 'InvoiceType') or '') in TYPES_AU_DEBIT
+        champ = 'DebitAmount' if au_debit else 'CreditAmount'
+
+        # On somme les MONTANTS DE LIGNES, qui sont ce que le texte nomme
+        # (« a soma de controlo do campo Valor a crédito (CreditAmount) »)
+        # et non le total du document. Les deux coïncident sur un document
+        # cohérent ; sur un document qui ne l'est pas, c'est la ligne que
+        # l'AT recompte.
+        for ligne in document.findall(_etiquette('Line')):
+            montant = _montant(ligne, champ)
+            if montant is None:
+                continue
+            if au_debit:
+                debit += montant
+            else:
+                credit += montant
 
     for nom, calcule in (('TotalCredit', credit), ('TotalDebit', debit)):
         annonce = _montant(ventes, nom)
@@ -294,14 +523,27 @@ def _verifier_les_totaux_du_fichier(racine, documents, anomalies):
         elif annonce != calcule:
             anomalies.append(Anomalie(
                 'SalesInvoices',
-                f'{nom} annonce {annonce} et la somme des documents donne '
-                f'{calcule}.'))
+                f'{nom} annonce {annonce} et la somme des lignes des '
+                f'documents non annulés donne {calcule}.'))
 
 
 # ── Le référentiel ───────────────────────────────────────────────────────────
 
-def _verifier_les_renvois(racine, documents, anomalies):
+def _verifier_les_renvois(racine, documents, anomalies, recus=()):
     clients, produits, taux = _referentiels(racine)
+
+    # Un reçu porte aussi un `CustomerID`, et il doit figurer dans
+    # `MasterFiles` comme celui d'une facture. Le reçu n'ajoute pourtant
+    # jamais de client au référentiel : il règle un document qui en a déjà
+    # un. Un reçu dont le client manque signale donc que le rassemblement
+    # a perdu un document, pas qu'il a oublié un client.
+    for recu in recus:
+        client = _texte(recu, 'CustomerID')
+        if client and client not in clients:
+            anomalies.append(Anomalie(
+                _texte(recu, 'PaymentRefNo') or '(sans numéro)',
+                f'Le client « {client} » du reçu n’est pas déclaré dans '
+                'MasterFiles.'))
 
     for document in documents:
         numero = _texte(document, 'InvoiceNo') or '(sans numéro)'
@@ -393,13 +635,18 @@ def verifier(racine):
     """
     anomalies = []
     documents = _documents(racine)
+    recus = _recus(racine)
 
     for document in documents:
         _verifier_un_document(document, anomalies)
         _verifier_le_type(document, anomalies)
 
+    for recu in recus:
+        _verifier_un_recu(recu, anomalies)
+
     _verifier_les_totaux_du_fichier(racine, documents, anomalies)
-    _verifier_les_renvois(racine, documents, anomalies)
+    _verifier_les_totaux_des_recus(racine, recus, anomalies)
+    _verifier_les_renvois(racine, documents, anomalies, recus)
     _verifier_les_dates(racine, documents, anomalies)
 
     return anomalies

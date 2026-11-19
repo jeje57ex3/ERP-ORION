@@ -29,10 +29,16 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from .models import DocumentFiscal, ParametresFiscauxPT, SerieFiscale
+from . import tipos
+from .models import (DocumentFiscal, ParametresFiscauxPT, RecuFiscal,
+                     SerieFiscale)
 
 #: Le type de document d'une facture de vente ordinaire.
 TYPE_PAR_DEFAUT = 'FT'
+
+#: Le type de reçu que ce logiciel émet. Voir `tipos.TYPES_DE_RECU` pour
+#: le refus explicite de « RC ».
+TYPE_DE_RECU_PAR_DEFAUT = 'RG'
 
 
 class ConformiteInactive(Exception):
@@ -355,6 +361,151 @@ def emettre_une_note_de_debit(invoice, motif, lignes):
             document_rectifie=origine,
             motif_rectification=motif,
             regime_simplifiee=parametres.regime_simplifiee,
+        )
+
+
+# ── Les reçus ────────────────────────────────────────────────────────────────
+
+def recus_de(invoice):
+    """Les reçus émis pour une facture, du plus ancien au plus récent."""
+    return (RecuFiscal.objects
+            .filter(company_id=invoice.company_id,
+                    source_app='sales', source_modele='invoice',
+                    source_id=invoice.pk)
+            .order_by('date_document', 'numero_sequentiel'))
+
+
+def reste_a_encaisser(invoice, document=None):
+    """Ce qui n'a pas encore été quittancé sur la facture signée.
+
+    POURQUOI CE NOMBRE EST CALCULÉ ET NON TENU
+
+    Un solde tenu à part sur la facture dériverait : il faudrait le
+    décrémenter à chaque reçu, et un reçu émis dans une transaction qui
+    échoue plus loin laisserait le solde faux. On le recalcule donc depuis
+    les reçus eux-mêmes, qui sont immuables — c'est la même raison qui
+    fait recalculer les totaux du SAF-T depuis les documents.
+
+    On ne somme que les affectations qui désignent CE document. Un reçu
+    peut en solder plusieurs ; n'en retenir que la part qui concerne
+    celui-ci est la seule lecture juste.
+    """
+    document = document or document_pour(invoice)
+    if document is None:
+        return Decimal('0')
+
+    deja = Decimal('0')
+    for recu in recus_de(invoice):
+        for affectation in (recu.affectations or []):
+            if affectation.get('document') == document.numero:
+                deja += Decimal(str(affectation.get('montant') or 0))
+
+    return Decimal(str(document.total)) - deja
+
+
+def emettre_un_recu(invoice, mecanisme, montant=None,
+                    date_encaissement=None, description=''):
+    """Émet le reçu d'un encaissement sur une facture déjà signée.
+
+    POURQUOI UN REÇU SÉPARÉ EXISTE, ALORS QUE LA FACTURE-REÇU EXISTE AUSSI
+
+    La facture-reçu « FR » vaut quittance DE SON TOTAL, et le logiciel
+    refuse qu'elle en atteste une autre somme. Elle ne sert donc qu'à la
+    facture payée à l'émission. Tout le reste — un acompte, un règlement
+    partiel, un paiement reçu trois semaines après la facture — passe par
+    un reçu « RG », qui est un document à part, dans sa propre série, et
+    qui va dans la table 4.4 du SAF-T.
+
+    `montant` omis vaut LE RESTE À ENCAISSER. C'est la seule valeur par
+    défaut qui ne crée pas d'écart : le total de la facture serait faux
+    dès le deuxième reçu.
+    """
+    company = invoice.company
+    parametres = ParametresFiscauxPT.de(company)
+
+    if not parametres.est_actif:
+        raise ConformiteInactive(
+            'La conformité portugaise n’est pas activée pour cette '
+            'entreprise.')
+
+    origine = document_pour(invoice)
+    if origine is None:
+        raise ValidationError(
+            f'La facture {invoice.number} n’a pas été signée : il n’y a '
+            'rien à quittancer. Un reçu atteste le règlement d’un document '
+            'émis, et le SAF-T le lui fait désigner par son numéro.')
+
+    # UNE FACTURE-REÇU NE SE QUITTANCE PAS DEUX FOIS.
+    #
+    # Elle vaut déjà quittance de son total — c'est sa définition, et le
+    # logiciel vérifie à son émission que l'encaissement déclaré égale ce
+    # total. Un reçu de plus attesterait une seconde fois le même argent,
+    # et les deux documents seraient parfaitement réguliers pris
+    # séparément.
+    if tipos.atteste_un_paiement(origine.serie.type_document):
+        raise ValidationError(
+            f'Le document {origine.numero} est de type '
+            f'« {origine.serie.type_document} » : il vaut déjà quittance de '
+            'son total, et son encaissement est enregistré. Un reçu de plus '
+            'attesterait deux fois le même règlement.')
+
+    with transaction.atomic():
+        # LE VERROU AVANT LA LECTURE DU RESTE, et non après.
+        #
+        # `RecuFiscal.emettre` verrouille la série pour numéroter. Mais le
+        # reste à encaisser est lu AVANT, et deux demandes simultanées
+        # liraient donc le même reste : chacune verrait 98,40 € à
+        # quittancer, chacune serait ensuite sérialisée par le verrou, et
+        # les deux s'enregistreraient. Le document aurait été quittancé
+        # deux fois, par deux reçus parfaitement réguliers pris
+        # séparément — c'est-à-dire sans que rien ne le signale.
+        #
+        # Prendre le verrou ici fait attendre la seconde demande, qui
+        # relit alors un reste à jour. C'est le même raisonnement que
+        # pour le compteur de la série : la lecture et l'écriture doivent
+        # être sous le même verrou, pas seulement l'écriture.
+        serie = serie_pour(company, TYPE_DE_RECU_PAR_DEFAUT)
+        SerieFiscale.objects.select_for_update().get(pk=serie.pk)
+
+        reste = reste_a_encaisser(invoice, origine)
+
+        if montant is None:
+            montant = reste
+        montant = Decimal(str(montant))
+
+        if montant > reste:
+            deja = Decimal(str(origine.total)) - reste
+            raise ValidationError(
+                f'Ce reçu attesterait {montant} € alors qu’il ne reste que '
+                f'{reste} € à encaisser sur {origine.numero} '
+                f'({origine.total} € au total, {deja} € déjà quittancés). '
+                'Des reçus qui dépassent la créance attestent un argent que '
+                'personne ne devait.')
+
+        return RecuFiscal.emettre(
+            serie=serie,
+            date_document=date_encaissement or timezone.now().date(),
+            affectations=[{
+                'document': origine.numero,
+                'date': origine.date_document,
+                'montant': montant,
+                'type_du_document': origine.serie.type_document,
+                'description': description,
+            }],
+            nif_emetteur=parametres.nif,
+            nif_acquereur=origine.nif_acquereur,
+            pays_acquereur=origine.pays_acquereur,
+            # Le montant du moyen de paiement n'est PAS passé : un seul
+            # paiement sans montant vaut le total du reçu, calculé depuis
+            # les affectations. Le fournir ici le ferait exister en deux
+            # endroits, et c'est ainsi qu'un centime d'écart entre dans
+            # une quittance.
+            paiements=[{
+                'mecanisme': mecanisme,
+                'date': date_encaissement or timezone.now().date(),
+            }],
+            source=invoice,
+            numero_de_certificat=parametres.numero_de_certificat or '0',
         )
 
 

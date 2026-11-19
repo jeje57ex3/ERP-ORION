@@ -205,11 +205,27 @@ def test_la_mention_legale_suit_l_exemple_officiel():
 
 
 def test_les_documents_non_signes_portent_tout_de_meme_la_mention():
-    """Despacho 2.2.3 : les reçus ne sont pas signés, mais doivent annoncer
-    le programme certifié. Les omettre est un manquement aussi réel que de
-    les mal signer."""
+    """Despacho 2.2.3, et le VERBE n'est pas celui de 2.2.2.
+
+    Les reçus ne sont pas signés — le point 1.1 les exclut expressément de
+    l'obligation — mais doivent annoncer le programme certifié. Le texte
+    emploie alors « EMITIDO por programa certificado n.º 0000/AT », là où
+    les documents signés portent « Processado por », précédé de quatre
+    caractères de signature (2.2.2). Chacune des deux expressions figure
+    une seule fois dans le Despacho, et pas au même endroit.
+
+    CE TEST AFFIRMAIT L'INVERSE, ET C'EST INSTRUCTIF.
+
+    Il comparait la sortie de la fonction au code de la fonction — donc il
+    passait, et il figeait la faute. La mention légale imprimée au pied de
+    chaque reçu aurait été celle des documents signés, sans que rien ne le
+    signale : le reçu s'imprime, le fichier passe, et seule une lecture du
+    texte officiel relève l'écart.
+
+    Un test n'est utile que s'il compare à autre chose qu'à ce qu'il teste.
+    """
     assert assinatura.mention_sans_signature('1234') == (
-        'Processado por programa certificado n.º 1234/AT')
+        'Emitido por programa certificado n.º 1234/AT')
 
 
 @pytest.mark.parametrize('valeur', ['', 'ABCD', '12345', '0', None])

@@ -125,14 +125,21 @@ TYPES_DE_DOCUMENT = tipos.TYPES_DE_DOCUMENT
 #: montant au credit.
 from .saft import TYPES_AU_DEBIT  # noqa: E402,F401
 
-#: Les états possibles d'un document (champ E du code QR).
-ETATS_DE_DOCUMENT = (
-    ('N', 'Normal'),
-    ('A', 'Annulé'),
-    ('F', 'Facturé'),
-    ('S', 'Autofacturation'),
-    ('R', 'Autre'),
-)
+#: Les états possibles d'un document de facturation (champ E du code QR).
+#:
+#: La liste vit dans `tipos`, comme celle des types : c'est une
+#: énumération du schéma, et les reçus en ont une AUTRE, plus courte.
+#: Deux listes jumelles tenues à deux endroits finissent par diverger, et
+#: celle-ci borne ce que l'export acceptera.
+#:
+#: Au passage, « R » y était libellé « Autre ». Le schéma le documente
+#: autrement : « R para Documento de resumo doutros documentos criados
+#: noutras aplicacoes ». Un libellé d'écran qui désinforme sur un état
+#: fiscal n'est pas un détail de rédaction.
+ETATS_DE_DOCUMENT = tipos.ETATS_DE_FACTURATION
+
+#: Les états d'un reçu — deux, et non cinq. Voir `tipos.ETATS_DE_RECU`.
+ETATS_DE_RECU = tipos.ETATS_DE_RECU
 
 
 def valider_numero_saft(valeur):
@@ -257,6 +264,59 @@ def _paiement_pour_json(paiement):
         'montant': str(paiement.get('montant') or 0),
         'date': date.isoformat() if hasattr(date, 'isoformat') else str(date),
     }
+
+
+def _affectation_pour_json(affectation):
+    """Une affectation de reçu figée : cinq clés, et rien d'autre.
+
+    Le montant en TEXTE pour la même raison que les lignes de facture : un
+    `float` perd des centimes, et c'est le total qui est signé.
+
+    Le sens est figé LUI AUSSI, et non recalculé à l'export depuis le type
+    du document réglé. Ce type se relit dans une autre table, qui a pu
+    changer — et un reçu doit dire ce qu'il a attesté le jour où il a été
+    remis, pas ce qu'on en déduirait aujourd'hui.
+    """
+    date = affectation.get('date')
+    return {
+        'document': str(affectation.get('document') or ''),
+        'date': date.isoformat() if hasattr(date, 'isoformat') else str(date),
+        'montant': str(affectation.get('montant') or 0),
+        'au_debit': bool(affectation.get('au_debit')),
+        'description': str(affectation.get('description') or ''),
+    }
+
+
+def _attribuer_le_numero(verrouillee, modele):
+    """Le numéro suivant de la série, et la signature à chaîner.
+
+    LES DEUX LECTURES QUI NE DOIVENT PAS SE SÉPARER
+
+    Le compteur et la dernière signature de la série se lisent sous LE
+    MÊME verrou, que l'appelant a pris avec `select_for_update` sur la
+    série. Les séparer ouvre deux failles concrètes : deux documents
+    simultanés qui reçoivent le même numéro, et deux documents qui signent
+    le même prédécesseur.
+
+    LA FONCTION EST PARTAGÉE, ET C'EST LE POINT
+
+    Les documents de facturation et les reçus se numérotent dans deux
+    tables différentes, avec la même discipline. L'écrire deux fois la
+    ferait diverger un jour — et ce serait la seule divergence à la fois
+    invisible et irréparable : une chaîne rompue ne se répare pas, elle se
+    constate au contrôle. `modele` dit seulement dans quelle table lire la
+    chaîne ; une série n'appartient jamais qu'à l'une des deux.
+    """
+    sequentiel = verrouillee.prochain_numero
+    numero = verrouillee.numero_du_document(sequentiel)
+    valider_numero_saft(numero)
+
+    precedent = (modele.objects.filter(serie=verrouillee)
+                 .order_by('-numero_sequentiel')
+                 .values_list('signature', flat=True)
+                 .first()) or ''
+
+    return sequentiel, numero, precedent
 
 
 class ParametresFiscauxPT(models.Model):
@@ -485,8 +545,13 @@ class SerieFiscale(models.Model):
     company = models.ForeignKey('core.Company', on_delete=models.CASCADE,
                                 related_name='series_fiscales',
                                 verbose_name='Entreprise')
+    #: Les documents de facturation ET les reçus. Une série de reçus se
+    #: déclare à l'AT, porte son code de validation et son compteur comme
+    #: les autres : c'est la même table, et le type dit seulement dans
+    #: quelle table du SAF-T les documents iront.
     type_document = models.CharField('Type de document', max_length=2,
-                                     choices=TYPES_DE_DOCUMENT, default='FT')
+                                     choices=tipos.TYPES_DE_SERIE,
+                                     default='FT')
     nom = models.CharField('Série', max_length=20, default='A',
                            help_text='Sans espace ni barre oblique. Ex. « A », « 2026 ».')
     code_de_validation = models.CharField(
@@ -723,14 +788,8 @@ class DocumentFiscal(models.Model):
                         'La facture rectifiée appartient à une autre '
                         'entreprise.')
 
-            sequentiel = verrouillee.prochain_numero
-            numero = verrouillee.numero_du_document(sequentiel)
-            valider_numero_saft(numero)
-
-            precedent = (cls.objects.filter(serie=verrouillee)
-                         .order_by('-numero_sequentiel')
-                         .values_list('signature', flat=True)
-                         .first()) or ''
+            sequentiel, numero, precedent = _attribuer_le_numero(
+                verrouillee, cls)
 
             figees = [ligne_figee(contenu, verrouillee.region, date_document)
                       for contenu in lignes]
@@ -766,6 +825,7 @@ class DocumentFiscal(models.Model):
                     document_rectifie=document_rectifie,
                     paiements=paiements,
                     regime=regime_simplifiee,
+                    etat=etat,
                 )
             except tipos.RegleDeType as exc:
                 raise ValidationError(str(exc))
@@ -861,3 +921,300 @@ class DocumentFiscal(models.Model):
     def mention_legale(self, numero_de_certificat):
         """La ligne à imprimer au pied du document."""
         return assinatura.mention_legale(self.signature, numero_de_certificat)
+
+
+class RecuFiscal(models.Model):
+    """Un reçu émis — la table 4.4 du SAF-T, et non la 4.1.
+
+    POURQUOI UN MODÈLE À PART, ET NON UN TYPE DE PLUS SUR `DocumentFiscal`
+
+    Un reçu n'a pas de lignes de produit. Ses lignes AFFECTENT une somme à
+    un document déjà émis : le schéma définit quatre `Line` différents, et
+    celui des reçus n'a même pas de `ProductCode`. Loger les deux formes
+    dans le même champ JSON donnerait un contenu dont la forme dépend du
+    type, et l'export irait chercher une clé absente un jour sur deux.
+
+    Le reçu part d'ailleurs dans une AUTRE table du fichier. Les mélanger
+    dans la même requête, c'est accepter qu'un oubli de filtre range un
+    reçu parmi les factures — où il serait parfaitement valide au schéma,
+    et faux.
+
+    CE QUE LA LOI EXIGE, ET CE QU'ELLE N'EXIGE PAS
+
+    Le Despacho 8632/2014 (1.1) exclut expressément les reçus de
+    l'obligation de signature : « devem assinar quaisquer documentos
+    emitidos com eficácia externa, COM EXCEÇÃO DOS RECIBOS ». Le schéma
+    dit la même chose à sa manière — la table 4.4 n'a ni `Hash` ni
+    `HashControl`.
+
+    Le reçu est signé TOUT DE MÊME, et c'est un choix qu'il faut défendre.
+    Les spécifications du code QR rendent le champ Q obligatoire — « 4
+    carateres do Hash », « preencher de acordo com a Portaria n.º
+    363/2010 » — et ne prévoient aucune exception pour les reçus ; elles
+    nomment au contraire la table 4.4 à propos du champ I1. Il faut donc
+    quatre caractères de signature, et la seule façon honnête d'en avoir
+    est d'en produire une. Signer n'est pas interdit : le texte dispense,
+    il ne défend pas. La signature ne sort jamais dans le fichier,
+    puisque la table ne la porte pas ; elle sert au code QR et à la
+    chaîne.
+
+    Le point reste contesté — une réponse de l'AT rapportée sur un forum
+    professionnel conseille de remplir le champ par « 0 ». Ce n'est pas
+    une source officielle, et « 0 » n'a pas quatre caractères.
+
+    LES DEUX MENTIONS IMPRIMÉES, ET ELLES SONT DEUX
+
+    Le Despacho les sépare : 2.2.3 impose « Emitido por programa
+    certificado n.º NNNN/AT » aux documents non signés, « nomeadamente os
+    recibos » — et non « Processado por », qui est la mention des
+    documents signés (2.2.2). Le point 1.2 ajoute « Este documento não
+    serve de fatura » à tout document des tables 4.2, 4.3 et 4.4
+    présentable au client. Un reçu porte donc les deux.
+    """
+
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT,
+                                related_name='recus_fiscaux',
+                                verbose_name='Entreprise')
+    serie = models.ForeignKey(SerieFiscale, on_delete=models.PROTECT,
+                              related_name='recus', verbose_name='Série')
+
+    numero_sequentiel = models.PositiveIntegerField('Numéro dans la série')
+    numero = models.CharField('Numéro du reçu', max_length=60)
+
+    date_document = models.DateField('Date du reçu')
+    horodatage = models.DateTimeField('Enregistré le')
+
+    nif_acquereur = models.CharField('NIF de l’acquéreur', max_length=30,
+                                     blank=True)
+    pays_acquereur = models.CharField('Pays', max_length=12, default='PT')
+    etat = models.CharField('État', max_length=1, choices=ETATS_DE_RECU,
+                            default='N')
+
+    #: `NetTotal`, `TaxPayable` et `GrossTotal` de la table 4.4.
+    #:
+    #: Un reçu « RG » n'indique pas de taux : les trois valent donc le
+    #: montant reçu, zéro, et le montant reçu. Les porter quand même
+    #: plutôt que de les recalculer à l'export garde le fichier d'accord
+    #: avec ce que le document a attesté.
+    total_base = models.DecimalField('Total hors taxe', max_digits=14,
+                                     decimal_places=2, default=0)
+    total_taxes = models.DecimalField('Total des taxes', max_digits=14,
+                                      decimal_places=2, default=0)
+    total = models.DecimalField('Total du reçu', max_digits=14,
+                                decimal_places=2, default=0)
+
+    #: Le sens du mouvement : l'argent entre (crédit) ou sort (débit).
+    #:
+    #: Il est porté par le reçu ET par chaque affectation, parce que les
+    #: sommes de contrôle de la table 4.4 se tiennent par ligne tandis que
+    #: le document, lui, n'a qu'un total. `tipos` refuse un reçu qui
+    #: mêlerait les deux sens, ce qui rend les deux toujours d'accord.
+    au_debit = models.BooleanField('Porté au débit', default=False)
+
+    message_signe = models.TextField('Chaîne signée')
+    signature = models.CharField('Signature', max_length=200)
+    signature_precedente = models.CharField('Signature précédente',
+                                            max_length=200, blank=True)
+    version_cle = models.PositiveIntegerField('Version de la clé')
+
+    atcud = models.CharField('ATCUD', max_length=70)
+    contenu_qr = models.TextField('Contenu du code QR')
+
+    #: Ce que le reçu solde, FIGÉ : numéro du document, sa date, le montant
+    #: affecté, le sens, et une description libre.
+    #:
+    #: Le numéro est recopié en TEXTE et non tenu par une clé étrangère.
+    #: Un reçu peut solder un document émis par un autre logiciel, ou
+    #: repris d'un bloc manuel — le SAF-T n'attend qu'un numéro dans
+    #: « OriginatingON ». Une clé étrangère interdirait ces cas, et un
+    #: numéro relu plus tard depuis le document lié pourrait diverger de
+    #: ce que le reçu a réellement attesté.
+    affectations = models.JSONField('Affectations figées', default=list,
+                                    blank=True)
+
+    #: Comment la somme a été reçue : mécanisme, montant, date.
+    paiements = models.JSONField('Encaissements figés', default=list,
+                                 blank=True)
+
+    source_app = models.CharField('Application source', max_length=50,
+                                  blank=True)
+    source_modele = models.CharField('Modèle source', max_length=50,
+                                     blank=True)
+    source_id = models.PositiveIntegerField('Identifiant source', null=True,
+                                            blank=True)
+
+    cree_le = models.DateTimeField('Créé le', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Reçu (PT)'
+        verbose_name_plural = 'Reçus (PT)'
+        ordering = ['-date_document', '-numero_sequentiel']
+        constraints = [
+            models.UniqueConstraint(fields=['company', 'numero'],
+                                    name='fiscal_pt_recu_numero_unique'),
+            models.UniqueConstraint(fields=['serie', 'numero_sequentiel'],
+                                    name='fiscal_pt_recu_sequence_unique'),
+        ]
+        indexes = [
+            models.Index(fields=['company', 'date_document']),
+            models.Index(fields=['source_app', 'source_modele', 'source_id']),
+        ]
+
+    def __str__(self):
+        return self.numero
+
+    # ── L'immuabilité ───────────────────────────────────────────────────
+
+    def save(self, *args, **kwargs):
+        if self.pk and RecuFiscal.objects.filter(pk=self.pk).exists():
+            raise ValidationError(
+                f'Le reçu {self.numero} est déjà émis et ne peut plus être '
+                'modifié : les reçus suivants de la série chaînent sa '
+                'signature. Un encaissement attesté par erreur se reprend '
+                'par un reçu de sens inverse, pas par une correction.')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(
+            f'Le reçu {self.numero} ne peut pas être supprimé : la série '
+            'perdrait un numéro, et l’administration vérifie précisément '
+            'qu’aucun ne manque.')
+
+    # ── L'émission ──────────────────────────────────────────────────────
+
+    @classmethod
+    def emettre(cls, *, serie, date_document, affectations, nif_emetteur,
+                nif_acquereur='', pays_acquereur='PT', etat='N',
+                paiements=None, source=None, horodatage=None,
+                numero_de_certificat='0'):
+        """Numérote, signe et enregistre un reçu — tout ou rien.
+
+        `affectations` est un itérable de dictionnaires portant
+        « document » (le numéro du document réglé), « date » (la sienne),
+        « montant », et facultativement « type_du_document » — qui décide
+        du sens — et « description ».
+
+        LA DESCRIPTION EST CELLE DE CHAQUE AFFECTATION, et non du reçu.
+        Le schéma offre les deux ; celle de la ligne dit ce que l'argent
+        règle (« acompte de 30 % »), ce qui est l'information utile quand
+        un reçu en solde plusieurs. Un champ au niveau du reçu
+        dupliquerait la même phrase sans jamais la préciser.
+
+        LE TOTAL N'EST PAS UN PARAMÈTRE, et c'est le même raisonnement que
+        pour la facture-reçu : il est la somme des affectations, calculée
+        ici. Le recevoir de l'appelant ferait entrer dans une quittance un
+        cumul tenu ailleurs, qui dérive d'un centime après la moindre
+        correction.
+        """
+        horodatage = horodatage or timezone.now()
+
+        with transaction.atomic():
+            verrouillee = (SerieFiscale.objects
+                           .select_for_update()
+                           .get(pk=serie.pk))
+
+            cle = verrouillee.cle or CleDeSignature.active_de(
+                verrouillee.company)
+
+            try:
+                figees, total, au_debit, avertissements = (
+                    tipos.verifier_un_recu(
+                        verrouillee.type_document, affectations, paiements,
+                        etat=etat))
+            except tipos.RegleDeType as exc:
+                raise ValidationError(str(exc))
+
+            sequentiel, numero, precedent = _attribuer_le_numero(
+                verrouillee, cls)
+
+            message = assinatura.composer_le_message(
+                date_document, horodatage, numero, total, precedent)
+            signature = assinatura.signer(message, cle.privee())
+
+            code_atcud = atcud.composer(
+                verrouillee.code_de_validation or atcud.SANS_CODE, sequentiel)
+
+            # L'ESPACE FISCAL D'UN REÇU VAUT « 0 », ET C'EST LA RÈGLE.
+            #
+            # Spécifications du code QR, champ I1 : « no caso de documento
+            # sem indicação da taxa de IVA, que deva constar na tabela
+            # 4.2, 4.3 ou 4.4 do SAF-T(PT), preencher com "0" ». La table
+            # 4.4 est celle des reçus. Y mettre « PT » comme sur une
+            # facture déclarerait un espace fiscal pour un document qui
+            # n'indique aucun taux.
+            contenu = qr.composer(
+                nif_emetteur=nif_emetteur,
+                nif_acquereur=nif_acquereur or None,
+                pays_acquereur=pays_acquereur,
+                type_document=verrouillee.type_document,
+                etat_document=etat,
+                date_document=date_document,
+                numero_document=numero,
+                atcud=code_atcud,
+                espaces_fiscaux=[{'regiao': '0'}],
+                total_impostos=0,
+                total_documento=total,
+                caracteres_hash=assinatura.caracteres_imprimes(signature),
+                numero_certificat=numero_de_certificat,
+            )
+
+            recu = cls(
+                company=verrouillee.company,
+                serie=verrouillee,
+                numero_sequentiel=sequentiel,
+                numero=numero,
+                date_document=date_document,
+                horodatage=horodatage,
+                nif_acquereur=nif_acquereur or '',
+                pays_acquereur=pays_acquereur,
+                etat=etat,
+                total_base=total,
+                total_taxes=Decimal('0'),
+                total=total,
+                au_debit=au_debit,
+                message_signe=message,
+                signature=signature,
+                signature_precedente=precedent,
+                version_cle=cle.version,
+                atcud=code_atcud,
+                contenu_qr=contenu,
+                affectations=[_affectation_pour_json(a) for a in figees],
+                paiements=[_paiement_pour_json(p) for p in (paiements or [])],
+            )
+
+            if source is not None:
+                recu.source_app = source._meta.app_label
+                recu.source_modele = source._meta.model_name
+                recu.source_id = source.pk
+
+            recu.save()
+
+            verrouillee.prochain_numero = sequentiel + 1
+            verrouillee.save(update_fields=['prochain_numero'])
+
+            recu.avertissements = avertissements
+            return recu
+
+    # ── La relecture ────────────────────────────────────────────────────
+
+    def verifier(self):
+        """Revérifie la signature avec la clé qui l'a produite."""
+        cle = CleDeSignature.objects.filter(
+            company=self.company, version=self.version_cle).first()
+        if cle is None or not cle.pem_publique:
+            return False
+        return assinatura.verifier(self.message_signe, self.signature,
+                                   cle.pem_publique)
+
+    def mentions_legales(self, numero_de_certificat):
+        """Les DEUX lignes à imprimer au pied d'un reçu.
+
+        « Emitido por » et non « Processado por » — le Despacho sépare les
+        deux mentions, et celle des documents signés ne convient pas à un
+        reçu même lorsqu'on l'a signé : c'est la nature du document qui
+        décide, pas ce que le logiciel a choisi de faire en plus.
+        """
+        return [
+            assinatura.mention_sans_signature(numero_de_certificat),
+            assinatura.MENTION_NON_FATURA,
+        ]

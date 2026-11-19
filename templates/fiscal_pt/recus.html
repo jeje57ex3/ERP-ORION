@@ -1,0 +1,59 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Reçus{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Reçus</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'fiscal_pt:documents' %}" class="orion-btn orion-btn-outline"><i class="bi bi-file-earmark-text me-1"></i>Documents de facturation</a>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-light border">
+  <i class="bi bi-info-circle me-1"></i>
+  Un reçu quittance un encaissement sur un document déjà émis. Il part dans la table
+  <strong>4.4 du SAF-T</strong> et non dans celle des factures, il n'est pas signé par
+  obligation — le Despacho 8632/2014 en dispense expressément les reçus — et il porte
+  la mention <em>« Este documento não serve de fatura »</em>.
+</div>
+
+<div class="orion-card">
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-receipt me-2"></i>Reçus émis</h6></div>
+  <div class="p-0">
+    {% if recus %}
+    <table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>Numéro</th><th>Date</th><th>ATCUD</th><th>Acquéreur</th><th>Règle</th><th class="text-end">Montant</th><th>Sens</th></tr></thead>
+      <tbody>
+        {% for recu in recus %}
+        <tr>
+          <td><a href="{% url 'fiscal_pt:recu_detail' recu.pk %}"><strong>{{ recu.numero }}</strong></a></td>
+          <td>{{ recu.date_document|date:"d/m/Y" }}</td>
+          <td><code class="small">{{ recu.atcud }}</code></td>
+          <td>{{ recu.nif_acquereur|default:"Consommateur final" }}</td>
+          <td class="small">
+            {% for affectation in recu.affectations %}
+            <div><code>{{ affectation.document }}</code> — {{ affectation.montant }} €</div>
+            {% endfor %}
+          </td>
+          <td class="text-end">{{ recu.total }} €</td>
+          <td>
+            {% if recu.au_debit %}
+            <span class="badge bg-warning-subtle text-warning-emphasis">Débit — argent rendu</span>
+            {% else %}
+            <span class="badge bg-success-subtle text-success-emphasis">Crédit — argent reçu</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="p-3 text-muted">
+      Aucun reçu émis. Un reçu se crée depuis une facture signée, sur son écran de détail.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

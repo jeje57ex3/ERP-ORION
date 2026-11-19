@@ -246,14 +246,43 @@ def mention_legale(signature, numero_de_certificat):
             f'certificado n.º {numero_de_certificat}/AT')
 
 
+#: Despacho 8632/2014, point 1.2 : tout document qui n'est ni une facture
+#: ni un rectificatif de facture, et qui peut être présenté au client —
+#: « incluindo os que devam constar nas tabelas 4.2, 4.3 e 4.4 do
+#: SAF-T (PT) » —, doit porter cette mention de façon évidente.
+#:
+#: La table 4.4 est celle des REÇUS. Un reçu porte donc deux mentions, et
+#: non une : celle du programme certifié, et celle-ci. Elle n'est pas une
+#: précaution rédactionnelle — un reçu qui ne la porte pas peut être
+#: présenté comme une facture, et c'est exactement ce que le point 1.2
+#: empêche.
+MENTION_NON_FATURA = 'Este documento não serve de fatura'
+
+
 def mention_sans_signature(numero_de_certificat):
     """La mention des documents NON signés — les reçus, notamment.
 
-    Le Despacho (2.2.3) les traite à part : ils ne portent pas de
-    signature, mais doivent tout de même annoncer le programme certifié.
-    Les omettre est un manquement aussi réel que de les mal signer.
+    LE MOT EXACT, ET POURQUOI CE N'EST PAS CELUI DE L'AUTRE MENTION
+
+    Le Despacho emploie DEUX verbes, à deux points différents :
+
+      2.2.2, documents signés — « Processado por programa certificado
+              n.º 0000/AT », précédé des quatre caractères de la
+              signature et d'un trait d'union ;
+      2.2.3, documents non signés, « nomeadamente os recibos » —
+              « Emitido por programa certificado n.º 0000/AT ».
+
+    Chacune des deux expressions figure UNE SEULE FOIS dans le texte, et
+    pas au même endroit. Cette fonction rendait « Processado », comme
+    l'autre : la mention imprimée au pied de chaque reçu aurait été celle
+    des documents signés.
+
+    Rien ne l'aurait signalé. Le reçu s'imprime, le fichier passe, et
+    seule une lecture de la mention relève l'écart. Un test figeait même
+    la faute — il comparait la sortie de la fonction au code de la
+    fonction, et non au texte qu'elle prétend citer.
     """
-    return ('Processado por programa certificado n.º '
+    return ('Emitido por programa certificado n.º '
             f'{numero_de_certificat}/AT')
 
 
