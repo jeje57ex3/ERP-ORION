@@ -38,9 +38,9 @@
   </div>
   <div class="p-3">
     <p class="text-muted small mb-2">
-      Le fichier a été comparé au schéma <code>SAFTPT1.04_01.xsd</code> publié par l'AT.
-      Le message de l'AT, lui, désigne l'élément <em>suivant</em> celui qui manque —
-      ce qui envoie chercher la cause au mauvais endroit.
+      Le fichier a été comparé au schéma <code>SAFTPT1.04_01.xsd</code> publié par l'AT,
+      puis vérifié sur ce que le schéma ne sait pas dire : totaux contre lignes,
+      renvois au référentiel, dates et périodes.
     </p>
     <ul class="small mb-0">
       {% for anomalie in anomalies %}
@@ -71,6 +71,12 @@
   <div class="mt-2 small">
     Les lignes exportées sont celles <strong>figées à l'émission</strong>, et non l'état actuel des
     factures : le fichier remis doit correspondre à la signature qui l'accompagne.
+  </div>
+  <div class="mt-2 small">
+    Deux vérifications sont menées avant la remise : la <strong>structure et les valeurs</strong>
+    contre le schéma de l'AT, puis la <strong>cohérence</strong> — ce qu'un schéma ne sait pas
+    exprimer. Un fichier conforme mais incohérent est rejeté tout autant, et le motif du rejet
+    est alors plus difficile à comprendre.
   </div>
 </div>
 {% endblock %}

@@ -473,3 +473,46 @@ def test_l_ecran_d_export_annonce_la_conformite(facture, signee, entreprise,
     assert reponse.status_code == 200
     assert reponse['Content-Type'] == 'application/xml'
     assert reponse['X-Orion-Schema'] == 'conforme-1.04_01'
+
+
+def test_le_fichier_issu_de_la_base_est_coherent(facture, signee,
+                                                 entreprise):
+    """L'AUTRE MOITIE DE LA PREUVE DE BOUT EN BOUT.
+
+    Le schema dit si la forme tient. La coherence dit si les nombres
+    s'accordent -- et c'est ce que le validateur de l'AT verifie en plus.
+    Un fichier conforme mais incoherent est rejete tout autant.
+    """
+    from apps.fiscal_pt import coherence
+
+    facturation.emettre_une_note_de_credit(facture, 'Devolução')
+
+    racine = ET.fromstring(export.composer(
+        entreprise, date(2026, 1, 1), date(2026, 12, 31)))
+    anomalies = coherence.verifier(racine)
+
+    assert anomalies == [], '\n'.join(str(a) for a in anomalies)
+
+
+def test_l_ecran_d_export_annonce_les_deux_verifications(facture, signee,
+                                                         entreprise,
+                                                         utilisateur,
+                                                         monkeypatch):
+    from django.contrib.messages.storage.fallback import FallbackStorage
+    from django.test import RequestFactory
+
+    from apps.fiscal_pt import views
+
+    monkeypatch.setattr(views, '_company', lambda requete: entreprise)
+
+    requete = RequestFactory().post(
+        reverse('fiscal_pt:export_saft'),
+        {'debut': '2026-01-01', 'fin': '2026-12-31'})
+    requete.user = utilisateur
+    requete.session = {}
+    requete._messages = FallbackStorage(requete)
+
+    reponse = views.export_saft(requete)
+
+    assert reponse['X-Orion-Schema'] == 'conforme-1.04_01'
+    assert reponse['X-Orion-Coherence'] == 'verifiee'

@@ -10,13 +10,14 @@ le jour où il le faut.
 """
 
 import io
+from xml.etree import ElementTree
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from . import export, qr, schema
+from . import coherence, export, qr, schema
 from .forms import ParametresForm, PeriodeForm, SerieForm
 from .models import (CleDeSignature, DocumentFiscal, ParametresFiscauxPT,
                      SerieFiscale)
@@ -345,8 +346,32 @@ def export_saft(request):
         # clic. Un validateur qui empeche de recuperer son propre travail
         # se fait contourner, et c'est alors plus personne qui verifie.
         anomalies = []
+        resume = ''
         try:
-            anomalies = schema.valider(contenu)
+            racine = ElementTree.fromstring(contenu)
+        except ElementTree.ParseError as exc:
+            messages.error(request, f'Fichier produit illisible : {exc}')
+            return render(request, 'fiscal_pt/export.html', {
+                'page_title': 'Export SAF-T (PT)', 'form': form})
+
+        try:
+            # Le XML n'est analyse QU'UNE FOIS, et les deux controles
+            # travaillent sur le meme arbre. Les laisser analyser chacun
+            # de leur cote donnerait deux messages pour un fichier
+            # illisible, et doublerait le travail sur les gros exports.
+            anomalies = schema.valider(racine)
+
+            # La coherence ne se verifie QUE si la structure tient.
+            #
+            # Sur un fichier dont les elements manquent, les controles
+            # arithmetiques crieraient a l'incoherence pour chaque total
+            # absent -- une avalanche de messages dont aucun ne designe la
+            # cause reelle.
+            if not anomalies:
+                anomalies = coherence.verifier(racine)
+                resume = coherence.resume(anomalies)
+            else:
+                resume = schema.resume(anomalies)
         except schema.ErreurDeSchema as exc:
             messages.warning(
                 request,
@@ -358,7 +383,7 @@ def export_saft(request):
                 'page_subtitle': 'Version 1.04_01, facturation',
                 'form': form,
                 'anomalies': anomalies,
-                'resume': schema.resume(anomalies),
+                'resume': resume,
                 'debut': debut.isoformat(),
                 'fin': fin.isoformat(),
             })
@@ -368,6 +393,7 @@ def export_saft(request):
         reponse['Content-Disposition'] = f'attachment; filename="{nom}"'
         if not anomalies:
             reponse['X-Orion-Schema'] = 'conforme-1.04_01'
+            reponse['X-Orion-Coherence'] = 'verifiee'
         return reponse
 
     return render(request, 'fiscal_pt/export.html', {

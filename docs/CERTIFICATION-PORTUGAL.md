@@ -195,10 +195,8 @@ Les constantes écrites à la main sont confrontées au schéma : les types
 de document, les états, la base comptable, les régions fiscales, les
 codes de taux, la version annoncée, et le motif du numéro de document.
 
-**Ce qui n'est pas vérifié**, et c'est dit franchement : les règles qu'un
-XSD ne sait pas exprimer — que `GrossTotal` égale `NetTotal` plus
-`TaxPayable`, que les numéros soient uniques, que les séries ne sautent
-aucun numéro. Ces règles ont leurs propres contrôles ailleurs.
+**Ce que le schéma ne sait pas dire** fait l'objet d'un second contrôle,
+`coherence.py`, décrit ci-dessous.
 
 **La subtilité qui commande toute la conception.** Le schéma définit
 **quatre** `Line` et quatre `DocumentStatus`, un par famille de
@@ -207,6 +205,47 @@ documents. Celui des mouvements de marchandises n'a ni `TaxBase` ni
 validateur qui chercherait les définitions par *nom* en prendrait une au
 hasard, et accepterait un fichier faux ou refuserait un fichier juste. Le
 modèle est donc indexé par **chemin**.
+
+#### La cohérence — `coherence.py`
+
+Un XSD décrit une **forme**. Il ne sait pas dire que `GrossTotal` doit
+égaler `NetTotal` plus `TaxPayable`, ni qu'un `ProductCode` employé sur
+une ligne doit figurer dans le référentiel. Le validateur de l'AT, lui,
+vérifie les deux : **un fichier conforme au schéma mais incohérent est
+rejeté tout autant**, et le motif du rejet est alors bien plus difficile
+à comprendre, parce qu'il parle de cohérence et non de structure.
+
+Deux familles de contrôles :
+
+**L'arithmétique.** `GrossTotal` contre `NetTotal` plus `TaxPayable`,
+exactement — les trois nombres sont écrits par nous, un écart signifie
+que l'un a été calculé autrement. `NetTotal` contre la somme des lignes,
+exactement. `TaxPayable` contre la TVA recalculée depuis les taux, **à
+l'arrondi près**. Puis, pour le fichier entier, `NumberOfEntries`,
+`TotalCredit` et `TotalDebit`.
+
+La tolérance d'arrondi est d'**un centime par ligne**, et ce n'est pas du
+laxisme : la TVA se calcule ligne par ligne, chaque ligne arrondie au
+centime, et la somme des arrondis diffère parfois d'un centime de la TVA
+calculée sur le total. Refuser cela rendrait le contrôle inutilisable ;
+une tolérance plus large laisserait passer une vraie incohérence.
+
+**Le référentiel.** Chaque `ProductCode`, chaque `CustomerID`, chaque
+couple (`TaxCode`, `TaxCountryRegion`) doit exister dans `MasterFiles`.
+C'est l'oubli le plus fréquent : les documents sont justes, le
+référentiel est incomplet, et le fichier est rejeté en entier.
+
+**Et les dates.** Un document hors de la période déclarée, une `Period`
+qui n'est pas le mois du document — elle ne casse ni le schéma ni
+l'arithmétique, elle range le document dans le mauvais mois et l'écart
+n'apparaît qu'au rapprochement des déclarations de TVA —, et un
+`SystemEntryDate` antérieur à la date du document, qui est le signe d'une
+antidate.
+
+**L'ordre des deux contrôles compte.** La cohérence ne se vérifie que si
+la structure tient. Sur un fichier dont les totaux manquent, les
+contrôles arithmétiques crieraient à l'incohérence pour chacun — une
+avalanche de messages dont aucun ne désigne la cause réelle.
 
 #### Deux trouvailles de cette confrontation
 
@@ -357,6 +396,7 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_lignes_de_facture.py` | La saisie des lignes, les totaux, et l'étanchéité entre entreprises. |
 | `tests/test_fiscal_pt_avoir.py` | Qu'un avoir désigne sa facture, porte son motif, et ne crédite pas deux fois. |
 | `tests/test_fiscal_pt_schema.py` | Que les listes d'ordre sont celles du XSD, que les fichiers produits passent, et que les fichiers cassés sont refusés. |
+| `tests/test_fiscal_pt_coherence.py` | Que les totaux s'accordent, que les renvois au référentiel existent, et que chaque incohérence est nommée. |
 
 Deux limites, dites franchement :
 
