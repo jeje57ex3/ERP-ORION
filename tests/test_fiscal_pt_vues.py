@@ -391,7 +391,8 @@ def test_un_export_sans_nif_le_dit_au_lieu_d_echouer(navigateur, entreprise,
 def test_les_parametres_s_enregistrent_depuis_l_ecran(navigateur, entreprise):
     reponse = navigateur.post(reverse('fiscal_pt:parametres'), {
         'est_actif': 'on', 'nif': '123456789', 'numero_de_certificat': '1234',
-        'region_par_defaut': 'PT', 'nom_editeur': 'Orion',
+        'region_par_defaut': 'PT', 'regime_simplifiee': 'a',
+        'nom_editeur': 'Orion',
         'nif_editeur': '500000000', 'version_produit': '1.0',
     }, follow=True)
 
@@ -400,6 +401,10 @@ def test_les_parametres_s_enregistrent_depuis_l_ecran(navigateur, entreprise):
     assert parametres.nif == '123456789'
     assert parametres.numero_de_certificat == '1234'
     assert parametres.est_actif is True
+    # Le cas de l'article 40.º dont relève l'entreprise, qui fixe le
+    # plafond d'une facture simplifiée. Il dépend de l'ACTIVITÉ et non du
+    # document : il se règle donc ici, une fois.
+    assert parametres.regime_simplifiee == 'a'
 
 
 def test_activer_sans_nif_est_refuse(navigateur, entreprise):
@@ -407,7 +412,8 @@ def test_activer_sans_nif_est_refuse(navigateur, entreprise):
     produirait des documents inexploitables."""
     reponse = navigateur.post(reverse('fiscal_pt:parametres'), {
         'est_actif': 'on', 'nif': '', 'numero_de_certificat': '0',
-        'region_par_defaut': 'PT', 'nom_editeur': 'Orion',
+        'region_par_defaut': 'PT', 'regime_simplifiee': 'b',
+        'nom_editeur': 'Orion',
         'nif_editeur': '', 'version_produit': '1.0',
     })
 
@@ -420,7 +426,194 @@ def test_un_numero_de_certificat_fantaisiste_est_refuse(navigateur):
     reponse = navigateur.post(reverse('fiscal_pt:parametres'), {
         'est_actif': '', 'nif': '123456789',
         'numero_de_certificat': 'ABCD', 'region_par_defaut': 'PT',
+        'regime_simplifiee': 'b',
         'nom_editeur': 'Orion', 'nif_editeur': '', 'version_produit': '1.0',
     })
 
     assert 'numero_de_certificat' in reponse.context['form'].errors
+
+
+# ── L'écran de la note de débit ──────────────────────────────────────────────
+#
+# POURQUOI CES TESTS NE SONT PAS REDONDANTS AVEC CEUX DE `facturation`
+#
+# Un bouton qui ne rend pas, un formulaire dont les lignes vides sont
+# enregistrées, un champ absent du gabarit : aucun de ces défauts ne se
+# voit dans un test de module. Dix écrans de ce paquet ont déjà porté un
+# bouton qui ne s'affichait pas, faute d'un `page_title` dans la vue.
+
+@pytest.fixture
+def facture_signee(navigateur, entreprise, chiffrement):
+    """Une facture de vente, signée, et les deux séries qu'il faut."""
+    from apps.crm.models import Customer
+    from apps.fiscal_pt import facturation
+    from apps.sales.models import Invoice, InvoiceLine
+
+    parametres = ParametresFiscauxPT.de(entreprise)
+    parametres.est_actif = True
+    parametres.nif = '123456789'
+    parametres.save()
+    cle = CleDeSignature.creer(entreprise)
+    SerieFiscale.objects.create(company=entreprise, type_document='FT',
+                                nom='A', code_de_validation='CSDF7T5H',
+                                cle=cle)
+    SerieFiscale.objects.create(company=entreprise, type_document='ND',
+                                nom='A', code_de_validation='HMPTDQ4R',
+                                cle=cle)
+
+    cliente = Customer.objects.create(company=entreprise, name='Cliente Lda',
+                                      nif='500000000', country='Portugal')
+    facture = Invoice.objects.create(
+        company=entreprise, customer=cliente, number='FAC-2026-0001',
+        issue_date=date(2026, 3, 7), status='draft')
+    InvoiceLine.objects.create(invoice=facture, description='Instalacao',
+                               quantity=Decimal('1'),
+                               unit_price=Decimal('80.00'),
+                               vat_rate=Decimal('23'))
+    facture.refresh_from_db()
+    facturation.emettre_pour_facture(facture)
+    return facture
+
+
+def _lignes_postees(**remplacements):
+    """Le formset tel que le navigateur l'envoie : trois lignes, dont deux
+    vides."""
+    donnees = {
+        'form-TOTAL_FORMS': '3', 'form-INITIAL_FORMS': '0',
+        'form-MIN_NUM_FORMS': '0', 'form-MAX_NUM_FORMS': '1000',
+        'form-0-description': 'Revisao de precos',
+        'form-0-quantite': '1', 'form-0-prix_unitaire': '20.00',
+        'form-0-taux': '23', 'form-0-code_exoneration': '',
+    }
+    for rang in (1, 2):
+        for champ in ('description', 'quantite', 'prix_unitaire', 'taux',
+                      'code_exoneration'):
+            donnees[f'form-{rang}-{champ}'] = ''
+    donnees.update(remplacements)
+    return donnees
+
+
+def test_l_ecran_de_la_note_de_debit_s_affiche(navigateur, facture_signee):
+    reponse = navigateur.get(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]))
+
+    assert reponse.status_code == 200
+    # Le bouton doit RENDRE, et pas seulement exister dans le gabarit :
+    # `page_actions` ne s'affiche que si la vue passe `page_title`, et dix
+    # ecrans de ce paquet ont deja ete livres avec un bouton invisible.
+    assert 'la note de débit' in reponse.content.decode()
+
+
+def test_l_ecran_dit_dans_quel_sens_va_une_note_de_debit(navigateur,
+                                                         facture_signee):
+    """« Augmente » et « avoir » doivent etre ecrits.
+
+    Un ecran qui ne le dirait pas laisserait emettre une note de debit la
+    ou il fallait un avoir -- et l'erreur ne se corrige plus que par un
+    troisieme document.
+    """
+    reponse = navigateur.get(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]))
+    contenu = reponse.content.decode()
+
+    assert 'augmente' in contenu
+    assert 'avoir' in contenu
+
+
+def test_une_note_de_debit_s_emet_depuis_l_ecran(navigateur, facture_signee):
+    reponse = navigateur.post(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]),
+        dict(_lignes_postees(), motif='Acerto de medicao'), follow=True)
+
+    assert reponse.status_code == 200
+    note = DocumentFiscal.objects.get(serie__type_document='ND')
+    assert note.numero == 'ND A/1'
+    assert note.total == Decimal('24.60')
+    assert note.motif_rectification == 'Acerto de medicao'
+
+
+def test_les_lignes_vides_du_formulaire_ne_sont_pas_facturees(navigateur,
+                                                              facture_signee):
+    """LE DEFAUT QUE CE TEST DEFEND.
+
+    L'ecran propose trois lignes ; on en remplit une. Sans le filtrage,
+    les deux autres partiraient a l'emission comme des lignes a zero euro
+    sans designation -- sur un document que la signature rend definitif,
+    et qui part chez le client.
+    """
+    navigateur.post(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]),
+        dict(_lignes_postees(), motif='Acerto'), follow=True)
+
+    note = DocumentFiscal.objects.get(serie__type_document='ND')
+    assert len(note.lignes) == 1
+
+
+def test_une_note_de_debit_sans_ligne_ne_s_emet_pas(navigateur,
+                                                    facture_signee):
+    vide = _lignes_postees(**{'form-0-description': '',
+                              'form-0-quantite': '',
+                              'form-0-prix_unitaire': '',
+                              'form-0-taux': ''})
+    reponse = navigateur.post(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]),
+        dict(vide, motif='Acerto'))
+
+    assert reponse.status_code == 200
+    assert not DocumentFiscal.objects.filter(
+        serie__type_document='ND').exists()
+
+
+def test_une_ligne_sans_designation_est_refusee(navigateur, facture_signee):
+    """Un montant sans designation ferait rejeter le SAF-T : le schema
+    exige `ProductDescription` sur chaque ligne."""
+    reponse = navigateur.post(
+        reverse('fiscal_pt:note_de_debit', args=[facture_signee.pk]),
+        dict(_lignes_postees(**{'form-0-description': ''}), motif='Acerto'))
+
+    assert reponse.status_code == 200
+    assert 'signation' in reponse.content.decode()
+    assert not DocumentFiscal.objects.filter(
+        serie__type_document='ND').exists()
+
+
+def test_la_facture_d_une_autre_entreprise_est_introuvable(navigateur,
+                                                           facture_signee):
+    """L'ISOLEMENT, a l'ecran.
+
+    Une note de debit emise sur la facture d'une autre societe serait
+    parfaitement signee et reclamerait de l'argent au client de quelqu'un
+    d'autre.
+    """
+    from apps.crm.models import Customer
+    from apps.sales.models import Invoice
+
+    autre = Company.objects.create(name='Autre', slug='autre-nd')
+    client_autre = Customer.objects.create(company=autre, name='X')
+    facture_autre = Invoice.objects.create(
+        company=autre, customer=client_autre, number='FAC-X',
+        issue_date=date(2026, 3, 7))
+
+    reponse = navigateur.get(
+        reverse('fiscal_pt:note_de_debit', args=[facture_autre.pk]))
+
+    assert reponse.status_code == 404
+
+
+def test_l_ecran_refuse_une_facture_non_signee(navigateur, entreprise,
+                                               chiffrement):
+    """Il le DIT plutot que d'echouer : une facture en brouillon se
+    modifie directement, et c'est ce qu'il faut repondre."""
+    from apps.crm.models import Customer
+    from apps.sales.models import Invoice
+
+    cliente = Customer.objects.create(company=entreprise, name='Cliente')
+    brouillon = Invoice.objects.create(
+        company=entreprise, customer=cliente, number='FAC-2026-0009',
+        issue_date=date(2026, 3, 7), status='draft')
+
+    reponse = navigateur.get(
+        reverse('fiscal_pt:note_de_debit', args=[brouillon.pk]))
+
+    assert reponse.status_code == 200
+    assert 'brouillon' in reponse.content.decode()

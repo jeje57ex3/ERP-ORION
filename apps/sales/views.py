@@ -342,14 +342,43 @@ def invoice_detail(request, pk):
     # programa certificado » sont des mentions obligatoires de la facture
     # elle-même. Les tenir à l'écart dans un module d'administration
     # donnerait un logiciel conforme dont les factures ne le sont pas.
-    from apps.fiscal_pt.facturation import document_pour, rectifications_de
+    from apps.fiscal_pt import tipos
+    from apps.fiscal_pt.facturation import (document_pour,
+                                            formes_legales_disponibles,
+                                            rectifications_de)
     from apps.fiscal_pt.models import ParametresFiscauxPT
 
     document_fiscal = document_pour(invoice)
-    # Les avoirs deja emis. Une facture rectifiee qui ne le dirait pas se
-    # lirait comme une facture due : c'est l'information qui manque le
-    # plus souvent sur un ecran de facture.
-    rectifications = list(rectifications_de(invoice)) if document_fiscal else []
+    # Les rectificatifs deja emis, SEPARES par sens.
+    #
+    # Une facture rectifiee qui ne le dirait pas se lirait comme une
+    # facture due : c'est l'information qui manque le plus souvent sur un
+    # ecran de facture. Et les deux sens ne se melangent pas : un avoir
+    # diminue ce qui est du, une note de debit l'augmente. Les afficher
+    # ensemble sous le mot « avoirs » ferait lire une hausse comme une
+    # baisse.
+    rectifications = (list(rectifications_de(invoice, 'NC'))
+                      if document_fiscal else [])
+    notes_de_debit = (list(rectifications_de(invoice, 'ND'))
+                      if document_fiscal else [])
+
+    # Les encaissements attestes, avec un libelle lisible.
+    #
+    # Le document ne garde que le CODE du moyen de paiement — « TB » —,
+    # parce que c'est lui que le SAF-T transporte. Afficher « TB » au
+    # client n'apprend rien a personne.
+    encaissements = [
+        {'montant': paiement.get('montant'),
+         'date': paiement.get('date'),
+         'libelle': tipos.libelle_de_mecanisme(paiement.get('mecanisme'))}
+        for paiement in (document_fiscal.paiements if document_fiscal else [])
+    ]
+
+    formes_legales = []
+    if document_fiscal is None and invoice.status == 'draft':
+        from apps.fiscal_pt.facturation import est_active
+        if est_active(company):
+            formes_legales = formes_legales_disponibles(company)
     mention_legale = ''
     mentions_d_exoneration = []
     if document_fiscal is not None:
@@ -381,6 +410,10 @@ def invoice_detail(request, pk):
         'mention_legale': mention_legale,
         'mentions_d_exoneration': mentions_d_exoneration,
         'rectifications': rectifications,
+        'notes_de_debit': notes_de_debit,
+        'encaissements': encaissements,
+        'formes_legales': formes_legales,
+        'mecanismes_de_paiement': tipos.MECANISMES_DE_PAIEMENT,
     })
 
 
@@ -555,13 +588,56 @@ def invoice_send(request, pk):
 
     Hors conformité portugaise, `ConformiteInactive` est levée et le
     comportement reste exactement celui d'avant.
+
+    LA FORME LÉGALE SE CHOISIT ICI, ET UNE SEULE FOIS
+
+    « FT » (facture), « FS » (facture simplifiée) ou « FR »
+    (facture-reçu) : la forme est écrite dans le numéro du document, elle
+    est signée avec lui, et elle ne se change plus. Le choix est donc fait
+    à l'envoi, au dernier instant où il est encore ouvert — jamais déduit
+    du montant, qui autoriserait une facture simplifiée sans que personne
+    ne l'ait voulue.
     """
     from django.db import transaction
 
-    from apps.fiscal_pt import facturation
+    from apps.fiscal_pt import facturation, tipos
 
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
+
+    type_document = (request.POST.get('type_document')
+                     or facturation.TYPE_PAR_DEFAUT)
+    if type_document not in ('FT', 'FS', 'FR'):
+        messages.error(
+            request,
+            f'« {type_document} » n’est pas une forme de facture. Une note '
+            'de crédit ou de débit s’émet depuis la facture déjà signée.')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    # LE MONTANT DE L'ENCAISSEMENT N'EST NI DEMANDÉ NI FOURNI ICI.
+    #
+    # Une facture-reçu vaut quittance du total ; toute autre somme en
+    # ferait un document qui atteste un paiement partiel ou inexistant.
+    # Demander le montant n'offrirait donc que l'occasion de se tromper.
+    #
+    # Et on ne le prend pas non plus dans `invoice.total_ttc` : ce cumul
+    # est tenu à part des lignes, alors que le total du DOCUMENT est
+    # recalculé à l'émission depuis les lignes figées. Les deux ne
+    # diffèrent jamais que d'un centime, après une suppression de ligne
+    # — et au Portugal ce centime est signé. On laisse donc l'émission
+    # remplir le montant avec le total qu'elle vient de calculer.
+    paiements = None
+    if type_document == 'FR':
+        paiements = [{
+            'mecanisme': request.POST.get('mecanisme') or 'TB',
+            'date': request.POST.get('date_encaissement')
+                    or invoice.issue_date,
+        }]
+        try:
+            tipos.valider_le_mecanisme(paiements[0]['mecanisme'])
+        except tipos.RegleDeType as exc:
+            messages.error(request, str(exc))
+            return redirect('sales:invoice_detail', pk=invoice.pk)
 
     # On interroge l'état AVANT d'ouvrir la transaction.
     #
@@ -576,7 +652,9 @@ def invoice_send(request, pk):
     else:
         try:
             with transaction.atomic():
-                document = facturation.emettre_pour_facture(invoice)
+                document = facturation.emettre_pour_facture(
+                    invoice, type_document=type_document,
+                    paiements=paiements)
                 invoice.status = 'sent'
                 invoice.save()
         except Exception as exc:
@@ -590,6 +668,12 @@ def invoice_send(request, pk):
             request,
             f'Facture {document.numero} envoyée et signée '
             f'(ATCUD {document.atcud}).')
+        # Les avertissements du type — le plafond de la facture
+        # simplifiée, essentiellement — sont montrés APRÈS le succès, et
+        # non à la place : le document est émis, et c'est une mise en
+        # garde, pas un échec.
+        for avertissement in getattr(document, 'avertissements', ()) or ():
+            messages.warning(request, avertissement)
     else:
         messages.success(
             request, f'Facture {invoice.number} marquée comme envoyée.')

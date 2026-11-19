@@ -78,14 +78,45 @@ def document_pour(invoice):
         document_rectifie__isnull=True).first()
 
 
-def rectifications_de(invoice):
-    """Les avoirs déjà émis sur une facture, du plus ancien au plus récent."""
-    return (DocumentFiscal.objects
-            .filter(company_id=invoice.company_id,
-                    source_app='sales', source_modele='invoice',
-                    source_id=invoice.pk,
-                    document_rectifie__isnull=False)
-            .order_by('date_document', 'numero_sequentiel'))
+def rectifications_de(invoice, type_document=None):
+    """Les documents rectificatifs d'une facture, du plus ancien au plus récent.
+
+    `type_document` sépare les avoirs des notes de débit. Les mélanger
+    dans une même liste intitulée « avoirs » donnerait à lire une note de
+    débit comme un crédit : le lecteur en déduirait que la facture a été
+    diminuée alors qu'elle a été augmentée, et c'est le contresens exact
+    que ces deux documents permettent.
+    """
+    documents = (DocumentFiscal.objects
+                 .filter(company_id=invoice.company_id,
+                         source_app='sales', source_modele='invoice',
+                         source_id=invoice.pk,
+                         document_rectifie__isnull=False)
+                 .order_by('date_document', 'numero_sequentiel'))
+    if type_document:
+        documents = documents.filter(serie__type_document=type_document)
+    return documents
+
+
+def formes_legales_disponibles(company):
+    """Les formes de facture qu'on peut réellement émettre aujourd'hui.
+
+    POURQUOI LA LISTE EST CALCULÉE ET NON ÉCRITE EN DUR
+
+    Une forme sans série active ne peut pas être numérotée. L'offrir au
+    choix donnerait un écran qui propose « facture simplifiée » et un
+    refus à l'envoi — alors que la seule chose à faire est de déclarer la
+    série. On n'offre donc que ce qui marche, et l'absence d'une forme
+    renvoie au bon endroit : Conformité Portugal → Séries.
+    """
+    from .models import TYPES_DE_DOCUMENT
+
+    actives = set(SerieFiscale.objects
+                  .filter(company=company, est_active=True)
+                  .values_list('type_document', flat=True))
+
+    return [(code, libelle) for code, libelle in TYPES_DE_DOCUMENT
+            if code in ('FT', 'FS', 'FR') and code in actives]
 
 
 def serie_pour(company, type_document=TYPE_PAR_DEFAUT):
@@ -129,7 +160,8 @@ def lignes_de_la_facture(invoice):
     return lignes
 
 
-def emettre_pour_facture(invoice, type_document=TYPE_PAR_DEFAUT):
+def emettre_pour_facture(invoice, type_document=TYPE_PAR_DEFAUT,
+                         paiements=None):
     """Signe une facture de l'ERP et rend son document fiscal.
 
     IDEMPOTENT. Une facture déjà signée rend son document existant sans en
@@ -137,6 +169,14 @@ def emettre_pour_facture(invoice, type_document=TYPE_PAR_DEFAUT):
     requête rejouée — consommerait sinon deux numéros de série et laisserait
     un document orphelin dans la chaîne, ce qu'aucune correction ne rattrape
     ensuite.
+
+    `type_document` choisit la forme légale : « FT » pour la facture
+    ordinaire, « FS » pour la facture simplifiée — dont le plafond de
+    l'article 40.º est alors vérifié —, « FR » pour la facture-reçu, qui
+    exige `paiements` puisqu'elle vaut quittance.
+
+    `paiements` est une liste de dictionnaires portant « mecanisme »,
+    « montant » et « date ».
     """
     company = invoice.company
     parametres = ParametresFiscauxPT.de(company)
@@ -173,6 +213,8 @@ def emettre_pour_facture(invoice, type_document=TYPE_PAR_DEFAUT):
             pays_acquereur=_pays_de(invoice.customer),
             source=invoice,
             numero_de_certificat=parametres.numero_de_certificat or '0',
+            paiements=paiements,
+            regime_simplifiee=parametres.regime_simplifiee,
         )
 
         # Le numéro légal portugais REMPLACE celui de l'ERP.
@@ -249,6 +291,70 @@ def emettre_une_note_de_credit(invoice, motif, lignes=None):
             numero_de_certificat=parametres.numero_de_certificat or '0',
             document_rectifie=origine,
             motif_rectification=motif,
+        )
+
+
+def emettre_une_note_de_debit(invoice, motif, lignes):
+    """Émet la note de débit qui AUGMENTE ce que le client doit.
+
+    POURQUOI `lignes` EST OBLIGATOIRE ICI, ALORS QU'IL EST FACULTATIF POUR
+    UN AVOIR
+
+    Un avoir omis de lignes annule la facture entière : c'est le cas
+    courant, et le raccourci est sûr. Une note de débit omise de lignes
+    n'aurait, elle, aucun sens par défaut : reprendre les lignes de la
+    facture facturerait la même prestation une seconde fois, et le client
+    recevrait un document parfaitement signé lui réclamant le double. Le
+    défaut silencieux serait une erreur de facturation irréversible — une
+    note de débit ne se retire que par un avoir.
+
+    On exige donc de dire ce qui est facturé en plus. `lignes` prend la
+    même forme que celles d'une facture : description, quantité, prix
+    unitaire, taux.
+    """
+    company = invoice.company
+    parametres = ParametresFiscauxPT.de(company)
+
+    if not parametres.est_actif:
+        raise ConformiteInactive(
+            'La conformité portugaise n’est pas activée pour cette '
+            'entreprise.')
+
+    origine = document_pour(invoice)
+    if origine is None:
+        raise ValidationError(
+            f'La facture {invoice.number} n’a pas été signée : il n’y a '
+            'rien à rectifier. Une facture encore en brouillon se modifie '
+            'directement.')
+
+    motif = (motif or '').strip()
+    if not motif:
+        raise ValidationError(
+            'Une note de débit doit porter son motif. C’est lui qui '
+            'justifie la somme réclamée en plus, et le SAF-T le transporte '
+            'dans le champ « Reason ».')
+
+    lignes = list(lignes or [])
+    if not lignes:
+        raise ValidationError(
+            'Une note de débit doit dire ce qu’elle facture en plus. Sans '
+            'ligne, il n’y a pas de montant à réclamer — et reprendre les '
+            'lignes de la facture facturerait la prestation une seconde '
+            'fois.')
+
+    with transaction.atomic():
+        return DocumentFiscal.emettre(
+            serie=serie_pour(company, 'ND'),
+            date_document=timezone.now().date(),
+            lignes=lignes,
+            nif_emetteur=parametres.nif,
+            nif_acquereur=origine.nif_acquereur,
+            pays_acquereur=origine.pays_acquereur,
+            source=invoice,
+            numero_de_certificat=parametres.numero_de_certificat or '0',
+            document_rectifie=origine,
+            motif_rectification=motif,
+            regime_simplifiee=parametres.regime_simplifiee,
         )
 
 

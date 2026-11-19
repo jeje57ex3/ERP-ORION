@@ -20,6 +20,9 @@ référence.
 | **Portaria n.º 195/2020** | L'ATCUD et le code QR. |
 | **Especificações Técnicas Código QR** (AT) | Le contenu champ par champ du code QR. |
 | **Códigos de Motivo de Isenção** (AT), v4.0 du 18/06/2026 | La table des motifs d'exonération (`TaxExemptionCode`). |
+| **Código do IVA, art. 40.º** (rédaction du DL n.º 35/2025, en vigueur le 25/03/2025) | Les trois cas de la facture simplifiée et leurs plafonds. |
+| **Código do IVA, art. 29.º n.º 7 et art. 36.º n.º 6** | Les documents rectificatifs — avoir **et note de débit** — et l'obligation de désigner la facture corrigée. |
+| **Ofício-Circulado n.º 30141** du 04/01/2013 | Que les montants de l'article 40.º s'entendent **hors TVA**, et que l'acquéreur peut émettre une note de débit. |
 
 Deux remarques qui surprennent et qui sont pourtant la règle :
 
@@ -278,6 +281,143 @@ et le NIF désigne quelqu'un d'autre ou personne. L'erreur n'apparaîtrait
 que lorsque l'administration ne retrouverait pas l'entreprise. Le
 contrôle modulo 11 l'attrape à la saisie, et il coûte dix lignes.
 
+### 2.9bis Les formes de facture, et ce que chacune exige — `tipos.py`
+
+Le SAF-T accepte les cinq types de documents de facturation — `FT`, `FS`,
+`FR`, `ND`, `NC` — avec **exactement les mêmes éléments obligatoires**.
+Le schéma ne distingue rien. Trois documents illégaux passent donc le
+contrôle du schéma **et** celui de la cohérence arithmétique :
+
+- une **note de débit sans référence** à la facture qu'elle corrige ;
+- une **facture-reçu qui n'atteste aucun paiement** ;
+- une **facture simplifiée de douze mille euros**.
+
+Les règles qui les interdisent sont dans le Code de l'IVA, pas dans le
+XSD. C'est au logiciel de les tenir, et c'est précisément ce qu'une
+certification vérifie.
+
+#### Le défaut trouvé en chemin : deux notions pour une seule liste
+
+`TYPES_AU_DEBIT = ('NC',)` servait à **deux** choses : décider du sens
+débit/crédit dans le fichier, et décider quels documents doivent
+désigner la facture qu'ils rectifient.
+
+Les deux coïncident tant qu'on ne connaît que la note de crédit, qui est
+à la fois rectificative et portée au débit. La **note de débit** les
+sépare : l'article 29.º n.º 7 du CIVA la nomme *documento retificativo*
+au même titre que l'avoir, et l'article 36.º n.º 6 lui impose « a
+referência à fatura a que respeitam » — mais elle **augmente** ce que le
+client doit, donc son montant va au **crédit** comme celui d'une facture.
+
+Conséquence mesurée : le code **refusait** de rattacher une facture à une
+note de débit (« un document de type ND ne rectifie rien »). Chaque note
+de débit qu'il aurait pu émettre était donc irrégulière, et rien ne le
+signalait — le schéma rend `References` optionnel.
+
+Les deux notions sont désormais deux constantes distinctes, et un test
+tombe si quelqu'un les réunifie.
+
+#### Le plafond de la facture simplifiée, et une contradiction
+
+L'article 40.º n.º 1 du CIVA, dans sa rédaction en vigueur depuis le
+25 mars 2025, prévoit trois cas :
+
+| Cas | Qui | Plafond |
+|---|---|---|
+| a) | Détaillants et marchands ambulants, à des non-assujettis | 1 000 € |
+| b) | **Toutes les autres livraisons et prestations** | **100 €** |
+| c) | Assujettis au régime d'exonération de l'art. 53.º | aucun |
+
+Une entreprise de travaux relève du cas **b)**. Le cas applicable est un
+réglage de l'entreprise — il dépend de l'activité, pas du document — et
+non un choix offert sur chaque facture, où il finirait par être mis au
+plus large.
+
+**La contradiction.** L'article plafonne « o montante da fatura », ce qui
+se lit comme le total à payer. L'Ofício-Circulado n.º 30141 du 4 janvier
+2013 précise, lui, que « para determinação dos montantes referidos,
+considera-se o valor da fatura sem o IVA ».
+
+Les deux lectures ne divergent que dans une bande étroite : total hors
+taxe sous le plafond, total à payer au-dessus. Choisir l'une et se taire
+reviendrait soit à refuser des factures que l'administration accepte,
+soit à en laisser passer qu'un contrôle pourrait reprendre. Le logiciel
+**refuse** donc là où les deux lectures s'accordent, et **avertit sans
+bloquer** dans la bande de divergence, en citant les deux textes. Le
+choix revient à l'entreprise et à son comptable — mais il est fait en
+connaissance de cause.
+
+#### L'encaissement de la facture-reçu
+
+Une facture-reçu vaut quittance : le client peut l'opposer comme preuve
+de paiement. Elle doit donc porter au moins un `Payment`, et la somme
+encaissée doit égaler le total **exactement**.
+
+La tolérance d'un centime admise ailleurs sur la TVA n'a pas lieu d'être
+ici : un encaissement n'est pas le résultat d'un arrondi, c'est une somme
+qui a réellement changé de main. Un écart en moins atteste un solde payé
+qui ne l'est pas ; un écart en plus déclare un encaissement qui n'a pas
+eu lieu.
+
+L'écran ne demande d'ailleurs **pas** le montant : c'est le total, et
+toute autre valeur serait irrégulière. Demander le montant n'offrirait
+que l'occasion de se tromper.
+
+Les **quatorze** moyens de paiement sont relevés un par un dans
+l'énumération `PaymentMechanism` du XSD vendu avec le logiciel, et non
+dans une documentation qui la reproduit. Un test relit le schéma : si
+l'AT en publie une version qui ajoute un code, c'est là qu'on l'apprend.
+
+#### Un troisième défaut de la même famille
+
+`SerieFiscale.type_document` porte des `choices`, que Django ne vérifie
+qu'au `full_clean()` d'un formulaire. Une série créée autrement — un
+script, un import, la base en direct — pouvait donc porter n'importe
+quoi. Les documents s'émettaient et se **signaient** ; c'est l'export qui
+les refusait, parce que `InvoiceType` est une énumération du schéma. À ce
+moment-là le document est immuable et le **fichier entier** est bloqué,
+pour un simple défaut de configuration.
+
+La liste des cinq types vit désormais dans `tipos.py` — un fait légal,
+que le code QR, le SAF-T et l'énumération du XSD citent tous les trois —
+et `models` l'importe au lieu de la recopier. Le type est vérifié à
+l'émission, et un test relit l'énumération du XSD pour confirmer que les
+cinq y figurent.
+
+#### Un défaut trouvé en mesurant, et non en relisant
+
+`PaymentDate` n'était d'abord vérifié que **non vide**. Une saisie
+malformée — un champ date d'un navigateur qui n'en a pas, une valeur
+postée à la main — passait donc, et le composeur du SAF-T écrit
+`str(valeur)[:10]` sans rien vérifier. Mesure faite :
+
+```
+saft.paiement({'date': 'pas-une-date'})
+→ <PaymentDate>pas-une-da</PaymentDate>
+```
+
+Le document aurait été **signé et figé** avec cette valeur, et le défaut
+ne se serait découvert qu'à l'export, des semaines plus tard, sur un
+document que seul un avoir peut reprendre. C'est la forme la plus
+coûteuse d'erreur de saisie : celle dont le coût arrive après le point de
+non-retour. La date est désormais analysée avant la signature, et quatre
+formes illisibles sont sous test — dont `07/03/2026`, le format français,
+qui est précisément celui qu'on saisit par réflexe.
+
+#### Où les contrôles ont lieu, et pourquoi deux fois
+
+À l'**émission**, avant la signature : c'est le dernier instant où un
+refus coûte encore quelque chose d'annulable. À l'**export** aussi, dans
+`coherence.py` : un document importé d'un autre logiciel, ou émis avant
+que la règle existe, n'est jamais passé par notre émission. Le fichier
+remis est ce que l'AT regarde, donc c'est lui qu'il faut mesurer.
+
+Une nuance que les tests gardent : ce qui est **exigé** d'un rectificatif
+n'est pas **interdit** aux autres. Une facture peut légitimement renvoyer
+à un bon de livraison. Signaler ce renvoi comme une anomalie apprendrait
+à ignorer les messages du contrôle — le seul moyen de rendre un
+validateur inutile sans le casser.
+
 ### 2.10 Les écrans
 
 `/conformite-portugal/` — tout se pilote à l'écran, sans terminal :
@@ -289,7 +429,9 @@ contrôle modulo 11 l'attrape à la saisie, et il coûte dix lignes.
 - liste des documents, détail avec code QR, chaîne signée et mention ;
 - **vérification des chaînes** d'un bouton : signature de chaque
   document **et** continuité de la chaîne, deux contrôles distincts ;
-- export SAF-T de la période.
+- export SAF-T de la période ;
+- émission d'une **note de débit** depuis une facture signée, avec saisie
+  des lignes à facturer en plus.
 
 Les mentions légales (ATCUD, code QR, mention du programme certifié)
 figurent aussi **sur la facture elle-même**, et pas seulement dans
@@ -302,6 +444,18 @@ transaction. Si la signature échoue, la facture reste en brouillon et
 rien ne part. L'inverse paraît plus accommodant et serait bien pire : la
 facture sortirait sans preuve et rien ne le signalerait.
 
+C'est aussi là que se choisit la **forme légale** — `FT`, `FS` ou `FR`.
+Elle est écrite dans le numéro du document, signée avec lui, et ne se
+change plus : l'envoi est le dernier instant où le choix est encore
+ouvert. Elle n'est surtout pas déduite du montant, ce qui autoriserait
+une facture simplifiée sans que personne ne l'ait voulue — irrégulière,
+et sans TVA déductible pour le client.
+
+Le menu n'offre que les formes dont une **série active** existe. Proposer
+« facture simplifiée » pour la refuser à l'envoi donnerait un écran qui
+désigne un problème au mauvais endroit, alors que la seule chose à faire
+est de déclarer la série.
+
 ---
 
 ## 3. Ce qui reste à faire
@@ -311,10 +465,10 @@ facture sortirait sans preuve et rien ne le signalerait.
 | Reste | Pourquoi ce n'est pas fait |
 |---|---|
 | **Communication des séries à l'AT par webservice** | Le service SOAP de l'AT demande un certificat client délivré à l'entreprise. Le code de validation se saisit donc à la main aujourd'hui, ce qui est légal mais manuel. |
-| **Autres types de documents** | `FS` (facture simplifiée), `FR` (facture-reçu) et `ND` (note de débit) sont déclarables en série, mais aucun écran ne les émet encore. |
 | **Documents de mouvement de marchandises** | `MovementOfGoods` du SAF-T n'est pas produit. Obligatoire seulement si l'entreprise transporte des marchandises. |
 | **Documents de travail** | `WorkingDocuments` (devis, bons) n'est pas produit. |
-| **Reçus (FR / RG)** | La mention « sans signature » existe, l'émission non. |
+| **Reçus autonomes (`RG`)** | La facture-reçu `FR` est émise ; le reçu séparé d'un acompte ne l'est pas. Il relève de la table `Payments` du SAF-T, qui n'est pas produite. |
+| **Plusieurs moyens de paiement sur une même facture-reçu** | Le modèle et le SAF-T en acceptent plusieurs — le schéma rend `Payment` répétable — mais l'écran n'en propose qu'un. La limite est dans la saisie, pas dans le fichier. |
 
 ### 3.2 Un défaut à corriger dans la facturation française
 
@@ -397,6 +551,8 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_fiscal_pt_avoir.py` | Qu'un avoir désigne sa facture, porte son motif, et ne crédite pas deux fois. |
 | `tests/test_fiscal_pt_schema.py` | Que les listes d'ordre sont celles du XSD, que les fichiers produits passent, et que les fichiers cassés sont refusés. |
 | `tests/test_fiscal_pt_coherence.py` | Que les totaux s'accordent, que les renvois au référentiel existent, et que chaque incohérence est nommée. |
+| `tests/test_fiscal_pt_tipos.py` | Les règles du CIVA propres à chaque type, mesurées hors base : plafond de la facture simplifiée, encaissement de la facture-reçu, référence des rectificatifs, les quatorze moyens de paiement relus dans le XSD. |
+| `tests/test_fiscal_pt_formes_de_facture.py` | Que le chemin réel — formulaire, série, signature, gel, export — applique ces règles **avant** que le document devienne immuable, et que le fichier produit porte les quatre formes en restant conforme. |
 
 Deux limites, dites franchement :
 

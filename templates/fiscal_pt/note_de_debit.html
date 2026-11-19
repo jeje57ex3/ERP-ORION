@@ -1,0 +1,119 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Note de débit sur {{ facture.number }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sales:invoice_detail' facture.pk %}">{{ facture.number }}</a></li>
+<li class="breadcrumb-item active">Note de débit</li>
+{% endblock %}
+
+{% block content %}
+{% if not origine %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-1"></i>
+  La facture <strong>{{ facture.number }}</strong> n'a pas été signée : il n'y a rien à rectifier.
+  Une facture encore en brouillon se modifie directement.
+</div>
+<a href="{% url 'sales:invoice_detail' facture.pk %}" class="orion-btn orion-btn-outline">Retour à la facture</a>
+{% else %}
+
+<div class="alert alert-secondary">
+  <i class="bi bi-info-circle me-1"></i>
+  Une note de débit <strong>augmente</strong> ce que le client doit : révision de prix, quantité
+  sous-évaluée, prestation oubliée. L'article 29.º n.º 7 du CIVA en fait un document rectificatif
+  au même titre que l'avoir, et l'article 36.º n.º 6 lui impose de désigner la facture qu'elle
+  corrige — ce qui est fait automatiquement ici.
+  <div class="mt-2 small">
+    Pour <strong>diminuer</strong> le montant dû, c'est un
+    <a href="{% url 'fiscal_pt:note_de_credit' facture.pk %}">avoir</a> qu'il faut émettre.
+  </div>
+</div>
+
+<form method="post" class="orion-card" style="max-width:920px">
+  {% csrf_token %}
+  <div class="orion-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-plus-circle me-2"></i>Note de débit sur {{ origine.numero }}</h6>
+  </div>
+  <div class="p-0">
+    <table class="table table-sm mb-0">
+      <tbody>
+        <tr><th style="width:220px">Facture rectifiée</th><td><a href="{% url 'fiscal_pt:document_detail' origine.pk %}">{{ origine.numero }}</a></td></tr>
+        <tr><th>Date du document</th><td>{{ origine.date_document|date:"d/m/Y" }}</td></tr>
+        <tr><th>Montant déjà facturé</th><td>{{ origine.total }} € dont {{ origine.total_taxes }} € de TVA</td></tr>
+        <tr><th>Acquéreur</th><td>{{ origine.nif_acquereur|default:"Consommateur final" }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="p-3 border-top">
+    <label class="form-label" for="motif">Motif de la rectification</label>
+    <input type="text" class="form-control" id="motif" name="motif" maxlength="50"
+           value="{{ motif|default:'' }}" required
+           placeholder="Ex. : Acerto de medição, Revisão de preços">
+    <div class="form-text">
+      Obligatoire : c'est lui qui justifie la somme réclamée en plus, et le SAF-T le transporte
+      dans le champ « Reason ». Cinquante caractères au plus.
+    </div>
+  </div>
+
+  <div class="p-3 border-top">
+    <h6 class="mb-1">Ce qui est facturé en plus</h6>
+    <p class="text-muted small">
+      Les lignes ne sont <strong>pas</strong> reprises de la facture : les recopier facturerait la
+      même prestation une seconde fois. Saisissez ce qui manquait.
+    </p>
+
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}
+    <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+    {% endif %}
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th style="min-width:220px">Désignation</th>
+            <th style="width:110px">Qté</th>
+            <th style="width:140px">Prix unitaire</th>
+            <th style="width:110px">TVA %</th>
+            <th style="min-width:200px">Motif d'exonération</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ligne in formset %}
+          <tr{% if ligne.non_field_errors %} class="table-danger"{% endif %}>
+            {% for champ in ligne.hidden_fields %}{{ champ }}{% endfor %}
+            <td>
+              {{ ligne.description }}
+              {% for erreur in ligne.non_field_errors %}<div class="text-danger small">{{ erreur }}</div>{% endfor %}
+            </td>
+            <td>{{ ligne.quantite }}</td>
+            <td>{{ ligne.prix_unitaire }}</td>
+            <td>{{ ligne.taux }}</td>
+            <td>{{ ligne.code_exoneration }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-text">
+      Une ligne entièrement vide est ignorée. Une ligne sans TVA doit porter son motif
+      d'exonération : sans lui le SAF-T serait rejeté, et le fichier entier avec.
+    </div>
+  </div>
+
+  <div class="p-3 border-top">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-check2 me-1"></i>Émettre la note de débit
+    </button>
+    <a href="{% url 'sales:invoice_detail' facture.pk %}" class="orion-btn orion-btn-outline">Annuler</a>
+    <div class="form-text mt-2">
+      Le document sera signé et numéroté dans la série « ND ». Il ne pourra plus être modifié :
+      une note de débit émise par erreur ne se retire que par un avoir.
+    </div>
+  </div>
+</form>
+
+{% endif %}
+{% endblock %}

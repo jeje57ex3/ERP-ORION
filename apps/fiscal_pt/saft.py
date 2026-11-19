@@ -30,6 +30,8 @@ facturation.
 from decimal import Decimal, ROUND_HALF_UP
 from xml.etree import ElementTree as ET
 
+from . import tipos
+
 VERSION = '1.04_01'
 ESPACE_DE_NOMS = 'urn:OECD:StandardAuditFile-Tax:PT_1.04_01'
 
@@ -113,7 +115,18 @@ ORDRE_TOTAUX = ('TaxPayable', 'NetTotal', 'GrossTotal', 'Currency',
 #: Les types de documents qui portent un montant au DÉBIT et non au crédit.
 #: Une note de crédit inversée dans les totaux fait un fichier qui s'équilibre
 #: à l'envers, et le validateur ne le dit pas : il accepte.
+#:
+#: CETTE LISTE NE DIT QUE LE SENS. Celle des documents qui doivent DÉSIGNER
+#: la facture qu'ils rectifient est `tipos.TYPES_RECTIFICATIFS`, et elle est
+#: différente : la note de débit rectifie une facture tout en portant son
+#: montant au crédit, puisqu'elle augmente ce que le client doit. Confondre
+#: les deux notions rendait la référence optionnelle pour « ND » — un
+#: document irrégulier que le schéma accepte sans rien dire.
 TYPES_AU_DEBIT = ('NC',)
+
+#: L'ordre du schéma pour un paiement (`PaymentMethod`). Le mécanisme est
+#: optionnel, le montant et la date ne le sont pas.
+ORDRE_PAIEMENT = ('PaymentMechanism', 'PaymentAmount', 'PaymentDate')
 
 
 class ErreurSAFT(Exception):
@@ -343,19 +356,22 @@ def ligne(numero, donnees, type_document='FT'):
         'Tax': taxe,
     }
 
-    # Une note de crédit DOIT désigner le document qu'elle rectifie.
+    # Un document RECTIFICATIF — avoir comme note de débit — doit désigner
+    # la facture qu'il corrige.
     #
-    # Sans cette référence, l'administration ne peut pas rapprocher
-    # l'avoir de la facture d'origine : le fichier est valide au schéma et
-    # l'avoir reste orphelin, ce qui est exactement ce qu'un contrôle
-    # cherche.
-    if type_document in TYPES_AU_DEBIT:
+    # Sans cette référence, l'administration ne peut pas rapprocher les
+    # deux : le fichier est valide au schéma et le document reste
+    # orphelin, ce qui est exactement ce qu'un contrôle cherche. La liste
+    # employée ici est celle des rectificatifs, PAS celle du sens
+    # débit/crédit : la note de débit rectifie et va au crédit.
+    if tipos.exige_une_rectification(type_document):
         rectifie = donnees.get('document_rectifie')
         if not rectifie:
             raise ErreurSAFT(
-                f'Ligne {numero} : une note de crédit doit désigner le '
-                'document qu’elle rectifie. Un avoir sans référence reste '
-                'orphelin dans le fichier, et le contrôle le relève.')
+                f'Ligne {numero} : un document de type « {type_document} » '
+                'doit désigner la facture qu’il rectifie. Sans cette '
+                'référence le document reste orphelin dans le fichier, et le '
+                'contrôle le relève ; le schéma, lui, l’accepte.')
         valeurs['References'] = references(rectifie,
                                            donnees.get('motif_rectification'))
     elif donnees.get('document_rectifie'):
@@ -377,6 +393,42 @@ def ligne(numero, donnees, type_document='FT'):
         valeurs['TaxExemptionCode'] = code
 
     _ajouter(element, ORDRE_LIGNE, valeurs)
+    return element
+
+
+def paiement(donnees):
+    """Un `Payment` de `DocumentTotals` — ce qu'une facture-reçu atteste.
+
+    Le schéma nomme le TYPE « PaymentMethod » et l'ÉLÉMENT « Payment ».
+    Les deux noms désignent la même structure ; c'est le nom de l'élément
+    qui doit paraître dans le fichier.
+
+    `PaymentMechanism` est optionnel au schéma, mais une quittance qui ne
+    dit pas comment la somme a été reçue ne prouve pas grand-chose : on le
+    réclame ici, et on refuse un code hors énumération plutôt que de
+    laisser l'AT rejeter le fichier entier sans nommer le document fautif.
+    """
+    mecanisme = donnees.get('mecanisme')
+    try:
+        tipos.valider_le_mecanisme(mecanisme)
+    except tipos.RegleDeType as exc:
+        raise ErreurSAFT(str(exc))
+
+    if donnees.get('montant') is None:
+        raise ErreurSAFT(
+            'Un paiement sans montant ne peut pas être exporté : '
+            '« PaymentAmount » est obligatoire au schéma.')
+    if not donnees.get('date'):
+        raise ErreurSAFT(
+            'Un paiement sans date ne peut pas être exporté : '
+            '« PaymentDate » est obligatoire au schéma.')
+
+    element = ET.Element('Payment')
+    _ajouter(element, ORDRE_PAIEMENT, {
+        'PaymentMechanism': mecanisme,
+        'PaymentAmount': _montant(donnees['montant']),
+        'PaymentDate': _date(donnees['date']),
+    })
     return element
 
 
@@ -417,11 +469,15 @@ def document(donnees):
     elements_de_ligne = [ligne(rang, contenu, donnees['type'])
                          for rang, contenu in enumerate(lignes, start=1)]
 
+    # « Payment » vient APRÈS « Currency » et « Settlement » dans la
+    # séquence : il est rangé par `ORDRE_TOTAUX`, et non ajouté à la fin.
     totaux = ET.Element('DocumentTotals')
     _ajouter(totaux, ORDRE_TOTAUX, {
         'TaxPayable': _montant(donnees.get('total_taxes', 0)),
         'NetTotal': _montant(donnees.get('total_base', 0)),
         'GrossTotal': _montant(donnees.get('total', 0)),
+        'Payment': [paiement(contenu)
+                    for contenu in (donnees.get('paiements') or [])],
     })
 
     # La période est le MOIS du document. Une période fausse ne casse pas

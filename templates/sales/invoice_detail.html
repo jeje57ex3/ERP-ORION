@@ -24,7 +24,55 @@
     </div>
     <div class="detail-actions">
       {% if invoice.status == 'draft' %}
+      {% if formes_legales %}
+      {# LE CHOIX DE LA FORME LEGALE, et pourquoi il est ici.
+
+         FT, FS ou FR est ecrit dans le numero du document, signe avec lui,
+         et ne se change plus. L'envoi est le dernier instant ou le choix
+         est encore ouvert ; passe cet instant, seul un avoir corrige. On
+         ne le deduit surtout pas du montant : une facture simplifiee
+         emise sans que personne ne l'ait voulue est irreguliere, et le
+         client n'y deduit pas la TVA. #}
+      <form method="post" action="{% url 'sales:invoice_send' invoice.pk %}"
+            class="d-inline-flex gap-1 align-items-center">
+        {% csrf_token %}
+        <select name="type_document" class="form-select form-select-sm"
+                style="width:auto" id="forme-legale">
+          {% for code, libelle in formes_legales %}
+          <option value="{{ code }}">{{ libelle }}</option>
+          {% endfor %}
+        </select>
+        <span id="encaissement" hidden class="d-inline-flex gap-1">
+          <select name="mecanisme" class="form-select form-select-sm" style="width:auto">
+            {% for code, libelle in mecanismes_de_paiement %}
+            <option value="{{ code }}"{% if code == 'TB' %} selected{% endif %}>{{ libelle }}</option>
+            {% endfor %}
+          </select>
+          <input type="date" name="date_encaissement" class="form-control form-control-sm"
+                 style="width:auto" value="{{ invoice.issue_date|date:'Y-m-d' }}">
+        </span>
+        <button type="submit" class="orion-btn warning orion-btn sm">
+          <i class="bi bi-send me-1"></i>{% trans "Envoyer et signer" %}
+        </button>
+      </form>
+      {# L'etat initial est calcule AU CHARGEMENT, et pas seulement au
+         changement. Si « FR » se trouve etre la premiere forme offerte --
+         ce qui arrive des que la serie « FT » n'est pas declaree -- un
+         gestionnaire pose sur `onchange` seul laisserait les champs
+         d'encaissement caches sur la forme selectionnee. #}
+      <script>
+      (function () {
+        var forme = document.getElementById('forme-legale');
+        var champs = document.getElementById('encaissement');
+        if (!forme || !champs) { return; }
+        function accorder() { champs.hidden = forme.value !== 'FR'; }
+        forme.addEventListener('change', accorder);
+        accorder();
+      })();
+      </script>
+      {% else %}
       <a href="{% url 'sales:invoice_send' invoice.pk %}" class="orion-btn warning orion-btn sm"><i class="bi bi-send me-1"></i>{% trans "Envoyer" %}</a>
+      {% endif %}
       {% endif %}
       {% if invoice.status != 'paid' and invoice.status != 'cancelled' %}
       <a href="{% url 'sales:invoice_mark_paid' invoice.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-check-circle me-1"></i>{% trans "Marquer payée" %}</a>
@@ -150,6 +198,18 @@
             <div class="info-item"><label>ATCUD</label><div class="value"><code>{{ document_fiscal.atcud }}</code></div></div>
             <div class="info-item mt-2"><label>{% trans "Numero legal" %}</label><div class="value">{{ document_fiscal.numero }}</div></div>
             <div class="info-item mt-2">
+              <label>{% trans "Forme legale" %}</label>
+              <div class="value">{{ document_fiscal.serie.get_type_document_display }}</div>
+            </div>
+            {% if document_fiscal.paiements %}
+            <div class="info-item mt-2">
+              <label>{% trans "Encaissement atteste" %}</label>
+              {% for paiement in encaissements %}
+              <div class="value small">{{ paiement.montant }} € — {{ paiement.libelle }} — {{ paiement.date }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <div class="info-item mt-2">
               <label>{% trans "Mention au pied du document" %}</label>
               <div class="value small" style="word-break:break-all">{{ mention_legale }}</div>
             </div>
@@ -175,11 +235,27 @@
               {% endfor %}
             </div>
             {% endif %}
-            <a href="{% url 'fiscal_pt:note_de_credit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm mt-2">
-              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Emettre un avoir" %}
-            </a>
+            {% if notes_de_debit %}
+            <div class="info-item mt-2">
+              <label>{% trans "Notes de debit emises" %}</label>
+              {% for note in notes_de_debit %}
+              <div class="value small">
+                <a href="{% url 'fiscal_pt:document_detail' note.pk %}">{{ note.numero }}</a>
+                — {{ note.total }} € — {{ note.motif_rectification }}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <div class="d-flex gap-1 flex-wrap mt-2">
+              <a href="{% url 'fiscal_pt:note_de_credit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Emettre un avoir" %}
+              </a>
+              <a href="{% url 'fiscal_pt:note_de_debit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>{% trans "Emettre une note de debit" %}
+              </a>
+            </div>
             <div class="form-text mt-1">
-              {% trans "Un document signe ne se modifie plus : l'avoir est la seule voie legale de correction." %}
+              {% trans "Un document signe ne se modifie plus. L'avoir diminue ce que le client doit, la note de debit l'augmente : ce sont les deux seules voies legales de correction." %}
             </div>
           </div>
         </div>

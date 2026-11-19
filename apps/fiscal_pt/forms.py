@@ -1,10 +1,13 @@
 """apps/fiscal_pt/forms.py — La saisie des paramètres de conformité."""
 
+from decimal import Decimal
+
 from django import forms
 from django.utils import timezone
 
 from apps.core.form_widgets import DateISO
 
+from . import isencao, tipos
 from .models import ParametresFiscauxPT, SerieFiscale
 
 
@@ -12,14 +15,15 @@ class ParametresForm(forms.ModelForm):
     class Meta:
         model = ParametresFiscauxPT
         fields = ('est_actif', 'nif', 'numero_de_certificat',
-                  'region_par_defaut', 'nom_editeur', 'nif_editeur',
-                  'version_produit')
+                  'region_par_defaut', 'regime_simplifiee', 'nom_editeur',
+                  'nif_editeur', 'version_produit')
         widgets = {
             'nif': forms.TextInput(attrs={'class': 'form-control',
                                           'placeholder': '123456789'}),
             'numero_de_certificat': forms.TextInput(
                 attrs={'class': 'form-control', 'placeholder': '0'}),
             'region_par_defaut': forms.Select(attrs={'class': 'form-select'}),
+            'regime_simplifiee': forms.Select(attrs={'class': 'form-select'}),
             'nom_editeur': forms.TextInput(attrs={'class': 'form-control'}),
             'nif_editeur': forms.TextInput(attrs={'class': 'form-control'}),
             'version_produit': forms.TextInput(attrs={'class': 'form-control'}),
@@ -92,3 +96,107 @@ class PeriodeForm(forms.Form):
             raise forms.ValidationError(
                 'La date de début est postérieure à la date de fin.')
         return donnees
+
+
+class LigneDeNoteDeDebitForm(forms.Form):
+    """Une ligne de note de débit, saisie à la main.
+
+    POURQUOI ELLE N'EST PAS RECOPIÉE DE LA FACTURE
+
+    Une note de débit facture ce qui MANQUAIT à la facture : une
+    révision de prix, une quantité sous-évaluée, une prestation oubliée.
+    Reprendre les lignes d'origine facturerait la même chose une seconde
+    fois, et le document serait signé avant que quiconque s'en aperçoive.
+    """
+
+    description = forms.CharField(
+        label='Désignation', max_length=200, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control',
+                                      'placeholder': 'Révision de prix'}))
+    quantite = forms.DecimalField(
+        label='Qté', max_digits=12, decimal_places=3, required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control',
+                                        'step': '0.001'}))
+    prix_unitaire = forms.DecimalField(
+        label='Prix unitaire', max_digits=12, decimal_places=2,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control',
+                                        'step': '0.01'}))
+    taux = forms.DecimalField(
+        label='TVA %', max_digits=5, decimal_places=2, required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control',
+                                        'step': '0.01'}))
+    code_exoneration = forms.ChoiceField(
+        label='Motif d’exonération', required=False,
+        choices=[('', '—')] + list(isencao.choix()),
+        widget=forms.Select(attrs={'class': 'form-select'}))
+
+    def clean(self):
+        donnees = super().clean()
+
+        # UNE LIGNE VIDE EST UNE LIGNE VIDE, pas une ligne à zéro euro.
+        #
+        # Le formulaire propose trois lignes ; on en remplit souvent une.
+        # Sans ce retour anticipé, les deux autres seraient validées, puis
+        # facturées à zéro euro sans désignation — sur un document que la
+        # signature rend définitif.
+        if not any(donnees.get(nom) for nom in
+                   ('description', 'quantite', 'prix_unitaire')):
+            self.cleaned_data = {}
+            return {}
+
+        if not donnees.get('description'):
+            raise forms.ValidationError(
+                'Cette ligne porte un montant sans désignation. Le SAF-T '
+                'exige « ProductDescription » sur chaque ligne.')
+
+        quantite = donnees.get('quantite') or Decimal('1')
+        prix = donnees.get('prix_unitaire')
+        if prix is None:
+            raise forms.ValidationError(
+                'Cette ligne n’a pas de prix unitaire : il n’y a rien à '
+                'réclamer.')
+
+        taux = donnees.get('taux')
+        if taux is None:
+            raise forms.ValidationError(
+                'Cette ligne n’a pas de taux de TVA. Pour une opération '
+                'exonérée, saisissez 0 et choisissez le motif : une ligne '
+                'sans TVA et sans motif fait rejeter le SAF-T.')
+
+        donnees['quantite'] = quantite
+        donnees['base'] = (quantite * prix).quantize(Decimal('0.01'))
+        donnees['tva'] = (donnees['base'] * taux
+                          / Decimal('100')).quantize(Decimal('0.01'))
+        return donnees
+
+
+LignesDeNoteDeDebitFormSet = forms.formset_factory(
+    LigneDeNoteDeDebitForm, extra=3, can_delete=False)
+
+
+class EncaissementForm(forms.Form):
+    """L'encaissement qu'une facture-reçu atteste.
+
+    Le mécanisme est demandé, bien que le schéma le rende optionnel : une
+    quittance qui ne dit pas comment la somme a été reçue ne prouve pas
+    grand-chose, et le champ est là pour être rempli.
+    """
+
+    mecanisme = forms.ChoiceField(
+        label='Moyen de paiement', choices=tipos.MECANISMES_DE_PAIEMENT,
+        initial='TB',
+        widget=forms.Select(attrs={'class': 'form-select'}))
+    montant = forms.DecimalField(
+        label='Montant encaissé', max_digits=14, decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control',
+                                        'step': '0.01'}))
+    date = forms.DateField(
+        label='Date de l’encaissement',
+        widget=DateISO(attrs={'class': 'form-control'}))
+
+    def __init__(self, *args, total=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound:
+            self.fields['montant'].initial = total
+            self.fields['date'].initial = timezone.now().date()

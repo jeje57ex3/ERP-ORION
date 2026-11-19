@@ -139,6 +139,10 @@ def rassembler(company, debut, fin):
             'horodatage': document.horodatage,
             'client': identifiant,
             'lignes': lignes,
+            # Les paiements figés, comme les lignes : le fichier doit dire
+            # ce que le document atteste, et non ce que la trésorerie
+            # pense aujourd'hui du règlement.
+            'paiements': document.paiements or [],
             'total_base': document.total_base,
             'total_taxes': document.total_taxes,
             'total': document.total,

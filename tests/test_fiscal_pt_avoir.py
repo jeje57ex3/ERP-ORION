@@ -203,7 +203,11 @@ def test_une_facture_ne_peut_pas_rectifier_une_autre(facture, signee,
 
 
 def test_une_note_de_credit_sans_document_rectifie_est_refusee(conformite):
-    with pytest.raises(ValidationError, match='doit désigner'):
+    # Le message NOMME le type, parce qu'il y a désormais deux documents
+    # rectificatifs : « NC » diminue ce qui est dû, « ND » l'augmente.
+    # « Une note de crédit doit désigner... » envoyait chercher un avoir
+    # quand c'est une note de débit qui était en cause.
+    with pytest.raises(ValidationError, match='« NC ».*doit la désigner'):
         DocumentFiscal.emettre(
             serie=conformite[1], date_document=date(2026, 3, 8),
             lignes=[{'description': 'X', 'base': Decimal('10'),

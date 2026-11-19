@@ -33,7 +33,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
-from . import assinatura, atcud, isencao, qr, taxas
+from . import assinatura, atcud, isencao, qr, taxas, tipos
 
 #: Le format que le SAF-T (PT) impose au numéro de document.
 #:
@@ -108,19 +108,22 @@ def valider_nif(valeur, obligatoire=True):
 
 #: Les types de documents de facturation, tels que l'AT les nomme. Ce sont
 #: les valeurs du champ D du code QR et de « InvoiceType » du SAF-T.
-TYPES_DE_DOCUMENT = (
-    ('FT', 'Fatura'),
-    ('FS', 'Fatura simplificada'),
-    ('FR', 'Fatura-recibo'),
-    ('ND', 'Nota de débito'),
-    ('NC', 'Nota de crédito'),
-)
+#:
+#: La liste vit dans `tipos` — c'est un fait legal, que le code QR, le
+#: SAF-T et l'enumeration du XSD citent tous les trois — et on l'importe
+#: plutot que de la recopier : deux listes jumelles finissent toujours
+#: par diverger, et celle-ci borne ce que l'export acceptera.
+TYPES_DE_DOCUMENT = tipos.TYPES_DE_DOCUMENT
 
-#: Les types qui RECTIFIENT un autre document. La constante vit dans
-#: `saft`, parce que c'est elle qui decide du sens debit/credit dans le
-#: fichier ; on l'importe plutot que de la recopier, deux listes jumelles
-#: finissant toujours par diverger.
-from .saft import TYPES_AU_DEBIT  # noqa: E402
+#: Le sens debit/credit dans le fichier. La constante vit dans `saft`,
+#: parce que c'est elle qui en decide ; on l'importe plutot que de la
+#: recopier, deux listes jumelles finissant toujours par diverger.
+#:
+#: Elle ne dit QUE le sens. Les types qui doivent designer la facture
+#: qu'ils rectifient sont dans `tipos.TYPES_RECTIFICATIFS`, et ce n'est
+#: pas la meme liste : la note de debit rectifie une facture et porte son
+#: montant au credit.
+from .saft import TYPES_AU_DEBIT  # noqa: E402,F401
 
 #: Les états possibles d'un document (champ E du code QR).
 ETATS_DE_DOCUMENT = (
@@ -239,6 +242,23 @@ def _pour_json(figee):
             for cle, valeur in figee.items()}
 
 
+def _paiement_pour_json(paiement):
+    """Un encaissement figé : trois clés, et rien d'autre.
+
+    On ne recopie PAS le dictionnaire reçu tel quel. Un appelant qui y
+    aurait glissé un objet de règlement entier ferait grossir le JSON de
+    tout ce que la comptabilité sait du paiement — données qui n'ont rien
+    à faire dans un document immuable, et qui changeraient de forme au
+    premier refactoring du module de trésorerie.
+    """
+    date = paiement.get('date')
+    return {
+        'mecanisme': paiement.get('mecanisme') or '',
+        'montant': str(paiement.get('montant') or 0),
+        'date': date.isoformat() if hasattr(date, 'isoformat') else str(date),
+    }
+
+
 class ParametresFiscauxPT(models.Model):
     """Ce qu'il faut savoir de l'entreprise pour émettre au Portugal.
 
@@ -273,6 +293,19 @@ class ParametresFiscauxPT(models.Model):
     region_par_defaut = models.CharField('Région par défaut', max_length=10,
                                          choices=taxas.REGIONS,
                                          default=taxas.CONTINENT)
+    #: Le cas de l'article 40.º n.º 1 dont relève l'entreprise, qui fixe
+    #: le plafond d'une facture simplifiée. Il dépend de l'ACTIVITÉ et non
+    #: du document : un détaillant peut simplifier jusqu'à mille euros,
+    #: une entreprise de travaux jusqu'à cent. Le réglage est donc ici,
+    #: une fois, et non à choisir sur chaque facture — où il finirait par
+    #: être mis au plus large.
+    regime_simplifiee = models.CharField(
+        'Régime de facture simplifiée', max_length=1,
+        choices=tipos.REGIMES_SIMPLIFIEE,
+        default=tipos.REGIME_SIMPLIFIEE_PAR_DEFAUT,
+        help_text='Fixe le plafond au-delà duquel une facture simplifiée '
+                  'n’est plus régulière. Une entreprise de travaux relève '
+                  'du cas b).')
     nom_editeur = models.CharField('Éditeur du logiciel', max_length=120,
                                    default='Orion')
     nif_editeur = models.CharField('NIF de l’éditeur', max_length=20,
@@ -564,6 +597,17 @@ class DocumentFiscal(models.Model):
     #: preuve qui l'accompagne, et rien ne le signalerait.
     lignes = models.JSONField('Lignes figées', default=list, blank=True)
 
+    #: Les encaissements attestés par le document, FIGÉS eux aussi.
+    #:
+    #: Une facture-reçu vaut quittance : le client peut l'opposer comme
+    #: preuve de paiement. Relire l'encaissement depuis la comptabilité au
+    #: moment de l'export ouvrirait la même divergence que pour les lignes
+    #: — un règlement annulé plus tard ferait disparaître du fichier le
+    #: paiement que le document atteste, et que sa signature couvre.
+    #:
+    #: Chaque entrée porte « mecanisme », « montant » et « date ».
+    paiements = models.JSONField('Paiements figés', default=list, blank=True)
+
     #: Le document que celui-ci rectifie, pour une note de crédit.
     #:
     #: `PROTECT` et non `CASCADE` : supprimer la facture d'origine
@@ -633,7 +677,9 @@ class DocumentFiscal(models.Model):
     def emettre(cls, *, serie, date_document, lignes, nif_emetteur,
                 nif_acquereur='', pays_acquereur='PT', etat='N',
                 source=None, horodatage=None, numero_de_certificat='0',
-                document_rectifie=None, motif_rectification=''):
+                document_rectifie=None, motif_rectification='',
+                paiements=None,
+                regime_simplifiee=tipos.REGIME_SIMPLIFIEE_PAR_DEFAUT):
         """Numérote, signe et enregistre un document — tout ou rien.
 
         `lignes` est un itérable de dictionnaires. Les clés attendues sont
@@ -663,23 +709,19 @@ class DocumentFiscal(models.Model):
             cle = verrouillee.cle or CleDeSignature.active_de(
                 verrouillee.company)
 
-            # Une note de crédit SANS document rectifié est un avoir dans
-            # le vide. Le contrôle est ici, à l'émission, parce qu'à
-            # l'export l'avoir est déjà parti chez le client.
-            if verrouillee.type_document in TYPES_AU_DEBIT:
-                if document_rectifie is None:
-                    raise ValidationError(
-                        'Une note de crédit doit désigner la facture '
-                        'qu’elle rectifie : l’administration rapproche les '
-                        'deux, et le SAF-T l’exige.')
+            # L'ISOLEMENT, qui ne se délègue pas.
+            #
+            # `tipos` ne connaît pas Django : il vérifie les règles du
+            # CIVA sur des montants et des chaînes. L'appartenance du
+            # document rectifié à la même entreprise, elle, ne se mesure
+            # qu'ici — et une facture d'une autre société rectifiée par
+            # erreur donnerait un avoir parfaitement signé qui crédite le
+            # client de quelqu'un d'autre.
+            if document_rectifie is not None:
                 if document_rectifie.company_id != verrouillee.company_id:
                     raise ValidationError(
                         'La facture rectifiée appartient à une autre '
                         'entreprise.')
-            elif document_rectifie is not None:
-                raise ValidationError(
-                    f'Un document de type « {verrouillee.type_document} » ne '
-                    'rectifie rien. Employez une série de type « NC ».')
 
             sequentiel = verrouillee.prochain_numero
             numero = verrouillee.numero_du_document(sequentiel)
@@ -708,6 +750,25 @@ class DocumentFiscal(models.Model):
                          for p in ('reduzida', 'intermedia', 'normal')),
                         start=0)
             total = base + taxes
+
+            # LES RÈGLES PROPRES AU TYPE, juste avant la signature.
+            #
+            # Le contrôle est ici et non à l'export : à l'export le
+            # document est déjà parti chez le client, immuable, et une
+            # facture simplifiée hors plafond ne se reprend plus qu'à
+            # coups d'avoir. Les montants sont connus depuis deux lignes :
+            # c'est le premier instant où le plafond et la somme
+            # encaissée PEUVENT être vérifiés, et le dernier où le refus
+            # coûte encore quelque chose d'annulable.
+            try:
+                avertissements = tipos.verifier(
+                    verrouillee.type_document, base, total,
+                    document_rectifie=document_rectifie,
+                    paiements=paiements,
+                    regime=regime_simplifiee,
+                )
+            except tipos.RegleDeType as exc:
+                raise ValidationError(str(exc))
 
             message = assinatura.composer_le_message(
                 date_document, horodatage, numero, total, precedent)
@@ -752,6 +813,7 @@ class DocumentFiscal(models.Model):
                 atcud=code_atcud,
                 contenu_qr=contenu,
                 lignes=[_pour_json(f) for f in figees],
+                paiements=[_paiement_pour_json(p) for p in (paiements or [])],
                 document_rectifie=document_rectifie,
                 motif_rectification=motif_rectification[:200],
             )
@@ -768,6 +830,16 @@ class DocumentFiscal(models.Model):
             # disponible : une série sans trou, sans avoir à les combler.
             verrouillee.prochain_numero = sequentiel + 1
             verrouillee.save(update_fields=['prochain_numero'])
+
+            # Les avertissements voyagent sur l'INSTANCE, pas en base.
+            #
+            # Ils portent sur la décision prise à l'émission — « ce total
+            # dépasse le plafond selon la lettre du texte » — et non sur
+            # le document, qui est désormais immuable. Les enregistrer
+            # donnerait à relire plus tard un conseil dont le contexte
+            # aurait disparu ; les perdre silencieusement priverait
+            # l'écran du seul instant où ils servent à quelque chose.
+            document.avertissements = avertissements
 
             return document
 

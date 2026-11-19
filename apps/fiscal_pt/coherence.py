@@ -37,6 +37,7 @@ large laisserait passer une vraie incohérence.
 
 from decimal import Decimal, InvalidOperation
 
+from . import tipos
 from .saft import ESPACE_DE_NOMS, TYPES_AU_DEBIT
 from .schema import Anomalie
 
@@ -178,6 +179,86 @@ def _verifier_un_document(document, anomalies):
             f'({tolerance}).'))
 
 
+# ── Ce que le type du document impose ────────────────────────────────────────
+
+def _verifier_le_type(document, anomalies):
+    """Les règles du CIVA que le schéma laisse passer sans rien dire.
+
+    Les trois éléments en jeu — `References` d'une ligne, `Payment` des
+    totaux — sont tous OPTIONNELS au schéma, parce qu'ils ne le sont pas
+    pour tous les types. Le XSD ne sait pas écrire « obligatoire quand
+    InvoiceType vaut ND », alors il n'exige rien, et un document
+    irrégulier passe.
+
+    Les contrôles sont refaits ICI, sur le fichier, alors qu'ils sont déjà
+    tenus à l'émission. Ce n'est pas une redondance inutile : un document
+    importé d'un autre logiciel, ou émis avant que la règle existe, n'est
+    jamais passé par notre émission. Le fichier remis est ce que l'AT
+    regarde, et c'est donc lui qu'il faut mesurer.
+    """
+    numero = _texte(document, 'InvoiceNo') or '(sans numéro)'
+    type_document = _texte(document, 'InvoiceType') or ''
+
+    # 1. Un rectificatif doit désigner la facture qu'il corrige.
+    if tipos.exige_une_rectification(type_document):
+        lignes = document.findall(_etiquette('Line'))
+        sans_reference = [
+            rang for rang, ligne in enumerate(lignes, start=1)
+            if not _texte(ligne.find(_etiquette('References')), 'Reference')
+        ]
+        if sans_reference:
+            rangs = ', '.join(str(r) for r in sans_reference)
+            anomalies.append(Anomalie(
+                numero,
+                f'Document « {type_document} » : la ou les ligne(s) {rangs} '
+                'ne désignent aucune facture rectifiée. L’article 36.º n.º 6 '
+                'du CIVA exige la référence à la facture corrigée ; le '
+                'schéma, lui, rend « References » optionnel et accepte le '
+                'document.'))
+
+    # 2. Une facture-reçu atteste un encaissement, et pour son total.
+    paiements = document.findall(
+        f'{_etiquette("DocumentTotals")}/{_etiquette("Payment")}')
+
+    if not tipos.atteste_un_paiement(type_document):
+        if paiements:
+            anomalies.append(Anomalie(
+                numero,
+                f'Document « {type_document} » : {len(paiements)} '
+                'paiement(s) déclaré(s) alors que ce type n’atteste aucun '
+                'encaissement. Une facture payée à l’émission s’émet en '
+                '« FR ».'))
+        return
+
+    brut = _montant(document.find(_etiquette('DocumentTotals')), 'GrossTotal')
+    if not paiements:
+        anomalies.append(Anomalie(
+            numero,
+            'Facture-reçu sans aucun paiement : le document vaut quittance '
+            'd’un encaissement dont le fichier ne garde aucune trace.'))
+        return
+
+    encaisse = ZERO
+    for rang, paiement in enumerate(paiements, start=1):
+        montant = _montant(paiement, 'PaymentAmount')
+        if montant is None:
+            anomalies.append(Anomalie(
+                f'{numero} paiement {rang}',
+                'Montant du paiement absent ou illisible.'))
+            return
+        encaisse += montant
+
+    if brut is not None and encaisse != brut:
+        sens = 'inférieure' if encaisse < brut else 'supérieure'
+        anomalies.append(Anomalie(
+            numero,
+            f'Facture-reçu : la somme encaissée ({encaisse}) est {sens} au '
+            f'total du document ({brut}). Une facture-reçu vaut quittance du '
+            'total ; un écart en moins atteste un solde payé qui ne l’est '
+            'pas, un écart en plus déclare un encaissement qui n’a pas eu '
+            'lieu.'))
+
+
 # ── Les totaux du fichier ────────────────────────────────────────────────────
 
 def _verifier_les_totaux_du_fichier(racine, documents, anomalies):
@@ -315,6 +396,7 @@ def verifier(racine):
 
     for document in documents:
         _verifier_un_document(document, anomalies)
+        _verifier_le_type(document, anomalies)
 
     _verifier_les_totaux_du_fichier(racine, documents, anomalies)
     _verifier_les_renvois(racine, documents, anomalies)

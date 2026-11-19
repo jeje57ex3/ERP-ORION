@@ -373,3 +373,133 @@ def test_la_coherence_ne_se_verifie_qu_apres_la_structure():
 
     assert any('GrossTotal' in str(a) and 'obligatoire' in str(a)
                for a in anomalies_de_structure)
+
+
+# ── Ce que le type du document impose, et que le schéma laisse passer ────────
+#
+# `References` d'une ligne et `Payment` des totaux sont tous deux
+# OPTIONNELS au schéma, parce qu'ils ne le sont pas pour tous les types.
+# Le XSD ne sait pas écrire « obligatoire quand InvoiceType vaut ND »,
+# alors il n'exige rien. Chacun des fichiers cassés ci-dessous est donc
+# CONFORME AU SCHÉMA, et c'est ce que chaque test vérifie d'abord.
+
+NOTE_DE_DEBIT = dict(
+    FACTURE, numero='ND A/1', type='ND', motif='Acerto de medição',
+    lignes=[dict(LIGNE, document_rectifie='FT A/1',
+                 motif_rectification='Acerto de medição')])
+
+FACTURE_RECU = dict(
+    FACTURE, numero='FR A/1', type='FR',
+    paiements=[{'mecanisme': 'NU', 'montant': Decimal('123.00'),
+                'date': date(2026, 3, 7)}])
+
+SIMPLIFIEE = dict(FACTURE, numero='FS A/1', type='FS')
+
+
+@pytest.mark.parametrize('nom, document', [
+    ('facture simplifiée', SIMPLIFIEE),
+    ('facture-reçu', FACTURE_RECU),
+    ('note de débit', NOTE_DE_DEBIT),
+])
+def test_les_trois_nouveaux_types_passent_les_deux_controles(nom, document):
+    racine = _racine([FACTURE, document])
+
+    assert schema.valider(racine) == []
+    assert coherence.verifier(racine) == []
+
+
+def test_la_note_de_debit_va_bien_au_credit():
+    """Elle RECTIFIE comme un avoir et se compte comme une facture.
+
+    Une note de débit augmente ce que le client doit. La porter au débit
+    avec les avoirs donnerait un fichier qui s'équilibre à l'envers — et
+    le validateur de l'AT ne le dit pas.
+    """
+    racine = _racine([FACTURE, NOTE_DE_DEBIT])
+    ventes = racine.find(f'{E}SourceDocuments/{E}SalesInvoices')
+
+    assert ventes.find(f'{E}TotalCredit').text == '200.00'
+    assert ventes.find(f'{E}TotalDebit').text == '0.00'
+    assert coherence.verifier(racine) == []
+
+
+@pytest.mark.parametrize('type_document, document', [
+    ('NC', AVOIR),
+    ('ND', NOTE_DE_DEBIT),
+])
+def test_un_rectificatif_sans_reference_est_detecte(type_document, document):
+    racine = _racine([FACTURE, document])
+    for ligne in racine.iter(f'{E}Line'):
+        renvoi = ligne.find(f'{E}References')
+        if renvoi is not None:
+            ligne.remove(renvoi)
+
+    assert schema.valider(racine) == [], 'le schéma, lui, accepte'
+    anomalies = coherence.verifier(racine)
+
+    assert any('36' in str(a) for a in anomalies), \
+        '\n'.join(str(a) for a in anomalies) or 'aucune anomalie'
+
+
+def test_la_facture_recu_sans_paiement_est_detectee():
+    racine = _racine([FACTURE_RECU])
+    for totaux in racine.iter(f'{E}DocumentTotals'):
+        totaux.remove(totaux.find(f'{E}Payment'))
+
+    assert schema.valider(racine) == [], 'le schéma, lui, accepte'
+    anomalies = coherence.verifier(racine)
+
+    assert any('quittance' in str(a) for a in anomalies)
+
+
+@pytest.mark.parametrize('montant, attendu', [
+    ('100.00', 'inférieure'),
+    ('200.00', 'supérieure'),
+])
+def test_un_encaissement_qui_ne_solde_pas_le_total_est_detecte(montant,
+                                                               attendu):
+    racine = _racine([FACTURE_RECU])
+    racine.find(f'.//{E}PaymentAmount').text = montant
+
+    assert schema.valider(racine) == []
+    anomalies = coherence.verifier(racine)
+
+    assert any(attendu in str(a) for a in anomalies)
+
+
+def test_un_paiement_sur_un_type_qui_n_atteste_rien_est_detecte():
+    racine = _racine([FACTURE_RECU])
+    racine.find(f'.//{E}InvoiceType').text = 'FT'
+
+    assert schema.valider(racine) == []
+    anomalies = coherence.verifier(racine)
+
+    assert any('FR' in str(a) for a in anomalies)
+
+
+def test_le_paiement_est_range_apres_les_totaux_et_non_a_la_fin():
+    """L'ORDRE, encore : `Payment` vient après `GrossTotal`, `Currency` et
+    `Settlement` dans la séquence du schéma. Ajouté à la fin du bloc il
+    serait au bon endroit par hasard ; rangé par `ORDRE_TOTAUX` il y est
+    par construction, et le restera quand `Currency` apparaîtra."""
+    racine = _racine([FACTURE_RECU])
+    totaux = racine.find(f'.//{E}DocumentTotals')
+    noms = [enfant.tag.replace(E, '') for enfant in totaux]
+
+    assert noms == ['TaxPayable', 'NetTotal', 'GrossTotal', 'Payment']
+
+
+def test_une_reference_sur_une_facture_ordinaire_n_est_pas_une_anomalie():
+    """Ce qui est EXIGÉ d'un rectificatif n'est pas INTERDIT aux autres.
+
+    Une facture peut légitimement renvoyer à un bon de livraison ou à un
+    devis. Signaler ce renvoi comme une anomalie apprendrait à ignorer les
+    messages du contrôle — ce qui est le seul moyen de rendre un
+    validateur inutile sans le casser.
+    """
+    racine = _racine([dict(
+        FACTURE, lignes=[dict(LIGNE, document_rectifie='GR A/7',
+                              motif_rectification='Guia de remessa')])])
+
+    assert schema.valider(racine) == []
+    assert coherence.verifier(racine) == []

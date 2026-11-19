@@ -19,8 +19,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from . import coherence, export, qr, schema
 from .forms import ParametresForm, PeriodeForm, SerieForm
-from .models import (CleDeSignature, DocumentFiscal, ParametresFiscauxPT,
-                     SerieFiscale)
+from .models import (TYPES_DE_DOCUMENT, CleDeSignature, DocumentFiscal,
+                     ParametresFiscauxPT, SerieFiscale)
 
 
 def _company(request):
@@ -65,10 +65,23 @@ def index(request):
         {
             'titre': 'Séries de documents',
             'fait': series.exists(),
-            'detail': (f'{series.count()} série(s) déclarée(s)'
-                       if series else
-                       'Aucune série : il en faut au moins une par type de '
-                       'document émis.'),
+            # Le detail NOMME les types declares, et pas seulement leur
+            # nombre. « 2 series » ne dit pas lesquelles, et c'est
+            # pourtant la seule chose utile : sans serie « NC » on ne peut
+            # pas emettre d'avoir, sans serie « FR » pas de facture-recu,
+            # et le refus n'arrive qu'au moment de l'emission.
+            'detail': (
+                ('Types déclarés : '
+                 + ', '.join(sorted({s.type_document for s in series}))
+                 + '. Manquants : '
+                 + (', '.join(code for code, _ in TYPES_DE_DOCUMENT
+                              if code not in {s.type_document
+                                              for s in series})
+                    or 'aucun'))
+                if series else
+                'Aucune série : il en faut au moins une par type de '
+                'document émis — « FT » pour facturer, « NC » pour un '
+                'avoir, « ND » pour une note de débit.'),
             'lien': 'fiscal_pt:series',
         },
         {
@@ -459,3 +472,68 @@ def facturation_document(invoice):
     """
     from .facturation import document_pour
     return document_pour(invoice)
+
+
+@login_required
+def note_de_debit(request, pk):
+    """Emet la note de debit qui AUGMENTE ce que le client doit.
+
+    POURQUOI CET ECRAN EST PLUS EXIGEANT QUE CELUI DE L'AVOIR
+
+    Un avoir sans precision annule la facture entiere : le raccourci est
+    sur, parce que le pire qu'il produise est un credit de trop qu'un
+    second document corrige. Une note de debit sans precision n'a, elle,
+    aucun defaut raisonnable -- reprendre les lignes de la facture
+    reclamerait la meme prestation une seconde fois, et le client
+    recevrait un document signe lui demandant le double.
+
+    On exige donc de SAISIR ce qui est facture en plus. C'est plus long,
+    et c'est le seul moyen de ne pas se tromper de facon irreversible.
+    """
+    from apps.sales.models import Invoice
+
+    from .facturation import ConformiteInactive, emettre_une_note_de_debit
+    from .forms import LignesDeNoteDeDebitFormSet
+
+    company = _company(request)
+    facture = get_object_or_404(Invoice, pk=pk, company=company)
+    origine = facturation_document(facture)
+
+    motif = (request.POST.get('motif') or '').strip()
+    formset = LignesDeNoteDeDebitFormSet(
+        request.POST if request.method == 'POST' else None)
+
+    if request.method == 'POST' and formset.is_valid():
+        # Les formulaires VIDES sont ecartes ici, et non dans le modele.
+        #
+        # L'ecran propose trois lignes ; on en remplit souvent une. Sans
+        # ce filtrage, les deux autres partiraient a l'emission comme des
+        # lignes a zero euro sans designation -- sur un document que la
+        # signature rend definitif.
+        lignes = [f.cleaned_data for f in formset.forms if f.cleaned_data]
+        try:
+            note = emettre_une_note_de_debit(facture, motif, lignes)
+        except ConformiteInactive:
+            messages.error(
+                request,
+                'La conformite portugaise n\'est pas activee : il n\'y a pas '
+                'de document signe a rectifier.')
+            return redirect('sales:invoice_detail', pk=facture.pk)
+        except Exception as exc:
+            messages.error(request, f'Note de debit non emise : {exc}')
+        else:
+            messages.success(
+                request,
+                f'Note de debit {note.numero} emise (ATCUD {note.atcud}).')
+            for avertissement in getattr(note, 'avertissements', ()) or ():
+                messages.warning(request, avertissement)
+            return redirect('fiscal_pt:document_detail', pk=note.pk)
+
+    return render(request, 'fiscal_pt/note_de_debit.html', {
+        'page_title': f'Note de debit sur {facture.number}',
+        'page_subtitle': 'Reclamer ce qui manquait a une facture deja signee',
+        'facture': facture,
+        'origine': origine,
+        'motif': motif,
+        'formset': formset,
+    })

@@ -24,4 +24,6 @@ urlpatterns = [
 
     path('factures/<int:pk>/avoir/', views.note_de_credit,
          name='note_de_credit'),
+    path('factures/<int:pk>/note-de-debit/', views.note_de_debit,
+         name='note_de_debit'),
 ]
