@@ -110,8 +110,15 @@ class WebsiteLanguageSettings(models.Model):
     use_language_prefix_urls  = models.BooleanField(
         _('URLs avec prefixe langue (/fr/, /en/)'), default=False
     )
+    #: VRAI par defaut, et ce n'est pas un choix de confort : la
+    #: detection par le navigateur etait DEJA en place pour tous les sites,
+    #: appliquee sans condition par `OrionLanguageMiddleware`. Le jour ou
+    #: ce reglage est enfin lu -- il ne l'etait par rien -- le laisser a
+    #: faux aurait RETIRE la detection a tous les sites qui en beneficiaient
+    #: sans le savoir. Vrai conserve le comportement en place ; l'ecran des
+    #: langues du site permet de le couper.
     auto_redirect_by_browser  = models.BooleanField(
-        _('Redirection auto selon navigateur'), default=False
+        _('Redirection auto selon navigateur'), default=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

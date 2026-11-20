@@ -14313,3 +14313,72 @@ msgstr ""
 
 msgid "Demander une intervention"
 msgstr "Request a service call"
+
+msgid "Aucun service publié pour le moment."
+msgstr "No services published yet."
+
+msgid "Aucune réalisation dans cette catégorie pour le moment."
+msgstr "No projects in this category yet."
+
+msgid "CONTACT"
+msgstr "CONTACT"
+
+msgid "DEVIS GRATUIT"
+msgstr "FREE QUOTE"
+
+msgid "Des réalisations concrètes"
+msgstr "Work you can see"
+
+msgid "Décrivez votre projet"
+msgstr "Describe your project"
+
+msgid "L’ENTREPRISE"
+msgstr "THE COMPANY"
+
+msgid "L’entreprise"
+msgstr "The company"
+
+msgid "NOS RÉALISATIONS"
+msgstr "OUR WORK"
+
+msgid "NOS SERVICES"
+msgstr "OUR SERVICES"
+
+msgid "Nos autres services"
+msgstr "Our other services"
+
+msgid "Nos domaines"
+msgstr "Our fields"
+
+msgid "Notre intervention"
+msgstr "How we work"
+
+msgid "Nous joindre directement"
+msgstr "Contact us directly"
+
+msgid "Nous joindre"
+msgstr "Get in touch"
+
+msgid "Nous étudions votre besoin et vous répondons sous 48 heures."
+msgstr "We review your needs and reply within 48 hours."
+
+msgid "Ou appelez-nous :"
+msgstr "Or call us:"
+
+msgid "Un besoin précis ?"
+msgstr "Something specific in mind?"
+
+msgid "Un savoir-faire en électricité et en étanchéité"
+msgstr "Expertise in electrical work and waterproofing"
+
+msgid "Voir toutes les réalisations"
+msgstr "See all our work"
+
+msgid "Votre demande n'a pas pu être envoyée :"
+msgstr "Your request could not be sent:"
+
+msgid "Échéance souhaitée"
+msgstr "Preferred timeframe"
+
+msgid "Électricité & Étanchéité"
+msgstr "Electrical & Waterproofing"
