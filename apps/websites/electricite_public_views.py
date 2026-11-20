@@ -63,6 +63,37 @@ FAQ_ITEMS = [
 
 def _elec_context(site):
     ctx = _base_context(site)
+    theme = site.theme
+
+    # LES BOUTONS SORTAIENT ILLISIBLES, et la cause n'était pas dans le
+    # gabarit mais dans la rencontre entre deux fichiers.
+    #
+    # `static/css/sites/sparkling-peace.css` écrit
+    # `.sp-btn--or { background: var(--site-primary); color: #26201A }`.
+    # Elle a été pensée pour un primaire DORÉ — son nom le dit — et sur de
+    # l'or ce texte sombre donne un contraste de 9,12.
+    #
+    # Mais `electricite/base.html` écrase `--site-primary` avec
+    # `theme.primary_color`, et ce thème y met un bleu nuit, l'or étant
+    # dans `accent_color`. Mesuré sur la page en ligne : contraste 1,16,
+    # quand 4,5 sont exigés pour du texte courant.
+    #
+    # Le fond reste la couleur du thème : repeindre le bouton changerait le
+    # dessin du site, et ce n'est pas une décision de correction. C'est le
+    # texte qui est déduit.
+    from .couleurs import texte_lisible_sur
+
+    primaire = getattr(theme, 'primary_color', '') if theme else ''
+    accent = getattr(theme, 'accent_color', '') if theme else ''
+
+    ctx.update({
+        # Le défaut des deux reprend la valeur que la feuille écrivait en
+        # dur, pour qu'une page servie hors de cette vue garde son aspect.
+        'texte_sur_primaire': texte_lisible_sur(primaire or '#F5B93D',
+                                                '#26201A'),
+        'texte_sur_accent': texte_lisible_sur(accent or '#F5B93D',
+                                              '#26201A'),
+    })
     ctx.update({
         # Opaque par defaut : seule l'accueil pose son en-tete sur une
         # photo. Le defaut le plus sur est celui qui reste lisible.

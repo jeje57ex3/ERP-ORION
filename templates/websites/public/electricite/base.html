@@ -48,6 +48,17 @@
     :root {
       {% if theme.primary_color %}--site-primary: {{ theme.primary_color }};{% endif %}
       {% if theme.accent_color %}--site-accent: {{ theme.accent_color }};{% endif %}
+      {% comment %}
+        Les couleurs de TEXTE des boutons, deduites de leur fond reel.
+        « sparkling-peace.css » ecrivait « color: #26201A » en dur sur
+        « .sp-btn--or », en supposant un primaire dore ; ce bloc-ci ecrase
+        justement le primaire avec celui du theme. Un primaire sombre
+        donnait donc un texte presque noir sur un fond presque noir --
+        mesure a 1,16 de contraste sur la page en ligne, pour 4,5 exiges.
+        Le fond n'est pas touche : c'est le texte qui suit.
+      {% endcomment %}
+      --sp-texte-sur-primaire: {{ texte_sur_primaire|default:'#26201A' }};
+      --sp-texte-sur-accent:   {{ texte_sur_accent|default:'#26201A' }};
     }
   </style>
   {% if theme.custom_css %}<style>{{ theme.custom_css }}</style>{% endif %}

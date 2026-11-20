@@ -104,12 +104,29 @@
   transition: background .22s ease, color .22s ease, border-color .22s ease;
 }
 
+/* LE TEXTE EST DEDUIT DU FOND, ET NON ECRIT EN DUR.
+ *
+ * Cette regle disait « color: #26201A » -- un brun tres sombre, juste sur
+ * l'or auquel elle etait destinee : contraste 9,12. Mais
+ * « electricite/base.html » ECRASE « --site-primary » avec la couleur
+ * primaire du theme, et celui de ce site y met un bleu nuit. Le bouton
+ * sortait donc en bleu nuit sous un texte presque noir : contraste 1,16,
+ * pour 4,5 exiges. Les trois boutons « Demander un devis » et « Voir
+ * toutes nos realisations » portent cette classe.
+ *
+ * La vue calcule la couleur lisible (apps/websites/couleurs.py) et le
+ * gabarit la pose en variable. Le repli garde la valeur d'origine, pour
+ * qu'une page servie hors de cette vue ne change pas d'aspect.
+ */
 .sp-btn--or {
   background: var(--site-primary);
-  color: #26201A;
+  color: var(--sp-texte-sur-primaire, #26201A);
 }
 
-.sp-btn--or:hover { background: var(--site-primary-600); color: #1C1712; }
+.sp-btn--or:hover {
+  background: var(--site-primary-600);
+  color: var(--sp-texte-sur-primaire, #1C1712);
+}
 
 .sp-btn--clair {
   background: transparent;
@@ -474,10 +491,26 @@
 .sp-site .sp-nav a.actif,
 .sp-site .sp-nav a:hover { color: #FFFFFF; }
 
-.sp-site a.sp-btn--or { color: #26201A; }
+/* Meme couleur deduite ici : cette regle existe pour peser plus lourd que
+ * « .orion-site a { color: inherit } », et elle doit dire la meme chose que
+ * la regle ci-dessus, sans quoi c'est elle qui l'emporterait avec la
+ * couleur en dur. */
+.sp-site a.sp-btn--or { color: var(--sp-texte-sur-primaire, #26201A); }
 .sp-site a.sp-btn--clair { color: #FFFFFF; }
 .sp-site a.sp-btn--contour { color: var(--site-text); }
 .sp-site a.sp-tel { color: var(--site-text); white-space: nowrap; }
+
+/* LE MENU DE LANGUE AURAIT SUBI LE MEME SORT.
+ *
+ * Son panneau est blanc (« --site-surface ») et ses entrees sont des
+ * liens : « .orion-site a { color: inherit } », 0,1,1, l'emporte sur
+ * « .site-lang-item », 0,1,0. Elles auraient donc herite du blanc de
+ * l'en-tete — pose sur la photo du hero — c'est-a-dire du blanc sur blanc.
+ *
+ * On qualifie comme au-dessus, et pour la meme raison : l'ordre de
+ * chargement ne tranche pas, la specificite tranche. */
+.sp-site .site-lang-menu a.site-lang-item { color: var(--site-text); }
+.sp-site .site-lang-menu a.site-lang-item.active { color: var(--site-primary); }
 .sp-site .sp-filtre { color: rgba(255, 255, 255, .78); }
 .sp-site .sp-filtre.actif { color: #221F1B; }
 
