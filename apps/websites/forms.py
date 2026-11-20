@@ -73,6 +73,7 @@ class WebsiteAdminForm(forms.ModelForm):
         fields = [
             'name', 'site_type', 'status', 'domain', 'subdomain', 'language',
             'currency', 'country', 'contact_email', 'contact_phone', 'address',
+            'service_area',
             'logo', 'favicon',
             'meta_title', 'meta_description', 'google_analytics_id',
             'facebook_url', 'instagram_url', 'twitter_url', 'linkedin_url',
@@ -94,7 +95,7 @@ class WebsiteShowcaseCreateForm(forms.ModelForm):
         model = Website
         fields = [
             'name', 'domain', 'subdomain', 'language',
-            'contact_email', 'contact_phone', 'address',
+            'contact_email', 'contact_phone', 'address', 'service_area',
             'facebook_url', 'instagram_url', 'linkedin_url',
         ]
         widgets = {
@@ -227,3 +228,63 @@ class StoreOrderStatusForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _css(self)
+
+
+class WebsiteLanguagesForm(forms.ModelForm):
+    """Les langues d'un site, réglables depuis l'ERP.
+
+    POURQUOI CET ÉCRAN EXISTE. Les langues d'un site vivaient dans
+    `WebsiteLanguageSettings`, et rien dans l'ERP ne les montrait : il
+    fallait l'admin Django, et la table `Language` elle-même n'était
+    peuplée que par `manage.py seed_languages`. Changer les langues d'un
+    site demandait donc un terminal, ce qui n'est pas acceptable pour un
+    réglage d'exploitation.
+
+    `enabled_languages` N'EST PROPOSÉ QUE PARMI LES LANGUES ACTIVES. Une
+    langue inactive cochée ici n'aurait aucun effet : `set_site_language`
+    refuse un code inactif et `get_enabled_language_list()` le filtre. La
+    proposer serait promettre ce qui ne peut pas arriver.
+    """
+
+    class Meta:
+        from apps.translations.models import WebsiteLanguageSettings
+
+        model = WebsiteLanguageSettings
+        fields = ['enabled_languages', 'default_language',
+                  'show_language_switcher', 'auto_redirect_by_browser']
+        widgets = {
+            'enabled_languages': forms.CheckboxSelectMultiple(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.translations.models import Language
+
+        actives = Language.objects.filter(is_active=True).order_by('order', 'name')
+        self.fields['enabled_languages'].queryset = actives
+        self.fields['default_language'].queryset = actives
+        self.fields['default_language'].empty_label = 'Aucune (français)'
+        _css(self)
+        # `_css` pose des classes de champ de saisie sur tout : sur une liste
+        # de cases a cocher, cela produit une bordure autour de chaque case.
+        self.fields['enabled_languages'].widget.attrs.pop('class', None)
+        self.fields['show_language_switcher'].widget.attrs['class'] = 'form-check-input'
+        self.fields['auto_redirect_by_browser'].widget.attrs['class'] = 'form-check-input'
+
+    def clean(self):
+        """La langue par défaut doit figurer parmi les langues activées.
+
+        Sans ce contrôle, on pouvait désigner une langue par défaut qu'on
+        venait de décocher : le site l'aurait servie sans que le sélecteur
+        ne permette d'en sortir.
+        """
+        donnees = super().clean()
+        activees = donnees.get('enabled_languages')
+        defaut = donnees.get('default_language')
+        if defaut is not None and activees is not None:
+            if defaut.pk not in {langue.pk for langue in activees}:
+                self.add_error(
+                    'default_language',
+                    "Cette langue n'est pas cochée ci-dessus : le site la "
+                    "servirait sans que le sélecteur permette d'en changer.")
+        return donnees

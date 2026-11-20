@@ -1,0 +1,262 @@
+#
+# Catalogue allemand — site vitrine public.
+#
+# POURQUOI IL N'EXISTAIT PAS, ET POURQUOI IL NE COUVRE QUE LE SITE PUBLIC
+#
+# L'anglais, l'espagnol, l'italien et le portugais portent chacun environ
+# 4 300 chaînes traduites : tout l'ERP. L'allemand n'avait aucun catalogue,
+# et `locale/de/` n'existait pas. Trois raisons superposées l'empêchaient
+# d'ailleurs de fonctionner, chacune suffisante : pas de catalogue, la
+# langue semée avec `is_active: False`, et son absence des cinq langues
+# proposées par défaut à un site — qui offraient de l'italien à sa place.
+#
+# Ce catalogue couvre les 66 chaînes traduisibles des gabarits du site
+# vitrine GÉNÉRIQUE — `base.html`, `home.html`, `contact.html`, `page.html`,
+# les pages de blog, les pages d'erreur et de maintenance. C'est exactement
+# ce qu'un site vitrine rend : les sous-sites verticaux (BTP, électricité,
+# étanchéité) ont leurs propres gabarits et ne sont pas couverts ici.
+#
+# Une chaîne sans traduction retombe sur le français, comme pour toute
+# autre langue : l'ERP en allemand reste donc en français, et c'est assumé.
+# Traduire ses 4 500 chaînes est un autre chantier, qui se décide.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Orion ERP\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-20 00:00+0000\n"
+"PO-Revision-Date: 2026-11-20 00:00+0000\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# ─── En-tête, navigation, pied de page ──────────────────────────────────────
+
+msgid "Changer de langue"
+msgstr "Sprache wechseln"
+
+msgid "Choisir la langue"
+msgstr "Sprache wählen"
+
+msgid "Navigation"
+msgstr "Navigation"
+
+msgid "Adresse"
+msgstr "Adresse"
+
+msgid "Téléphone"
+msgstr "Telefon"
+
+msgid "Société"
+msgstr "Unternehmen"
+
+msgid "SIRET :"
+msgstr "Handelsregister-Nr.:"
+
+msgid "Propulsé par"
+msgstr "Betrieben mit"
+
+msgid "Propulsé par Orion ERP"
+msgstr "Betrieben mit Orion ERP"
+
+# La zone d'intervention : un libellé, suivi de la valeur saisie telle
+# quelle. La valeur n'est pas traduite — c'est un nom de lieu — d'où le
+# choix d'un libellé plutôt que d'une phrase à trous.
+msgid "Zone d'intervention"
+msgstr "Einsatzgebiet"
+
+# ─── Contact ────────────────────────────────────────────────────────────────
+
+msgid "Contactez-nous"
+msgstr "Kontaktieren Sie uns"
+
+msgid "Nous vous répondons rapidement"
+msgstr "Wir antworten Ihnen schnell"
+
+msgid "Nous vous répondons sous 24h ouvrées."
+msgstr "Wir antworten innerhalb von 24 Werkstunden."
+
+msgid "Envoyez-nous un message"
+msgstr "Senden Sie uns eine Nachricht"
+
+msgid "Envoyer le message"
+msgstr "Nachricht senden"
+
+msgid "Nom complet"
+msgstr "Vollständiger Name"
+
+msgid "Sujet"
+msgstr "Betreff"
+
+msgid "Objet de votre message"
+msgstr "Betreff Ihrer Nachricht"
+
+msgid "Décrivez votre demande..."
+msgstr "Beschreiben Sie Ihr Anliegen …"
+
+msgid "Vos coordonnées"
+msgstr "Ihre Kontaktdaten"
+
+msgid "Vos données sont protégées et ne seront jamais partagées."
+msgstr "Ihre Daten sind geschützt und werden niemals weitergegeben."
+
+msgid "Vos informations sont confidentielles et ne seront pas partagées."
+msgstr "Ihre Angaben sind vertraulich und werden nicht weitergegeben."
+
+msgid "Besoin d'informations ?"
+msgstr "Brauchen Sie Informationen?"
+
+msgid "Notre équipe répond à toutes vos questions."
+msgstr "Unser Team beantwortet alle Ihre Fragen."
+
+msgid "Pour toute urgence, contactez-nous :"
+msgstr "Im Notfall erreichen Sie uns hier:"
+
+# ─── Demande de devis ───────────────────────────────────────────────────────
+
+msgid "Besoin d'un devis ?"
+msgstr "Brauchen Sie ein Angebot?"
+
+msgid "Demande de devis"
+msgstr "Angebotsanfrage"
+
+msgid "Demande de devis gratuit"
+msgstr "Kostenlose Angebotsanfrage"
+
+msgid "Demander un devis"
+msgstr "Angebot anfordern"
+
+msgid "Demander un devis gratuit"
+msgstr "Kostenloses Angebot anfordern"
+
+msgid "Envoyer ma demande de devis"
+msgstr "Angebotsanfrage senden"
+
+msgid "Votre projet"
+msgstr "Ihr Projekt"
+
+msgid "Type de projet"
+msgstr "Projektart"
+
+msgid "Description du projet"
+msgstr "Projektbeschreibung"
+
+msgid "Budget estimé"
+msgstr "Geschätztes Budget"
+
+msgid "Délai souhaité"
+msgstr "Wunschtermin"
+
+msgid "Nom de votre entreprise"
+msgstr "Name Ihres Unternehmens"
+
+msgid "Pièce jointe"
+msgstr "Anhang"
+
+msgid "plans, cahier des charges..."
+msgstr "Pläne, Lastenheft …"
+
+msgid "Décrivez votre projet et obtenez une estimation personnalisée."
+msgstr ""
+"Beschreiben Sie Ihr Projekt und erhalten Sie eine individuelle Schätzung."
+
+msgid "Décrivez votre projet, nous vous répondons sous 24h"
+msgstr "Beschreiben Sie Ihr Projekt – wir antworten innerhalb von 24 Stunden"
+
+msgid ""
+"Décrivez votre projet en détail : nature des travaux, surface, "
+"localisation, contraintes particulières..."
+msgstr ""
+"Beschreiben Sie Ihr Projekt im Detail: Art der Arbeiten, Fläche, Ort, "
+"besondere Rahmenbedingungen …"
+
+msgid "Remplissez ce formulaire pour recevoir une estimation personnalisée."
+msgstr ""
+"Füllen Sie dieses Formular aus, um eine individuelle Schätzung zu erhalten."
+
+# « Ex: » et non « Par exemple » : ce sont des textes d'invite dans un champ,
+# et la place y est comptée.
+msgid "Ex: 10 000 - 50 000 €"
+msgstr "Z. B.: 10.000 – 50.000 €"
+
+msgid "Ex: Construction, Rénovation..."
+msgstr "Z. B.: Neubau, Renovierung …"
+
+msgid "Ex: dans 3 mois, avant juin..."
+msgstr "Z. B.: in 3 Monaten, vor Juni …"
+
+# ─── Blog ───────────────────────────────────────────────────────────────────
+
+msgid "Actualités et conseils"
+msgstr "Neuigkeiten und Tipps"
+
+msgid "Articles similaires"
+msgstr "Ähnliche Artikel"
+
+msgid "Aucun article publié pour le moment."
+msgstr "Derzeit sind keine Artikel veröffentlicht."
+
+msgid "Catégories"
+msgstr "Kategorien"
+
+msgid "Lire"
+msgstr "Lesen"
+
+msgid "Retour au blog"
+msgstr "Zurück zum Blog"
+
+# ─── Pages vides, erreurs, maintenance ──────────────────────────────────────
+
+msgid "Cette page est en cours de rédaction."
+msgstr "Diese Seite wird gerade erstellt."
+
+msgid "Retour à l'accueil"
+msgstr "Zurück zur Startseite"
+
+msgid "404 — Introuvable"
+msgstr "404 — Nicht gefunden"
+
+msgid "404 — Page introuvable"
+msgstr "404 — Seite nicht gefunden"
+
+msgid "Cette page est introuvable."
+msgstr "Diese Seite wurde nicht gefunden."
+
+msgid "La page demandée n'existe pas."
+msgstr "Die angeforderte Seite existiert nicht."
+
+msgid "La page que vous recherchez n'existe pas ou a été déplacée."
+msgstr "Die gesuchte Seite existiert nicht oder wurde verschoben."
+
+msgid "Erreur serveur"
+msgstr "Serverfehler"
+
+msgid "Une erreur est survenue."
+msgstr "Es ist ein Fehler aufgetreten."
+
+msgid ""
+"Veuillez réessayer plus tard. Si le problème persiste, contactez "
+"l'administrateur du site."
+msgstr ""
+"Bitte versuchen Sie es später erneut. Besteht das Problem weiterhin, "
+"wenden Sie sich an die Administration der Website."
+
+msgid "Maintenance"
+msgstr "Wartung"
+
+msgid "En maintenance"
+msgstr "In Wartung"
+
+msgid "Ce site est temporairement en maintenance. Merci de revenir plus tard."
+msgstr ""
+"Diese Website wird derzeit gewartet. Bitte schauen Sie später wieder "
+"vorbei."
+
+msgid ""
+"Nous travaillons à améliorer votre expérience et reviendrons très "
+"prochainement."
+msgstr ""
+"Wir arbeiten daran, Ihr Erlebnis zu verbessern, und sind sehr bald wieder "
+"da."

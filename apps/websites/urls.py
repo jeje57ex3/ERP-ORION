@@ -36,9 +36,16 @@ urlpatterns = [
 
     # ─── Messages & Devis ─────────────────────────────────────────────────────
     path('messages/', views.message_list, name='message_list'),
+    # Le corps du message : la liste ne le montrait pas, et aucune vue de
+    # detail n'existait.
+    path('messages/<int:pk>/', views.message_detail, name='message_detail'),
     path('devis/', views.quote_request_list, name='quote_request_list'),
 
     # ─── Dashboard boutique ───────────────────────────────────────────────────
+    # Les langues du site : regler une langue demandait un terminal.
+    path('sites/<int:pk>/langues/', views.website_languages,
+         name='website_languages'),
+
     path('sites/<int:pk>/boutique/', views.store_dashboard, name='store_dashboard'),
 
     # ─── Catégories boutique ──────────────────────────────────────────────────

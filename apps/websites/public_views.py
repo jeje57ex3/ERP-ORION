@@ -55,7 +55,17 @@ def _base_context(site):
     }
 
 
-DEFAULT_SITE_LANGUAGES = ['fr', 'en', 'es', 'it', 'pt']
+# Les cinq langues qu'un nouveau site propose. L'italien y figurait et
+# l'allemand non, alors que `LANGUAGES` dans les reglages Django declare les
+# deux : un site cree ici n'offrait donc jamais l'allemand, et personne ne
+# pouvait le deviner depuis l'ecran.
+#
+# Changer cette liste ne suffit pas a elle seule -- la langue doit aussi
+# EXISTER et etre ACTIVE en base, ce que fait la migration
+# `translations/0002_cinq_langues_du_site`. L'allemand y etait seme avec
+# `is_active: False`, et `Language.objects.filter(..., is_active=True)`
+# ci-dessous l'ecartait donc en silence.
+DEFAULT_SITE_LANGUAGES = ['fr', 'en', 'de', 'es', 'pt']
 
 
 def translate_static_items(items, key_prefix, fields=('name', 'desc')):
@@ -129,6 +139,17 @@ def _get_website_languages(site):
             for lang in settings_obj.get_enabled_language_list()
         ]
     except Exception:
+        # ON AVERTIT SANS BLOQUER. Rendre une liste vide est le bon choix :
+        # le selecteur disparait, la page s'affiche, et le visiteur lit le
+        # site. Mais ce `except` muet a cache pendant tout ce temps que la
+        # table des langues etait vide sur une installation ou la commande
+        # de peuplement n'avait jamais tourne -- le bouton de traduction
+        # manquait, et aucune trace ne disait pourquoi.
+        import logging
+
+        logging.getLogger('orion.websites').warning(
+            'Langues du site %s illisibles : le selecteur de langue ne '
+            'sera pas affiche.', getattr(site, 'pk', '?'), exc_info=True)
         return []
 
 

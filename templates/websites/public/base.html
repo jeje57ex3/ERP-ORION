@@ -1,4 +1,4 @@
-{% load i18n %}<!DOCTYPE html>
+{% load i18n %}{% load website_extras %}<!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:site.language|default:'fr' }}">
 <head>
   <meta charset="UTF-8">
@@ -33,6 +33,11 @@
       --site-header-bg:   {{ theme.header_bg_color }};
       --site-footer-bg:   {{ theme.footer_bg_color }};
       --site-footer-text: {{ theme.footer_text_color }};
+      {% comment %}Deduite du fond, et non fixee : l-en-tete est
+         reglable depuis l-interface, et `.nav-link` etait peint en
+         `--site-text` -- presque noir -- quel que soit ce fond.
+      {% endcomment %}
+      --site-header-text: {{ theme.header_bg_color|couleur_lisible|default:"#111827" }};
       --site-radius:      {{ theme.border_radius }};
       --site-font:        '{{ theme.font_primary }}', Inter, sans-serif;
       {% else %}
@@ -45,6 +50,7 @@
       --site-header-bg:   #FFFFFF;
       --site-footer-bg:   #0F172A;
       --site-footer-text: #CBD5E1;
+      --site-header-text: #111827;
       --site-radius:      0.5rem;
       --site-font:        'Inter', sans-serif;
       {% endif %}
@@ -108,7 +114,7 @@
     }
 
     .nav-link {
-      color: var(--site-text) !important;
+      color: var(--site-header-text) !important;
       font-weight: 500;
       font-size: 0.925rem;
       padding: 0.5rem 0.75rem !important;
@@ -141,6 +147,23 @@
       color: #6B7280;
       max-width: 600px;
     }
+
+    /* ─── Sections au fond sombre ────────────────────────────────────────
+       `.section-title` est peint en `--site-secondary`, c'est-a-dire le
+       bleu nuit du theme. Sur une section dont l'exploitant a choisi un
+       fond sombre, le titre se confondait donc avec son propre fond, et
+       `.section-subtitle` comme `.text-muted` tombaient a un contraste
+       illisible. La classe est posee par le gabarit quand le fond est
+       mesure sombre (voir `est_fond_sombre`), et tout suit.
+
+       La couleur de texte EXPLICITE d'une section reste prioritaire : elle
+       est en style en ligne, qui l'emporte sur une classe. L'exploitant
+       garde donc le dernier mot. */
+    .ws-fond-sombre { color: #FFFFFF; }
+    .ws-fond-sombre .section-title { color: inherit; }
+    .ws-fond-sombre .section-subtitle { color: inherit; opacity: 0.8; }
+    .ws-fond-sombre .text-muted { color: inherit !important; opacity: 0.75; }
+    .ws-fond-sombre .site-card { color: #111827; }
 
     /* Couleur primaire sur les accents */
     .text-site-primary { color: var(--site-primary) !important; }
@@ -272,6 +295,15 @@
           {% endif %}
           {% if site.contact_phone %}
           <p class="small"><i class="bi bi-telephone me-2"></i><a href="tel:{{ site.contact_phone }}">{{ site.contact_phone }}</a></p>
+          {% endif %}
+          {% comment %}
+            Au pied de CHAQUE page, et pas seulement sur la page de contact :
+            un visiteur arrive souvent par une page de service, pas par
+            l'accueil, et il ne doit pas avoir a chercher si l'entreprise se
+            deplace chez lui.
+          {% endcomment %}
+          {% if site.service_area %}
+          <p class="small"><i class="bi bi-pin-map me-2"></i>{% trans "Zone d'intervention" %} : {{ site.service_area }}</p>
           {% endif %}
           <!-- Réseaux sociaux -->
           <div class="d-flex gap-2 mt-3">
