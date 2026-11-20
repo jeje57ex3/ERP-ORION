@@ -217,17 +217,27 @@ MIDDLEWARE = [
     # doit donc avoir autorise le domaine AVANT que quoi que ce soit ne
     # l'interroge.
     'apps.websites.domaine_vitrine_middleware.HotesDesSitesMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    # EN HAUT DE LA PILE, et c'est le point : place plus bas, il ne
-    # mesurerait que ce qui reste apres les middlewares qui le precedent, et
-    # une lenteur venue de l'un d'eux serait invisible. Ici, la duree mesuree
-    # est celle que le navigateur subit reellement.
+    # AUSSI HAUT QUE POSSIBLE, c'est-a-dire juste apres celui du dessus et
+    # AVANT SecurityMiddleware : place plus bas, il ne mesurerait que ce qui
+    # reste apres les middlewares qui le precedent, et une lenteur venue de
+    # l'un d'eux serait invisible -- precisement celle qu'on cherche. Ici, la
+    # duree mesuree est celle que le navigateur subit reellement, y compris
+    # la redirection vers HTTPS que SecurityMiddleware peut rendre seul.
     #
     # Il n'etait declare NULLE PART. L'application figurait dans
     # INSTALLED_APPS, son modele, sa vue et son gabarit existaient -- mais
     # rien ne mesurait quoi que ce soit, donc la page de performance
     # n'affichait rien et paraissait cassee.
+    #
+    # PUIS IL A GLISSE. Ajoute en position 1 par f1534c8, il est passe en
+    # position 2 quand 3fade63 a insere HotesDesSitesMiddleware devant lui --
+    # pour une bonne raison, et sans voir qu'il repoussait celui-ci. La
+    # mesure excluait donc de nouveau deux middlewares. Un test le disait
+    # depuis ce jour-la ; il faut onze minutes de suite complete pour
+    # l'entendre. Si un middleware doit un jour passer en tete, qu'il passe
+    # APRES celui-ci.
     'apps.performance_monitor.middleware.PerformanceMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'apps.core.middleware.SetupRequiredMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

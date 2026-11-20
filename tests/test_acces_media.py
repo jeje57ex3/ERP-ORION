@@ -162,6 +162,32 @@ def test_un_prefixe_inconnu_est_refuse(client, media, django_user_model):
         '/media/un_dossier_jamais_declare/fichier.pdf').status_code == 404
 
 
+def test_l_installeur_de_l_application_pc_n_est_pas_servi_par_media(
+        client, media, django_user_model):
+    """Refusé, et pour une raison qui n'est pas la confidentialité.
+
+    Cet installeur n'a rien de secret : tout compte connecté peut le
+    télécharger. Il passe pourtant par `core_application_pc:telecharger`,
+    et pas par /media/, parce que cette vue ne sert que la version dont
+    `est_publiee` est vrai.
+
+    Une adresse directe vers le fichier contournerait ce choix : le bouton
+    « retirer cette version » n'aurait plus d'effet, et une version
+    écartée parce qu'elle était défectueuse resterait installable par
+    quiconque connaît son URL. C'est le niveau « authentifié » qui aurait
+    semblé évident ici — il aurait rouvert exactement cette porte.
+    """
+    _fichier(media, 'application-bureau/OrionERP-Setup-1.4.2.exe', b'MZ')
+    assert client.get(
+        '/media/application-bureau/OrionERP-Setup-1.4.2.exe'
+    ).status_code == 404
+
+    _connecte(client, django_user_model)
+    assert client.get(
+        '/media/application-bureau/OrionERP-Setup-1.4.2.exe'
+    ).status_code == 404
+
+
 # ── 3. Le niveau intermédiaire ──────────────────────────────────────────────
 
 def test_un_avatar_demande_un_compte(client, media, django_user_model):

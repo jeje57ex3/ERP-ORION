@@ -1,4 +1,5 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
@@ -57,6 +58,35 @@ def ticket_detail(request, pk):
             messages.success(request, 'Message ajouté.')
             return redirect('support:ticket_detail', pk=pk)
     return render(request, 'support/ticket_detail.html', {'ticket': ticket, 'msg_form': msg_form})
+
+
+@login_required
+def ticket_attachment(request, pk):
+    """Sert la piece jointe d'un message de ticket.
+
+    `tickets/` ne figure pas dans les prefixes servis par /media/ : le
+    gabarit pointait vers `msg.attachment.url`, donc vers une adresse qui
+    rend 404. Le lien « Piece jointe » s'affichait sur chaque message qui
+    en portait une, et ne telechargeait rien.
+
+    LA BORNE EST CELLE DE L'ECRAN QUI MONTRE LE LIEN. `ticket_detail`
+    filtre sur `company=request.current_company` ; cette vue filtre sur
+    `ticket__company`, ce qui est la meme chose vue depuis le message.
+    Sans ce filtre, changer le numero dans l'adresse donnerait la piece
+    jointe du ticket d'une AUTRE entreprise -- et un ticket de support
+    porte volontiers une capture d'ecran de l'ERP, donc des donnees.
+
+    Le telechargement est force par `servir_fichier_autorise` : ces
+    fichiers sont deposes par des tiers, et un SVG affiche depuis
+    l'origine du site executerait son script avec les droits du lecteur.
+    """
+    from apps.core.media_access import servir_fichier_autorise
+
+    msg = get_object_or_404(
+        TicketMessage, pk=pk, ticket__company=request.current_company)
+    if not msg.attachment:
+        raise Http404('Ce message ne porte aucune piece jointe.')
+    return servir_fichier_autorise(msg.attachment)
 
 
 @login_required

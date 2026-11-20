@@ -197,12 +197,35 @@ def test_la_signature_tracee_s_enregistre(connecte):
 
 
 def test_la_reponse_donne_l_adresse_de_l_image(connecte):
+    """L'adresse rendue doit SERVIR l'image, pas seulement en avoir l'air.
+
+    Ce test exigeait seulement `url.endswith('.png')`. L'adresse rendue
+    etait alors `profil.signature.url`, c'est-a-dire
+    `/media/signatures/signature-3.png` : elle se termine bien par
+    « .png », et elle rend **404**, parce que `signatures/` fait partie des
+    prefixes que /media/ refuse -- « exposees, elles se recopient ».
+
+    Le test confirmait donc la FORME d'une adresse morte. Et le script
+    posait cette adresse dans l'apercu juste apres avoir affiche
+    « Signature enregistree » : on annoncait une reussite au-dessus d'une
+    image cassee, le pire ordre possible puisqu'on ne doute pas de ce
+    qu'on vient de reussir.
+
+    Un test n'est utile que s'il compare a autre chose qu'a ce qu'il
+    teste. Celui-ci demande maintenant la seule chose qui compte : qu'on
+    puisse aller chercher l'image a l'adresse rendue.
+    """
     reponse = connecte.post(reverse('accounts:signature_save'),
                             {'signature': _url(_png())})
 
     donnees = reponse.json()
-    assert donnees['url'].endswith('.png')
     assert 'message' in donnees
+    assert donnees['url'] == reverse('accounts:signature_image')
+
+    image = connecte.get(donnees['url'])
+    assert image.status_code == 200
+    assert image['Content-Type'] == 'image/png'
+    assert image['Content-Disposition'].startswith('inline')
 
 
 def test_un_cadre_vide_est_refuse_par_le_SERVEUR(connecte):
@@ -339,13 +362,26 @@ def test_la_toile_neutralise_le_defilement_tactile(connecte):
 
 
 def test_l_apercu_est_cache_quand_il_n_y_a_pas_de_signature(connecte):
+    """Deux defauts dans six lignes, et le second masquait une panne.
+
+    `assert 'hidden' in corps` ne prouvait rien : un formulaire porte des
+    champs caches partout, jeton CSRF compris. La page aurait pu afficher
+    le cadre vide sans que ce test bronche. On vise donc le cadre lui-meme.
+
+    Et la seconde moitie exigeait `'signatures/signature-' in corps`,
+    c'est-a-dire l'URL /media/ brute -- celle qui rend 404. L'apercu etait
+    casse et le test l'exigeait.
+    """
     corps = connecte.get(reverse('accounts:profile')).content.decode()
-    assert 'hidden' in corps
+    assert 'signature-apercu mb-3" hidden' in corps
 
     connecte.post(reverse('accounts:signature_save'),
                   {'signature': _url(_png())})
     corps = connecte.get(reverse('accounts:profile')).content.decode()
-    assert 'signatures/signature-' in corps
+
+    assert 'signature-apercu mb-3" hidden' not in corps
+    assert reverse('accounts:signature_image') in corps
+    assert '/media/signatures/' not in corps
 
 
 # ═══ JUSQUE SUR LE DEVIS ════════════════════════════════════════════════════

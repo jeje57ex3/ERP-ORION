@@ -530,6 +530,42 @@ def project_reservations(request, pk):
     })
 
 
+def reservation_photo(request, pk, photo_pk):
+    """Rend la photo d'une réserve, pour le client qui y a droit.
+
+    `reservations/` ne figure plus parmi les préfixes servis par /media/,
+    et c'est en examinant CE gabarit qu'on a vu pourquoi il fallait l'en
+    retirer : le niveau « authentifié » n'est pas borné par entreprise, et
+    un client de portail est un compte authentifié. L'adresse brute
+    laissait donc le client de l'entreprise A lire les photos de réserves
+    de l'entreprise B.
+
+    Le contrôle reproduit mot pour mot celui de la page : même entreprise,
+    même courriel de client, même chantier. Il passe par le CHANTIER et
+    non par la photo seule, pour que changer le numéro de la photo dans
+    l'adresse ne suffise pas à sortir du chantier qu'on regarde.
+
+    Au passage, le gabarit du portail ne protégeait pas son `<img>` par un
+    `{% if photo.photo %}`, contrairement à celui de l'ERP : une ligne sans
+    fichier — téléversement interrompu — faisait lever « The 'photo'
+    attribute has no file associated with it » et emportait toute la page.
+    Passer par `{% url %}` supprime ce risque, l'adresse ne demandant que
+    la clé.
+    """
+    redir = _require_portal_login(request)
+    if redir:
+        return redir
+    company = _get_company(request)
+    account = _get_portal_account(request)
+    project = get_object_or_404(
+        BTPProject, pk=pk, company=company, customer__email=account.email)
+    photo = get_object_or_404(
+        ReservationPhoto, pk=photo_pk, reservation__project=project)
+
+    return servir_fichier_autorise(photo.photo, photo.caption or None,
+                                   afficher_si_image=True)
+
+
 # ─── AVENANTS ─────────────────────────────────────────────────────────────────
 
 def project_changes(request, pk):

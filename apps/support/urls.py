@@ -12,6 +12,10 @@ urlpatterns = [
     path('tickets/<int:pk>/supprimer/', views.ticket_delete, name='ticket_delete'),
     path('tickets/<int:pk>/resoudre/', views.ticket_resolve, name='ticket_resolve'),
     path('tickets/<int:pk>/fermer/', views.ticket_close, name='ticket_close'),
+    # tickets/ n'est pas servi par /media/ : la piece jointe passe par une
+    # vue bornee a l'entreprise du ticket, exactement comme son ecran.
+    path('messages/<int:pk>/piece-jointe/', views.ticket_attachment,
+         name='ticket_attachment'),
     path('reclamations/', views.claim_list, name='claim_list'),
 ]
 

@@ -131,6 +131,10 @@ urlpatterns = [
 
     # RÃ©serves
     path('reserves/', gq.reservations_list, name='reservations_list'),
+    # reservations/ n'est plus servi par /media/ : la vignette passe par
+    # une vue bornee a l'entreprise du chantier.
+    path('reserves/photos/<int:photo_pk>/', gq.reservation_photo,
+         name='reservation_photo'),
     path('reserves/<int:pk>/statut/', gq.reservation_update_status, name='reservation_update_status'),
     path('devis/<int:pk>/envoyer/', views.quote_send, name='quote_send'),
     path('devis/<int:pk>/convertir/', views.quote_convert, name='quote_convert'),

@@ -61,7 +61,7 @@
     <p class="small text-muted mb-2">{{ res.description }}</p>
     {% if res.photos.exists %}
     <div class="d-flex gap-2 flex-wrap">
-      {% for photo in res.photos.all %}<img src="{{ photo.photo.url }}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">{% endfor %}
+      {% for photo in res.photos.all %}<img src="{% url 'client_portal:reservation_photo' project.pk photo.pk %}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">{% endfor %}
     </div>
     {% endif %}
     <div class="text-muted small mt-2">{% blocktrans with d=res.created_at|date:"d/m/Y" %}Signalée le {{ d }}{% endblocktrans %}</div>
