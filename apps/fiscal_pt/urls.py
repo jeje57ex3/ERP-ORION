@@ -18,10 +18,15 @@ urlpatterns = [
     path('documents/', views.documents, name='documents'),
     path('documents/<int:pk>/', views.document_detail, name='document_detail'),
     path('documents/<int:pk>/qr.png', views.document_qr, name='document_qr'),
+    # L'annulation d'un document emis : etat « A », en POST.
+    path('documents/<int:pk>/annuler/', views.annuler_un_document,
+         name='document_annuler'),
 
     path('recus/', views.recus, name='recus'),
     path('recus/<int:pk>/', views.recu_detail, name='recu_detail'),
     path('recus/<int:pk>/qr.png', views.recu_qr, name='recu_qr'),
+    path('recus/<int:pk>/annuler/', views.annuler_un_recu,
+         name='recu_annuler'),
 
     path('verification/', views.verifier_les_chaines, name='verification'),
     path('saft/', views.export_saft, name='export_saft'),

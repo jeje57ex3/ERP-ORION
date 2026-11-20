@@ -694,10 +694,25 @@ def _date_certaine(valeur, rang):
 
 
 def _lisible(valeur):
-    """`Decimal.normalize()` ne sert QU'À COMPARER, jamais à afficher : il
-    rend « 1E+3 » pour 1000, et le message devient illisible au moment
-    précis où on en a besoin."""
-    return format(Decimal(str(valeur or 0)).normalize(), 'f')
+    """Un montant, pour un message adressé à quelqu'un.
+
+    DEUX DÉCIMALES, TOUJOURS, ET UNE VIRGULE.
+
+    `Decimal.normalize()` était employé ici, et la docstring disait
+    elle-même qu'il « ne sert QU'À COMPARER, jamais à afficher ». Le
+    `'f'` qui suivait fermait bien le piège de « 1E+3 » pour 1000, mais
+    pas celui des zéros de queue : 98,40 s'écrivait « 98.4 ».
+
+    Sur de l'argent, ce n'est pas un détail de présentation. « La somme
+    encaissée (90 €) est inférieure au total (98.4 €) » laisse chercher
+    un écart de quarante centimes là où il est de huit euros quarante —
+    et ces messages servent précisément à retrouver un écart.
+
+    Les huit appels sont tous des montants, chacun suivi d'un « € » dans
+    une phrase française. La virgule est donc la bonne séparation.
+    """
+    montant = Decimal(str(valeur or 0)).quantize(Decimal('0.01'))
+    return f'{montant:.2f}'.replace('.', ',')
 
 
 # ── Les mouvements de marchandises et les documents de travail ───────────────

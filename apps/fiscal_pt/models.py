@@ -601,7 +601,125 @@ class SerieFiscale(models.Model):
         return f'{self.type_document} {self.nom}/{sequentiel}'
 
 
-class DocumentFiscal(models.Model):
+# ── L'annulation d'un document émis ─────────────────────────────────────────
+#
+# CE QUI MANQUAIT, ET POURQUOI C'ÉTAIT BLOQUANT POUR LA CERTIFICATION.
+#
+# `save()` refuse toute modification d'un document émis — sa signature
+# porte sur son contenu, et la chaîne de la série en dépend. L'état « A »
+# ne pouvait donc PAS être posé sur un document existant : la seule voie de
+# correction était l'avoir, qui est légale, mais un programme certifié doit
+# aussi savoir annuler.
+#
+# L'ANNULATION NE PASSE PAS PAR `save()`, ET C'EST VOLONTAIRE.
+#
+# Elle écrit TROIS colonnes par un `update()` de requête, qui ne passe pas
+# par `save()`. L'interdiction de modifier reste donc ABSOLUE — on ne
+# l'assouplit pas, on ne la contourne pas par un drapeau qu'il faudrait
+# penser à remettre. Le contenu signé n'est jamais touché, et la signature
+# reste valable : elle couvre ce que le document DISAIT, pas son état
+# administratif, que le SAF-T porte à part dans `DocumentStatus`.
+#
+# TROIS COLONNES ET PAS DEUX. L'état, le motif, et la DATE du changement.
+# Le schéma a un `InvoiceStatusDate` distinct de `SystemEntryDate` : la
+# date d'émission ne doit pas servir de date d'annulation, sans quoi le
+# fichier déclare que le document est né annulé.
+
+
+class MixinAnnulation(models.Model):
+    """Ce qu'il faut pour annuler un document émis, sans le modifier.
+
+    Les quatre familles de documents en héritent — facturation, reçus,
+    mouvements, documents de travail — parce que le schéma leur donne à
+    chacune un `DocumentStatus` de même forme : un état, une date d'état,
+    un motif.
+    """
+
+    #: Le schéma tronque `Reason` à 50 caractères. On borne ici plutôt que
+    #: de laisser l'export couper une phrase en deux.
+    motif_etat = models.CharField(
+        'Motif du changement d’état', max_length=50, blank=True,
+        help_text='Pourquoi ce document est dans cet état. Figure dans le '
+                  'SAF-T, au champ « Reason » de son état.')
+
+    etat_change_le = models.DateTimeField(
+        'État modifié le', null=True, blank=True,
+        help_text='Date du changement d’état, distincte de la date '
+                  'd’émission. Le schéma les sépare.')
+
+    class Meta:
+        abstract = True
+
+    #: Les états depuis lesquels une annulation est possible. Surchargé par
+    #: les mouvements, qui peuvent être annulés en cours d'acheminement.
+    ETATS_ANNULABLES = ('N',)
+
+    def annuler(self, motif, quand=None):
+        """Passe ce document en état « A », sans toucher à son contenu.
+
+        LE MOTIF EST OBLIGATOIRE. Le schéma le rend optionnel, mais une
+        annulation sans justification ne vaut rien pour un contrôle : le
+        validateur de l'AT accepte le fichier, et l'inspecteur demande
+        pourquoi. Autant l'exiger au moment où quelqu'un sait répondre.
+
+        UN DOCUMENT FACTURÉ N'EST PAS ANNULABLE. Son état « F » dit qu'une
+        facture le reprend : l'annuler laisserait cette facture appuyée sur
+        un document annulé. La voie est alors l'avoir.
+
+        Rien n'est re-signé : la signature couvre le contenu, pas l'état.
+        """
+        motif = (motif or '').strip()
+        if not motif:
+            raise ValidationError(
+                'Une annulation doit dire pourquoi. Le motif figure dans le '
+                'SAF-T et c’est la seule explication que l’administration '
+                'aura : « erreur de saisie », « commande annulée par le '
+                'client »…')
+
+        if self.etat == 'A':
+            raise ValidationError(
+                f'Le document {self.numero} est déjà annulé '
+                f'(le {self.etat_change_le:%d/%m/%Y} — {self.motif_etat}).'
+                if self.etat_change_le else
+                f'Le document {self.numero} est déjà annulé.')
+
+        if self.etat not in self.ETATS_ANNULABLES:
+            raise ValidationError(
+                f'Un document en état « {self.etat} » ne s’annule pas : '
+                f'seuls les états {", ".join(self.ETATS_ANNULABLES)} le '
+                'permettent. Un document déjà facturé se corrige par un '
+                'avoir, qui laisse la trace des deux.')
+
+        quand = quand or timezone.now()
+
+        # `update()` ET NON `save()`. L'interdiction de modifier un
+        # document émis reste absolue : on ne la contourne pas, on écrit
+        # trois colonnes que la signature ne couvre pas.
+        type(self).objects.filter(pk=self.pk).update(
+            etat='A', motif_etat=motif[:50], etat_change_le=quand)
+
+        self.etat = 'A'
+        self.motif_etat = motif[:50]
+        self.etat_change_le = quand
+        return self
+
+    @property
+    def est_annule(self):
+        return self.etat == 'A'
+
+    @property
+    def compte_dans_les_totaux(self):
+        """Un document annulé reste dans le fichier et ne compte plus.
+
+        La Portaria 302/2016 pose les deux règles sur les mêmes
+        documents : `NumberOfEntries` les COMPTE, `TotalDebit` et
+        `TotalCredit` les EXCLUENT. L'annulé prouve que la série ne saute
+        aucun numéro, et son montant ne pèse plus.
+        """
+        return self.etat not in ('A', 'F')
+
+
+class DocumentFiscal(MixinAnnulation):
     """Un document émis, signé, et désormais immuable.
 
     POURQUOI « IMMUABLE » EST ICI UN MOT TECHNIQUE
@@ -923,7 +1041,7 @@ class DocumentFiscal(models.Model):
         return assinatura.mention_legale(self.signature, numero_de_certificat)
 
 
-class RecuFiscal(models.Model):
+class RecuFiscal(MixinAnnulation):
     """Un reçu émis — la table 4.4 du SAF-T, et non la 4.1.
 
     POURQUOI UN MODÈLE À PART, ET NON UN TYPE DE PLUS SUR `DocumentFiscal`
@@ -1315,7 +1433,7 @@ def _valider_les_lignes(lignes, contexte):
     return lignes, total
 
 
-class MouvementFiscal(models.Model):
+class MouvementFiscal(MixinAnnulation):
     """Un mouvement de marchandises — la table 4.2 du SAF-T.
 
     GUIA DE TRANSPORTE, GUIA DE REMESSA ET LES TROIS AUTRES. Le type décide
@@ -1358,6 +1476,17 @@ class MouvementFiscal(models.Model):
     identifiant_fournisseur = models.CharField('Fournisseur', max_length=30,
                                                blank=True)
 
+    # LE NIF ENTRE DANS LE MESSAGE SIGNÉ ET DANS LE CODE QR : il doit donc
+    # être conservé. Il ne l'était pas — `emettre()` le recevait, le
+    # signait, et le laissait tomber. Le document restait vérifiable, mais
+    # le SAF-T ne pouvait plus déclarer son client dans `MasterFiles`, et
+    # un `CustomerID` qui désigne un client non déclaré fait refuser le
+    # fichier entier.
+    nif_acquereur = models.CharField('NIF de l’acquéreur', max_length=30,
+                                     blank=True)
+    pays_acquereur = models.CharField('Pays de l’acquéreur', max_length=12,
+                                      blank=True, default='PT')
+
     debut_transport = models.DateTimeField('Début du transport')
     fin_transport = models.DateTimeField('Fin du transport', null=True,
                                          blank=True)
@@ -1393,6 +1522,10 @@ class MouvementFiscal(models.Model):
     source_id = models.PositiveIntegerField('Identifiant source', null=True,
                                             blank=True)
     cree_le = models.DateTimeField(auto_now_add=True)
+
+    #: Un transport EN COURS peut etre annule : la marchandise revient.
+    #: L'etat « T » n'existe que dans cette table.
+    ETATS_ANNULABLES = ('N', 'T')
 
     class Meta:
         verbose_name = 'Mouvement de marchandises (PT)'
@@ -1541,6 +1674,8 @@ class MouvementFiscal(models.Model):
                 etat=etat,
                 identifiant_client=identifiant_client,
                 identifiant_fournisseur=identifiant_fournisseur,
+                nif_acquereur=nif_acquereur,
+                pays_acquereur=pays_acquereur or 'PT',
                 debut_transport=debut_transport,
                 fin_transport=fin_transport,
                 commentaire=commentaire,
@@ -1581,7 +1716,7 @@ class MouvementFiscal(models.Model):
                 assinatura.MENTION_NON_FATURA]
 
 
-class DocumentDeTravailFiscal(models.Model):
+class DocumentDeTravailFiscal(MixinAnnulation):
     """Un document de travail — la table 4.3 du SAF-T.
 
     DEVIS, FICHE DE CHANTIER, BON DE COMMANDE. Le type décide de la nature

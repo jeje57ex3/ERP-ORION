@@ -93,6 +93,10 @@ LISTES = [
     ('AuditFile/Header', 'ORDRE_ENTETE'),
     ('AuditFile/Header/CompanyAddress', 'ORDRE_ADRESSE'),
     ('AuditFile/MasterFiles/Customer', 'ORDRE_CLIENT'),
+    # `Supplier` n'est pas `Customer` renomme : il porte
+    # « ShipFromAddress » la ou le client porte « ShipToAddress », et
+    # son identifiant comme son NIF ont leurs propres noms.
+    ('AuditFile/MasterFiles/Supplier', 'ORDRE_FOURNISSEUR'),
     ('AuditFile/MasterFiles/Product', 'ORDRE_PRODUIT'),
     ('AuditFile/MasterFiles/TaxTable/TaxTableEntry', 'ORDRE_TAUX'),
     ('AuditFile/SourceDocuments/SalesInvoices/Invoice', 'ORDRE_DOCUMENT'),

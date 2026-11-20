@@ -144,6 +144,57 @@
         {% endif %}
       </div>
     </div>
+
+    {% comment %}
+      L'ANNULATION, ET CE QU'ELLE N'EST PAS.
+
+      Elle ne supprime rien et ne modifie pas le contenu signé : elle pose
+      l'état « A », son motif et sa date. Le document RESTE dans le SAF-T —
+      la série ne doit sauter aucun numéro — et son montant cesse de
+      compter dans les totaux de contrôle.
+
+      En POST, parce qu'un GET qui annulerait un document fiscal partirait
+      au survol d'un lien ou au passage d'un antivirus.
+    {% endcomment %}
+    <div class="orion-card mt-3">
+      <div class="orion-card-header">
+        <h6 class="erp-card-title"><i class="bi bi-x-octagon me-2"></i>Annulation</h6>
+      </div>
+      <div class="p-3">
+        {% if recu.est_annule %}
+        <div class="alert alert-secondary small mb-0">
+          <div class="fw-semibold">Reçu annulé</div>
+          <div class="mt-1">{{ recu.motif_etat }}</div>
+          {% if recu.etat_change_le %}
+          <div class="text-muted mt-1">Le {{ recu.etat_change_le|date:"d/m/Y à H:i" }}</div>
+          {% endif %}
+          <hr class="my-2">
+          <div class="text-muted">
+            Il reste dans le SAF-T, en état « A » : la série ne doit sauter
+            aucun numéro. Son montant ne compte plus dans les totaux.
+          </div>
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'fiscal_pt:recu_annuler' recu.pk %}">
+          {% csrf_token %}
+          <label class="form-label small text-muted" for="motif-annulation">
+            Motif de l’annulation
+          </label>
+          <input type="text" name="motif" id="motif-annulation" maxlength="50"
+                 class="form-control form-control-sm mb-2" required
+                 placeholder="Erreur de saisie, commande annulée par le client…">
+          <div class="form-text small mb-2">
+            Obligatoire, et limité à 50 caractères : c’est le champ
+            « Reason » du SAF-T, et la seule explication que
+            l’administration aura.
+          </div>
+          <button type="submit" class="orion-btn orion-btn-outline sm">
+            <i class="bi bi-x-octagon me-1"></i>Annuler ce reçu
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

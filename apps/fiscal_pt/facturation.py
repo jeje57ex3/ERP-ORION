@@ -403,8 +403,8 @@ def reste_a_encaisser(invoice, document=None):
     return Decimal(str(document.total)) - deja
 
 
-def emettre_un_recu(invoice, mecanisme, montant=None,
-                    date_encaissement=None, description=''):
+def emettre_un_recu(invoice, mecanisme=None, montant=None,
+                    date_encaissement=None, description='', moyens=None):
     """Émet le reçu d'un encaissement sur une facture déjà signée.
 
     POURQUOI UN REÇU SÉPARÉ EXISTE, ALORS QUE LA FACTURE-REÇU EXISTE AUSSI
@@ -482,9 +482,23 @@ def emettre_un_recu(invoice, mecanisme, montant=None,
                 'Des reçus qui dépassent la créance attestent un argent que '
                 'personne ne devait.')
 
+        quand = date_encaissement or timezone.now().date()
+
+        # LES MOYENS, ET LE REPLI SUR UN SEUL.
+        #
+        # `moyens` l'emporte quand il est donné ; sinon on retombe sur le
+        # `mecanisme` unique, qui est la forme employée par la quasi-
+        # totalité des appels et par tous les tests existants. Les deux
+        # chemins aboutissent à la même liste, qu'une seule règle valide.
+        paiements = [dict(moyen) for moyen in (moyens or [])]
+        for paiement in paiements:
+            paiement.setdefault('date', quand)
+        if not paiements:
+            paiements = [{'mecanisme': mecanisme or 'TB', 'date': quand}]
+
         return RecuFiscal.emettre(
             serie=serie,
-            date_document=date_encaissement or timezone.now().date(),
+            date_document=quand,
             affectations=[{
                 'document': origine.numero,
                 'date': origine.date_document,
@@ -495,15 +509,17 @@ def emettre_un_recu(invoice, mecanisme, montant=None,
             nif_emetteur=parametres.nif,
             nif_acquereur=origine.nif_acquereur,
             pays_acquereur=origine.pays_acquereur,
-            # Le montant du moyen de paiement n'est PAS passé : un seul
+            # Le montant d'un moyen UNIQUE n'est PAS passé : un seul
             # paiement sans montant vaut le total du reçu, calculé depuis
             # les affectations. Le fournir ici le ferait exister en deux
             # endroits, et c'est ainsi qu'un centime d'écart entre dans
             # une quittance.
-            paiements=[{
-                'mecanisme': mecanisme,
-                'date': date_encaissement or timezone.now().date(),
-            }],
+            #
+            # DÈS DEUX MOYENS, EN REVANCHE, CHACUN PORTE LE SIEN — il n'y
+            # a pas de répartition par défaut d'un total sur plusieurs
+            # moyens. `tipos.valider_les_paiements` l'exige et vérifie que
+            # la somme égale le total, au centime.
+            paiements=paiements,
             source=invoice,
             numero_de_certificat=parametres.numero_de_certificat or '0',
         )

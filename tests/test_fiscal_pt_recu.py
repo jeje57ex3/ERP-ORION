@@ -474,10 +474,19 @@ def test_l_ecran_refuse_poliment_une_facture_non_signee(navigateur,
 
 def test_l_ecran_emet_le_recu_et_redirige_vers_lui(navigateur,
                                                    facture_signee):
+    # LE MOYEN DE PAIEMENT EST MAINTENANT UN JEU DE RANGEES, parce qu'un
+    # encaissement peut arriver par plusieurs moyens a la fois. Le cas a
+    # un seul moyen -- celui-ci -- laisse son montant vide : l'emission y
+    # met le total du recu, calcule depuis les affectations.
     reponse = navigateur.post(
         reverse('fiscal_pt:recu_sur_facture', args=[facture_signee.pk]),
-        {'mecanisme': 'NU', 'montant': '40.00',
-         'date_encaissement': '2026-03-20', 'description': 'Acompte'})
+        {'montant': '40.00', 'date_encaissement': '2026-03-20',
+         'description': 'Acompte',
+         'moyens-TOTAL_FORMS': '3', 'moyens-INITIAL_FORMS': '0',
+         'moyens-MIN_NUM_FORMS': '0', 'moyens-MAX_NUM_FORMS': '1000',
+         'moyens-0-mecanisme': 'NU', 'moyens-0-montant': '',
+         'moyens-1-mecanisme': '', 'moyens-1-montant': '',
+         'moyens-2-mecanisme': '', 'moyens-2-montant': ''})
 
     recu = RecuFiscal.objects.get()
     assert reponse.status_code == 302

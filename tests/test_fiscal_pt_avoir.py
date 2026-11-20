@@ -267,10 +267,35 @@ def test_l_avoir_va_au_debit_et_la_facture_au_credit(facture, signee,
     assert ventes.find(f'{ESPACE}TotalDebit').text == '100.00'
 
 
-def test_le_motif_figure_aussi_dans_l_etat_du_document(facture, signee,
-                                                       entreprise):
-    """`DocumentStatus/Reason` et `Line/References/Reason` : le schéma
-    attend le motif aux deux endroits."""
+def test_le_motif_de_rectification_est_dans_la_ligne_et_pas_dans_l_etat(
+        facture, signee, entreprise):
+    """LES DEUX « Reason » DU SCHÉMA NE DISENT PAS LA MÊME CHOSE.
+
+    Ce test affirmait l'inverse — « le schéma attend le motif aux deux
+    endroits » — et l'export le lui donnait. La mesure dans le XSD dit
+    autre chose : `Reason` y figure à cinq endroits, TOUS en
+    `minOccurs="0"`, et les deux qui nous concernent portent deux
+    informations distinctes.
+
+        DocumentStatus/Reason    « Motivo da alteração do estado do
+                                 documento » — pourquoi le document est
+                                 dans CET ÉTAT.
+
+        References/Reason        dans la structure décrite « referencias
+                                 a outros documentos em documentos
+                                 retificativos » — pourquoi l'avoir
+                                 rectifie la facture.
+
+    Un avoir qui vient d'être émis est en état « N » : il n'a changé
+    d'état en rien, et son `DocumentStatus` ne doit porter aucun motif.
+    Lui donner la raison de la rectification faisait déclarer un
+    changement d'état qui n'a pas eu lieu — et laissait le champ pris,
+    de sorte qu'une annulation ultérieure du même avoir n'aurait plus eu
+    d'endroit pour dire pourquoi.
+
+    Le défaut ne pouvait apparaître qu'avec l'annulation, qui n'existait
+    pas quand ce test a été écrit.
+    """
     facturation.emettre_une_note_de_credit(facture, 'Erro de faturação')
 
     racine = ET.fromstring(export.composer(
@@ -279,9 +304,43 @@ def test_le_motif_figure_aussi_dans_l_etat_du_document(facture, signee,
         f'{ESPACE}SourceDocuments/{ESPACE}SalesInvoices/{ESPACE}Invoice')
         if d.find(f'{ESPACE}InvoiceType').text == 'NC'][0]
 
-    assert avoir.find(
-        f'{ESPACE}DocumentStatus/{ESPACE}Reason').text == 'Erro de faturação'
+    # L'état ne porte aucun motif : rien n'a changé d'état.
+    assert avoir.find(f'{ESPACE}DocumentStatus/{ESPACE}Reason') is None
 
+    # La rectification, elle, est portée par la ligne.
+    assert avoir.find(
+        f'{ESPACE}Line/{ESPACE}References/{ESPACE}Reason'
+    ).text == 'Erro de faturação'
+
+
+def test_un_avoir_annule_declare_alors_son_motif_d_etat(facture, signee,
+                                                        entreprise):
+    """ET C'EST POURQUOI LE CHAMP DEVAIT ÊTRE LIBRE.
+
+    Un avoir peut être annulé comme n'importe quel document émis. Son
+    `DocumentStatus/Reason` dit alors pourquoi il l'a été, pendant que
+    `References/Reason` continue de dire pourquoi il rectifiait. Les deux
+    coexistent dans le même document, ce qui est impossible si un seul
+    champ porte les deux.
+    """
+    avoir = facturation.emettre_une_note_de_credit(facture,
+                                                   'Erro de faturação')
+    avoir.annuler('Avoir émis en double')
+
+    racine = ET.fromstring(export.composer(
+        entreprise, date(2026, 1, 1), date(2026, 12, 31)))
+    element = [d for d in racine.findall(
+        f'{ESPACE}SourceDocuments/{ESPACE}SalesInvoices/{ESPACE}Invoice')
+        if d.find(f'{ESPACE}InvoiceType').text == 'NC'][0]
+
+    assert element.find(
+        f'{ESPACE}DocumentStatus/{ESPACE}InvoiceStatus').text == 'A'
+    assert element.find(
+        f'{ESPACE}DocumentStatus/{ESPACE}Reason'
+    ).text == 'Avoir émis en double'
+    assert element.find(
+        f'{ESPACE}Line/{ESPACE}References/{ESPACE}Reason'
+    ).text == 'Erro de faturação'
 
 def test_le_saft_refuse_un_avoir_sans_reference():
     """Le garde-fou de `saft` lui-même, indépendamment des modèles : un

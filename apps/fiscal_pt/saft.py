@@ -89,6 +89,15 @@ ORDRE_CLIENT = ('CustomerID', 'AccountID', 'CustomerTaxID', 'CompanyName',
                 'Contact', 'BillingAddress', 'ShipToAddress', 'Telephone',
                 'Fax', 'Email', 'Website', 'SelfBillingIndicator')
 
+#: `Supplier` n'est pas `Customer` renommé : il porte `ShipFromAddress`
+#: là où le client porte `ShipToAddress`, et son identifiant comme son NIF
+#: ont leurs propres noms. L'ordre est donc tenu à part, et un test le
+#: compare au XSD élément par élément.
+ORDRE_FOURNISSEUR = ('SupplierID', 'AccountID', 'SupplierTaxID',
+                     'CompanyName', 'Contact', 'BillingAddress',
+                     'ShipFromAddress', 'Telephone', 'Fax', 'Email',
+                     'Website', 'SelfBillingIndicator')
+
 ORDRE_PRODUIT = ('ProductType', 'ProductCode', 'ProductGroup',
                  'ProductDescription', 'ProductNumberCode',
                  'CustomsDetails')
@@ -345,6 +354,44 @@ def client(donnees):
     return element
 
 
+def fournisseur(donnees):
+    """Un `Supplier` du référentiel.
+
+    POURQUOI IL DOIT EXISTER, ALORS QUE NOUS NE FACTURONS PAS D'ACHATS
+
+    `StockMovement` place `CustomerID` et `SupplierID` dans un choix
+    OBLIGATOIRE : un mouvement de marchandises désigne l'un ou l'autre.
+    Un bon de livraison reçu d'un fournisseur porte donc un
+    `SupplierID` — et sans `Supplier` dans `MasterFiles`, ce `SupplierID`
+    renvoie à un tiers que le fichier ne déclare nulle part.
+
+    Le XSD ne pose aucune contrainte de clé entre les deux : notre
+    validateur accepterait le fichier. C'est celui de l'AT qui vérifie
+    l'intégrité référentielle, et il refuse le fichier ENTIER.
+    """
+    _exiger(donnees, ('identifiant', 'nom'), 'Fournisseur')
+
+    element = ET.Element('Supplier')
+    _ajouter(element, ORDRE_FOURNISSEUR, {
+        'SupplierID': donnees['identifiant'],
+        'AccountID': donnees.get('compte') or 'Desconhecido',
+        # PAS DE REPLI SUR LE NIF DU CONSOMMATEUR FINAL ICI.
+        #
+        # « 999999990 » désigne un acheteur anonyme, ce qu'un fournisseur
+        # n'est jamais : on ne reçoit pas de marchandise de quelqu'un dont
+        # on ignore l'identité. Un NIF absent est une saisie incomplète,
+        # et la dire ici vaut mieux que de la masquer dans le fichier.
+        'SupplierTaxID': donnees['nif'],
+        'CompanyName': donnees['nom'],
+        'BillingAddress': _adresse('BillingAddress',
+                                   donnees.get('adresse') or {}),
+        'Telephone': donnees.get('telephone'),
+        'Email': donnees.get('courriel'),
+        'SelfBillingIndicator': donnees.get('autofacturation', '0'),
+    })
+    return element
+
+
 def produit(donnees):
     """Un `Product` du référentiel.
 
@@ -578,7 +625,13 @@ def recu(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT_DE_RECU, {
         'PaymentStatus': donnees.get('etat', 'N'),
-        'PaymentStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « PaymentStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'PaymentStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif'),
         'SourceID': donnees.get('operateur') or 'Orion',
         'SourcePayment': donnees.get('origine', 'P'),  # P = produit ici
@@ -644,7 +697,13 @@ def document(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT, {
         'InvoiceStatus': donnees.get('etat', 'N'),
-        'InvoiceStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « InvoiceStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'InvoiceStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif'),
         'SourceID': donnees.get('operateur') or 'Orion',
         'SourceBilling': donnees.get('origine', 'P'),  # P = produit ici
@@ -776,7 +835,7 @@ def _montants_d_un_recu(donnees):
 
 
 def composer(donnees_entete, clients, produits, taux, documents,
-             recus=(), mouvements=(), travaux=()):
+             recus=(), mouvements=(), travaux=(), fournisseurs=()):
     """Le fichier complet, en octets prêts à écrire.
 
     Les totaux de chaque table sont RECALCULÉS ici depuis les documents,
@@ -793,8 +852,14 @@ def composer(donnees_entete, clients, produits, taux, documents,
     racine.append(entete(donnees_entete))
 
     referentiels = ET.SubElement(racine, 'MasterFiles')
+
+    # L'ORDRE DE `MasterFiles` EST IMPOSÉ : Customer, Supplier, Product,
+    # TaxTable. Les fournisseurs viennent donc ENTRE les clients et les
+    # produits, et non à la fin où il serait plus simple de les ajouter.
     for donnees in clients:
         referentiels.append(client(donnees))
+    for donnees in (fournisseurs or ()):
+        referentiels.append(fournisseur(donnees))
     for donnees in produits:
         referentiels.append(produit(donnees))
 
@@ -1047,7 +1112,37 @@ def point_de_transport(nom_element, donnees):
     }
     _ajouter(element, ORDRE_POINT_DE_TRANSPORT, valeurs)
 
+    # DEUX FORMES D'ADRESSE SONT ACCEPTÉES, ET POUR UNE RAISON.
+    #
+    # La forme attendue est imbriquée, parce que ce point de transport
+    # porte aussi un identifiant de livraison, une date, un entrepôt et
+    # un emplacement, dont l'adresse n'est qu'une partie :
+    #
+    #     {'identifiant': 'L1', 'adresse': {'adresse': 'Rua X', ...}}
+    #
+    # Mais l'adresse PLATE est celle qu'emploie déjà l'en-tête du
+    # fichier, et c'est donc celle qu'on écrit spontanément :
+    #
+    #     {'adresse': 'Rua X', 'ville': 'Leiria', ...}
+    #
+    # Elle faisait remonter « 'str' object has no attribute 'get' » du
+    # fond d'`_adresse`, au milieu de la composition, sans dire ni quel
+    # document ni lequel des deux points du trajet. Les deux formes se
+    # distinguent sans ambiguïté : dans la forme plate, « adresse » porte
+    # du texte et non une structure.
     adresse = donnees.get('adresse')
+
+    if isinstance(adresse, str):
+        adresse = donnees
+
+    elif adresse is not None and not isinstance(adresse, dict):
+        raise ErreurSAFT(
+            f'Le point de transport « {nom_element} » porte une adresse '
+            f'qui n’en est pas une ({type(adresse).__name__}). Attendu : '
+            'soit une adresse complète — « adresse », « ville », '
+            '« code_postal », « pays » — soit ces quatre clés rangées '
+            'sous « adresse ».')
+
     if adresse:
         element.append(_adresse('Address', adresse))
     return element
@@ -1193,7 +1288,13 @@ def mouvement(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT_DE_MOUVEMENT, {
         'MovementStatus': donnees['etat'],
-        'MovementStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « MovementStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'MovementStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif_etat') or None,
         'SourceID': donnees['emetteur'],
         'SourceBilling': donnees.get('origine', 'P'),
@@ -1261,7 +1362,13 @@ def document_de_travail(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT_DE_TRAVAIL, {
         'WorkStatus': donnees['etat'],
-        'WorkStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « WorkStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'WorkStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif_etat') or None,
         'SourceID': donnees['emetteur'],
         'SourceBilling': donnees.get('origine', 'P'),

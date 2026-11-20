@@ -13,13 +13,24 @@ l'administration doit correspondre à la signature qui l'accompagne, pas
 à l'état actuel du dossier.
 """
 
+from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 
 from . import saft
-from .models import DocumentFiscal, ParametresFiscauxPT, RecuFiscal
+from .models import (DocumentDeTravailFiscal, DocumentFiscal,
+                     MouvementFiscal, ParametresFiscauxPT,
+                     RecuFiscal)
 from .taxas import PALIERS_PAR_REGION
+
+#: `SourceID` — l'utilisateur qui a émis le document. Le schéma le veut
+#: dans les quatre tables, et les documents ne le stockent pas : les
+#: factures employaient déjà la valeur de repli de `saft.py`. On la nomme
+#: ici pour que les quatre tables du MÊME fichier déclarent la même
+#: chose, au lieu que deux d'entre elles l'exigent et que les deux autres
+#: la devinent.
+OPERATEUR = 'Orion'
 
 
 def _client_du_document(document):
@@ -69,6 +80,26 @@ def rassembler(company, debut, fin):
                      date_document__gte=debut, date_document__lte=fin)
              .select_related('serie')
              .order_by('date_document', 'numero_sequentiel'))
+
+    # LES TABLES 4.2 ET 4.3, QUE RIEN NE LISAIT.
+    #
+    # `saft.py` sait les composer depuis des dictionnaires, et un test les
+    # valide contre le XSD. Mais la lecture en base n'existait pas : le
+    # fichier reellement produit par l'ecran d'export ne portait aucun
+    # document de transport ni aucun devis, alors que l'entreprise en
+    # emet. Un fichier remis a l'AT declarait donc une activite sans ses
+    # documents de circulation.
+    mouvements = (MouvementFiscal.objects
+                  .filter(company=company,
+                          date_document__gte=debut, date_document__lte=fin)
+                  .select_related('serie')
+                  .order_by('date_document', 'numero_sequentiel'))
+
+    travaux = (DocumentDeTravailFiscal.objects
+               .filter(company=company,
+                       date_document__gte=debut, date_document__lte=fin)
+               .select_related('serie')
+               .order_by('date_document', 'numero_sequentiel'))
 
     entete = {
         'nif': parametres.nif,
@@ -146,7 +177,17 @@ def rassembler(company, debut, fin):
             'date': document.date_document,
             'type': document.serie.type_document,
             'etat': document.etat,
-            'motif': document.motif_rectification,
+            # LE MOTIF DE L'ETAT, ET NON CELUI DE LA RECTIFICATION.
+            #
+            # Ce champ alimente « Reason » DANS `DocumentStatus` : il dit
+            # pourquoi le document est dans cet etat -- pourquoi il a ete
+            # annule. On y passait `motif_rectification`, qui dit pourquoi
+            # un AVOIR rectifie une facture : deux informations
+            # differentes, declarees au meme endroit. La rectification a
+            # sa place a elle, dans le bloc `References` de la ligne, ou
+            # `saft.references()` la pose deja.
+            'motif': document.motif_etat,
+            'date_etat': document.etat_change_le,
             'horodatage': document.horodatage,
             'client': identifiant,
             'lignes': lignes,
@@ -182,6 +223,8 @@ def rassembler(company, debut, fin):
             'date': recu.date_document,
             'type': recu.serie.type_document,
             'etat': recu.etat,
+            'motif': recu.motif_etat,
+            'date_etat': recu.etat_change_le,
             'horodatage': recu.horodatage,
             'client': identifiant,
             'affectations': [{
@@ -197,6 +240,182 @@ def rassembler(company, debut, fin):
             'total': recu.total,
         })
 
+    # ── Les mouvements de marchandises (table 4.2) ──────────────────────
+    #
+    # LEURS LIGNES ENRICHISSENT LE MÊME RÉFÉRENTIEL. Un produit transporté
+    # et un taux appliqué sur un bon de livraison doivent figurer dans
+    # `MasterFiles` comme ceux d'une facture : le validateur refuse un
+    # `ProductCode` ou un `TaxCode` qu'aucune table ne déclare, et il ne
+    # dit pas lequel des quatre blocs de documents l'a employé.
+    sortie_des_mouvements = []
+    fournisseurs = {}
+
+    for mouvement in mouvements:
+        region = mouvement.serie.region
+
+        # LE CLIENT D'UN MOUVEMENT N'EST PAS CELUI D'UNE FACTURE.
+        #
+        # `_client_du_document` déduit l'identifiant du NIF ; ici
+        # l'identifiant est saisi tel quel, parce que le schéma place
+        # `CustomerID` et `SupplierID` dans un choix obligatoire et qu'un
+        # mouvement peut désigner un fournisseur, cas qu'une facture ne
+        # connaît pas. On déclare donc le tiers sous l'identifiant
+        # réellement écrit dans le document — sans quoi le fichier
+        # renverrait à un client absent de `MasterFiles`.
+        tiers = (mouvement.identifiant_client
+                 or mouvement.identifiant_fournisseur)
+        adresse = {'adresse': 'Desconhecido', 'ville': 'Desconhecido',
+                   'code_postal': '0000-000',
+                   'pays': mouvement.pays_acquereur or 'PT'}
+
+        if mouvement.identifiant_client:
+            clients.setdefault(tiers, {
+                'identifiant': tiers,
+                'nom': tiers,
+                'nif': mouvement.nif_acquereur or saft.NIF_CONSOMMATEUR_FINAL,
+                'adresse': adresse,
+            })
+        else:
+            # UN FOURNISSEUR, ET NON UN CLIENT DE PLUS.
+            #
+            # `StockMovement` place les deux dans un choix obligatoire, et
+            # `MasterFiles` a une table pour chacun. Déclarer un
+            # fournisseur parmi les clients ferait un fichier dont le
+            # `SupplierID` ne renvoie à rien.
+            #
+            # Et pas de repli sur « 999999990 » : ce NIF désigne un
+            # acheteur anonyme, ce qu'un fournisseur n'est jamais.
+            fournisseurs.setdefault(tiers, {
+                'identifiant': tiers,
+                'nom': tiers,
+                'nif': mouvement.nif_acquereur or 'Desconhecido',
+                'adresse': adresse,
+            })
+
+        lignes = []
+        for figee in mouvement.lignes:
+            code = figee.get('reference') or figee['designation'][:50]
+            produits.setdefault(code, {
+                'code': code,
+                'description': figee['designation'],
+            })
+
+            propre = {
+                'reference': code,
+                'designation': figee['designation'],
+                'quantite': Decimal(figee['quantite']),
+                'unite': figee.get('unite') or 'UN',
+                'prix_unitaire': Decimal(figee['prix_unitaire']),
+                'montant': Decimal(figee['montant']),
+                'description': figee.get('description') or '',
+                'region': region,
+            }
+            if figee.get('taux') is not None:
+                propre['taux'] = Decimal(figee['taux'])
+                propre['code_de_taux'] = figee.get('code_de_taux') or 'NOR'
+                taux.setdefault((propre['code_de_taux'], region),
+                                propre['taux'])
+            if figee.get('motif_exoneration'):
+                propre['motif_exoneration'] = figee['motif_exoneration']
+                propre['code_exoneration'] = figee.get('code_exoneration') or ''
+            lignes.append(propre)
+
+        sortie_des_mouvements.append({
+            'numero': mouvement.numero,
+            'atcud': mouvement.atcud,
+            'signature': mouvement.signature,
+            'version_cle': mouvement.version_cle,
+            'date': mouvement.date_document,
+            'type_mouvement': mouvement.type_mouvement,
+            'etat': mouvement.etat,
+            'motif_etat': mouvement.motif_etat,
+            'date_etat': mouvement.etat_change_le,
+            'horodatage': mouvement.horodatage,
+            'emetteur': OPERATEUR,
+            'client': mouvement.identifiant_client or None,
+            'fournisseur': mouvement.identifiant_fournisseur or None,
+            'debut_transport': mouvement.debut_transport,
+            'fin_transport': mouvement.fin_transport,
+            'origine_envoi': mouvement.origine_envoi or None,
+            'destination': mouvement.destination or None,
+            'commentaire': mouvement.commentaire,
+            'lignes': lignes,
+            'total_base': mouvement.total_base,
+            'total_taxes': mouvement.total_taxes,
+            'total': mouvement.total,
+        })
+
+    # ── Les documents de travail (table 4.3) ────────────────────────────
+    #
+    # `CustomerID` y est unique et obligatoire — pas de choix avec un
+    # fournisseur. Et `TaxPointDate` est exigé sur chaque ligne dans cette
+    # table seule : à défaut de date figée, la date du document, qui est la
+    # réponse juste dans la quasi-totalité des cas.
+    sortie_des_travaux = []
+
+    for travail in travaux:
+        region = travail.serie.region
+        identifiant = travail.identifiant_client
+
+        clients.setdefault(identifiant, {
+            'identifiant': identifiant,
+            'nom': identifiant,
+            'nif': travail.nif_acquereur or saft.NIF_CONSOMMATEUR_FINAL,
+            'adresse': {'adresse': 'Desconhecido', 'ville': 'Desconhecido',
+                        'code_postal': '0000-000',
+                        'pays': travail.pays_acquereur or 'PT'},
+        })
+
+        lignes = []
+        for figee in travail.lignes:
+            code = figee.get('reference') or figee['designation'][:50]
+            produits.setdefault(code, {
+                'code': code,
+                'description': figee['designation'],
+            })
+
+            propre = {
+                'reference': code,
+                'designation': figee['designation'],
+                'quantite': Decimal(figee['quantite']),
+                'unite': figee.get('unite') or 'UN',
+                'prix_unitaire': Decimal(figee['prix_unitaire']),
+                'montant': Decimal(figee['montant']),
+                'description': figee.get('description') or '',
+                'region': region,
+                'date_tva': (date.fromisoformat(figee['date_tva'])
+                             if figee.get('date_tva')
+                             else travail.date_document),
+            }
+            if figee.get('taux') is not None:
+                propre['taux'] = Decimal(figee['taux'])
+                propre['code_de_taux'] = figee.get('code_de_taux') or 'NOR'
+                taux.setdefault((propre['code_de_taux'], region),
+                                propre['taux'])
+            if figee.get('motif_exoneration'):
+                propre['motif_exoneration'] = figee['motif_exoneration']
+                propre['code_exoneration'] = figee.get('code_exoneration') or ''
+            lignes.append(propre)
+
+        sortie_des_travaux.append({
+            'numero': travail.numero,
+            'atcud': travail.atcud,
+            'signature': travail.signature,
+            'version_cle': travail.version_cle,
+            'date': travail.date_document,
+            'type_travail': travail.type_travail,
+            'etat': travail.etat,
+            'motif_etat': travail.motif_etat,
+            'date_etat': travail.etat_change_le,
+            'horodatage': travail.horodatage,
+            'emetteur': OPERATEUR,
+            'client': identifiant,
+            'lignes': lignes,
+            'total_base': travail.total_base,
+            'total_taxes': travail.total_taxes,
+            'total': travail.total,
+        })
+
     # La table des taux doit couvrir tous les codes employés. On l'enrichit
     # des paliers de la région même s'ils n'ont pas servi : le validateur
     # accepte une table plus large, jamais une table incomplète.
@@ -209,14 +428,16 @@ def rassembler(company, debut, fin):
              for (code, region), pourcentage in sorted(taux.items())]
 
     return (entete, list(clients.values()), list(produits.values()), table,
-            sortie, sortie_des_recus)
+            sortie, sortie_des_recus, sortie_des_mouvements,
+            sortie_des_travaux, list(fournisseurs.values()))
 
 
 def composer(company, debut, fin):
     """Le fichier SAF-T de la période, en octets."""
-    entete, clients, produits, taux, documents, recus = rassembler(
-        company, debut, fin)
-    return saft.composer(entete, clients, produits, taux, documents, recus)
+    (entete, clients, produits, taux, documents, recus, mouvements,
+     travaux, fournisseurs) = rassembler(company, debut, fin)
+    return saft.composer(entete, clients, produits, taux, documents, recus,
+                         mouvements, travaux, fournisseurs)
 
 
 def nom_de_fichier(company, debut, fin):

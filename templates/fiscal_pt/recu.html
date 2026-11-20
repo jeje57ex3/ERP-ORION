@@ -47,11 +47,49 @@
               dépassent la créance attestent un argent que personne ne devait.
             </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="{{ formulaire.mecanisme.id_for_label }}">{{ formulaire.mecanisme.label }}</label>
-            {{ formulaire.mecanisme }}
-            {% if formulaire.mecanisme.errors %}<div class="text-danger small">{{ formulaire.mecanisme.errors }}</div>{% endif %}
-            <div class="form-text">Le SAF-T n'accepte que ces quatorze codes.</div>
+          {% comment %} PLUSIEURS MOYENS DE PAIEMENT, ET POURQUOI.
+
+             Un acompte regle moitie en especes, moitie par carte est
+             ordinaire. Le modele stocke une LISTE de paiements, la regle
+             la parcourt, le SAF-T emet un bloc « Payment » par element :
+             les trois couches l'acceptaient deja, et cet ecran seul n'en
+             offrait qu'un.
+
+             Le montant de la PREMIERE rangee peut rester vide : un moyen
+             unique sans montant vaut le total du recu, que l'emission
+             calcule depuis les affectations qu'elle vient de figer. Des
+             deux moyens, chacun porte le sien. {% endcomment %}
+          <div class="col-12">
+            <label class="form-label">Moyens de paiement</label>
+            {{ moyens.management_form }}
+            {% if moyens.non_form_errors %}
+            <div class="text-danger small mb-2">{{ moyens.non_form_errors }}</div>
+            {% endif %}
+            <div id="moyens-de-paiement">
+              {% for moyen in moyens %}
+              <div class="row g-2 align-items-start mb-2 moyen-de-paiement">
+                <div class="col-7">
+                  {{ moyen.mecanisme }}
+                </div>
+                <div class="col-5">
+                  <div class="input-group input-group-sm">
+                    {{ moyen.montant }}
+                    <span class="input-group-text">&euro;</span>
+                  </div>
+                </div>
+                {% if moyen.errors %}
+                <div class="col-12"><div class="text-danger small">{{ moyen.errors }}</div></div>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            <div class="form-text">
+              Le SAF-T n'accepte que ces quatorze codes. Laissez le montant vide
+              si tout l'encaissement passe par un seul moyen : l'emission y met
+              le total du recu, calcule depuis les affectations. Des deux moyens,
+              chacun doit porter le sien, et leur somme doit egaler le total au
+              centime.
+            </div>
           </div>
           <div class="col-md-6">
             <label class="form-label" for="{{ formulaire.date_encaissement.id_for_label }}">{{ formulaire.date_encaissement.label }}</label>
