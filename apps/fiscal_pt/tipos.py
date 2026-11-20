@@ -168,8 +168,18 @@ def valider_l_etat(etat, type_document):
     fois : il se cherche partout où une énumération du schéma entre dans
     le logiciel sans passer par un formulaire.
     """
-    admis = (CODES_D_ETAT_DE_RECU if est_un_recu(type_document)
-             else CODES_D_ETAT_DE_FACTURATION)
+    # QUATRE FAMILLES, QUATRE LISTES. Elles se ressemblent assez pour
+    # qu'on soit tente de n'en tenir qu'une, et le « T » de la table 4.2
+    # n'existe dans aucune autre. Voir les listes plus bas dans ce
+    # module, relevees une par une dans le XSD.
+    if est_un_recu(type_document):
+        admis = CODES_D_ETAT_DE_RECU
+    elif est_un_mouvement(type_document):
+        admis = CODES_D_ETAT_DE_MOUVEMENT
+    elif est_un_document_de_travail(type_document):
+        admis = CODES_D_ETAT_DE_TRAVAIL
+    else:
+        admis = CODES_D_ETAT_DE_FACTURATION
 
     if etat not in admis:
         raise RegleDeType(
@@ -209,7 +219,12 @@ CODES_DE_RECU = tuple(code for code, _ in TYPES_DE_RECU)
 #: Les types qu'une SÉRIE peut porter. Un reçu se numérote dans une série
 #: déclarée à l'AT comme n'importe quel document, avec son propre code de
 #: validation et son propre compteur : c'est la même table.
-TYPES_DE_SERIE = TYPES_DE_DOCUMENT + TYPES_DE_RECU
+#: Defini a la FIN de ce module, apres les quatre familles qu'il reunit.
+#: Une affectation de module s'evalue a l'import : ecrite ici, elle levait
+#: « NameError: name 'TYPES_DE_MOUVEMENT' is not defined » et empechait
+#: Django de charger l'application. Les CORPS de fonction, eux, resolvent
+#: leurs noms a l'appel et peuvent donc citer ce qui vient plus bas.
+TYPES_DE_SERIE = ()  # complete en fin de module
 
 #: Les types de documents dont le RÈGLEMENT fait SORTIR l'argent, donc
 #: dont la ligne de reçu va au débit.
@@ -683,3 +698,168 @@ def _lisible(valeur):
     rend « 1E+3 » pour 1000, et le message devient illisible au moment
     précis où on en a besoin."""
     return format(Decimal(str(valeur or 0)).normalize(), 'f')
+
+
+# ── Les mouvements de marchandises et les documents de travail ───────────────
+#
+# DEUX TABLES DE PLUS, ET QUATRE LISTES D'ÉTATS QUI NE SE RESSEMBLENT QUE
+# DE LOIN.
+#
+# Le schéma de l'AT énumère un état par table, et les quatre listes
+# diffèrent — relevées une par une dans `SAFTPT1.04_01.xsd` :
+#
+#     InvoiceStatus   (4.1)  N  S  A  R  F
+#     MovementStatus  (4.2)  N  T  A  F  R
+#     WorkStatus      (4.3)  N  A  F
+#     PaymentStatus   (4.4)  N  A
+#
+# Le « T » de la table 4.2 n'existe dans aucune autre : c'est le document
+# de transport dont les biens sont en cours d'acheminement. Tenir une
+# seule liste pour les quatre ferait passer de notre côté un état que le
+# schéma refuse — sur un document déjà signé, et en bloquant le fichier
+# entier. C'est le même piège que les deux listes de types rectificatifs,
+# à deux endroits de plus.
+
+#: Les types de mouvement, relevés dans l'énumération « MovementType ».
+#:
+#: Les cinq sont offerts, et c'est un choix MOTIVÉ par le schéma : il les
+#: compose à l'identique — même séquence, mêmes cardinalités — et AUCUN de
+#: ses deux `xs:assert` ne les distingue. C'est la différence matérielle
+#: avec le reçu « RC », refusé plus haut : là, un assert impose à chaque
+#: ligne un bloc `Tax` que nous ne produisons pas, donc le type serait
+#: accepté chez nous et refusé par l'AT. Ici, rien de tel. Refuser un type
+#: que nous savons composer reviendrait à décider à la place de
+#: l'exploitant QUAND chacun est légal, ce qui n'est pas notre rôle.
+TYPES_DE_MOUVEMENT = (
+    ('GR', 'Guia de remessa'),
+    ('GT', 'Guia de transporte'),
+    ('GA', 'Guia de movimentação de ativos próprios'),
+    ('GC', 'Guia de consignação'),
+    ('GD', 'Guia ou nota de devolução'),
+)
+
+CODES_DE_MOUVEMENT = tuple(code for code, _ in TYPES_DE_MOUVEMENT)
+
+#: Les types de documents de travail, relevés dans « WorkType ». Quatorze,
+#: et la même raison de les offrir tous : le schéma les compose à
+#: l'identique et aucun de ses cinq `xs:assert` ne les distingue.
+#:
+#: « OR » est le devis, « FO » la fiche de chantier, « NE » le bon de
+#: commande : les trois que cet ERP produit déjà sous un autre nom.
+TYPES_DE_TRAVAIL = (
+    ('CM', 'Consultas de mesa'),
+    ('CC', 'Crédito de consignação'),
+    ('FC', 'Fatura de consignação (art. 38.º CIVA)'),
+    ('FO', 'Folhas de obra'),
+    ('NE', 'Nota de encomenda'),
+    ('OU', 'Outros'),
+    ('OR', 'Orçamentos'),
+    ('PF', 'Pró-forma'),
+    ('DC', 'Documentos de conferência'),
+    ('RP', 'Prémio ou recibo de prémio'),
+    ('RE', 'Estorno ou recibo de estorno'),
+    ('CS', 'Imputação a co-seguradoras'),
+    ('LD', 'Imputação a co-seguradora líder'),
+    ('RA', 'Resseguro aceite'),
+)
+
+CODES_DE_TRAVAIL = tuple(code for code, _ in TYPES_DE_TRAVAIL)
+
+#: Les états d'un MOUVEMENT. Cinq, dont un « T » unique au schéma.
+ETATS_DE_MOUVEMENT = (
+    ('N', 'Normal'),
+    ('T', 'Biens en cours d’acheminement'),
+    ('A', 'Annulé'),
+    ('F', 'Facturé'),
+    ('R', 'Résumé d’autres documents'),
+)
+
+CODES_D_ETAT_DE_MOUVEMENT = tuple(code for code, _ in ETATS_DE_MOUVEMENT)
+
+#: Les états d'un DOCUMENT DE TRAVAIL. Trois seulement : ni « S », ni « R ».
+ETATS_DE_TRAVAIL = (
+    ('N', 'Normal'),
+    ('A', 'Annulé'),
+    ('F', 'Facturé'),
+)
+
+CODES_D_ETAT_DE_TRAVAIL = tuple(code for code, _ in ETATS_DE_TRAVAIL)
+
+
+def est_un_mouvement(type_document):
+    """Ce type relève-t-il de la table 4.2 du SAF-T ?"""
+    return type_document in CODES_DE_MOUVEMENT
+
+
+def est_un_document_de_travail(type_document):
+    """Ce type relève-t-il de la table 4.3 du SAF-T ?"""
+    return type_document in CODES_DE_TRAVAIL
+
+
+def table_du_type(type_document):
+    """La table du SAF-T où ce type se déclare, pour les messages.
+
+    Quatre tables, quatre jeux de règles. Nommer la table dans un refus
+    fait gagner le temps qu'on passerait à chercher laquelle s'applique.
+    """
+    if est_un_recu(type_document):
+        return '4.4 (Payments)'
+    if est_un_mouvement(type_document):
+        return '4.2 (MovementOfGoods)'
+    if est_un_document_de_travail(type_document):
+        return '4.3 (WorkingDocuments)'
+    return '4.1 (SalesInvoices)'
+
+
+def valider_le_type_de_mouvement(type_mouvement):
+    """Refuse un type de mouvement hors énumération, AVANT la signature."""
+    if type_mouvement not in CODES_DE_MOUVEMENT:
+        raise RegleDeType(
+            f'« {type_mouvement} » n’est pas un type de mouvement de '
+            f'marchandises. Le schéma en énumère '
+            f'{len(CODES_DE_MOUVEMENT)} : {", ".join(CODES_DE_MOUVEMENT)}.')
+    return type_mouvement
+
+
+def valider_le_type_de_travail(type_travail):
+    """Refuse un type de document de travail hors énumération."""
+    if type_travail not in CODES_DE_TRAVAIL:
+        raise RegleDeType(
+            f'« {type_travail} » n’est pas un type de document de travail. '
+            f'Le schéma en énumère {len(CODES_DE_TRAVAIL)} : '
+            f'{", ".join(CODES_DE_TRAVAIL)}.')
+    return type_travail
+
+
+#: Les types de mouvement dont la ligne va au DÉBIT.
+#:
+#: Un retour fait rentrer la marchandise : la ligne va au débit. Tout
+#: autre mouvement la fait sortir, donc au crédit.
+#:
+#: TROISIÈME LISTE DE SENS DE CE MODULE, et pour une troisième raison.
+#: `saft.TYPES_AU_DEBIT` classe les documents de facturation d'après leur
+#: effet sur le chiffre d'affaires ; `TYPES_REGLES_AU_DEBIT` classe les
+#: règlements d'après le sens de l'argent ; celle-ci classe les mouvements
+#: d'après le sens de la MARCHANDISE. Les trois se ressemblent et ne
+#: parlent pas de la même chose. Un test échoue si quelqu'un les réunit.
+MOUVEMENTS_AU_DEBIT = ('GD',)
+
+
+def mouvement_au_debit(type_mouvement):
+    """La ligne de ce mouvement va-t-elle au débit ?"""
+    if not type_mouvement:
+        return False
+    valider_le_type_de_mouvement(type_mouvement)
+    return type_mouvement in MOUVEMENTS_AU_DEBIT
+
+
+#: Les types qu'une SERIE peut porter, les quatre familles reunies.
+#:
+#: Defini ICI et non plus haut : une affectation de module s'evalue a
+#: l'import, et les tuples de mouvement et de travail sont declares
+#: au-dessus de cette ligne mais SOUS la premiere definition. Ecrite
+#: plus haut, elle levait une NameError au chargement de l'application.
+TYPES_DE_SERIE = (TYPES_DE_DOCUMENT + TYPES_DE_RECU
+                  + TYPES_DE_MOUVEMENT + TYPES_DE_TRAVAIL)
+
+CODES_DE_SERIE = tuple(code for code, _ in TYPES_DE_SERIE)
