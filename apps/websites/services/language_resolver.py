@@ -7,18 +7,32 @@ Priorite : prefixe URL > parametre GET ?lang= > session > navigateur > langue pa
 from django.utils import translation as dj_translation
 
 
+#: La cle de session que `set_site_language` -- la vue derriere le bouton
+#: de traduction -- ecrit, et que `OrionLanguageMiddleware` lit. Ce module
+#: employait la sienne, « site_<pk>_lang ». Tant qu'il dormait, la
+#: divergence ne coutait rien ; le brancher sans lire CELLE-CI aurait rendu
+#: le bouton de traduction inoperant -- on aurait clique sur une langue, et
+#: la page serait revenue a la langue par defaut du site.
+CLE_DE_SESSION = '_language'
+
+
 def get_website_language_from_request(request, website):
     """Retourne le code langue a utiliser pour un site web donne."""
     # 1. Parametre GET ?lang=
     lang = request.GET.get('lang', '').strip()
     if lang and _is_enabled(lang, website):
-        request.session[f'site_{website.pk}_lang'] = lang
+        # On ecrit la cle PARTAGEE, pour que le choix survive a la page
+        # suivante qu'il passe ou non par cette fonction.
+        request.session[CLE_DE_SESSION] = lang
         return lang
 
-    # 2. Session specifique au site
-    lang = request.session.get(f'site_{website.pk}_lang', '')
-    if lang and _is_enabled(lang, website):
-        return lang
+    # 2. Session. Les DEUX cles sont lues : la partagee d'abord, puis
+    #    l'ancienne cle par site, pour ne pas perdre une session en cours
+    #    au moment de la mise a jour.
+    for cle in (CLE_DE_SESSION, f'site_{website.pk}_lang'):
+        lang = request.session.get(cle, '')
+        if lang and _is_enabled(lang, website):
+            return lang
 
     # 3. Accept-Language navigateur (si auto_redirect actif)
     try:
