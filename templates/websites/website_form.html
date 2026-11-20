@@ -51,6 +51,23 @@
               <label class="form-label form-label-sm">{% trans "Adresse" %}</label>
               {{ form.address }}
             </div>
+            {% comment %}
+              CE GABARIT NOMME SES CHAMPS UN PAR UN. Ajouter un champ au
+              formulaire ne le fait donc PAS apparaitre ici : il faut aussi
+              l'ecrire ci-dessous. « country » etait dans le formulaire
+              depuis le debut et n'a jamais ete affiche -- un site cree pour
+              une entreprise portugaise restait donc marque « France » sans
+              qu'aucun ecran permette de le corriger.
+            {% endcomment %}
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">{% trans "Pays" %}</label>
+              {{ form.country }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label form-label-sm">{% trans "Zone d'intervention" %}</label>
+              {{ form.service_area }}
+              <div class="form-text small">{{ form.service_area.help_text }}</div>
+            </div>
 
             <div class="col-md-6">
               <label class="form-label form-label-sm">{% trans "Logo" %}</label>

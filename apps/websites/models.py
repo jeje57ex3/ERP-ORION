@@ -104,6 +104,21 @@ class Website(models.Model):
     contact_email = models.EmailField('Email contact', blank=True)
     contact_phone = models.CharField('Téléphone', max_length=20, blank=True)
     address = models.TextField('Adresse', blank=True)
+    # LA ZONE D'INTERVENTION N'AVAIT AUCUN CHAMP, et rien sur le site ne
+    # disait donc où l'entreprise travaille. L'adresse ne le dit pas : une
+    # entreprise installée à Leiria peut intervenir dans toute la région,
+    # ou au contraire sur une seule commune, et un visiteur venu d'ailleurs
+    # n'a aucun moyen de le deviner.
+    #
+    # Champ libre et non liste de communes : la façon de délimiter une zone
+    # varie trop — « région de Leiria », « 30 km autour de Pombal », « tout
+    # le centre du Portugal ». Une liste fermée obligerait à la compléter
+    # avant chaque nouveau client, et c'est le genre d'étape qu'on saute.
+    service_area = models.CharField(
+        "Zone d'intervention", max_length=200, blank=True,
+        help_text="Là où l'entreprise intervient. Affiché au pied de chaque "
+                  "page du site et sur la page de contact. Par exemple : "
+                  "région de Leiria, Portugal.")
     theme = models.ForeignKey(WebsiteTheme, on_delete=models.SET_NULL, null=True, blank=True)
     language = models.CharField('Langue', max_length=5, choices=LANGUAGE_CHOICES, default='fr')
     is_active = models.BooleanField('Actif', default=True)

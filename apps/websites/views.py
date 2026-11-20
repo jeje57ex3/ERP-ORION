@@ -15,6 +15,7 @@ from .forms import (
     WebsiteAdminForm, WebsiteShowcaseCreateForm, WebsiteStoreCreateForm,
     WebsitePageAdminForm, BlogPostAdminForm,
     StoreCategoryForm, StoreProductForm, StoreOrderStatusForm,
+    WebsiteLanguagesForm,
 )
 
 
@@ -216,6 +217,43 @@ def website_edit(request, pk):
 
 
 @login_required
+def website_languages(request, pk):
+    """Les langues du site, et le bouton de traduction qui les affiche.
+
+    POURQUOI CET ÉCRAN. Les langues d'un site se réglaient dans l'admin
+    Django, et la table des langues elle-même n'était peuplée que par
+    `manage.py seed_languages`. Il fallait donc un terminal pour qu'un site
+    propose une langue — or les réglages d'exploitation doivent tous être
+    accessibles depuis l'interface.
+
+    L'ALLEMAND MANQUAIT POUR TROIS RAISONS SUPERPOSÉES : la langue n'était
+    créée que par la commande, elle était semée INACTIVE, et elle ne
+    figurait pas dans les cinq langues par défaut d'un site — qui
+    contenaient de l'italien à sa place. La migration
+    `translations/0002_cinq_langues_du_site` répare les deux premières ;
+    cet écran rend la troisième corrigible sans attendre une migration.
+    """
+    from apps.translations.models import WebsiteLanguageSettings
+
+    company = request.current_company
+    website = get_object_or_404(Website, pk=pk, company=company)
+    reglages, _cree = WebsiteLanguageSettings.objects.get_or_create(
+        website=website)
+
+    form = WebsiteLanguagesForm(instance=reglages)
+    if request.method == 'POST':
+        form = WebsiteLanguagesForm(request.POST, instance=reglages)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Langues du site mises à jour.')
+            return redirect('websites:website_languages', pk=pk)
+
+    return render(request, 'websites/website_languages.html', {
+        'website': website, 'form': form, 'reglages': reglages,
+    })
+
+
+@login_required
 def website_publish(request, pk):
     company = request.current_company
     site = get_object_or_404(Website, pk=pk, company=company)
@@ -372,6 +410,56 @@ def message_list(request):
         'messages_list': qs, 'status': status,
         'status_choices': ContactMessage.STATUS_CHOICES, 'new_count': new_count,
     })
+
+
+@login_required
+def message_detail(request, pk):
+    """Le corps du message, qu'aucun ecran ne montrait.
+
+    LE DEFAUT. `message_list` affiche le nom, le courriel, le sujet, le
+    site, le statut et la date -- jamais `message`. Aucune vue de detail
+    n'existait, et le corps du message ne sortait de la base que tronque a
+    200 caracteres dans la notification de l'ERP. On apprenait donc qu'on
+    avait recu un message, de qui, a quelle heure, et pas ce qu'il disait.
+
+    LE BORNAGE est celui de la liste : `website__company`. Sans lui,
+    changer le numero dans l'adresse donnerait le courrier adresse au site
+    d'une AUTRE entreprise.
+
+    MARQUER LU SUR UN GET, et c'est volontaire ici. Ailleurs dans cet ERP
+    un GET qui modifie est refuse -- il se declencherait au survol d'un
+    lien ou au passage d'un antivirus. L'exception tient parce que l'ecrit
+    enregistre est exactement ce que le geste signifie : ouvrir le
+    message. L'operation est idempotente, elle ne touche qu'un etat de
+    lecture, et elle ne s'applique qu'une fois, depuis « nouveau ». Un
+    changement de statut, lui, passe par POST.
+    """
+    company = request.current_company
+    msg = get_object_or_404(ContactMessage, pk=pk, website__company=company)
+
+    if request.method == 'POST':
+        demande = request.POST.get('status', '')
+        # Les `choices` de Django ne sont verifies qu'au `full_clean`, et
+        # `save()` ne l'appelle pas : un statut arbitraire s'ecrirait tel
+        # quel en base, et la liste n'afficherait plus aucun libelle pour
+        # cette ligne. Le controle est donc fait ici, explicitement.
+        if demande not in dict(ContactMessage.STATUS_CHOICES):
+            messages.error(request, "Statut inconnu : rien n'a ete change.")
+        else:
+            msg.status = demande
+            if demande != 'new' and msg.read_at is None:
+                msg.read_at = timezone.now()
+            msg.save(update_fields=['status', 'read_at'])
+            messages.success(
+                request, f'Message marque « {msg.get_status_display()} ».')
+        return redirect('websites:message_detail', pk=pk)
+
+    if msg.status == 'new':
+        msg.status = 'read'
+        msg.read_at = timezone.now()
+        msg.save(update_fields=['status', 'read_at'])
+
+    return render(request, 'websites/message_detail.html', {'msg': msg})
 
 
 @login_required

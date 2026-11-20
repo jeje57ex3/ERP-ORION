@@ -31,9 +31,21 @@
       <tbody>
         {% for msg in messages_list %}
         <tr>
-          <td class="small fw-semibold">{{ msg.name }}</td>
+          <td class="small fw-semibold">
+            {% comment %}
+              La ligne menait nulle part : il n'existait aucune vue de
+              detail, et cette liste ne montre pas `msg.message`. On voyait
+              donc qu'un message etait arrive, et jamais ce qu'il disait.
+            {% endcomment %}
+            <a href="{% url 'websites:message_detail' msg.pk %}" class="text-decoration-none">{{ msg.name }}</a>
+          </td>
           <td class="small"><a href="mailto:{{ msg.email }}">{{ msg.email }}</a></td>
-          <td class="small text-muted">{{ msg.subject|default:"—"|truncatechars:40 }}</td>
+          <td class="small text-muted">
+            <a href="{% url 'websites:message_detail' msg.pk %}" class="text-decoration-none text-reset">
+              {{ msg.subject|default:"—"|truncatechars:40 }}
+            </a>
+            <div class="text-muted" style="opacity:.75">{{ msg.message|truncatechars:70 }}</div>
+          </td>
           <td class="small text-muted">{{ msg.website.name }}</td>
           <td>
             {% if msg.status == 'new' %}<span class="orion-badge orion-badge-warning">{% trans 'Nouveau' %}</span>
@@ -49,7 +61,7 @@
           <div class="orion-empty">
             <div class="orion-empty-icon"><i class="bi bi-envelope"></i></div>
             <div class="orion-empty-title">{% trans 'Aucun message' %}</div>
-            <div class="orion-empty-text">{% trans 'Les messages de contact apparaîtront ici.' %}</div>
+            <div class="orion-empty-text">{% trans 'Les messages de contact apparaîtront ici. Cliquez sur un message pour lire son contenu.' %}</div>
           </div>
         </td></tr>
         {% endfor %}

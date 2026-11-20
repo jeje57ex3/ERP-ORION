@@ -243,6 +243,43 @@ def run_system_update(started_by=None):
             run_shell_step(update_run, 'migrations', 'Migrations Django',
                            f'{python_bin} manage.py migrate', cwd=backend_path, timeout=1800)
 
+        # LES CATALOGUES DE TRADUCTION SE COMPILENT ICI, et nulle part
+        # ailleurs par ce chemin. Les fichiers .mo sont ignores par git
+        # (.gitignore, ligne « locale/*/LC_MESSAGES/*.mo ») : ils
+        # n'arrivent donc JAMAIS par le pull : seuls les .po sont versionnés.
+        #
+        # `deployment/proxmox-appliance/scripts/update_orion.sh` les
+        # compile, mais le metteur à jour de l'INTERFACE — celui qu'on lance
+        # depuis l'écran, et que les règles de ce projet désignent comme le
+        # chemin normal — ne le faisait pas. Une langue ajoutée dans un .po
+        # restait donc sans aucun effet sur l'appliance, et rien ne le
+        # disait : la page s'affichait simplement en français. Corriger l'un
+        # des deux chemins sans l'autre laisse le défaut en place.
+        #
+        # L'ÉCHEC N'ARRÊTE PAS LA MISE À JOUR, volontairement. `msgfmt` de
+        # gettext peut manquer sur une machine ; l'ERP fonctionne alors en
+        # français, ce qui est bien préférable à une mise à jour interrompue
+        # au milieu. L'avertissement figure au journal de la mise à jour, où
+        # on le verra.
+        commande_i18n = f'{python_bin} manage.py compilemessages'
+        depart_i18n = monotonic()
+        resultat_i18n = run_command(commande_i18n, cwd=backend_path,
+                                    timeout=600)
+        log_step(
+            update_run=update_run,
+            step_code='compilemessages',
+            step_name='Compilation des traductions',
+            level='success' if resultat_i18n['ok'] else 'warning',
+            message=('' if resultat_i18n['ok'] else
+                     "Les traductions n'ont pas pu être compilées. L'ERP "
+                     'reste utilisable, en français pour les textes '
+                     'traduits. Vérifiez que gettext (msgfmt) est installé.'),
+            command=commande_i18n,
+            output=resultat_i18n['stdout'],
+            error_output=resultat_i18n['stderr'],
+            started_time=depart_i18n,
+        )
+
         if update_settings.collect_static:
             run_shell_step(update_run, 'collectstatic', 'Collect static',
                            f'{python_bin} manage.py collectstatic --noinput',

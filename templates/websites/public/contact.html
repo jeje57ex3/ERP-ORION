@@ -120,6 +120,23 @@
           </div>
           {% endif %}
 
+          {% comment %}
+            L'adresse dit ou l'entreprise EST ; elle ne dit pas ou elle
+            INTERVIENT. Un visiteur de la region voulait savoir si on se
+            deplace chez lui, et rien sur le site ne le lui disait.
+          {% endcomment %}
+          {% if site.service_area %}
+          <div class="contact-info-card mb-4 p-4 rounded-3 border bg-white">
+            <div class="contact-icon" style="background: color-mix(in srgb, var(--site-primary) 12%, white); color: var(--site-primary);">
+              <i class="bi bi-pin-map-fill"></i>
+            </div>
+            <div>
+              <div class="fw-semibold small text-muted mb-1">{% trans "Zone d'intervention" %}</div>
+              <div class="mb-0 fw-semibold">{{ site.service_area }}</div>
+            </div>
+          </div>
+          {% endif %}
+
           <div class="p-4 rounded-3 border" style="background: color-mix(in srgb, var(--site-primary) 6%, white);">
             <h3 class="h6 fw-bold mb-2" style="color: var(--site-primary);">
               <i class="bi bi-file-earmark-text me-2"></i>{% trans "Besoin d'un devis ?" %}

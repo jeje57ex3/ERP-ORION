@@ -142,13 +142,37 @@ class InterfaceTranslationTest(TestCase):
 
 @override_settings(STATICFILES_STORAGE=SIMPLE_STORAGE)
 class SyncMissingTranslationsCommandTest(TestCase):
-    """Tests de la commande sync_missing_translations."""
+    """Tests de la commande sync_missing_translations.
+
+    CES DEUX TESTS CREAIENT « en » ET « fr » SANS CONDITION, ce qui n'etait
+    sur que tant que RIEN ne semait la table des langues -- autrement dit
+    tant qu'il fallait une commande en terminal pour qu'une langue existe.
+    `Language.code` est unique : des que la migration
+    `translations/0002_cinq_langues_du_site` a cree les cinq langues du
+    site, les deux `create()` ont leve « UNIQUE constraint failed ».
+
+    Le decor passe donc par `get_or_create` : le test dit « il me faut ces
+    langues », et non « la table est vide ». C'est ce qu'il voulait dire
+    depuis le debut.
+    """
+
+    @staticmethod
+    def _langue(code, nom, natif, ordre, par_defaut=False):
+        from apps.translations.models import Language
+
+        langue, _cree = Language.objects.get_or_create(
+            code=code,
+            defaults={'name': nom, 'native_name': natif, 'order': ordre,
+                      'is_default': par_defaut, 'is_active': True})
+        if not langue.is_active:
+            langue.is_active = True
+            langue.save(update_fields=['is_active'])
+        return langue
 
     def test_sync_detects_missing(self):
         from django.core.management import call_command
-        from apps.translations.models import Language
-        Language.objects.create(code='en', name='English', native_name='English', order=2)
-        Language.objects.create(code='fr', name='French', native_name='Français', order=1, is_default=True)
+        self._langue('en', 'English', 'English', 2)
+        self._langue('fr', 'French', 'Français', 1, par_defaut=True)
         # Sans --create, ne doit pas creer d entrees
         call_command('sync_missing_translations', language='en', verbosity=0)
         from apps.translations.models import InterfaceTranslation
@@ -156,8 +180,8 @@ class SyncMissingTranslationsCommandTest(TestCase):
 
     def test_sync_creates_entries_with_flag(self):
         from django.core.management import call_command
-        from apps.translations.models import Language, InterfaceTranslation
-        Language.objects.create(code='en', name='English', native_name='English', order=2)
-        Language.objects.create(code='fr', name='French', native_name='Français', order=1, is_default=True)
+        from apps.translations.models import InterfaceTranslation
+        self._langue('en', 'English', 'English', 2)
+        self._langue('fr', 'French', 'Français', 1, par_defaut=True)
         call_command('sync_missing_translations', language='en', create=True, verbosity=0)
         self.assertGreater(InterfaceTranslation.objects.filter(language__code='en').count(), 0)

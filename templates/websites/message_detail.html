@@ -1,0 +1,109 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% blocktrans with name=msg.name %}Message de {{ name }}{% endblocktrans %}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'websites:message_list' %}">{% trans 'Messages de contact' %}</a></li>
+<li class="breadcrumb-item active">{{ msg.name }}</li>
+{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">{% blocktrans with site=msg.website.name %}Reçu via le formulaire de {{ site }}.{% endblocktrans %}</p>{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <div class="col-12 col-lg-8">
+    <div class="orion-card">
+      <div class="orion-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="card-title mb-0">
+          <i class="bi bi-envelope-open me-1 text-primary"></i>
+          {{ msg.subject|default:_("Message sans sujet") }}
+        </h6>
+        <span class="small text-muted">{{ msg.created_at|date:"d/m/Y H:i" }}</span>
+      </div>
+      <div class="p-3 p-md-4">
+        {% comment %}
+          Le coeur de l'ecran, et la seule raison pour laquelle il existe :
+          la liste montrait tout d'un message SAUF ce qu'il disait.
+          `white-space:pre-wrap` garde les retours a la ligne tels que la
+          personne les a tapes dans le formulaire -- sans quoi un message
+          structure en paragraphes arrive en un seul bloc.
+        {% endcomment %}
+        <p class="mb-0" style="white-space:pre-wrap;">{{ msg.message }}</p>
+      </div>
+    </div>
+
+    {% if msg.is_spam %}
+    <div class="alert alert-warning mt-3 small mb-0">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      {% blocktrans %}Ce message a rempli le champ piège du formulaire, que seul un robot remplit. Il est très probablement du spam — mais il vous est montré plutôt que supprimé, parce qu'un piège peut aussi se tromper.{% endblocktrans %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-lg-4">
+
+    <div class="orion-card mb-3">
+      <div class="orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-person me-1 text-muted"></i>{% trans 'Expéditeur' %}</h6></div>
+      <div class="p-3">
+        <div class="fw-semibold">{{ msg.name }}</div>
+        <div class="small mt-1"><a href="mailto:{{ msg.email }}">{{ msg.email }}</a></div>
+        {% if msg.phone %}<div class="small mt-1"><a href="tel:{{ msg.phone }}">{{ msg.phone }}</a></div>{% endif %}
+        <a href="mailto:{{ msg.email }}?subject={% if msg.subject %}Re:%20{{ msg.subject|urlencode }}{% else %}{{ msg.website.name|urlencode }}{% endif %}"
+           class="orion-btn primary w-100 mt-3">
+          <i class="bi bi-reply me-1"></i>{% trans 'Répondre par email' %}
+        </a>
+      </div>
+    </div>
+
+    <div class="orion-card mb-3">
+      <div class="orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-flag me-1 text-muted"></i>{% trans 'Statut' %}</h6></div>
+      <div class="p-3">
+        <form method="post">
+          {% csrf_token %}
+          {% comment %}
+            En POST, et non par un lien : un GET qui change le statut
+            partirait au survol, a l'indexation ou au passage d'un
+            antivirus. Seul le marquage « lu » se fait a l'ouverture, parce
+            que c'est exactement ce que l'ouverture signifie.
+          {% endcomment %}
+          <select name="status" class="form-select form-select-sm mb-2" aria-label="{% trans 'Statut du message' %}">
+            {% for code, label in msg.STATUS_CHOICES %}
+            <option value="{{ code }}" {% if msg.status == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="orion-btn orion-btn-outline w-100 sm">{% trans 'Enregistrer' %}</button>
+        </form>
+        {% if msg.read_at %}
+        <div class="small text-muted mt-3">
+          {% blocktrans with date=msg.read_at|date:"d/m/Y H:i" %}Lu le {{ date }}{% endblocktrans %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-1 text-muted"></i>{% trans 'Provenance' %}</h6></div>
+      <div class="p-3 small">
+        <div class="d-flex justify-content-between gap-2">
+          <span class="text-muted">{% trans 'Site' %}</span>
+          <span class="fw-semibold text-end">{{ msg.website.name }}</span>
+        </div>
+        {% if msg.ip_address %}
+        <div class="d-flex justify-content-between gap-2 mt-2">
+          <span class="text-muted">{% trans 'Adresse IP' %}</span>
+          <span class="text-end">{{ msg.ip_address }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="mt-4">
+  <a href="{% url 'websites:message_list' %}" class="orion-btn orion-btn-outline">
+    <i class="bi bi-arrow-left me-1"></i>{% trans 'Retour aux messages' %}
+  </a>
+</div>
+{% endblock %}
