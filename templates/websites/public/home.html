@@ -86,7 +86,7 @@
     <div class="container">
       {% if section.title %}<h2 class="section-title mb-3">{{ section.title }}</h2>{% endif %}
       {% if section.subtitle %}<p class="section-subtitle mb-4">{{ section.subtitle }}</p>{% endif %}
-      {% if section.content %}<div class="prose">{{ section.content|safe }}</div>{% endif %}
+      {% if section.content %}<div class="prose">{{ section.content|contenu_assaini }}</div>{% endif %}
     </div>
   </section>
 
@@ -103,7 +103,7 @@
         <div class="col-12 col-lg-6">
           {% if section.title %}<h2 class="section-title mb-3">{{ section.title }}</h2>{% endif %}
           {% if section.subtitle %}<p class="text-muted lead mb-4">{{ section.subtitle }}</p>{% endif %}
-          {% if section.content %}<div class="prose">{{ section.content|safe }}</div>{% endif %}
+          {% if section.content %}<div class="prose">{{ section.content|contenu_assaini }}</div>{% endif %}
           {% if section.button_text %}
           <a href="{{ section.button_link|default:'#' }}" class="btn-site mt-4">{{ section.button_text }}</a>
           {% endif %}
@@ -198,7 +198,7 @@
     <div class="container">
       {% if section.content %}
       <div class="row g-4 text-center text-white">
-        {{ section.content|safe }}
+        {{ section.content|contenu_assaini }}
       </div>
       {% endif %}
     </div>
@@ -279,7 +279,7 @@
     <div class="container">
       {% if section.title %}<h2 class="section-title mb-3">{{ section.title }}</h2>{% endif %}
       {% if section.subtitle %}<p class="section-subtitle mb-4">{{ section.subtitle }}</p>{% endif %}
-      {% if section.content %}<div>{{ section.content|safe }}</div>{% endif %}
+      {% if section.content %}<div>{{ section.content|contenu_assaini }}</div>{% endif %}
     </div>
   </section>
   {% endif %}

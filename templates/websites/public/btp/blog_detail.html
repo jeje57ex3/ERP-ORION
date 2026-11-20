@@ -1,4 +1,5 @@
 {% extends "websites/public/btp/base.html" %}
+{% load website_extras %}
 {% load static i18n %}
 {% block title %}{{ post.title }}{% endblock %}
 {% block meta_description %}{{ post.meta_description|default:post.excerpt|truncatewords:25 }}{% endblock %}
@@ -32,7 +33,7 @@
 <section class="site-section site-section-alt">
   <div class="site-container-sm">
     <div style="font-size:1.02rem;line-height:1.8">
-      {{ post.content|safe }}
+      {{ post.content|contenu_assaini }}
     </div>
 
     {% if related_posts %}
