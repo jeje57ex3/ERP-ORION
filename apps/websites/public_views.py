@@ -7,6 +7,9 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from .models import Website, WebsitePage, BlogPost, ContactMessage, QuoteRequest
 from .forms import ContactForm, QuoteRequestForm
+from .security import (assainir_css, check_honeypot,
+                       log_suspicious_submission,
+                       rate_limit_submission, validate_public_upload)
 
 
 def _get_site(site_slug):
@@ -48,6 +51,13 @@ def _base_context(site):
     return {
         'site': site,
         'theme': site.theme,
+        # LE CSS PERSONNALISÉ, ASSAINI. Il était rendu avec `|safe` À
+        # L'INTÉRIEUR d'un `<style>` : une valeur contenant
+        # « </style><script> » sortait de la balise et exécutait son
+        # script sur la page publique, pour chaque visiteur. Voir
+        # `assainir_css`.
+        'css_personnalise': assainir_css(
+            getattr(site.theme, 'custom_css', '') if site.theme else ''),
         'menu_items': menu_items,
         'footer_links': footer_links,
         'company': site.company,
@@ -271,8 +281,25 @@ def contact(request, site_slug):
 
     form = ContactForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        # Anti-spam honeypot
-        if not form.cleaned_data.get('website_url_field'):
+        # LA LIMITE DE DÉBIT MANQUAIT, et ce formulaire est PUBLIC.
+        #
+        # `rate_limit_submission` existait dans `apps/websites/security.py`
+        # et n'était appelée par rien — module vérifié sur tout le dépôt,
+        # zéro appelant. Sans elle, un visiteur peut inonder la liste des
+        # messages du site, et chaque envoi de devis crée en plus un
+        # prospect dans le CRM.
+        autorise, _restants = rate_limit_submission(_get_ip(request),
+                                                    site.pk)
+        if not autorise:
+            log_suspicious_submission(_get_ip(request), site.pk,
+                                      'limite de debit atteinte (contact)')
+            messages.error(
+                request,
+                'Trop de messages envoyés depuis cette connexion. '
+                'Réessayez dans une heure.')
+            return redirect(request.path)
+
+        if check_honeypot(form.cleaned_data):
             msg = form.save(commit=False)
             msg.website = site
             msg.ip_address = _get_ip(request)
@@ -281,7 +308,11 @@ def contact(request, site_slug):
             messages.success(request, 'Votre message a été envoyé avec succès. Nous vous répondrons rapidement.')
             return redirect(request.path)
         else:
-            pass  # Spam détecté, on ignore silencieusement
+            # Le piège est rempli : un robot. On l'ignore en silence — le
+            # lui dire lui apprendrait à l'éviter — mais on le journalise,
+            # sans quoi personne ne sait jamais combien il en passe.
+            log_suspicious_submission(_get_ip(request), site.pk,
+                                      'piege a robots rempli (contact)')
 
     ctx.update({'form': form, 'page_title': _('Nous contacter')})
     return render(request, 'websites/public/contact.html', ctx)
@@ -294,7 +325,32 @@ def quote_request(request, site_slug):
 
     form = QuoteRequestForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
-        if not form.cleaned_data.get('website_url_field'):
+        autorise, _restants = rate_limit_submission(_get_ip(request),
+                                                    site.pk)
+        if not autorise:
+            log_suspicious_submission(_get_ip(request), site.pk,
+                                      'limite de debit atteinte (devis)')
+            messages.error(
+                request,
+                'Trop de demandes envoyées depuis cette connexion. '
+                'Réessayez dans une heure.')
+            return redirect(request.path)
+
+        # LE FICHIER N'ÉTAIT PAS VALIDÉ DU TOUT. `QuoteRequestForm` expose
+        # `attachments` sans contrôle de type ni de taille, et
+        # `DATA_UPLOAD_MAX_MEMORY_SIZE` vaut 20 Mo : un visiteur non
+        # authentifié déposait n'importe quoi, autant de fois qu'il
+        # voulait. `validate_public_upload` existait et dormait.
+        valide, motif = validate_public_upload(
+            form.cleaned_data.get('attachments'))
+        if not valide:
+            log_suspicious_submission(_get_ip(request), site.pk,
+                                      'fichier refuse : %s' % motif)
+            messages.error(request, motif)
+            ctx.update({'form': form, 'page_title': _('Demande de devis')})
+            return render(request, 'websites/public/quote_request.html', ctx)
+
+        if check_honeypot(form.cleaned_data):
             qr = form.save(commit=False)
             qr.website = site
             qr.ip_address = _get_ip(request)

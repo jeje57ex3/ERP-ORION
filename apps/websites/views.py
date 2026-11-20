@@ -1107,7 +1107,14 @@ def theme_apply(request, pk, theme_pk):
     company = request.current_company
     website = get_object_or_404(Website, pk=pk, company=company)
     from .models import WebsiteTheme
-    theme = get_object_or_404(WebsiteTheme, pk=theme_pk)
+    # Le site était borné, le thème non : on pouvait appliquer à son propre
+    # site le thème d'une AUTRE entreprise, donc en lire les couleurs et le
+    # CSS personnalisé. `WebsiteTheme.company` est nullable — un thème sans
+    # entreprise est un modèle livré avec l'ERP, et il reste accessible à
+    # tous, ce qui est son rôle.
+    theme = get_object_or_404(
+        WebsiteTheme, Q(company=company) | Q(company__isnull=True),
+        pk=theme_pk)
     if request.method == 'POST':
         website.theme = theme
         website.save(update_fields=['theme'])
