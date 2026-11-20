@@ -16,7 +16,7 @@ from django.contrib import messages as django_messages
 from django.http import Http404
 from django.shortcuts import redirect, render
 
-from .public_views import _base_context, _get_site
+from .public_views import _base_context, _get_site, _translated
 from .vitrine_etancheite import (FILTRES_REALISATIONS, REALISATIONS, SERVICES,
                                  SLUG)
 
@@ -49,6 +49,8 @@ def _contexte(site, **extra):
     fond_entete = getattr(theme, 'header_bg_color', '') if theme else ''
     fond_pied = getattr(theme, 'footer_bg_color', '') if theme else ''
     texte_theme = getattr(theme, 'text_color', '') if theme else ''
+    fond_bouton = getattr(theme, 'button_color', '') if theme else ''
+    fond_primaire = getattr(theme, 'primary_color', '') if theme else ''
 
     contexte.update({
         'texte_sur_page': texte_lisible_sur(fond_page or '#FBF8F3',
@@ -56,6 +58,23 @@ def _contexte(site, **extra):
         'texte_sur_entete': texte_lisible_sur(fond_entete or '#FFFFFF',
                                               texte_theme),
         'texte_sur_pied': texte_lisible_sur(fond_pied or '#1C2A33'),
+        # LES BOUTONS AUSSI, et c'est ce qui manquait. `.btn-sable` prenait
+        # son fond dans `button_color` et son texte dans `primary_color` :
+        # DEUX couleurs du theme, sans aucune garantie de contraste entre
+        # elles. Avec la palette d'origine -- sable clair sur ardoise -- le
+        # contraste atteint 11, et tout allait bien ; des que les deux se
+        # rapprochent, le texte du bouton disparait dans son propre fond.
+        # Trois boutons « Demander un devis » et le bouton « Nos
+        # realisations » portent cette classe.
+        #
+        # Le choix de l'exploitant est conserve quand il contraste assez :
+        # `texte_lisible_sur` ne remplace que ce qui serait illisible.
+        'texte_sur_bouton': texte_lisible_sur(fond_bouton or '#E8D9BE',
+                                              fond_primaire),
+        # `.btn-ardoise` et `.bande-sombre` ont le defaut symetrique : leur
+        # fond vient du theme et leur texte etait fixe a blanc. Un primaire
+        # clair rendait donc le bouton et toute la bande illisibles.
+        'texte_sur_primaire': texte_lisible_sur(fond_primaire or '#1C2A33'),
     })
     contexte.update(extra)
     return contexte
@@ -72,9 +91,21 @@ def _sections(site):
     page = site.home_page or site.pages.filter(is_homepage=True).first()
     if page is None:
         return {}
+    # LE CONTENU N'ETAIT TRADUIT DANS AUCUNE LANGUE. Les menus passaient
+    # par `_translated` dans `_base_context`, les sections non : changer de
+    # langue traduisait donc la navigation et laissait les titres, les
+    # textes et les libelles de boutons en francais. Comme les gabarits
+    # portent eux-memes des chaines `{% trans %}` bien traduites, la page
+    # devenait un melange -- ce qui se lit comme « la traduction ne marche
+    # pas » plutot que comme « ce contenu-la n'est pas traduit ».
+    #
+    # `_translated` rend l'objet inchange en francais, et ne touche jamais
+    # la base : la substitution est en memoire.
+    CHAMPS = ('title', 'subtitle', 'content', 'button_text', 'button_url')
     par_type = {}
     for section in page.sections.filter(is_visible=True).order_by('order'):
-        par_type.setdefault(section.section_type, section)
+        par_type.setdefault(section.section_type,
+                            _translated(section, CHAMPS))
     return par_type
 
 

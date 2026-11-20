@@ -14463,3 +14463,72 @@ msgstr ""
 
 msgid "Demander une intervention"
 msgstr "Solicitar una intervención"
+
+msgid "Aucun service publié pour le moment."
+msgstr "Ningún servicio publicado por el momento."
+
+msgid "Aucune réalisation dans cette catégorie pour le moment."
+msgstr "Ninguna realización en esta categoría por el momento."
+
+msgid "CONTACT"
+msgstr "CONTACTO"
+
+msgid "DEVIS GRATUIT"
+msgstr "PRESUPUESTO GRATUITO"
+
+msgid "Des réalisations concrètes"
+msgstr "Realizaciones concretas"
+
+msgid "Décrivez votre projet"
+msgstr "Describa su proyecto"
+
+msgid "L’ENTREPRISE"
+msgstr "LA EMPRESA"
+
+msgid "L’entreprise"
+msgstr "La empresa"
+
+msgid "NOS RÉALISATIONS"
+msgstr "NUESTRAS OBRAS"
+
+msgid "NOS SERVICES"
+msgstr "NUESTROS SERVICIOS"
+
+msgid "Nos autres services"
+msgstr "Nuestros otros servicios"
+
+msgid "Nos domaines"
+msgstr "Nuestros ámbitos"
+
+msgid "Notre intervention"
+msgstr "Nuestra intervención"
+
+msgid "Nous joindre directement"
+msgstr "Contactarnos directamente"
+
+msgid "Nous joindre"
+msgstr "Contactarnos"
+
+msgid "Nous étudions votre besoin et vous répondons sous 48 heures."
+msgstr "Estudiamos su necesidad y le respondemos en 48 horas."
+
+msgid "Ou appelez-nous :"
+msgstr "O llámenos:"
+
+msgid "Un besoin précis ?"
+msgstr "¿Una necesidad concreta?"
+
+msgid "Un savoir-faire en électricité et en étanchéité"
+msgstr "Experiencia en electricidad e impermeabilización"
+
+msgid "Voir toutes les réalisations"
+msgstr "Ver todas las obras"
+
+msgid "Votre demande n'a pas pu être envoyée :"
+msgstr "No se ha podido enviar su solicitud:"
+
+msgid "Échéance souhaitée"
+msgstr "Plazo deseado"
+
+msgid "Électricité & Étanchéité"
+msgstr "Electricidad e Impermeabilización"

@@ -28,6 +28,12 @@
       --texte:        {{ texte_sur_page|default:'#1C2A33' }};
       --texte-entete: {{ texte_sur_entete|default:'#1C2A33' }};
       --texte-pied:   {{ texte_sur_pied|default:'#FFFFFF' }};
+      /* Déduites elles aussi. Le fond des boutons vient du thème ; leur
+         texte venait du thème (.btn-sable) ou était fixé à blanc
+         (.btn-ardoise). Dans les deux cas, rien ne garantissait qu'on
+         puisse les lire — voir apps/websites/couleurs.py. */
+      --texte-bouton:   {{ texte_sur_bouton|default:'#1C2A33' }};
+      --texte-primaire: {{ texte_sur_primaire|default:'#FFFFFF' }};
       --entete:       {{ theme.header_bg_color|default:'#FFFFFF' }};
       --pied:         {{ theme.footer_bg_color|default:'#1C2A33' }};
 
@@ -69,10 +75,10 @@
     }
 
     .btn-sable {
-      background: var(--sable); color: var(--ardoise); border: 0;
+      background: var(--sable); color: var(--texte-bouton); border: 0;
       font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
     }
-    .btn-sable:hover { filter: brightness(.95); color: var(--ardoise); }
+    .btn-sable:hover { filter: brightness(.95); color: var(--texte-bouton); }
     .btn-contour {
       border: 1px solid rgba(255,255,255,.55); color: #fff;
       font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
@@ -80,10 +86,47 @@
     }
     .btn-contour:hover { background: rgba(255,255,255,.1); color: #fff; }
     .btn-ardoise {
-      background: var(--ardoise); color: #fff; border: 0;
+      background: var(--ardoise); color: var(--texte-primaire); border: 0;
       font-weight: 600; padding: .72rem 1.3rem; border-radius: 6px;
     }
-    .btn-ardoise:hover { background: var(--ardoise-clair); color: #fff; }
+    .btn-ardoise:hover {
+      background: var(--ardoise-clair); color: var(--texte-primaire);
+    }
+
+    /* ── Sélecteur de langue ──────────────────────────────────────────
+       Le balisage vient du composant partagé
+       `websites/public/components/language_switcher.html`. Son style, lui,
+       vit dans `static/css/sites/orion-site-theme.css` et s'appuie sur des
+       variables `--site-*` que cette page ne définit pas : importer cette
+       feuille romprait la palette. On réécrit donc les seules règles dont
+       le composant a besoin, avec les couleurs d'ici. */
+    .site-lang-switcher { position: relative; flex-shrink: 0; }
+    .site-icon-btn {
+      width: 38px; height: 38px; display: grid; place-items: center;
+      border: 1px solid rgba(28,42,51,.18); border-radius: 7px;
+      background: transparent; color: var(--texte-entete);
+      font-size: 1rem; cursor: pointer; padding: 0;
+    }
+    .site-icon-btn:hover { border-color: var(--or); color: var(--or); }
+    .site-lang-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; min-width: 180px;
+      z-index: 60; background: var(--carte);
+      border: 1px solid rgba(28,42,51,.12); border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(28,42,51,.16); padding: 6px;
+      display: flex; flex-direction: column; gap: 2px;
+      opacity: 0; visibility: hidden; transform: translateY(-6px);
+      transition: opacity .15s ease, transform .15s ease, visibility .15s;
+    }
+    .site-lang-switcher.open .site-lang-menu {
+      opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .site-lang-item {
+      display: flex; align-items: center; gap: .55rem; padding: 8px 10px;
+      border-radius: 6px; font-size: .86rem; font-weight: 600;
+      color: #1C2A33; text-decoration: none;
+    }
+    .site-lang-item:hover { background: rgba(28,42,51,.06); }
+    .site-lang-item.active { color: var(--or); }
 
     /* ── En-tête ── */
     .entete {
@@ -127,8 +170,10 @@
       width: 100%; height: 100%; object-fit: cover; display: block;
     }
 
-    .bande-sombre { background: var(--ardoise); color: #fff; }
-    .bande-sombre h2 { color: #fff; }
+    .bande-sombre {
+      background: var(--ardoise); color: var(--texte-primaire);
+    }
+    .bande-sombre h2 { color: var(--texte-primaire); }
     .filtre {
       border: 1px solid rgba(255,255,255,.25); background: transparent;
       color: rgba(255,255,255,.85); border-radius: 999px;
@@ -195,6 +240,17 @@
     </nav>
 
     <div class="d-flex align-items-center gap-2 ms-auto ms-lg-0">
+      {% comment %}
+        Le bouton de traduction. Il ne s'affiche que si le site propose au
+        moins une langue : le composant se garde lui-même sur la variable
+        website_languages. Les langues se règlent depuis l'écran des
+        langues du site, dans l'ERP.
+
+        On n'écrit PAS ici la syntaxe de balise en toutes lettres : le
+        lexer du moteur de template la repère même à l'intérieur d'un
+        commentaire. Le composant porte le même avertissement.
+      {% endcomment %}
+      {% include "websites/public/components/language_switcher.html" %}
       {% if site.contact_phone %}
       <a href="tel:{{ site.contact_phone|cut:' ' }}" class="btn btn-sm btn-ardoise d-none d-md-inline-flex align-items-center gap-2">
         <i class="bi bi-telephone-fill"></i>{{ site.contact_phone }}
@@ -262,6 +318,35 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  /* Ouverture du sélecteur de langue. Le même comportement que
+     `static/js/sites/orion-site.js`, écrit ici parce que cette vitrine ne
+     charge pas ce fichier : elle est volontairement autonome. Fermeture au
+     clic à l'extérieur et à la touche Échap -- sans quoi un menu ouvert sur
+     un téléphone reste ouvert et masque la navigation. */
+  (function () {
+    var enveloppe = document.getElementById('siteLangSwitcher');
+    var bouton = document.getElementById('siteLangToggle');
+    if (!enveloppe || !bouton) { return; }
+    bouton.addEventListener('click', function (evenement) {
+      evenement.stopPropagation();
+      var ouvert = enveloppe.classList.toggle('open');
+      bouton.setAttribute('aria-expanded', ouvert);
+    });
+    document.addEventListener('click', function (evenement) {
+      if (!enveloppe.contains(evenement.target)) {
+        enveloppe.classList.remove('open');
+        bouton.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', function (evenement) {
+      if (evenement.key === 'Escape') {
+        enveloppe.classList.remove('open');
+        bouton.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

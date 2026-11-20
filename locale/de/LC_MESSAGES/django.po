@@ -1,4 +1,3 @@
-#
 # Catalogue allemand — site vitrine public.
 #
 # POURQUOI IL N'EXISTAIT PAS, ET POURQUOI IL NE COUVRE QUE LE SITE PUBLIC
@@ -33,7 +32,6 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 # ─── En-tête, navigation, pied de page ──────────────────────────────────────
-
 msgid "Changer de langue"
 msgstr "Sprache wechseln"
 
@@ -68,7 +66,6 @@ msgid "Zone d'intervention"
 msgstr "Einsatzgebiet"
 
 # ─── Contact ────────────────────────────────────────────────────────────────
-
 msgid "Contactez-nous"
 msgstr "Kontaktieren Sie uns"
 
@@ -115,7 +112,6 @@ msgid "Pour toute urgence, contactez-nous :"
 msgstr "Im Notfall erreichen Sie uns hier:"
 
 # ─── Demande de devis ───────────────────────────────────────────────────────
-
 msgid "Besoin d'un devis ?"
 msgstr "Brauchen Sie ein Angebot?"
 
@@ -166,8 +162,8 @@ msgid "Décrivez votre projet, nous vous répondons sous 24h"
 msgstr "Beschreiben Sie Ihr Projekt – wir antworten innerhalb von 24 Stunden"
 
 msgid ""
-"Décrivez votre projet en détail : nature des travaux, surface, "
-"localisation, contraintes particulières..."
+"Décrivez votre projet en détail : nature des travaux, surface, localisation,"
+" contraintes particulières..."
 msgstr ""
 "Beschreiben Sie Ihr Projekt im Detail: Art der Arbeiten, Fläche, Ort, "
 "besondere Rahmenbedingungen …"
@@ -188,7 +184,6 @@ msgid "Ex: dans 3 mois, avant juin..."
 msgstr "Z. B.: in 3 Monaten, vor Juni …"
 
 # ─── Blog ───────────────────────────────────────────────────────────────────
-
 msgid "Actualités et conseils"
 msgstr "Neuigkeiten und Tipps"
 
@@ -208,7 +203,6 @@ msgid "Retour au blog"
 msgstr "Zurück zum Blog"
 
 # ─── Pages vides, erreurs, maintenance ──────────────────────────────────────
-
 msgid "Cette page est en cours de rédaction."
 msgstr "Diese Seite wird gerade erstellt."
 
@@ -240,8 +234,8 @@ msgid ""
 "Veuillez réessayer plus tard. Si le problème persiste, contactez "
 "l'administrateur du site."
 msgstr ""
-"Bitte versuchen Sie es später erneut. Besteht das Problem weiterhin, "
-"wenden Sie sich an die Administration der Website."
+"Bitte versuchen Sie es später erneut. Besteht das Problem weiterhin, wenden "
+"Sie sich an die Administration der Website."
 
 msgid "Maintenance"
 msgstr "Wartung"
@@ -251,8 +245,7 @@ msgstr "In Wartung"
 
 msgid "Ce site est temporairement en maintenance. Merci de revenir plus tard."
 msgstr ""
-"Diese Website wird derzeit gewartet. Bitte schauen Sie später wieder "
-"vorbei."
+"Diese Website wird derzeit gewartet. Bitte schauen Sie später wieder vorbei."
 
 msgid ""
 "Nous travaillons à améliorer votre expérience et reviendrons très "
@@ -260,3 +253,120 @@ msgid ""
 msgstr ""
 "Wir arbeiten daran, Ihr Erlebnis zu verbessern, und sind sehr bald wieder "
 "da."
+
+msgid "Aucun service publié pour le moment."
+msgstr "Derzeit sind keine Leistungen veröffentlicht."
+
+msgid "Aucune réalisation dans cette catégorie pour le moment."
+msgstr "Derzeit keine Referenzen in dieser Kategorie."
+
+msgid "CONTACT"
+msgstr "KONTAKT"
+
+msgid "DEVIS GRATUIT"
+msgstr "KOSTENLOSES ANGEBOT"
+
+msgid "Des réalisations concrètes"
+msgstr "Sichtbare Ergebnisse"
+
+msgid "Décrivez votre projet"
+msgstr "Beschreiben Sie Ihr Projekt"
+
+msgid "L’ENTREPRISE"
+msgstr "DAS UNTERNEHMEN"
+
+msgid "L’entreprise"
+msgstr "Das Unternehmen"
+
+msgid "NOS RÉALISATIONS"
+msgstr "UNSERE REFERENZEN"
+
+msgid "NOS SERVICES"
+msgstr "UNSERE LEISTUNGEN"
+
+msgid "Nos autres services"
+msgstr "Unsere weiteren Leistungen"
+
+msgid "Nos domaines"
+msgstr "Unsere Fachgebiete"
+
+msgid "Notre intervention"
+msgstr "Unser Einsatz"
+
+msgid "Nous joindre directement"
+msgstr "Direkt Kontakt aufnehmen"
+
+msgid "Nous joindre"
+msgstr "Kontakt aufnehmen"
+
+msgid "Nous étudions votre besoin et vous répondons sous 48 heures."
+msgstr "Wir prüfen Ihren Bedarf und antworten innerhalb von 48 Stunden."
+
+msgid "Ou appelez-nous :"
+msgstr "Oder rufen Sie uns an:"
+
+msgid "Un besoin précis ?"
+msgstr "Ein konkreter Bedarf?"
+
+msgid "Un savoir-faire en électricité et en étanchéité"
+msgstr "Fachwissen in Elektrotechnik und Bauwerksabdichtung"
+
+msgid "Voir toutes les réalisations"
+msgstr "Alle Referenzen ansehen"
+
+msgid "Votre demande n'a pas pu être envoyée :"
+msgstr "Ihre Anfrage konnte nicht gesendet werden:"
+
+msgid "Échéance souhaitée"
+msgstr "Wunschtermin"
+
+msgid "Électricité & Étanchéité"
+msgstr "Elektrik & Abdichtung"
+
+msgid "Accueil"
+msgstr "Startseite"
+
+msgid "Contact"
+msgstr "Kontakt"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Email"
+msgstr "E-Mail"
+
+msgid "En savoir plus"
+msgstr "Mehr erfahren"
+
+msgid "Entreprise"
+msgstr "Unternehmen"
+
+msgid "Envoyer ma demande"
+msgstr "Anfrage senden"
+
+msgid "Message"
+msgstr "Nachricht"
+
+msgid "Nom"
+msgstr "Name"
+
+msgid "Nos services"
+msgstr "Unsere Leistungen"
+
+msgid "Nous contacter"
+msgstr "Kontaktieren Sie uns"
+
+msgid "Parlons de votre projet"
+msgstr "Sprechen wir über Ihr Projekt"
+
+msgid "Réalisations"
+msgstr "Referenzen"
+
+msgid "Services"
+msgstr "Leistungen"
+
+msgid "Tous"
+msgstr "Alle"
+
+msgid "Tous droits réservés."
+msgstr "Alle Rechte vorbehalten."
