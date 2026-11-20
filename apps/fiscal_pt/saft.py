@@ -89,6 +89,15 @@ ORDRE_CLIENT = ('CustomerID', 'AccountID', 'CustomerTaxID', 'CompanyName',
                 'Contact', 'BillingAddress', 'ShipToAddress', 'Telephone',
                 'Fax', 'Email', 'Website', 'SelfBillingIndicator')
 
+#: `Supplier` n'est pas `Customer` renommé : il porte `ShipFromAddress`
+#: là où le client porte `ShipToAddress`, et son identifiant comme son NIF
+#: ont leurs propres noms. L'ordre est donc tenu à part, et un test le
+#: compare au XSD élément par élément.
+ORDRE_FOURNISSEUR = ('SupplierID', 'AccountID', 'SupplierTaxID',
+                     'CompanyName', 'Contact', 'BillingAddress',
+                     'ShipFromAddress', 'Telephone', 'Fax', 'Email',
+                     'Website', 'SelfBillingIndicator')
+
 ORDRE_PRODUIT = ('ProductType', 'ProductCode', 'ProductGroup',
                  'ProductDescription', 'ProductNumberCode',
                  'CustomsDetails')
@@ -345,6 +354,44 @@ def client(donnees):
     return element
 
 
+def fournisseur(donnees):
+    """Un `Supplier` du référentiel.
+
+    POURQUOI IL DOIT EXISTER, ALORS QUE NOUS NE FACTURONS PAS D'ACHATS
+
+    `StockMovement` place `CustomerID` et `SupplierID` dans un choix
+    OBLIGATOIRE : un mouvement de marchandises désigne l'un ou l'autre.
+    Un bon de livraison reçu d'un fournisseur porte donc un
+    `SupplierID` — et sans `Supplier` dans `MasterFiles`, ce `SupplierID`
+    renvoie à un tiers que le fichier ne déclare nulle part.
+
+    Le XSD ne pose aucune contrainte de clé entre les deux : notre
+    validateur accepterait le fichier. C'est celui de l'AT qui vérifie
+    l'intégrité référentielle, et il refuse le fichier ENTIER.
+    """
+    _exiger(donnees, ('identifiant', 'nom'), 'Fournisseur')
+
+    element = ET.Element('Supplier')
+    _ajouter(element, ORDRE_FOURNISSEUR, {
+        'SupplierID': donnees['identifiant'],
+        'AccountID': donnees.get('compte') or 'Desconhecido',
+        # PAS DE REPLI SUR LE NIF DU CONSOMMATEUR FINAL ICI.
+        #
+        # « 999999990 » désigne un acheteur anonyme, ce qu'un fournisseur
+        # n'est jamais : on ne reçoit pas de marchandise de quelqu'un dont
+        # on ignore l'identité. Un NIF absent est une saisie incomplète,
+        # et la dire ici vaut mieux que de la masquer dans le fichier.
+        'SupplierTaxID': donnees['nif'],
+        'CompanyName': donnees['nom'],
+        'BillingAddress': _adresse('BillingAddress',
+                                   donnees.get('adresse') or {}),
+        'Telephone': donnees.get('telephone'),
+        'Email': donnees.get('courriel'),
+        'SelfBillingIndicator': donnees.get('autofacturation', '0'),
+    })
+    return element
+
+
 def produit(donnees):
     """Un `Product` du référentiel.
 
@@ -578,7 +625,13 @@ def recu(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT_DE_RECU, {
         'PaymentStatus': donnees.get('etat', 'N'),
-        'PaymentStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « PaymentStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'PaymentStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif'),
         'SourceID': donnees.get('operateur') or 'Orion',
         'SourcePayment': donnees.get('origine', 'P'),  # P = produit ici
@@ -644,7 +697,13 @@ def document(donnees):
     etat = ET.Element('DocumentStatus')
     _ajouter(etat, ORDRE_ETAT, {
         'InvoiceStatus': donnees.get('etat', 'N'),
-        'InvoiceStatusDate': _horodatage(donnees['horodatage']),
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « InvoiceStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'InvoiceStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
         'Reason': donnees.get('motif'),
         'SourceID': donnees.get('operateur') or 'Orion',
         'SourceBilling': donnees.get('origine', 'P'),  # P = produit ici
@@ -775,7 +834,8 @@ def _montants_d_un_recu(donnees):
             for ligne in (donnees.get('affectations') or [])]
 
 
-def composer(donnees_entete, clients, produits, taux, documents, recus=()):
+def composer(donnees_entete, clients, produits, taux, documents,
+             recus=(), mouvements=(), travaux=(), fournisseurs=()):
     """Le fichier complet, en octets prêts à écrire.
 
     Les totaux de chaque table sont RECALCULÉS ici depuis les documents,
@@ -792,8 +852,14 @@ def composer(donnees_entete, clients, produits, taux, documents, recus=()):
     racine.append(entete(donnees_entete))
 
     referentiels = ET.SubElement(racine, 'MasterFiles')
+
+    # L'ORDRE DE `MasterFiles` EST IMPOSÉ : Customer, Supplier, Product,
+    # TaxTable. Les fournisseurs viennent donc ENTRE les clients et les
+    # produits, et non à la fin où il serait plus simple de les ajouter.
     for donnees in clients:
         referentiels.append(client(donnees))
+    for donnees in (fournisseurs or ()):
+        referentiels.append(fournisseur(donnees))
     for donnees in produits:
         referentiels.append(produit(donnees))
 
@@ -803,9 +869,14 @@ def composer(donnees_entete, clients, produits, taux, documents, recus=()):
 
     sources = ET.SubElement(racine, 'SourceDocuments')
 
-    # `SalesInvoices` d'abord, `Payments` en dernier : c'est l'ordre de la
-    # séquence `SourceDocuments`, où s'intercalent MovementOfGoods et
-    # WorkingDocuments, que ce module ne produit pas.
+    # L'ORDRE DE `SourceDocuments` EST IMPOSÉ, et les quatre tables y
+    # viennent dans cette suite : SalesInvoices, MovementOfGoods,
+    # WorkingDocuments, Payments. Les intervertir donne un fichier dont le
+    # contenu est juste et que le schéma refuse en entier.
+    #
+    # Chaque table est OMISE quand elle est vide : le schéma les rend
+    # optionnelles, et une table annoncée à zéro enregistrement se lirait
+    # comme une déclaration là où il n'y a rien à déclarer.
     documents = list(documents)
     ventes = ET.SubElement(sources, 'SalesInvoices')
     debit, credit = _sommes_de_controle(documents, ETATS_HORS_TOTAUX,
@@ -819,6 +890,35 @@ def composer(donnees_entete, clients, produits, taux, documents, recus=()):
     for donnees in documents:
         ventes.append(document(donnees))
 
+    # ── Table 4.2 : les mouvements de marchandises ──────────────────
+    mouvements = list(mouvements or [])
+    if mouvements:
+        table_des_mouvements = ET.SubElement(sources, 'MovementOfGoods')
+        # SON EN-TÊTE NE COMPTE PAS LA MÊME CHOSE : un nombre de LIGNES et
+        # une somme de QUANTITÉS, là où les trois autres tables comptent
+        # des documents et additionnent des montants.
+        nombre_de_lignes, quantite = _sommes_de_mouvements(mouvements)
+        ET.SubElement(table_des_mouvements,
+                      'NumberOfMovementLines').text = str(nombre_de_lignes)
+        ET.SubElement(table_des_mouvements,
+                      'TotalQuantityIssued').text = _quantite(quantite)
+        for donnees in mouvements:
+            table_des_mouvements.append(mouvement(donnees))
+
+    # ── Table 4.3 : les documents de travail ────────────────────────
+    travaux = list(travaux or [])
+    if travaux:
+        table_des_travaux = ET.SubElement(sources, 'WorkingDocuments')
+        debit, credit = _sommes_de_controle(
+            travaux, ETATS_DE_TRAVAIL_HORS_TOTAUX, _montants_d_un_document)
+        ET.SubElement(table_des_travaux, 'NumberOfEntries').text = str(
+            len(travaux))
+        ET.SubElement(table_des_travaux, 'TotalDebit').text = _montant(debit)
+        ET.SubElement(table_des_travaux, 'TotalCredit').text = _montant(credit)
+        for donnees in travaux:
+            table_des_travaux.append(document_de_travail(donnees))
+
+    # ── Table 4.4 : les reçus, en DERNIER ───────────────────────────
     recus = list(recus or [])
     if recus:
         table_des_recus = ET.SubElement(sources, 'Payments')
@@ -834,3 +934,492 @@ def composer(donnees_entete, clients, produits, taux, documents, recus=()):
     ET.indent(racine, space='  ')
     return (b'<?xml version="1.0" encoding="UTF-8"?>\n'
             + ET.tostring(racine, encoding='utf-8'))
+
+
+# ── Table 4.2 : MovementOfGoods ─────────────────────────────────────────────
+#
+# SON EN-TÊTE NE COMPTE PAS LA MÊME CHOSE QUE LES TROIS AUTRES TABLES.
+#
+#     4.1 SalesInvoices     NumberOfEntries, TotalDebit, TotalCredit
+#     4.3 WorkingDocuments  NumberOfEntries, TotalDebit, TotalCredit
+#     4.4 Payments          NumberOfEntries, TotalDebit, TotalCredit
+#     4.2 MovementOfGoods   NumberOfMovementLines, TotalQuantityIssued
+#
+# Un nombre de LIGNES et une somme de QUANTITÉS, là où les autres comptent
+# des documents et additionnent des montants. Relevé dans le XSD, pas
+# supposé : recopier l'en-tête d'une autre table donnerait un fichier dont
+# seuls deux nombres diffèrent, et qui serait refusé en entier.
+
+#: Les éléments de l'en-tête de la table 4.2, dans l'ordre du schéma.
+ORDRE_ENTETE_DE_MOUVEMENTS = ('NumberOfMovementLines', 'TotalQuantityIssued')
+
+#: L'état d'un mouvement. « MovementStatus » et non « InvoiceStatus », et
+#: son énumération porte un « T » — biens en cours d'acheminement — que
+#: les trois autres tables ne connaissent pas.
+ORDRE_ETAT_DE_MOUVEMENT = ('MovementStatus', 'MovementStatusDate', 'Reason',
+                           'SourceID', 'SourceBilling')
+
+#: Un point d'expédition ou de livraison : `ShipTo` et `ShipFrom` partagent
+#: ce type. Pour une guia de transporte, c'est là que le trajet se lit.
+ORDRE_POINT_DE_TRANSPORT = ('DeliveryID', 'DeliveryDate', 'WarehouseID',
+                            'LocationID', 'Address')
+
+#: La ligne d'un mouvement. Noter l'absence de `TaxPointDate`, que la ligne
+#: d'un document de travail exige, et la présence de `Description` en
+#: position OBLIGATOIRE après `UnitPrice`.
+ORDRE_LIGNE_DE_MOUVEMENT = ('LineNumber', 'OrderReferences', 'ProductCode',
+                            'ProductDescription', 'Quantity',
+                            'UnitOfMeasure', 'UnitPrice', 'Description',
+                            'ProductSerialNumber',
+                            'DebitAmount', 'CreditAmount',
+                            'Tax', 'TaxExemptionReason', 'TaxExemptionCode',
+                            'SettlementAmount', 'CustomsInformation')
+
+#: Les totaux d'un mouvement : TROISIÈME forme de `DocumentTotals`.
+#:
+#:     4.1  TaxPayable, NetTotal, GrossTotal, Currency, Settlement, Payment
+#:     4.4  TaxPayable, NetTotal, GrossTotal, Settlement, Currency
+#:     4.2  TaxPayable, NetTotal, GrossTotal, Currency
+#:     4.3  TaxPayable, NetTotal, GrossTotal, Currency
+#:
+#: Ni règlement ni moyen de paiement ici : un mouvement de marchandises
+#: n'encaisse rien.
+ORDRE_TOTAUX_DE_MOUVEMENT = ('TaxPayable', 'NetTotal', 'GrossTotal',
+                             'Currency')
+
+#: Un document de mouvement. `Hash` et `HashControl` SONT présents — un
+#: document de transport est signé, contrairement au reçu de la table 4.4.
+#:
+#: Deux surprises d'ordre, relevées dans le XSD :
+#:   * `MovementEndTime` est OPTIONNEL et précède `MovementStartTime`, qui
+#:     est OBLIGATOIRE. La fin avant le début.
+#:   * `CustomerID` et `SupplierID` sont dans un `xs:choice` obligatoire :
+#:     exactement l'un des deux, jamais les deux, jamais aucun.
+ORDRE_MOUVEMENT = ('DocumentNumber', 'ATCUD', 'DocumentStatus',
+                   'Hash', 'HashControl', 'Period',
+                   'MovementDate', 'MovementType', 'SystemEntryDate',
+                   'TransactionID', 'CustomerID', 'SupplierID', 'SourceID',
+                   'EACCode', 'MovementComments', 'ShipTo', 'ShipFrom',
+                   'MovementEndTime', 'MovementStartTime', 'ATDocCodeID',
+                   'Line', 'DocumentTotals')
+
+#: Les états qu'on compte dans `NumberOfMovementLines` sans additionner
+#: leurs quantités. Même règle que pour les autres tables : l'annulé reste
+#: dans le fichier pour prouver qu'aucun numéro ne manque, et son contenu
+#: ne compte plus.
+ETATS_DE_MOUVEMENT_HORS_TOTAUX = ('A',)
+
+
+# ── Table 4.3 : WorkingDocuments ────────────────────────────────────────────
+
+#: L'état d'un document de travail. « WorkStatus », trois valeurs
+#: seulement — ni « S », ni « R ».
+ORDRE_ETAT_DE_TRAVAIL = ('WorkStatus', 'WorkStatusDate', 'Reason',
+                         'SourceID', 'SourceBilling')
+
+#: La ligne d'un document de travail. Elle porte `TaxBase` et
+#: `TaxPointDate`, que la ligne d'un mouvement n'a pas, et `References`.
+#:
+#: UN `xs:assert` LES OPPOSE : « si TaxBase et UnitPrice != 0 alors
+#: false() ». Les deux ne peuvent pas coexister avec un prix non nul. Le
+#: contrôle est dans `coherence.py`, notre validateur ne lisant pas les
+#: asserts.
+ORDRE_LIGNE_DE_TRAVAIL = ('LineNumber', 'OrderReferences', 'ProductCode',
+                          'ProductDescription', 'Quantity', 'UnitOfMeasure',
+                          'UnitPrice', 'TaxBase', 'TaxPointDate',
+                          'References', 'Description', 'ProductSerialNumber',
+                          'DebitAmount', 'CreditAmount',
+                          'Tax', 'TaxExemptionReason', 'TaxExemptionCode',
+                          'SettlementAmount', 'CustomsInformation')
+
+ORDRE_TOTAUX_DE_TRAVAIL = ('TaxPayable', 'NetTotal', 'GrossTotal',
+                           'Currency')
+
+#: Un document de travail. Signé lui aussi. Noter que `SourceID` précède
+#: `SystemEntryDate`, alors qu'il le SUIT dans un mouvement : deux tables
+#: voisines, deux ordres. C'est le même genre de piège que l'inversion de
+#: `Currency` et `Settlement` entre les tables 4.1 et 4.4.
+ORDRE_TRAVAIL = ('DocumentNumber', 'ATCUD', 'DocumentStatus',
+                 'Hash', 'HashControl', 'Period',
+                 'WorkDate', 'WorkType', 'SourceID', 'EACCode',
+                 'SystemEntryDate', 'TransactionID', 'CustomerID',
+                 'Line', 'DocumentTotals')
+
+ETATS_DE_TRAVAIL_HORS_TOTAUX = ('A', 'F')
+
+
+#: Le bloc `Tax` d'un MOUVEMENT est un type a lui : « MovementTax », qui
+#: n'a PAS de `TaxAmount`. Celui d'une facture en a cinq elements, celui-ci
+#: quatre — releve dans le XSD, et c'est le test de comparaison des listes
+#: d'ordre qui l'a dit : reprendre `ORDRE_TAXE_DE_LIGNE` ici produisait un
+#: fichier valide tant qu'on ne posait pas de montant de taxe, et aurait
+#: emis un element interdit le jour ou quelqu'un en passerait un.
+ORDRE_TAXE_DE_MOUVEMENT = ('TaxType', 'TaxCountryRegion', 'TaxCode',
+                           'TaxPercentage')
+
+#: Les types de taxe qu'un MOUVEMENT accepte. Le schéma lui donne son
+#: propre type, « SAFTPTMovementTaxType », restreint à deux valeurs — là
+#: où un document de facturation en accepte davantage. Relevé dans le XSD.
+TYPES_DE_TAXE_DE_MOUVEMENT = ('IVA', 'NS')
+
+
+def _bloc_de_taxe(donnees, types_admis=None, ordre=None):
+    """Le bloc `Tax` d'une ligne, avec son taux.
+
+    `types_admis` restreint le `TaxType` quand la table l'exige : celle des
+    mouvements n'accepte que « IVA » et « NS ». Un type hors liste passerait
+    notre validateur — qui lit le modèle de contenu, pas les énumérations
+    de sous-types — et serait refusé par celui de l'AT.
+    """
+    type_taxe = donnees.get('type_de_taxe') or 'IVA'
+    if types_admis and type_taxe not in types_admis:
+        raise ErreurSAFT(
+            f'« {type_taxe} » n’est pas un type de taxe admis ici. Le '
+            f'schéma n’en accepte que {", ".join(types_admis)} pour cette '
+            'table.')
+
+    taxe = ET.Element('Tax')
+    valeurs = {
+        'TaxType': type_taxe,
+        'TaxCountryRegion': donnees.get('region', 'PT'),
+        'TaxCode': donnees.get('code_de_taux', 'NOR'),
+        'TaxPercentage': _montant(donnees.get('taux', 0)),
+    }
+    if donnees.get('montant_de_taxe') is not None:
+        valeurs['TaxAmount'] = _montant(donnees['montant_de_taxe'])
+    _ajouter(taxe, ordre or ORDRE_TAXE_DE_LIGNE, valeurs)
+    return taxe
+
+
+def point_de_transport(nom_element, donnees):
+    """Un `ShipTo` ou un `ShipFrom`, avec son adresse.
+
+    Rend None si rien n'est donné : les deux éléments sont optionnels, et
+    un élément vide n'est pas la même chose qu'un élément absent — le
+    schéma exige `AddressDetail`, `City`, `PostalCode` et `Country` dès
+    qu'une adresse est ouverte.
+    """
+    if not donnees:
+        return None
+
+    element = ET.Element(nom_element)
+    valeurs = {
+        'DeliveryID': donnees.get('identifiant') or None,
+        'DeliveryDate': (_date(donnees['date'])
+                         if donnees.get('date') else None),
+        'WarehouseID': donnees.get('entrepot') or None,
+        'LocationID': donnees.get('emplacement') or None,
+    }
+    _ajouter(element, ORDRE_POINT_DE_TRANSPORT, valeurs)
+
+    # DEUX FORMES D'ADRESSE SONT ACCEPTÉES, ET POUR UNE RAISON.
+    #
+    # La forme attendue est imbriquée, parce que ce point de transport
+    # porte aussi un identifiant de livraison, une date, un entrepôt et
+    # un emplacement, dont l'adresse n'est qu'une partie :
+    #
+    #     {'identifiant': 'L1', 'adresse': {'adresse': 'Rua X', ...}}
+    #
+    # Mais l'adresse PLATE est celle qu'emploie déjà l'en-tête du
+    # fichier, et c'est donc celle qu'on écrit spontanément :
+    #
+    #     {'adresse': 'Rua X', 'ville': 'Leiria', ...}
+    #
+    # Elle faisait remonter « 'str' object has no attribute 'get' » du
+    # fond d'`_adresse`, au milieu de la composition, sans dire ni quel
+    # document ni lequel des deux points du trajet. Les deux formes se
+    # distinguent sans ambiguïté : dans la forme plate, « adresse » porte
+    # du texte et non une structure.
+    adresse = donnees.get('adresse')
+
+    if isinstance(adresse, str):
+        adresse = donnees
+
+    elif adresse is not None and not isinstance(adresse, dict):
+        raise ErreurSAFT(
+            f'Le point de transport « {nom_element} » porte une adresse '
+            f'qui n’en est pas une ({type(adresse).__name__}). Attendu : '
+            'soit une adresse complète — « adresse », « ville », '
+            '« code_postal », « pays » — soit ces quatre clés rangées '
+            'sous « adresse ».')
+
+    if adresse:
+        element.append(_adresse('Address', adresse))
+    return element
+
+
+def ligne_de_mouvement(numero, donnees, type_mouvement='GT'):
+    """Une ligne de la table 4.2.
+
+    LE SENS VIENT DU TYPE DE MOUVEMENT, pas d'une saisie. Un retour fait
+    rentrer la marchandise, donc au débit ; tout autre mouvement la fait
+    sortir, donc au crédit. `tipos.mouvement_au_debit` porte cette règle —
+    et c'est une TROISIÈME liste de sens, distincte de celles des
+    documents et des règlements.
+    """
+    from . import tipos
+
+    _exiger(donnees, ('designation', 'quantite', 'prix_unitaire'),
+            f'Ligne {numero} du mouvement')
+
+    element = ET.Element('Line')
+    montant = _montant(donnees.get('montant', 0))
+    au_debit = tipos.mouvement_au_debit(type_mouvement)
+
+    valeurs = {
+        'LineNumber': str(numero),
+        'ProductCode': donnees.get('reference') or donnees['designation'][:50],
+        'ProductDescription': donnees['designation'],
+        'Quantity': _quantite(donnees['quantite']),
+        'UnitOfMeasure': donnees.get('unite') or 'UN',
+        'UnitPrice': _montant(donnees['prix_unitaire']),
+        # OBLIGATOIRE ici, et à cette place : après le prix unitaire, pas
+        # au bout de la ligne comme dans un document de travail.
+        'Description': donnees.get('description') or donnees['designation'],
+        'DebitAmount': montant if au_debit else None,
+        'CreditAmount': None if au_debit else montant,
+        # Optionnel dans cette table, mais son TaxType y est RESTREINT à
+        # deux valeurs par un sous-type qui n'existe que pour elle.
+        'Tax': (_bloc_de_taxe(donnees, TYPES_DE_TAXE_DE_MOUVEMENT,
+                              ORDRE_TAXE_DE_MOUVEMENT)
+                if donnees.get('taux') is not None else None),
+    }
+    if donnees.get('code_de_taux') == 'ISE':
+        motif = donnees.get('motif_exoneration')
+        code = donnees.get('code_exoneration')
+        if not motif or not code:
+            raise ErreurSAFT(
+                f'Ligne {numero} du mouvement : une ligne exonérée doit '
+                'porter son motif d’exonération et son code. Un des deux '
+                'xs:assert de cette table l’exige, et notre validateur ne '
+                'lit pas les asserts.')
+        valeurs['TaxExemptionReason'] = motif
+        valeurs['TaxExemptionCode'] = code
+
+    _ajouter(element, ORDRE_LIGNE_DE_MOUVEMENT, valeurs)
+    return element
+
+
+def ligne_de_travail(numero, donnees):
+    """Une ligne de la table 4.3.
+
+    `TaxPointDate` est OBLIGATOIRE ici — la date où la TVA est due — alors
+    que la ligne d'un mouvement ne la porte pas.
+
+    `TaxBase` n'est jamais posé : un `xs:assert` du schéma refuse qu'il
+    coexiste avec un `UnitPrice` non nul, et nous posons toujours le prix
+    unitaire. Le poser « au cas où » rendrait le document refusable par
+    l'AT sans que notre validateur, qui ne lit pas les asserts, en dise
+    rien.
+    """
+    _exiger(donnees, ('designation', 'quantite', 'prix_unitaire'),
+            f'Ligne {numero} du document de travail')
+
+    element = ET.Element('Line')
+    montant = _montant(donnees.get('montant', 0))
+
+    valeurs = {
+        'LineNumber': str(numero),
+        'ProductCode': donnees.get('reference') or donnees['designation'][:50],
+        'ProductDescription': donnees['designation'],
+        'Quantity': _quantite(donnees['quantite']),
+        'UnitOfMeasure': donnees.get('unite') or 'UN',
+        'UnitPrice': _montant(donnees['prix_unitaire']),
+        'TaxPointDate': _date(donnees['date_tva']) if donnees.get('date_tva')
+                        else None,
+        'Description': donnees.get('description') or donnees['designation'],
+        'CreditAmount': montant,
+        'Tax': _bloc_de_taxe(donnees),
+    }
+    if donnees.get('code_de_taux') == 'ISE':
+        motif = donnees.get('motif_exoneration')
+        code = donnees.get('code_exoneration')
+        if not motif or not code:
+            raise ErreurSAFT(
+                f'Ligne {numero} : une ligne exonérée doit porter son motif '
+                'd’exonération et son code (ex. « M07 »). Le schéma les '
+                'exige dès que le code de taux vaut ISE — ici comme sur une '
+                'facture.')
+        valeurs['TaxExemptionReason'] = motif
+        valeurs['TaxExemptionCode'] = code
+
+    _ajouter(element, ORDRE_LIGNE_DE_TRAVAIL, valeurs)
+    return element
+
+
+def mouvement(donnees):
+    """Un `StockMovement` de la table 4.2.
+
+    TROIS CONTRAINTES QUE LE SCHÉMA PORTE ET QU'UN ŒIL NE VOIT PAS.
+
+    1. `CustomerID` et `SupplierID` sont dans un `xs:choice` OBLIGATOIRE :
+       exactement l'un des deux. Un mouvement sans aucun des deux est
+       refusé ; avec les deux, également. Le contrôle est ici, parce que
+       notre validateur accepte les deux cas.
+
+    2. `MovementStartTime` est obligatoire, `MovementEndTime` optionnel —
+       et le schéma place la FIN avant le DÉBUT dans sa séquence.
+
+    3. `Hash` et `HashControl` sont présents : un document de transport est
+       SIGNÉ, contrairement au reçu de la table 4.4.
+    """
+    _exiger(donnees, ('numero', 'etat', 'date', 'type_mouvement',
+                      'horodatage', 'signature', 'version_cle', 'atcud',
+                      'emetteur', 'debut_transport', 'lignes'),
+            'Mouvement de marchandises')
+
+    client_ = donnees.get('client')
+    fournisseur = donnees.get('fournisseur')
+    if bool(client_) == bool(fournisseur):
+        raise ErreurSAFT(
+            f'Mouvement « {donnees["numero"]} » : le schéma impose un '
+            'acquéreur OU un fournisseur, et exactement un des deux — ils '
+            'sont dans un choix obligatoire. '
+            + ('Aucun des deux n’est donné.' if not client_
+               else 'Les deux sont donnés.'))
+
+    if not donnees['lignes']:
+        raise ErreurSAFT(
+            f'Mouvement « {donnees["numero"]} » : au moins une ligne est '
+            'exigée par le schéma (Line+).')
+
+    element = ET.Element('StockMovement')
+
+    etat = ET.Element('DocumentStatus')
+    _ajouter(etat, ORDRE_ETAT_DE_MOUVEMENT, {
+        'MovementStatus': donnees['etat'],
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « MovementStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'MovementStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
+        'Reason': donnees.get('motif_etat') or None,
+        'SourceID': donnees['emetteur'],
+        'SourceBilling': donnees.get('origine', 'P'),
+    })
+
+    lignes = [ligne_de_mouvement(numero, valeurs, donnees['type_mouvement'])
+              for numero, valeurs in enumerate(donnees['lignes'], start=1)]
+
+    totaux = ET.Element('DocumentTotals')
+    _ajouter(totaux, ORDRE_TOTAUX_DE_MOUVEMENT, {
+        'TaxPayable': _montant(donnees.get('total_taxes', 0)),
+        'NetTotal': _montant(donnees.get('total_base', 0)),
+        'GrossTotal': _montant(donnees.get('total', 0)),
+    })
+
+    _ajouter(element, ORDRE_MOUVEMENT, {
+        'DocumentNumber': donnees['numero'],
+        'ATCUD': donnees['atcud'],
+        'DocumentStatus': etat,
+        'Hash': donnees['signature'],
+        'HashControl': donnees['version_cle'],
+        'Period': str(donnees['date'].month),
+        'MovementDate': _date(donnees['date']),
+        'MovementType': donnees['type_mouvement'],
+        'SystemEntryDate': _horodatage(donnees['horodatage']),
+        'CustomerID': client_ or None,
+        'SupplierID': fournisseur or None,
+        'SourceID': donnees['emetteur'],
+        'MovementComments': donnees.get('commentaire') or None,
+        'ShipTo': point_de_transport('ShipTo', donnees.get('destination')),
+        'ShipFrom': point_de_transport('ShipFrom', donnees.get('origine_envoi')),
+        'MovementEndTime': (_horodatage(donnees['fin_transport'])
+                            if donnees.get('fin_transport') else None),
+        'MovementStartTime': _horodatage(donnees['debut_transport']),
+        'ATDocCodeID': donnees.get('code_at') or None,
+        'Line': lignes,
+        'DocumentTotals': totaux,
+    })
+    return element
+
+
+def document_de_travail(donnees):
+    """Un `WorkDocument` de la table 4.3.
+
+    Signé lui aussi. `CustomerID` y est unique et obligatoire — pas de
+    choix avec un fournisseur, contrairement au mouvement.
+
+    `SourceID` précède `SystemEntryDate` ici et le suit dans un mouvement :
+    deux tables voisines, deux ordres. `ORDRE_TRAVAIL` et
+    `ORDRE_MOUVEMENT` portent chacun le sien, et un test les compare au
+    XSD élément par élément.
+    """
+    _exiger(donnees, ('numero', 'etat', 'date', 'type_travail',
+                      'horodatage', 'signature', 'version_cle', 'atcud',
+                      'emetteur', 'client', 'lignes'),
+            'Document de travail')
+
+    if not donnees['lignes']:
+        raise ErreurSAFT(
+            f'Document de travail « {donnees["numero"]} » : au moins une '
+            'ligne est exigée par le schéma (Line+).')
+
+    element = ET.Element('WorkDocument')
+
+    etat = ET.Element('DocumentStatus')
+    _ajouter(etat, ORDRE_ETAT_DE_TRAVAIL, {
+        'WorkStatus': donnees['etat'],
+        # LA DATE DE L'ETAT, ET NON CELLE DE L'EMISSION. Le schema
+        # separe « WorkStatusDate » de « SystemEntryDate » : employer
+        # l'horodatage d'emission pour les deux fait declarer qu'un
+        # document annule est NE annule. Le defaut ne pouvait apparaitre
+        # qu'avec l'annulation, qui n'existait pas.
+        'WorkStatusDate': _horodatage(
+            donnees.get('date_etat') or donnees['horodatage']),
+        'Reason': donnees.get('motif_etat') or None,
+        'SourceID': donnees['emetteur'],
+        'SourceBilling': donnees.get('origine', 'P'),
+    })
+
+    lignes = [ligne_de_travail(numero, valeurs)
+              for numero, valeurs in enumerate(donnees['lignes'], start=1)]
+
+    totaux = ET.Element('DocumentTotals')
+    _ajouter(totaux, ORDRE_TOTAUX_DE_TRAVAIL, {
+        'TaxPayable': _montant(donnees.get('total_taxes', 0)),
+        'NetTotal': _montant(donnees.get('total_base', 0)),
+        'GrossTotal': _montant(donnees.get('total', 0)),
+    })
+
+    _ajouter(element, ORDRE_TRAVAIL, {
+        'DocumentNumber': donnees['numero'],
+        'ATCUD': donnees['atcud'],
+        'DocumentStatus': etat,
+        'Hash': donnees['signature'],
+        'HashControl': donnees['version_cle'],
+        'Period': str(donnees['date'].month),
+        'WorkDate': _date(donnees['date']),
+        'WorkType': donnees['type_travail'],
+        'SourceID': donnees['emetteur'],
+        'SystemEntryDate': _horodatage(donnees['horodatage']),
+        'CustomerID': donnees['client'],
+        'Line': lignes,
+        'DocumentTotals': totaux,
+    })
+    return element
+
+
+def _sommes_de_mouvements(mouvements):
+    """L'en-tête de la table 4.2 : un NOMBRE DE LIGNES et une QUANTITÉ.
+
+    Les trois autres tables comptent des documents et additionnent des
+    montants. Celle-ci compte les LIGNES de tous les mouvements et
+    additionne les QUANTITÉS expédiées — relevé dans le XSD, et c'est le
+    genre d'écart qu'on ne voit pas en recopiant l'en-tête voisin.
+
+    Comme ailleurs, un mouvement annulé reste dans le fichier — la série
+    ne doit sauter aucun numéro — et ses quantités ne comptent plus.
+    """
+    lignes = 0
+    quantite = Decimal('0')
+    for donnees in mouvements:
+        etat = (donnees.get('etat') or '').strip()
+        for valeurs in donnees.get('lignes') or ():
+            lignes += 1
+            if etat in ETATS_DE_MOUVEMENT_HORS_TOTAUX:
+                continue
+            quantite += Decimal(str(valeurs.get('quantite', 0)))
+    return lignes, quantite

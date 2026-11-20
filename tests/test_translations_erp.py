@@ -170,13 +170,28 @@ class SyncMissingTranslationsCommandTest(TestCase):
         return langue
 
     def test_sync_detects_missing(self):
+        """Sans --create, la commande ne doit CREER aucune entree.
+
+        Ce test comparait le compte global a zero. C'etait vrai tant que
+        rien ne peuplait la table ; depuis que la migration
+        `0005_contenu_statique_des_sites` y pose le contenu des sites
+        publics, le zero est faux -- et ce n'est pas la commande qui a
+        change. On mesure donc l'ECART avant/apres, qui est ce que le test
+        voulait dire : la commande n'ajoute rien.
+
+        Deuxieme fois que ce fichier bute sur la meme supposition, apres
+        les deux `create()` de langues qui tenaient la table pour vide.
+        """
         from django.core.management import call_command
+
+        from apps.translations.models import InterfaceTranslation
+
         self._langue('en', 'English', 'English', 2)
         self._langue('fr', 'French', 'Français', 1, par_defaut=True)
-        # Sans --create, ne doit pas creer d entrees
+
+        avant = InterfaceTranslation.objects.count()
         call_command('sync_missing_translations', language='en', verbosity=0)
-        from apps.translations.models import InterfaceTranslation
-        self.assertEqual(InterfaceTranslation.objects.count(), 0)
+        self.assertEqual(InterfaceTranslation.objects.count(), avant)
 
     def test_sync_creates_entries_with_flag(self):
         from django.core.management import call_command

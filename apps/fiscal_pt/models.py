@@ -601,7 +601,125 @@ class SerieFiscale(models.Model):
         return f'{self.type_document} {self.nom}/{sequentiel}'
 
 
-class DocumentFiscal(models.Model):
+# ── L'annulation d'un document émis ─────────────────────────────────────────
+#
+# CE QUI MANQUAIT, ET POURQUOI C'ÉTAIT BLOQUANT POUR LA CERTIFICATION.
+#
+# `save()` refuse toute modification d'un document émis — sa signature
+# porte sur son contenu, et la chaîne de la série en dépend. L'état « A »
+# ne pouvait donc PAS être posé sur un document existant : la seule voie de
+# correction était l'avoir, qui est légale, mais un programme certifié doit
+# aussi savoir annuler.
+#
+# L'ANNULATION NE PASSE PAS PAR `save()`, ET C'EST VOLONTAIRE.
+#
+# Elle écrit TROIS colonnes par un `update()` de requête, qui ne passe pas
+# par `save()`. L'interdiction de modifier reste donc ABSOLUE — on ne
+# l'assouplit pas, on ne la contourne pas par un drapeau qu'il faudrait
+# penser à remettre. Le contenu signé n'est jamais touché, et la signature
+# reste valable : elle couvre ce que le document DISAIT, pas son état
+# administratif, que le SAF-T porte à part dans `DocumentStatus`.
+#
+# TROIS COLONNES ET PAS DEUX. L'état, le motif, et la DATE du changement.
+# Le schéma a un `InvoiceStatusDate` distinct de `SystemEntryDate` : la
+# date d'émission ne doit pas servir de date d'annulation, sans quoi le
+# fichier déclare que le document est né annulé.
+
+
+class MixinAnnulation(models.Model):
+    """Ce qu'il faut pour annuler un document émis, sans le modifier.
+
+    Les quatre familles de documents en héritent — facturation, reçus,
+    mouvements, documents de travail — parce que le schéma leur donne à
+    chacune un `DocumentStatus` de même forme : un état, une date d'état,
+    un motif.
+    """
+
+    #: Le schéma tronque `Reason` à 50 caractères. On borne ici plutôt que
+    #: de laisser l'export couper une phrase en deux.
+    motif_etat = models.CharField(
+        'Motif du changement d’état', max_length=50, blank=True,
+        help_text='Pourquoi ce document est dans cet état. Figure dans le '
+                  'SAF-T, au champ « Reason » de son état.')
+
+    etat_change_le = models.DateTimeField(
+        'État modifié le', null=True, blank=True,
+        help_text='Date du changement d’état, distincte de la date '
+                  'd’émission. Le schéma les sépare.')
+
+    class Meta:
+        abstract = True
+
+    #: Les états depuis lesquels une annulation est possible. Surchargé par
+    #: les mouvements, qui peuvent être annulés en cours d'acheminement.
+    ETATS_ANNULABLES = ('N',)
+
+    def annuler(self, motif, quand=None):
+        """Passe ce document en état « A », sans toucher à son contenu.
+
+        LE MOTIF EST OBLIGATOIRE. Le schéma le rend optionnel, mais une
+        annulation sans justification ne vaut rien pour un contrôle : le
+        validateur de l'AT accepte le fichier, et l'inspecteur demande
+        pourquoi. Autant l'exiger au moment où quelqu'un sait répondre.
+
+        UN DOCUMENT FACTURÉ N'EST PAS ANNULABLE. Son état « F » dit qu'une
+        facture le reprend : l'annuler laisserait cette facture appuyée sur
+        un document annulé. La voie est alors l'avoir.
+
+        Rien n'est re-signé : la signature couvre le contenu, pas l'état.
+        """
+        motif = (motif or '').strip()
+        if not motif:
+            raise ValidationError(
+                'Une annulation doit dire pourquoi. Le motif figure dans le '
+                'SAF-T et c’est la seule explication que l’administration '
+                'aura : « erreur de saisie », « commande annulée par le '
+                'client »…')
+
+        if self.etat == 'A':
+            raise ValidationError(
+                f'Le document {self.numero} est déjà annulé '
+                f'(le {self.etat_change_le:%d/%m/%Y} — {self.motif_etat}).'
+                if self.etat_change_le else
+                f'Le document {self.numero} est déjà annulé.')
+
+        if self.etat not in self.ETATS_ANNULABLES:
+            raise ValidationError(
+                f'Un document en état « {self.etat} » ne s’annule pas : '
+                f'seuls les états {", ".join(self.ETATS_ANNULABLES)} le '
+                'permettent. Un document déjà facturé se corrige par un '
+                'avoir, qui laisse la trace des deux.')
+
+        quand = quand or timezone.now()
+
+        # `update()` ET NON `save()`. L'interdiction de modifier un
+        # document émis reste absolue : on ne la contourne pas, on écrit
+        # trois colonnes que la signature ne couvre pas.
+        type(self).objects.filter(pk=self.pk).update(
+            etat='A', motif_etat=motif[:50], etat_change_le=quand)
+
+        self.etat = 'A'
+        self.motif_etat = motif[:50]
+        self.etat_change_le = quand
+        return self
+
+    @property
+    def est_annule(self):
+        return self.etat == 'A'
+
+    @property
+    def compte_dans_les_totaux(self):
+        """Un document annulé reste dans le fichier et ne compte plus.
+
+        La Portaria 302/2016 pose les deux règles sur les mêmes
+        documents : `NumberOfEntries` les COMPTE, `TotalDebit` et
+        `TotalCredit` les EXCLUENT. L'annulé prouve que la série ne saute
+        aucun numéro, et son montant ne pèse plus.
+        """
+        return self.etat not in ('A', 'F')
+
+
+class DocumentFiscal(MixinAnnulation):
     """Un document émis, signé, et désormais immuable.
 
     POURQUOI « IMMUABLE » EST ICI UN MOT TECHNIQUE
@@ -923,7 +1041,7 @@ class DocumentFiscal(models.Model):
         return assinatura.mention_legale(self.signature, numero_de_certificat)
 
 
-class RecuFiscal(models.Model):
+class RecuFiscal(MixinAnnulation):
     """Un reçu émis — la table 4.4 du SAF-T, et non la 4.1.
 
     POURQUOI UN MODÈLE À PART, ET NON UN TYPE DE PLUS SUR `DocumentFiscal`
@@ -1218,3 +1336,591 @@ class RecuFiscal(models.Model):
             assinatura.mention_sans_signature(numero_de_certificat),
             assinatura.MENTION_NON_FATURA,
         ]
+
+
+# ── Les mouvements de marchandises et les documents de travail ───────────────
+#
+# DEUX MODÈLES DE PLUS, ET LA MÊME RAISON QUE POUR LE REÇU.
+#
+# Un mouvement et un document de travail ne sont pas des types de plus sur
+# `DocumentFiscal` : ils vont dans d'autres tables du SAF-T, avec d'autres
+# éléments, d'autres états et d'autres règles. Les faire tenir dans le même
+# modèle obligerait à laisser vides la moitié des colonnes selon le type —
+# et c'est ainsi qu'un champ obligatoire finit par manquer sans que rien ne
+# le dise.
+#
+# CE QU'ILS PARTAGENT AVEC LA FACTURE, EN REVANCHE : ils sont SIGNÉS. Le
+# schéma leur donne `Hash` et `HashControl`, contrairement au reçu. La
+# chaîne, le verrou de série et l'attribution du numéro sont donc les mêmes,
+# par `_attribuer_le_numero`.
+
+ETATS_DE_MOUVEMENT = tipos.ETATS_DE_MOUVEMENT
+ETATS_DE_TRAVAIL = tipos.ETATS_DE_TRAVAIL
+
+
+def _lignes_pour_json(lignes):
+    """Les lignes, réduites à ce que le SAF-T en demande.
+
+    Un `Decimal` et une `date` ne se sérialisent pas en JSON : on les
+    convertit ici, à l'écriture, plutôt que de confier la conversion à
+    l'appelant — qui l'oublierait une fois sur deux, et dont l'oubli ne se
+    verrait qu'à l'export.
+    """
+    propres = []
+    for ligne in lignes:
+        propre = {
+            'designation': str(ligne.get('designation') or '').strip(),
+            'reference': str(ligne.get('reference') or '').strip(),
+            'quantite': str(ligne.get('quantite') or 0),
+            'unite': str(ligne.get('unite') or 'UN'),
+            'prix_unitaire': str(ligne.get('prix_unitaire') or 0),
+            'montant': str(ligne.get('montant') or 0),
+        }
+        if ligne.get('taux') is not None:
+            propre['taux'] = str(ligne['taux'])
+            propre['code_de_taux'] = str(ligne.get('code_de_taux') or 'NOR')
+        if ligne.get('motif_exoneration'):
+            propre['motif_exoneration'] = str(ligne['motif_exoneration'])
+            propre['code_exoneration'] = str(ligne.get('code_exoneration')
+                                             or '')
+        if ligne.get('date_tva'):
+            propre['date_tva'] = ligne['date_tva'].isoformat()
+        description = ligne.get('description')
+        if description:
+            propre['description'] = str(description)
+        propres.append(propre)
+    return propres
+
+
+def _valider_les_lignes(lignes, contexte):
+    """Au moins une ligne, et chacune complète. Rend (liste, total).
+
+    LE SCHÉMA EXIGE `Line+` DANS LES DEUX TABLES. Un document sans ligne
+    s'émettrait, se signerait, et ferait échouer l'export du fichier
+    ENTIER — sur un document que plus rien ne modifie. C'est le défaut
+    qu'`InvoiceLine` avait déjà posé une fois, et il se referme ici avant
+    la signature.
+    """
+    lignes = list(lignes or [])
+    if not lignes:
+        raise ValidationError(
+            f'{contexte} : au moins une ligne est exigée. Le schéma de l’AT '
+            'écrit « Line+ », et un document sans ligne ferait refuser le '
+            'fichier entier après avoir été signé.')
+
+    total = Decimal('0')
+    for rang, ligne in enumerate(lignes, start=1):
+        for champ in ('designation', 'quantite', 'prix_unitaire'):
+            if ligne.get(champ) in (None, ''):
+                raise ValidationError(
+                    f'{contexte}, ligne {rang} : « {champ} » est exigé.')
+        try:
+            quantite = Decimal(str(ligne['quantite']))
+            prix = Decimal(str(ligne['prix_unitaire']))
+        except (ArithmeticError, TypeError, ValueError):
+            raise ValidationError(
+                f'{contexte}, ligne {rang} : quantité ou prix illisible.')
+        if quantite <= 0:
+            raise ValidationError(
+                f'{contexte}, ligne {rang} : la quantité doit être '
+                'strictement positive. Le Despacho 8632/2014, point 2.2.6, '
+                'interdit les valeurs négatives sur un document émis.')
+        montant = ligne.get('montant')
+        montant = (Decimal(str(montant)) if montant not in (None, '')
+                   else (quantite * prix))
+        ligne['montant'] = montant
+        total += montant
+    return lignes, total
+
+
+class MouvementFiscal(MixinAnnulation):
+    """Un mouvement de marchandises — la table 4.2 du SAF-T.
+
+    GUIA DE TRANSPORTE, GUIA DE REMESSA ET LES TROIS AUTRES. Le type décide
+    de la nature légale du document ; le schéma les compose à l'identique,
+    et aucun de ses deux `xs:assert` ne les distingue.
+
+    DEUX CONTRAINTES PROPRES À CETTE TABLE, qu'aucune autre ne porte.
+
+    1. `CustomerID` et `SupplierID` sont dans un `xs:choice` OBLIGATOIRE :
+       exactement l'un des deux. Un mouvement vers un client porte le
+       client ; une réception depuis un fournisseur porte le fournisseur.
+       Les deux, ou aucun, et le fichier est refusé.
+
+    2. `MovementStartTime` est obligatoire. On ne transporte pas sans dire
+       quand le transport commence — et la loi portugaise veut ce document
+       ÉMIS AVANT le départ, ce qui est une règle d'usage que le logiciel
+       ne peut pas vérifier mais que l'écran rappelle.
+
+    COMME LA FACTURE, ET CONTRAIREMENT AU REÇU : il est SIGNÉ. Le schéma
+    lui donne `Hash` et `HashControl`.
+    """
+
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT,
+                               related_name='mouvements_fiscaux_pt')
+    serie = models.ForeignKey(SerieFiscale, on_delete=models.PROTECT,
+                              related_name='mouvements')
+    numero_sequentiel = models.PositiveIntegerField('Numéro dans la série')
+    numero = models.CharField('Numéro légal', max_length=60)
+
+    date_document = models.DateField('Date du document')
+    horodatage = models.DateTimeField('Horodatage d’émission')
+
+    type_mouvement = models.CharField('Type de mouvement', max_length=2,
+                                      choices=tipos.TYPES_DE_MOUVEMENT)
+    etat = models.CharField('État', max_length=1, default='N',
+                            choices=ETATS_DE_MOUVEMENT)
+
+    #: L'un des deux, jamais les deux : le schéma les met dans un choix.
+    identifiant_client = models.CharField('Client', max_length=30, blank=True)
+    identifiant_fournisseur = models.CharField('Fournisseur', max_length=30,
+                                               blank=True)
+
+    # LE NIF ENTRE DANS LE MESSAGE SIGNÉ ET DANS LE CODE QR : il doit donc
+    # être conservé. Il ne l'était pas — `emettre()` le recevait, le
+    # signait, et le laissait tomber. Le document restait vérifiable, mais
+    # le SAF-T ne pouvait plus déclarer son client dans `MasterFiles`, et
+    # un `CustomerID` qui désigne un client non déclaré fait refuser le
+    # fichier entier.
+    nif_acquereur = models.CharField('NIF de l’acquéreur', max_length=30,
+                                     blank=True)
+    pays_acquereur = models.CharField('Pays de l’acquéreur', max_length=12,
+                                      blank=True, default='PT')
+
+    debut_transport = models.DateTimeField('Début du transport')
+    fin_transport = models.DateTimeField('Fin du transport', null=True,
+                                         blank=True)
+    commentaire = models.CharField('Commentaire', max_length=200, blank=True)
+
+    #: `ShipFrom` et `ShipTo` du schéma : le trajet.
+    origine_envoi = models.JSONField('Point de départ', default=dict,
+                                     blank=True)
+    destination = models.JSONField('Point de livraison', default=dict,
+                                   blank=True)
+
+    lignes = models.JSONField('Lignes', default=list)
+    total_base = models.DecimalField('Total hors taxes', max_digits=14,
+                                     decimal_places=2, default=0)
+    total_taxes = models.DecimalField('Total des taxes', max_digits=14,
+                                      decimal_places=2, default=0)
+    total = models.DecimalField('Total', max_digits=14, decimal_places=2,
+                                default=0)
+
+    message_signe = models.TextField('Message signé', blank=True)
+    signature = models.TextField('Signature', blank=True)
+    signature_precedente = models.TextField('Signature précédente',
+                                            blank=True)
+    version_cle = models.PositiveSmallIntegerField('Version de la clé',
+                                                   default=1)
+    atcud = models.CharField('ATCUD', max_length=70, blank=True)
+    contenu_qr = models.TextField('Contenu du code QR', blank=True)
+
+    source_app = models.CharField('Application source', max_length=50,
+                                  blank=True)
+    source_modele = models.CharField('Modèle source', max_length=50,
+                                     blank=True)
+    source_id = models.PositiveIntegerField('Identifiant source', null=True,
+                                            blank=True)
+    cree_le = models.DateTimeField(auto_now_add=True)
+
+    #: Un transport EN COURS peut etre annule : la marchandise revient.
+    #: L'etat « T » n'existe que dans cette table.
+    ETATS_ANNULABLES = ('N', 'T')
+
+    class Meta:
+        verbose_name = 'Mouvement de marchandises (PT)'
+        verbose_name_plural = 'Mouvements de marchandises (PT)'
+        ordering = ['-date_document', '-numero_sequentiel']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['serie', 'numero'],
+                name='fiscal_pt_mouvement_numero_unique'),
+            models.UniqueConstraint(
+                fields=['serie', 'numero_sequentiel'],
+                name='fiscal_pt_mouvement_sequence_unique'),
+        ]
+
+    def __str__(self):
+        return self.numero
+
+    def save(self, *args, **kwargs):
+        """Refuse toute modification, comme une facture.
+
+        Un document signé ne se corrige pas : la signature porte sur son
+        contenu, et le modifier romprait la chaîne de tous les suivants.
+        """
+        if self.pk is not None:
+            raise ValidationError(
+                'Un mouvement émis ne se modifie pas : sa signature porte '
+                'sur son contenu, et la chaîne de la série en dépend. '
+                'Émettez un mouvement de retour, ou annulez celui-ci.')
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(
+            'Un mouvement émis ne se supprime pas : la série ne doit sauter '
+            'aucun numéro. Annulez-le — il reste alors dans le fichier, en '
+            'état « A », et ses quantités ne comptent plus.')
+
+    @classmethod
+    def emettre(cls, *, serie, date_document, lignes, nif_emetteur,
+                debut_transport, identifiant_client='',
+                identifiant_fournisseur='', nif_acquereur='',
+                pays_acquereur='PT', etat='N', fin_transport=None,
+                origine_envoi=None, destination=None, commentaire='',
+                source=None, horodatage=None, numero_de_certificat='0'):
+        """Numérote, signe et enregistre un mouvement — tout ou rien.
+
+        LE CHOIX CLIENT/FOURNISSEUR EST VÉRIFIÉ ICI, avant la signature.
+        Le schéma les met dans un `xs:choice` obligatoire ; notre
+        validateur accepte les deux cas, et l'AT refuse. Le contrôle doit
+        donc être posé avant que le document ne soit figé.
+        """
+        from django.core.exceptions import ValidationError as Invalide
+
+        horodatage = horodatage or timezone.now()
+
+        if bool(identifiant_client) == bool(identifiant_fournisseur):
+            raise Invalide(
+                'Un mouvement désigne un client OU un fournisseur, et '
+                'exactement un des deux : le schéma les place dans un choix '
+                'obligatoire. '
+                + ('Aucun des deux n’est renseigné.'
+                   if not identifiant_client
+                   else 'Les deux sont renseignés.'))
+
+        # UNE HEURE DE TRANSPORT SANS FUSEAU EST REFUSÉE, et ce n'est pas
+        # du zèle. `MovementStartTime` part dans le SAF-T et compte
+        # légalement : la loi veut le document émis AVANT le départ. Une
+        # heure naïve serait interprétée en silence — Django l'enregistre
+        # en avertissant seulement — et l'heure déclarée pourrait se
+        # décaler d'une ou deux heures selon le réglage du serveur. Sur un
+        # document signé, personne ne le rattrape.
+        #
+        # C'est le même défaut que les sauvegardes planifiées, dont
+        # l'heure était interprétée en UTC alors que l'écran annonçait
+        # l'heure locale. Ici, on refuse plutôt que de deviner.
+        for nom, valeur in (('debut_transport', debut_transport),
+                            ('fin_transport', fin_transport)):
+            if valeur is not None and timezone.is_naive(valeur):
+                raise Invalide(
+                    f'« {nom} » est donné sans fuseau horaire. L’heure de '
+                    'transport part dans le SAF-T et compte légalement : '
+                    'interprétée au hasard du réglage du serveur, elle se '
+                    'décalerait d’une à deux heures sur un document déjà '
+                    'signé. Employez `django.utils.timezone`.')
+
+        with transaction.atomic():
+            verrouillee = (SerieFiscale.objects
+                           .select_for_update()
+                           .get(pk=serie.pk))
+
+            cle = verrouillee.cle or CleDeSignature.active_de(
+                verrouillee.company)
+
+            try:
+                tipos.valider_le_type_de_mouvement(verrouillee.type_document)
+                tipos.valider_l_etat(etat, verrouillee.type_document)
+            except tipos.RegleDeType as exc:
+                raise Invalide(str(exc))
+
+            lignes, total = _valider_les_lignes(
+                lignes, f'Mouvement {verrouillee.type_document}')
+
+            sequentiel, numero, precedent = _attribuer_le_numero(
+                verrouillee, cls)
+
+            message = assinatura.composer_le_message(
+                date_document, horodatage, numero, total, precedent)
+            signature = assinatura.signer(message, cle.privee())
+
+            code_atcud = atcud.composer(
+                verrouillee.code_de_validation or atcud.SANS_CODE, sequentiel)
+
+            # L'ESPACE FISCAL EST CELUI DU DOCUMENT, ET NON « 0 ».
+            #
+            # Les spécifications du code QR réservent « I1:0 » au document
+            # « sem indicação da taxa de IVA, que deva constar na tabela
+            # 4.2, 4.3 ou 4.4 ». La condition est l'ABSENCE de taux, pas
+            # l'appartenance à ces tables : un reçu n'indique aucun taux et
+            # reçoit « 0 », un mouvement porte un bloc `Tax` par ligne et
+            # reçoit donc son espace fiscal. Recopier la règle du reçu
+            # ici déclarerait l'inverse de ce que le fichier contient.
+            contenu = qr.composer(
+                nif_emetteur=nif_emetteur,
+                nif_acquereur=nif_acquereur or None,
+                pays_acquereur=pays_acquereur,
+                type_document=verrouillee.type_document,
+                etat_document=etat,
+                date_document=date_document,
+                numero_document=numero,
+                atcud=code_atcud,
+                espaces_fiscaux=[{'regiao': pays_acquereur or 'PT',
+                                  'base': 0, 'total': 0}],
+                total_impostos=0,
+                total_documento=total,
+                caracteres_hash=assinatura.caracteres_imprimes(signature),
+                numero_certificat=numero_de_certificat,
+            )
+
+            mouvement = cls(
+                company=verrouillee.company,
+                serie=verrouillee,
+                numero_sequentiel=sequentiel,
+                numero=numero,
+                date_document=date_document,
+                horodatage=horodatage,
+                type_mouvement=verrouillee.type_document,
+                etat=etat,
+                identifiant_client=identifiant_client,
+                identifiant_fournisseur=identifiant_fournisseur,
+                nif_acquereur=nif_acquereur,
+                pays_acquereur=pays_acquereur or 'PT',
+                debut_transport=debut_transport,
+                fin_transport=fin_transport,
+                commentaire=commentaire,
+                origine_envoi=origine_envoi or {},
+                destination=destination or {},
+                lignes=_lignes_pour_json(lignes),
+                total_base=total,
+                total_taxes=Decimal('0'),
+                total=total,
+                message_signe=message,
+                signature=signature,
+                signature_precedente=precedent,
+                version_cle=cle.version,
+                atcud=code_atcud,
+                contenu_qr=contenu,
+                source_app=getattr(source, '_meta', None)
+                and source._meta.app_label or '',
+                source_modele=getattr(source, '_meta', None)
+                and source._meta.model_name or '',
+                source_id=getattr(source, 'pk', None),
+            )
+            mouvement.save()
+
+            verrouillee.prochain_numero = sequentiel + 1
+            verrouillee.save(update_fields=['prochain_numero'])
+
+        return mouvement
+
+    def mentions_legales(self, numero_de_certificat):
+        """Les deux mentions qu'un mouvement imprimé doit porter.
+
+        Il est SIGNÉ, donc « Processado » et non « Emitido » — Despacho
+        8632/2014, point 2.2.2. Et il relève de la table 4.2, donc le
+        point 1.2 lui impose « Este documento não serve de fatura ».
+        """
+        return [assinatura.mention_legale(self.signature,
+                                          numero_de_certificat),
+                assinatura.MENTION_NON_FATURA]
+
+
+class DocumentDeTravailFiscal(MixinAnnulation):
+    """Un document de travail — la table 4.3 du SAF-T.
+
+    DEVIS, FICHE DE CHANTIER, BON DE COMMANDE. Le type décide de la nature
+    (`OR` pour un orçamento, `FO` pour une folha de obra, `NE` pour une
+    nota de encomenda), et le schéma les compose à l'identique.
+
+    POURQUOI UN DEVIS DOIT Y FIGURER. Un devis remis au client est un
+    document à efficacité externe : la Portaria le veut dans la table 4.3,
+    et le Despacho 8632/2014 lui impose au point 1.2 la mention « Este
+    documento não serve de fatura » — c'est exactement le cas qu'il
+    nomme. Sans cette table, un devis imprimé sur papier à en-tête
+    ressemble à une facture et n'en est pas une.
+
+    TROIS ÉTATS SEULEMENT : « N », « A », « F ». Ni « S » ni « R », que la
+    table des factures accepte. Un devis facturé passe en « F ».
+
+    IL EST SIGNÉ, comme la facture et le mouvement.
+    """
+
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT,
+                               related_name='documents_de_travail_pt')
+    serie = models.ForeignKey(SerieFiscale, on_delete=models.PROTECT,
+                              related_name='documents_de_travail')
+    numero_sequentiel = models.PositiveIntegerField('Numéro dans la série')
+    numero = models.CharField('Numéro légal', max_length=60)
+
+    date_document = models.DateField('Date du document')
+    horodatage = models.DateTimeField('Horodatage d’émission')
+
+    type_travail = models.CharField('Type', max_length=2,
+                                    choices=tipos.TYPES_DE_TRAVAIL)
+    etat = models.CharField('État', max_length=1, default='N',
+                            choices=ETATS_DE_TRAVAIL)
+
+    identifiant_client = models.CharField('Client', max_length=30)
+    nif_acquereur = models.CharField('NIF de l’acquéreur', max_length=20,
+                                     blank=True)
+    pays_acquereur = models.CharField('Pays de l’acquéreur', max_length=12,
+                                      default='PT')
+
+    lignes = models.JSONField('Lignes', default=list)
+    total_base = models.DecimalField('Total hors taxes', max_digits=14,
+                                     decimal_places=2, default=0)
+    total_taxes = models.DecimalField('Total des taxes', max_digits=14,
+                                      decimal_places=2, default=0)
+    total = models.DecimalField('Total', max_digits=14, decimal_places=2,
+                                default=0)
+
+    message_signe = models.TextField('Message signé', blank=True)
+    signature = models.TextField('Signature', blank=True)
+    signature_precedente = models.TextField('Signature précédente',
+                                            blank=True)
+    version_cle = models.PositiveSmallIntegerField('Version de la clé',
+                                                   default=1)
+    atcud = models.CharField('ATCUD', max_length=70, blank=True)
+    contenu_qr = models.TextField('Contenu du code QR', blank=True)
+
+    source_app = models.CharField('Application source', max_length=50,
+                                  blank=True)
+    source_modele = models.CharField('Modèle source', max_length=50,
+                                     blank=True)
+    source_id = models.PositiveIntegerField('Identifiant source', null=True,
+                                            blank=True)
+    cree_le = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Document de travail (PT)'
+        verbose_name_plural = 'Documents de travail (PT)'
+        ordering = ['-date_document', '-numero_sequentiel']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['serie', 'numero'],
+                name='fiscal_pt_travail_numero_unique'),
+            models.UniqueConstraint(
+                fields=['serie', 'numero_sequentiel'],
+                name='fiscal_pt_travail_sequence_unique'),
+        ]
+
+    def __str__(self):
+        return self.numero
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValidationError(
+                'Un document de travail émis ne se modifie pas : sa '
+                'signature porte sur son contenu, et la chaîne de la série '
+                'en dépend. Émettez-en un nouveau.')
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(
+            'Un document de travail émis ne se supprime pas : la série ne '
+            'doit sauter aucun numéro. Annulez-le — il reste alors dans le '
+            'fichier, en état « A », et ses montants ne comptent plus.')
+
+    @classmethod
+    def emettre(cls, *, serie, date_document, lignes, nif_emetteur,
+                identifiant_client, nif_acquereur='', pays_acquereur='PT',
+                etat='N', source=None, horodatage=None,
+                numero_de_certificat='0'):
+        """Numérote, signe et enregistre un document de travail.
+
+        `date_tva` de chaque ligne alimente `TaxPointDate`, que le schéma
+        rend OBLIGATOIRE dans cette table et qui n'existe pas dans celle
+        des mouvements. À défaut, la date du document est employée : une
+        date absente ferait refuser le fichier entier, et la date du
+        document est la réponse juste dans la quasi-totalité des cas.
+        """
+        from django.core.exceptions import ValidationError as Invalide
+
+        horodatage = horodatage or timezone.now()
+
+        with transaction.atomic():
+            verrouillee = (SerieFiscale.objects
+                           .select_for_update()
+                           .get(pk=serie.pk))
+
+            cle = verrouillee.cle or CleDeSignature.active_de(
+                verrouillee.company)
+
+            try:
+                tipos.valider_le_type_de_travail(verrouillee.type_document)
+                tipos.valider_l_etat(etat, verrouillee.type_document)
+            except tipos.RegleDeType as exc:
+                raise Invalide(str(exc))
+
+            lignes, total = _valider_les_lignes(
+                lignes, f'Document de travail {verrouillee.type_document}')
+
+            for ligne in lignes:
+                ligne.setdefault('date_tva', date_document)
+
+            sequentiel, numero, precedent = _attribuer_le_numero(
+                verrouillee, cls)
+
+            message = assinatura.composer_le_message(
+                date_document, horodatage, numero, total, precedent)
+            signature = assinatura.signer(message, cle.privee())
+
+            code_atcud = atcud.composer(
+                verrouillee.code_de_validation or atcud.SANS_CODE, sequentiel)
+
+            # L'espace fiscal du document, et non « 0 » : ses lignes
+            # portent un bloc `Tax`, donc il INDIQUE un taux. Voir la
+            # note de `MouvementFiscal.emettre`.
+            contenu = qr.composer(
+                nif_emetteur=nif_emetteur,
+                nif_acquereur=nif_acquereur or None,
+                pays_acquereur=pays_acquereur,
+                type_document=verrouillee.type_document,
+                etat_document=etat,
+                date_document=date_document,
+                numero_document=numero,
+                atcud=code_atcud,
+                espaces_fiscaux=[{'regiao': pays_acquereur or 'PT',
+                                  'base': 0, 'total': 0}],
+                total_impostos=0,
+                total_documento=total,
+                caracteres_hash=assinatura.caracteres_imprimes(signature),
+                numero_certificat=numero_de_certificat,
+            )
+
+            document = cls(
+                company=verrouillee.company,
+                serie=verrouillee,
+                numero_sequentiel=sequentiel,
+                numero=numero,
+                date_document=date_document,
+                horodatage=horodatage,
+                type_travail=verrouillee.type_document,
+                etat=etat,
+                identifiant_client=identifiant_client,
+                nif_acquereur=nif_acquereur,
+                pays_acquereur=pays_acquereur,
+                lignes=_lignes_pour_json(lignes),
+                total_base=total,
+                total_taxes=Decimal('0'),
+                total=total,
+                message_signe=message,
+                signature=signature,
+                signature_precedente=precedent,
+                version_cle=cle.version,
+                atcud=code_atcud,
+                contenu_qr=contenu,
+                source_app=getattr(source, '_meta', None)
+                and source._meta.app_label or '',
+                source_modele=getattr(source, '_meta', None)
+                and source._meta.model_name or '',
+                source_id=getattr(source, 'pk', None),
+            )
+            document.save()
+
+            verrouillee.prochain_numero = sequentiel + 1
+            verrouillee.save(update_fields=['prochain_numero'])
+
+        return document
+
+    def mentions_legales(self, numero_de_certificat):
+        """Les deux mentions. Il est signé, donc « Processado ».
+
+        Et le point 1.2 du Despacho lui impose la seconde en nommant la
+        table 4.3 : un devis qui ne la porte pas peut être présenté comme
+        une facture.
+        """
+        return [assinatura.mention_legale(self.signature,
+                                          numero_de_certificat),
+                assinatura.MENTION_NON_FATURA]

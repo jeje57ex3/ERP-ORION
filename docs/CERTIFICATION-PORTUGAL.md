@@ -710,18 +710,197 @@ même verrou, pas seulement l'écriture.
 
 ---
 
+### 2.13 Les tables 4.2 et 4.3 — le transport et les documents de travail
+
+L'entreprise transporte ses propres matériaux vers ses chantiers et
+remet des devis à ses clients. La table `MovementOfGoods` porte les
+*guias de transporte* et de *remessa* ; `WorkingDocuments` porte les
+devis, fiches de chantier et bons de commande. Ni l'une ni l'autre
+n'était produite : un fichier remis à l'AT déclarait donc une activité
+sans ses documents de circulation.
+
+Deux modèles ont été ajoutés — `MouvementFiscal` et
+`DocumentDeTravailFiscal` — signés et figés comme les autres, chacun
+dans sa propre série.
+
+#### Quatre listes d'états, qui ne se ressemblent que de loin
+
+    InvoiceStatus   (4.1)  N  S  A  R  F
+    MovementStatus  (4.2)  N  T  A  F  R
+    WorkStatus      (4.3)  N  A  F
+    PaymentStatus   (4.4)  N  A
+
+Le « T » de la table 4.2 — biens en cours d'acheminement — n'existe dans
+aucune autre. Tenir une seule liste ferait passer de notre côté un état
+que le schéma refuse, sur un document déjà signé, et bloquerait le
+fichier entier.
+
+#### Et l'en-tête de la table 4.2 ne compte pas la même chose
+
+`NumberOfMovementLines` et `TotalQuantityIssued` — un nombre de **lignes**
+et une somme de **quantités** — là où les trois autres tables comptent des
+documents et additionnent des montants. Recopier l'en-tête voisin
+donnerait un fichier dont deux nombres seulement diffèrent, et qui serait
+refusé en entier.
+
+#### Un défaut de la même famille : le bloc `Tax` d'un mouvement
+
+C'est un type à lui, `MovementTax`, qui n'a **pas** de `TaxAmount` — et
+dont le `TaxType` est restreint à deux valeurs là où un document de
+facturation en accepte davantage. C'est le test qui compare nos listes
+d'ordre au XSD, élément par élément, qui l'a dit : reprendre l'ordre de
+la table 4.1 produisait un fichier valide tant que personne ne posait de
+montant de taxe, et aurait émis un élément interdit le jour où quelqu'un
+en passerait un.
+
+#### Le code savait composer ces tables, et rien ne les lisait
+
+Les deux tables étaient composées correctement par `saft.py`, et un test
+les validait contre le XSD. Mais `export.rassembler` ne lisait que les
+documents de facturation et les reçus, et `export.composer` passait six
+jeux de données à une fonction qui en accepte huit. **Le fichier
+réellement produit par l'écran ne portait donc ni transport ni devis.**
+La correspondance modèle → SAF-T n'existait que dans le fichier de
+tests, c'est-à-dire à l'endroit où personne ne s'en sert.
+
+Trois défauts n'ont pu apparaître qu'en branchant cette lecture :
+
+| Défaut | Ce qu'il donnait |
+|---|---|
+| `MouvementFiscal.emettre` recevait `nif_acquereur`, le faisait entrer dans le message **signé** et dans le code QR, et ne le stockait nulle part — le modèle n'avait pas le champ. | Le document restait vérifiable, mais l'export ne pouvait plus déclarer son client dans `MasterFiles`, et un `CustomerID` qui désigne un client non déclaré fait refuser le fichier. |
+| `MasterFiles` n'émettait aucun `Supplier`, alors que `StockMovement` place `CustomerID` et `SupplierID` dans un choix **obligatoire**. | Un bon de livraison reçu d'un fournisseur portait un `SupplierID` qui ne renvoyait à rien. Le XSD ne pose aucune contrainte de clé entre les deux : notre validateur acceptait le fichier. C'est celui de l'AT qui vérifie l'intégrité référentielle, et il refuse le fichier entier. |
+| Une adresse de trajet écrite sous sa forme **plate** — celle qu'emploie l'en-tête du fichier, donc celle qu'on écrit spontanément — faisait remonter `'str' object has no attribute 'get'` du fond d'`_adresse`. | L'export entier s'effondrait au milieu de la composition, sans dire ni quel document ni lequel des deux points du trajet. Les deux formes sont désormais servies, et toute autre valeur refusée en nommant le champ. |
+
+### 2.14 L'annulation d'un document émis
+
+`save()` refuse toute modification d'un document émis — sa signature
+porte sur son contenu, et la chaîne de la série en dépend. L'état « A »
+ne pouvait donc pas être posé sur un document existant.
+
+L'annulation **ne passe pas par `save()`** : elle écrit trois colonnes
+par un `update()` de requête. L'interdiction de modifier reste donc
+**absolue** — on ne l'assouplit pas, on ne la contourne pas par un
+drapeau qu'il faudrait penser à remettre. Le contenu signé n'est jamais
+touché, et la signature reste valable : elle couvre ce que le document
+**disait**, pas son état administratif, que le SAF-T porte à part dans
+`DocumentStatus`.
+
+Trois colonnes et non deux : l'état, le motif, et la **date** du
+changement. Le motif est **exigé** bien que le schéma le rende optionnel —
+une annulation sans justification ne vaut rien pour un contrôle : le
+validateur accepte le fichier, et l'inspecteur demande pourquoi.
+
+Les états annulables diffèrent d'une table à l'autre : seul « N » pour la
+facturation, « N » et « T » pour les mouvements — un transport interrompu
+en route doit pouvoir l'être, la marchandise revient. Un document en
+état « F » ne s'annule pas : une facture le reprend, et l'annuler la
+laisserait appuyée sur un document annulé. La voie est alors l'avoir.
+
+#### Deux défauts que l'annulation a révélés, et qui ne pouvaient pas se voir avant elle
+
+**1. Les quatre `*StatusDate` recevaient l'horodatage d'émission.** Le
+schéma les distingue de `SystemEntryDate` : employer la même valeur pour
+les deux fait déclarer qu'un document annulé est **né** annulé.
+
+**2. `export.py` déclarait `motif_rectification` comme `Reason` de
+l'état.** Ce champ dit pourquoi le document est dans cet état ; l'autre
+dit pourquoi un avoir rectifie une facture. Deux informations
+différentes, déclarées au même endroit. La mesure dans le XSD : `Reason`
+y figure à **cinq** endroits, tous en `minOccurs="0"`, et les deux qui
+nous concernent ne portent pas la même chose.
+
+    DocumentStatus/Reason    « Motivo da alteração do estado do
+                             documento » — pourquoi ce document est dans
+                             cet état.
+
+    References/Reason        dans la structure décrite « referencias a
+                             outros documentos em documentos
+                             retificativos » — pourquoi l'avoir rectifie.
+
+Un test existant affirmait l'inverse — « le schéma attend le motif aux
+deux endroits » — et l'export le lui donnait. Il est remplacé par deux
+tests : l'un vérifie la séparation, l'autre qu'un avoir **annulé** porte
+bien les deux motifs à la fois, ce qui est impossible si un seul champ
+les porte.
+
+### 2.15 Plusieurs moyens de paiement sur un même document
+
+Une facture réglée moitié en espèces, moitié par carte est une situation
+ordinaire. Le modèle stocke `paiements` en **liste**, la règle parcourt
+cette liste et exige un montant dès le deuxième élément, et `saft.py`
+émet un bloc `Payment` par élément. Les trois couches basses
+l'acceptaient depuis le premier jour.
+
+Seul l'**écran** n'en offrait qu'un. Et comme le défaut était dans le
+formulaire et non dans la règle, aucun test de règle ne pouvait le voir :
+ils passaient tous des listes à la main, c'est-à-dire précisément ce que
+personne ne pouvait faire.
+
+Trois rangées sont désormais offertes sur le reçu comme sur la
+facture-reçu. Le montant de la première peut rester vide : un moyen
+unique sans montant vaut le total du document, que l'émission calcule
+depuis les lignes qu'elle vient de figer. Le faire saisir ferait entrer
+le cumul tenu par la facture de l'ERP, qui dérive d'un centime après une
+suppression de ligne — et au Portugal ce centime est signé. Dès deux
+moyens, chacun porte le sien, et leur somme doit égaler le total au
+centime.
+
+**La règle d'égalité n'est pas recopiée dans le formulaire.** Elle reste
+au seul endroit où le total du document est connu. Un contrôle dans le
+formulaire devrait employer un autre nombre.
+
+#### Deux pièges rencontrés en le faisant
+
+`initial='TB'` sur un champ de *formset* s'applique à **chaque** rangée.
+Les trois arrivaient donc pré-remplies au virement, et un reçu rempli
+sur une seule rangée serait parti avec trois paiements, dont deux sans
+montant. L'écran aurait été inutilisable dans son cas le plus courant.
+
+Et une rangée où quelqu'un a tapé un montant en oubliant de choisir le
+moyen ne doit pas être ignorée comme les rangées vides : la somme serait
+alors inférieure au total, et le refus parlerait d'un écart sans dire
+d'où il vient.
+
+#### Un défaut trouvé dans le message de refus lui-même
+
+`_lisible` employait `Decimal.normalize()` — et sa propre docstring
+disait que `normalize()` « ne sert qu'à comparer, jamais à afficher ».
+Ses huit appels sont tous des montants, chacun suivi d'un « € ». Le
+message « la somme encaissée (90 €) est inférieure au total (98.4 €) »
+faisait chercher quarante centimes là où l'écart est de huit euros
+quarante — sur un message dont la seule raison d'être est de retrouver
+un écart.
+
 ## 3. Ce qui reste à faire
 
 ### 3.1 Dans le logiciel
 
 | Reste | Pourquoi ce n'est pas fait |
 |---|---|
-| **Communication des séries à l'AT par webservice** | Le service SOAP de l'AT demande un certificat client délivré à l'entreprise. Le code de validation se saisit donc à la main aujourd'hui, ce qui est légal mais manuel. |
-| **Documents de mouvement de marchandises** | `MovementOfGoods` du SAF-T n'est pas produit. Obligatoire seulement si l'entreprise transporte des marchandises. |
-| **Documents de travail** | `WorkingDocuments` (devis, bons) n'est pas produit. |
-| **Reçus du régime de TVA de caisse (`RC`)** | Seul `RG` est émis. Le schéma impose à chaque ligne d'un `RC` son bloc `Tax`, par un `xs:assert`. Le type est **refusé explicitement** plutôt qu'offert et incomplet. |
-| **Annulation d'un document émis** | `save()` refuse toute modification, donc l'état `A` ne peut pas être posé sur un document existant. La seule voie de correction est l'avoir, qui est légale — mais un programme certifié peut aussi annuler. Les totaux de contrôle excluent désormais correctement les états `A` et `F`, de sorte que la fonction pourra être ajoutée sans refaire le calcul. |
-| **Plusieurs moyens de paiement sur un même document** | Le modèle, les règles et le SAF-T en acceptent plusieurs — le schéma rend l'élément répétable — mais l'écran n'en propose qu'un, pour la facture-reçu comme pour le reçu. La limite est dans la saisie, pas dans le fichier. |
+| **Communication des séries à l'AT par webservice** | Le service SOAP de l'AT demande un certificat client délivré à l'entreprise. Le code de validation se saisit donc à la main aujourd'hui, ce qui est légal mais manuel. **Seule l'entreprise peut obtenir ce certificat** : ce point ne se ferme pas depuis le code. |
+| **Reçus du régime de TVA de caisse (`RC`)** | Seul `RG` est émis. Le schéma impose à chaque ligne d'un `RC` son bloc `Tax`, par un `xs:assert`. Le type est **refusé explicitement** plutôt qu'offert et incomplet — un `RC` à moitié conforme ferait rejeter le fichier entier, alors que son refus est visible tout de suite. |
+
+Les quatre lignes qui figuraient ici — mouvements de marchandises,
+documents de travail, annulation d'un document émis, moyens de paiement
+multiples — sont faites. Voir les sections 2.13 à 2.15.
+
+### 3.1bis Une question qui attend votre décision : l'heure déclarée
+
+Le SAF-T déclare ses horodatages en **UTC**. C'est cohérent avec la
+chaîne signée — `assinatura` retire le fuseau d'un `timezone.now()`, qui
+est en UTC, et `saft` lit la colonne, que Django rend également en UTC :
+l'administration retombe donc bien sur notre signature en recalculant
+depuis la valeur exportée.
+
+Mais Lisbonne est à UTC+1 de fin mars à fin octobre. Pendant ces sept
+mois, l'heure déclarée dans `SystemEntryDate` est **décalée d'une heure**
+par rapport à l'heure locale d'enregistrement. Le fichier reste
+cohérent et vérifiable ; c'est la valeur elle-même qui n'est pas celle
+de la pendule.
+
+Le corriger touche la chaîne signée, donc le format des documents déjà
+émis : **je n'y touche pas sans votre accord.** C'est la même famille que
+la question des sauvegardes programmées à 02:00, qui partent à 03:00.
 
 ### 3.2 Un défaut à corriger dans la facturation française
 
@@ -808,6 +987,10 @@ les tests les comparent aux exemples publiés par l'administration.
 | `tests/test_fiscal_pt_formes_de_facture.py` | Que le chemin réel — formulaire, série, signature, gel, export — applique ces règles **avant** que le document devienne immuable, et que le fichier produit porte les quatre formes en restant conforme. |
 | `tests/test_fiscal_pt_recu_regles.py` | Les règles d'un reçu, mesurées hors base : les deux types et les deux états relus dans le XSD, le sens du mouvement, le refus d'un reçu mixte, les deux mentions imprimées comparées au texte du Despacho. |
 | `tests/test_fiscal_pt_recu.py` | Le chemin réel d'un reçu — série, numérotation, signature, gel, écrans, table 4.4 du SAF-T — et que le fichier produit passe le schéma **et** la cohérence. |
+| `tests/test_fiscal_pt_transport_et_travail.py` | Les tables 4.2 et 4.3 composées contre le XSD : les quatre listes d'états, l'en-tête qui compte des lignes et des quantités, le bloc `Tax` propre aux mouvements, le choix obligatoire client/fournisseur. |
+| `tests/test_fiscal_pt_export_des_mouvements.py` | Que ces deux tables arrivent dans le fichier **réellement produit par l'écran** — ce que le fichier précédent ne pouvait pas voir, puisqu'il composait depuis des dictionnaires écrits à la main. Avec le NIF du client, le fournisseur dans `MasterFiles`, et les deux formes d'adresse de trajet. |
+| `tests/test_fiscal_pt_annulation.py` | Que l'annulation pose l'état, le motif et la date sans toucher au contenu signé ; que la signature reste vérifiable ; que `save()` refuse toujours toute modification ; et que le fichier déclare la date du **changement** et non celle de l'émission. |
+| `tests/test_fiscal_pt_moyens_de_paiement.py` | Que plusieurs moyens de paiement sont atteignables **depuis l'écran** — la moitié du fichier mesure du HTML, parce que vérifier que la fonction les accepte ne prouve rien sur ce qu'un utilisateur peut faire : c'est l'erreur qui a laissé le défaut en place. |
 
 Deux limites, dites franchement :
 

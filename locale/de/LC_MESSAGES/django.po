@@ -370,3 +370,651 @@ msgstr "Alle"
 
 msgid "Tous droits réservés."
 msgstr "Alle Rechte vorbehalten."
+
+msgid "15+ ans d’expérience"
+msgstr "Über 15 Jahre Erfahrung"
+
+msgid ""
+"Ajoutez des photos de la zone concernée et, si disponible, votre plan (PDF)."
+msgstr ""
+"Fügen Sie Fotos des betroffenen Bereichs und, falls vorhanden, Ihren Plan "
+"(PDF) hinzu."
+
+msgid "Aperçu image"
+msgstr "Bildvorschau"
+
+msgid ""
+"Chaque prestation, du diagnostic au chantier, avec tarifs indicatifs et "
+"devis instantané."
+msgstr ""
+"Jede Leistung, von der Diagnose bis zur Ausführung, mit Richtpreisen und "
+"sofortigem Angebot."
+
+msgid ""
+"Conformément aux dispositions légales, toute reproduction du contenu de ce "
+"site est interdite sans autorisation préalable."
+msgstr ""
+"Gemäß den gesetzlichen Bestimmungen ist jede Vervielfältigung der Inhalte "
+"dieser Website ohne vorherige Genehmigung untersagt."
+
+msgid "Des installations conformes aux normes en vigueur (NF C 15-100…)."
+msgstr "Anlagen nach den geltenden Normen (NF C 15-100 …)."
+
+msgid ""
+"Des réalisations concrètes qui illustrent notre expertise en électricité et "
+"étanchéité"
+msgstr ""
+"Konkrete Referenzen, die unsere Kompetenz in Elektrotechnik und Abdichtung "
+"zeigen"
+
+msgid ""
+"Des solutions fiables et performantes pour une protection longue durée."
+msgstr "Zuverlässige und leistungsfähige Lösungen für dauerhaften Schutz."
+
+msgid ""
+"Devis, factures, interventions, planning, documents et messagerie — tout au "
+"même endroit."
+msgstr ""
+"Angebote, Rechnungen, Einsätze, Terminplan, Dokumente und Nachrichten – "
+"alles an einem Ort."
+
+msgid "Découvrir nos réalisations"
+msgstr "Unsere Referenzen entdecken"
+
+msgid ""
+"Estimation indicative. Utilisez le configurateur de chantier pour un pré-"
+"devis précis."
+msgstr ""
+"Richtwert. Nutzen Sie den Projektkonfigurator für ein genaues Vorabangebot."
+
+msgid ""
+"Estimez votre consommation, votre coût annuel et le dimensionnement d'une "
+"installation solaire, d'une batterie ou d'une borne de recharge."
+msgstr ""
+"Schätzen Sie Ihren Verbrauch, Ihre Jahreskosten und die Dimensionierung "
+"einer Solaranlage, eines Speichers oder einer Ladestation."
+
+msgid "Expert BTP en électricité & étanchéité"
+msgstr "Baufachbetrieb für Elektrotechnik und Abdichtung"
+
+msgid "Interventions certifiées"
+msgstr "Zertifizierte Einsätze"
+
+msgid ""
+"Interventions conformes NF C 15-100, garantie décennale sur les "
+"installations neuves."
+msgstr "Arbeiten nach NF C 15-100, zehnjährige Garantie auf Neuanlagen."
+
+msgid ""
+"Interventions conformes aux normes NF C 15-100 et réglementations en "
+"vigueur."
+msgstr "Arbeiten nach NF C 15-100 und den geltenden Vorschriften."
+
+msgid "Nos engagements"
+msgstr "Unsere Zusagen"
+
+msgid ""
+"Notre expertise en installations électriques et en solutions d’étanchéité "
+"pour vos projets de construction neuve et de rénovation."
+msgstr ""
+"Unsere Kompetenz in Elektroinstallationen und Abdichtungslösungen für Ihre "
+"Neubau- und Sanierungsprojekte."
+
+msgid ""
+"Photos d’illustration. Vos réalisations publiées depuis l’ERP prendront leur"
+" place."
+msgstr ""
+"Beispielfotos. Ihre über das ERP veröffentlichten Referenzen treten an ihre "
+"Stelle."
+
+msgid "Présentation"
+msgstr "Vorstellung"
+
+msgid "Qualité & durabilité"
+msgstr "Qualität & Langlebigkeit"
+
+msgid "Réactivité & proximité"
+msgstr "Reaktionsschnelligkeit & Nähe"
+
+msgid ""
+"Surface, pièces, équipements et niveau de gamme — 5 sous-étapes rapides."
+msgstr ""
+"Fläche, Räume, Ausstattung und Qualitätsstufe – 5 schnelle Teilschritte."
+
+msgid "Sécuriser, alimenter, protéger vos bâtiments"
+msgstr "Ihre Gebäude sichern, versorgen und schützen"
+
+msgid ""
+"Un accompagnement complet pour tous vos projets d’électricité et "
+"d’étanchéité"
+msgstr "Umfassende Begleitung für alle Ihre Elektro- und Abdichtungsprojekte"
+
+msgid "Un savoir-faire reconnu en électricité et en étanchéité (BTP)."
+msgstr "Anerkanntes Fachwissen in Elektrotechnik und Abdichtung (Bauwesen)."
+
+msgid "Équipe qualifiée"
+msgstr ""
+"Ein Team qualifizierter Elektriker für Ihre Projekte in Installation, "
+"Sanierung und Elektrosicherheit."
+
+msgid ""
+"Une équipe disponible et à votre écoute pour des interventions rapides."
+msgstr "Ein verfügbares Team, das zuhört, für schnelle Einsätze."
+
+msgid ""
+"Vous pourrez ajouter des photos et votre plan une fois la demande envoyée."
+msgstr ""
+"Fotos und Ihren Plan können Sie nach dem Absenden der Anfrage hinzufügen."
+
+msgid ""
+"Électricité générale, domotique, sécurité et réseaux — installation, "
+"dépannage et maintenance."
+msgstr ""
+"Elektroinstallation, Gebäudeautomation, Sicherheit und Netzwerke – "
+"Installation, Störungsdienst und Wartung."
+
+msgid "Électricité"
+msgstr "Elektrotechnik"
+
+msgid "Étanchéité"
+msgstr "Abdichtung"
+
+msgid "100 à 150 m²"
+msgstr "100 bis 150 m²"
+
+msgid "30 à 60 m²"
+msgstr "30 bis 60 m²"
+
+msgid "60 à 100 m²"
+msgstr "60 bis 100 m²"
+
+msgid "Accès rapide"
+msgstr "Schnellzugriff"
+
+msgid "Accéder à mon espace client"
+msgstr "Zu meinem Kundenbereich"
+
+msgid "Actualités et conseils électricité, une fois par mois."
+msgstr "Neuigkeiten und Tipps zur Elektrotechnik, einmal im Monat."
+
+msgid "Adresse d'intervention"
+msgstr "Einsatzadresse"
+
+msgid "Adresse email"
+msgstr "E-Mail-Adresse"
+
+msgid "Adresse email invalide."
+msgstr "Ungültige E-Mail-Adresse."
+
+msgid "Ajouter photos / plan"
+msgstr "Fotos / Plan hinzufügen"
+
+msgid "Ajouter photos et plan"
+msgstr "Fotos und Plan hinzufügen"
+
+msgid "Aller au contenu principal"
+msgstr "Zum Hauptinhalt springen"
+
+msgid "Après"
+msgstr "Nachher"
+
+msgid "Aucun avis publié pour le moment."
+msgstr "Derzeit sind keine Bewertungen veröffentlicht."
+
+msgid "Avant"
+msgstr "Vorher"
+
+msgid "Avant / après sur nos derniers chantiers électriques et domotiques."
+msgstr ""
+"Vorher / nachher unserer letzten Elektro- und Gebäudeautomationsprojekte."
+
+msgid "Avis clients"
+msgstr "Kundenbewertungen"
+
+msgid "Batterie de stockage conseillée"
+msgstr "Empfohlener Speicher"
+
+msgid "Borne de recharge conseillée"
+msgstr "Empfohlene Ladestation"
+
+msgid "Calculateur énergétique"
+msgstr "Energierechner"
+
+msgid "Calculer"
+msgstr "Berechnen"
+
+msgid "Ce résultat est indicatif. Pour un devis chiffré et engageant :"
+msgstr ""
+"Dieses Ergebnis ist ein Richtwert. Für ein verbindliches, bepreistes "
+"Angebot:"
+
+msgid "Certifiés"
+msgstr "Zertifiziert"
+
+msgid "Code postal"
+msgstr "Postleitzahl"
+
+msgid "Commentaires"
+msgstr "Anmerkungen"
+
+msgid "Confidentialité"
+msgstr "Datenschutz"
+
+msgid "Configurateur de chantier"
+msgstr "Projektkonfigurator"
+
+msgid "Configurateur de chantier · Étape 2 sur 4"
+msgstr "Projektkonfigurator · Schritt 2 von 4"
+
+msgid "Configurateur de chantier — Étape 2"
+msgstr "Projektkonfigurator — Schritt 2"
+
+msgid "Configurateur · Étape 1 sur 4"
+msgstr "Konfigurator · Schritt 1 von 4"
+
+msgid "Configurateur · Étape 3 sur 4"
+msgstr "Konfigurator · Schritt 3 von 4"
+
+msgid "Configurateur · Étape 4 sur 4"
+msgstr "Konfigurator · Schritt 4 von 4"
+
+msgid "Configurateur — Récapitulatif"
+msgstr "Konfigurator — Zusammenfassung"
+
+msgid "Configurer mon projet"
+msgstr "Mein Projekt konfigurieren"
+
+msgid "Connectez-vous à votre espace pour suivre vos demandes en cours."
+msgstr ""
+"Melden Sie sich in Ihrem Bereich an, um Ihre laufenden Anfragen zu "
+"verfolgen."
+
+msgid "Consommation annuelle (kWh)"
+msgstr "Jahresverbrauch (kWh)"
+
+msgid "Continuer"
+msgstr "Weiter"
+
+msgid "Contraintes d'accès, délais souhaités, éléments particuliers..."
+msgstr "Zugangsbeschränkungen, Wunschtermine, Besonderheiten …"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Coût annuel estimé"
+msgstr "Geschätzte Jahreskosten"
+
+msgid "Coût installation estimé"
+msgstr "Geschätzte Installationskosten"
+
+msgid "Créer mon espace client pour suivre ma demande"
+msgstr "Kundenbereich anlegen, um meine Anfrage zu verfolgen"
+
+msgid "Demande envoyée"
+msgstr "Anfrage gesendet"
+
+msgid "Demande envoyée avec succès !"
+msgstr "Anfrage erfolgreich gesendet!"
+
+msgid "Demande envoyée avec succès."
+msgstr "Anfrage erfolgreich gesendet."
+
+msgid "Demander l'accès"
+msgstr "Zugang anfordern"
+
+msgid "Demander une intervention"
+msgstr "Einsatz anfordern"
+
+msgid "Devis"
+msgstr "Angebot"
+
+msgid "Devis instantané"
+msgstr "Sofortangebot"
+
+msgid "Dimensionnement solaire conseillé"
+msgstr "Empfohlene Solardimensionierung"
+
+msgid "Directeur de publication"
+msgstr "Verantwortlicher für den Inhalt"
+
+msgid "Disponibilités pour l'intervention"
+msgstr "Verfügbarkeiten für den Einsatz"
+
+msgid "Données collectées"
+msgstr "Erhobene Daten"
+
+msgid "Déjà client ?"
+msgstr "Schon Kunde?"
+
+msgid "Dépannage · Étape 2 sur 4"
+msgstr "Störungsdienst · Schritt 2 von 4"
+
+msgid "Détails"
+msgstr "Details"
+
+msgid "Détails de votre projet"
+msgstr "Details Ihres Projekts"
+
+msgid "Envoyer"
+msgstr "Senden"
+
+msgid "Envoyer la demande"
+msgstr "Anfrage senden"
+
+msgid "Espace client"
+msgstr "Kundenbereich"
+
+msgid "Ex : 4500"
+msgstr "Z. B.: 4500"
+
+msgid "Ex : 9"
+msgstr "Z. B.: 9"
+
+msgid "Ex : demain matin, cette semaine..."
+msgstr "Z. B.: morgen früh, diese Woche …"
+
+msgid "Ex : tableau électrique existant"
+msgstr "Z. B.: vorhandener Verteilerkasten"
+
+msgid "Fermer"
+msgstr "Schließen"
+
+msgid "Flexible"
+msgstr "Flexibel"
+
+msgid "Hébergement"
+msgstr "Hosting"
+
+msgid "Information disponible sur demande."
+msgstr "Information auf Anfrage erhältlich."
+
+msgid "Informations légales"
+msgstr "Rechtliche Hinweise"
+
+msgid "Intervention garantie"
+msgstr "Garantierter Einsatz"
+
+msgid "Intervention rapide sur l'ensemble de notre zone de couverture."
+msgstr "Schneller Einsatz in unserem gesamten Einsatzgebiet."
+
+msgid "J'ajouterai une photo du problème"
+msgstr "Ich füge ein Foto des Problems hinzu"
+
+msgid "Je ne sais pas"
+msgstr "Ich weiß nicht"
+
+msgid "Lancer le configurateur de chantier"
+msgstr "Projektkonfigurator starten"
+
+msgid "Légende (optionnel)"
+msgstr "Bildunterschrift (optional)"
+
+msgid "Mentions légales"
+msgstr "Impressum"
+
+msgid "Merci d'indiquer votre nom."
+msgstr "Bitte geben Sie Ihren Namen an."
+
+msgid "Merci de décrire votre demande."
+msgstr "Bitte beschreiben Sie Ihr Anliegen."
+
+msgid "Message (optionnel)"
+msgstr "Nachricht (optional)"
+
+msgid "Message envoyé"
+msgstr "Nachricht gesendet"
+
+msgid "Modifier"
+msgstr "Ändern"
+
+msgid "Moins de 30 m²"
+msgstr "Weniger als 30 m²"
+
+msgid "Navigation principale"
+msgstr "Hauptnavigation"
+
+msgid "Newsletter"
+msgstr "Newsletter"
+
+msgid "Niveau de gamme"
+msgstr "Ausstattungsklasse"
+
+msgid "Non"
+msgstr "Nein"
+
+msgid "Normal"
+msgstr "Normal"
+
+msgid "Normes & garanties"
+msgstr "Normen & Garantien"
+
+msgid "Nos réalisations"
+msgstr "Unsere Referenzen"
+
+msgid "Nos réalisations seront bientôt publiées ici."
+msgstr "Unsere Referenzen werden hier bald veröffentlicht."
+
+msgid "Nous revenons vers vous rapidement."
+msgstr "Wir melden uns schnell bei Ihnen."
+
+msgid "Nous revenons vers vous très rapidement."
+msgstr "Wir melden uns sehr schnell bei Ihnen."
+
+msgid "Oui"
+msgstr "Ja"
+
+msgid "Outil gratuit"
+msgstr "Kostenloses Werkzeug"
+
+msgid "Ouvrir le menu"
+msgstr "Menü öffnen"
+
+msgid "Passer cette étape"
+msgstr "Diesen Schritt überspringen"
+
+msgid "Photos"
+msgstr "Fotos"
+
+msgid "Photos et plan du projet"
+msgstr "Fotos und Projektplan"
+
+msgid "Pièces concernées"
+msgstr "Betroffene Räume"
+
+msgid "Plan du projet (PDF)"
+msgstr "Projektplan (PDF)"
+
+msgid "Plus de 150 m²"
+msgstr "Mehr als 150 m²"
+
+msgid "Politique de confidentialité"
+msgstr "Datenschutzerklärung"
+
+msgid "Portfolio"
+msgstr "Portfolio"
+
+msgid "Prestations sur-mesure"
+msgstr "Maßgeschneiderte Leistungen"
+
+msgid "Prix du kWh (€)"
+msgstr "Preis pro kWh (€)"
+
+msgid "Problème"
+msgstr "Problem"
+
+msgid "Proximité"
+msgstr "Nähe"
+
+msgid "Précisions utiles pour votre projet (optionnel)"
+msgstr "Nützliche Angaben zu Ihrem Projekt (optional)"
+
+msgid "Précédent"
+msgstr "Zurück"
+
+msgid "Prénom"
+msgstr "Vorname"
+
+msgid "Puissance souscrite"
+msgstr "Anschlussleistung"
+
+msgid "Puissance souscrite (kVA)"
+msgstr "Anschlussleistung (kVA)"
+
+msgid "Quel est le problème ?"
+msgstr "Worin besteht das Problem?"
+
+msgid "Quel est votre problème ?"
+msgstr "Was ist Ihr Problem?"
+
+msgid "Quel est votre projet ?"
+msgstr "Was ist Ihr Projekt?"
+
+msgid "Questions fréquentes"
+msgstr "Häufige Fragen"
+
+msgid "Renseignez vos informations, nous activons votre accès rapidement."
+msgstr "Geben Sie Ihre Daten ein, wir aktivieren Ihren Zugang zügig."
+
+msgid "Retour"
+msgstr "Zurück"
+
+msgid "Retour sur investissement"
+msgstr "Amortisationsdauer"
+
+msgid "Récapitulatif de votre demande"
+msgstr "Zusammenfassung Ihrer Anfrage"
+
+msgid "Référence :"
+msgstr "Referenz:"
+
+msgid "Référence devis/facture (optionnel)"
+msgstr "Angebots-/Rechnungsnummer (optional)"
+
+msgid "Rénovation"
+msgstr "Sanierung"
+
+msgid "S'inscrire à la newsletter"
+msgstr "Newsletter abonnieren"
+
+msgid "Se connecter"
+msgstr "Anmelden"
+
+msgid "Service"
+msgstr "Abteilung"
+
+msgid "Services complémentaires"
+msgstr "Zusätzliche Leistungen"
+
+msgid "Situation dangereuse (odeur de brûlé, étincelles) ?"
+msgstr "Gefährliche Situation (Brandgeruch, Funken)?"
+
+msgid "Suivant"
+msgstr "Weiter"
+
+msgid "Suivez votre projet"
+msgstr "Verfolgen Sie Ihr Projekt"
+
+msgid "Surface"
+msgstr "Fläche"
+
+msgid "Surface du bien"
+msgstr "Fläche der Immobilie"
+
+msgid "Surface habitable (m²)"
+msgstr "Wohnfläche (m²)"
+
+msgid "Techniciens formés aux dernières technologies domotique et sécurité."
+msgstr ""
+"Techniker, geschult in den neuesten Technologien für Gebäudeautomation und "
+"Sicherheit."
+
+msgid "Tous les services"
+msgstr "Alle Leistungen"
+
+msgid "Type de bien"
+msgstr "Immobilienart"
+
+msgid "Type de bâtiment"
+msgstr "Gebäudeart"
+
+msgid "Télécharger le PDF"
+msgstr "PDF herunterladen"
+
+msgid "Témoignages"
+msgstr "Kundenstimmen"
+
+msgid "Une autre question ?"
+msgstr "Noch eine Frage?"
+
+msgid "Une expertise électrique complète"
+msgstr "Umfassende Elektrokompetenz"
+
+msgid ""
+"Une équipe d'électriciens qualifiés au service de vos projets "
+"d'installation, de rénovation et de sécurisation électrique."
+msgstr ""
+"Ein Team qualifizierter Elektriker für Ihre Projekte in Installation, "
+"Sanierung und Elektrosicherheit."
+
+msgid "Urgence"
+msgstr "Notfall"
+
+msgid "Urgent"
+msgstr "Dringend"
+
+msgid "Utilisation"
+msgstr "Nutzung"
+
+msgid "Ville"
+msgstr "Stadt"
+
+msgid "Voir le récapitulatif"
+msgstr "Zusammenfassung ansehen"
+
+msgid "Voir tous nos services"
+msgstr "Alle Leistungen ansehen"
+
+msgid "Voir toutes nos réalisations"
+msgstr "Alle Referenzen ansehen"
+
+msgid "Vos droits"
+msgstr "Ihre Rechte"
+
+msgid "Votre email"
+msgstr "Ihre E-Mail-Adresse"
+
+msgid "Votre pré-devis indicatif"
+msgstr "Ihr unverbindliches Vorabangebot"
+
+msgid "ans"
+msgstr "Jahre"
+
+msgid "l'adresse indiquée en page Contact"
+msgstr "die auf der Kontaktseite angegebene Adresse"
+
+msgid "À propos"
+msgstr "Über uns"
+
+msgid "Économies annuelles estimées"
+msgstr "Geschätzte jährliche Einsparungen"
+
+msgid "Éditeur du site"
+msgstr "Betreiber der Website"
+
+msgid "Équipements"
+msgstr "Ausstattung"
+
+msgid "Équipements souhaités"
+msgstr "Gewünschte Ausstattung"
+
+msgid "Étudier une borne de recharge véhicule électrique"
+msgstr "Eine Ladestation für Elektrofahrzeuge prüfen"
+
+msgid "Étudier une installation photovoltaïque + batterie"
+msgstr "Eine Photovoltaikanlage + Speicher prüfen"
+
+msgid "Fil d'Ariane"
+msgstr "Brotkrumennavigation"
+
+msgid "Entreprise du bâtiment à votre service."
+msgstr "Bauunternehmen zu Ihren Diensten."

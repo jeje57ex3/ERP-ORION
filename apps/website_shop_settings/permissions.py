@@ -14,9 +14,18 @@ def shop_settings_access_required(view_func):
         if not company:
             raise PermissionDenied
         if hasattr(request.user, 'company_accesses'):
+            # `role` EST UNE CLE ETRANGERE vers `access_control.Role`, pas
+            # une chaine. Comparee a ('admin', 'owner'), Django tentait de
+            # lire ces mots comme des numeros et levait
+            # « ValueError: Field 'id' expected a number but got 'admin' ».
+            #
+            # Consequence : tout non-super-administrateur recevait une
+            # erreur 500 au lieu d'un acces -- ces ecrans etaient donc
+            # inutilisables par les administrateurs d'entreprise, a qui ils
+            # sont destines. On compare le CODE du role.
             access = request.user.company_accesses.filter(
                 company=company,
-                role__in=('admin', 'owner'),
+                role__code__in=('admin', 'owner'),
                 is_active=True,
             ).exists()
             if access:

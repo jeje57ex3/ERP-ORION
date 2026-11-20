@@ -68,8 +68,25 @@ def role_create(request):
 
 @login_required
 def role_permissions(request, pk):
+    # L'ENTREPRISE ÉTAIT LUE ET NON EMPLOYÉE. `company` était calculé à la
+    # ligne suivante et le rôle cherché par sa seule clé primaire : un
+    # compte de l'entreprise A pouvait donc ouvrir et MODIFIER les
+    # permissions d'un rôle de l'entreprise B. Sur un écran de contrôle
+    # d'accès, c'est une élévation de privilège d'un locataire à l'autre.
     company = _company(request)
-    role = get_object_or_404(Role, pk=pk)
+    # BORNE STRICTE, et le role systeme est volontairement exclu.
+    #
+    # `Role.company` est nullable : un role sans entreprise est un role
+    # SYSTEME, partage par toutes. En modifier les permissions depuis cet
+    # ecran les changerait pour TOUS les locataires -- ce serait une
+    # ecriture inter-entreprises, pire que la lecture qu'on ferme ici. Un
+    # 404 explicite vaut mieux qu'un ecran qui laisse un locataire
+    # reconfigurer les droits des autres.
+    #
+    # Le choix differe de celui de `websites.theme_apply`, qui accepte un
+    # theme partage : la, on modifie le SITE et non le theme, donc lire un
+    # modele commun est sans consequence. Deux bornages, deux raisons.
+    role = get_object_or_404(Role, pk=pk, company=company)
     modules = ERPModule.objects.filter(is_active=True).order_by('order')
     actions = ERPAction.objects.all().order_by('name')
 

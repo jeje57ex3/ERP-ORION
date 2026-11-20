@@ -175,31 +175,136 @@ LignesDeNoteDeDebitFormSet = forms.formset_factory(
     LigneDeNoteDeDebitForm, extra=3, can_delete=False)
 
 
-class EncaissementForm(forms.Form):
-    """L'encaissement qu'une facture-reçu atteste.
+class MoyenDePaiementForm(forms.Form):
+    """Un moyen de paiement parmi plusieurs sur le même document.
 
-    Le mécanisme est demandé, bien que le schéma le rende optionnel : une
-    quittance qui ne dit pas comment la somme a été reçue ne prouve pas
-    grand-chose, et le champ est là pour être rempli.
+    POURQUOI LE MONTANT EST FACULTATIF ICI, ET OBLIGATOIRE À PARTIR DE DEUX
+
+    Un seul moyen sans montant vaut LE TOTAL du document — et c'est la
+    seule valeur légale, que l'émission remplit depuis les lignes figées
+    qu'elle vient de calculer. Le faire saisir à l'écran ferait entrer ici
+    le cumul tenu par la facture de l'ERP, qui dérive d'un centime après
+    une suppression de ligne ; au Portugal ce centime est signé.
+
+    À partir de deux moyens, chacun doit porter le sien : « le total »
+    réparti sur plusieurs n'a pas de valeur par défaut, et le schéma rend
+    `PaymentAmount` obligatoire. C'est `tipos.valider_les_paiements` qui
+    le refuse, au même endroit que la règle d'égalité des sommes — on ne
+    la recopie pas ici, pour qu'il n'y ait jamais deux versions de la
+    règle à maintenir.
     """
 
+    # AUCUNE VALEUR PAR DÉFAUT, ET C'EST DÉLIBÉRÉ.
+    #
+    # `initial` s'applique à CHAQUE rangée d'un formset. Pré-remplir au
+    # virement aurait donné trois moyens de paiement sur un reçu dont une
+    # seule rangée est remplie — dont deux sans montant, ce que la règle
+    # refuse. L'écran aurait été inutilisable dans son cas le plus
+    # courant.
+    #
+    # Et le choix vide n'est pas qu'une commodité technique : une
+    # quittance qui ne dit pas comment la somme est arrivée ne prouve pas
+    # grand-chose. Mieux vaut un choix à faire qu'un défaut qui se glisse
+    # dans un document signé.
     mecanisme = forms.ChoiceField(
-        label='Moyen de paiement', choices=tipos.MECANISMES_DE_PAIEMENT,
-        initial='TB',
-        widget=forms.Select(attrs={'class': 'form-select'}))
+        label='Moyen', required=False,
+        choices=(('', '— Choisir le moyen —'),)
+                + tuple(tipos.MECANISMES_DE_PAIEMENT),
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm'}))
     montant = forms.DecimalField(
-        label='Montant encaissé', max_digits=14, decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control',
-                                        'step': '0.01'}))
-    date = forms.DateField(
-        label='Date de l’encaissement',
-        widget=DateISO(attrs={'class': 'form-control'}))
+        label='Montant', max_digits=14, decimal_places=2, required=False,
+        min_value=Decimal('0.01'),
+        widget=forms.NumberInput(attrs={'class': 'form-control '
+                                                 'form-control-sm',
+                                        'step': '0.01',
+                                        'placeholder': 'Le total'}))
 
-    def __init__(self, *args, total=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.is_bound:
-            self.fields['montant'].initial = total
-            self.fields['date'].initial = timezone.now().date()
+    def clean(self):
+        donnees = super().clean()
+
+        # UNE LIGNE AVEC UN MONTANT ET SANS MOYEN EST UN OUBLI, PAS UN VIDE.
+        #
+        # Le formset ignore les lignes entièrement vides — c'est ainsi
+        # qu'on offre trois rangées sans en imposer trois. Mais une rangée
+        # où quelqu'un a tapé 40 € en oubliant de choisir le moyen ne doit
+        # pas disparaître en silence : la somme encaissée serait alors
+        # inférieure au total, et le refus parlerait d'un écart de 40 €
+        # sans dire d'où il vient.
+        if donnees.get('montant') is not None and not donnees.get('mecanisme'):
+            raise forms.ValidationError(
+                'Ce montant n’a pas de moyen de paiement. Choisissez-en un, '
+                'ou videz le montant.')
+        return donnees
+
+
+class BaseMoyensDePaiement(forms.BaseFormSet):
+    """Au moins un moyen, et le contrôle est posé ici.
+
+    POURQUOI SUR LE JEU ET NON SUR UNE RANGÉE
+
+    « Au moins un » n'a de sens que pour l'ensemble : une rangée ne sait
+    rien des deux autres. Rendre le champ obligatoire rangée par rangée
+    en imposerait trois ; le laisser facultatif partout sans contrôle
+    d'ensemble laisserait émettre un document qui n'atteste aucun moyen.
+
+    `validate_min` de Django ne suffit pas : il compte les formulaires
+    soumis, pas ceux qui portent un moyen — trois rangées vides le
+    satisfont.
+    """
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            # Une rangée déjà fautive dira ce qui lui manque. Ajouter
+            # « choisissez un moyen » par-dessus enverrait corriger
+            # ailleurs que là où le message précis est affiché.
+            return
+
+        remplis = [formulaire for formulaire in self.forms
+                   if formulaire.cleaned_data.get('mecanisme')]
+        if not remplis:
+            raise forms.ValidationError(
+                'Choisissez au moins un moyen de paiement. Une quittance '
+                'qui ne dit pas comment la somme est arrivée ne prouve pas '
+                'grand-chose, et le SAF-T attend le code du moyen.')
+
+
+#: Trois rangées offertes, aucune imposée — et la première suffit.
+MoyensDePaiementFormSet = forms.formset_factory(
+    MoyenDePaiementForm, formset=BaseMoyensDePaiement, extra=3,
+    can_delete=False)
+
+
+def moyens_saisis(formset, date_par_defaut):
+    """Les moyens réellement remplis, prêts pour l'émission.
+
+    Rend `None` quand rien n'est saisi : l'appelant garde alors son
+    comportement d'avant — un virement par défaut — au lieu de recevoir
+    une liste vide, qui ferait refuser le document pour absence de
+    paiement sur un écran où personne n'a rien demandé.
+    """
+    moyens = []
+    for formulaire in formset:
+        if not formulaire.cleaned_data:
+            continue
+        mecanisme = formulaire.cleaned_data.get('mecanisme')
+        if not mecanisme:
+            continue
+        moyen = {'mecanisme': mecanisme, 'date': date_par_defaut}
+        montant = formulaire.cleaned_data.get('montant')
+        if montant is not None:
+            moyen['montant'] = montant
+        moyens.append(moyen)
+
+    if not moyens:
+        return None
+
+    # UN SEUL MOYEN : ON RETIRE LE MONTANT SAISI S'IL ÉGALE LE TOTAL ?
+    # Non — on ne retire rien. Si l'utilisateur a saisi un montant, il
+    # est validé contre le total par la règle, qui dira l'écart. Le
+    # défaut « le total » ne joue que sur un champ laissé vide, et c'est
+    # exactement ce que fait l'absence de la clé « montant ».
+    return moyens
 
 
 class RecuForm(forms.Form):
@@ -215,10 +320,12 @@ class RecuForm(forms.Form):
     qui dépasse la créance atteste un argent que personne ne devait.
     """
 
-    mecanisme = forms.ChoiceField(
-        label='Moyen de paiement', choices=tipos.MECANISMES_DE_PAIEMENT,
-        initial='TB',
-        widget=forms.Select(attrs={'class': 'form-select'}))
+    # LE MOYEN DE PAIEMENT N'EST PLUS UN CHAMP UNIQUE ICI.
+    #
+    # Il est porté par `MoyensDePaiementFormSet`, parce qu'un encaissement
+    # peut arriver par plusieurs moyens à la fois — moitié en espèces,
+    # moitié par carte — ce que le modèle, la règle et le SAF-T
+    # acceptaient déjà, et que cet écran seul interdisait.
     montant = forms.DecimalField(
         label='Montant reçu', max_digits=14, decimal_places=2,
         min_value=Decimal('0.01'),

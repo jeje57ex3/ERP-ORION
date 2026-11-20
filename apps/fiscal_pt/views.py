@@ -13,9 +13,14 @@ import io
 from xml.etree import ElementTree
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+# POST SEULEMENT pour l'annulation : un GET qui annulerait un document
+# fiscal partirait au survol d'un lien, à l'indexation ou au passage
+# d'un antivirus.
+from django.views.decorators.http import require_POST
 
 from . import coherence, export, qr, schema, tipos
 from .forms import ParametresForm, PeriodeForm, SerieForm
@@ -263,6 +268,57 @@ def document_detail(request, pk):
         'mention': document.mention_legale(
             parametres.numero_de_certificat or '0'),
     })
+
+
+@login_required
+@require_POST
+def annuler_un_document(request, pk):
+    """Annule un document emis : etat « A », motif, date du changement.
+
+    EN POST SEULEMENT. Un GET qui annulerait un document fiscal partirait
+    au survol d'un lien, a l'indexation ou au passage d'un antivirus --
+    sur un document que plus rien ne modifie ensuite.
+
+    LE CONTENU N'EST PAS TOUCHE. `MixinAnnulation.annuler` ecrit trois
+    colonnes par un `update()` de requete : l'interdiction de modifier un
+    document emis reste absolue, et sa signature reste valable puisqu'elle
+    couvre ce que le document DISAIT, pas son etat administratif -- que le
+    SAF-T porte a part dans `DocumentStatus`.
+    """
+    company = _company(request)
+    document = get_object_or_404(DocumentFiscal, pk=pk, company=company)
+
+    try:
+        document.annuler(request.POST.get('motif', ''))
+    except ValidationError as refus:
+        messages.error(request, refus.messages[0] if refus.messages
+                       else str(refus))
+    else:
+        messages.success(
+            request,
+            f'Document {document.numero} annule. Il reste dans le SAF-T -- '
+            f'la serie ne doit sauter aucun numero -- et son montant ne '
+            f'compte plus dans les totaux.')
+
+    return redirect('fiscal_pt:document_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def annuler_un_recu(request, pk):
+    """Annule un recu. Deux etats seulement dans sa table : « N » et « A »."""
+    company = _company(request)
+    recu = get_object_or_404(RecuFiscal, pk=pk, company=company)
+
+    try:
+        recu.annuler(request.POST.get('motif', ''))
+    except ValidationError as refus:
+        messages.error(request, refus.messages[0] if refus.messages
+                       else str(refus))
+    else:
+        messages.success(request, f'Recu {recu.numero} annule.')
+
+    return redirect('fiscal_pt:recu_detail', pk=pk)
 
 
 @login_required
@@ -633,7 +689,7 @@ def recu_sur_facture(request, pk):
 
     from .facturation import (ConformiteInactive, document_pour,
                               emettre_un_recu, reste_a_encaisser, recus_de)
-    from .forms import RecuForm
+    from .forms import MoyensDePaiementFormSet, RecuForm, moyens_saisis
 
     company = _company(request)
     facture = get_object_or_404(Invoice, pk=pk, company=company)
@@ -642,14 +698,24 @@ def recu_sur_facture(request, pk):
 
     formulaire = RecuForm(request.POST or None, reste=reste)
 
-    if request.method == 'POST' and formulaire.is_valid():
+    # PLUSIEURS MOYENS DE PAIEMENT SUR UN MÊME ENCAISSEMENT.
+    #
+    # Un acompte réglé moitié en espèces, moitié par carte est une
+    # situation ordinaire que le modèle, la règle et le SAF-T acceptaient
+    # depuis le début — un `paiements` en liste, un bloc `Payment` par
+    # élément. Seul cet écran n'en offrait qu'un.
+    moyens = MoyensDePaiementFormSet(request.POST or None,
+                                     prefix='moyens')
+
+    if request.method == 'POST' and formulaire.is_valid() and moyens.is_valid():
+        quand = formulaire.cleaned_data['date_encaissement']
         try:
             recu = emettre_un_recu(
                 facture,
-                mecanisme=formulaire.cleaned_data['mecanisme'],
                 montant=formulaire.cleaned_data['montant'],
-                date_encaissement=formulaire.cleaned_data['date_encaissement'],
+                date_encaissement=quand,
                 description=formulaire.cleaned_data.get('description') or '',
+                moyens=moyens_saisis(moyens, quand),
             )
         except ConformiteInactive:
             messages.error(
@@ -674,4 +740,5 @@ def recu_sur_facture(request, pk):
         'reste': reste,
         'deja': list(recus_de(facture)) if origine else [],
         'formulaire': formulaire,
+        'moyens': moyens,
     })

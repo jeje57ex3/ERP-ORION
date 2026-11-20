@@ -93,6 +93,10 @@ LISTES = [
     ('AuditFile/Header', 'ORDRE_ENTETE'),
     ('AuditFile/Header/CompanyAddress', 'ORDRE_ADRESSE'),
     ('AuditFile/MasterFiles/Customer', 'ORDRE_CLIENT'),
+    # `Supplier` n'est pas `Customer` renomme : il porte
+    # « ShipFromAddress » la ou le client porte « ShipToAddress », et
+    # son identifiant comme son NIF ont leurs propres noms.
+    ('AuditFile/MasterFiles/Supplier', 'ORDRE_FOURNISSEUR'),
     ('AuditFile/MasterFiles/Product', 'ORDRE_PRODUIT'),
     ('AuditFile/MasterFiles/TaxTable/TaxTableEntry', 'ORDRE_TAUX'),
     ('AuditFile/SourceDocuments/SalesInvoices/Invoice', 'ORDRE_DOCUMENT'),
@@ -119,6 +123,37 @@ LISTES = [
      'ORDRE_LIGNE_DE_RECU'),
     ('AuditFile/SourceDocuments/Payments/Payment/Line/SourceDocumentID',
      'ORDRE_DOCUMENT_SOURCE'),
+    # La table 4.2, dont l'EN-TETE ne compte pas la meme chose que les
+    # trois autres : un nombre de LIGNES et une somme de QUANTITES.
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement',
+     'ORDRE_MOUVEMENT'),
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/DocumentStatus',
+     'ORDRE_ETAT_DE_MOUVEMENT'),
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/Line',
+     'ORDRE_LIGNE_DE_MOUVEMENT'),
+    # Le bloc Tax d'un mouvement est un TYPE A LUI, « MovementTax », sans
+    # « TaxAmount ». Ce test l'a dit : la liste de la facture en a un de
+    # plus. Deux listes, donc.
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/Line/Tax',
+     'ORDRE_TAXE_DE_MOUVEMENT'),
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/ShipTo',
+     'ORDRE_POINT_DE_TRANSPORT'),
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/ShipFrom',
+     'ORDRE_POINT_DE_TRANSPORT'),
+    ('AuditFile/SourceDocuments/MovementOfGoods/StockMovement/DocumentTotals',
+     'ORDRE_TOTAUX_DE_MOUVEMENT'),
+    # La table 4.3. Son « SourceID » PRECEDE « SystemEntryDate », alors
+    # qu'il le SUIT dans un mouvement : deux tables voisines, deux ordres.
+    ('AuditFile/SourceDocuments/WorkingDocuments/WorkDocument',
+     'ORDRE_TRAVAIL'),
+    ('AuditFile/SourceDocuments/WorkingDocuments/WorkDocument/DocumentStatus',
+     'ORDRE_ETAT_DE_TRAVAIL'),
+    ('AuditFile/SourceDocuments/WorkingDocuments/WorkDocument/Line',
+     'ORDRE_LIGNE_DE_TRAVAIL'),
+    ('AuditFile/SourceDocuments/WorkingDocuments/WorkDocument/Line/Tax',
+     'ORDRE_TAXE_DE_LIGNE'),
+    ('AuditFile/SourceDocuments/WorkingDocuments/WorkDocument/DocumentTotals',
+     'ORDRE_TOTAUX_DE_TRAVAIL'),
     ('AuditFile/SourceDocuments/Payments/Payment/DocumentTotals',
      'ORDRE_TOTAUX_DE_RECU'),
 ]

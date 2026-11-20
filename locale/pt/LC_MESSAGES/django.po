@@ -14500,3 +14500,98 @@ msgstr "Prazo desejado"
 
 msgid "Électricité & Étanchéité"
 msgstr "Eletricidade e Impermeabilização"
+
+msgid "15+ ans d’expérience"
+msgstr "15+ anos de experiência"
+
+msgid "Aperçu image"
+msgstr "Pré-visualização da imagem"
+
+msgid "Des installations conformes aux normes en vigueur (NF C 15-100…)."
+msgstr "Instalações conformes às normas em vigor (NF C 15-100…)."
+
+msgid ""
+"Des réalisations concrètes qui illustrent notre expertise en électricité et "
+"étanchéité"
+msgstr ""
+"Obras concretas que ilustram a nossa competência em eletricidade e "
+"impermeabilização"
+
+msgid ""
+"Des solutions fiables et performantes pour une protection longue durée."
+msgstr "Soluções fiáveis e eficazes para uma proteção duradoura."
+
+msgid "Découvrir nos réalisations"
+msgstr "Descobrir as nossas obras"
+
+msgid "Expert BTP en électricité & étanchéité"
+msgstr "Especialista em construção: eletricidade e impermeabilização"
+
+msgid "Interventions certifiées"
+msgstr "Intervenções certificadas"
+
+msgid "Nos engagements"
+msgstr "Os nossos compromissos"
+
+msgid ""
+"Notre expertise en installations électriques et en solutions d’étanchéité "
+"pour vos projets de construction neuve et de rénovation."
+msgstr ""
+"A nossa competência em instalações elétricas e soluções de impermeabilização"
+" para os seus projetos de construção nova e renovação."
+
+msgid ""
+"Photos d’illustration. Vos réalisations publiées depuis l’ERP prendront leur"
+" place."
+msgstr ""
+"Fotos ilustrativas. As suas obras publicadas a partir do ERP tomarão o seu "
+"lugar."
+
+msgid "Présentation"
+msgstr "Apresentação"
+
+msgid "Qualité & durabilité"
+msgstr "Qualidade e durabilidade"
+
+msgid "Réactivité & proximité"
+msgstr "Rapidez e proximidade"
+
+msgid "Sécuriser, alimenter, protéger vos bâtiments"
+msgstr "Proteger, alimentar e assegurar os seus edifícios"
+
+msgid ""
+"Un accompagnement complet pour tous vos projets d’électricité et "
+"d’étanchéité"
+msgstr ""
+"Acompanhamento completo para todos os seus projetos de eletricidade e "
+"impermeabilização"
+
+msgid "Un savoir-faire reconnu en électricité et en étanchéité (BTP)."
+msgstr ""
+"Competência reconhecida em eletricidade e impermeabilização (construção)."
+
+msgid ""
+"Une équipe disponible et à votre écoute pour des interventions rapides."
+msgstr "Uma equipa disponível e atenta para intervenções rápidas."
+
+msgid ""
+"Électricité générale, domotique, sécurité et réseaux — installation, "
+"dépannage et maintenance."
+msgstr ""
+"Eletricidade geral, domótica, segurança e redes — instalação, reparação e "
+"manutenção."
+
+msgid "Électricité"
+msgstr "Eletricidade"
+
+msgid "Étanchéité"
+msgstr "Impermeabilização"
+
+msgid "Choisir la langue"
+msgstr "Escolher idioma"
+
+msgid "Fil d'Ariane"
+msgstr "Trilho de navegação"
+
+msgid "Entreprise du bâtiment à votre service."
+msgstr "Empresa de construção ao seu serviço."

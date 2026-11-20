@@ -42,14 +42,43 @@
           <option value="{{ code }}">{{ libelle }}</option>
           {% endfor %}
         </select>
-        <span id="encaissement" hidden class="d-inline-flex gap-1">
-          <select name="mecanisme" class="form-select form-select-sm" style="width:auto">
-            {% for code, libelle in mecanismes_de_paiement %}
-            <option value="{{ code }}"{% if code == 'TB' %} selected{% endif %}>{{ libelle }}</option>
-            {% endfor %}
-          </select>
-          <input type="date" name="date_encaissement" class="form-control form-control-sm"
-                 style="width:auto" value="{{ invoice.issue_date|date:'Y-m-d' }}">
+        {% comment %} TROIS RANGEES DE MOYENS, ET POURQUOI TROIS.
+
+           Une facture reglee moitie en especes, moitie par carte est
+           ordinaire, et le SAF-T porte un bloc « Payment » par moyen. La
+           premiere rangee suffit au cas courant ; les deux autres sont la
+           pour le cas ou le reglement s'est partage, sans imposer de
+           cliquer pour les faire apparaitre.
+
+           LE MONTANT DE LA PREMIERE RANGEE RESTE VIDE dans le cas
+           courant : un moyen unique sans montant vaut le total du
+           document, que l'emission calcule depuis les lignes qu'elle
+           vient de figer. Le saisir ferait entrer ici le cumul tenu par
+           la facture, qui derive d'un centime apres une suppression de
+           ligne -- et au Portugal ce centime est signe. {% endcomment %}
+        <span id="encaissement" hidden class="d-inline-block text-start">
+          {% for rang in "123" %}
+          <span class="d-flex gap-1 mb-1">
+            <select name="mecanisme" class="form-select form-select-sm" style="width:auto"
+                    aria-label="{% trans "Moyen de paiement" %} {{ rang }}">
+              {% if not forloop.first %}<option value="">&mdash;</option>{% endif %}
+              {% for code, libelle in mecanismes_de_paiement %}
+              <option value="{{ code }}"{% if code == 'TB' and forloop.parentloop.first %} selected{% endif %}>{{ libelle }}</option>
+              {% endfor %}
+            </select>
+            <input type="number" step="0.01" min="0.01" name="montant_paiement"
+                   class="form-control form-control-sm" style="width:9rem"
+                   placeholder="{% trans "Le total" %}"
+                   aria-label="{% trans "Montant" %} {{ rang }}">
+          </span>
+          {% endfor %}
+          <span class="d-flex gap-1">
+            <input type="date" name="date_encaissement" class="form-control form-control-sm"
+                   style="width:auto" value="{{ invoice.issue_date|date:'Y-m-d' }}">
+          </span>
+          <span class="form-text d-block" style="max-width:22rem">
+            {% trans "Un seul moyen : laissez le montant vide, l’émission y met le total. Dès deux moyens, chacun doit porter le sien." %}
+          </span>
         </span>
         <button type="submit" class="orion-btn warning orion-btn sm">
           <i class="bi bi-send me-1"></i>{% trans "Envoyer et signer" %}

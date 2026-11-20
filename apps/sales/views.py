@@ -645,15 +645,65 @@ def invoice_send(request, pk):
     # diffèrent jamais que d'un centime, après une suppression de ligne
     # — et au Portugal ce centime est signé. On laisse donc l'émission
     # remplir le montant avec le total qu'elle vient de calculer.
+    #
+    # PLUSIEURS MOYENS, EN REVANCHE, SONT ADMIS -- et chacun porte alors
+    # son montant. Une facture reglee moitie en especes, moitie par carte
+    # est ordinaire ; le modele stocke une LISTE de paiements, la regle la
+    # parcourt et le SAF-T emet un bloc « Payment » par element. Les trois
+    # couches l'acceptaient depuis le debut, et cet ecran seul n'en
+    # offrait qu'un.
+    #
+    # Le montant reste facultatif sur UN SEUL moyen, pour la raison
+    # ci-dessus. Des deux, `tipos.valider_les_paiements` l'exige et verifie
+    # que la somme egale le total au centime -- une seule regle, au seul
+    # endroit ou le total du document est connu.
     paiements = None
     if type_document == 'FR':
-        paiements = [{
-            'mecanisme': request.POST.get('mecanisme') or 'TB',
-            'date': request.POST.get('date_encaissement')
-                    or invoice.issue_date,
-        }]
+        from decimal import Decimal
+
+        quand = request.POST.get('date_encaissement') or invoice.issue_date
+        mecanismes = request.POST.getlist('mecanisme')
+        montants = request.POST.getlist('montant_paiement')
+
+        paiements = []
+        for rang, mecanisme in enumerate(mecanismes):
+            mecanisme = (mecanisme or '').strip()
+            brut = (montants[rang] if rang < len(montants) else '') or ''
+            brut = brut.strip()
+
+            # UNE RANGEE VIDE EST IGNOREE, UN MONTANT SANS MOYEN NE L'EST
+            # PAS. Trois rangees sont offertes sans etre imposees ; mais
+            # un montant saisi dont le moyen reste vide serait une somme
+            # perdue, et le refus parlerait alors d'un ecart sans dire
+            # d'ou il vient.
+            if not mecanisme:
+                if brut:
+                    messages.error(
+                        request,
+                        f'Le moyen de paiement {rang + 1} porte un montant '
+                        f'({brut} EUR) sans moyen choisi. Choisissez-en un, '
+                        'ou videz le montant.')
+                    return redirect('sales:invoice_detail', pk=invoice.pk)
+                continue
+
+            paiement = {'mecanisme': mecanisme, 'date': quand}
+            if brut:
+                try:
+                    paiement['montant'] = Decimal(brut.replace(',', '.'))
+                except (ArithmeticError, ValueError):
+                    messages.error(
+                        request,
+                        f'« {brut} » n’est pas un montant. Employez des '
+                        'chiffres, avec deux décimales au plus.')
+                    return redirect('sales:invoice_detail', pk=invoice.pk)
+            paiements.append(paiement)
+
+        if not paiements:
+            paiements = [{'mecanisme': 'TB', 'date': quand}]
+
         try:
-            tipos.valider_le_mecanisme(paiements[0]['mecanisme'])
+            for paiement in paiements:
+                tipos.valider_le_mecanisme(paiement['mecanisme'])
         except tipos.RegleDeType as exc:
             messages.error(request, str(exc))
             return redirect('sales:invoice_detail', pk=invoice.pk)

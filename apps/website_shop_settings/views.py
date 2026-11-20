@@ -59,8 +59,43 @@ def shop_settings_dashboard(request):
     })
 
 
+def _reglages_de_l_entreprise(request, pk):
+    """Les réglages de boutique, BORNÉS à l'entreprise courante.
+
+    LA FAILLE QUE CECI FERME. `_settings_view` et `general_settings_view`
+    allaient chercher l'objet par sa seule clé primaire. Le décorateur
+    `shop_settings_access_required`, lui, vérifie que l'utilisateur est
+    administrateur ou propriétaire de **son entreprise courante** — pas
+    que l'objet demandé lui appartienne.
+
+    Un administrateur de l'entreprise A pouvait donc, en changeant le
+    numéro dans l'URL, ouvrir ET ENREGISTRER les réglages de l'entreprise
+    B. Ces réglages portent `stripe_secret_key_encrypted`,
+    `stripe_webhook_secret_encrypted` et les URL de retour : remplacer la
+    clé et l'URL de succès d'un concurrent, c'est détourner ses paiements.
+
+    La lecture des secrets, elle, était déjà protégée — le champ du
+    formulaire est en écriture seule et le modèle ne rend que la version
+    chiffrée. C'est l'ÉCRITURE qui était ouverte, et elle suffisait.
+
+    LE SUPER-ADMINISTRATEUR N'EST PAS BORNÉ, et c'est le même choix que
+    celui du décorateur juste au-dessus : l'exploitant de l'installation
+    intervient légitimement sur toutes les entreprises. Reproduire sa
+    règle plutôt qu'en inventer une seconde évite qu'elles divergent.
+    """
+    from django.core.exceptions import PermissionDenied
+
+    if request.user.is_superuser:
+        return get_object_or_404(WebsiteShopSettings, pk=pk)
+
+    company = _get_company(request)
+    if company is None:
+        raise PermissionDenied
+    return get_object_or_404(WebsiteShopSettings, pk=pk, company=company)
+
+
 def _settings_view(request, pk, related_attr, form_class, template, active_key):
-    shop_settings = get_object_or_404(WebsiteShopSettings, pk=pk)
+    shop_settings = _reglages_de_l_entreprise(request, pk)
     ensure_all_related_settings(shop_settings)
     instance = getattr(shop_settings, related_attr)
 
@@ -85,7 +120,7 @@ def _settings_view(request, pk, related_attr, form_class, template, active_key):
 @login_required
 @shop_settings_access_required
 def general_settings_view(request, pk):
-    shop_settings = get_object_or_404(WebsiteShopSettings, pk=pk)
+    shop_settings = _reglages_de_l_entreprise(request, pk)
     ensure_all_related_settings(shop_settings)
     if request.method == 'POST':
         form = WebsiteShopSettingsForm(request.POST, request.FILES, instance=shop_settings)

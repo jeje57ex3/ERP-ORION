@@ -300,11 +300,28 @@ def upload_photo(request, reference):
     if not files:
         return JsonResponse({'error': 'Aucun fichier reçu.'}, status=400)
 
-    allowed_types = {'image/jpeg', 'image/png', 'image/webp', 'image/heic'}
+    # LE TYPE DÉCLARÉ NE SUFFIT PAS. `f.content_type` vient de l'en-tête
+    # que le CLIENT a écrit dans sa requête multipart : il se falsifie
+    # d'un clic. Cette vue est PUBLIQUE, sans authentification, et
+    # enregistrait donc des octets quelconques sous un type annoncé
+    # « image/jpeg ».
+    #
+    # `apps/websites/security.py:validate_public_upload` ouvre le fichier
+    # avec Pillow et appelle `verify()` : ce sont les octets qui
+    # tranchent. La même méthode sert déjà dans `site_builder/api.py` et
+    # `accounts/signature.py` -- elle manquait ici, à l'endroit le plus
+    # exposé des trois.
+    from apps.websites.security import validate_public_upload
+
     max_size = 8 * 1024 * 1024
-    saved = 0
+    saved, refuses = 0, 0
     for f in files[:5]:
-        if f.content_type not in allowed_types or f.size > max_size:
+        if f.size > max_size:
+            refuses += 1
+            continue
+        valide, _motif = validate_public_upload(f)
+        if not valide:
+            refuses += 1
             continue
         GuidedQuotePhoto.objects.create(request=quote_request, photo=f)
         saved += 1

@@ -7,6 +7,7 @@ public_websites (ex: le wizard legacy templates/electricity/).
 """
 from django import template
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -164,3 +165,117 @@ def style_de_section(section):
     if texte:
         declarations.append('color:%s' % texte)
     return ';'.join(declarations)
+
+
+# ─── Le contenu rédigé, rendu sur les pages publiques ───────────────────────
+#
+# LE DÉFAUT. `templates/websites/public/home.html` et les pages d'article
+# rendent `{{ section.content|safe }}` et `{{ post.content|safe }}`. Le
+# filtre `safe` désactive l'échappement : un `<script>` écrit dans une
+# section de page s'exécute chez chaque visiteur du site public. C'est un
+# XSS stocké, déclenché par un champ que l'éditeur de l'ERP propose.
+#
+# Le danger n'est pas seulement qu'un éditeur malveillant le fasse exprès.
+# C'est qu'un compte d'éditeur compromis — ou un rôle « rédacteur » qu'on
+# accorde sans y penser — devient un moyen d'exécuter du code chez les
+# visiteurs, et de voler la session d'un administrateur qui consulte son
+# propre site.
+#
+# POURQUOI ASSAINIR À L'AFFICHAGE ET NON À L'ENREGISTREMENT
+#
+# Parce qu'une erreur de liste blanche se corrige alors en changeant du
+# code. Assainir à l'enregistrement mutilerait le contenu en base, et il
+# faudrait le ressaisir. On ne touche donc jamais à ce qui est stocké.
+#
+# POURQUOI UNE LISTE GÉNÉREUSE
+#
+# `bleach` est déjà une dépendance, mais la liste que portait ce module —
+# p, b, i, u, em, strong, a, ul, ol, li, br — SUPPRIMERAIT les titres, les
+# images et les tableaux des pages existantes. Une correction qui casse le
+# contenu qu'elle protège n'est pas une correction. La liste ci-dessous
+# couvre ce qu'un éditeur de pages produit, et laisse dehors ce qui sert à
+# exécuter : `script`, `object`, `embed`, `form`, `base`, `link`, `meta`.
+
+#: Les balises qu'un contenu de page peut porter.
+BALISES_DE_CONTENU = [
+    # Texte et structure
+    'p', 'br', 'hr', 'span', 'div', 'section', 'article', 'header',
+    'footer', 'main', 'aside', 'blockquote', 'pre', 'code', 'small',
+    # Titres : leur absence de la liste d'origine aurait aplati toutes les
+    # pages.
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    # Emphase
+    'b', 'strong', 'i', 'em', 'u', 's', 'sub', 'sup', 'mark', 'abbr',
+    # Listes
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    # Liens et médias
+    'a', 'img', 'figure', 'figcaption', 'picture', 'source',
+    # Tableaux
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
+    'colgroup', 'col',
+]
+
+#: Les attributs admis, balise par balise.
+#:
+#: AUCUN `on*` N'Y FIGURE, et c'est le cœur de la défense : `onclick`,
+#: `onerror`, `onload` exécutent du script sans la moindre balise
+#: `<script>`. Un `<img src=x onerror=alert(1)>` est le vecteur le plus
+#: courant, et il passe toute protection qui ne regarderait que les
+#: balises.
+#:
+#: `style` est exclu lui aussi : il permet de charger une ressource
+#: distante — donc de pister les visiteurs — et de recouvrir la page.
+ATTRIBUTS_DE_CONTENU = {
+    '*': ['class', 'id', 'title', 'lang', 'dir'],
+    'a': ['href', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height', 'loading', 'srcset'],
+    'source': ['src', 'srcset', 'type', 'media'],
+    'td': ['colspan', 'rowspan', 'headers'],
+    'th': ['colspan', 'rowspan', 'scope', 'headers'],
+    'col': ['span'],
+    'colgroup': ['span'],
+    'abbr': ['title'],
+    'blockquote': ['cite'],
+}
+
+#: Les protocoles admis dans un `href` ou un `src`.
+#:
+#: `javascript:` est exclu — c'est l'autre moyen d'exécuter sans balise
+#: `<script>`. `data:` l'est aussi : un `data:text/html` dans un `href`
+#: exécute son contenu dans l'origine de la page.
+PROTOCOLES_ADMIS = ['http', 'https', 'mailto', 'tel']
+
+
+@register.filter(name='contenu_assaini')
+def contenu_assaini(html):
+    """Le contenu d'une page, débarrassé de ce qui exécute.
+
+    Rend du balisage marqué sûr : c'est le remplacement direct de `|safe`
+    sur les champs de contenu. La différence est que ce qui sort d'ici est
+    passé par `bleach`.
+
+    LE FILTRE ÉCHAPPE CE QU'IL NE CONNAÎT PAS plutôt que de le supprimer
+    (`strip=False`) : une balise hors liste devient du texte visible. Une
+    page y perd en beauté, et l'exploitant VOIT qu'il a écrit quelque chose
+    que le site ne rend pas — là où une suppression silencieuse laisserait
+    un trou sans explication.
+    """
+    if not html:
+        return ''
+    try:
+        import bleach
+    except ImportError:  # pragma: no cover
+        # Sans bleach on échappe tout. Un contenu affiché en clair est
+        # moins grave qu'un script exécuté.
+        from django.utils.html import escape
+        return escape(html)
+
+    propre = bleach.clean(
+        str(html),
+        tags=BALISES_DE_CONTENU,
+        attributes=ATTRIBUTS_DE_CONTENU,
+        protocols=PROTOCOLES_ADMIS,
+        strip=False,
+        strip_comments=True,
+    )
+    return mark_safe(propre)

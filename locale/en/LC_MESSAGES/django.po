@@ -14382,3 +14382,95 @@ msgstr "Preferred timeframe"
 
 msgid "Électricité & Étanchéité"
 msgstr "Electrical & Waterproofing"
+
+msgid "15+ ans d’expérience"
+msgstr "15+ years of experience"
+
+msgid "Aperçu image"
+msgstr "Image preview"
+
+msgid "Des installations conformes aux normes en vigueur (NF C 15-100…)."
+msgstr "Installations compliant with current standards (NF C 15-100…)."
+
+msgid ""
+"Des réalisations concrètes qui illustrent notre expertise en électricité et "
+"étanchéité"
+msgstr ""
+"Real projects showing our expertise in electrical work and waterproofing"
+
+msgid ""
+"Des solutions fiables et performantes pour une protection longue durée."
+msgstr "Reliable, high-performance solutions for long-lasting protection."
+
+msgid "Découvrir nos réalisations"
+msgstr "Discover our work"
+
+msgid "Expert BTP en électricité & étanchéité"
+msgstr "Construction specialist in electrical work and waterproofing"
+
+msgid "Interventions certifiées"
+msgstr "Certified work"
+
+msgid "Nos engagements"
+msgstr "Our commitments"
+
+msgid ""
+"Notre expertise en installations électriques et en solutions d’étanchéité "
+"pour vos projets de construction neuve et de rénovation."
+msgstr ""
+"Our expertise in electrical installations and waterproofing solutions for "
+"your new-build and renovation projects."
+
+msgid ""
+"Photos d’illustration. Vos réalisations publiées depuis l’ERP prendront leur"
+" place."
+msgstr ""
+"Illustrative photos. Your own projects, published from the ERP, will take "
+"their place."
+
+msgid "Présentation"
+msgstr "Introduction"
+
+msgid "Qualité & durabilité"
+msgstr "Quality & durability"
+
+msgid "Réactivité & proximité"
+msgstr "Responsiveness & proximity"
+
+msgid "Sécuriser, alimenter, protéger vos bâtiments"
+msgstr "Securing, powering and protecting your buildings"
+
+msgid ""
+"Un accompagnement complet pour tous vos projets d’électricité et "
+"d’étanchéité"
+msgstr "Full support for all your electrical and waterproofing projects"
+
+msgid "Un savoir-faire reconnu en électricité et en étanchéité (BTP)."
+msgstr ""
+"Recognised expertise in electrical work and waterproofing (construction)."
+
+msgid "Électricité"
+msgstr "Electrical work"
+
+msgid "Étanchéité"
+msgstr "Waterproofing"
+
+msgid ""
+"Une équipe disponible et à votre écoute pour des interventions rapides."
+msgstr "An available team, ready to listen, for fast call-outs."
+
+msgid ""
+"Électricité générale, domotique, sécurité et réseaux — installation, "
+"dépannage et maintenance."
+msgstr ""
+"General electrical work, home automation, security and networks — "
+"installation, repairs and maintenance."
+
+msgid "Choisir la langue"
+msgstr "Choose language"
+
+msgid "Fil d'Ariane"
+msgstr "Breadcrumb"
+
+msgid "Entreprise du bâtiment à votre service."
+msgstr "Construction company at your service."
