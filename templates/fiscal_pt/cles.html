@@ -1,0 +1,54 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Clés de signature{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Clés de signature</li>
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-secondary">
+  <i class="bi bi-info-circle me-1"></i>
+  Les clés font <strong>1024 bits</strong> et les signatures emploient <strong>SHA-1</strong>.
+  Ces algorithmes sont faibles, et ce sont pourtant ceux qu'impose le <em>Despacho n.º 8632/2014</em> :
+  une signature plus solide serait refusée à la certification.
+</div>
+
+<div class="orion-card">
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-key me-2"></i>Clés de l'entreprise</h6></div>
+  <div class="p-0">
+    {% if cles %}
+    <table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>Version</th><th>État</th><th>Créée le</th><th>Commentaire</th></tr></thead>
+      <tbody>
+        {% for cle in cles %}
+        <tr>
+          <td><strong>v{{ cle.version }}</strong></td>
+          <td>{% if cle.est_active %}<span class="badge bg-success-subtle text-success">Active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Retirée</span>{% endif %}</td>
+          <td>{{ cle.cree_le|date:"d/m/Y H:i" }}</td>
+          <td class="text-muted small">{{ cle.commentaire|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="p-3 text-muted">Aucune clé. Aucun document ne peut être signé tant qu'il n'y en a pas.</div>
+    {% endif %}
+  </div>
+  <form method="post" action="{% url 'fiscal_pt:cle_creer' %}" class="p-3 border-top d-flex gap-2 align-items-end flex-wrap">
+    {% csrf_token %}
+    <div class="flex-grow-1" style="max-width:420px">
+      <label class="form-label" for="commentaire">Commentaire (facultatif)</label>
+      <input type="text" class="form-control" id="commentaire" name="commentaire" placeholder="Motif de la création">
+    </div>
+    <button type="submit" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Créer une clé</button>
+  </form>
+  {% if cles %}
+  <div class="px-3 pb-3 text-muted small">
+    Créer une clé <strong>retire</strong> la précédente. Les documents déjà signés restent vérifiables :
+    chacun conserve la version de la clé qui l'a signé.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

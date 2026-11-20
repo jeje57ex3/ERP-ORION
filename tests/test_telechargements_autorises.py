@@ -657,9 +657,54 @@ def test_aucun_gabarit_ne_pointe_plus_vers_un_prefixe_refuse():
     Un `{{ x.file.url }}` vers un préfixe interdit ne lève aucune erreur à
     l'écriture du gabarit : il produit un bouton qui rend 404, et il faut
     cliquer pour s'en apercevoir.
+
+    IL NE CHERCHAIT QUE `.file.url`, et ce projet nomme ses champs en
+    français. `VersionApplicationBureau.fichier`,
+    `SupplierInvoice.fichier`, `UserProfile.signature`,
+    `TicketMessage.attachment`, `ReservationPhoto.photo` : aucun n'était
+    regardé. Une garde qui ne connaît qu'un seul nom de champ ne garde que
+    les modèles écrits dans la langue de son auteur.
+
+    Les noms surveillés sont donc LUS SUR LES MODÈLES, et pas écrits à la
+    main : la liste des préfixes refusés bouge, celle des champs qui les
+    emploient aussi, et une énumération recopiée ici se serait périmée au
+    premier modèle ajouté. C'est le même raisonnement que
+    `prefixes_declares()` dans la commande de vérification.
+
+    Ce que cette version a trouvé, du premier coup : l'aperçu de la
+    signature dans le profil, les pièces jointes de tous les tickets de
+    support, et les photos de réserves des deux côtés — ERP et portail
+    client. Les trois rendaient 404.
     """
     import os
     import re
+
+    from django.apps import apps
+    from django.db import models
+
+    from apps.core.media_access import niveau_requis
+
+    noms_surveilles = set()
+    for modele in apps.get_models():
+        for champ in modele._meta.get_fields():
+            if not isinstance(champ, models.FileField):
+                continue
+            cible = getattr(champ, 'upload_to', '')
+            if callable(cible) or not cible:
+                continue
+            prefixe = str(cible).replace('\\', '/').split('%')[0]
+            if niveau_requis(prefixe) == 'interdit':
+                noms_surveilles.add(champ.name)
+
+    # Si cet ensemble se vidait, le test passerait sans rien examiner et
+    # personne ne s'en apercevrait -- le pire etat possible pour une garde.
+    assert noms_surveilles, (
+        'aucun champ ne declare de prefixe refuse : soit la politique a '
+        'change, soit ce test ne regarde plus rien.')
+
+    motif = re.compile(
+        r'\{\{\s*([\w.]+)\.(' + '|'.join(sorted(noms_surveilles))
+        + r')\.url\s*\}\}')
 
     racine = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     suspects = []
@@ -671,28 +716,311 @@ def test_aucun_gabarit_ne_pointe_plus_vers_un_prefixe_refuse():
             chemin = os.path.join(dossier, nom)
             with open(chemin, encoding='utf-8', errors='replace') as fichier:
                 contenu = fichier.read()
-            for champ in re.findall(r'\{\{\s*(\w+)\.file\.url\s*\}\}',
-                                    contenu):
-                suspects.append(
-                    f'{os.path.relpath(chemin, racine)} : {champ}.file.url')
+            relatif = os.path.relpath(chemin, racine).replace('\\', '/')
+            for variable, champ in motif.findall(contenu):
+                suspects.append(f'{relatif} : {variable}.{champ}.url')
 
     # Chaque exception est une DECISION, avec sa raison -- meme forme que
-    # PREFIXES_INTERDITS dans media_access.py. Un gabarit qui n'est pas
-    # dans cette liste et qui pointe vers /media/ fait echouer le test, ce
-    # qui force a trancher plutot qu'a laisser passer.
+    # PREFIXES_INTERDITS dans media_access.py. La cle est le suspect ENTIER
+    # et non le seul gabarit : autoriser un fichier en bloc y laisserait
+    # passer le prochain lien brut qu'on y ecrira.
     autorises = {
-        # training/blocks/ est dans PREFIXES_AUTHENTIFIES : /media/ sert
-        # ces fichiers aux comptes connectes, aucune vue dediee n'est
-        # necessaire. Verifie avec niveau_requis('training/').
-        'templates/internal_training/page_editor.html',
-        'templates/internal_training/page_view.html',
+        # training/blocks/ est dans PREFIXES_AUTHENTIFIES : /media/ sert ces
+        # fichiers aux comptes connectes, aucune vue dediee n'est
+        # necessaire. Le nom « file » est surveille a cause d'AUTRES modeles
+        # -- employee_private/, documents/, client_messages/ -- et c'est la
+        # limite d'une recherche sur le texte : elle ne sait pas de quel
+        # modele vient la variable. Verifie avec niveau_requis('training/').
+        'templates/internal_training/page_editor.html : block.file.url',
+        'templates/internal_training/page_view.html : block.file.url',
+        # CES DEUX-LA NE DESIGNENT AUCUN FICHIER. Ni `hr.Employee` ni
+        # `inventory.Product` ne portent de champ `photo` -- verifie sur les
+        # modeles. Les deux balises sont sous un `{% if ... .photo %}`
+        # toujours faux, donc jamais rendues : branches mortes, et non liens
+        # casses. On les nomme ici pour que ce constat soit ecrit quelque
+        # part, plutot que refait a chaque echec du test.
+        'templates/hr/employee_list.html : emp.photo.url',
+        'templates/inventory/product_form_desktop.html : product.photo.url',
     }
-    restants = [s for s in suspects
-                if s.split(' : ')[0].replace('\\', '/') not in autorises]
+    restants = [s for s in suspects if s not in autorises]
 
     assert not restants, (
         'Des gabarits pointent vers un fichier televerse par son URL /media/ '
-        'brute. Si son prefixe figure dans PREFIXES_INTERDITS, le bouton '
+        'brute. Si son prefixe figure dans PREFIXES_INTERDITS, le lien '
         'rendra 404 : il lui faut une vue qui controle les droits. Sinon, '
         'ajoutez-le a la liste ci-dessus EN DISANT POURQUOI.\n  '
         + '\n  '.join(restants))
+
+
+# ── 7. Les quatre liens que la garde élargie a trouvés ────────────────────
+#
+# Elle ne cherchait que `{{ x.file.url }}`. Ce projet nomme ses champs en
+# français, donc elle ne voyait ni `signature`, ni `attachment`, ni
+# `photo`, ni `fichier`. Les quatre liens ci-dessous rendaient 404 — ou,
+# pour les photos de réserves, servaient le fichier à tout compte connecté
+# de n'importe quelle entreprise, ce qui était pire.
+
+
+def _ticket(entreprise, avec_piece=True, interne=False):
+    from apps.support.models import Ticket, TicketMessage
+
+    ticket = Ticket.objects.create(
+        company=entreprise, number='TKT-0001', subject='Écran noir')
+    return TicketMessage.objects.create(
+        ticket=ticket, message='Voici la capture.', is_internal=interne,
+        attachment=_televerse('capture.pdf') if avec_piece else None)
+
+
+def _reserve_avec_photo(chantier, nom='carrelage.png'):
+    from apps.btp.models import ProjectReservation, ReservationPhoto
+
+    reserve = ProjectReservation.objects.create(
+        project=chantier, title='Carrelage fendu',
+        description='Deux carreaux fendus près de la porte.')
+    return ReservationPhoto.objects.create(
+        reservation=reserve,
+        photo=SimpleUploadedFile(nom, b'\x89PNG\r\n\x1a\nfaux',
+                                 content_type='image/png'),
+        caption='Le carreau fendu')
+
+
+def _png_signe():
+    """Un PNG qui passe le contrôle d'encre : au moins 50 pixels opaques."""
+    import base64
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new('RGBA', (900, 300), (0, 0, 0, 0))
+    ImageDraw.Draw(image).line((50, 150, 850, 150), fill=(0, 0, 0, 255),
+                               width=6)
+    tampon = io.BytesIO()
+    image.save(tampon, format='PNG')
+    return ('data:image/png;base64,'
+            + base64.b64encode(tampon.getvalue()).decode('ascii'))
+
+
+# ── 7.1 La signature du profil ───────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_le_proprietaire_voit_sa_signature(client, django_user_model):
+    """L'aperçu du profil était cassé : `signatures/` rend 404 par /media/."""
+    entreprise = _entreprise('Orion SAS', 'orion-sig')
+    utilisateur = _salarie(client, django_user_model, entreprise)
+    utilisateur.profile.signature.save(
+        'signature-x.png',
+        SimpleUploadedFile('s.png', b'\x89PNG\r\n\x1a\nfaux'), save=True)
+
+    reponse = client.get(reverse('accounts:signature_image'))
+
+    assert reponse.status_code == 200
+    # Affichée, et non téléchargée : c'est un aperçu dans la page.
+    assert reponse['Content-Disposition'].startswith('inline')
+    assert reponse['Content-Type'] == 'image/png'
+
+
+@pytest.mark.django_db
+def test_la_signature_servie_est_celle_du_demandeur(client,
+                                                    django_user_model):
+    """LA BORNE EST L'ABSENCE D'IDENTIFIANT DANS L'ADRESSE.
+
+    Il n'y a pas de numéro à changer pour atteindre la signature d'un
+    collègue. Ce test le vérifie par la conséquence : un second compte,
+    sans signature, obtient 404 là où le premier obtient son image — la
+    même adresse, deux réponses, parce qu'elle ne désigne pas un fichier
+    mais un demandeur.
+    """
+    entreprise = _entreprise('Orion SAS', 'orion-sig2')
+    premier = _salarie(client, django_user_model, entreprise, 'avec-sig')
+    premier.profile.signature.save(
+        'signature-a.png',
+        SimpleUploadedFile('a.png', b'\x89PNG\r\n\x1a\nfaux'), save=True)
+    assert client.get(reverse('accounts:signature_image')).status_code == 200
+
+    _salarie(client, django_user_model, entreprise, 'sans-sig')
+    assert client.get(reverse('accounts:signature_image')).status_code == 404
+
+
+@pytest.mark.django_db
+def test_l_enregistrement_ne_renvoie_plus_une_adresse_media(
+        client, django_user_model):
+    """Le défaut se voyait JUSTE APRÈS avoir annoncé la réussite.
+
+    `signature_save` renvoyait `profil.signature.url`, et
+    `orion-signature.js` posait cette adresse dans l'aperçu. L'écran
+    affichait donc « Signature enregistrée » au-dessus d'une image
+    cassée — le pire ordre possible, puisqu'on ne doute pas de ce qu'on
+    vient de réussir.
+    """
+    entreprise = _entreprise('Orion SAS', 'orion-sig3')
+    _salarie(client, django_user_model, entreprise)
+
+    reponse = client.post(reverse('accounts:signature_save'),
+                          {'signature': _png_signe()})
+
+    assert reponse.status_code == 200
+    adresse = reponse.json()['url']
+    assert adresse == reverse('accounts:signature_image')
+    assert not adresse.startswith('/media/')
+    # Et l'adresse rendue sert vraiment quelque chose.
+    assert client.get(adresse).status_code == 200
+
+
+@pytest.mark.django_db
+def test_un_anonyme_n_obtient_aucune_signature(client):
+    reponse = client.get(reverse('accounts:signature_image'))
+    assert reponse.status_code in (302, 403)
+
+
+# ── 7.2 La pièce jointe d'un ticket ──────────────────────────────────────
+
+@pytest.mark.django_db
+def test_un_salarie_telecharge_la_piece_jointe_d_un_ticket(
+        client, django_user_model):
+    entreprise = _entreprise('Orion SAS', 'orion-tkt')
+    _salarie(client, django_user_model, entreprise)
+    message = _ticket(entreprise)
+
+    reponse = client.get(reverse('support:ticket_attachment',
+                                 args=[message.pk]))
+
+    assert reponse.status_code == 200
+    # En téléchargement : une pièce jointe de ticket est déposée par un
+    # tiers, et un SVG affiché en ligne exécuterait son script.
+    assert reponse['Content-Disposition'].startswith('attachment')
+
+
+@pytest.mark.django_db
+def test_la_piece_jointe_d_une_autre_entreprise_est_refusee(
+        client, django_user_model):
+    """Le bornage de l'écran, reproduit : `ticket__company`.
+
+    Un ticket de support porte volontiers une capture de l'ERP, donc des
+    données de l'entreprise. Sans ce filtre, changer le numéro dans
+    l'adresse suffisait.
+    """
+    autre = _entreprise('Concurrent SARL', 'concurrent-tkt')
+    message = _ticket(autre)
+
+    mienne = _entreprise('Orion SAS', 'orion-tkt2')
+    _salarie(client, django_user_model, mienne)
+
+    reponse = client.get(reverse('support:ticket_attachment',
+                                 args=[message.pk]))
+    assert reponse.status_code == 404
+
+
+@pytest.mark.django_db
+def test_un_message_sans_piece_jointe_rend_404(client, django_user_model):
+    entreprise = _entreprise('Orion SAS', 'orion-tkt3')
+    _salarie(client, django_user_model, entreprise)
+    message = _ticket(entreprise, avec_piece=False)
+
+    reponse = client.get(reverse('support:ticket_attachment',
+                                 args=[message.pk]))
+    assert reponse.status_code == 404
+
+
+# ── 7.3 Les photos de réserves, et la fuite entre entreprises ────────────
+
+@pytest.mark.django_db
+def test_un_salarie_voit_la_photo_d_une_reserve(client, django_user_model):
+    entreprise = _entreprise('Orion SAS', 'orion-res')
+    chantier = _chantier(entreprise, 'jean@exemple.fr')
+    _salarie(client, django_user_model, entreprise)
+    photo = _reserve_avec_photo(chantier)
+
+    reponse = client.get(reverse('btp:reservation_photo', args=[photo.pk]))
+
+    assert reponse.status_code == 200
+    assert reponse['Content-Disposition'].startswith('inline')
+
+
+@pytest.mark.django_db
+def test_la_photo_de_reserve_d_une_autre_entreprise_est_refusee(
+        client, django_user_model):
+    autre = _entreprise('Concurrent SARL', 'concurrent-res')
+    photo = _reserve_avec_photo(_chantier(autre, 'luc@exemple.fr'))
+
+    mienne = _entreprise('Orion SAS', 'orion-res2')
+    _salarie(client, django_user_model, mienne)
+
+    assert client.get(reverse('btp:reservation_photo',
+                              args=[photo.pk])).status_code == 404
+
+
+@pytest.mark.django_db
+def test_le_client_voit_les_photos_des_reserves_de_son_chantier(
+        client, django_user_model):
+    entreprise = _entreprise('Orion SAS', 'orion-res3')
+    chantier = _chantier(entreprise, 'jean@exemple.fr')
+    _compte_portail(client, django_user_model, entreprise, 'jean@exemple.fr')
+    photo = _reserve_avec_photo(chantier)
+
+    reponse = client.get(reverse('client_portal:reservation_photo',
+                                 args=[chantier.pk, photo.pk]))
+
+    assert reponse.status_code == 200
+
+
+@pytest.mark.django_db
+def test_un_client_ne_voit_pas_les_reserves_d_un_autre_chantier(
+        client, django_user_model):
+    """Le contrôle passe par le CHANTIER, pas par la photo seule.
+
+    Sinon il suffirait de garder son propre numéro de chantier dans
+    l'adresse et de changer celui de la photo.
+    """
+    entreprise = _entreprise('Orion SAS', 'orion-res4')
+    le_mien = _chantier(entreprise, 'jean@exemple.fr', 'Le mien')
+    celui_d_un_autre = _chantier(entreprise, 'luc@exemple.fr', 'Autre')
+    _compte_portail(client, django_user_model, entreprise, 'jean@exemple.fr')
+    photo = _reserve_avec_photo(celui_d_un_autre)
+
+    assert client.get(reverse('client_portal:reservation_photo',
+                              args=[le_mien.pk, photo.pk])).status_code == 404
+
+
+@pytest.mark.django_db
+def test_media_ne_sert_plus_les_photos_de_reserves(client, tmp_path,
+                                                   settings,
+                                                   django_user_model):
+    """LA FUITE QUI ÉTAIT OUVERTE, et la raison du déplacement.
+
+    `reservations/` était au niveau « authentifié », qui n'est PAS borné
+    par entreprise. Or un client de portail est un compte Django
+    authentifié — `_get_portal_account` ne le reconnaît qu'une fois
+    `request.user.is_authenticated` vrai. Le client de l'entreprise A
+    pouvait donc lire les photos de réserves de l'entreprise B en devinant
+    un nom de fichier, et `upload_to='reservations/'` conserve le nom
+    d'origine de la photo.
+
+    Ce test tient la propriété dans le sens qui compte : par /media/,
+    plus personne — même connecté.
+    """
+    settings.MEDIA_ROOT = str(tmp_path)
+    cible = tmp_path / 'reservations' / 'IMG_1234.jpg'
+    cible.parent.mkdir(parents=True, exist_ok=True)
+    cible.write_bytes(b'\x89PNG\r\n\x1a\nfaux')
+
+    assert client.get('/media/reservations/IMG_1234.jpg').status_code == 404
+
+    entreprise = _entreprise('Concurrent SARL', 'concurrent-res5')
+    _compte_portail(client, django_user_model, entreprise, 'luc@exemple.fr')
+    assert client.get('/media/reservations/IMG_1234.jpg').status_code == 404
+
+
+# ── 7.4 Les gabarits ne portent plus d'adresse /media/ ───────────────────
+
+@pytest.mark.django_db
+def test_l_ecran_d_un_ticket_pointe_vers_la_vue(client, django_user_model):
+    """Mesuré sur le HTML rendu, et non sur la source du gabarit."""
+    entreprise = _entreprise('Orion SAS', 'orion-tkt4')
+    _salarie(client, django_user_model, entreprise)
+    message = _ticket(entreprise)
+
+    reponse = client.get(reverse('support:ticket_detail',
+                                 args=[message.ticket.pk]))
+    corps = reponse.content.decode('utf-8')
+
+    assert reverse('support:ticket_attachment', args=[message.pk]) in corps
+    assert '/media/tickets/' not in corps

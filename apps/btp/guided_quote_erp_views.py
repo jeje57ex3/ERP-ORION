@@ -1,4 +1,4 @@
-﻿"""
+"""
 Vues ERP pour gérer les demandes guidées, la bibliothèque de prix
 et le tableau de bord responsable chantier.
 """
@@ -16,7 +16,7 @@ from .models import (
     ElectricityPriceLibrary, BTPProject, ClientConversation, ClientMessage,
     MessageAttachment, TimeEntry, SiteAssignment, ProjectReservation,
     ClientChangeRequest, ClientNotification, ProjectDocument,
-    GuidedQuotePhoto, GuidedQuoteDocument,
+    GuidedQuotePhoto, GuidedQuoteDocument, ReservationPhoto,
 )
 
 
@@ -588,6 +588,30 @@ def client_message_attachment_download(request, pk, piece_pk):
 
 
 # ─── RÉSERVES ERP ─────────────────────────────────────────────────────────────
+
+
+@login_required
+def reservation_photo(request, photo_pk):
+    """Affiche la photo d'une réserve, côté ERP.
+
+    `reservations/` a quitté les préfixes servis par /media/ : la raison
+    est écrite dans `PREFIXES_INTERDITS`. Le gabarit pointait vers
+    `ph.photo.url`, c'est-à-dire vers une adresse qui servait la photo à
+    TOUT compte connecté — portail client compris — sans aucun contrôle
+    d'entreprise.
+
+    Le bornage reproduit celui de la page qui affiche la vignette :
+    `reservation__project__company`. Il n'écarte PAS les photos mises à la
+    corbeille, parce que la liste ne les écarte pas non plus : un aperçu
+    plus strict que l'écran qui le porte donnerait des cadres vides sans
+    message, ce qui se lit comme une panne.
+    """
+    company = _company(request)
+    photo = get_object_or_404(ReservationPhoto, pk=photo_pk,
+                              reservation__project__company=company)
+    return servir_fichier_autorise(photo.photo, photo.caption or None,
+                                   afficher_si_image=True)
+
 
 @login_required
 def reservations_list(request):

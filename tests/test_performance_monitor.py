@@ -49,12 +49,27 @@ def test_le_middleware_est_tout_en_haut_de_la_pile():
     Placé plus bas, la durée qu'il relève exclut tout ce que les
     middlewares précédents ont consommé — et une lenteur venue de l'un
     d'eux serait invisible, c'est-à-dire précisément celle qu'on cherche.
+
+    La position 1 et non 0 : `HotesDesSitesMiddleware` doit passer avant
+    tout le monde, sans quoi Django rejette un domaine de site vitrine en
+    400 dès le premier `get_host()`. Ce test tolère donc ce seul
+    prédécesseur.
+
+    **Il a déjà échoué pour de vrai.** Le middleware avait été ajouté en
+    position 1, puis un autre a été inséré devant lui — pour une bonne
+    raison, et sans voir qu'il le repoussait en 2. Le message ci-dessous
+    nomme ce qui le précède : c'est l'information qui manquait pour
+    comprendre l'échec sans aller relire les réglages.
     """
-    position = settings.MIDDLEWARE.index(CHEMIN_DU_MIDDLEWARE)
+    liste = list(settings.MIDDLEWARE)
+    position = liste.index(CHEMIN_DU_MIDDLEWARE)
 
     assert position <= 1, (
-        'place en %d : la mesure exclurait les middlewares precedents'
-        % position)
+        'place en %d : la mesure exclurait les %d middleware(s) qui le '
+        'precedent, donc leur propre lenteur :\n  %s\n'
+        'Un seul a le droit de passer avant lui, HotesDesSitesMiddleware, '
+        'parce que Django refuse un hote inconnu avant lui.'
+        % (position, position, '\n  '.join(liste[:position])))
 
 
 # ─── Le comptage SQL, qui mentait hors DEBUG ──────────────────────────────

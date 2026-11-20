@@ -1,0 +1,83 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Avoir sur {{ facture.number }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sales:invoice_detail' facture.pk %}">{{ facture.number }}</a></li>
+<li class="breadcrumb-item active">Note de crédit</li>
+{% endblock %}
+
+{% block content %}
+{% if not origine %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-1"></i>
+  La facture <strong>{{ facture.number }}</strong> n'a pas été signée : il n'y a rien à rectifier.
+  Une facture encore en brouillon se modifie directement.
+</div>
+<a href="{% url 'sales:invoice_detail' facture.pk %}" class="orion-btn orion-btn-outline">Retour à la facture</a>
+{% else %}
+
+<div class="alert alert-secondary">
+  <i class="bi bi-info-circle me-1"></i>
+  Un document émis ne se modifie plus : sa signature couvre son contenu, et tous les documents
+  suivants de la série signent la sienne. L'avoir est la <strong>seule voie légale</strong> de
+  correction.
+</div>
+
+<form method="post" class="orion-card" style="max-width:680px">
+  {% csrf_token %}
+  <div class="orion-card-header">
+    <h6 class="erp-card-title"><i class="bi bi-arrow-counterclockwise me-2"></i>Avoir sur {{ origine.numero }}</h6>
+  </div>
+  <div class="p-0">
+    <table class="table table-sm mb-0">
+      <tbody>
+        <tr><th style="width:220px">Document rectifié</th><td><a href="{% url 'fiscal_pt:document_detail' origine.pk %}">{{ origine.numero }}</a></td></tr>
+        <tr><th>Date du document</th><td>{{ origine.date_document|date:"d/m/Y" }}</td></tr>
+        <tr><th>Montant à créditer</th><td><strong>{{ origine.total }} €</strong> dont {{ origine.total_taxes }} € de TVA</td></tr>
+        <tr><th>Acquéreur</th><td>{{ origine.nif_acquereur|default:"Consommateur final" }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="p-3 border-top">
+    <label class="form-label" for="motif">Motif de la rectification</label>
+    <input type="text" class="form-control" id="motif" name="motif" maxlength="50"
+           value="{{ motif|default:'' }}" required
+           placeholder="Ex. : Devolução de mercadoria, Erro de faturação">
+    <div class="form-text">
+      Obligatoire : c'est lui qui distingue un geste commercial d'une erreur de facturation,
+      et le SAF-T le transporte dans le champ « Reason ». Cinquante caractères au plus.
+    </div>
+  </div>
+  <div class="p-3 border-top">
+    <button type="submit" class="orion-btn primary">
+      <i class="bi bi-check2 me-1"></i>Émettre l'avoir
+    </button>
+    <a href="{% url 'sales:invoice_detail' facture.pk %}" class="orion-btn orion-btn-outline">Annuler</a>
+  </div>
+</form>
+
+{% if origine.rectifications.exists %}
+<div class="orion-card mt-3" style="max-width:680px">
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-clock-history me-2"></i>Rectifications déjà émises</h6></div>
+  <div class="p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Avoir</th><th>Date</th><th>Motif</th><th class="text-end">Montant</th></tr></thead>
+      <tbody>
+        {% for avoir in origine.rectifications.all %}
+        <tr>
+          <td><a href="{% url 'fiscal_pt:document_detail' avoir.pk %}">{{ avoir.numero }}</a></td>
+          <td>{{ avoir.date_document|date:"d/m/Y" }}</td>
+          <td class="small">{{ avoir.motif_rectification }}</td>
+          <td class="text-end">{{ avoir.total }} €</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

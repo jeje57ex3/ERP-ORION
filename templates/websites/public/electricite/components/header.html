@@ -32,7 +32,7 @@
       </span>
     </a>
 
-    <nav class="sp-nav" aria-label="{% trans 'Navigation principale' %}">
+    <nav class="sp-nav" id="sp-nav" aria-label="{% trans 'Navigation principale' %}">
       <a href="{% url 'public_websites:electricite_home' site.public_slug %}"
          class="{% if page_courante == 'accueil' %}actif{% endif %}">{% trans "Accueil" %}</a>
       <a href="{% url 'public_websites:electricite_services' site.public_slug %}"
@@ -46,6 +46,21 @@
     </nav>
 
     <div class="sp-entete__actions">
+      {% comment %}
+        LE BOUTON DE MENU. Il n'existait pas : sous 680 px la navigation
+        etait simplement cachee, sans rien a la place. Au telephone, aucune
+        page du site n'etait atteignable depuis l'accueil — le dessin
+        paraissait correct et le site ne menait nulle part.
+
+        « aria-expanded » est tenu a jour par le script : un lecteur
+        d'ecran annonce alors « reduit » ou « developpe », au lieu de lire
+        un bouton dont rien ne dit l'effet.
+      {% endcomment %}
+      <button type="button" class="sp-burger" id="sp-burger"
+              aria-expanded="false" aria-controls="sp-nav"
+              aria-label="{% trans 'Ouvrir le menu' %}">
+        <i class="bi bi-list" aria-hidden="true"></i>
+      </button>
       {% if site.contact_phone %}
       {% comment %}
         Le numero est un LIEN « tel: ». Sur un telephone — d'ou viennent la
@@ -53,7 +68,7 @@
         toucher oblige a le recopier a la main.
       {% endcomment %}
       <a href="tel:{{ site.contact_phone|cut:' ' }}" class="sp-tel">
-        <i class="bi bi-telephone-fill" aria-hidden="true"></i>{{ site.contact_phone }}
+        <i class="bi bi-telephone-fill" aria-hidden="true"></i><span>{{ site.contact_phone }}</span>
       </a>
       {% endif %}
       <a href="{% url 'public_websites:electricite_wizard_start' site.public_slug %}" class="sp-btn sp-btn--or">
@@ -63,3 +78,27 @@
 
   </div>
 </header>
+
+<script>
+(function () {
+  var bouton = document.getElementById('sp-burger');
+  var entete = document.querySelector('.sp-entete');
+  if (!bouton || !entete) { return; }
+
+  bouton.addEventListener('click', function () {
+    var ouvert = entete.classList.toggle('ouvert');
+    bouton.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+    bouton.querySelector('i').className = ouvert ? 'bi bi-x-lg' : 'bi bi-list';
+  });
+
+  // Un menu qui reste ouvert apres le clic masque le haut de la page
+  // d'arrivee. On le referme des qu'une entree est choisie.
+  entete.querySelectorAll('.sp-nav a').forEach(function (lien) {
+    lien.addEventListener('click', function () {
+      entete.classList.remove('ouvert');
+      bouton.setAttribute('aria-expanded', 'false');
+      bouton.querySelector('i').className = 'bi bi-list';
+    });
+  });
+})();
+</script>

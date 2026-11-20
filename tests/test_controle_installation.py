@@ -716,7 +716,21 @@ def test_une_planification_deja_partie_aujourd_hui_ne_repart_pas():
 def test_une_planification_creee_apres_l_heure_n_est_pas_rattrapee():
     """Saisir à quinze heures une sauvegarde prévue à deux heures ne doit
     pas en déclencher une immédiatement : sur une grosse base, cela
-    bloquerait la machine en pleine journée."""
+    bloquerait la machine en pleine journée.
+
+    CE TEST ÉCHOUAIT DEUX HEURES PAR NUIT, et le défaut était dans le
+    test. Il fabriquait `maintenant` à quinze heures mais laissait
+    `created_at` prendre l'heure réelle de l'horloge — or c'est
+    `created_at` que la règle examine. Lancée à 00 h 28 UTC, la
+    planification était donc créée AVANT l'échéance de 2 h 00, elle était
+    légitimement due, et `est_due` avait raison de rendre True.
+
+    Autrement dit, le test ne mettait son propre récit en place que si on
+    le lançait après deux heures du matin. On fixe donc `created_at`, au
+    lieu de l'emprunter à l'horloge : c'est la seule façon d'éprouver « a
+    été saisie à quinze heures » et non « a été saisie au moment où la
+    suite tourne ».
+    """
     import datetime
 
     from django.utils import timezone
@@ -727,7 +741,42 @@ def test_une_planification_creee_apres_l_heure_n_est_pas_rattrapee():
     planif = BackupSchedule.objects.create(
         name='Nuit', frequency='daily', time=datetime.time(2, 0))
     maintenant = timezone.now().replace(hour=15, minute=0)
+    # `created_at` est en auto_now_add : il faut passer par update() pour
+    # le poser, comme le fait `_planif_ancienne` pour reculer une création.
+    BackupSchedule.objects.filter(pk=planif.pk).update(created_at=maintenant)
+    planif.refresh_from_db()
+
     assert est_due(planif, maintenant) is False
+
+
+@pytest.mark.django_db
+def test_une_planification_creee_avant_l_heure_part_bien():
+    """L'autre moitié de la règle, que rien ne vérifiait.
+
+    Le test ci-dessus ne pouvait pas la tenir : il n'examinait le cas
+    « créée avant l'échéance » que par accident, les nuits où il échouait.
+    Une garde contre le rattrapage qui refuserait AUSSI les planifications
+    créées à temps ne ferait plus jamais aucune sauvegarde — et c'est le
+    genre de panne dont on ne s'aperçoit qu'en ayant besoin d'une
+    restauration.
+    """
+    import datetime
+
+    from django.utils import timezone
+
+    from apps.backups.models import BackupSchedule
+    from apps.backups.tasks import est_due
+
+    planif = BackupSchedule.objects.create(
+        name='Nuit', frequency='daily', time=datetime.time(2, 0))
+    maintenant = timezone.now().replace(hour=15, minute=0)
+    # Saisie à une heure pour deux heures : l'échéance du jour n'était pas
+    # encore passée au moment de la saisie. Rien ne doit l'empêcher.
+    BackupSchedule.objects.filter(pk=planif.pk).update(
+        created_at=maintenant.replace(hour=1, minute=0))
+    planif.refresh_from_db()
+
+    assert est_due(planif, maintenant) is True
 
 
 @pytest.mark.django_db

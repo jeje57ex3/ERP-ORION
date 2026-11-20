@@ -197,3 +197,64 @@ def test_sans_rien_les_quatre_cartes_tiennent_quand_meme():
 
     assert len(cartes) == 4
     assert all(c['image'] and c['titre'] for c in cartes)
+
+
+# ── L'ordre des regles d'ecran ───────────────────────────────────────────────
+
+def test_aucune_regle_de_base_apres_le_premier_media():
+    """LA FAUTE COMMISE DEUX FOIS DANS CE FICHIER.
+
+    Une retouche ajoutee APRES un bloc « @media » l'emporte sur lui a
+    specificite egale — en CSS, c'est la derniere regle qui gagne. La
+    bascule mobile ne s'appliquait donc pas : la page de telephone gardait
+    la grille de bureau et debordait de l'ecran.
+
+    La seconde fois, c'etait le bouton de menu lui-meme : son
+    « display: none » de base passait apres le « display: inline-flex » de
+    la regle d'ecran, et le bouton restait invisible au telephone — c'est
+    a dire que la navigation n'existait plus du tout.
+
+    Le remede n'est pas la vigilance, c'est l'ordre. Ce test le tient.
+    """
+    import re
+
+    css = FEUILLE.read_text(encoding='utf-8')
+    if '@media' not in css:
+        pytest.skip('aucune regle d’ecran')
+
+    apres = css[css.index('@media'):]
+    # On retire les blocs @media eux-memes, puis les commentaires.
+    sans_blocs = re.sub(r'@media[^{]*\{(?:[^{}]|\{[^{}]*\})*\}', '', apres)
+    reste = re.sub(r'/\*.*?\*/', '', sans_blocs, flags=re.S).strip()
+
+    assert not reste, (
+        'regle(s) de base apres le premier @media — elles annuleront la '
+        f'bascule mobile : {reste[:160]}')
+
+
+def test_les_grilles_mobiles_emploient_minmax():
+    """« 1fr » vaut « minmax(auto, 1fr) » : la piste ne descend pas sous la
+    largeur minimale de son contenu. Une bande de filtres en « nowrap »
+    elargissait ainsi la colonne au-dela de l'ecran, et TOUTE la page
+    glissait avec elle."""
+    import re
+
+    css = FEUILLE.read_text(encoding='utf-8')
+    apres = css[css.index('@media'):]
+
+    fautifs = [l.strip() for l in apres.splitlines()
+               if 'grid-template-columns' in l and 'minmax' not in l]
+
+    assert not fautifs, (
+        f'piste(s) sans minmax(0, …) dans une regle d’ecran : {fautifs}')
+
+
+def test_le_menu_mobile_existe():
+    """« display: none » sur la navigation sans rien a la place rendait
+    toutes les pages du site inatteignables depuis un telephone."""
+    entete = ENTETE.read_text(encoding='utf-8')
+    css = FEUILLE.read_text(encoding='utf-8')
+
+    assert 'sp-burger' in entete and 'sp-burger' in css
+    assert 'aria-expanded' in entete, 'un bouton dont rien ne dit l’effet'
+    assert '.sp-entete.ouvert .sp-nav' in css, 'le menu ne s’ouvre jamais'

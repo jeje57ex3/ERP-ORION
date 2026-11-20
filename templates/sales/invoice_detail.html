@@ -24,7 +24,55 @@
     </div>
     <div class="detail-actions">
       {% if invoice.status == 'draft' %}
+      {% if formes_legales %}
+      {% comment %} LE CHOIX DE LA FORME LEGALE, et pourquoi il est ici.
+
+         FT, FS ou FR est ecrit dans le numero du document, signe avec lui,
+         et ne se change plus. L'envoi est le dernier instant ou le choix
+         est encore ouvert ; passe cet instant, seul un avoir corrige. On
+         ne le deduit surtout pas du montant : une facture simplifiee
+         emise sans que personne ne l'ait voulue est irreguliere, et le
+         client n'y deduit pas la TVA. {% endcomment %}
+      <form method="post" action="{% url 'sales:invoice_send' invoice.pk %}"
+            class="d-inline-flex gap-1 align-items-center">
+        {% csrf_token %}
+        <select name="type_document" class="form-select form-select-sm"
+                style="width:auto" id="forme-legale">
+          {% for code, libelle in formes_legales %}
+          <option value="{{ code }}">{{ libelle }}</option>
+          {% endfor %}
+        </select>
+        <span id="encaissement" hidden class="d-inline-flex gap-1">
+          <select name="mecanisme" class="form-select form-select-sm" style="width:auto">
+            {% for code, libelle in mecanismes_de_paiement %}
+            <option value="{{ code }}"{% if code == 'TB' %} selected{% endif %}>{{ libelle }}</option>
+            {% endfor %}
+          </select>
+          <input type="date" name="date_encaissement" class="form-control form-control-sm"
+                 style="width:auto" value="{{ invoice.issue_date|date:'Y-m-d' }}">
+        </span>
+        <button type="submit" class="orion-btn warning orion-btn sm">
+          <i class="bi bi-send me-1"></i>{% trans "Envoyer et signer" %}
+        </button>
+      </form>
+      {% comment %} L'etat initial est calcule AU CHARGEMENT, et pas seulement au
+         changement. Si « FR » se trouve etre la premiere forme offerte --
+         ce qui arrive des que la serie « FT » n'est pas declaree -- un
+         gestionnaire pose sur `onchange` seul laisserait les champs
+         d'encaissement caches sur la forme selectionnee. {% endcomment %}
+      <script>
+      (function () {
+        var forme = document.getElementById('forme-legale');
+        var champs = document.getElementById('encaissement');
+        if (!forme || !champs) { return; }
+        function accorder() { champs.hidden = forme.value !== 'FR'; }
+        forme.addEventListener('change', accorder);
+        accorder();
+      })();
+      </script>
+      {% else %}
       <a href="{% url 'sales:invoice_send' invoice.pk %}" class="orion-btn warning orion-btn sm"><i class="bi bi-send me-1"></i>{% trans "Envoyer" %}</a>
+      {% endif %}
       {% endif %}
       {% if invoice.status != 'paid' and invoice.status != 'cancelled' %}
       <a href="{% url 'sales:invoice_mark_paid' invoice.pk %}" class="orion-btn success orion-btn sm"><i class="bi bi-check-circle me-1"></i>{% trans "Marquer payée" %}</a>
@@ -129,6 +177,109 @@
     <div class="orion-alert danger d-flex align-items-center gap-2 small">
       <i class="bi bi-exclamation-circle-fill fs-5"></i>
       <div>{% blocktrans with days=invoice.days_overdue %}Paiement en retard de <strong>{{ days }} jours</strong>{% endblocktrans %}</div>
+    </div>
+    {% endif %}
+
+    {% if document_fiscal %}
+    {% comment %} Mentions legales portugaises : elles figurent SUR la facture, et pas
+       seulement dans l'ecran de conformite. L'ATCUD, le code QR et la
+       mention du programme certifie sont des mentions obligatoires du
+       document lui-meme. {% endcomment %}
+    <div class="orion-card mt-3">
+      <div class="orion-orion-card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-shield-check me-1 text-success"></i>{% trans "Mentions legales (Portugal)" %}</h6>
+      </div>
+      <div class="p-3">
+        <div class="d-flex gap-3 flex-wrap align-items-start">
+          <img src="{% url 'fiscal_pt:document_qr' document_fiscal.pk %}"
+               alt="{% trans 'Code QR de la facture' %}"
+               style="width:140px;height:140px;flex:0 0 auto">
+          <div class="flex-grow-1" style="min-width:220px">
+            <div class="info-item"><label>ATCUD</label><div class="value"><code>{{ document_fiscal.atcud }}</code></div></div>
+            <div class="info-item mt-2"><label>{% trans "Numero legal" %}</label><div class="value">{{ document_fiscal.numero }}</div></div>
+            <div class="info-item mt-2">
+              <label>{% trans "Forme legale" %}</label>
+              <div class="value">{{ document_fiscal.serie.get_type_document_display }}</div>
+            </div>
+            {% if document_fiscal.paiements %}
+            <div class="info-item mt-2">
+              <label>{% trans "Encaissement atteste" %}</label>
+              {% for paiement in encaissements %}
+              <div class="value small">{{ paiement.montant }} € — {{ paiement.libelle }} — {{ paiement.date }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <div class="info-item mt-2">
+              <label>{% trans "Mention au pied du document" %}</label>
+              <div class="value small" style="word-break:break-all">{{ mention_legale }}</div>
+            </div>
+            {% if mentions_d_exoneration %}
+            <div class="info-item mt-2">
+              <label>{% trans "Mentions d'exoneration" %}</label>
+              {% for code, motif in mentions_d_exoneration %}
+              <div class="value small">{{ motif }} <span class="text-muted">({{ code }})</span></div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <a href="{% url 'fiscal_pt:document_detail' document_fiscal.pk %}" class="orion-btn orion-btn-outline btn-sm mt-2">
+              <i class="bi bi-fingerprint me-1"></i>{% trans "Voir la preuve" %}
+            </a>
+            {% if rectifications %}
+            <div class="info-item mt-2">
+              <label>{% trans "Avoirs emis" %}</label>
+              {% for avoir in rectifications %}
+              <div class="value small">
+                <a href="{% url 'fiscal_pt:document_detail' avoir.pk %}">{{ avoir.numero }}</a>
+                — {{ avoir.total }} € — {{ avoir.motif_rectification }}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if notes_de_debit %}
+            <div class="info-item mt-2">
+              <label>{% trans "Notes de debit emises" %}</label>
+              {% for note in notes_de_debit %}
+              <div class="value small">
+                <a href="{% url 'fiscal_pt:document_detail' note.pk %}">{{ note.numero }}</a>
+                — {{ note.total }} € — {{ note.motif_rectification }}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if recus %}
+            <div class="info-item mt-2">
+              <label>{% trans "Recus emis" %}</label>
+              {% for recu in recus %}
+              <div class="value small">
+                <a href="{% url 'fiscal_pt:recu_detail' recu.pk %}">{{ recu.numero }}</a>
+                — {{ recu.total }} €
+                {% if recu.au_debit %}<span class="text-muted">({% trans "rembourse" %})</span>{% endif %}
+              </div>
+              {% endfor %}
+              {% if reste_a_encaisser is not None %}
+              <div class="value small text-muted">{% trans "Reste a encaisser" %} : {{ reste_a_encaisser }} €</div>
+              {% endif %}
+            </div>
+            {% endif %}
+            <div class="d-flex gap-1 flex-wrap mt-2">
+              <a href="{% url 'fiscal_pt:note_de_credit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Emettre un avoir" %}
+              </a>
+              <a href="{% url 'fiscal_pt:note_de_debit' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>{% trans "Emettre une note de debit" %}
+              </a>
+              {% if peut_quittancer %}
+              <a href="{% url 'fiscal_pt:recu_sur_facture' invoice.pk %}" class="orion-btn orion-btn-outline btn-sm">
+                <i class="bi bi-receipt me-1"></i>{% trans "Emettre un recu" %}
+              </a>
+              {% endif %}
+            </div>
+            <div class="form-text mt-1">
+              {% trans "Un document signe ne se modifie plus. L'avoir diminue ce que le client doit, la note de debit l'augmente : ce sont les deux seules voies legales de correction. Le recu, lui, ne corrige rien — il atteste de l'argent recu." %}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     {% endif %}
   </div>

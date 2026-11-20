@@ -9,6 +9,10 @@ from django.utils import timezone
 ALL_MODULE_CODES = [
     'dashboard', 'crm', 'sales', 'accounting', 'purchases', 'inventory',
     'btp', 'ecommerce', 'commerce', 'production', 'hr', 'documents',
+    # La conformite fiscale portugaise. Hors de DEFAULT_COMPANY_MODULES :
+    # elle ne concerne que les entreprises qui facturent au Portugal, et
+    # l'activer partout afficherait un menu inutile a tout le monde.
+    'fiscal_pt',
     'websites', 'client_portal', 'messages', 'reporting', 'notifications',
     'automation', 'domains', 'domain_diagnostics', 'backups_module',
     # Sans cette entree, require_company_module('site_builder') refusait
@@ -54,6 +58,7 @@ MODULE_LABELS = {
     'crm':           'CRM',
     'sales':         'Ventes',
     'accounting':    'Comptabilité',
+    'fiscal_pt':     'Conformité Portugal',
     'purchases':     'Achats',
     'inventory':     'Stocks',
     'btp':           'BTP',
@@ -87,6 +92,7 @@ MODULE_NAV_IDS = {
     'crm':           ['crm'],
     'sales':         ['sales'],
     'accounting':    ['accounting'],
+    'fiscal_pt':     ['fiscal_pt'],
     'purchases':     ['purchases'],
     'inventory':     ['inventory'],
     'btp':           ['btp'],

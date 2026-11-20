@@ -1,0 +1,50 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Séries fiscales{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Séries</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'fiscal_pt:serie_creer' %}" class="orion-btn primary"><i class="bi bi-plus-circle me-1"></i>Nouvelle série</a>
+{% endblock %}
+
+{% block content %}
+<div class="orion-card">
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-collection me-2"></i>Séries de documents</h6></div>
+  <div class="p-0">
+    {% if series %}
+    <table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>Série</th><th>Région</th><th>Code de validation AT</th><th>Clé</th><th class="text-end">Prochain n°</th><th>État</th></tr></thead>
+      <tbody>
+        {% for serie in series %}
+        <tr>
+          <td><a href="{% url 'fiscal_pt:serie_modifier' serie.pk %}"><strong>{{ serie }}</strong></a>
+              <div class="text-muted small">{{ serie.get_type_document_display }}</div></td>
+          <td>{{ serie.get_region_display }}</td>
+          <td>
+            {% if serie.est_communiquee %}<code>{{ serie.code_de_validation }}</code>
+            {% else %}<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Non communiquée</span>{% endif %}
+          </td>
+          <td>{% if serie.cle %}v{{ serie.cle.version }}{% else %}<span class="text-muted">clé active</span>{% endif %}</td>
+          <td class="text-end">{{ serie.prochain_numero }}</td>
+          <td>{% if serie.est_active %}<span class="badge bg-success-subtle text-success">Active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Fermée</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="p-3 text-muted">Aucune série.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="alert alert-secondary mt-3">
+  <i class="bi bi-info-circle me-1"></i>
+  Le <strong>code de validation</strong> est rendu par l'AT lorsque la série lui est communiquée.
+  Tant qu'il est absent, les documents de la série portent un ATCUD « 0 » :
+  la marque explicite d'une série non déclarée, que la <em>Portaria n.º 195/2020</em> prévoit.
+  Un code inventé produirait des documents d'apparence correcte et juridiquement nuls.
+</div>
+{% endblock %}

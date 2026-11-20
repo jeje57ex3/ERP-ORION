@@ -1,0 +1,82 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Export SAF-T (PT){% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Export SAF-T</li>
+{% endblock %}
+
+{% block content %}
+<form method="post" class="orion-card" style="max-width:560px">
+  {% csrf_token %}
+  <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-filetype-xml me-2"></i>Export SAF-T (PT) 1.04_01</h6></div>
+  <div class="p-3">
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+      {% for champ in form %}
+      <div class="col-6">
+        <label class="form-label" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+        {{ champ }}
+        {% for erreur in champ.errors %}<div class="text-danger small">{{ erreur }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="p-3 border-top">
+    <button type="submit" class="orion-btn primary"><i class="bi bi-download me-1"></i>Produire le fichier</button>
+    <a href="{% url 'fiscal_pt:index' %}" class="orion-btn orion-btn-outline">Retour</a>
+  </div>
+</form>
+
+{% if anomalies %}
+<div class="orion-card mt-3" style="max-width:720px">
+  <div class="orion-card-header">
+    <h6 class="erp-card-title text-danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ resume }}
+    </h6>
+  </div>
+  <div class="p-3">
+    <p class="text-muted small mb-2">
+      Le fichier a été comparé au schéma <code>SAFTPT1.04_01.xsd</code> publié par l'AT,
+      puis vérifié sur ce que le schéma ne sait pas dire : totaux contre lignes,
+      renvois au référentiel, dates et périodes.
+    </p>
+    <ul class="small mb-0">
+      {% for anomalie in anomalies %}
+      <li><code>{{ anomalie.chemin }}</code> — {{ anomalie.message }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <form method="post" class="p-3 border-top">
+    {% csrf_token %}
+    <input type="hidden" name="debut" value="{{ debut }}">
+    <input type="hidden" name="fin" value="{{ fin }}">
+    <input type="hidden" name="ignorer_les_anomalies" value="1">
+    <button type="submit" class="orion-btn orion-btn-outline">
+      <i class="bi bi-download me-1"></i>Télécharger quand même
+    </button>
+    <div class="form-text mt-1">
+      Pour inspecter le fichier. En l'état, l'AT le rejetterait.
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="alert alert-secondary mt-3" style="max-width:560px">
+  <i class="bi bi-info-circle me-1"></i>
+  Le fichier couvre la <strong>facturation</strong> (<code>TaxAccountingBasis</code> « F ») :
+  en-tête, clients, produits, table des taux et tous les documents de la période.
+  Il ne contient ni la comptabilité, ni les documents de mouvement de marchandises.
+  <div class="mt-2 small">
+    Les lignes exportées sont celles <strong>figées à l'émission</strong>, et non l'état actuel des
+    factures : le fichier remis doit correspondre à la signature qui l'accompagne.
+  </div>
+  <div class="mt-2 small">
+    Deux vérifications sont menées avant la remise : la <strong>structure et les valeurs</strong>
+    contre le schéma de l'AT, puis la <strong>cohérence</strong> — ce qu'un schéma ne sait pas
+    exprimer. Un fichier conforme mais incohérent est rejeté tout autant, et le motif du rejet
+    est alors plus difficile à comprendre.
+  </div>
+</div>
+{% endblock %}

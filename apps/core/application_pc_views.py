@@ -10,11 +10,24 @@ méga-octets, qui changerait à chaque version.
 
 POURQUOI LE TÉLÉCHARGEMENT PASSE PAR UNE VUE
 
-Le fichier pourrait être servi directement depuis `media/`. Mais `media/` est
-public sur cette installation : l'adresse de l'installeur circulerait alors
-hors de l'ERP, et n'importe qui la connaissant pourrait l'aspirer. Une vue
-sous `@login_required` restreint le téléchargement aux comptes de la maison,
-et c'est le minimum pour un exécutable signé du nom de l'entreprise.
+Le fichier pourrait être servi directement depuis `media/`. Cette docstring
+disait « mais `media/` est public sur cette installation » — ce n'est plus
+vrai : `apps/core/media_access.py` refuse désormais par défaut, et
+`application-bureau/` y figure parmi les préfixes jamais servis. La raison
+de cette vue a changé, et il vaut mieux l'écrire que de laisser un argument
+périmé défendre une décision qui tient toujours.
+
+Elle tient pour deux motifs. Le premier est celui d'origine : `login_required`
+réserve le téléchargement aux comptes de la maison, ce qui est le minimum pour
+un exécutable signé du nom de l'entreprise.
+
+Le second est le décisif, et il n'a rien à voir avec la confidentialité.
+Cette vue sert `courante()`, c'est-à-dire la seule version dont `est_publiee`
+est vrai. Une adresse directe sous `/media/` désignerait chaque fichier
+déposé, y compris celui d'une version retirée parce qu'elle était
+défectueuse : le bouton « retirer cette version » cesserait d'avoir un effet,
+et on s'en apercevrait en recevant l'appel de quelqu'un qui vient d'installer
+la version qu'on croyait écartée.
 """
 
 from django.contrib import messages

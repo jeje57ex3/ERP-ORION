@@ -1,0 +1,120 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Reçu sur {{ facture.number }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sales:invoice_list' %}">Factures</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sales:invoice_detail' facture.pk %}">{{ facture.number }}</a></li>
+<li class="breadcrumb-item active">Reçu</li>
+{% endblock %}
+
+{% block content %}
+{% if not origine %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-1"></i>
+  <strong>Cette facture n'a pas été signée.</strong> Un reçu quittance le règlement d'un
+  document déjà émis, et le SAF-T le lui fait désigner par son numéro. Envoyez d'abord la
+  facture.
+</div>
+{% else %}
+
+<div class="alert alert-light border">
+  <i class="bi bi-info-circle me-1"></i>
+  Un reçu <strong>atteste de l'argent reçu</strong> sur un document émis. Il ne modifie pas
+  la facture et ne la remplace pas : il part dans la table 4.4 du SAF-T, dans sa propre série,
+  avec son propre ATCUD. Pour une facture payée au moment où elle est émise, la
+  <strong>facture-reçu « FR »</strong> suffit et évite ce second document.
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-receipt me-2"></i>L'encaissement à quittancer</h6></div>
+      <form method="post" class="p-3">
+        {% csrf_token %}
+        {% if formulaire.non_field_errors %}
+        <div class="alert alert-danger">{{ formulaire.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="{{ formulaire.montant.id_for_label }}">{{ formulaire.montant.label }}</label>
+            {{ formulaire.montant }}
+            {% if formulaire.montant.errors %}<div class="text-danger small">{{ formulaire.montant.errors }}</div>{% endif %}
+            <div class="form-text">
+              Reste à encaisser sur {{ origine.numero }} : <strong>{{ reste }} €</strong>
+              (total {{ origine.total }} €). Un montant supérieur est refusé : des reçus qui
+              dépassent la créance attestent un argent que personne ne devait.
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="{{ formulaire.mecanisme.id_for_label }}">{{ formulaire.mecanisme.label }}</label>
+            {{ formulaire.mecanisme }}
+            {% if formulaire.mecanisme.errors %}<div class="text-danger small">{{ formulaire.mecanisme.errors }}</div>{% endif %}
+            <div class="form-text">Le SAF-T n'accepte que ces quatorze codes.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="{{ formulaire.date_encaissement.id_for_label }}">{{ formulaire.date_encaissement.label }}</label>
+            {{ formulaire.date_encaissement }}
+            {% if formulaire.date_encaissement.errors %}<div class="text-danger small">{{ formulaire.date_encaissement.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="{{ formulaire.description.id_for_label }}">{{ formulaire.description.label }}</label>
+            {{ formulaire.description }}
+            {% if formulaire.description.errors %}<div class="text-danger small">{{ formulaire.description.errors }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button type="submit" class="orion-btn orion-btn-primary">
+            <i class="bi bi-check2-circle me-1"></i>Émettre le reçu
+          </button>
+          <a href="{% url 'sales:invoice_detail' facture.pk %}" class="orion-btn orion-btn-outline">Annuler</a>
+        </div>
+        <div class="text-muted small mt-3">
+          Le reçu est définitif dès son émission : il prend un numéro dans la série, et la série
+          ne doit sauter aucun numéro. Un encaissement attesté par erreur se reprend par un reçu
+          de sens inverse, pas par une correction.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-text me-2"></i>Le document réglé</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><th style="width:170px">Numéro</th><td><a href="{% url 'fiscal_pt:document_detail' origine.pk %}">{{ origine.numero }}</a></td></tr>
+            <tr><th>Forme légale</th><td>{{ origine.serie.get_type_document_display }}</td></tr>
+            <tr><th>Date</th><td>{{ origine.date_document|date:"d/m/Y" }}</td></tr>
+            <tr><th>Total</th><td><strong>{{ origine.total }} €</strong></td></tr>
+            <tr><th>Reste à encaisser</th><td><strong>{{ reste }} €</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if deja %}
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-clock-history me-2"></i>Reçus déjà émis</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for autre in deja %}
+            <tr>
+              <td><a href="{% url 'fiscal_pt:recu_detail' autre.pk %}">{{ autre.numero }}</a></td>
+              <td>{{ autre.date_document|date:"d/m/Y" }}</td>
+              <td class="text-end">{{ autre.total }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

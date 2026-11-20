@@ -64,7 +64,7 @@
               <span class="text-muted small ms-auto">{{ msg.created_at|date:"d/m/Y H:i" }}</span>
             </div>
             <p class="mb-0 small" style="white-space:pre-wrap;">{{ msg.message }}</p>
-            {% if msg.attachment %}<div class="mt-1"><a href="{{ msg.attachment.url }}" class="small"><i class="bi bi-paperclip me-1"></i>{% trans "Pièce jointe" %}</a></div>{% endif %}
+            {% if msg.attachment %}<div class="mt-1"><a href="{% url 'support:ticket_attachment' msg.pk %}" class="small"><i class="bi bi-paperclip me-1"></i>{% trans "Pièce jointe" %}</a></div>{% endif %}
           </div>
         </div>
         {% empty %}

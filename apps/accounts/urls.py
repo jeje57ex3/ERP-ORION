@@ -12,6 +12,10 @@ urlpatterns = [
     path('profile/signature/', views.signature_save, name='signature_save'),
     path('profile/signature/retirer/', views.signature_delete,
          name='signature_delete'),
+    # Sert l'image elle-meme : signatures/ n'est pas servi par /media/,
+    # et l'apercu du profil pointait vers une URL qui rend 404.
+    path('profile/signature/image/', views.signature_image,
+         name='signature_image'),
     path('users/', views.user_list, name='user_list'),
     path('users/new/', views.user_create, name='user_create'),
     path('users/<int:pk>/', views.user_detail, name='user_detail'),

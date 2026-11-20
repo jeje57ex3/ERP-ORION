@@ -31,6 +31,8 @@ urlpatterns = [
     path('chantiers/<int:pk>/messages/<int:conv_pk>/pieces/<int:piece_pk>/',
          v.message_attachment_download, name='message_attachment_download'),
     path('chantiers/<int:pk>/reserves/', v.project_reservations, name='project_reservations'),
+    path('chantiers/<int:pk>/reserves/photos/<int:photo_pk>/',
+         v.reservation_photo, name='reservation_photo'),
     path('chantiers/<int:pk>/modifications/', v.project_changes, name='project_changes'),
     path('chantiers/<int:pk>/heures/', v.project_hours, name='project_hours'),
     path('chantiers/<int:pk>/equipe/', v.project_team, name='project_team'),

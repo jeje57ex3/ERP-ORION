@@ -74,7 +74,7 @@
             et ValueError n'est pas silencieux dans un gabarit comme l'est
             une variable absente : toute la page tombait.
           {% endcomment %}
-          {% if res.photos.exists %}<div class="d-flex gap-2 mt-2">{% for ph in res.photos.all|slice:":3" %}{% if ph.photo %}<img src="{{ ph.photo.url }}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px">{% endif %}{% endfor %}</div>{% endif %}
+          {% if res.photos.exists %}<div class="d-flex gap-2 mt-2">{% for ph in res.photos.all|slice:":3" %}{% if ph.photo %}<img src="{% url 'btp:reservation_photo' ph.pk %}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:6px">{% endif %}{% endfor %}</div>{% endif %}
         </div>
         <div class="col-12 col-md-3">
           <div class="small text-muted mb-2">{% blocktrans with date=res.created_at|date:"d/m/Y" %}Signalée le {{ date }}{% endblocktrans %}</div>

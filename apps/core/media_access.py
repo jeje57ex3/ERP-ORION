@@ -34,16 +34,25 @@ celui qui ne fuit pas.
   accessibles par les vues qui les contrôlent vraiment (contrôle de rôle,
   appartenance à l'entreprise, journal d'accès).
 
-**Ce qui reste cassé, et je préfère le dire.** Plusieurs gabarits pointent
-vers l'URL brute d'un fichier du troisième niveau : `templates/documents/`,
-`templates/client_portal/project_documents.html`,
-`templates/client_portal/conversation_detail.html` et
-`templates/btp/client_conversation_detail.html`. Ces liens sont cassés
-aujourd'hui et le restent : les ouvrir au niveau authentifié laisserait le
-client de l'entreprise A télécharger les documents de l'entreprise B en
-changeant l'URL. Il leur faut une vue de téléchargement bornée par
-entreprise, comme `hr.private_document_download` en a une. Faire marcher un
-lien en ouvrant une fuite n'est pas une correction.
+**Les liens bruts, et comment on les a tous trouvés.** Cette docstring
+annonçait quatre gabarits qui pointaient vers l'URL brute d'un fichier du
+troisième niveau, en disant qu'ils resteraient cassés jusqu'à ce qu'on leur
+écrive une vue bornée. Ces quatre-là ont la leur. Mais la garde censée
+empêcher les suivants, `test_aucun_gabarit_ne_pointe_plus_vers_un_prefixe_refuse`,
+ne cherchait que `{{ x.file.url }}` — et ce projet nomme ses champs en
+français. Ni `signature`, ni `attachment`, ni `photo`, ni `fichier`
+n'étaient regardés : une garde qui ne connaît qu'un nom de champ ne garde
+que les modèles écrits dans la langue de son auteur.
+
+Elle lit désormais les noms de champs SUR LES MODÈLES dont le préfixe est
+refusé. Elle a trouvé du premier coup l'aperçu de la signature dans le
+profil, les pièces jointes de tous les tickets de support, et les photos de
+réserves des deux côtés. Chacun a maintenant sa vue bornée.
+
+**Le principe tenu.** Faire marcher un lien en ouvrant une fuite n'est pas
+une correction : `reservations/` est descendu du niveau authentifié au refus
+plutôt que l'inverse, parce que le niveau authentifié n'est pas borné par
+entreprise et qu'un client de portail est un compte authentifié.
 """
 
 import mimetypes
@@ -93,7 +102,6 @@ PREFIXES_AUTHENTIFIES = (
     'training/',                # Supports de formation interne
     'devis/modeles/',           # Modèles de devis (mise en page, pas de prix)
     'pdca/actions/',            # Pièces jointes d'actions d'amélioration
-    'reservations/',
     'products/video_thumbs/',   # Déjà couvert par products/, explicite ici
     # Le logo d'un concurrent est une marque publique, mais le FAIT que
     # vous suiviez ce concurrent ne l'est pas : une page vitrine qui
@@ -133,6 +141,43 @@ PREFIXES_INTERDITS = {
                        'tableau électrique, un local technique, l\'intérieur '
                        'de chez un client. Passe par btp.step_item_photo, '
                        'qui remonte jusqu\'à l\'entreprise.',
+    # Celui-ci n'est pas refusé pour un motif de confidentialité, et c'est
+    # pour cela qu'il mérite son explication. L'installeur de l'application
+    # PC n'a rien de secret : tout compte connecté peut le télécharger.
+    #
+    # Mais la version à télécharger est choisie par
+    # `VersionApplicationBureau.courante()`, qui ne retient que celles dont
+    # `est_publiee` est vrai. Servir ce préfixe par /media/ donnerait une
+    # adresse directe, stable et devinable vers CHAQUE fichier déposé — y
+    # compris celui d'une version retirée parce qu'elle était défectueuse.
+    # Le bouton « retirer cette version » ne retirerait alors plus rien, et
+    # c'est le genre de panne qu'on découvre en recevant l'appel d'un
+    # utilisateur qui vient d'installer la version qu'on croyait écartée.
+    'application-bureau/': 'Installeur Windows de l\'application PC. Passe '
+                           'par core_application_pc:telecharger, qui exige '
+                           'un compte et ne sert que la version publiée — '
+                           'une adresse directe contournerait le retrait '
+                           'd\'une version défectueuse.',
+    # DEPLACE DEPUIS PREFIXES_AUTHENTIFIES, et c'est une correction.
+    #
+    # Une reserve est une malfacon signalee sur un chantier, et sa photo est
+    # prise sur place : un carrelage, une peinture, une salle de bains -- le
+    # plus souvent l'interieur de chez un particulier. C'est MOT POUR MOT la
+    # categorie de `btp/checklists/`, que cette liste refuse deja pour cette
+    # raison. Les deux ne pouvaient pas rester a deux niveaux differents.
+    #
+    # Et le niveau authentifie etait pire ici qu'ailleurs. Il n'est pas borne
+    # par entreprise -- la section qui l'ouvre le dit et l'assume -- or les
+    # clients du portail SONT des comptes Django : `_get_portal_account` ne
+    # les reconnait qu'une fois `request.user.is_authenticated`. Le client de
+    # l'entreprise A pouvait donc lire les photos de reserves de l'entreprise
+    # B en devinant un nom de fichier, et `upload_to='reservations/'` garde le
+    # nom d'origine de la photo. C'etait exactement la fuite entre entreprises
+    # que cette politique a ete ecrite pour fermer.
+    'reservations/': 'Photos de reserves - une malfacon photographiee chez '
+                     'un client. Passent par btp.reservation_photo cote ERP '
+                     'et client_portal.reservation_photo cote portail, '
+                     'toutes deux bornees au chantier.',
 }
 
 # Types servis pour affichage direct. Tout le reste part en téléchargement :

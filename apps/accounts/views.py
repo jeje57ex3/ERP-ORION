@@ -8,7 +8,7 @@ from django.contrib.auth import login, logout, authenticate, update_session_auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -210,8 +210,37 @@ def signature_save(request):
     profil.signature.save(f'signature-{request.user.pk}.png',
                           ContentFile(octets), save=True)
 
-    return JsonResponse({'url': profil.signature.url,
+    # L'adresse rendue est celle de la VUE, et non `profil.signature.url`.
+    # `signatures/` figure dans PREFIXES_INTERDITS : l'URL /media/ brute
+    # rend 404, et le script posait cette adresse dans l'aperçu juste
+    # apres avoir affiche « Signature enregistree ». On annoncait donc une
+    # reussite en montrant une image cassee.
+    return JsonResponse({'url': reverse('accounts:signature_image'),
                          'message': 'Signature enregistrée.'})
+
+
+@login_required
+def signature_image(request):
+    """Sert la signature de CELUI QUI DEMANDE, et d'elle seule.
+
+    `signatures/` n'est pas servi par /media/ — « exposees, elles se
+    recopient ». L'apercu du profil et la reponse de `signature_save`
+    pointaient pourtant vers cette URL brute : le cadre restait vide au
+    rechargement de la page comme juste apres l'enregistrement.
+
+    Cette vue ne prend AUCUN identifiant, et c'est la borne : il n'y a pas
+    de numero a changer dans l'adresse pour atteindre la signature d'un
+    collegue. C'est plus simple et plus sur qu'un controle d'appartenance
+    sur un `pk`, et ici cela suffit — personne n'a besoin de voir la
+    signature d'un autre dans cet ecran.
+    """
+    from apps.core.media_access import servir_fichier_autorise
+
+    profil = getattr(request.user, 'profile', None)
+    if profil is None or not profil.signature:
+        raise Http404('Aucune signature enregistrée.')
+    return servir_fichier_autorise(
+        profil.signature, 'signature.png', afficher_si_image=True)
 
 
 @login_required

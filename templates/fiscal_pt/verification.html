@@ -1,0 +1,72 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}Vérification des chaînes{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item active">Vérification</li>
+{% endblock %}
+{% block page_actions %}
+<a href="{% url 'fiscal_pt:verification' %}" class="orion-btn orion-btn-outline"><i class="bi bi-arrow-clockwise me-1"></i>Revérifier</a>
+{% endblock %}
+
+{% block content %}
+{% if rapport %}
+  {% if tout_intact %}
+  <div class="alert alert-success"><i class="bi bi-shield-check me-1"></i>
+    Toutes les chaînes sont intactes : chaque signature est valide et chaque document suit son prédécesseur.
+  </div>
+  {% else %}
+  <div class="alert alert-danger"><i class="bi bi-shield-exclamation me-1"></i>
+    <strong>Au moins une chaîne est rompue.</strong> C'est exactement ce que l'administration vérifie
+    au contrôle. Les ruptures sont détaillées ci-dessous.
+  </div>
+  {% endif %}
+{% else %}
+<div class="alert alert-secondary"><i class="bi bi-info-circle me-1"></i>
+  Aucune série à vérifier.
+</div>
+{% endif %}
+
+{% for ligne in rapport %}
+<div class="orion-card mb-3">
+  <div class="orion-card-header">
+    <h6 class="erp-card-title">
+      {% if ligne.intacte %}<i class="bi bi-check-circle-fill text-success me-2"></i>
+      {% else %}<i class="bi bi-x-circle-fill text-danger me-2"></i>{% endif %}
+      {{ ligne.serie }} — {{ ligne.nombre }} document(s)
+    </h6>
+  </div>
+  <div class="p-3">
+    {% if ligne.intacte %}
+      {% if ligne.nombre %}
+      <span class="text-success">Chaîne continue, de 1 à {{ ligne.nombre }}.</span>
+      {% else %}
+      <span class="text-muted">Aucun document émis dans cette série.</span>
+      {% endif %}
+    {% else %}
+      {% if ligne.trous %}
+      <div class="mb-2">
+        <strong class="text-danger">Numéros manquants :</strong>
+        {% for trou in ligne.trous %}<code>{{ trou }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}
+        <div class="text-muted small">Une série doit numéroter sans trou. Un numéro absent est un manquement
+          que le contrôle relève, même si tous les documents présents sont valides.</div>
+      </div>
+      {% endif %}
+      {% if ligne.ruptures %}
+      <ul class="mb-0">
+        {% for rupture in ligne.ruptures %}<li class="text-danger">{{ rupture }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="alert alert-secondary">
+  <i class="bi bi-info-circle me-1"></i>
+  Deux contrôles distincts sont menés ici : la <strong>signature</strong> de chaque document,
+  et le fait que chacun désigne bien son <strong>prédécesseur</strong>. Seul le second repère
+  un document retiré du milieu d'une série — sa propre signature, elle, reste parfaitement valide.
+</div>
+{% endblock %}

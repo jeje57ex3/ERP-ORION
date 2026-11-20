@@ -334,37 +334,159 @@ def invoice_detail(request, pk):
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
     lines = invoice.lines.all()
+
+    # Les mentions légales portugaises, si la facture a été signée.
+    #
+    # Elles figurent SUR LE DOCUMENT, et pas seulement dans l'écran de
+    # conformité : l'ATCUD, le code QR et la mention « Processado por
+    # programa certificado » sont des mentions obligatoires de la facture
+    # elle-même. Les tenir à l'écart dans un module d'administration
+    # donnerait un logiciel conforme dont les factures ne le sont pas.
+    from apps.fiscal_pt import tipos
+    from apps.fiscal_pt.facturation import (document_pour,
+                                            formes_legales_disponibles,
+                                            rectifications_de, recus_de,
+                                            reste_a_encaisser)
+    from apps.fiscal_pt.models import ParametresFiscauxPT
+
+    document_fiscal = document_pour(invoice)
+    # Les rectificatifs deja emis, SEPARES par sens.
+    #
+    # Une facture rectifiee qui ne le dirait pas se lirait comme une
+    # facture due : c'est l'information qui manque le plus souvent sur un
+    # ecran de facture. Et les deux sens ne se melangent pas : un avoir
+    # diminue ce qui est du, une note de debit l'augmente. Les afficher
+    # ensemble sous le mot « avoirs » ferait lire une hausse comme une
+    # baisse.
+    rectifications = (list(rectifications_de(invoice, 'NC'))
+                      if document_fiscal else [])
+    notes_de_debit = (list(rectifications_de(invoice, 'ND'))
+                      if document_fiscal else [])
+
+    # Les encaissements attestes, avec un libelle lisible.
+    #
+    # Le document ne garde que le CODE du moyen de paiement — « TB » —,
+    # parce que c'est lui que le SAF-T transporte. Afficher « TB » au
+    # client n'apprend rien a personne.
+    encaissements = [
+        {'montant': paiement.get('montant'),
+         'date': paiement.get('date'),
+         'libelle': tipos.libelle_de_mecanisme(paiement.get('mecanisme'))}
+        for paiement in (document_fiscal.paiements if document_fiscal else [])
+    ]
+
+    # Les recus deja emis, et ce qui reste a encaisser.
+    #
+    # Le bouton n'est propose que si le document peut encore etre
+    # quittance. Une facture-recu « FR » vaut deja quittance de son total
+    # : offrir d'en emettre un recu donnerait un ecran qui propose une
+    # action que l'emission refuse, et c'est le genre de bouton qu'on
+    # clique pour comprendre pourquoi il est la.
+    recus = list(recus_de(invoice)) if document_fiscal else []
+    reste = None
+    peut_quittancer = False
+    if document_fiscal is not None and not tipos.atteste_un_paiement(
+            document_fiscal.serie.type_document):
+        reste = reste_a_encaisser(invoice, document_fiscal)
+        peut_quittancer = reste > 0
+
+    formes_legales = []
+    if document_fiscal is None and invoice.status == 'draft':
+        from apps.fiscal_pt.facturation import est_active
+        if est_active(company):
+            formes_legales = formes_legales_disponibles(company)
+    mention_legale = ''
+    mentions_d_exoneration = []
+    if document_fiscal is not None:
+        numero = (ParametresFiscauxPT.de(company).numero_de_certificat
+                  or '0')
+        mention_legale = document_fiscal.mention_legale(numero)
+
+        # Les mentions d'exoneration, DISTINCTES et dans l'ordre.
+        #
+        # Elles doivent figurer sur la facture : la « menção que consta da
+        # fatura » de la table de l'AT n'est pas une etiquette d'interface,
+        # c'est une mention legale. Cinq lignes au meme motif ne doivent
+        # pourtant l'afficher qu'une fois.
+        for ligne_figee in document_fiscal.lignes:
+            # La mention de la FACTURE, pas celle du fichier : elles ne
+            # different que pour M15, et c'est celle-ci qui a valeur
+            # legale sur le document imprime.
+            motif = (ligne_figee.get('mention_facture')
+                     or ligne_figee.get('motif_exoneration') or '')
+            code = ligne_figee.get('code_exoneration') or ''
+            if motif and (code, motif) not in mentions_d_exoneration:
+                mentions_d_exoneration.append((code, motif))
+
     return render(request, 'sales/invoice_detail.html', {
         'page_title': f'Facture {invoice.number or pk}',
         'invoice': invoice,
         'lines': lines,
+        'document_fiscal': document_fiscal,
+        'mention_legale': mention_legale,
+        'mentions_d_exoneration': mentions_d_exoneration,
+        'rectifications': rectifications,
+        'notes_de_debit': notes_de_debit,
+        'encaissements': encaissements,
+        'recus': recus,
+        'reste_a_encaisser': reste,
+        'peut_quittancer': peut_quittancer,
+        'formes_legales': formes_legales,
+        'mecanismes_de_paiement': tipos.MECANISMES_DE_PAIEMENT,
     })
 
 
 @login_required
 def invoice_create(request):
+    from django.db import transaction
+
+    from apps.sales.forms import InvoiceLineFormSet
+
     company = request.current_company
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = InvoiceForm(request.POST)
-        if form.is_valid():
-            invoice = form.save(commit=False)
-            invoice.company = company
-            invoice.created_by = request.user
-            last = Invoice.objects.filter(company=company).count()
-            prefix = getattr(company, 'invoice_prefix', 'FAC') or 'FAC'
-            invoice.number = f'{prefix}-{str(last + 1).zfill(4)}'
-            invoice.save()
+
+        # Le client doit etre borne a l'entreprise A LA VALIDATION aussi, et
+        # pas seulement a l'affichage. Sans cette ligne, un identifiant forge
+        # dans la requete designait le client d'une AUTRE entreprise, et la
+        # facture lui etait rattachee. La vue des devis, juste au-dessus,
+        # appelle cela « la regle centrale de cet ERP » -- elle manquait ici.
+        form.fields['customer'].queryset = clients
+
+        lignes = InvoiceLineFormSet(request.POST)
+
+        if form.is_valid() and lignes.is_valid():
+            # Tout ou rien : une facture enregistree dont les lignes
+            # echoueraient ensuite serait une facture a zero euro, et son
+            # ecran afficherait fidelement une liste vide.
+            with transaction.atomic():
+                invoice = form.save(commit=False)
+                invoice.company = company
+                invoice.created_by = request.user
+                last = Invoice.objects.filter(company=company).count()
+                prefix = getattr(company, 'invoice_prefix', 'FAC') or 'FAC'
+                invoice.number = f'{prefix}-{str(last + 1).zfill(4)}'
+                invoice.save()
+
+                lignes.instance = invoice
+                lignes.save()
+                _recalculer_les_totaux(invoice)
+
             messages.success(request, f'Facture {invoice.number} créée.')
             return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceForm()
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
         customer_pk = request.GET.get('customer')
         if customer_pk:
             form.fields['customer'].initial = customer_pk
+        lignes = InvoiceLineFormSet()
 
     return render(request, 'sales/invoice_form.html', {
         'page_title': 'Nouvelle facture',
+        'lignes': lignes,
         'form': form,
         'action': 'create',
     })
@@ -372,24 +494,73 @@ def invoice_create(request):
 
 @login_required
 def invoice_edit(request, pk):
+    from django.db import transaction
+
+    from apps.sales.forms import InvoiceLineFormSet
+
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
+    clients = Customer.objects.filter(company=company, is_active=True)
+
     if request.method == 'POST':
         form = InvoiceForm(request.POST, instance=invoice)
-        if form.is_valid():
-            form.save()
+        form.fields['customer'].queryset = clients
+        lignes = InvoiceLineFormSet(request.POST, instance=invoice)
+
+        if form.is_valid() and lignes.is_valid():
+            with transaction.atomic():
+                form.save()
+                lignes.save()
+                _recalculer_les_totaux(invoice)
+
             messages.success(request, 'Facture mise à jour.')
             return redirect('sales:invoice_detail', pk=invoice.pk)
     else:
         form = InvoiceForm(instance=invoice)
-        form.fields['customer'].queryset = Customer.objects.filter(company=company, is_active=True)
+        form.fields['customer'].queryset = clients
+        lignes = InvoiceLineFormSet(instance=invoice)
 
     return render(request, 'sales/invoice_form.html', {
         'page_title': f'Modifier facture {invoice.number}',
         'form': form,
+        'lignes': lignes,
         'invoice': invoice,
         'action': 'edit',
     })
+
+
+def _recalculer_les_totaux(invoice):
+    """Recalcule les totaux de la facture depuis ses lignes.
+
+    POURQUOI DEPUIS LES LIGNES, ET A CHAQUE FOIS
+
+    Les totaux etaient a zero sur toutes les factures, puisque rien ne
+    creait de lignes. Maintenant qu'il y en a, les tenir a part dans un
+    cumul mis a jour « au passage » finirait par deriver d'un centime apres
+    une suppression de ligne. Au Portugal, ce centime est signe : la preuve
+    cesserait de correspondre au document.
+
+    `InvoiceLine.save()` calcule deja `total_ht` et `total_tva` par ligne ;
+    on ne fait donc que les sommer, et on ecrit avec `update()` pour ne pas
+    repasser par la garde d'immuabilite de `Invoice.save()` -- un
+    recalcul de totaux n'est pas une modification de facture au sens ou
+    cette garde l'entend.
+    """
+    from decimal import Decimal
+
+    from django.db.models import Sum
+
+    cumuls = invoice.lines.aggregate(
+        ht=Sum('total_ht'), tva=Sum('total_tva'))
+    total_ht = cumuls['ht'] or Decimal('0')
+    total_tva = cumuls['tva'] or Decimal('0')
+
+    Invoice.objects.filter(pk=invoice.pk).update(
+        total_ht=total_ht,
+        total_tva=total_tva,
+        total_ttc=total_ht + total_tva,
+    )
+    invoice.refresh_from_db()
 
 
 @login_required
@@ -420,9 +591,109 @@ def invoice_mark_paid(request, pk):
 
 @login_required
 def invoice_send(request, pk):
+    """Marque une facture comme envoyée — et la signe si la loi l'exige.
+
+    L'ORDRE DES DEUX OPÉRATIONS EST LE POINT IMPORTANT.
+
+    La signature est produite AVANT le changement de statut, et dans la
+    même transaction. Si elle échoue — clé absente, série non déclarée,
+    taux étranger sur une ligne — la facture reste en brouillon et rien
+    n'est remis au client.
+
+    L'inverse paraît plus accommodant et serait bien pire : la facture
+    partirait sans preuve, l'anomalie ne se verrait nulle part, et des
+    mois de facturation sortiraient hors la loi avant que quiconque s'en
+    aperçoive.
+
+    Hors conformité portugaise, `ConformiteInactive` est levée et le
+    comportement reste exactement celui d'avant.
+
+    LA FORME LÉGALE SE CHOISIT ICI, ET UNE SEULE FOIS
+
+    « FT » (facture), « FS » (facture simplifiée) ou « FR »
+    (facture-reçu) : la forme est écrite dans le numéro du document, elle
+    est signée avec lui, et elle ne se change plus. Le choix est donc fait
+    à l'envoi, au dernier instant où il est encore ouvert — jamais déduit
+    du montant, qui autoriserait une facture simplifiée sans que personne
+    ne l'ait voulue.
+    """
+    from django.db import transaction
+
+    from apps.fiscal_pt import facturation, tipos
+
     company = request.current_company
     invoice = get_object_or_404(Invoice, pk=pk, company=company)
-    invoice.status = 'sent'
-    invoice.save()
-    messages.success(request, f'Facture {invoice.number} marquée comme envoyée.')
+
+    type_document = (request.POST.get('type_document')
+                     or facturation.TYPE_PAR_DEFAUT)
+    if type_document not in ('FT', 'FS', 'FR'):
+        messages.error(
+            request,
+            f'« {type_document} » n’est pas une forme de facture. Une note '
+            'de crédit ou de débit s’émet depuis la facture déjà signée.')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    # LE MONTANT DE L'ENCAISSEMENT N'EST NI DEMANDÉ NI FOURNI ICI.
+    #
+    # Une facture-reçu vaut quittance du total ; toute autre somme en
+    # ferait un document qui atteste un paiement partiel ou inexistant.
+    # Demander le montant n'offrirait donc que l'occasion de se tromper.
+    #
+    # Et on ne le prend pas non plus dans `invoice.total_ttc` : ce cumul
+    # est tenu à part des lignes, alors que le total du DOCUMENT est
+    # recalculé à l'émission depuis les lignes figées. Les deux ne
+    # diffèrent jamais que d'un centime, après une suppression de ligne
+    # — et au Portugal ce centime est signé. On laisse donc l'émission
+    # remplir le montant avec le total qu'elle vient de calculer.
+    paiements = None
+    if type_document == 'FR':
+        paiements = [{
+            'mecanisme': request.POST.get('mecanisme') or 'TB',
+            'date': request.POST.get('date_encaissement')
+                    or invoice.issue_date,
+        }]
+        try:
+            tipos.valider_le_mecanisme(paiements[0]['mecanisme'])
+        except tipos.RegleDeType as exc:
+            messages.error(request, str(exc))
+            return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    # On interroge l'état AVANT d'ouvrir la transaction.
+    #
+    # Appeler l'émission pour la voir refuser créerait une ligne de
+    # paramètres aussitôt annulée par l'exception — inoffensif, et inutile
+    # à chaque envoi de facture d'une installation qui ne facture pas au
+    # Portugal.
+    document = None
+    if not facturation.est_active(company):
+        invoice.status = 'sent'
+        invoice.save()
+    else:
+        try:
+            with transaction.atomic():
+                document = facturation.emettre_pour_facture(
+                    invoice, type_document=type_document,
+                    paiements=paiements)
+                invoice.status = 'sent'
+                invoice.save()
+        except Exception as exc:
+            messages.error(
+                request,
+                f'Facture non envoyée : la signature légale a échoué — {exc}')
+            return redirect('sales:invoice_detail', pk=invoice.pk)
+
+    if document is not None:
+        messages.success(
+            request,
+            f'Facture {document.numero} envoyée et signée '
+            f'(ATCUD {document.atcud}).')
+        # Les avertissements du type — le plafond de la facture
+        # simplifiée, essentiellement — sont montrés APRÈS le succès, et
+        # non à la place : le document est émis, et c'est une mise en
+        # garde, pas un échec.
+        for avertissement in getattr(document, 'avertissements', ()) or ():
+            messages.warning(request, avertissement)
+    else:
+        messages.success(
+            request, f'Facture {invoice.number} marquée comme envoyée.')
     return redirect('sales:invoice_detail', pk=invoice.pk)

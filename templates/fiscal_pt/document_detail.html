@@ -1,0 +1,108 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}{{ document.numero }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:documents' %}">Documents</a></li>
+<li class="breadcrumb-item active">{{ document.numero }}</li>
+{% endblock %}
+
+{% block content %}
+{% if verifie %}
+<div class="alert alert-success"><i class="bi bi-shield-check me-1"></i>
+  Signature vérifiée avec la clé v{{ document.version_cle }}.
+</div>
+{% else %}
+<div class="alert alert-danger"><i class="bi bi-shield-exclamation me-1"></i>
+  <strong>Signature invalide.</strong> Le contenu signé ne correspond plus à la signature,
+  ou la clé v{{ document.version_cle }} est introuvable. Tous les documents suivants de la
+  série signent celui-ci : vérifiez la chaîne entière.
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-file-earmark-text me-2"></i>{{ document.numero }}</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><th style="width:220px">Série</th><td>{{ document.serie }} — {{ document.serie.get_region_display }}</td></tr>
+            <tr><th>Date du document</th><td>{{ document.date_document|date:"d/m/Y" }}</td></tr>
+            <tr><th>Enregistré le</th><td>{{ document.horodatage|date:"d/m/Y H:i:s" }}</td></tr>
+            <tr><th>ATCUD</th><td><code>{{ document.atcud }}</code></td></tr>
+            <tr><th>Acquéreur</th><td>{{ document.nif_acquereur|default:"Consommateur final (999999990)" }} — {{ document.pays_acquereur }}</td></tr>
+            <tr><th>Total hors taxe</th><td>{{ document.total_base }} €</td></tr>
+            <tr><th>Total des taxes</th><td>{{ document.total_taxes }} €</td></tr>
+            <tr><th>Total du document</th><td><strong>{{ document.total }} €</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-list-ul me-2"></i>Lignes figées à l'émission</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Description</th><th class="text-end">Qté</th><th class="text-end">PU</th><th class="text-end">Base</th><th>Taux</th><th class="text-end">TVA</th></tr></thead>
+          <tbody>
+            {% for ligne in document.lignes %}
+            <tr>
+              <td>{{ ligne.description }}<div class="text-muted small"><code>{{ ligne.code_produit }}</code></div></td>
+              <td class="text-end">{{ ligne.quantite }} {{ ligne.unite }}</td>
+              <td class="text-end">{{ ligne.prix_unitaire }}</td>
+              <td class="text-end">{{ ligne.base }}</td>
+              <td>{{ ligne.taux }} % <span class="text-muted small">{{ ligne.code_de_taux }}</span></td>
+              <td class="text-end">{{ ligne.tva }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-muted">Aucune ligne enregistrée.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-fingerprint me-2"></i>La preuve</h6></div>
+      <div class="p-3">
+        <label class="form-label small text-muted">Chaîne signée</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ document.message_signe }}</pre>
+        <label class="form-label small text-muted mt-2">Signature (172 caractères)</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ document.signature }}</pre>
+        {% if document.signature_precedente %}
+        <label class="form-label small text-muted mt-2">Signature du document précédent</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ document.signature_precedente }}</pre>
+        {% else %}
+        <div class="text-muted small mt-2">Premier document de la série : aucune signature précédente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-qr-code me-2"></i>Code QR</h6></div>
+      <div class="p-3 text-center">
+        <img src="{% url 'fiscal_pt:document_qr' document.pk %}" alt="Code QR du document {{ document.numero }}" class="img-fluid" style="max-width:260px">
+      </div>
+      <div class="px-3 pb-3">
+        <label class="form-label small text-muted">Contenu encodé</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ document.contenu_qr }}</pre>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-printer me-2"></i>Mention au pied du document</h6></div>
+      <div class="p-3">
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ mention }}</pre>
+        <div class="text-muted small">
+          Les quatre premiers caractères sont ceux des positions 1, 11, 21 et 31 de la signature,
+          et le champ Q du code QR les reprend.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

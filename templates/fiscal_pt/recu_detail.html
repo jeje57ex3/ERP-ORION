@@ -1,0 +1,149 @@
+{% extends "erp_base.html" %}
+{% load static %}
+{% block title %}{{ recu.numero }}{% endblock %}
+{% block extra_css %}<link href="{% static 'css/orion-ui.css' %}" rel="stylesheet">{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:index' %}">Conformité Portugal</a></li>
+<li class="breadcrumb-item"><a href="{% url 'fiscal_pt:recus' %}">Reçus</a></li>
+<li class="breadcrumb-item active">{{ recu.numero }}</li>
+{% endblock %}
+
+{% block content %}
+{% if verifie %}
+<div class="alert alert-success"><i class="bi bi-shield-check me-1"></i>
+  Signature vérifiée avec la clé v{{ recu.version_cle }}.
+  <span class="small d-block mt-1">
+    La loi ne l'exige pas d'un reçu — le Despacho 8632/2014 (1.1) les dispense de signature,
+    et la table 4.4 du SAF-T n'a pas de champ pour la porter. Elle est produite parce que le
+    champ Q du code QR réclame quatre caractères de signature, sans exception pour les reçus.
+  </span>
+</div>
+{% else %}
+<div class="alert alert-danger"><i class="bi bi-shield-exclamation me-1"></i>
+  <strong>Signature invalide.</strong> Le contenu signé ne correspond plus à la signature,
+  ou la clé v{{ recu.version_cle }} est introuvable.
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-receipt me-2"></i>{{ recu.numero }}</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><th style="width:230px">Série</th><td>{{ recu.serie }} — {{ recu.serie.get_type_document_display }}</td></tr>
+            <tr><th>Date du reçu</th><td>{{ recu.date_document|date:"d/m/Y" }}</td></tr>
+            <tr><th>Enregistré le</th><td>{{ recu.horodatage|date:"d/m/Y H:i:s" }}</td></tr>
+            <tr><th>ATCUD</th><td><code>{{ recu.atcud }}</code></td></tr>
+            <tr><th>État</th><td>{{ recu.get_etat_display }}</td></tr>
+            <tr><th>Acquéreur</th><td>{{ recu.nif_acquereur|default:"Consommateur final (999999990)" }} — {{ recu.pays_acquereur }}</td></tr>
+            <tr>
+              <th>Sens du mouvement</th>
+              <td>
+                {% if recu.au_debit %}Débit — l'argent est sorti (remboursement)
+                {% else %}Crédit — l'argent est entré{% endif %}
+              </td>
+            </tr>
+            <tr><th>Total du reçu</th><td><strong>{{ recu.total }} €</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-link-45deg me-2"></i>Ce que ce reçu règle</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Document</th><th>Sa date</th><th>Précision</th><th class="text-end">Montant affecté</th></tr></thead>
+          <tbody>
+            {% for affectation in recu.affectations %}
+            <tr>
+              <td><code>{{ affectation.document }}</code></td>
+              <td>{{ affectation.date }}</td>
+              <td class="small text-muted">{{ affectation.description|default:"—" }}</td>
+              <td class="text-end">{{ affectation.montant }} €</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted">Aucune affectation enregistrée.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-3 pb-3 pt-2 text-muted small">
+        Le SAF-T porte ces renvois dans « SourceDocumentID » : le numéro du document réglé
+        et sa date. Un reçu qui ne désignerait rien ne solderait rien que l'administration
+        puisse rapprocher.
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-cash-coin me-2"></i>Comment la somme a été reçue</h6></div>
+      <div class="p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Moyen de paiement</th><th>Date</th><th class="text-end">Montant</th></tr></thead>
+          <tbody>
+            {% for encaissement in encaissements %}
+            <tr>
+              <td>{{ encaissement.libelle }}</td>
+              <td>{{ encaissement.date }}</td>
+              <td class="text-end">{{ encaissement.montant }} €</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-muted">Aucun moyen de paiement enregistré.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="orion-card">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-qr-code me-2"></i>Code QR</h6></div>
+      <div class="p-3 text-center">
+        <img src="{% url 'fiscal_pt:recu_qr' recu.pk %}" alt="Code QR du reçu {{ recu.numero }}" class="img-fluid" style="max-width:260px">
+      </div>
+      <div class="px-3 pb-3">
+        <label class="form-label small text-muted">Contenu encodé</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ recu.contenu_qr }}</pre>
+        <div class="text-muted small">
+          Le champ <code>I1</code> vaut <code>0</code> : les spécifications de l'AT le prévoient
+          pour un document des tables 4.2, 4.3 ou 4.4 émis sans indication de taux de TVA.
+        </div>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-printer me-2"></i>Mentions au pied du reçu</h6></div>
+      <div class="p-3">
+        {% for mention in mentions %}
+        <pre class="small bg-body-secondary p-2 rounded mb-2" style="white-space:pre-wrap;word-break:break-all">{{ mention }}</pre>
+        {% endfor %}
+        <div class="text-muted small">
+          Deux mentions, et deux textes différents. « <strong>Emitido</strong> por » — et non
+          « Processado por », qui est celle des documents signés — vient du point 2.2.3 du
+          Despacho, qui nomme les reçus. « Este documento não serve de fatura » vient du
+          point 1.2, qui l'impose à tout document des tables 4.2, 4.3 et 4.4 présentable au client.
+        </div>
+      </div>
+    </div>
+
+    <div class="orion-card mt-3">
+      <div class="orion-card-header"><h6 class="erp-card-title"><i class="bi bi-fingerprint me-2"></i>La preuve</h6></div>
+      <div class="p-3">
+        <label class="form-label small text-muted">Chaîne signée</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ recu.message_signe }}</pre>
+        <label class="form-label small text-muted mt-2">Signature</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ recu.signature }}</pre>
+        {% if recu.signature_precedente %}
+        <label class="form-label small text-muted mt-2">Signature du reçu précédent de la série</label>
+        <pre class="small bg-body-secondary p-2 rounded" style="white-space:pre-wrap;word-break:break-all">{{ recu.signature_precedente }}</pre>
+        {% else %}
+        <div class="text-muted small mt-2">Premier reçu de la série : aucune signature précédente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

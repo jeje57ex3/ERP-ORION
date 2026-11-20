@@ -452,27 +452,6 @@
 
 .sp-fleche:hover { border-color: var(--site-primary); color: var(--site-primary); }
 
-/* ── Petits écrans ────────────────────────────────────────────────────── */
-
-@media (max-width: 1100px) {
-  .sp-services__grille,
-  .sp-realisations__grille { grid-template-columns: 1fr; gap: 34px; }
-  .sp-cartes,
-  .sp-photos { grid-template-columns: repeat(2, 1fr); }
-  .sp-confiance__grille { grid-template-columns: repeat(2, 1fr); row-gap: 26px; }
-  .sp-confiance__item:nth-child(2n) { border-right: 0; }
-  .sp-confiance__item:nth-child(3) { padding-left: 0; }
-}
-
-@media (max-width: 680px) {
-  .sp-nav { display: none; }
-  .sp-hero { min-height: 480px; padding-top: 120px; }
-  .sp-cartes,
-  .sp-photos,
-  .sp-confiance__grille { grid-template-columns: 1fr; }
-  .sp-confiance__item { border-right: 0; padding-left: 0; }
-}
-
 /* ── Corrections mesurées au rendu ────────────────────────────────────── */
 
 /* LE NOM DU LOGO ET LE SECOND BOUTON SORTAIENT INVISIBLES.
@@ -554,3 +533,205 @@
    l'autre pris seul. */
 .sp-services__grille { grid-template-columns: 1fr 2.3fr; }
 .sp-services__intro h2 { font-size: clamp(21px, 1.85vw, 27px); }
+
+
+
+
+
+
+
+
+
+
+/* ── Le bouton de menu ────────────────────────────────────────────────── */
+
+/* IL N'EXISTAIT PAS, ET C'EST LE PLUS GRAVE DES DEFAUTS MOBILES.
+ *
+ * « .sp-nav { display: none } » cachait la navigation sous 680 px sans rien
+ * mettre à la place : au téléphone, aucune page du site n'était
+ * atteignable depuis l'accueil. Le dessin paraissait correct, et le site
+ * ne menait nulle part.
+ *
+ * Caché au-dessus de 860 px : c'est la règle d'écran qui le fait
+ * apparaître, pas l'inverse. */
+.sp-burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 6px;
+  background: transparent;
+  color: #FFFFFF;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.sp-burger:hover { border-color: var(--site-primary); color: var(--site-primary); }
+
+/* L'en-tête doit pouvoir ancrer le menu déroulant. */
+.sp-entete__inner { position: relative; }
+
+/* ── Le débordement horizontal, et sa vraie cause ─────────────────────── */
+
+/* TROIS ÉLÉMENTS NE POUVAIENT PAS RÉTRÉCIR.
+ *
+ * 1. Le surtitre. « EXPERT BTP EN ÉLECTRICITÉ & ÉTANCHÉITÉ » mesure plus
+ *    de 330 px avec son interlettrage, et il est suivi d'un filet de 56 px
+ *    en « flex: 0 0 56px ». Or un élément flex ne se replie pas tout seul :
+ *    la ligne faisait près de 400 px dans un écran de 390.
+ *
+ * 2. L'en-tête. Logo, pastille de téléphone et bouton forment une rangée
+ *    flex dont chaque élément porte « min-width: auto » — la valeur par
+ *    défaut, qui interdit de descendre sous la largeur du contenu.
+ *
+ * 3. Le texte des cartes, pour la même raison.
+ *
+ * Le symptôme — des phrases coupées net à droite — ne désigne aucun des
+ * trois : il faut chercher ce qui ne peut PAS rétrécir, pas ce qui dépasse.
+ */
+
+.sp-eyebrow { flex-wrap: wrap; }
+
+/* Le filet cède en premier : c'est l'ornement, pas le message. */
+.sp-eyebrow::after { flex: 1 1 24px; max-width: 56px; }
+
+.sp-entete__inner > * { min-width: 0; }
+.sp-logo { min-width: 0; }
+.sp-logo__marque { overflow-wrap: anywhere; }
+
+
+
+/* FILET DE SÉCURITÉ, ET RIEN DE PLUS.
+ *
+ * Les trois causes ci-dessus sont corrigées. Cette ligne existe pour qu'un
+ * futur élément trop large ne redonne pas une page qui glisse
+ * latéralement — pas pour masquer le problème : un débordement caché reste
+ * un débordement, et il faudra le chercher avec les outils du navigateur. */
+.sp-site { overflow-x: hidden; }
+
+
+/* ══ LES REGLES D'ECRAN, EN DERNIER ══════════════════════════════════════
+ *
+ * ET C'EST LA TOUT LEUR INTERET.
+ *
+ * Elles etaient placees au milieu du fichier. Trois retouches ajoutees plus
+ * bas redefinissaient « grid-template-columns » avec la meme specificite —
+ * et en CSS, a specificite egale, c'est la DERNIERE regle qui gagne. La
+ * bascule mobile ne s'appliquait donc jamais : la page de telephone gardait
+ * la grille de bureau, et son contenu debordait hors de l'ecran.
+ *
+ * Le defaut ne se voit pas en lisant une regle : il ne se voit qu'en
+ * regardant la page a 390 pixels. */
+
+@media (max-width: 1100px) {
+  /* « minmax(0, 1fr) » et non « 1fr », et c'est TOUT le probleme.
+   *
+   * « 1fr » vaut « minmax(auto, 1fr) » : la piste ne peut pas descendre
+   * sous la largeur minimale de son contenu. La rangee de filtres, en
+   * « nowrap », mesure plus de 600 px — elle elargissait donc la colonne
+   * au-dela de l'ecran, et TOUTE la page glissait avec elle.
+   *
+   * Le symptome, des phrases coupees a droite partout, ne designait pas
+   * les filtres. Il fallait chercher ce qui ne peut pas retrecir. */
+  .sp-services__grille,
+  .sp-realisations__grille { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .sp-cartes,
+  .sp-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-confiance__grille { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 26px; }
+  .sp-confiance__item:nth-child(2n) { border-right: 0; }
+  .sp-confiance__item:nth-child(3) { padding-left: 0; }
+}
+
+@media (max-width: 860px) {
+  /* Le menu cede la place au bouton. Sous cette largeur, cinq entrees et
+     deux boutons ne tiennent plus sur une ligne. */
+  .sp-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 8px 0;
+    background: rgba(18, 17, 16, .98);
+    border-top: 1px solid rgba(255, 255, 255, .12);
+  }
+
+  .sp-entete.ouvert .sp-nav { display: flex; }
+
+  .sp-nav a { padding: 14px 24px; font-size: 16px; }
+  .sp-nav a.actif::after { left: 24px; right: auto; width: 26px; }
+
+  .sp-burger { display: inline-flex; }
+
+  /* Le numero reste joignable d'un doigt ; le bouton de devis passe a la
+     ligne du menu, ou il a la place de s'ecrire en entier. */
+  .sp-entete__actions .sp-btn { display: none; }
+}
+
+@media (max-width: 680px) {
+  .sp-hero { min-height: 0; padding: 112px 0 56px; }
+  .sp-hero h1 { font-size: clamp(27px, 8vw, 36px); }
+  .sp-hero__lead { font-size: 15.5px; margin-bottom: 26px; }
+  .sp-hero__actions .sp-btn { width: 100%; justify-content: center; }
+
+  .sp-cartes,
+  .sp-photos,
+  .sp-confiance__grille { grid-template-columns: minmax(0, 1fr); }
+
+  .sp-confiance__item {
+    border-right: 0;
+    border-bottom: 1px solid rgba(34, 34, 32, .12);
+    padding: 0 0 22px;
+  }
+  .sp-confiance__item:last-child { border-bottom: 0; padding-bottom: 0; }
+
+  .sp-services,
+  .sp-realisations { padding: 56px 0; }
+
+  .sp-services__intro .sp-btn,
+  .sp-realisations .sp-btn { width: 100%; justify-content: center; }
+
+  /* Les filtres defilent horizontalement plutot que de s'empiler sur cinq
+     lignes, qui repousseraient les vignettes hors du premier ecran. */
+  .sp-filtres {
+    /* Sans « min-width: 0 », une bande defilante refuse de se reduire et
+       pousse sa colonne : le defilement interne ne sert alors a rien. */
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-left: -4px;
+    padding: 0 4px 6px;
+    scrollbar-width: none;
+  }
+  .sp-filtres::-webkit-scrollbar { display: none; }
+  .sp-filtre { white-space: nowrap; flex: 0 0 auto; }
+
+  .sp-logo__marque { font-size: 17px; }
+  .sp-logo__sous { font-size: 8.5px; letter-spacing: .2em; }
+}
+
+@media (max-width: 420px) {
+  /* Sous cette largeur le numero complet pousse le reste hors de l'ecran. */
+  .sp-tel { padding: 10px 14px; font-size: 13px; }
+  .sp-logo img { height: 42px !important; width: 42px !important; }
+}
+
+@media (max-width: 680px) {
+  .sp-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    gap: 10px;
+  }
+  .sp-eyebrow::after { display: none; }
+
+  /* Sous cette largeur, le nom complet de la marque et la pastille du
+     numéro ne tiennent pas ensemble : le numéro garde son icône seule,
+     qui reste un lien « tel: » touchable. */
+  .sp-tel span { display: none; }
+}
