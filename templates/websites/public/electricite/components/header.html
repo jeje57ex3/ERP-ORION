@@ -61,6 +61,18 @@
               aria-label="{% trans 'Ouvrir le menu' %}">
         <i class="bi bi-list" aria-hidden="true"></i>
       </button>
+      {% comment %}
+        LE BOUTON DE TRADUCTION. Il n'existait pas sur ce site : aucune
+        inclusion, alors que tout le reste etait deja en place -- le style
+        du composant vient de « orion-site-theme.css », son ouverture de
+        « orion-site.js », et les langues du contexte de « _base_context ».
+        Le composant se garde lui-meme : sans langue proposee, il ne rend
+        rien.
+
+        Les langues se reglent depuis l'ecran des langues du site, dans
+        l'ERP.
+      {% endcomment %}
+      {% include "websites/public/components/language_switcher.html" %}
       {% if site.contact_phone %}
       {% comment %}
         Le numero est un LIEN « tel: ». Sur un telephone — d'ou viennent la
