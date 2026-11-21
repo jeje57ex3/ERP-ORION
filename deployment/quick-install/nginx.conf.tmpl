@@ -15,8 +15,32 @@ server {
         alias /opt/orion/backend/staticfiles/;
     }
 
+    # /media/ PASSE PAR DJANGO, et ce n'est pas un arbitrage de performance.
+    #
+    # Ce bloc portait « alias /opt/orion/backend/media/; » : Nginx servait
+    # alors les fichiers depuis le disque, sans authentification, et la
+    # requete n'atteignait jamais apps/core/media_access.py:servir_media --
+    # la vue qui applique un refus par defaut et tient employee_private/
+    # (contrats, bulletins de paie, pieces d'identite, RIB, visites
+    # medicales), bank_statements/, supplier_invoices/ et expense_receipts/
+    # hors de /media/.
+    #
+    # Une URL devinee suffisait donc a telecharger un bulletin de paie sans
+    # etre connecte. La politique etait juste ; cette configuration la
+    # contournait -- et sa docstring affirmait au contraire que « nginx
+    # relaie /media/ vers gunicorn », ce qui n'etait vrai que du gabarit
+    # proxmox.
+    #
+    # La vue gere les en-tetes Range, donc une video se deplace et un gros
+    # PDF se telecharge normalement.
     location /media/ {
-        alias /opt/orion/backend/media/;
+        proxy_pass http://127.0.0.1:9000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
     }
 
     location / {

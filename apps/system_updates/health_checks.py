@@ -97,16 +97,76 @@ def check_allowed_hosts():
     return {'ok': True, 'message': f'{len(hotes)} hôte(s) admis'}
 
 
+def check_media_derriere_django():
+    """Nginx sert-il /media/ depuis le disque, en contournant la politique ?
+
+    `apps/core/media_access.py` applique sous /media/ un refus par défaut
+    qui tient hors de ce préfixe les bulletins de paie, les relevés
+    bancaires, les factures fournisseurs et les photos prises chez des
+    clients. Un bloc `location /media/ { alias ...; }` sert ces fichiers
+    depuis le disque : la requête n'atteint jamais la politique, et une URL
+    devinée suffit, sans compte.
+
+    POURQUOI CE CONTRÔLE EXISTE PLUTÔT QU'UNE SIMPLE CORRECTION. Deux des
+    trois gabarits du dépôt portaient ce défaut, et ils sont corrigés — mais
+    **une mise à jour ne réécrit pas `/etc/nginx`**. Sur une machine déjà
+    installée, le fichier fautif reste en place, et personne ne pense à
+    relire une configuration qu'on n'a pas touchée depuis l'installation.
+    Ce contrôle lit celle qui est RÉELLEMENT en place.
+
+    N'EMPÊCHE PAS LA MISE À JOUR. Le défaut est antérieur à elle et la
+    mise à jour ne l'aggrave pas ; bloquer laisserait l'ERP sur du code plus
+    ancien, sans rien fermer. On le dit, fort, à chaque mise à jour.
+    """
+    try:
+        from apps.domain_diagnostics.nginx_checks import \
+            media_servi_depuis_le_disque
+        fautifs = media_servi_depuis_le_disque()
+    except Exception as exc:
+        # Un contrôle qui tombe ne doit pas arrêter une mise à jour, mais
+        # ne doit pas non plus se taire : ne rien dire se lirait comme
+        # « vérifié, tout va bien ».
+        return {
+            'ok': True,
+            'avertissement': True,
+            'message': ('Impossible de vérifier la configuration Nginx de '
+                        f'/media/ ({exc}). À contrôler à la main : un '
+                        '« alias » sous location /media/ publierait les '
+                        'bulletins de paie sans authentification.'),
+        }
+
+    if fautifs:
+        details = ', '.join('%s (%s)' % (item['fichier'], item['directive'])
+                            for item in fautifs)
+        return {
+            'ok': True,
+            'avertissement': True,
+            'message': (
+                'Nginx sert /media/ DEPUIS LE DISQUE : ' + details + '. Les '
+                'fichiers téléversés sont donc accessibles sans compte, y '
+                'compris les bulletins de paie, relevés bancaires et '
+                'factures fournisseurs que la politique de '
+                'apps/core/media_access.py tient hors de /media/. '
+                'Remplacez ce bloc par le « proxy_pass » du gabarit corrigé '
+                '(deployment/quick-install/nginx.conf.tmpl), puis '
+                'rechargez Nginx.'),
+        }
+
+    return {'ok': True, 'message': '/media/ passe bien par Django'}
+
+
 def run_pre_update_config_checks():
     """Ce qui doit être vrai AVANT de redémarrer sur le nouveau code.
 
-    Ne touche ni à la base ni aux fichiers : seulement aux réglages. Un
-    contrôle qui échoue arrête la mise à jour, et l'ERP continue de
-    tourner sur l'ancien code.
+    Ne touche ni à la base ni aux fichiers : seulement aux réglages et à la
+    configuration en place. Un contrôle qui échoue arrête la mise à jour, et
+    l'ERP continue de tourner sur l'ancien code ; un contrôle qui avertit la
+    laisse passer en le disant.
     """
     controles = [
         check_secret_key(),
         check_allowed_hosts(),
+        check_media_derriere_django(),
     ]
     return {
         'ok': all(item['ok'] for item in controles),

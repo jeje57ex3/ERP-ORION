@@ -53,6 +53,27 @@ réserves des deux côtés. Chacun a maintenant sa vue bornée.
 une correction : `reservations/` est descendu du niveau authentifié au refus
 plutôt que l'inverse, parce que le niveau authentifié n'est pas borné par
 entreprise et qu'un client de portail est un compte authentifié.
+
+**CE QUE CETTE DOCSTRING AFFIRMAIT À TORT — et qui annulait tout.** Les
+lignes ci-dessus disaient « en production, nginx relaie `/media/` vers
+gunicorn », en citant `deployment/proxmox-appliance/nginx/`. C'était vrai de
+ce gabarit-là, et faux des deux autres :
+
+* `deployment/quick-install/nginx.conf.tmpl` portait
+  `location /media/ { alias /opt/orion/backend/media/; }`
+* `deployment/appliance/templates/nginx/orion.conf` portait
+  `alias /var/www/media/;`, et `access_log off` avec.
+
+Nginx servait donc les fichiers depuis le disque. La requête n'arrivait
+jamais ici : une URL devinée suffisait à télécharger un bulletin de paie
+sans être connecté, et le second gabarit n'en gardait même pas la trace.
+Les deux relaient désormais vers Django.
+
+C'est le motif des trois audits, retourné : non pas du code juste que rien
+n'appelle, mais **une politique juste que la configuration contourne**. Le
+contrôle et le chemin réel des octets doivent être vérifiés ensemble — lire
+l'un des deux ne prouve rien. `tests/test_securite_audit_3.py` garde les
+gabarits : aucun ne peut reprendre un `alias` sous `/media/`.
 """
 
 import mimetypes
