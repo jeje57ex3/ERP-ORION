@@ -5,6 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from apps.core.redirections import destination_sure
 from .models import Website, WebsitePage, BlogPost, ContactMessage, QuoteRequest
 from .forms import ContactForm, QuoteRequestForm
 from .security import (assainir_css, check_honeypot,
@@ -397,10 +398,16 @@ def _create_crm_lead(site, quote_request):
 
 
 def _get_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0]
-    return request.META.get('REMOTE_ADDR')
+    """L'adresse sur laquelle reposent les limitations de débit.
+
+    Elle était prise du premier élément de `X-Forwarded-For`, que le
+    client écrit : changer un en-tête à chaque requête donnait une clef
+    de cache neuve, et la limite de dix envois par heure devenait
+    illimitée. La limitation était écrite, testée, et sans effet.
+    """
+    from apps.core.client_ip import ip_du_client
+
+    return ip_du_client(request)
 
 
 def sitemap_public(request, site_slug):
@@ -433,10 +440,13 @@ def set_site_language(request):
     if Language.objects.filter(code=code, is_active=True).exists():
         request.session['_language'] = code
 
-    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
-    if next_url and next_url.startswith('/'):
-        return redirect(next_url)
-    return redirect('/')
+    # `startswith('/')` NE SUFFISAIT PAS : `//exemple-pirate/` commence
+    # par une barre oblique, et le navigateur y lit un HOTE. Le controle
+    # laissait donc passer exactement ce qu'il cherchait a bloquer.
+    return redirect(destination_sure(
+        request,
+        request.GET.get('next') or request.META.get('HTTP_REFERER'),
+        '/'))
 
 
 def newsletter_subscribe(request):

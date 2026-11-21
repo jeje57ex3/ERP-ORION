@@ -2,6 +2,7 @@
 apps/core/views.py — Dashboard global et vues core
 """
 from django.shortcuts import render, redirect, get_object_or_404
+from apps.core.redirections import destination_sure
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -124,7 +125,8 @@ def switch_company(request, company_id):
     except Company.DoesNotExist:
         messages.error(request, 'Entreprise non trouvée ou accès refusé.')
 
-    next_url = request.GET.get('next', 'core:dashboard')
+    next_url = destination_sure(
+        request, request.GET.get('next'), 'core:dashboard')
     return redirect(next_url)
 
 
@@ -407,7 +409,13 @@ def set_user_language(request):
         if Language.objects.filter(code=code, is_active=True).exists():
             request.session['_language'] = code
 
-    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
-    if next_url and next_url.startswith('/'):
-        return redirect(next_url)
-    return redirect('core:dashboard')
+    # `startswith('/')` NE SUFFISAIT PAS.
+    #
+    # `//exemple-pirate/` commence par une barre oblique, et le
+    # navigateur y lit un HOTE, pas un chemin : c'est une adresse
+    # « protocole-relatif ». Le controle laissait donc passer
+    # exactement ce qu'il cherchait a bloquer.
+    return redirect(destination_sure(
+        request,
+        request.GET.get('next') or request.META.get('HTTP_REFERER'),
+        'core:dashboard'))

@@ -47,6 +47,39 @@
         </dl>
 
         {% if request.user.is_superuser or request.user.profile.role in 'admin,superadmin' %}
+        {% comment %} LE VERROU DE CONNEXION, AFFICHE AVANT LES ACTIONS.
+
+           La limitation des tentatives verrouille un compte
+           temporairement -- une minute, puis cinq, puis quinze, jusqu'a
+           une heure. Un administrateur qui ne voit pas pourquoi un
+           collegue n'entre plus cherchera ailleurs et conclura a une
+           panne ; et si la seule facon de lever un verrou etait une
+           requete en base, la facon employee le jour ou ca presse serait
+           la desactivation de la protection. {% endcomment %}
+        {% if verrou %}
+        <div class="alert alert-warning" style="margin-top:16px">
+          <div class="fw-semibold">
+            <i class="bi bi-lock me-1"></i>{% trans 'Connexion verrouillée' %}
+          </div>
+          <div class="small mt-1">
+            {% blocktrans with nombre=verrou.echecs %}{{ nombre }} tentatives échouées.{% endblocktrans %}
+            {% blocktrans with quand=verrou.jusqu_a|date:"d/m/Y à H:i" %}Le compte pourra se reconnecter le {{ quand }}.{% endblocktrans %}
+          </div>
+          <form method="post" action="{% url 'accounts:user_unlock' user_obj.pk %}"
+                style="margin-top:10px">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm">
+              <i class="bi bi-unlock me-1"></i>{% trans 'Lever le verrou maintenant' %}
+            </button>
+          </form>
+        </div>
+        {% elif echecs_de_connexion %}
+        <p class="small text-muted" style="margin-top:16px;margin-bottom:0">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          {% blocktrans with nombre=echecs_de_connexion %}{{ nombre }} tentative(s) de connexion échouée(s) récemment.{% endblocktrans %}
+        </p>
+        {% endif %}
+
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
           <a href="/admin/auth/user/{{ user_obj.pk }}/change/" class="orion-btn sm">
             <i class="bi bi-pencil"></i> {% trans 'Modifier' %}

@@ -11,6 +11,7 @@ scénario exact.
 """
 import json
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.http import JsonResponse
@@ -45,6 +46,25 @@ def _get_account(request):
     return getattr(token.user, 'portal_account', None)
 
 
+#: Essais de connexion tolérés par adresse et par heure.
+ESSAIS_DE_CONNEXION_PAR_HEURE = 20
+
+
+def _trop_d_essais_de_connexion(request, fenetre=3600):
+    from django.core.cache import cache
+
+    from apps.core.client_ip import cle_de_limitation
+
+    cle = cle_de_limitation(request, 'portail_connexion')
+    cache.add(cle, 0, fenetre)
+    try:
+        nombre = cache.incr(cle)
+    except ValueError:
+        cache.set(cle, 1, fenetre)
+        nombre = 1
+    return nombre > ESSAIS_DE_CONNEXION_PAR_HEURE
+
+
 @csrf_exempt
 @require_POST
 def portal_login(request):
@@ -52,6 +72,17 @@ def portal_login(request):
         data = json.loads(request.body or '{}')
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Requête invalide.'}, status=400)
+
+    # ESSAIS DE MOT DE PASSE ILLIMITES : rien ne comptait les echecs.
+    #
+    # L'adresse vient d'`apps.core.client_ip`, qui lit le DERNIER
+    # element de `X-Forwarded-For`. Avec le premier -- ce que faisait
+    # tout le depot -- un en-tete forge donnait une clef de cache neuve
+    # a chaque requete, et la limite n'aurait rien limite.
+    if _trop_d_essais_de_connexion(request):
+        return JsonResponse(
+            {'error': 'Trop de tentatives. Reessayez dans une heure.'},
+            status=429)
 
     email = (data.get('email') or '').strip()
     password = data.get('password') or ''
@@ -81,7 +112,11 @@ def portal_login(request):
             'email': account.email,
         },
     })
-    resp.set_cookie('neo_client_token', key, httponly=True, samesite='Lax', max_age=86400 * 30)
+    # `secure` MANQUAIT : ce jeton de trente jours partait aussi sur
+    # une requete en HTTP simple.
+    resp.set_cookie('neo_client_token', key, httponly=True,
+                    secure=not settings.DEBUG, samesite='Lax',
+                    max_age=86400 * 30)
     return resp
 
 

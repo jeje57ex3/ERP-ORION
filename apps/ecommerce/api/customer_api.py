@@ -19,6 +19,7 @@ import json
 import secrets
 import logging
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.http import JsonResponse
@@ -48,6 +49,65 @@ def _get_customer(request):
         return token.user
     except SiecleCustomerToken.DoesNotExist:
         return None
+
+
+#: Essais d'authentification tolérés par adresse et par heure. Assez
+#: large pour une famille qui partage une connexion, assez étroit pour
+#: qu'une liste de mots de passe n'aboutisse pas.
+ESSAIS_PAR_HEURE = 20
+
+#: Inscriptions tolérées par adresse et par heure. L'inscription répond
+#: « un compte existe déjà avec cet email », ce qui est nécessaire pour
+#: l'utilisateur et suffisant pour énumérer : c'est le débit qu'on borne,
+#: pas le message.
+INSCRIPTIONS_PAR_HEURE = 5
+
+
+def _trop_d_essais(request, motif, limite, fenetre=3600):
+    """Compte les essais par adresse, et dit quand c'est assez.
+
+    L'adresse vient d'`apps.core.client_ip`, qui lit le DERNIER élément
+    de `X-Forwarded-For`. Prendre le premier -- ce que faisait tout le
+    dépôt -- donnait une clef de cache neuve à chaque en-tête forgé, et
+    la limite ne limitait rien.
+    """
+    from django.core.cache import cache
+
+    from apps.core.client_ip import cle_de_limitation
+
+    cle = cle_de_limitation(request, f'siecle_auth:{motif}')
+    cache.add(cle, 0, fenetre)
+    try:
+        nombre = cache.incr(cle)
+    except ValueError:
+        cache.set(cle, 1, fenetre)
+        nombre = 1
+    return nombre > limite
+
+
+def _refus_de_debit():
+    from django.http import JsonResponse
+
+    return JsonResponse(
+        {'error': 'Trop de tentatives. Réessayez dans une heure.'},
+        status=429)
+
+
+def _mot_de_passe_refuse(password, user=None):
+    """Le premier reproche des validateurs du projet, ou `None`.
+
+    `create_user()` ne les appelle pas : ils ne s'appliquent qu'à
+    travers un formulaire ou un appel explicite. L'API posait sa propre
+    règle -- six caractères -- plus faible que celle du projet.
+    """
+    from django.contrib.auth.password_validation import validate_password
+    from django.core.exceptions import ValidationError
+
+    try:
+        validate_password(password, user)
+    except ValidationError as refus:
+        return refus.messages[0] if refus.messages else 'Mot de passe refusé.'
+    return None
 
 
 def _require_auth(func):
@@ -88,10 +148,20 @@ class RegisterView(View):
         first_name = data.get('first_name', '')
         last_name  = data.get('last_name', '')
 
+        if _trop_d_essais(request, 'register', INSCRIPTIONS_PAR_HEURE):
+            return _refus_de_debit()
+
         if not email or not password:
             return JsonResponse({'error': 'Email et mot de passe requis'}, status=400)
-        if len(password) < 6:
-            return JsonResponse({'error': 'Mot de passe trop court (min 6 caractères)'}, status=400)
+
+        # LES VALIDATEURS DU PROJET, ET NON UNE REGLE LOCALE DE SIX
+        # CARACTERES. `create_user()` ne les appelle pas de lui-meme :
+        # six caracteres acceptaient « 123456 », qui est en tete de
+        # toutes les listes de mots de passe.
+        refus = _mot_de_passe_refuse(password)
+        if refus:
+            return JsonResponse({'error': refus}, status=400)
+
         if User.objects.filter(email=email).exists():
             return JsonResponse({'error': 'Un compte existe déjà avec cet email'}, status=409)
 
@@ -105,7 +175,12 @@ class RegisterView(View):
             'token': token_key,
             'user': {'email': email, 'first_name': first_name, 'last_name': last_name},
         }, status=201)
-        resp.set_cookie('siecle_token', token_key, httponly=True, samesite='Lax', max_age=86400 * 30)
+        # `secure` MANQUAIT : le navigateur joignait ce jeton de
+        # trente jours a une requete en HTTP simple. Meme convention
+        # que `set_trusted_device_cookie`, qui l'avait deja.
+        resp.set_cookie('siecle_token', token_key, httponly=True,
+                        secure=not settings.DEBUG, samesite='Lax',
+                        max_age=86400 * 30)
         return resp
 
 
@@ -117,6 +192,14 @@ class LoginView(View):
             data = json.loads(request.body)
         except Exception:
             return JsonResponse({'error': 'JSON invalide'}, status=400)
+
+        # ESSAIS DE MOT DE PASSE ILLIMITES, SUR UN ENDPOINT JSON.
+        #
+        # Rien ne comptait les echecs ici : une liste de mots de passe
+        # courants s'essayait aussi vite que le reseau le permet, sans
+        # qu'aucune trace ne s'accumule.
+        if _trop_d_essais(request, 'login', ESSAIS_PAR_HEURE):
+            return _refus_de_debit()
 
         email    = (data.get('email') or '').strip().lower()
         password = data.get('password', '')
@@ -142,7 +225,12 @@ class LoginView(View):
                 'last_name':  user.last_name,
             },
         })
-        resp.set_cookie('siecle_token', token_key, httponly=True, samesite='Lax', max_age=86400 * 30)
+        # `secure` MANQUAIT : le navigateur joignait ce jeton de
+        # trente jours a une requete en HTTP simple. Meme convention
+        # que `set_trusted_device_cookie`, qui l'avait deja.
+        resp.set_cookie('siecle_token', token_key, httponly=True,
+                        secure=not settings.DEBUG, samesite='Lax',
+                        max_age=86400 * 30)
         return resp
 
 

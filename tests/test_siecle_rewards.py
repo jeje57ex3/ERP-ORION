@@ -173,9 +173,18 @@ class SiecleAuthAPITest(TestCase):
         self.site = _make_site(self.company)
 
     def test_register_creates_user_and_token(self):
+        # LE MOT DE PASSE A CHANGE, ET C'EST LA POLITIQUE QUI A CHANGE.
+        #
+        # L'API posait sa propre regle -- six caracteres -- alors que
+        # `AUTH_PASSWORD_VALIDATORS` en declare quatre, que
+        # `create_user()` n'appelle pas de lui-meme. « password123 »
+        # figure dans la liste des mots de passe courants de Django et
+        # est desormais refuse : ce test attestait la politique faible.
         resp = self.client.post(
             '/api/v1/siecle/auth/register/',
-            data=json.dumps({'email': 'new@t.fr', 'password': 'password123', 'first_name': 'Test'}),
+            data=json.dumps({'email': 'new@t.fr',
+                             'password': 'tourbillon-de-sable-91',
+                             'first_name': 'Test'}),
             content_type='application/json',
         )
         self.assertEqual(resp.status_code, 201)

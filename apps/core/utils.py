@@ -140,23 +140,23 @@ def slugify_unique(text: str, model_class, field: str = 'slug') -> str:
 # ─── Réseau ───────────────────────────────────────────────────────────────────
 
 def get_client_ip(request) -> str:
+    """L'adresse IP du client, prise de la seule source qu'il ne contrôle pas.
+
+    CETTE FONCTION LISAIT `CF-Connecting-IP` EN PREMIER, ET C'ÉTAIT LE
+    DÉFAUT. nginx ne remplace pas cet en-tête : n'importe qui peut
+    l'émettre. Puis elle prenait le premier élément de
+    `X-Forwarded-For`, que nginx compose en AJOUTANT l'adresse du pair à
+    ce que le client a envoyé — le premier élément est donc la valeur
+    choisie par le client.
+
+    Voir `apps/core/client_ip.py` : on lit désormais le DERNIER élément
+    de `X-Forwarded-For`, écrit par Cloudflare sur le chemin du tunnel et
+    par nginx sur celui du LAN — donc par un composant qu'on contrôle,
+    dans les deux cas.
     """
-    Retourne l'adresse IP réelle du client, même derrière un proxy ou load balancer.
-    Prend en compte les en-têtes X-Forwarded-For, X-Real-IP, CF-Connecting-IP.
-    """
-    # Cloudflare
-    cf_ip = request.META.get('HTTP_CF_CONNECTING_IP')
-    if cf_ip:
-        return cf_ip.strip()
-    # Proxy / load balancer standard
-    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded:
-        return x_forwarded.split(',')[0].strip()
-    # Nginx X-Real-IP
-    x_real = request.META.get('HTTP_X_REAL_IP')
-    if x_real:
-        return x_real.strip()
-    return request.META.get('REMOTE_ADDR', '0.0.0.0')
+    from apps.core.client_ip import ip_du_client
+
+    return ip_du_client(request)
 
 
 # ─── Génération de références ─────────────────────────────────────────────────

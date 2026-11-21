@@ -7,6 +7,7 @@ from django.db.models import Q, Avg
 from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from apps.core.redirections import destination_sure
 from apps.inventory.models import Product
 from .models import (
     Cart, CartItem, CheckoutSession, CustomerStoreAccount, CustomerAddress,
@@ -180,7 +181,8 @@ def cart_add(request):
     item.quantity += quantity
     item.save()
     messages.success(request, f'« {product.name} » ajouté au panier.')
-    return redirect(request.POST.get('next', 'store:cart'))
+    return redirect(destination_sure(
+            request, request.POST.get('next'), 'store:cart'))
 
 
 @require_POST
@@ -370,7 +372,8 @@ def customer_login(request):
             user = authenticate(request, username=user.username, password=password)
             if user:
                 login(request, user)
-                return redirect(request.POST.get('next', 'store:customer_account'))
+                return redirect(destination_sure(
+            request, request.POST.get('next'), 'store:customer_account'))
             else:
                 messages.error(request, 'Email ou mot de passe incorrect.')
         except User.DoesNotExist:

@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
+from apps.core.redirections import destination_sure
 from apps.core.media_access import servir_fichier_autorise
 from .models import (
     GuidedQuoteRequest, GuidedQuoteEstimate, GuidedQuoteEstimateItem,
@@ -472,7 +473,9 @@ def time_entry_toggle_visible(request, pk):
     if entry.visible_to_client:
         entry.status = 'client_visible'
     entry.save()
-    return redirect(request.META.get('HTTP_REFERER', 'btp:index'))
+    return redirect(destination_sure(
+            request, request.META.get('HTTP_REFERER'),
+            'btp:index'))
 
 
 # ─── MESSAGERIE ERP ───────────────────────────────────────────────────────────
@@ -650,4 +653,6 @@ def reservation_update_status(request, pk):
             res.corrected_at = timezone.now()
         res.save()
         messages.success(request, 'Réserve mise à jour.')
-    return redirect(request.META.get('HTTP_REFERER', 'btp:index'))
+    return redirect(destination_sure(
+            request, request.META.get('HTTP_REFERER'),
+            'btp:index'))

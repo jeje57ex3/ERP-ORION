@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from apps.core.redirections import destination_sure
 
 from .models import Notification, NOTIFICATION_TYPES
 from . import services
@@ -94,8 +95,13 @@ def mark_read(request, pk):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'status': 'ok', 'pk': pk})
 
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
-    return redirect(next_url or 'notifications:list')
+    # Le « next » comme le « Referer » sont des valeurs que le
+    # client ecrit : `redirect()` sert telle quelle une adresse
+    # absolue, donc les deux sortaient du site.
+    return redirect(destination_sure(
+        request,
+        request.POST.get('next') or request.META.get('HTTP_REFERER'),
+        'notifications:list'))
 
 
 @login_required
@@ -109,8 +115,13 @@ def mark_all_read(request):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'status': 'ok', 'count': count})
 
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
-    return redirect(next_url or 'notifications:list')
+    # Le « next » comme le « Referer » sont des valeurs que le
+    # client ecrit : `redirect()` sert telle quelle une adresse
+    # absolue, donc les deux sortaient du site.
+    return redirect(destination_sure(
+        request,
+        request.POST.get('next') or request.META.get('HTTP_REFERER'),
+        'notifications:list'))
 
 
 @login_required
@@ -136,8 +147,13 @@ def delete_notification(request, pk):
         return JsonResponse({'status': 'ok', 'pk': pk})
 
     messages.success(request, 'Notification supprimée.')
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
-    return redirect(next_url or 'notifications:list')
+    # Le « next » comme le « Referer » sont des valeurs que le
+    # client ecrit : `redirect()` sert telle quelle une adresse
+    # absolue, donc les deux sortaient du site.
+    return redirect(destination_sure(
+        request,
+        request.POST.get('next') or request.META.get('HTTP_REFERER'),
+        'notifications:list'))
 
 
 @login_required
@@ -167,5 +183,10 @@ def delete_all_notifications(request):
         messages.success(request, f'{count} notification(s) supprimée(s).')
     else:
         messages.info(request, 'Aucune notification à supprimer.')
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
-    return redirect(next_url or 'notifications:list')
+    # Le « next » comme le « Referer » sont des valeurs que le
+    # client ecrit : `redirect()` sert telle quelle une adresse
+    # absolue, donc les deux sortaient du site.
+    return redirect(destination_sure(
+        request,
+        request.POST.get('next') or request.META.get('HTTP_REFERER'),
+        'notifications:list'))

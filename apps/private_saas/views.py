@@ -2,6 +2,7 @@
 apps/private_saas/views.py — Super Admin Orion ERP (SaaS privé)
 """
 from django.shortcuts import render, redirect, get_object_or_404
+from apps.core.redirections import destination_sure
 from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
@@ -338,8 +339,8 @@ def company_switcher(request):
             messages.success(request, f'Entreprise active : {company.name}')
         except Company.DoesNotExist:
             messages.error(request, 'Entreprise introuvable.')
-        next_url = request.POST.get('next') or 'core:dashboard'
-        return redirect(next_url)
+        return redirect(destination_sure(
+            request, request.POST.get('next'), 'core:dashboard'))
 
     current = getattr(request, 'current_company', None)
     return render(request, 'private_saas/company_switcher.html', {

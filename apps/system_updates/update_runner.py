@@ -16,7 +16,8 @@ from apps.core.maintenance import (
 )
 from apps.system_updates.git_service import (build_pull_command, get_current_commit,
                                              restaurer_les_fichiers_generes, run_command)
-from apps.system_updates.health_checks import run_post_update_health_checks
+from apps.system_updates.health_checks import (
+    run_post_update_health_checks, run_pre_update_config_checks)
 from apps.system_updates.models import SystemUpdateRun, SystemUpdateStepLog
 from apps.system_updates.selectors import get_update_settings
 
@@ -172,6 +173,28 @@ def run_system_update(started_by=None):
         raise
 
     try:
+        # LE CONTROLE DE CONFIGURATION, AVANT TOUT LE RESTE.
+        #
+        # Avant la sauvegarde, avant le `git pull`, avant les
+        # redemarrages. `run_post_update_health_checks` ne peut pas jouer
+        # ce role : il s'execute APRES les trois redemarrages, donc il
+        # constaterait la panne au lieu de l'eviter.
+        #
+        # Ce qu'il garde : `production.py` refuse desormais de demarrer
+        # avec la clef de signature du depot. C'est la bonne decision,
+        # mais elle veut dire qu'un `.env` sans `SECRET_KEY` fait
+        # redemarrer sur un service mort. Ici, la mise a jour s'arrete et
+        # l'ERP continue de tourner sur l'ancien code -- avec la phrase
+        # qui dit quoi corriger, dans le journal que l'interface affiche.
+        config = run_pre_update_config_checks()
+        log_step(update_run, 'config_check', 'Verification configuration',
+                 'success' if config['ok'] else 'error',
+                 message=' | '.join(config['messages']) or 'Configuration OK')
+        if not config['ok']:
+            raise RuntimeError(
+                'Mise a jour interrompue avant toute modification : '
+                + ' | '.join(config['messages']))
+
         if update_settings.maintenance_mode_during_update:
             enable_maintenance_mode()
             # Dire CE QUI se passe : la page de maintenance affichera

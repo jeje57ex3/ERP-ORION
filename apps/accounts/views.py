@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.user_security.services import (
@@ -21,6 +22,8 @@ from apps.user_security.services import (
 
 from .forms import LoginForm, UserForm, UserProfileForm, UserCreateForm
 from .models import UserProfile
+from apps.accounts import anti_force_brute
+from apps.core.redirections import destination_sure
 from apps.core.models import Company, AuditLog
 from apps.accounts.services.user_employee_link_service import (
     link_user_to_employee,
@@ -41,9 +44,41 @@ def login_view(request):
 
     form = LoginForm(request, data=request.POST or None)
 
+    # LA LIMITATION DES TENTATIVES, POSEE AVANT `is_valid()`.
+    #
+    # `LoginForm` derive d'`AuthenticationForm` : c'est `is_valid()` qui
+    # appelle `authenticate()`, donc qui hache le mot de passe propose.
+    # Verifier le verrou apres reviendrait a faire ce travail a chaque
+    # essai -- c'est-a-dire a offrir a l'attaquant exactement le cout
+    # qu'on cherche a lui imposer.
+    #
+    # `UserProfile.failed_login_attempts` et `locked_until` existaient
+    # depuis la premiere migration et n'etaient lus nulle part : la
+    # protection etait prevue, sa place creusee, et jamais branchee.
+    identifiant = (request.POST.get('username') or '').strip()
+
+    if request.method == 'POST':
+        verrouille, refus = anti_force_brute.est_verrouille(
+            request, identifiant)
+        if verrouille:
+            messages.error(request, refus)
+            return render(request, 'accounts/login.html', {'form': form})
+
+    if request.method == 'POST' and not form.is_valid():
+        # L'ECHEC EST COMPTE ICI, et le message de verrou -- s'il vient
+        # de se poser -- remplace celui des identifiants incorrects :
+        # dire « identifiants incorrects » a quelqu'un dont le compte
+        # vient d'etre suspendu l'enverrait reessayer indefiniment.
+        refus = anti_force_brute.enregistrer_un_echec(request, identifiant)
+        if refus:
+            messages.error(request, refus)
+            return render(request, 'accounts/login.html', {'form': form})
+
     if request.method == 'POST' and form.is_valid():
         user = form.get_user()
         remember = form.cleaned_data.get('remember_me')
+
+        anti_force_brute.effacer_les_echecs(request, identifiant)
 
         if not remember:
             request.session.set_expiry(0)
@@ -83,8 +118,15 @@ def login_view(request):
             ip_address=_get_ip(request),
         )
 
-        next_url = request.GET.get('next', 'core:dashboard')
-        return redirect(next_url)
+        # LA DESTINATION DE RETOUR EST VERIFIEE.
+        #
+        # `redirect()` sert telle quelle une adresse absolue :
+        # `?next=https://exemple-pirate/` envoyait l'utilisateur hors du
+        # site juste apres une connexion reussie -- l'instant ou il a le
+        # moins de raisons de se mefier, puisque tout ce qu'on lui a
+        # demande a fonctionne.
+        return redirect(destination_sure(
+            request, request.GET.get('next'), 'core:dashboard'))
 
     return render(request, 'accounts/login.html', {'form': form})
 
@@ -403,12 +445,67 @@ def user_detail(request, pk):
     # l'utilisateur a se mefier de l'interface.
     autorise, raison = peut_supprimer(
         request.user, user_obj, request.current_company)
+
+    # L'ETAT DU VERROU EST AFFICHE, ET PAS SEULEMENT LEVABLE.
+    #
+    # Un administrateur qui ne voit pas pourquoi un collegue n'entre plus
+    # cherchera ailleurs, et conclura a une panne.
+    profil = getattr(user_obj, 'profile', None)
+    verrou = None
+    if profil and profil.locked_until and profil.locked_until > timezone.now():
+        verrou = {
+            'jusqu_a': profil.locked_until,
+            'echecs': profil.failed_login_attempts,
+        }
+
     return render(request, 'accounts/user_detail.html', {
         'user_obj': user_obj,
         'suppression_possible': autorise,
         'suppression_refus': raison,
+        'verrou': verrou,
+        'echecs_de_connexion': profil.failed_login_attempts if profil else 0,
         'page_title': user_obj.get_full_name() or user_obj.username,
     })
+
+
+@login_required
+@require_POST
+def user_unlock(request, pk):
+    """Leve le verrou de connexion d'un compte.
+
+    EN POST, parce qu'un GET qui leverait un verrou de securite partirait
+    au survol d'un lien ou au passage d'un antivirus.
+
+    POURQUOI CET ECRAN EXISTE : si la seule facon de lever un verrou est
+    une requete en base, alors la facon qui sera employee le jour ou ca
+    presse est la desactivation de la protection -- et c'est le genre de
+    reglage qu'on ne remet jamais.
+    """
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
+
+    user_obj = get_object_or_404(visibles, pk=pk)
+    profil = getattr(user_obj, 'profile', None)
+
+    if profil is None:
+        messages.error(request, 'Ce compte n’a pas de profil.')
+        return redirect('accounts:user_detail', pk=pk)
+
+    anti_force_brute.deverrouiller(profil)
+
+    AuditLog.objects.create(
+        user=request.user,
+        action='update',
+        description=f'Verrou de connexion levé sur « {user_obj.username} »',
+        ip_address=_get_ip(request),
+    )
+
+    messages.success(
+        request,
+        f'Le compte « {user_obj.username} » peut à nouveau se connecter.')
+    return redirect('accounts:user_detail', pk=pk)
 
 
 @login_required
@@ -493,7 +590,7 @@ def missing_employee(request):
 
 
 def _get_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0]
-    return request.META.get('REMOTE_ADDR')
+    """Déléguée : `X-Forwarded-For[0]` est écrit par le client."""
+    from apps.core.client_ip import ip_du_client
+
+    return ip_du_client(request)

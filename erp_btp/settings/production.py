@@ -4,10 +4,83 @@ Orion ERP — Configuration production (sécurité renforcée)
 from .base import *
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 DEBUG = False
 
-# Obligatoire en production — configurer via variable d'environnement
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+# ─── La clef de signature ─────────────────────────────────────────────────────
+#
+# ON REFUSE DE DÉMARRER PLUTÔT QUE DE SIGNER AVEC LA CLEF DU DÉPÔT.
+#
+# `base.py` donne à `SECRET_KEY` une valeur de repli, qui convient au
+# développement. Sans contrôle ici, un `.env` sans `SECRET_KEY` —
+# oubli, fichier écrasé par une réinstallation, variable mal nommée —
+# fait démarrer la production avec cette valeur. Tout ce que la clef
+# signe devient alors forgeable par quiconque a lu ce dépôt : les
+# cookies de session d'abord, c'est-à-dire se connecter en tant que
+# n'importe qui sans mot de passe.
+#
+# `manage.py check --deploy` le dit (security.W009), mais personne ne
+# lit cette sortie au démarrage d'un service systemd : le site
+# fonctionne, les pages s'affichent, et rien ne signale que la clef est
+# publique.
+#
+# Un service qui refuse de démarrer se voit dans la minute. Une clef par
+# défaut ne se voit jamais. C'est le sens dans lequel il faut se tromper.
+# LE CONTROLE NE PORTE QUE SUR LE MODULE REELLEMENT ACTIF.
+#
+# `DJANGO_SETTINGS_MODULE` designe les reglages sous lesquels le
+# processus tourne : les quatre unites systemd le posent a
+# « erp_btp.settings.production », et `manage.py --settings=X` l'ecrit
+# aussi (`handle_default_options`, django/core/management/base.py:92).
+#
+# Sans cette condition, le seul fait d'IMPORTER ce module pour
+# l'inspecter faisait lever -- ce que deux tests font, legitimement, pour
+# verifier que la production n'emploie pas un cache par processus. Un
+# controle qui empeche de verifier la configuration n'est pas un
+# durcissement, c'est une gene : ce qu'on protege, c'est le processus qui
+# SERT les requetes, pas celui qui lit le fichier.
+_EST_ACTIF = os.environ.get('DJANGO_SETTINGS_MODULE') == __name__
+
+if _EST_ACTIF and (not SECRET_KEY
+                   or SECRET_KEY.startswith('django-insecure-')):
+    raise ImproperlyConfigured(
+        'SECRET_KEY absente ou laissée à la valeur de développement. '
+        'Renseignez-la dans /opt/orion/backend/.env avec au moins 50 '
+        'caractères aléatoires — par exemple la sortie de '
+        '`python -c "import secrets; print(secrets.token_urlsafe(64))"`. '
+        'Cette clef signe les cookies de session : avec celle du dépôt, '
+        'n’importe qui peut se forger une session d’administrateur.'
+    )
+
+if _EST_ACTIF and len(SECRET_KEY) < 50:
+    raise ImproperlyConfigured(
+        f'SECRET_KEY ne fait que {len(SECRET_KEY)} caractères. Django en '
+        'demande au moins 50 : en dessous, la clef est à portée d’une '
+        'recherche exhaustive, et elle signe les cookies de session.'
+    )
+
+# ─── Les hôtes admis ──────────────────────────────────────────────────────────
+#
+# Obligatoire en production — configurer via variable d'environnement.
+ALLOWED_HOSTS = [h.strip() for h in
+                 config('ALLOWED_HOSTS', default='').split(',') if h.strip()]
+
+# `ALLOWED_HOSTS = ['*']` MÉRITE AU MOINS QU'ON LE SIGNALE.
+#
+# Il laisse Django accepter n'importe quel en-tête « Host », ce qui ouvre
+# l'empoisonnement de cache et les liens de réinitialisation de mot de
+# passe pointant vers un domaine choisi par l'attaquant. On ne refuse pas
+# de démarrer — l'appliance se visite par son adresse IP avant qu'un
+# domaine ne pointe dessus, et ce réglage est alors le seul praticable —
+# mais on l'écrit dans le journal, pour que ce ne soit pas un oubli
+# silencieux.
+if '*' in ALLOWED_HOSTS:
+    import logging
+
+    logging.getLogger('orion').warning(
+        'ALLOWED_HOSTS contient « * » : Django accepte n’importe quel '
+        'en-tête Host. À restreindre dès qu’un domaine est en place.')
 
 # ─── Sécurité HTTPS ───────────────────────────────────────────────────────────
 SECURE_BROWSER_XSS_FILTER = True

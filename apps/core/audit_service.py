@@ -15,12 +15,19 @@ logger = logging.getLogger('orion')
 
 
 def _get_ip(request) -> Optional[str]:
+    """L'adresse qui sera écrite au journal d'audit.
+
+    Elle était prise du premier élément de `X-Forwarded-For`, que le
+    client écrit. Une entrée d'audit portant une adresse choisie par
+    l'attaquant est pire qu'une colonne vide : la colonne vide se lit
+    comme inconnue, celle-là se lit comme une preuve.
+    """
     if request is None:
         return None
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
+
+    from apps.core.client_ip import ip_du_client
+
+    return ip_du_client(request)
 
 
 def _get_user_agent(request) -> str:
