@@ -22,6 +22,8 @@ urlpatterns = [
     path('users/<int:pk>/supprimer/', views.user_delete, name='user_delete'),
     path('users/<int:pk>/deverrouiller/', views.user_unlock,
          name='user_unlock'),
+    path('users/<int:pk>/renvoyer-le-code/', views.user_renvoyer_le_code,
+         name='user_renvoyer_le_code'),
     path('users/<int:pk>/desactiver/', views.user_deactivate,
          name='user_deactivate'),
     path('missing-employee/', views.missing_employee, name='missing_employee'),

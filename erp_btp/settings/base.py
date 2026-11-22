@@ -265,6 +265,17 @@ MIDDLEWARE = [
     # AVANT lui evite de resoudre l'entreprise courante pour une requete
     # qui va de toute facon etre redirigee vers la verification 2FA.
     'apps.user_security.middleware.RequireTwoFactorMiddleware',
+    # APRES la 2FA, et c'est l'ordre qui compte.
+    #
+    # Un compte cree depuis accounts:user_create porte un code provisoire
+    # recu par courriel, et doit le remplacer. Place AVANT la verification
+    # 2FA, ce passage oblige serait un contournement de la 2FA : on
+    # changerait son mot de passe sans avoir presente son second facteur.
+    #
+    # Il lui faut MessageMiddleware (plus haut) pour poser son bandeau, et
+    # AuthenticationMiddleware pour request.user.
+    'apps.accounts.middleware.changement_de_mot_de_passe.'
+    'ChangementDeMotDePasseRequisMiddleware',
     'apps.core.middleware.CompanyMiddleware',
     'apps.core.middleware.AuditLogMiddleware',
     'apps.translations.middleware.OrionLanguageMiddleware',

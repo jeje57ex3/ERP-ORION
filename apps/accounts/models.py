@@ -107,6 +107,32 @@ class UserProfile(models.Model):
     failed_login_attempts = models.PositiveIntegerField('Tentatives échouées', default=0)
     locked_until = models.DateTimeField('Verrouillé jusqu\'au', null=True, blank=True)
 
+    # ─── Le code provisoire envoyé à la création du compte ───────────────
+    #
+    # Un compte est créé SANS mot de passe choisi par l'administrateur : un
+    # code aléatoire part par courriel à l'adresse saisie, et il doit être
+    # remplacé à la première connexion.
+    #
+    # LE DRAPEAU EST SUR LE PROFIL ET NON DANS LA SESSION, et c'est le
+    # fond de la mécanique : une obligation posée en session disparaît à
+    # la déconnexion, donc il suffirait de fermer l'onglet et de se
+    # reconnecter pour garder le code provisoire indéfiniment. Portée par
+    # la base, elle survit à tout — autre navigateur, autre machine, API.
+    #
+    # DÉFAUT À FAUX, délibérément. Un défaut à vrai imposerait un
+    # changement de mot de passe à TOUS les comptes existants dès la
+    # migration, y compris au vôtre, et personne ne comprendrait pourquoi.
+    # Seuls `user_create` et le renvoi de code le posent.
+    doit_changer_de_mot_de_passe = models.BooleanField(
+        'Doit changer son mot de passe', default=False,
+        help_text='Posé quand un code provisoire a été envoyé par courriel. '
+                  'Tant qu’il est vrai, toutes les pages renvoient vers le '
+                  'changement de mot de passe.')
+    code_provisoire_envoye_le = models.DateTimeField(
+        'Code provisoire envoyé le', null=True, blank=True,
+        help_text='Pour savoir, depuis la fiche, si le compte attend encore '
+                  'sa première connexion — et depuis quand.')
+
     is_active = models.BooleanField('Actif', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

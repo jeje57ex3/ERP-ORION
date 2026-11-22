@@ -87,6 +87,24 @@
         </div>
         {% endif %}
 
+        {% comment %} POURQUOI IL N'Y A PLUS DE CHAMP MOT DE PASSE.
+
+           Ce formulaire en demandait un, que l'administrateur devait
+           ensuite transmettre de vive voix ou par message. Un champ qui
+           disparait sans explication se lit comme une panne : on le dit
+           donc ici, a l'endroit ou on le cherche. {% endcomment %}
+        <div class="alert alert-info">
+          <div class="fw-semibold mb-1">
+            <i class="bi bi-envelope-check me-1"></i>{% trans "Aucun mot de passe à saisir" %}
+          </div>
+          <p class="mb-0 small">
+            {% blocktrans %}Un code provisoire sera engendré et envoyé à l'adresse de
+            courriel saisie ci-dessous. Son titulaire choisira lui-même son mot de passe
+            à la première connexion — vous ne le connaîtrez pas, et il n'aura transité
+            par aucun message.{% endblocktrans %}
+          </p>
+        </div>
+
         <form method="post">
           {% csrf_token %}
           {{ form|crispy }}

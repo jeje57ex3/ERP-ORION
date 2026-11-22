@@ -80,6 +80,47 @@
         </p>
         {% endif %}
 
+        {% comment %} LE CODE PROVISOIRE, ET POURQUOI IL FAUT POUVOIR LE RENVOYER.
+
+           Un compte neuf recoit un code aleatoire par courriel et doit le
+           remplacer a la premiere connexion. Le code n'est montre a
+           PERSONNE -- c'est tout l'interet du dispositif, puisqu'un code
+           affiche a l'ecran serait recopie et transmis par message.
+
+           Mais trois situations laissent alors un compte muet : un serveur
+           de courriel indisponible au moment de la creation, une adresse
+           saisie de travers, et le courriel perdu ou supprime. Sans ce
+           bouton, la seule issue serait une requete en base. {% endcomment %}
+        {% if user_obj.profile.doit_changer_de_mot_de_passe %}
+        <div class="alert alert-info" style="margin-top:16px">
+          <div class="fw-semibold">
+            <i class="bi bi-envelope-check me-1"></i>{% trans 'Attend sa première connexion' %}
+          </div>
+          <div class="small mt-1">
+            {% if user_obj.profile.code_provisoire_envoye_le %}
+              {% blocktrans with quand=user_obj.profile.code_provisoire_envoye_le|date:"d/m/Y à H:i" adresse=user_obj.email %}Un code
+              provisoire a été envoyé à {{ adresse }} le {{ quand }}. Il n'a pas encore
+              été remplacé.{% endblocktrans %}
+            {% else %}
+              {% blocktrans %}Ce compte doit choisir son mot de passe avant de pouvoir
+              utiliser l'ERP.{% endblocktrans %}
+            {% endif %}
+          </div>
+          <form method="post" action="{% url 'accounts:user_renvoyer_le_code' user_obj.pk %}"
+                style="margin-top:10px">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm">
+              <i class="bi bi-arrow-repeat me-1"></i>{% trans 'Renvoyer le code' %}
+            </button>
+          </form>
+          <p class="small text-muted mb-0" style="margin-top:8px">
+            {% blocktrans %}Renvoyer un code annule le précédent. Le code n'est jamais
+            affiché ici : il n'existe que dans le courriel de son
+            destinataire.{% endblocktrans %}
+          </p>
+        </div>
+        {% endif %}
+
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
           <a href="/admin/auth/user/{{ user_obj.pk }}/change/" class="orion-btn sm">
             <i class="bi bi-pencil"></i> {% trans 'Modifier' %}

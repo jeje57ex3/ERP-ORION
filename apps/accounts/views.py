@@ -25,6 +25,7 @@ from .models import UserProfile
 from apps.accounts import anti_force_brute
 from apps.core.redirections import destination_sure
 from apps.core.models import Company, AuditLog
+from apps.accounts.services.code_provisoire import creer_et_envoyer
 from apps.accounts.services.user_employee_link_service import (
     link_user_to_employee,
     get_user_employee,
@@ -189,27 +190,74 @@ def changer_mot_de_passe(request):
     L'ancien mot de passe est EXIGÉ (c'est le propre de PasswordChangeForm) :
     sans lui, un poste laissé déverrouillé suffirait à s'approprier un
     compte.
+
+    CETTE VUE SERT AUSSI DE PASSAGE OBLIGÉ
+
+    Un compte créé depuis `user_create` reçoit un code provisoire par
+    courriel et porte `profile.doit_changer_de_mot_de_passe`. Le middleware
+    `ChangementDeMotDePasseRequisMiddleware` renvoie alors ici à chaque
+    requête, jusqu'à ce que le mot de passe soit changé.
+
+    C'est bien la MÊME vue, et non une seconde écrite pour l'occasion :
+    deux écrans qui changent un mot de passe finissent par ne plus le faire
+    de la même manière, et c'est celui qu'on regarde le moins qui garde le
+    défaut. Seul le texte diffère, selon que le changement est obligatoire
+    ou choisi.
+
+    L'ANCIEN MOT DE PASSE RESTE EXIGÉ même pour une première connexion,
+    et ce n'est pas une rigidité : c'est le code reçu par courriel, donc
+    son titulaire l'a sous les yeux. L'exiger prouve qu'il a bien reçu le
+    courriel — une session obtenue autrement ne suffit pas à s'approprier
+    le compte.
     """
     from django.contrib.auth import update_session_auth_hash
-    from django.contrib.auth.forms import PasswordChangeForm
 
-    form = PasswordChangeForm(request.user, request.POST or None)
+    from apps.accounts.forms import ChangementDeMotDePasseForm
+
+    profil = getattr(request.user, 'profile', None)
+    obligatoire = bool(profil and profil.doit_changer_de_mot_de_passe)
+
+    form = ChangementDeMotDePasseForm(request.user, request.POST or None)
     # Les widgets de Django ne portent aucune classe : sans cela les champs
     # s'afficheraient nus au milieu d'un formulaire stylé.
     for champ in form.fields.values():
         champ.widget.attrs.setdefault('class', 'form-control')
 
+    if obligatoire:
+        form.fields['old_password'].label = 'Code provisoire reçu par courriel'
+        form.fields['old_password'].help_text = (
+            'Celui du message « Votre accès à Orion ERP ».')
+
     if request.method == 'POST' and form.is_valid():
         utilisateur = form.save()
+
+        # L'OBLIGATION EST LEVÉE ICI, et seulement si le formulaire a été
+        # accepté. La lever plus tôt -- à l'affichage, par exemple --
+        # suffirait à s'en débarrasser en ouvrant la page et en la
+        # quittant.
+        if obligatoire:
+            profil.doit_changer_de_mot_de_passe = False
+            profil.save(update_fields=['doit_changer_de_mot_de_passe'])
+            # Le marqueur qui empêche d'empiler le bandeau est retiré avec
+            # l'obligation. Laissé en place, un code renvoyé des mois plus
+            # tard reposerait le drapeau sans que l'avertissement
+            # réapparaisse — la page expliquerait encore, mais la
+            # redirection serait muette.
+            request.session.pop('_avertissement_mdp_provisoire', None)
+
         # L'ordre compte : on rafraîchit l'empreinte APRÈS l'enregistrement.
         update_session_auth_hash(request, utilisateur)
         messages.success(
-            request, 'Votre mot de passe a été modifié. Vous restez connecté.')
-        return redirect('accounts:profile')
+            request,
+            'Votre mot de passe est enregistré. Bienvenue.' if obligatoire
+            else 'Votre mot de passe a été modifié. Vous restez connecté.')
+        return redirect('core:dashboard' if obligatoire else 'accounts:profile')
 
     return render(request, 'accounts/password_change.html', {
         'form': form,
-        'page_title': 'Changer mon mot de passe',
+        'obligatoire': obligatoire,
+        'page_title': ('Choisissez votre mot de passe' if obligatoire
+                       else 'Changer mon mot de passe'),
     })
 
 
@@ -423,6 +471,34 @@ def user_create(request):
         else:
             messages.success(request, f'Utilisateur "{user.username}" créé.')
 
+        # ─── LE CODE PROVISOIRE ─────────────────────────────────────────
+        #
+        # EN DERNIER, après le rôle et la liaison salarié. Le compte sort
+        # de `form.save()` avec un mot de passe INUTILISABLE : il ne peut
+        # donc pas être atteint tant que cette étape n'a pas eu lieu, et
+        # une erreur dans les étapes précédentes laisse un compte fermé
+        # plutôt qu'un compte ouvert et à moitié configuré.
+        #
+        # L'ÉCHEC D'ENVOI N'ANNULE PAS LE COMPTE, et c'est un arbitrage.
+        # Le défaire ferait perdre la saisie — le rôle, le salarié, la case
+        # — pour un serveur de courriel momentanément muet. On le garde, on
+        # le dit, et la fiche porte un bouton pour renvoyer un code.
+        envoye, motif = creer_et_envoyer(user, request)
+        if envoye:
+            messages.info(
+                request,
+                f'Un code provisoire a été envoyé à {user.email}. '
+                f'{user.get_full_name() or user.username} devra choisir son '
+                'mot de passe à la première connexion.')
+        else:
+            messages.error(
+                request,
+                f'Le compte est créé, mais le code provisoire n’a PAS pu '
+                f'être envoyé à {user.email} ({motif}). Personne ne peut '
+                'donc s’y connecter pour l’instant. Vérifiez les réglages '
+                'de courriel, puis utilisez « Renvoyer le code » sur la '
+                'fiche ci-dessous.')
+
         return redirect('accounts:user_detail', pk=user.pk)
 
     return render(request, 'accounts/user_form.html', {
@@ -505,6 +581,68 @@ def user_unlock(request, pk):
     messages.success(
         request,
         f'Le compte « {user_obj.username} » peut à nouveau se connecter.')
+    return redirect('accounts:user_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def user_renvoyer_le_code(request, pk):
+    """Engendre un nouveau code provisoire et le renvoie par courriel.
+
+    POURQUOI CET ÉCRAN EXISTE. Le code n'est montré à personne, pas même à
+    l'administrateur qui crée le compte — c'est tout l'intérêt du
+    dispositif. Mais trois situations laissent alors un compte muet : un
+    serveur de courriel momentanément indisponible à la création, une
+    adresse saisie de travers, et le courriel simplement perdu ou
+    supprimé. Sans ce bouton, la seule issue serait une requête en base ou
+    un `changepassword` en console.
+
+    EN POST, parce qu'un GET qui remplace un mot de passe partirait au
+    survol d'un lien ou au passage d'un antivirus.
+
+    LE CODE PRÉCÉDENT CESSE DE VALOIR, puisque `set_password` écrase
+    l'empreinte. C'est voulu : deux codes valides à la fois sur un même
+    compte doublent la surface pour rien, et un ancien courriel qui
+    continuerait d'ouvrir le compte est exactement ce qu'on veut éviter
+    quand on renvoie un code parce que le premier a fuité.
+    """
+    visibles = _utilisateurs_visibles(request)
+    if visibles is None:
+        messages.error(request, 'Accès refusé.')
+        return redirect('core:dashboard')
+
+    user_obj = get_object_or_404(visibles, pk=pk)
+
+    if not user_obj.email:
+        messages.error(
+            request,
+            'Ce compte n’a pas d’adresse de courriel : renseignez-la avant '
+            'de renvoyer un code, sinon il n’irait nulle part.')
+        return redirect('accounts:user_detail', pk=pk)
+
+    envoye, motif = creer_et_envoyer(user_obj, request)
+
+    AuditLog.objects.create(
+        user=request.user,
+        action='update',
+        description=('Code provisoire renvoyé à « %s » (%s)'
+                     % (user_obj.username,
+                        'envoyé' if envoye else 'échec : %s' % motif)),
+        ip_address=_get_ip(request),
+    )
+
+    if envoye:
+        messages.success(
+            request,
+            f'Un nouveau code provisoire a été envoyé à {user_obj.email}. '
+            'Le précédent ne vaut plus.')
+    else:
+        messages.error(
+            request,
+            f'Le code n’a PAS pu être envoyé ({motif}). Le compte est '
+            'maintenant fermé — l’ancien code ne vaut plus non plus. '
+            'Corrigez les réglages de courriel, puis réessayez.')
+
     return redirect('accounts:user_detail', pk=pk)
 
 
