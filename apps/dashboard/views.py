@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import TemplateView
+from apps.core.redirections import destination_sure
 
 from .models import DashboardWidget, UserDashboardWidget, DashboardShortcut, DashboardProfile
 from .forms import DashboardShortcutForm, UserDashboardWidgetConfigForm, DashboardPreferenceForm, DashboardLayoutForm
@@ -149,7 +150,8 @@ class AddWidgetView(LoginRequiredMixin, View):
             messages.success(request, f'Le widget « {widget.name} » a été ajouté.')
         else:
             messages.info(request, f'Le widget « {widget.name} » est déjà sur votre dashboard.')
-        return redirect(request.POST.get('next', 'dashboard:home'))
+        return redirect(destination_sure(
+            request, request.POST.get('next'), 'dashboard:home'))
 
 
 class ConfigureWidgetView(LoginRequiredMixin, View):
@@ -176,7 +178,8 @@ class RemoveWidgetView(LoginRequiredMixin, View):
         name = uw.get_display_title()
         uw.delete()
         messages.success(request, f'Le widget « {name} » a été supprimé.')
-        return redirect(request.POST.get('next', 'dashboard:home'))
+        return redirect(destination_sure(
+            request, request.POST.get('next'), 'dashboard:home'))
 
 
 class ToggleWidgetView(LoginRequiredMixin, View):
@@ -188,7 +191,8 @@ class ToggleWidgetView(LoginRequiredMixin, View):
             messages.success(request, f'Le widget « {uw.get_display_title()} » est maintenant visible.')
         else:
             messages.info(request, f'Le widget « {uw.get_display_title()} » a été masqué.')
-        return redirect(request.POST.get('next', 'dashboard:home'))
+        return redirect(destination_sure(
+            request, request.POST.get('next'), 'dashboard:home'))
 
 
 class ShortcutCreateView(LoginRequiredMixin, View):
@@ -258,7 +262,8 @@ class ShortcutDeleteView(LoginRequiredMixin, View):
         label = sc.label
         sc.delete()
         messages.success(request, f'Le raccourci « {label} » a été supprimé.')
-        return redirect(request.POST.get('next', 'dashboard:home'))
+        return redirect(destination_sure(
+            request, request.POST.get('next'), 'dashboard:home'))
 
 
 class SaveDashboardLayoutView(LoginRequiredMixin, View):

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import redirect, render
+from apps.core.redirections import destination_sure
 
 from apps.user_security.forms import DisableTwoFactorForm, RecoveryCodeForm, TwoFactorCodeForm
 from apps.user_security.models import SecurityEvent, UserRecoveryCode
@@ -135,7 +136,15 @@ def two_factor_verify_view(request):
         if success:
             login(request, user)
             mark_2fa_verified(request, user)
-            response = redirect(request.GET.get("next") or "core:dashboard")
+            # APRES UNE AUTHENTIFICATION A DEUX FACTEURS REUSSIE.
+            #
+            # C'est la redirection la plus dangereuse du depot, et
+            # precisement parce qu'elle marche : l'utilisateur a saisi
+            # son mot de passe, sorti son telephone, tape son code. Une
+            # page qui lui demande alors de confirmer quoi que ce soit
+            # sera remplie.
+            response = redirect(destination_sure(
+                request, request.GET.get("next"), "core:dashboard"))
             if form.cleaned_data.get("remember_device"):
                 set_trusted_device_cookie(response, request, user)
             return response

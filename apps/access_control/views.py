@@ -5,7 +5,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Q
+from .decorators import administration_requise
 from .models import (
     ERPModule, ERPView, ERPAction, Role, RolePermission,
     UserCompanyAccess, UserPermissionOverride, AccessLog,
@@ -19,6 +20,7 @@ def _company(request):
 # ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def access_dashboard(request):
     company = _company(request)
     context = {
@@ -35,6 +37,7 @@ def access_dashboard(request):
 # ─── MODULES ──────────────────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def module_list(request):
     modules = ERPModule.objects.all().order_by('order')
     return render(request, 'access_control/module_list.html', {'modules': modules})
@@ -43,6 +46,7 @@ def module_list(request):
 # ─── RÔLES ────────────────────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def role_list(request):
     company = _company(request)
     roles = Role.objects.filter(company=company).annotate(users=Count('user_accesses')) | \
@@ -52,6 +56,7 @@ def role_list(request):
 
 
 @login_required
+@administration_requise
 def role_create(request):
     company = _company(request)
     if request.method == 'POST':
@@ -67,6 +72,7 @@ def role_create(request):
 
 
 @login_required
+@administration_requise
 def role_permissions(request, pk):
     # L'ENTREPRISE ÉTAIT LUE ET NON EMPLOYÉE. `company` était calculé à la
     # ligne suivante et le rôle cherché par sa seule clé primaire : un
@@ -138,9 +144,34 @@ def role_permissions(request, pk):
 
 
 @login_required
+@administration_requise
 def role_duplicate(request, pk):
-    original = get_object_or_404(Role, pk=pk)
+    # BORNE A L'ENTREPRISE, et elle manquait.
+    #
+    # Le role original etait cherche par sa seule cle primaire, puis copie
+    # dans l'entreprise de l'appelant avec SA MATRICE DE PERMISSIONS
+    # COMPLETE. En changeant le numero dans l'URL, un compte de
+    # l'entreprise A lisait donc le nom, le code, la description et tous
+    # les droits d'un role de l'entreprise B -- c'est-a-dire la maniere
+    # dont un autre locataire organise ses acces.
+    #
+    # C'est le meme defaut que `role_permissions` juste au-dessus, corrige
+    # lui le mois dernier : la ligne `company = _company(request)` etait
+    # presente dans les deux, et n'etait employee que par l'une.
+    #
+    # Les roles SYSTEME (company=None) sont volontairement dupliquables :
+    # ils sont partages par toutes les entreprises et servent de modeles,
+    # et copier un modele commun ne revele rien de personne.
+    #
+    # ECRIT AVEC UN Q, ET NON `company__in=[company, None]`. Cette seconde
+    # forme produit `company_id IN (5, NULL)`, et SQL ne fait JAMAIS
+    # correspondre NULL par `IN` : la condition rend « inconnu » sur les
+    # lignes sans entreprise. Les roles systeme -- precisement ceux que
+    # cette ligne entend autoriser -- auraient donc tous rendu 404.
     company = _company(request)
+    original = get_object_or_404(
+        Role.objects.filter(Q(company=company) | Q(company__isnull=True)),
+        pk=pk)
     new_role = Role.objects.create(
         company=company,
         name=f'Copie de {original.name}',
@@ -159,6 +190,7 @@ def role_duplicate(request, pk):
 # ─── ACCÈS UTILISATEURS ───────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def user_access_list(request):
     company = _company(request)
     accesses = UserCompanyAccess.objects.filter(company=company).select_related('user', 'role').order_by('user__last_name')
@@ -169,6 +201,7 @@ def user_access_list(request):
 
 
 @login_required
+@administration_requise
 def user_access_create(request):
     company = _company(request)
     if request.method == 'POST':
@@ -195,6 +228,7 @@ def user_access_create(request):
 
 
 @login_required
+@administration_requise
 def user_access_delete(request, pk):
     access = get_object_or_404(UserCompanyAccess, pk=pk, company=_company(request))
     if request.method == 'POST':
@@ -207,6 +241,7 @@ def user_access_delete(request, pk):
 # ─── OVERRIDES ────────────────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def override_list(request):
     company = _company(request)
     overrides = UserPermissionOverride.objects.filter(company=company).select_related('user', 'module', 'action').order_by('-created_at')
@@ -214,6 +249,7 @@ def override_list(request):
 
 
 @login_required
+@administration_requise
 def override_create(request):
     company = _company(request)
     if request.method == 'POST':
@@ -242,6 +278,7 @@ def override_create(request):
 
 
 @login_required
+@administration_requise
 def override_delete(request, pk):
     override = get_object_or_404(UserPermissionOverride, pk=pk, company=_company(request))
     if request.method == 'POST':
@@ -253,6 +290,7 @@ def override_delete(request, pk):
 # ─── JOURNAL DES ACCÈS ────────────────────────────────────────────────────────
 
 @login_required
+@administration_requise
 def access_log_list(request):
     company = _company(request)
     logs = AccessLog.objects.filter(company=company).select_related('user').order_by('-created_at')[:500]

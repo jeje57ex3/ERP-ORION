@@ -3,6 +3,7 @@ apps/core/company_database_service.py
 Service de gestion des bases de données dédiées par entreprise.
 Orion ERP — Architecture multi-tenant avec base séparée par entreprise.
 """
+import re
 import logging
 import os
 import subprocess
@@ -94,6 +95,40 @@ def test_company_database_connection(company) -> tuple[bool, str]:
 
 # ─── Création ─────────────────────────────────────────────────────────────────
 
+#: Ce qu'un nom de base de données peut contenir. Lettres, chiffres et
+#: soulignés, en commençant par une lettre — ce que produit
+#: `generate_company_database_name`, et rien de plus.
+MOTIF_DE_NOM_DE_BASE = re.compile(r'^[A-Za-z][A-Za-z0-9_]{0,62}$')
+
+
+def nom_de_base_sur(db_name):
+    """Le nom s'il est admissible, sinon lève.
+
+    UN IDENTIFIANT SQL NE SE PARAMÈTRE PAS. `%s` s'applique à une
+    valeur, pas à un nom de base : les requêtes `CREATE DATABASE` et
+    `DROP DATABASE` de ce module interpolent donc forcément. La seule
+    protection possible est une liste blanche, posée ici, à l'endroit de
+    l'interpolation — et non chez l'appelant, qui changera.
+
+    Les accents graves qui entourent l'identifiant dans la requête ne
+    protègent de rien : un accent grave dans la valeur ferme la citation.
+    C'est pourquoi le motif les refuse, plutôt que de les échapper.
+
+    Ce n'était pas exploitable au moment où ce contrôle a été écrit —
+    `database_name` ne vient que de `generate_company_database_name`,
+    qui part d'un `SlugField`. Mais c'est un `CharField` libre, et le
+    point d'usage détruit une base entière.
+    """
+    nom = (db_name or '').strip()
+    if not MOTIF_DE_NOM_DE_BASE.match(nom):
+        raise ValueError(
+            f'Nom de base de données refusé : {nom!r}. Attendu : lettres, '
+            'chiffres et soulignés, commençant par une lettre. Ce nom part '
+            'dans une requête « CREATE DATABASE » ou « DROP DATABASE » où '
+            'il ne peut pas être paramétré.')
+    return nom
+
+
 def create_company_database(company) -> tuple[bool, str]:
     """
     Crée physiquement la base MySQL de l'entreprise.
@@ -117,7 +152,7 @@ def create_company_database(company) -> tuple[bool, str]:
 
         cursor = conn.cursor()
         cursor.execute(
-            f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
+            f"CREATE DATABASE IF NOT EXISTS `{nom_de_base_sur(db_name)}` "
             f"CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         )
         conn.commit()
@@ -143,7 +178,8 @@ def create_company_database(company) -> tuple[bool, str]:
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
+                    f"CREATE DATABASE IF NOT EXISTS "
+                    f"`{nom_de_base_sur(db_name)}` "
                     f"CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
                 )
             register_company_database(company)
@@ -335,14 +371,16 @@ def delete_company_database(company, confirmation_code: str, requesting_user) ->
             conn = MySQLdb.connect(host=host, port=port, user=user)
 
         cursor = conn.cursor()
-        cursor.execute(f"DROP DATABASE IF EXISTS `{db_name}`;")
+        cursor.execute(
+            f"DROP DATABASE IF EXISTS `{nom_de_base_sur(db_name)}`;")
         conn.commit()
         cursor.close()
         conn.close()
 
     except ImportError:
         with connection.cursor() as cursor:
-            cursor.execute(f"DROP DATABASE IF EXISTS `{db_name}`;")
+            cursor.execute(
+                f"DROP DATABASE IF EXISTS `{nom_de_base_sur(db_name)}`;")
 
     except Exception as e:
         company.status = 'active'

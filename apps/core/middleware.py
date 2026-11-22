@@ -150,10 +150,10 @@ class AuditLogMiddleware:
         return response
 
     def get_client_ip(self, request):
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            return x_forwarded_for.split(',')[0]
-        return request.META.get('REMOTE_ADDR')
+        """Déléguée : `X-Forwarded-For[0]` est écrit par le client."""
+        from apps.core.client_ip import ip_du_client
+
+        return ip_du_client(request)
 
 
 class NoCacheMiddleware:

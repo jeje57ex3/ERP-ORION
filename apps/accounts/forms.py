@@ -53,9 +53,62 @@ class UserProfileForm(forms.ModelForm):
         }
 
 
+class ChangementDeMotDePasseForm(PasswordChangeForm):
+    """`PasswordChangeForm`, plus le refus de reposer le même mot de passe.
+
+    **LE TROU QUE CECI FERME.** Un compte neuf arrive ici avec l'obligation
+    de remplacer son code provisoire. `PasswordChangeForm` ne compare pas
+    le nouveau mot de passe à l'ancien : ressaisir le code reçu par
+    courriel aurait donc satisfait le formulaire, levé l'obligation, et
+    laissé en place un mot de passe engendré par la machine — que
+    l'administrateur a vu passer dans les journaux du serveur de courriel,
+    et qui dort dans une boîte de réception. L'écran aurait affiché « mot
+    de passe modifié » sans que rien ne change.
+
+    Le contrôle vaut aussi pour un changement volontaire : reposer le même
+    mot de passe n'est jamais ce qu'on voulait faire, et le dire coûte
+    moins qu'un faux sentiment de changement.
+
+    Comparé par `check_password` sur l'empreinte, et non en comparant les
+    deux chaînes saisies : l'ancien mot de passe n'est pas forcément celui
+    que le champ « ancien » contient — sur un compte dont l'empreinte a
+    changé entre l'affichage et l'envoi, c'est l'empreinte qui fait foi.
+    """
+
+    def clean_new_password1(self):
+        nouveau = self.cleaned_data.get('new_password1')
+        if nouveau and self.user.check_password(nouveau):
+            raise ValidationError(
+                'Ce mot de passe est déjà celui du compte. Choisissez-en un '
+                'autre : le code reçu par courriel ne doit pas rester votre '
+                'mot de passe.')
+        return nouveau
+
+
 class UserCreateForm(forms.ModelForm):
-    password1 = forms.CharField(label='Mot de passe', widget=forms.PasswordInput())
-    password2 = forms.CharField(label='Confirmer', widget=forms.PasswordInput())
+    """Tout sauf le mot de passe : un code provisoire part par courriel.
+
+    **CE QUI A ÉTÉ RETIRÉ, ET POURQUOI.** Ce formulaire demandait
+    `password1`/`password2` à l'administrateur, qui devait ensuite
+    transmettre le mot de passe au nouvel arrivant. Trois défauts
+    superposés : l'administrateur connaissait le mot de passe de quelqu'un
+    d'autre, celui-ci transitait par un canal que personne ne maîtrise
+    (message, papier, de vive voix), et rien n'obligeait jamais à le
+    changer — un compte ouvert en janvier gardait en octobre le mot de
+    passe tapé par son patron.
+
+    Désormais, `apps/accounts/services/code_provisoire.py` engendre un
+    code aléatoire, l'envoie à l'adresse saisie ci-dessous, et le profil
+    porte l'obligation de le remplacer à la première connexion.
+
+    **L'ADRESSE DEVIENT OBLIGATOIRE**, et c'est la conséquence directe :
+    elle est le seul chemin par lequel le code atteint son destinataire.
+    `User.email` est `blank=True` dans Django, donc sans cette ligne un
+    compte pouvait se créer sans adresse — et un compte sans adresse est
+    maintenant un compte auquel personne ne peut se connecter. Mieux vaut
+    le refuser à la saisie que le découvrir au premier appel.
+    """
+
     role = forms.ChoiceField(label='Rôle', choices=UserProfile.role.field.choices if hasattr(UserProfile, 'role') else [])
 
     employee = forms.ModelChoiceField(
@@ -82,6 +135,15 @@ class UserCreateForm(forms.ModelForm):
     def __init__(self, *args, company=None, employee_prefill=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company = company
+
+        # L'adresse est le seul chemin du code provisoire : sans elle, le
+        # compte créé serait inutilisable par son titulaire.
+        self.fields['email'].required = True
+        self.fields['email'].label = 'Adresse de courriel'
+        self.fields['email'].help_text = (
+            'Le code provisoire de première connexion y sera envoyé. '
+            'Vérifiez-la : une adresse fautive crée un compte auquel '
+            'personne ne peut se connecter.')
 
         # Une seule source pour la liste et pour son diagnostic : deux
         # filtres écrits séparément finissent par ne plus dire la même
@@ -126,16 +188,37 @@ class UserCreateForm(forms.ModelForm):
             )
         return cleaned
 
-    def clean_password2(self):
-        p1 = self.cleaned_data.get('password1')
-        p2 = self.cleaned_data.get('password2')
-        if p1 and p2 and p1 != p2:
-            raise forms.ValidationError('Les mots de passe ne correspondent pas.')
-        return p2
+    def clean_email(self):
+        """Refuse une adresse déjà portée par un autre compte.
+
+        `User.email` n'est pas unique dans Django, et ce n'était sans
+        conséquence que tant que l'adresse ne servait à rien. Elle reçoit
+        maintenant les codes de connexion : deux comptes sur la même
+        adresse, et son titulaire reçoit des codes sans savoir auquel des
+        deux ils servent — puis se plaint que « le code ne marche pas ».
+        """
+        adresse = (self.cleaned_data.get('email') or '').strip()
+        if adresse and User.objects.filter(email__iexact=adresse).exists():
+            raise forms.ValidationError(
+                'Un compte utilise déjà cette adresse. Le code de première '
+                'connexion y serait envoyé sans qu’on sache lequel des deux '
+                'comptes il ouvre.')
+        return adresse
 
     def save(self, commit=True):
+        """Enregistre le compte SANS mot de passe utilisable.
+
+        `set_unusable_password()` et non un mot de passe vide : un mot de
+        passe vide est un mot de passe, et Django le comparerait à la
+        saisie. Un mot de passe inutilisable ne peut satisfaire aucune
+        connexion, quelle que soit la saisie.
+
+        C'est aussi l'état sûr entre les deux écritures : si la pose du
+        code provisoire échouait juste après, le compte resterait
+        inaccessible au lieu d'être ouvert à tous.
+        """
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data['password1'])
+        user.set_unusable_password()
         if commit:
             user.save()
         return user

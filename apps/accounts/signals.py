@@ -28,10 +28,13 @@ def save_user_profile(sender, instance, **kwargs):
 
 
 def _get_ip(request):
+    """Déléguée : `X-Forwarded-For[0]` est écrit par le client."""
     if request is None:
         return 'N/A'
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    return xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', 'N/A')
+
+    from apps.core.client_ip import ip_du_client
+
+    return ip_du_client(request)
 
 
 @receiver(user_logged_in)

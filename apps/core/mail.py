@@ -277,8 +277,47 @@ def tester_l_envoi(destinataire, reglages=None):
         return False, motif
 
     noter_le_resultat(True, '')
+
+    # UN RELAIS LOCAL NE PROUVE PAS LA REMISE, et le dire est le point de
+    # ces quelques lignes.
+    #
+    # Postfix sur 127.0.0.1:25 accepte le message et rend un succès
+    # immédiat : il a pris la responsabilité de l'acheminer, il ne l'a pas
+    # acheminé. Si le port 25 SORTANT de la machine est bloqué — le cas
+    # normal sur une ligne résidentielle et chez beaucoup d'hébergeurs — le
+    # message dort dans la file et n'arrive jamais.
+    #
+    # L'ancien message disait « Message envoyé », puis conseillait de
+    # regarder les indésirables. Il envoyait donc chercher la panne dans la
+    # boîte du destinataire, alors que rien n'avait quitté le serveur. Sur
+    # la création d'un utilisateur, cela donne un compte dont le code
+    # provisoire n'est parti nulle part, et un écran vert.
+    if _est_un_relais_local(reglages.hote):
+        return True, (
+            f'Le relais local {reglages.hote}:{reglages.port} a ACCEPTÉ le '
+            f'message pour {destinataire} — ce qui n’est pas la même chose '
+            'que l’avoir remis. Il l’achemine maintenant pour son compte. '
+            'Si rien n’arrive dans les minutes qui suivent, le message est '
+            'resté dans sa file : c’est presque toujours le port 25 sortant '
+            'qui est bloqué. Le relais doit alors passer par un service '
+            'd’envoi (voir deployment/proxmox-appliance/scripts/'
+            'setup_mail_relay.sh, variable RELAYHOST).'
+        )
+
     return True, (
         f'Message envoyé à {destinataire} via {reglages.hote}:{reglages.port}. '
         'S’il n’arrive pas, regardez les indésirables : la remise dépend '
         'ensuite de vos enregistrements SPF, DKIM et DMARC.'
     )
+
+
+def _est_un_relais_local(hote):
+    """Vrai si cet hôte est la machine elle-même.
+
+    Comparé sur une liste close et non par « ça commence par 127 » : la
+    forme IPv6 `::1` et le nom `localhost` désignent la même chose et ne
+    commencent pas par 127.
+    """
+    return str(hote or '').strip().lower() in {
+        'localhost', '127.0.0.1', '::1', '[::1]', 'localhost.localdomain',
+    }

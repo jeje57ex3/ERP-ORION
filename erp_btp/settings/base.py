@@ -265,6 +265,17 @@ MIDDLEWARE = [
     # AVANT lui evite de resoudre l'entreprise courante pour une requete
     # qui va de toute facon etre redirigee vers la verification 2FA.
     'apps.user_security.middleware.RequireTwoFactorMiddleware',
+    # APRES la 2FA, et c'est l'ordre qui compte.
+    #
+    # Un compte cree depuis accounts:user_create porte un code provisoire
+    # recu par courriel, et doit le remplacer. Place AVANT la verification
+    # 2FA, ce passage oblige serait un contournement de la 2FA : on
+    # changerait son mot de passe sans avoir presente son second facteur.
+    #
+    # Il lui faut MessageMiddleware (plus haut) pour poser son bandeau, et
+    # AuthenticationMiddleware pour request.user.
+    'apps.accounts.middleware.changement_de_mot_de_passe.'
+    'ChangementDeMotDePasseRequisMiddleware',
     'apps.core.middleware.CompanyMiddleware',
     'apps.core.middleware.AuditLogMiddleware',
     'apps.translations.middleware.OrionLanguageMiddleware',
@@ -561,8 +572,40 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
 # ─── Upload fichiers ──────────────────────────────────────────────────────────
-FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 Mo
-DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+#
+# ATTENTION : CES DEUX LIGNES NE PLAFONNENT AUCUN TELEVERSEMENT.
+#
+# Elles portaient la meme valeur sous ce titre, ce qui se lit comme « les
+# fichiers sont limites a 20 Mo ». Ce n'etait le cas d'aucune des deux.
+#
+#   FILE_UPLOAD_MAX_MEMORY_SIZE est le seuil au-dela duquel un fichier passe
+#   de la memoire a un fichier temporaire sur disque. Il decide OU le fichier
+#   atterrit, pas s'il est accepte.
+#
+#   DATA_UPLOAD_MAX_MEMORY_SIZE borne le corps d'une requete, mais les
+#   parties « fichier » n'y sont PAS comptees : dans
+#   django/http/multipartparser.py, la comptabilite d'octets et sa
+#   verification sont a l'interieur de `if item_type == FIELD:`, et la
+#   branche FILE ne controle qu'un NOMBRE de fichiers.
+#
+# Le plafond reel est pose par apps/core/upload_guard.py, qui compte pendant
+# la lecture et refuse avant d'ecrire. Voir sa docstring pour les chemins
+# exemptes (import de sauvegarde, installeur de l'application PC).
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # seuil memoire -> disque
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # corps hors fichiers
+
+# Le vrai plafond, en octets. 0 le desactive.
+ORION_TAILLE_MAX_TELEVERSEMENT = config(
+    'ORION_TAILLE_MAX_TELEVERSEMENT', default=20 * 1024 * 1024, cast=int)
+
+# `PlafondDeTaille` doit venir EN PREMIER : les gestionnaires recoivent les
+# blocs dans l'ordre, et il doit refuser avant que TemporaryFileUploadHandler
+# ait ecrit sur le disque.
+FILE_UPLOAD_HANDLERS = [
+    'apps.core.upload_guard.PlafondDeTaille',
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
 
 # ─── Sécurité commune ─────────────────────────────────────────────────────────
 SECURE_CONTENT_TYPE_NOSNIFF = True

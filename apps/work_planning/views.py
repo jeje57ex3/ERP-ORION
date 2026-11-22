@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
+from apps.core.redirections import destination_sure
 
 from apps.private_saas.decorators import require_company_module
 from .models import (
@@ -531,8 +532,9 @@ def time_block_create(request):
                 is_locked=data.get('is_locked', False),
             )
             messages.success(request, f'{block.hours}h enregistrée(s) pour {block.employee.display_name}.')
-            next_url = request.POST.get('next', '')
-            return redirect(next_url or 'work_planning:weekly_planning')
+            return redirect(destination_sure(
+                request, request.POST.get('next'),
+                'work_planning:weekly_planning'))
     else:
         form = DedicatedTimeBlockForm(company=company, initial=initial)
 
