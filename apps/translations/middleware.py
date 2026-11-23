@@ -105,6 +105,25 @@ class OrionLanguageMiddleware:
         if lang and self._is_valid(lang):
             return lang
 
+        # 2bis. LA LANGUE REGLEE SUR LE COMPTE D'ESPACE CLIENT.
+        #
+        # Un client de portail n'est pas un salarie : il n'a pas de
+        # `UserLanguagePreference` (etape 1, qui depend de l'entreprise
+        # courante, elle-meme nulle pour lui) et le portail n'a aucun
+        # selecteur de langue. Sans cette etape, son interface suivait son
+        # NAVIGATEUR -- donc la langue d'un appareil peut-etre partage,
+        # peut-etre mal regle -- et le choix fait par l'exploitant a
+        # l'ouverture du compte ne gouvernait que les courriels.
+        #
+        # PLACEE APRES LA SESSION ET AVANT LE NAVIGATEUR, et cet ordre est
+        # l'arbitrage : un choix EXPLICITE du client (session, « ?lang= »,
+        # un futur selecteur dans le portail) l'emporte sur le reglage de
+        # l'exploitant, qui l'emporte a son tour sur ce que DEVINE un
+        # en-tete Accept-Language. Le mot « defaut » du reglage se lit ainsi.
+        lang = self._langue_du_compte_portail(request)
+        if lang:
+            return lang
+
         # 3. Accept-Language navigateur
         accept = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
         if accept:
@@ -114,6 +133,29 @@ class OrionLanguageMiddleware:
                     return code
 
         return None
+
+    def _langue_du_compte_portail(self, request):
+        """La langue reglee sur le compte d'espace client, ou None.
+
+        Lue par la relation `portal_account` (un OneToOne), comme le fait
+        `_get_portal_account` cote portail : decider autrement ferait
+        divorcer les deux lectures de « qui est un client ».
+
+        Tout est rattrape : ce middleware tourne sur CHAQUE requete, y
+        compris avant que la migration du champ ne soit passee. Une langue
+        n'est pas une raison de faire tomber un site.
+        """
+        utilisateur = getattr(request, 'user', None)
+        if not (utilisateur and getattr(utilisateur, 'is_authenticated', False)):
+            return None
+        try:
+            compte = getattr(utilisateur, 'portal_account', None)
+            if compte is None:
+                return None
+            code = (getattr(compte, 'langue', '') or '').strip()
+        except Exception:
+            return None
+        return code if code and self._is_valid(code) else None
 
     def _user_language(self, request):
         try:

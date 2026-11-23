@@ -51,8 +51,18 @@ def create_customer_portal_account(request, customer_id):
 
     if request.method == 'POST':
         try:
+            # LA LANGUE VIENT DU SELECTEUR DE LA FICHE CLIENT. Elle gouverne
+            # l'interface de l'espace client ET le courriel qu'il recoit :
+            # un seul champ pour les deux, sinon ils se contrediraient un
+            # jour, et un client qui lit son courriel en portugais puis
+            # trouve une interface en francais y verrait une erreur.
+            #
+            # Vide -> la langue du compte n'est pas touchee. C'est ce qui
+            # permet de renvoyer un code sans reinitialiser la langue.
             account, created = signup_service.create_portal_account_for_customer(
-                customer, created_by=request.user, base_url=request.build_absolute_uri('/').rstrip('/'),
+                customer, created_by=request.user,
+                base_url=request.build_absolute_uri('/').rstrip('/'),
+                langue=(request.POST.get('langue') or '').strip(),
             )
             # L'ENVOI EST RAPPORTÉ TEL QU'IL S'EST PASSÉ.
             #

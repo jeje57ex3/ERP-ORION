@@ -14579,3 +14579,56 @@ msgstr "Roller shutters"
 
 msgid "Éclairage LED"
 msgstr "LED lighting"
+
+# ─── Courriel d'acces a l'espace client ────────────────────────────
+# Le client choisit sa langue a la creation du compte : ce courriel et
+# son interface la suivent. Msgid mesures en instrumentant gettext --
+# voir apps/portals/services/acces_portail.py.
+
+msgid "Bonjour %(nom)s,"
+msgstr "Hello %(nom)s,"
+
+msgid "Votre espace client %(entreprise)s est ouvert."
+msgstr "Your %(entreprise)s client area is now open."
+
+msgid "Identifiant : %(identifiant)s"
+msgstr "Username: %(identifiant)s"
+
+msgid "Code provisoire : %(code)s"
+msgstr "Temporary code: %(code)s"
+
+msgid "Connectez-vous ici : %(url)s"
+msgstr "Sign in here: %(url)s"
+
+msgid "Ce code ne sert qu’une fois : dès votre première connexion, l’application vous demandera de choisir votre propre mot de passe. Personne d’autre que vous ne le connaît — pas même %(entreprise)s."
+msgstr "This code works only once: on your first sign-in, the application will ask you to choose your own password. No one else knows it — not even %(entreprise)s."
+
+msgid "Vous y retrouverez l’avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l’équipe."
+msgstr "There you will find the progress of your projects, your documents, your schedules and your exchanges with the team."
+
+msgid "Si vous n’attendiez pas ce message, ignorez-le et signalez-le à %(entreprise)s : le compte restera inutilisable tant que personne ne s’y connecte."
+msgstr "If you were not expecting this message, ignore it and report it to %(entreprise)s: the account will stay unusable until someone signs in."
+
+msgid "Votre espace client — %(entreprise)s"
+msgstr "Your client area — %(entreprise)s"
+
+msgid "Un espace client a été ouvert pour vous chez <strong>%(cname)s</strong>.\n        Vous y suivrez l'avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l'équipe."
+msgstr "A client area has been opened for you at <strong>%(cname)s</strong>. There you will follow the progress of your projects, your documents, your schedules and your exchanges with the team."
+
+msgid "Ce code ne sert qu'une fois : dès votre première connexion,\n        l'application vous demandera de choisir votre propre mot de passe."
+msgstr "This code works only once: on your first sign-in, the application will ask you to choose your own password."
+
+msgid "Personne d'autre que vous ne connaît ce code — pas même %(cname)s.\n        Si vous n'attendiez pas ce message, ignorez-le et signalez-le : le compte restera\n        inutilisable tant que personne ne s'y connecte."
+msgstr "No one else knows this code — not even %(cname)s. If you were not expecting this message, ignore it and report it: the account will stay unusable until someone signs in."
+
+msgid "Votre espace client est ouvert"
+msgstr "Your client area is open"
+
+msgid "Code provisoire"
+msgstr "Temporary code"
+
+msgid "Langue du client"
+msgstr "Customer language"
+
+msgid "Son espace client ET le courriel qu'il va recevoir."
+msgstr "Their client area AND the email they are about to receive."

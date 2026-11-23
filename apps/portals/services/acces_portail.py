@@ -60,6 +60,56 @@ journal = logging.getLogger('orion')
 GABARIT = 'client_portal/emails/acces_portail_code.html'
 
 
+def langues_proposables():
+    """Les langues qu'on peut réellement servir, pour le sélecteur.
+
+    **POURQUOI PAS `settings.LANGUAGES` TEL QUEL.** Il en déclare sept, et
+    `locale/` n'en contient que cinq : le néerlandais n'a **aucun
+    catalogue**. L'offrir laisserait choisir une langue qui retombe en
+    silence sur le français — l'exploitant croirait avoir réglé la langue
+    de son client, et le client recevrait du français sans que rien ne le
+    signale. C'est exactement le piège « enveloppé n'est pas traduit »,
+    déplacé dans l'interface.
+
+    Le français n'a pas de catalogue et reste proposé : il est la LANGUE
+    SOURCE, écrite dans le code, donc toujours disponible.
+
+    Mesuré sur le disque à chaque appel, et non figé à l'import : un
+    catalogue ajouté par une mise à jour apparaît alors de lui-même, sans
+    qu'on retouche au code.
+    """
+    import os
+
+    disponibles = {settings.LANGUAGE_CODE}
+    for dossier in getattr(settings, 'LOCALE_PATHS', []):
+        try:
+            for code in os.listdir(dossier):
+                if os.path.isfile(os.path.join(
+                        dossier, code, 'LC_MESSAGES', 'django.mo')):
+                    disponibles.add(code)
+        except OSError:
+            # Dossier absent sur une installation partielle : on ne fait pas
+            # tomber un écran pour une liste de langues.
+            continue
+
+    return [(code, nom) for code, nom in settings.LANGUAGES
+            if code in disponibles]
+
+
+def langue_valable(code, defaut=None):
+    """Le code s'il est servable, sinon le défaut de l'installation.
+
+    Posé en un seul endroit parce que trois chemins le demandent : le
+    formulaire de la fiche client, la création depuis un devis, et le
+    renvoi d'un code. Trois validations écrites séparément finiraient par
+    ne plus accepter la même chose.
+    """
+    defaut = defaut or settings.LANGUAGE_CODE
+    servables = {code_langue for code_langue, _nom in langues_proposables()}
+    code = (code or '').strip().lower()
+    return code if code in servables else defaut
+
+
 def _adresse_de_connexion(request=None, base_url=''):
     """L'adresse complète de la connexion au portail.
 
@@ -95,27 +145,50 @@ def corps_du_message(compte, code, request=None, base_url=''):
     filtres anti-indésirables notent défavorablement un message sans
     alternative texte — un courriel qui porte un code d'accès ne peut pas
     se permettre de finir en indésirable.
+
+    **TRADUISIBLE, et c'était le point manquant.** Ces phrases étaient
+    écrites en français en dur : `override(langue_du_client)` n'avait alors
+    aucune prise sur elles, et le message partait en français quelle que
+    soit la langue réglée sur le compte. Le gabarit HTML, lui, portait déjà
+    ses `{% trans %}` — l'une des deux moitiés était traduite et l'autre
+    pas, ce qui aurait donné un message bilingue.
+
+    **DÉCOUPÉ EN PHRASES ENTIÈRES, et non en morceaux.** Une chaîne
+    « Identifiant : » séparée de sa valeur se traduit mal : plusieurs
+    langues placent le deux-points autrement, et l'allemand compose
+    souvent le mot différemment selon ce qui suit. Chaque `%s` reste donc
+    dans sa phrase.
     """
+    from django.utils.translation import gettext as _t
+
     nom = (compte.first_name or compte.full_name or compte.email).strip()
     entreprise = compte.company.name
-    return (
-        'Bonjour %s,\n\n'
-        'Votre espace client %s est ouvert.\n\n'
-        'Identifiant : %s\n'
-        'Code provisoire : %s\n\n'
-        'Connectez-vous ici : %s\n\n'
-        'Ce code ne sert qu’une fois : dès votre première connexion, '
-        'l’application vous demandera de choisir votre propre mot de passe. '
-        'Personne d’autre que vous ne le connaît — pas même %s.\n\n'
-        'Vous y retrouverez l’avancement de vos chantiers, vos documents, '
-        'vos plannings et vos échanges avec l’équipe.\n\n'
-        'Si vous n’attendiez pas ce message, ignorez-le et signalez-le à '
-        '%s : le compte restera inutilisable tant que personne ne s’y '
-        'connecte.\n'
-        % (nom, entreprise, compte.email, code,
-           _adresse_de_connexion(request, base_url), entreprise,
-           entreprise)
-    )
+    lignes = [
+        _t('Bonjour %(nom)s,') % {'nom': nom},
+        '',
+        _t('Votre espace client %(entreprise)s est ouvert.')
+        % {'entreprise': entreprise},
+        '',
+        _t('Identifiant : %(identifiant)s') % {'identifiant': compte.email},
+        _t('Code provisoire : %(code)s') % {'code': code},
+        '',
+        _t('Connectez-vous ici : %(url)s')
+        % {'url': _adresse_de_connexion(request, base_url)},
+        '',
+        _t('Ce code ne sert qu’une fois : dès votre première connexion, '
+           'l’application vous demandera de choisir votre propre mot de '
+           'passe. Personne d’autre que vous ne le connaît — pas même '
+           '%(entreprise)s.') % {'entreprise': entreprise},
+        '',
+        _t('Vous y retrouverez l’avancement de vos chantiers, vos '
+           'documents, vos plannings et vos échanges avec l’équipe.'),
+        '',
+        _t('Si vous n’attendiez pas ce message, ignorez-le et signalez-le '
+           'à %(entreprise)s : le compte restera inutilisable tant que '
+           'personne ne s’y connecte.') % {'entreprise': entreprise},
+        '',
+    ]
+    return '\n'.join(lignes)
 
 
 def envoyer_le_code(compte, code, request=None, base_url=''):
@@ -129,29 +202,46 @@ def envoyer_le_code(compte, code, request=None, base_url=''):
 
     On veut donc le motif, pour l'afficher à l'exploitant et lui permettre
     de renvoyer un code.
+
+    **COMPOSÉ DANS LA LANGUE DU CLIENT, ET C'EST LE POINT DÉLICAT.** Ce
+    message est fabriqué pendant la requête d'un SALARIÉ de l'ERP : la
+    langue active est la sienne. Sans `override`, un exploitant français
+    qui ouvre l'accès d'un client portugais lui envoie du français — et
+    l'écran lui dit « envoyé », donc rien ne le signale.
+
+    L'`override` enveloppe le sujet, le texte ET le gabarit HTML. En
+    omettre un donnerait un message bilingue, ce qui est pire que pas de
+    traduction du tout : le client y verrait une erreur de l'entreprise.
     """
+    from django.utils.translation import gettext, override
+
     if not compte.email:
         return False, 'aucune adresse de courriel sur ce compte'
 
-    texte = corps_du_message(compte, code, request, base_url)
-    try:
-        html = render_to_string(GABARIT, {
-            'compte': compte,
-            'prenom': compte.first_name or compte.full_name,
-            'company': compte.company,
-            'code': code,
-            'url_connexion': _adresse_de_connexion(request, base_url),
-        })
-    except Exception as exc:
-        # Un gabarit absent ou cassé ne doit pas empêcher la remise : le
-        # texte porte déjà tout ce qu'il faut pour se connecter.
-        journal.warning('Gabarit %s illisible (%s) : envoi en texte seul.',
-                        GABARIT, exc)
-        html = None
+    langue = langue_valable(getattr(compte, 'langue', ''))
+
+    with override(langue):
+        sujet = gettext('Votre espace client — %(entreprise)s') % {
+            'entreprise': compte.company.name}
+        texte = corps_du_message(compte, code, request, base_url)
+        try:
+            html = render_to_string(GABARIT, {
+                'compte': compte,
+                'prenom': compte.first_name or compte.full_name,
+                'company': compte.company,
+                'code': code,
+                'url_connexion': _adresse_de_connexion(request, base_url),
+            })
+        except Exception as exc:
+            # Un gabarit absent ou cassé ne doit pas empêcher la remise : le
+            # texte porte déjà tout ce qu'il faut pour se connecter.
+            journal.warning('Gabarit %s illisible (%s) : envoi en texte seul.',
+                            GABARIT, exc)
+            html = None
 
     try:
         envoyes = send_mail(
-            subject='Votre espace client — %s' % compte.company.name,
+            subject=sujet,
             message=texte,
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
             recipient_list=[compte.email],
@@ -173,7 +263,26 @@ def envoyer_le_code(compte, code, request=None, base_url=''):
     return True, ''
 
 
-def creer_et_envoyer(compte, request=None, base_url=''):
+def fixer_la_langue(compte, langue):
+    """Enregistre la langue du compte si elle est servable.
+
+    Appelée avant tout envoi : la langue doit être sur l'objet au moment où
+    `envoyer_le_code` la lit, sinon le courriel part dans l'ancienne et
+    l'écran annonce la nouvelle.
+
+    `update_fields` plutôt qu'un `save()` complet : ce compte vient parfois
+    d'une instance chargée ailleurs, et réécrire tous ses champs pourrait
+    défaire une modification concurrente — c'est le défaut que
+    `apps/accounts/signals.py` porte sur `UserProfile`.
+    """
+    valable = langue_valable(langue, defaut=getattr(compte, 'langue', ''))
+    if valable != getattr(compte, 'langue', None):
+        compte.langue = valable
+        compte.save(update_fields=['langue'])
+    return valable
+
+
+def creer_et_envoyer(compte, request=None, base_url='', langue=None):
     """Engendre un code pour ce compte de portail, le pose, l'envoie.
 
     L'ORDRE COMPTE, et il est délibérément celui-ci : le code est posé AVANT
@@ -183,7 +292,13 @@ def creer_et_envoyer(compte, request=None, base_url=''):
     dans une boîte de courriel et un compte qui ne le reconnaît pas : le pire
     des deux, car l'exploitant aurait vu « envoyé » et n'aurait aucune raison
     de recommencer.
+
+    `langue` à None NE TOUCHE À RIEN : un renvoi de code ne doit pas
+    réinitialiser la langue d'un client qu'on avait réglée à l'ouverture du
+    compte. Seul un choix explicite la change.
     """
+    if langue:
+        fixer_la_langue(compte, langue)
     code = poser_un_code(compte.user)
     return envoyer_le_code(compte, code, request, base_url)
 
@@ -260,11 +375,24 @@ def creer_un_compte_depuis_un_devis(company, contact, origine_devis=True,
     # est donc fermé jusqu'à ce que `creer_et_envoyer` pose le code. C'est
     # l'état sûr si la suite échoue.
 
+    # LA LANGUE DU VISITEUR EST LA MEILLEURE VALEUR DONT ON DISPOSE ICI.
+    #
+    # Personne ne la choisit pour lui sur ce chemin : il vient de remplir
+    # quatre écrans dans une langue, et c'est celle qu'il lit. La prendre
+    # évite de lui envoyer son code d'accès en français parce que
+    # l'installation est française.
+    #
+    # `get_language()` rend la langue active, celle que
+    # `OrionLanguageMiddleware` a retenue pour cette requête — donc celle du
+    # site vitrine visité, avec ses propres règles.
+    from django.utils.translation import get_language
+
     compte = ClientPortalAccount.objects.create(
         company=company, user=user, email=email,
         first_name=contact.get('first_name', ''),
         last_name=contact.get('last_name', ''),
         phone=contact.get('phone', ''),
+        langue=langue_valable(get_language()),
         created_from_guided_quote=origine_devis,
     )
 

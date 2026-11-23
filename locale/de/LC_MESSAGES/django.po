@@ -1150,3 +1150,65 @@ msgstr "Rollläden"
 
 msgid "Éclairage LED"
 msgstr "LED-Beleuchtung"
+
+# ─── Courriel d'acces a l'espace client ────────────────────────────
+# Le client choisit sa langue a la creation du compte : ce courriel et
+# son interface la suivent. Msgid mesures en instrumentant gettext --
+# voir apps/portals/services/acces_portail.py.
+
+msgid "Bonjour %(nom)s,"
+msgstr "Hallo %(nom)s,"
+
+msgid "Votre espace client %(entreprise)s est ouvert."
+msgstr "Ihr Kundenbereich bei %(entreprise)s ist eröffnet."
+
+msgid "Identifiant : %(identifiant)s"
+msgstr "Benutzername: %(identifiant)s"
+
+msgid "Code provisoire : %(code)s"
+msgstr "Vorläufiger Code: %(code)s"
+
+msgid "Connectez-vous ici : %(url)s"
+msgstr "Hier anmelden: %(url)s"
+
+msgid "Ce code ne sert qu’une fois : dès votre première connexion, l’application vous demandera de choisir votre propre mot de passe. Personne d’autre que vous ne le connaît — pas même %(entreprise)s."
+msgstr "Dieser Code gilt nur einmal: bei Ihrer ersten Anmeldung werden Sie aufgefordert, Ihr eigenes Passwort zu wählen. Niemand sonst kennt ihn — auch %(entreprise)s nicht."
+
+msgid "Vous y retrouverez l’avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l’équipe."
+msgstr "Dort finden Sie den Fortschritt Ihrer Baustellen, Ihre Dokumente, Ihre Termine und Ihren Austausch mit dem Team."
+
+msgid "Si vous n’attendiez pas ce message, ignorez-le et signalez-le à %(entreprise)s : le compte restera inutilisable tant que personne ne s’y connecte."
+msgstr "Wenn Sie diese Nachricht nicht erwartet haben, ignorieren Sie sie und melden Sie sie %(entreprise)s: das Konto bleibt unbenutzbar, solange sich niemand anmeldet."
+
+msgid "Votre espace client — %(entreprise)s"
+msgstr "Ihr Kundenbereich — %(entreprise)s"
+
+msgid "Bonjour <strong>%(first)s</strong>,"
+msgstr "Hallo <strong>%(first)s</strong>,"
+
+msgid "Un espace client a été ouvert pour vous chez <strong>%(cname)s</strong>.\n        Vous y suivrez l'avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l'équipe."
+msgstr "Bei <strong>%(cname)s</strong> wurde ein Kundenbereich für Sie eröffnet. Dort verfolgen Sie den Fortschritt Ihrer Baustellen, Ihre Dokumente, Ihre Termine und Ihren Austausch mit dem Team."
+
+msgid "Ce code ne sert qu'une fois : dès votre première connexion,\n        l'application vous demandera de choisir votre propre mot de passe."
+msgstr "Dieser Code gilt nur einmal: bei Ihrer ersten Anmeldung werden Sie aufgefordert, Ihr eigenes Passwort zu wählen."
+
+msgid "Personne d'autre que vous ne connaît ce code — pas même %(cname)s.\n        Si vous n'attendiez pas ce message, ignorez-le et signalez-le : le compte restera\n        inutilisable tant que personne ne s'y connecte."
+msgstr "Niemand sonst kennt diesen Code — auch %(cname)s nicht. Wenn Sie diese Nachricht nicht erwartet haben, ignorieren Sie sie und melden Sie sie: das Konto bleibt unbenutzbar, solange sich niemand anmeldet."
+
+msgid "Votre espace client est ouvert"
+msgstr "Ihr Kundenbereich ist eröffnet"
+
+msgid "Identifiant"
+msgstr "Benutzername"
+
+msgid "Code provisoire"
+msgstr "Vorläufiger Code"
+
+msgid "Aller à la connexion"
+msgstr "Zur Anmeldung"
+
+msgid "Langue du client"
+msgstr "Sprache des Kunden"
+
+msgid "Son espace client ET le courriel qu'il va recevoir."
+msgstr "Sein Kundenbereich UND die E-Mail, die er erhält."

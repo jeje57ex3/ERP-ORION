@@ -135,6 +135,27 @@
           {% if is_hr_admin %}
           <form method="post" action="{% url 'portals:customer_portal_account_create' customer.pk %}">
             {% csrf_token %}
+
+            {% comment %} LA LANGUE EST MODIFIABLE AU RENVOI, et il faut
+               qu'elle le soit : un client peut avoir ete cree depuis un
+               devis -- ou la langue vient de son navigateur -- et s'etre
+               trompe. Sans ce selecteur ici, la seule facon de corriger
+               serait une requete en base.
+
+               Le choix courant est PRESELECTIONNE : laisser le champ tel
+               quel ne change donc rien, et seul un changement explicite
+               deplace la langue du compte. {% endcomment %}
+            <div class="mb-3" style="max-width:260px">
+              <label class="form-label small fw-semibold" for="langue-compte-existant">
+                {% trans "Langue du client" %}
+              </label>
+              <select name="langue" id="langue-compte-existant" class="orion-input" style="width:100%">
+                {% for code, nom in langues_proposables %}
+                <option value="{{ code }}" {% if code == portal_account.langue %}selected{% endif %}>{{ nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
             <button type="submit" class="orion-btn sm">
               <i class="bi bi-arrow-repeat me-1"></i>{% trans "Renvoyer les identifiants" %}
             </button>
@@ -151,6 +172,37 @@
           <p class="small text-muted mb-3">{% trans "Ce client n'a pas encore d'accès à l'espace client." %}</p>
           <form method="post" action="{% url 'portals:customer_portal_account_create' customer.pk %}">
             {% csrf_token %}
+
+            {% comment %} LE SELECTEUR DE LANGUE, ET CE QU'IL GOUVERNE.
+
+               Deux choses a la fois : l'interface de l'espace client, et la
+               langue des courriels qu'on lui envoie. Les deux viennent du
+               meme champ -- `ClientPortalAccount.langue` -- parce que deux
+               reglages separes finiraient par se contredire, et qu'un
+               client qui lit son courriel en portugais puis trouve une
+               interface en francais y verrait une erreur.
+
+               LA LISTE N'EST PAS `settings.LANGUAGES`. Celui-ci declare
+               sept langues, et `locale/` n'en contient que cinq : le
+               neerlandais n'a aucun catalogue. L'offrir laisserait choisir
+               une langue qui retombe en silence sur le francais --
+               l'exploitant croirait avoir regle la langue de son client, et
+               le client recevrait du francais. Voir
+               `acces_portail.langues_proposables`. {% endcomment %}
+            <div class="mb-3" style="max-width:260px">
+              <label class="form-label small fw-semibold" for="langue-nouveau-compte">
+                {% trans "Langue du client" %}
+              </label>
+              <select name="langue" id="langue-nouveau-compte" class="orion-input" style="width:100%">
+                {% for code, nom in langues_proposables %}
+                <option value="{{ code }}" {% if code == langue_par_defaut %}selected{% endif %}>{{ nom }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text" style="font-size:12px">
+                {% trans "Son espace client ET le courriel qu'il va recevoir." %}
+              </div>
+            </div>
+
             <button type="submit" class="orion-btn primary orion-btn sm">
               <i class="bi bi-person-plus me-1"></i>{% trans "Créer un compte espace client" %}
             </button>
