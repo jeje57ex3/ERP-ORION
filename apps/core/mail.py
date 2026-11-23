@@ -175,12 +175,17 @@ class BackendMailOrion(BaseEmailBackend):
                 message.from_email = reglages.adresse_expediteur
 
     def _noter_l_echec(self, exc, nombre):
-        """Journalise, puis garde le motif là où l'interface le montrera."""
+        """Journalise, puis garde le motif là où l'interface le montrera.
+
+        Le motif passe par `_motif_lisible`, comme celui du bouton de test :
+        un envoi réel qui échoue est lu sur la MÊME page, et deux
+        formulations pour une même cause feraient croire à deux pannes.
+        """
         journal.warning(
             'Envoi de %s courriel(s) en echec : %s: %s',
             nombre, type(exc).__name__, exc,
         )
-        noter_le_resultat(False, f'{type(exc).__name__}: {exc}')
+        noter_le_resultat(False, _motif_lisible(exc))
 
 
 def noter_le_resultat(reussi, message=''):
@@ -243,6 +248,29 @@ def tester_l_envoi(destinataire, reglages=None):
                   or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
                   or 'no-reply@localhost')
 
+    # ─── L'EXPÉDITEUR EST VÉRIFIÉ AVANT LA CONNEXION ────────────────────
+    #
+    # LE DÉFAUT CONSTATÉ LE 23/11/2026, et il coûte une heure à qui le
+    # rencontre. `adresse_expediteur` est facultative, et son repli est
+    # `DEFAULT_FROM_EMAIL`, dont la valeur par défaut dans `base.py` est
+    # « no-reply@orion-erp.local ». Or `.local` n'est pas un domaine
+    # routable : AUCUN fournisseur ne l'acceptera jamais. IONOS répond
+    #
+    #     550 Requested action not taken: mailbox unavailable
+    #     Sender address is not allowed.
+    #
+    # ce qui est exact mais se lit comme un problème de BOÎTE, donc envoie
+    # vérifier le mot de passe, le port et le chiffrement — tout sauf le
+    # champ fautif, qui est resté vide.
+    #
+    # On refuse donc avant d'ouvrir la connexion, en nommant le champ.
+    # Mieux vaut un refus qui dit quoi faire qu'un 550 qui dit où ça a
+    # échoué.
+    motif_expediteur = _expediteur_inutilisable(expediteur, reglages.hote)
+    if motif_expediteur:
+        noter_le_resultat(False, motif_expediteur)
+        return False, motif_expediteur
+
     # Le test court-circuite volontairement `actif` et le backend configuré :
     # on veut pouvoir essayer des reglages AVANT de les mettre en service, et
     # sans que le mode de repli (console, memoire) ne fasse passer le test
@@ -265,8 +293,12 @@ def tester_l_envoi(destinataire, reglages=None):
     try:
         envoyes = message.send(fail_silently=False)
     except Exception as exc:
-        motif = f'{type(exc).__name__}: {exc}'
-        journal.warning('Test d_envoi en echec : %s', motif)
+        # Traduit, mais le texte brut du serveur est conservé dans la
+        # phrase : il est indispensable pour diagnostiquer, et le retirer
+        # serait remplacer une erreur illisible par une erreur imprécise.
+        motif = _motif_lisible(exc)
+        journal.warning('Test d_envoi en echec : %s: %s',
+                        type(exc).__name__, exc)
         noter_le_resultat(False, motif)
         return False, motif
 
@@ -309,6 +341,98 @@ def tester_l_envoi(destinataire, reglages=None):
         'S’il n’arrive pas, regardez les indésirables : la remise dépend '
         'ensuite de vos enregistrements SPF, DKIM et DMARC.'
     )
+
+
+#: Suffixes de domaine qui ne sortent pas d'une machine. `.local` est
+#: réservé au mDNS (RFC 6762), `.localhost`, `.invalid` et `.example` à
+#: l'usage réservé (RFC 2606/6761). Aucun serveur de messagerie public ne
+#: remettra un message dont l'expéditeur est là-dedans.
+DOMAINES_NON_ROUTABLES = ('.local', '.localhost', '.invalid', '.example',
+                          '.test', '.localdomain')
+
+
+def _expediteur_inutilisable(adresse, hote):
+    """Le motif pour lequel cet expéditeur sera refusé, ou '' s'il va.
+
+    Rend une phrase destinée à l'exploitant, pas un code d'erreur : elle
+    nomme le champ à remplir et dit pourquoi.
+
+    UN RELAIS LOCAL EST ÉPARGNÉ. Postfix sur 127.0.0.1 accepte n'importe
+    quel expéditeur et réécrit souvent lui-même le domaine ; refuser ici
+    casserait une installation qui marche.
+    """
+    adresse = (adresse or '').strip()
+    if _est_un_relais_local(hote):
+        return ''
+
+    if not adresse or '@' not in adresse:
+        return (
+            'Aucune adresse d’expédition valable. Renseignez le champ '
+            '« Adresse d’expédition par défaut » avec une boîte que ce '
+            'serveur a le droit d’employer — chez la plupart des '
+            'fournisseurs, c’est la même adresse que l’identifiant.'
+        )
+
+    domaine = adresse.rsplit('@', 1)[-1].lower()
+    if domaine in ('localhost',) or any(
+            domaine.endswith(suffixe) for suffixe in DOMAINES_NON_ROUTABLES):
+        return (
+            'L’adresse d’expédition « %s » n’est pas une adresse réelle : '
+            '« %s » n’est pas un domaine routable, et aucun fournisseur ne '
+            'l’acceptera. C’est la valeur de repli de l’installation, ce qui '
+            'veut dire que le champ « Adresse d’expédition par défaut » est '
+            'vide. Renseignez-y une boîte que ce serveur a le droit '
+            'd’employer — chez la plupart des fournisseurs, c’est la même '
+            'adresse que l’identifiant.' % (adresse, domaine)
+        )
+
+    return ''
+
+
+def _motif_lisible(exc):
+    """Traduit l'échec SMTP en une phrase qui dit quoi faire.
+
+    POURQUOI TRADUIRE PLUTÔT QUE TOUT MONTRER. Le texte brut du serveur est
+    conservé — il est indispensable pour diagnostiquer — mais il est précédé
+    d'une phrase qui nomme la cause. « 550 mailbox unavailable » se lit comme
+    un problème de BOÎTE DESTINATAIRE alors qu'il s'agit de l'EXPÉDITEUR :
+    le serveur refuse d'expédier au nom d'une adresse qui ne lui appartient
+    pas. Sans cette traduction, on cherche la panne du mauvais côté.
+    """
+    import smtplib
+
+    brut = '%s: %s' % (type(exc).__name__, exc)
+
+    if isinstance(exc, smtplib.SMTPSenderRefused):
+        return (
+            'Le serveur refuse d’expédier au nom de « %s ». Cette adresse '
+            'doit être une boîte de VOTRE compte chez ce fournisseur — chez '
+            'la plupart, la même que l’identifiant. Corrigez le champ '
+            '« Adresse d’expédition par défaut ». Réponse du serveur : %s'
+            % (getattr(exc, 'sender', '?'), brut)
+        )
+
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return (
+            'Identifiant ou mot de passe refusé par le serveur. Chez '
+            'plusieurs fournisseurs, le mot de passe du courriel ne suffit '
+            'pas et il faut créer un mot de passe d’application dédié. '
+            'Réponse du serveur : %s' % brut
+        )
+
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        return ('Le serveur a refusé l’adresse de destination du test. '
+                'Réponse du serveur : %s' % brut)
+
+    if isinstance(exc, (TimeoutError, OSError)) and 'timed out' in str(exc).lower():
+        return (
+            'Le serveur n’a pas répondu dans le délai imparti. Vérifiez le '
+            'port et le chiffrement : 587 attend STARTTLS, 465 du SSL '
+            'direct, et les confondre fait exactement cela. Détail : %s'
+            % brut
+        )
+
+    return brut
 
 
 def _est_un_relais_local(hote):
