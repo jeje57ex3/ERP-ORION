@@ -43,9 +43,26 @@ def _entier(valeur, courant, minimum=0, maximum=None):
     return nombre
 
 
+#: Les champs dont dépend le sort d'un envoi. Si l'un change, le dernier
+#: diagnostic ne décrit plus les réglages affichés.
+CHAMPS_QUI_DECIDENT = (
+    'actif', 'hote', 'port', 'chiffrement', 'utilisateur',
+    'mot_de_passe_chiffre', 'adresse_expediteur', 'delai_secondes',
+)
+
+
+def _empreinte(reglages):
+    """Ce qui, dans ces réglages, décide qu'un envoi passe ou non."""
+    return tuple(getattr(reglages, champ, None) for champ in CHAMPS_QUI_DECIDENT)
+
+
 def _enregistrer(request, reglages):
     """Applique le formulaire aux réglages. Rend la liste des avertissements."""
     avertissements = []
+
+    # L'ÉTAT D'AVANT, pour savoir si le dernier diagnostic reste valable.
+    # Voir `_oublier_le_diagnostic` plus bas.
+    avant = _empreinte(reglages)
 
     reglages.actif = request.POST.get('actif') == 'on'
     reglages.hote = (request.POST.get('hote') or '').strip()
@@ -86,6 +103,32 @@ def _enregistrer(request, reglages):
                     f'(ORION_SECRET_ENCRYPTION_KEY). Détail : {exc}'
                 )
 
+    # ─── LE DIAGNOSTIC PÉRIMÉ, ET POURQUOI IL FALLAIT L'EFFACER ─────────
+    #
+    # LE DÉFAUT CONSTATÉ LE 23/11/2026. La page affiche `dernier_test_le` et
+    # `derniere_erreur` tels qu'ils sont en base, et cette fonction ne les
+    # touchait pas. Conséquence : après avoir corrigé l'adresse
+    # d'expédition et enregistré, l'exploitant relisait LE MÊME message
+    # d'échec, nommant l'ANCIENNE adresse —
+    #
+    #     SMTPSenderRefused: (550, ... 'no-reply@orion-erp.local')
+    #
+    # — alors qu'il venait d'y mettre « no.reply@s-peace.com ». Il en a
+    # conclu, très logiquement, que l'ERP ignorait sa saisie. Elle était
+    # pourtant bien enregistrée : c'est le diagnostic qui datait d'avant.
+    #
+    # Un verdict décrit les réglages sur lesquels il a été rendu. Dès que
+    # l'un de ceux qui décident change, il ne décrit plus rien et le garder
+    # affiché est pire que ne rien afficher : il envoie chercher une panne
+    # qui vient peut-être d'être réparée.
+    #
+    # On l'oublie donc, et la page dit « aucune tentative depuis la
+    # dernière modification », ce qui est exact et invite à tester.
+    if _empreinte(reglages) != avant:
+        reglages.dernier_test_le = None
+        reglages.dernier_test_reussi = None
+        reglages.derniere_erreur = ''
+
     reglages.save()
 
     # Avertir sans bloquer : un réglage incomplet est une étape normale de la
@@ -95,6 +138,21 @@ def _enregistrer(request, reglages):
             'L’envoi est activé mais aucun serveur SMTP n’est renseigné : '
             'rien ne partira.'
         )
+    # L'EXPÉDITEUR EST LE CHAMP QU'ON OUBLIE, et son repli ne marche jamais
+    # avec un fournisseur réel. Dit à l'enregistrement, et non seulement au
+    # test : on ne teste pas toujours tout de suite, et un envoi réel peut
+    # partir avant.
+    if reglages.actif and reglages.hote:
+        from apps.core.mail import _expediteur_inutilisable
+
+        from django.conf import settings as reglages_django
+
+        effectif = (reglages.adresse_expediteur
+                    or getattr(reglages_django, 'DEFAULT_FROM_EMAIL', ''))
+        motif = _expediteur_inutilisable(effectif, reglages.hote)
+        if motif:
+            avertissements.append(motif)
+
     if reglages.utilisateur and not reglages.mot_de_passe_enregistre:
         avertissements.append(
             'Un identifiant est renseigné sans mot de passe. La plupart des '

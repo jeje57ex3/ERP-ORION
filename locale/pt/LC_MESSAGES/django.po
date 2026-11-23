@@ -14595,3 +14595,108 @@ msgstr "Trilho de navegação"
 
 msgid "Entreprise du bâtiment à votre service."
 msgstr "Empresa de construção ao seu serviço."
+
+# ─── Configurateur de devis ELECTRICITE (vitrines publiques) ────────
+# Libelles des CHOIX du configurateur. Ils etaient rendus par
+# « {{ label }} » depuis le contexte de la vue, donc hors de portee de
+# {% trans %} : les titres etaient traduits et les options restaient en
+# francais. Voir apps/websites/electricite_wizard_views.py.
+
+msgid "Alarme"
+msgstr "Alarme"
+
+msgid "Appartement"
+msgstr "Apartamento"
+
+msgid "Autre problème"
+msgstr "Outro problema"
+
+msgid "Baie informatique"
+msgstr "Bastidor de rede"
+
+msgid "Batterie de stockage"
+msgstr "Bateria de armazenamento"
+
+msgid "Bureau"
+msgstr "Escritório"
+
+msgid "Caméra"
+msgstr "Câmara"
+
+msgid "Chambre"
+msgstr "Quarto"
+
+msgid "Construction"
+msgstr "Construção nova"
+
+msgid "Cuisine"
+msgstr "Cozinha"
+
+msgid "Disjoncteur qui saute"
+msgstr "O disjuntor dispara"
+
+msgid "Détecteurs"
+msgstr "Detetores"
+
+msgid "Extension"
+msgstr "Ampliação"
+
+msgid "Garage"
+msgstr "Garagem"
+
+msgid "Interphone"
+msgstr "Intercomunicador"
+
+msgid "Jardin"
+msgstr "Jardim"
+
+msgid "Local technique"
+msgstr "Sala técnica"
+
+msgid "Luxe"
+msgstr "Luxo"
+
+msgid "Maison"
+msgstr "Casa"
+
+msgid "Panneaux photovoltaïques"
+msgstr "Painéis fotovoltaicos"
+
+msgid "Plus de courant dans tout le logement"
+msgstr "Sem energia em toda a casa"
+
+msgid "Plus de courant dans une pièce"
+msgstr "Sem energia num compartimento"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Prise qui ne fonctionne plus"
+msgstr "Tomada que já não funciona"
+
+msgid "RJ45"
+msgstr "RJ45"
+
+msgid "Salle de bain"
+msgstr "Casa de banho"
+
+msgid "Salon"
+msgstr "Sala de estar"
+
+msgid "Spots"
+msgstr "Focos"
+
+msgid "Tableau électrique problématique"
+msgstr "Quadro elétrico problemático"
+
+msgid "Terrasse"
+msgstr "Terraço"
+
+msgid "Visiophone"
+msgstr "Videoporteiro"
+
+msgid "Volets roulants"
+msgstr "Estores"
+
+msgid "Éclairage LED"
+msgstr "Iluminação LED"

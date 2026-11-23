@@ -57,6 +57,23 @@ CHEMINS_EXEMPTES = (
     '/media/',
     '/setup/',
     '/health/',
+    # ─── L'espace client ────────────────────────────────────────────────
+    #
+    # Un client de portail reçoit lui aussi un code provisoire par courriel
+    # (`apps/portals/services/acces_portail.py`), donc le même drapeau. Ces
+    # quatre chemins sont ceux qu'il doit pouvoir atteindre malgré lui :
+    #
+    # * son écran de changement, sinon il se redirige vers lui-même ;
+    # * la connexion et la déconnexion, sans quoi il serait enfermé dans la
+    #   page sans pouvoir quitter la session — sur un poste partagé, c'est
+    #   un vrai problème ;
+    # * `definir-mot-de-passe/`, le lien signé d'invitation. Il règle le mot
+    #   de passe par un autre chemin et connecte lui-même : le rediriger
+    #   casserait les invitations déjà envoyées.
+    '/client/mot-de-passe/',
+    '/client/connexion/',
+    '/client/deconnexion/',
+    '/client/definir-mot-de-passe/',
 )
 
 PREFIXES_D_API = ('/api/',)
@@ -65,6 +82,27 @@ MESSAGE = (
     'Votre compte utilise encore le code provisoire reçu par courriel. '
     'Choisissez votre mot de passe pour continuer.'
 )
+
+
+def _est_un_client_de_portail(utilisateur):
+    """Délègue à `apps.portals`, en important À L'APPEL et non en tête.
+
+    Ce middleware est chargé à la résolution de `MIDDLEWARE` ; importer une
+    autre application depuis son en-tête crée une dépendance de chargement
+    dont on n'a pas besoin, et que la moindre réorganisation de
+    `INSTALLED_APPS` ferait tomber. L'import à l'appel coûte un accès au
+    cache de modules.
+
+    Rend faux si l'application du portail est absente : une installation
+    sans espace client ne doit pas tomber ici.
+    """
+    try:
+        from apps.portals.services.acces_portail import (
+            est_un_client_de_portail,
+        )
+    except Exception:
+        return False
+    return est_un_client_de_portail(utilisateur)
 
 
 def changement_requis(utilisateur):
@@ -111,5 +149,17 @@ class ChangementDeMotDePasseRequisMiddleware:
         if not request.session.get('_avertissement_mdp_provisoire'):
             request.session['_avertissement_mdp_provisoire'] = True
             messages.warning(request, MESSAGE)
+
+        # UN CLIENT D'ESPACE CLIENT N'EST PAS UN SALARIÉ, et l'écran de
+        # l'ERP étend `erp_base.html` : il y verrait le menu de l'ERP, le
+        # sélecteur d'entreprise et le fil d'ariane d'un employé. Pire, les
+        # liens de ce menu le renverraient vers des pages qui le
+        # redirigeraient ici — une boucle visible.
+        #
+        # Le test est fait par la relation `portal_account`, exactement
+        # comme `_get_portal_account` côté portail : décider autrement ferait
+        # divorcer les deux lectures de « qui est un client ».
+        if _est_un_client_de_portail(getattr(request, 'user', None)):
+            return redirect('client_portal:changer_mot_de_passe')
 
         return redirect('accounts:changer_mot_de_passe')

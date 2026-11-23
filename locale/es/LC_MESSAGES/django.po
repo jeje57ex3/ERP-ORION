@@ -14626,3 +14626,108 @@ msgstr "Ruta de navegación"
 
 msgid "Entreprise du bâtiment à votre service."
 msgstr "Empresa de construcción a su servicio."
+
+# ─── Configurateur de devis ELECTRICITE (vitrines publiques) ────────
+# Libelles des CHOIX du configurateur. Ils etaient rendus par
+# « {{ label }} » depuis le contexte de la vue, donc hors de portee de
+# {% trans %} : les titres etaient traduits et les options restaient en
+# francais. Voir apps/websites/electricite_wizard_views.py.
+
+msgid "Alarme"
+msgstr "Alarma"
+
+msgid "Appartement"
+msgstr "Piso"
+
+msgid "Autre problème"
+msgstr "Otro problema"
+
+msgid "Baie informatique"
+msgstr "Armario de red"
+
+msgid "Batterie de stockage"
+msgstr "Batería de almacenamiento"
+
+msgid "Bureau"
+msgstr "Oficina"
+
+msgid "Caméra"
+msgstr "Cámara"
+
+msgid "Chambre"
+msgstr "Dormitorio"
+
+msgid "Construction"
+msgstr "Obra nueva"
+
+msgid "Cuisine"
+msgstr "Cocina"
+
+msgid "Disjoncteur qui saute"
+msgstr "El disyuntor salta"
+
+msgid "Détecteurs"
+msgstr "Detectores"
+
+msgid "Extension"
+msgstr "Ampliación"
+
+msgid "Garage"
+msgstr "Garaje"
+
+msgid "Interphone"
+msgstr "Portero automático"
+
+msgid "Jardin"
+msgstr "Jardín"
+
+msgid "Local technique"
+msgstr "Cuarto técnico"
+
+msgid "Luxe"
+msgstr "Lujo"
+
+msgid "Maison"
+msgstr "Casa"
+
+msgid "Panneaux photovoltaïques"
+msgstr "Paneles fotovoltaicos"
+
+msgid "Plus de courant dans tout le logement"
+msgstr "Sin corriente en toda la vivienda"
+
+msgid "Plus de courant dans une pièce"
+msgstr "Sin corriente en una habitación"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Prise qui ne fonctionne plus"
+msgstr "Enchufe que ya no funciona"
+
+msgid "RJ45"
+msgstr "RJ45"
+
+msgid "Salle de bain"
+msgstr "Baño"
+
+msgid "Salon"
+msgstr "Salón"
+
+msgid "Spots"
+msgstr "Focos"
+
+msgid "Tableau électrique problématique"
+msgstr "Cuadro eléctrico problemático"
+
+msgid "Terrasse"
+msgstr "Terraza"
+
+msgid "Visiophone"
+msgstr "Videoportero"
+
+msgid "Volets roulants"
+msgstr "Persianas"
+
+msgid "Éclairage LED"
+msgstr "Iluminación LED"

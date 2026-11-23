@@ -10,6 +10,9 @@ urlpatterns = [
     path('connexion/', v.portal_login, name='login'),
     path('deconnexion/', v.portal_logout, name='logout'),
     path('definir-mot-de-passe/<str:uidb64>/<str:token>/', v.set_password, name='set_password'),
+    # Le passage oblige apres une connexion au code provisoire. Distinct de
+    # `set_password`, qui s'atteint par un lien signe sans etre connecte.
+    path('mot-de-passe/', v.changer_mot_de_passe, name='changer_mot_de_passe'),
 
     # ── Inscription publique ──────────────────────────────────────────────────
     path('inscription/', sv.ClientRegisterView.as_view(), name='register'),

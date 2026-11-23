@@ -1,0 +1,106 @@
+{% load i18n %}<!DOCTYPE html>
+{% comment %}
+  LE COURRIEL D'ACCÈS À L'ESPACE CLIENT — version « code provisoire ».
+
+  Reprend la mise en page de `portal_account_invite.html` pour que les deux
+  messages d'une même entreprise se ressemblent, et s'en écarte sur un
+  point : il ne porte PAS de bouton d'accès direct.
+
+  POURQUOI AUCUN LIEN QUI CONNECTE. Le message précédent portait un lien de
+  définition de mot de passe, lequel ouvre une session sans rien demander
+  d'autre que de posséder l'URL — la vue `set_password` appelle
+  `login(request, user)` après l'enregistrement. Transféré, laissé dans un
+  historique ou lu dans une boîte partagée, ce lien donne l'accès.
+
+  Un code à recopier passe, lui, par le formulaire de connexion normal :
+  donc par la limitation d'essais et par le verrou de compte. Le lien
+  ci-dessous ne mène qu'à l'écran de connexion, qui ne connecte personne de
+  lui-même.
+
+  LE CODE EST EN GRAND ET ESPACÉ parce qu'il se recopie à la main. Son
+  alphabet exclut déjà O/0 et I/l/1 ; la police à largeur fixe évite la
+  confusion qui reste, et `user-select:all` permet de le sélectionner d'un
+  clic sur les clients de messagerie qui l'autorisent.
+{% endcomment %}
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 20px">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,.08)">
+
+  <tr>
+    <td style="background:#1C120A;padding:32px 40px;text-align:center">
+      <h1 style="margin:0;color:#D4A843;font-size:1.5rem;font-weight:700">{{ company.name }}</h1>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:40px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="width:64px;height:64px;background:#dcfce7;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem">🔑</div>
+      </div>
+      <h2 style="margin:0 0 12px;color:#1a0e05;font-size:1.2rem;font-weight:700;text-align:center">
+        {% trans "Votre espace client est ouvert" %}
+      </h2>
+      <p style="margin:0 0 16px;color:#374151;font-size:.92rem;line-height:1.6">
+        {% blocktrans with first=prenom %}Bonjour <strong>{{ first }}</strong>,{% endblocktrans %}
+      </p>
+      <p style="margin:0 0 24px;color:#374151;font-size:.92rem;line-height:1.6">
+        {% blocktrans with cname=company.name %}Un espace client a été ouvert pour vous chez <strong>{{ cname }}</strong>.
+        Vous y suivrez l'avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l'équipe.{% endblocktrans %}
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">
+        <tr>
+          <td style="background:#f9fafb;border:1px solid #f3f4f6;border-radius:12px;padding:20px 24px">
+            <p style="margin:0 0 6px;color:#6b7280;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em">
+              {% trans "Identifiant" %}
+            </p>
+            <p style="margin:0 0 16px;color:#1a0e05;font-size:.95rem;font-weight:600;word-break:break-all">
+              {{ compte.email }}
+            </p>
+            <p style="margin:0 0 6px;color:#6b7280;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em">
+              {% trans "Code provisoire" %}
+            </p>
+            <p style="margin:0;color:#1a0e05;font-size:1.35rem;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;user-select:all">
+              {{ code }}
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center" style="padding:0 0 28px">
+            <a href="{{ url_connexion }}"
+               style="display:inline-block;background:#D4A843;color:#1a0e05;font-weight:700;text-decoration:none;border-radius:9px;padding:14px 36px;font-size:1rem">
+              {% trans "Aller à la connexion" %}
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0 0 10px;color:#374151;font-size:.85rem;line-height:1.6">
+        {% blocktrans %}Ce code ne sert qu'une fois : dès votre première connexion,
+        l'application vous demandera de choisir votre propre mot de passe.{% endblocktrans %}
+      </p>
+      <p style="margin:0;color:#9ca3af;font-size:.8rem;line-height:1.5">
+        {% blocktrans with cname=company.name %}Personne d'autre que vous ne connaît ce code — pas même {{ cname }}.
+        Si vous n'attendiez pas ce message, ignorez-le et signalez-le : le compte restera
+        inutilisable tant que personne ne s'y connecte.{% endblocktrans %}
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #f3f4f6">
+      <p style="margin:0;color:#9ca3af;font-size:.75rem">{{ company.name }} — {% trans "Espace client" %}</p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

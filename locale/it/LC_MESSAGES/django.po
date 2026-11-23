@@ -14454,3 +14454,108 @@ msgstr ""
 
 msgid "Demander une intervention"
 msgstr "Richiedi un intervento"
+
+# ─── Configurateur de devis ELECTRICITE (vitrines publiques) ────────
+# Libelles des CHOIX du configurateur. Ils etaient rendus par
+# « {{ label }} » depuis le contexte de la vue, donc hors de portee de
+# {% trans %} : les titres etaient traduits et les options restaient en
+# francais. Voir apps/websites/electricite_wizard_views.py.
+
+msgid "Alarme"
+msgstr "Allarme"
+
+msgid "Appartement"
+msgstr "Appartamento"
+
+msgid "Autre problème"
+msgstr "Altro problema"
+
+msgid "Baie informatique"
+msgstr "Armadio di rete"
+
+msgid "Batterie de stockage"
+msgstr "Batteria di accumulo"
+
+msgid "Bureau"
+msgstr "Ufficio"
+
+msgid "Caméra"
+msgstr "Telecamera"
+
+msgid "Chambre"
+msgstr "Camera"
+
+msgid "Construction"
+msgstr "Nuova costruzione"
+
+msgid "Cuisine"
+msgstr "Cucina"
+
+msgid "Disjoncteur qui saute"
+msgstr "Il salvavita scatta"
+
+msgid "Détecteurs"
+msgstr "Rilevatori"
+
+msgid "Extension"
+msgstr "Ampliamento"
+
+msgid "Garage"
+msgstr "Garage"
+
+msgid "Interphone"
+msgstr "Citofono"
+
+msgid "Jardin"
+msgstr "Giardino"
+
+msgid "Local technique"
+msgstr "Locale tecnico"
+
+msgid "Luxe"
+msgstr "Lusso"
+
+msgid "Maison"
+msgstr "Casa"
+
+msgid "Panneaux photovoltaïques"
+msgstr "Pannelli fotovoltaici"
+
+msgid "Plus de courant dans tout le logement"
+msgstr "Nessuna corrente in tutta la casa"
+
+msgid "Plus de courant dans une pièce"
+msgstr "Nessuna corrente in una stanza"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Prise qui ne fonctionne plus"
+msgstr "Presa che non funziona più"
+
+msgid "RJ45"
+msgstr "RJ45"
+
+msgid "Salle de bain"
+msgstr "Bagno"
+
+msgid "Salon"
+msgstr "Soggiorno"
+
+msgid "Spots"
+msgstr "Faretti"
+
+msgid "Tableau électrique problématique"
+msgstr "Quadro elettrico problematico"
+
+msgid "Terrasse"
+msgstr "Terrazza"
+
+msgid "Visiophone"
+msgstr "Videocitofono"
+
+msgid "Volets roulants"
+msgstr "Tapparelle"
+
+msgid "Éclairage LED"
+msgstr "Illuminazione LED"

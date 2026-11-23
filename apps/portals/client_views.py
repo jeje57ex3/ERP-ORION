@@ -648,3 +648,89 @@ def notifications(request):
     return render(request, 'client_portal/notifications.html', {
         'account': account, 'notifications': notifs,
     })
+
+
+# ─── LE PASSAGE OBLIGÉ : CHANGER LE CODE PROVISOIRE ──────────────────────────
+
+def changer_mot_de_passe(request):
+    """Le client remplace le code provisoire reçu par courriel.
+
+    POURQUOI UNE VUE DU PORTAIL ET NON CELLE DE L'ERP
+
+    `accounts:changer_mot_de_passe` fait déjà ce travail, mais son gabarit
+    étend `erp_base.html` : un client d'espace client y verrait le menu de
+    l'ERP, le sélecteur d'entreprise et le fil d'ariane d'un salarié. Il
+    n'est pas salarié. `ChangementDeMotDePasseRequisMiddleware` route donc
+    les clients de portail ici.
+
+    L'ANCIEN MOT DE PASSE EST EXIGÉ, et ce n'est pas une rigidité : c'est le
+    code reçu par courriel, donc son titulaire l'a sous les yeux. L'exiger
+    prouve qu'il a bien reçu le message — une session obtenue autrement, un
+    poste laissé ouvert, ne suffit pas à s'approprier le compte.
+
+    LE NOUVEAU DOIT DIFFÉRER DE L'ANCIEN. Sans ce contrôle, ressaisir le
+    code reçu satisfait le formulaire, lève l'obligation, et laisse en place
+    un mot de passe engendré par la machine qui dort dans une boîte de
+    réception. L'écran afficherait « mot de passe enregistré » sans que rien
+    ne change.
+
+    LES VALIDATEURS DE DJANGO S'APPLIQUENT, via `PasswordChangeForm`. La vue
+    `set_password` voisine, elle, se contente de « 8 caractères minimum » :
+    « 12345678 » y passe. On ne reproduit pas cette règle-là.
+    """
+    from django.contrib.auth import update_session_auth_hash
+
+    from apps.accounts.forms import ChangementDeMotDePasseForm
+
+    if not request.user.is_authenticated:
+        return redirect('client_portal:login')
+
+    account = _get_portal_account(request)
+    if account is None:
+        # Un salarié qui atterrirait ici n'a rien à y faire : l'ERP a son
+        # propre écran, et le renvoyer dessus vaut mieux qu'un 404.
+        return redirect('accounts:changer_mot_de_passe')
+
+    profil = getattr(request.user, 'profile', None)
+    obligatoire = bool(profil and profil.doit_changer_de_mot_de_passe)
+
+    form = ChangementDeMotDePasseForm(request.user, request.POST or None)
+    for champ in form.fields.values():
+        champ.widget.attrs.setdefault('class', 'form-control')
+    if obligatoire:
+        form.fields['old_password'].label = 'Code provisoire reçu par courriel'
+
+    if request.method == 'POST' and form.is_valid():
+        utilisateur = form.save()
+
+        # L'OBLIGATION EST LEVÉE ICI, et seulement si le formulaire a été
+        # accepté. La lever à l'affichage suffirait à s'en débarrasser en
+        # ouvrant la page et en la quittant.
+        if obligatoire:
+            profil.doit_changer_de_mot_de_passe = False
+            profil.save(update_fields=['doit_changer_de_mot_de_passe'])
+            request.session.pop('_avertissement_mdp_provisoire', None)
+
+        # L'ordre compte : l'empreinte est rafraîchie APRÈS l'enregistrement.
+        # La session porte une empreinte du mot de passe ; sans cela, Django
+        # ferme la session à la requête SUIVANTE et le client est renvoyé à
+        # la connexion juste après avoir réussi — ce qu'il lit comme un
+        # échec.
+        update_session_auth_hash(request, utilisateur)
+
+        # `is_email_verified` passe à vrai : avoir saisi le code reçu par
+        # courriel EST la preuve que l'adresse fonctionne. C'est ce que fait
+        # déjà `set_password` pour le lien d'invitation.
+        if not account.is_email_verified:
+            account.is_email_verified = True
+            account.save(update_fields=['is_email_verified'])
+
+        messages.success(request, 'Votre mot de passe est enregistré. Bienvenue !')
+        return redirect('client_portal:dashboard')
+
+    return render(request, 'client_portal/changer_mot_de_passe.html', {
+        'company': _get_company(request),
+        'account': account,
+        'form': form,
+        'obligatoire': obligatoire,
+    })
