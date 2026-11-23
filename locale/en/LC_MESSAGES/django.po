@@ -14764,3 +14764,8 @@ msgstr "All permissions removed."
 
 msgid "Permissions en lecture seule appliquées."
 msgstr "Read-only permissions applied."
+
+# ─── Acces a l'espace client depuis les vitrines ────────────────────
+
+msgid "Espace client — se connecter"
+msgstr "Client area — sign in"

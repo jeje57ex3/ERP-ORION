@@ -14885,3 +14885,8 @@ msgstr "Todas as permissões removidas."
 
 msgid "Permissions en lecture seule appliquées."
 msgstr "Permissões de leitura aplicadas."
+
+# ─── Acces a l'espace client depuis les vitrines ────────────────────
+
+msgid "Espace client — se connecter"
+msgstr "Área de cliente — iniciar sessão"

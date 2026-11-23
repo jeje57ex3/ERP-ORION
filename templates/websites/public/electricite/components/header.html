@@ -73,6 +73,33 @@
         l'ERP.
       {% endcomment %}
       {% include "websites/public/components/language_switcher.html" %}
+
+      {% comment %}
+        L'ACCES A L'ESPACE CLIENT, ET POURQUOI IL N'EST PAS UN « sp-btn ».
+
+        Le site portait deja deux liens de connexion -- un dans le pied de
+        page, un sur la page « espace client » -- mais aucun dans l'en-tete,
+        donc rien de visible depuis une page quelconque. Un client qui
+        revient voir son chantier arrivait sur l'accueil et devait deviner
+        ou chercher.
+
+        LA CLASSE N'EST PAS « sp-btn », ET C'EST MESURE : la feuille porte
+        « .sp-entete__actions .sp-btn { display: none } » sous 940 px. Un
+        bouton de connexion ainsi style aurait disparu au telephone --
+        c'est-a-dire sur l'appareil depuis lequel un client regarde son
+        chantier. Il a donc son propre style, qui reste visible et se
+        reduit a son icone quand la place manque.
+
+        « aria-label » porte le texte entier parce que le libelle est
+        masque au telephone : sans lui, un lecteur d'ecran annoncerait un
+        lien sans nom.
+      {% endcomment %}
+      <a href="{% url 'client_portal:login' %}" class="sp-connexion"
+         aria-label="{% trans 'Espace client — se connecter' %}">
+        <i class="bi bi-person-circle" aria-hidden="true"></i>
+        <span class="sp-connexion__texte">{% trans "Espace client" %}</span>
+      </a>
+
       {% if site.contact_phone %}
       {% comment %}
         Le numero est un LIEN « tel: ». Sur un telephone — d'ou viennent la
