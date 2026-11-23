@@ -281,7 +281,7 @@ def wizard_step4(request, site_slug):
         )
 
         if contact.get('create_portal') and contact.get('email'):
-            _create_portal_account(company, contact)
+            _create_portal_account(company, contact, request)
 
         estimate = _calculate_electricite_estimate(company, quote_request)
         _create_crm_lead_from_guided_quote(company, quote_request)
@@ -309,26 +309,28 @@ def wizard_step4(request, site_slug):
     return render(request, 'websites/public/electricite/wizard/step4_recap.html', ctx)
 
 
-def _create_portal_account(company, contact):
-    from apps.portals.models import ClientPortalAccount
-    email = contact.get('email', '')
-    if not email or User.objects.filter(email=email).exists():
-        return
-    pwd = secrets.token_urlsafe(12)
-    username = email.split('@')[0]
-    base, i = username, 1
-    while User.objects.filter(username=username).exists():
-        username = f'{base}{i}'
-        i += 1
-    user = User.objects.create_user(
-        username=username, email=email, password=pwd,
-        first_name=contact.get('first_name', ''), last_name=contact.get('last_name', ''),
+def _create_portal_account(company, contact, request=None):
+    """Ouvre l'espace client du prospect et LUI ENVOIE SON CODE.
+
+    CE QUE CETTE FONCTION FAISAIT, ET QUI ÉTAIT UN DÉFAUT COMPLET :
+
+        pwd = secrets.token_urlsafe(12)
+        user = User.objects.create_user(..., password=pwd, ...)
+
+    `pwd` était une variable locale, jamais envoyée nulle part et perdue à
+    la sortie. Chaque prospect qui remplissait ce configurateur recevait
+    donc un compte d'espace client ACTIF auquel il ne pouvait JAMAIS se
+    connecter. Rien ne le signalait — ni à lui, ni à l'entreprise.
+
+    `apps/btp/guided_quote_views.py` portait la même fonction, au même
+    défaut, à l'espacement près. Les deux appellent désormais un seul
+    service, qui engendre le code, le pose, et l'envoie par courriel.
+    """
+    from apps.portals.services.acces_portail import (
+        creer_un_compte_depuis_un_devis,
     )
-    ClientPortalAccount.objects.create(
-        company=company, user=user, email=email,
-        first_name=contact.get('first_name', ''), last_name=contact.get('last_name', ''),
-        phone=contact.get('phone', ''), created_from_guided_quote=True,
-    )
+
+    creer_un_compte_depuis_un_devis(company, contact, request=request)
 
 
 def _calculate_electricite_estimate(company, quote_request):
