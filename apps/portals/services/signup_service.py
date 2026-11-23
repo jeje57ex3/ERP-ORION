@@ -327,6 +327,102 @@ def convert_signup_to_portal_account(signup_request):
     return account
 
 
+def create_portal_account_for_customer(customer, created_by, base_url=''):
+    """
+    Crée directement un compte portail pour un client CRM, à l'initiative
+    d'un admin ERP (sans passer par une demande d'inscription du client).
+
+    Un CODE PROVISOIRE aléatoire est envoyé par courriel, et le client doit
+    le remplacer à sa première connexion.
+
+    CE QUI A CHANGÉ, ET POURQUOI. Cette fonction envoyait un lien de
+    définition de mot de passe signé par `default_token_generator`. Trois
+    raisons de ne plus le faire :
+
+    1. **L'envoi était silencieux.** `_send_email` ci-dessus passe
+       `fail_silently=True` ET rattrape toute exception dans un
+       `logger.warning` : l'appelant reçoit `None` quoi qu'il arrive, et
+       l'écran annonçait « Un email d'activation a été envoyé » quand rien
+       n'était parti.
+    2. **Un lien de définition de mot de passe est un lien de connexion** :
+       `client_views.set_password` appelle `login(request, user)` après
+       l'enregistrement. Transféré ou lu dans une boîte partagée, il donne
+       l'accès. Un code à saisir passe par le formulaire de connexion
+       normal, donc par la limitation d'essais et le verrou de compte.
+    3. Les comptes de l'ERP ont depuis la même mécanique
+       (`apps/accounts/services/code_provisoire.py`) : deux dispositifs
+       différents pour deux familles de comptes finissent par ne plus se
+       ressembler.
+
+    UN COMPTE EXISTANT REÇOIT UN NOUVEAU CODE au lieu d'un refus muet.
+    C'est le seul chemin de renvoi disponible depuis l'interface : sans
+    cela, un client dont le courriel s'est perdu n'avait aucune issue autre
+    qu'une requête en base. Le code précédent cesse alors de valoir, ce qui
+    est voulu.
+
+    Returns: (account, created) — created=False si un compte existait déjà.
+    Le résultat de l'envoi est posé sur `account.envoi_du_code`, un
+    `(envoyé, motif)` transitoire : la signature reste à deux valeurs pour
+    ne pas casser ses appelants.
+    Raises: ValueError si le client n'a pas d'email renseigné.
+    """
+    from apps.portals.models import ClientPortalAccount
+    from apps.portals.services.acces_portail import creer_et_envoyer
+
+    email = (customer.email or '').strip()
+    if not email:
+        raise ValueError('Ce client n\'a pas d\'adresse email renseignée.')
+
+    existing = ClientPortalAccount.objects.filter(
+        company=customer.company, email__iexact=email,
+    ).first()
+    if existing:
+        existing.envoi_du_code = creer_et_envoyer(existing, base_url=base_url)
+        return existing, False
+
+    user, user_created = User.objects.get_or_create(
+        username=email,
+        defaults={
+            'email': email,
+            'first_name': customer.contact_name.split(' ')[0] if customer.contact_name else '',
+            'last_name': ' '.join(customer.contact_name.split(' ')[1:]) if customer.contact_name else customer.name,
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+        },
+    )
+    if user_created:
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
+
+    account = ClientPortalAccount.objects.create(
+        company=customer.company,
+        user=user,
+        first_name=customer.contact_name.split(' ')[0] if customer.contact_name else '',
+        last_name=' '.join(customer.contact_name.split(' ')[1:]) if customer.contact_name else customer.name,
+        email=email,
+        phone=customer.phone,
+        address=customer.address,
+        crm_customer_id=customer.pk,
+        is_active=True,
+        is_email_verified=False,
+        is_approved=True,
+        created_from_signup=False,
+    )
+
+    _log_activity(customer.company, 'portal_account_created', email, performed_by=created_by)
+
+    # Le code est posé AVANT d'être envoyé. Si l'envoi échoue, le compte
+    # porte un code que personne ne connaît — donc inutilisable, ce qui est
+    # l'état sûr. Dans l'autre ordre, un envoi réussi suivi d'une écriture
+    # échouée laisserait un code valide dans une boîte et un compte qui ne
+    # le reconnaît pas : le pire des deux, car l'exploitant aurait vu
+    # « envoyé » et n'aurait aucune raison de recommencer.
+    account.envoi_du_code = creer_et_envoyer(account, base_url=base_url)
+
+    return account, True
+
+
 def find_existing_customer(company, email: str):
     """Cherche un client CRM existant par email."""
     try:
