@@ -67,7 +67,18 @@ def _reglages(db, hote, port):
     reglages.hote = hote
     reglages.port = port
     reglages.chiffrement = 'aucun' if port == 25 else 'tls'
-    reglages.adresse_expediteur = 'no-reply@orion.test'
+    # UN DOMAINE ROUTABLE, et ce n'est pas un detail de decor.
+    #
+    # Cette fixture portait « no-reply@orion.test ». Depuis que
+    # `_expediteur_inutilisable` refuse les domaines reserves -- et
+    # « .test » en est un (RFC 2606), comme « .local » et « .invalid » --
+    # le test d'envoi etait refuse avant meme d'ouvrir la connexion, et
+    # ce fichier mesurait un refus au lieu du message de succes.
+    #
+    # Le controle avait raison : aucun fournisseur n'accepte un
+    # expediteur en « .test ». C'est la fixture qui donnait au code une
+    # adresse qu'il ne verra jamais en service.
+    reglages.adresse_expediteur = 'no-reply@orion-erp.fr'
     reglages.save()
     return reglages
 
