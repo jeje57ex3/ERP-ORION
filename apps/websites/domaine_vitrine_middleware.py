@@ -44,6 +44,21 @@ from .middleware import _is_internal_host
 CHEMINS_RESERVES = (
     '/static/', '/media/', '/api/', '/admin/', '/orion-admin/',
     '/accounts/', '/sites/', '/i18n/', '/__debug__/', '/health',
+    # ─── L'ESPACE CLIENT ────────────────────────────────────────────────
+    #
+    # Mesuré le 23/11/2026 : « /client/connexion/ » demandé sur un domaine
+    # de vitrine rendait **404**, et 200 sur un hôte interne. La cause est
+    # ici — sans ce préfixe, la réécriture transformait le chemin en
+    # « /sites/<slug>/client/connexion/ », qui ne correspond à aucune
+    # route.
+    #
+    # Le défaut n'avait aucune conséquence visible tant qu'aucun site ne
+    # pointait vers l'espace client : il n'était atteignable que depuis
+    # l'adresse interne, et c'est ainsi qu'on l'essaie quand on le
+    # développe. Il se serait manifesté le jour où un client aurait cliqué
+    # sur « Espace client » depuis s-peace.com — c'est-à-dire chez la
+    # seule personne pour qui ce bouton existe.
+    '/client/',
 )
 
 

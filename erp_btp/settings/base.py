@@ -536,7 +536,20 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 
 # ─── Messages ─────────────────────────────────────────────────────────────────
-MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+#
+# `StockageTraduit` DERIVE DE SessionStorage, pas du FallbackStorage de
+# Django : ce projet a choisi de garder les messages cote serveur, et un
+# repli en cookie les ferait traverser le reseau. Ajouter une traduction ne
+# doit rien changer d'autre.
+#
+# Il traduit les bandeaux A L'AFFICHAGE, selon la langue de l'interface.
+# Sur 721 appels a messages.success/error/warning/info de ce depot, CINQ
+# passaient par gettext : une interface en portugais servait donc des pages
+# portugaises surmontees de bandeaux francais. Le stockage est le seul point
+# par lequel ils passent tous, quel que soit le gabarit qui les affiche.
+#
+# Voir apps/translations/messages_auto.py pour l'ordre des sources.
+MESSAGE_STORAGE = 'apps.translations.message_storage.StockageTraduit'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
 # ─── Courriels ────────────────────────────────────────────────────────────────

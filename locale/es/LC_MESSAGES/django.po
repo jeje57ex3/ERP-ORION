@@ -14731,3 +14731,193 @@ msgstr "Persianas"
 
 msgid "Éclairage LED"
 msgstr "Iluminación LED"
+
+# ─── Courriel d'acces a l'espace client ────────────────────────────
+# Le client choisit sa langue a la creation du compte : ce courriel et
+# son interface la suivent. Msgid mesures en instrumentant gettext --
+# voir apps/portals/services/acces_portail.py.
+
+msgid "Bonjour %(nom)s,"
+msgstr "Hola %(nom)s:"
+
+msgid "Votre espace client %(entreprise)s est ouvert."
+msgstr "Su área de cliente de %(entreprise)s está abierta."
+
+msgid "Identifiant : %(identifiant)s"
+msgstr "Usuario: %(identifiant)s"
+
+msgid "Code provisoire : %(code)s"
+msgstr "Código provisional: %(code)s"
+
+msgid "Connectez-vous ici : %(url)s"
+msgstr "Inicie sesión aquí: %(url)s"
+
+msgid "Ce code ne sert qu’une fois : dès votre première connexion, l’application vous demandera de choisir votre propre mot de passe. Personne d’autre que vous ne le connaît — pas même %(entreprise)s."
+msgstr "Este código solo sirve una vez: en su primer inicio de sesión, la aplicación le pedirá elegir su propia contraseña. Nadie más lo conoce, ni siquiera %(entreprise)s."
+
+msgid "Vous y retrouverez l’avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l’équipe."
+msgstr "Allí encontrará el avance de sus obras, sus documentos, sus planificaciones y sus conversaciones con el equipo."
+
+msgid "Si vous n’attendiez pas ce message, ignorez-le et signalez-le à %(entreprise)s : le compte restera inutilisable tant que personne ne s’y connecte."
+msgstr "Si no esperaba este mensaje, ignórelo y comuníquelo a %(entreprise)s: la cuenta seguirá inutilizable mientras nadie inicie sesión."
+
+msgid "Votre espace client — %(entreprise)s"
+msgstr "Su área de cliente — %(entreprise)s"
+
+msgid "Un espace client a été ouvert pour vous chez <strong>%(cname)s</strong>.\n        Vous y suivrez l'avancement de vos chantiers, vos documents, vos plannings et vos échanges avec l'équipe."
+msgstr "Se ha abierto un área de cliente para usted en <strong>%(cname)s</strong>. Allí seguirá el avance de sus obras, sus documentos, sus planificaciones y sus conversaciones con el equipo."
+
+msgid "Ce code ne sert qu'une fois : dès votre première connexion,\n        l'application vous demandera de choisir votre propre mot de passe."
+msgstr "Este código solo sirve una vez: en su primer inicio de sesión, la aplicación le pedirá elegir su propia contraseña."
+
+msgid "Personne d'autre que vous ne connaît ce code — pas même %(cname)s.\n        Si vous n'attendiez pas ce message, ignorez-le et signalez-le : le compte restera\n        inutilisable tant que personne ne s'y connecte."
+msgstr "Nadie más conoce este código, ni siquiera %(cname)s. Si no esperaba este mensaje, ignórelo y comuníquelo: la cuenta seguirá inutilizable mientras nadie inicie sesión."
+
+msgid "Votre espace client est ouvert"
+msgstr "Su área de cliente está abierta"
+
+msgid "Code provisoire"
+msgstr "Código provisional"
+
+msgid "Langue du client"
+msgstr "Idioma del cliente"
+
+msgid "Son espace client ET le courriel qu'il va recevoir."
+msgstr "Su área de cliente Y el correo que va a recibir."
+
+# ─── Messages flash (bandeaux) ──────────────────────────────────────
+# Traduits a l'affichage par apps/translations/message_storage.py.
+# Les plus frequents sont ici, versionnes et relisibles ; le reste
+# passe par le cache et le modele local, voir
+# /orion-admin/traductions-des-messages/.
+
+msgid "Accès refusé."
+msgstr "Acceso denegado."
+
+msgid "Accès refusé. Réservé aux administrateurs."
+msgstr "Acceso denegado. Solo administradores."
+
+msgid "Accès réservé au Super Admin."
+msgstr "Reservado al Super Admin."
+
+msgid "Accès réservé au Super Admin Orion ERP."
+msgstr "Reservado al Super Admin de Orion ERP."
+
+msgid "Accès à cette page refusé."
+msgstr "Acceso a esta página denegado."
+
+msgid "Vous n'avez pas accès à cette page."
+msgstr "No tiene acceso a esta página."
+
+msgid "Vous n'avez pas la permission d'effectuer cette action."
+msgstr "No tiene permiso para realizar esta acción."
+
+msgid "Action réservée aux super-administrateurs."
+msgstr "Acción reservada a los superadministradores."
+
+msgid "Action réservée aux administrateurs."
+msgstr "Acción reservada a los administradores."
+
+msgid "Aucune entreprise sélectionnée."
+msgstr "Ninguna empresa seleccionada."
+
+msgid "Page mise à jour."
+msgstr "Página actualizada."
+
+msgid "Profil mis à jour avec succès."
+msgstr "Perfil actualizado correctamente."
+
+msgid "Compte mis à jour."
+msgstr "Cuenta actualizada."
+
+msgid "Modèle mis à jour."
+msgstr "Plantilla actualizada."
+
+msgid "Article mis à jour."
+msgstr "Artículo actualizado."
+
+msgid "Produit mis à jour."
+msgstr "Producto actualizado."
+
+msgid "Commande mise à jour."
+msgstr "Pedido actualizado."
+
+msgid "Demande mise à jour."
+msgstr "Solicitud actualizada."
+
+msgid "Section mise à jour."
+msgstr "Sección actualizada."
+
+msgid "Section ajoutée."
+msgstr "Sección añadida."
+
+msgid "Section supprimée."
+msgstr "Sección eliminada."
+
+msgid "Bloc ajouté."
+msgstr "Bloque añadido."
+
+msgid "Bloc supprimé."
+msgstr "Bloque eliminado."
+
+msgid "Ligne ajoutée."
+msgstr "Línea añadida."
+
+msgid "Ligne mise à jour."
+msgstr "Línea actualizada."
+
+msgid "Ligne supprimée."
+msgstr "Línea eliminada."
+
+msgid "Point ajouté."
+msgstr "Punto añadido."
+
+msgid "Point mis à jour."
+msgstr "Punto actualizado."
+
+msgid "Points enregistrés."
+msgstr "Puntos guardados."
+
+msgid "Étape enregistrée."
+msgstr "Etapa guardada."
+
+msgid "Étape mise à jour."
+msgstr "Etapa actualizada."
+
+msgid "Fichiers ajoutés avec succès."
+msgstr "Archivos añadidos correctamente."
+
+msgid "Aucun fichier reçu."
+msgstr "Ningún archivo recibido."
+
+msgid "Document introuvable."
+msgstr "Documento no encontrado."
+
+msgid "Utilisateur introuvable."
+msgstr "Usuario no encontrado."
+
+msgid "Les mots de passe ne correspondent pas."
+msgstr "Las contraseñas no coinciden."
+
+msgid "Aucun compte avec cet email."
+msgstr "Ninguna cuenta con este correo electrónico."
+
+msgid "Vous avez été déconnecté."
+msgstr "Ha cerrado la sesión."
+
+msgid "Permissions enregistrées."
+msgstr "Permisos guardados."
+
+msgid "Accès complet accordé."
+msgstr "Acceso completo concedido."
+
+msgid "Toutes les permissions supprimées."
+msgstr "Todos los permisos eliminados."
+
+msgid "Permissions en lecture seule appliquées."
+msgstr "Permisos de solo lectura aplicados."
+
+# ─── Acces a l'espace client depuis les vitrines ────────────────────
+
+msgid "Espace client — se connecter"
+msgstr "Área de cliente — iniciar sesión"

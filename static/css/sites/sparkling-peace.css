@@ -234,6 +234,54 @@
   font-size: 14px;
 }
 
+/* ── L'acces a l'espace client ─────────────────────────────────────────── */
+/*
+ * PAS UN « sp-btn », ET C'EST VOULU. La regle
+ * « .sp-entete__actions .sp-btn { display: none } » du bloc mobile masque
+ * tous les boutons de l'en-tete sous 940 px. Un lien de connexion ainsi
+ * style aurait disparu au telephone -- l'appareil depuis lequel un client
+ * regarde son chantier.
+ *
+ * Discret a dessein : c'est une porte pour qui la cherche, pas l'appel a
+ * l'action de la page. Le bouton or reste « Demander un devis ».
+ */
+.sp-connexion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 34, 32, .22);
+  background: transparent;
+  color: var(--site-text);
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: border-color .2s, background .2s;
+}
+
+.sp-connexion:hover {
+  border-color: var(--site-primary);
+  background: rgba(255, 255, 255, .55);
+}
+
+.sp-connexion i { font-size: 17px; line-height: 1; }
+
+/*
+ * SUR LA PHOTO DU HERO, l'en-tete est transparent et le texte passe en
+ * clair : une bordure sombre y serait invisible et le libelle illisible.
+ * On suit « sp-entete--opaque » plutot que de deviner la page.
+ */
+.sp-entete:not(.sp-entete--opaque) .sp-connexion {
+  border-color: rgba(255, 255, 255, .45);
+  color: #FFFFFF;
+}
+
+.sp-entete:not(.sp-entete--opaque) .sp-connexion:hover {
+  border-color: #FFFFFF;
+  background: rgba(255, 255, 255, .14);
+}
+
 /* ── Le hero ──────────────────────────────────────────────────────────── */
 
 .sp-hero {
@@ -500,6 +548,14 @@
 .sp-site a.sp-btn--contour { color: var(--site-text); }
 .sp-site a.sp-tel { color: var(--site-text); white-space: nowrap; }
 
+/* MEME RAISON QUE CI-DESSUS, et meme piege. « .sp-connexion », 0,1,0, est
+ * battu par « .orion-site a { color: inherit } », 0,1,1 : le lien aurait
+ * herite de la couleur de l'en-tete -- donc du blanc, sur fond blanc,
+ * partout ailleurs que sur la photo du hero. On qualifie, et on redit la
+ * couleur du bloc transparent pour que les deux regles s'accordent. */
+.sp-site a.sp-connexion { color: var(--site-text); }
+.sp-site .sp-entete:not(.sp-entete--opaque) a.sp-connexion { color: #FFFFFF; }
+
 /* LE MENU DE LANGUE AURAIT SUBI LE MEME SORT.
  *
  * Son panneau est blanc (« --site-surface ») et ses entrees sont des
@@ -705,6 +761,13 @@
   /* Le numero reste joignable d'un doigt ; le bouton de devis passe a la
      ligne du menu, ou il a la place de s'ecrire en entier. */
   .sp-entete__actions .sp-btn { display: none; }
+
+  /* L'ACCES CLIENT RESTE, REDUIT A SON ICONE. Il n'est pas un « sp-btn »
+     precisement pour echapper a la regle ci-dessus : un client regarde son
+     chantier depuis son telephone, et c'est la qu'il a le plus besoin de
+     cette porte. Le libelle part, l'icone et « aria-label » restent. */
+  .sp-connexion { padding: 10px 12px; }
+  .sp-connexion__texte { display: none; }
 }
 
 @media (max-width: 680px) {

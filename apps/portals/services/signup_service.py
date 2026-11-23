@@ -327,7 +327,8 @@ def convert_signup_to_portal_account(signup_request):
     return account
 
 
-def create_portal_account_for_customer(customer, created_by, base_url=''):
+def create_portal_account_for_customer(customer, created_by, base_url='',
+                                       langue=''):
     """
     Crée directement un compte portail pour un client CRM, à l'initiative
     d'un admin ERP (sans passer par une demande d'inscription du client).
@@ -377,7 +378,8 @@ def create_portal_account_for_customer(customer, created_by, base_url=''):
         company=customer.company, email__iexact=email,
     ).first()
     if existing:
-        existing.envoi_du_code = creer_et_envoyer(existing, base_url=base_url)
+        existing.envoi_du_code = creer_et_envoyer(
+            existing, base_url=base_url, langue=langue)
         return existing, False
 
     user, user_created = User.objects.get_or_create(
@@ -418,7 +420,8 @@ def create_portal_account_for_customer(customer, created_by, base_url=''):
     # échouée laisserait un code valide dans une boîte et un compte qui ne
     # le reconnaît pas : le pire des deux, car l'exploitant aurait vu
     # « envoyé » et n'aurait aucune raison de recommencer.
-    account.envoi_du_code = creer_et_envoyer(account, base_url=base_url)
+    account.envoi_du_code = creer_et_envoyer(
+        account, base_url=base_url, langue=langue)
 
     return account, True
 

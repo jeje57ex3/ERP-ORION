@@ -1,4 +1,5 @@
 import secrets
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from apps.core.models import Company
@@ -29,6 +30,34 @@ class ClientPortalAccount(models.Model):
     email = models.EmailField('Email')
     phone = models.CharField('Téléphone', max_length=20, blank=True)
     address = models.TextField('Adresse', blank=True)
+
+    # ─── La langue de ce client ─────────────────────────────────────────
+    #
+    # Elle gouverne DEUX choses, et c'est pour cela qu'elle est stockée ici
+    # plutôt que devinée à chaque fois :
+    #
+    # 1. L'interface de son espace client. `OrionLanguageMiddleware` la lit
+    #    pour tout compte porteur d'un `portal_account`.
+    # 2. Les courriels qu'on lui envoie. Ceux-là sont composés pendant la
+    #    requête d'un SALARIÉ de l'ERP — qui travaille peut-être en
+    #    français quand le client lit le portugais. Sans cette valeur
+    #    enregistrée, le message partirait dans la langue de l'expéditeur,
+    #    ce qui est exactement l'inverse du but.
+    #
+    # ENREGISTRÉE ET NON DÉDUITE DU NAVIGATEUR. Un courriel part souvent
+    # longtemps après, depuis une tâche de fond où aucun navigateur n'a
+    # jamais parlé. Et l'exploitant qui connaît son client sait mieux que
+    # l'en-tête `Accept-Language` d'un appareil peut-être partagé.
+    #
+    # `choices` vient de `settings.LANGUAGES` : une liste figée, qui ne
+    # provoque pas de migration quand on ajoute un catalogue. Mais le
+    # SÉLECTEUR, lui, n'offre que les langues réellement traduisibles —
+    # voir `apps.portals.services.acces_portail.langues_proposables`.
+    langue = models.CharField(
+        'Langue', max_length=5, default='fr',
+        choices=settings.LANGUAGES,
+        help_text='Langue de son espace client et des courriels qu’on lui '
+                  'envoie.')
 
     # Lien CRM
     crm_customer_id = models.PositiveIntegerField('ID client CRM', null=True, blank=True)

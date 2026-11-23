@@ -2,7 +2,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
 from django.db.models import Q, Count, Sum
+from django.utils.translation import get_language
 from .models import Customer, Prospect, Opportunity, Contact, CRMActivity
 from .forms import CustomerForm, ProspectForm, OpportunityForm, ContactForm, ActivityForm
 
@@ -62,6 +64,12 @@ def customer_detail(request, pk):
         hasattr(request.user, 'profile') and request.user.profile.role in ('admin', 'superadmin')
     )
 
+    # Les langues du sélecteur d'accès à l'espace client. Pas
+    # `settings.LANGUAGES` : il en déclare sept et `locale/` n'en contient
+    # que cinq, donc le néerlandais retomberait en silence sur le français.
+    from apps.portals.services.acces_portail import langues_proposables
+    langues = langues_proposables()
+
     return render(request, 'crm/customer_detail.html', {
         'page_title': customer.name,
         'customer': customer,
@@ -72,6 +80,11 @@ def customer_detail(request, pk):
         'active_tab': request.GET.get('tab', 'info'),
         'portal_account': portal_account,
         'is_hr_admin': is_hr_admin,
+        'langues_proposables': langues,
+        # La langue de l'ERP est proposée par défaut : dans la très grande
+        # majorité des cas le client parle celle de l'entreprise, et une
+        # liste sans présélection ferait choisir la première par inattention.
+        'langue_par_defaut': get_language() or settings.LANGUAGE_CODE,
     })
 
 
