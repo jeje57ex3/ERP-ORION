@@ -14632,3 +14632,135 @@ msgstr "Customer language"
 
 msgid "Son espace client ET le courriel qu'il va recevoir."
 msgstr "Their client area AND the email they are about to receive."
+
+# ─── Messages flash (bandeaux) ──────────────────────────────────────
+# Traduits a l'affichage par apps/translations/message_storage.py.
+# Les plus frequents sont ici, versionnes et relisibles ; le reste
+# passe par le cache et le modele local, voir
+# /orion-admin/traductions-des-messages/.
+
+msgid "Accès refusé."
+msgstr "Access denied."
+
+msgid "Accès refusé. Réservé aux administrateurs."
+msgstr "Access denied. Administrators only."
+
+msgid "Accès réservé au Super Admin."
+msgstr "Reserved for the Super Admin."
+
+msgid "Accès réservé au Super Admin Orion ERP."
+msgstr "Reserved for the Orion ERP Super Admin."
+
+msgid "Accès à cette page refusé."
+msgstr "Access to this page denied."
+
+msgid "Vous n'avez pas accès à cette page."
+msgstr "You do not have access to this page."
+
+msgid "Vous n'avez pas la permission d'effectuer cette action."
+msgstr "You do not have permission to perform this action."
+
+msgid "Action réservée aux super-administrateurs."
+msgstr "Action reserved for super administrators."
+
+msgid "Action réservée aux administrateurs."
+msgstr "Action reserved for administrators."
+
+msgid "Aucune entreprise sélectionnée."
+msgstr "No company selected."
+
+msgid "Page mise à jour."
+msgstr "Page updated."
+
+msgid "Profil mis à jour avec succès."
+msgstr "Profile updated successfully."
+
+msgid "Compte mis à jour."
+msgstr "Account updated."
+
+msgid "Modèle mis à jour."
+msgstr "Template updated."
+
+msgid "Article mis à jour."
+msgstr "Item updated."
+
+msgid "Produit mis à jour."
+msgstr "Product updated."
+
+msgid "Commande mise à jour."
+msgstr "Order updated."
+
+msgid "Demande mise à jour."
+msgstr "Request updated."
+
+msgid "Section mise à jour."
+msgstr "Section updated."
+
+msgid "Section ajoutée."
+msgstr "Section added."
+
+msgid "Section supprimée."
+msgstr "Section deleted."
+
+msgid "Bloc ajouté."
+msgstr "Block added."
+
+msgid "Bloc supprimé."
+msgstr "Block deleted."
+
+msgid "Ligne ajoutée."
+msgstr "Line added."
+
+msgid "Ligne mise à jour."
+msgstr "Line updated."
+
+msgid "Ligne supprimée."
+msgstr "Line deleted."
+
+msgid "Point ajouté."
+msgstr "Check added."
+
+msgid "Point mis à jour."
+msgstr "Check updated."
+
+msgid "Points enregistrés."
+msgstr "Checks saved."
+
+msgid "Étape enregistrée."
+msgstr "Step saved."
+
+msgid "Étape mise à jour."
+msgstr "Step updated."
+
+msgid "Fichiers ajoutés avec succès."
+msgstr "Files added successfully."
+
+msgid "Aucun fichier reçu."
+msgstr "No file received."
+
+msgid "Document introuvable."
+msgstr "Document not found."
+
+msgid "Utilisateur introuvable."
+msgstr "User not found."
+
+msgid "Les mots de passe ne correspondent pas."
+msgstr "The passwords do not match."
+
+msgid "Aucun compte avec cet email."
+msgstr "No account with this email address."
+
+msgid "Vous avez été déconnecté."
+msgstr "You have been signed out."
+
+msgid "Permissions enregistrées."
+msgstr "Permissions saved."
+
+msgid "Accès complet accordé."
+msgstr "Full access granted."
+
+msgid "Toutes les permissions supprimées."
+msgstr "All permissions removed."
+
+msgid "Permissions en lecture seule appliquées."
+msgstr "Read-only permissions applied."

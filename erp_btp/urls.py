@@ -175,6 +175,15 @@ urlpatterns = [
     # Pourquoi une page plutot qu'un reglage de .env : EMAIL_HOST et les
     # siens n'etaient modifiables que par SSH, suivi d'un redemarrage de
     # gunicorn.
+    # Les messages flash sont traduits a l'affichage par
+    # apps.translations.message_storage. Les chaines inconnues -- les 315
+    # f-strings du depot, et tout message ajoute demain -- sont notees puis
+    # traduites par lots avec le modele LOCAL. Cet ecran pilote ces lots :
+    # sans lui, il resterait une commande a taper.
+    path('orion-admin/traductions-des-messages/',
+         include('apps.translations.urls_messages',
+                 namespace='translations_messages')),
+
     path('orion-admin/courriels/',
          include('apps.core.mail_urls', namespace='core_mail')),
 

@@ -14753,3 +14753,135 @@ msgstr "Idioma do cliente"
 
 msgid "Son espace client ET le courriel qu'il va recevoir."
 msgstr "A sua área de cliente E o e-mail que vai receber."
+
+# ─── Messages flash (bandeaux) ──────────────────────────────────────
+# Traduits a l'affichage par apps/translations/message_storage.py.
+# Les plus frequents sont ici, versionnes et relisibles ; le reste
+# passe par le cache et le modele local, voir
+# /orion-admin/traductions-des-messages/.
+
+msgid "Accès refusé."
+msgstr "Acesso recusado."
+
+msgid "Accès refusé. Réservé aux administrateurs."
+msgstr "Acesso recusado. Apenas administradores."
+
+msgid "Accès réservé au Super Admin."
+msgstr "Reservado ao Super Admin."
+
+msgid "Accès réservé au Super Admin Orion ERP."
+msgstr "Reservado ao Super Admin do Orion ERP."
+
+msgid "Accès à cette page refusé."
+msgstr "Acesso a esta página recusado."
+
+msgid "Vous n'avez pas accès à cette page."
+msgstr "Não tem acesso a esta página."
+
+msgid "Vous n'avez pas la permission d'effectuer cette action."
+msgstr "Não tem permissão para efetuar esta ação."
+
+msgid "Action réservée aux super-administrateurs."
+msgstr "Ação reservada aos superadministradores."
+
+msgid "Action réservée aux administrateurs."
+msgstr "Ação reservada aos administradores."
+
+msgid "Aucune entreprise sélectionnée."
+msgstr "Nenhuma empresa selecionada."
+
+msgid "Page mise à jour."
+msgstr "Página atualizada."
+
+msgid "Profil mis à jour avec succès."
+msgstr "Perfil atualizado com êxito."
+
+msgid "Compte mis à jour."
+msgstr "Conta atualizada."
+
+msgid "Modèle mis à jour."
+msgstr "Modelo atualizado."
+
+msgid "Article mis à jour."
+msgstr "Artigo atualizado."
+
+msgid "Produit mis à jour."
+msgstr "Produto atualizado."
+
+msgid "Commande mise à jour."
+msgstr "Encomenda atualizada."
+
+msgid "Demande mise à jour."
+msgstr "Pedido atualizado."
+
+msgid "Section mise à jour."
+msgstr "Secção atualizada."
+
+msgid "Section ajoutée."
+msgstr "Secção adicionada."
+
+msgid "Section supprimée."
+msgstr "Secção eliminada."
+
+msgid "Bloc ajouté."
+msgstr "Bloco adicionado."
+
+msgid "Bloc supprimé."
+msgstr "Bloco eliminado."
+
+msgid "Ligne ajoutée."
+msgstr "Linha adicionada."
+
+msgid "Ligne mise à jour."
+msgstr "Linha atualizada."
+
+msgid "Ligne supprimée."
+msgstr "Linha eliminada."
+
+msgid "Point ajouté."
+msgstr "Ponto adicionado."
+
+msgid "Point mis à jour."
+msgstr "Ponto atualizado."
+
+msgid "Points enregistrés."
+msgstr "Pontos guardados."
+
+msgid "Étape enregistrée."
+msgstr "Etapa guardada."
+
+msgid "Étape mise à jour."
+msgstr "Etapa atualizada."
+
+msgid "Fichiers ajoutés avec succès."
+msgstr "Ficheiros adicionados com êxito."
+
+msgid "Aucun fichier reçu."
+msgstr "Nenhum ficheiro recebido."
+
+msgid "Document introuvable."
+msgstr "Documento não encontrado."
+
+msgid "Utilisateur introuvable."
+msgstr "Utilizador não encontrado."
+
+msgid "Les mots de passe ne correspondent pas."
+msgstr "As palavras-passe não coincidem."
+
+msgid "Aucun compte avec cet email."
+msgstr "Nenhuma conta com este endereço de e-mail."
+
+msgid "Vous avez été déconnecté."
+msgstr "A sua sessão foi encerrada."
+
+msgid "Permissions enregistrées."
+msgstr "Permissões guardadas."
+
+msgid "Accès complet accordé."
+msgstr "Acesso completo concedido."
+
+msgid "Toutes les permissions supprimées."
+msgstr "Todas as permissões removidas."
+
+msgid "Permissions en lecture seule appliquées."
+msgstr "Permissões de leitura aplicadas."
