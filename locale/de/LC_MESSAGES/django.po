@@ -1018,3 +1018,135 @@ msgstr "Brotkrumennavigation"
 
 msgid "Entreprise du bâtiment à votre service."
 msgstr "Bauunternehmen zu Ihren Diensten."
+
+# ─── Configurateur de devis ELECTRICITE (vitrines publiques) ────────
+# Libelles des CHOIX du configurateur. Ils etaient rendus par
+# « {{ label }} » depuis le contexte de la vue, donc hors de portee de
+# {% trans %} : les titres etaient traduits et les options restaient en
+# francais. Voir apps/websites/electricite_wizard_views.py.
+
+msgid "Alarme"
+msgstr "Alarmanlage"
+
+msgid "Appartement"
+msgstr "Wohnung"
+
+msgid "Autre problème"
+msgstr "Anderes Problem"
+
+msgid "Baie informatique"
+msgstr "Netzwerkschrank"
+
+msgid "Batterie de stockage"
+msgstr "Speicherbatterie"
+
+msgid "Borne de recharge VE"
+msgstr "EV-Ladestation"
+
+msgid "Bureau"
+msgstr "Büro"
+
+msgid "Caméra"
+msgstr "Kamera"
+
+msgid "Chambre"
+msgstr "Schlafzimmer"
+
+msgid "Commerce"
+msgstr "Geschäft"
+
+msgid "Construction"
+msgstr "Neubau"
+
+msgid "Cuisine"
+msgstr "Küche"
+
+msgid "Disjoncteur qui saute"
+msgstr "Sicherung fällt immer wieder"
+
+msgid "Domotique"
+msgstr "Hausautomation"
+
+msgid "Dépannage"
+msgstr "Störungsdienst"
+
+msgid "Détecteurs"
+msgstr "Melder"
+
+msgid "Entrepôt"
+msgstr "Lagerhalle"
+
+msgid "Extension"
+msgstr "Erweiterung"
+
+msgid "Garage"
+msgstr "Garage"
+
+msgid "Industrie"
+msgstr "Industrie"
+
+msgid "Interphone"
+msgstr "Türsprechanlage"
+
+msgid "Interrupteurs"
+msgstr "Schalter"
+
+msgid "Jardin"
+msgstr "Garten"
+
+msgid "Local technique"
+msgstr "Technikraum"
+
+msgid "Luxe"
+msgstr "Luxus"
+
+msgid "Maison"
+msgstr "Haus"
+
+msgid "Panneaux photovoltaïques"
+msgstr "Photovoltaikmodule"
+
+msgid "Plus de courant dans tout le logement"
+msgstr "Kein Strom in der ganzen Wohnung"
+
+msgid "Plus de courant dans une pièce"
+msgstr "Kein Strom in einem Raum"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Prise qui ne fonctionne plus"
+msgstr "Steckdose funktioniert nicht mehr"
+
+msgid "Prises"
+msgstr "Steckdosen"
+
+msgid "RJ45"
+msgstr "RJ45"
+
+msgid "Salle de bain"
+msgstr "Badezimmer"
+
+msgid "Salon"
+msgstr "Wohnzimmer"
+
+msgid "Spots"
+msgstr "Spots"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Tableau électrique problématique"
+msgstr "Problem am Sicherungskasten"
+
+msgid "Terrasse"
+msgstr "Terrasse"
+
+msgid "Visiophone"
+msgstr "Video-Türsprechanlage"
+
+msgid "Volets roulants"
+msgstr "Rollläden"
+
+msgid "Éclairage LED"
+msgstr "LED-Beleuchtung"

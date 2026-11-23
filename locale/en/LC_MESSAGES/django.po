@@ -14474,3 +14474,108 @@ msgstr "Breadcrumb"
 
 msgid "Entreprise du bâtiment à votre service."
 msgstr "Construction company at your service."
+
+# ─── Configurateur de devis ELECTRICITE (vitrines publiques) ────────
+# Libelles des CHOIX du configurateur. Ils etaient rendus par
+# « {{ label }} » depuis le contexte de la vue, donc hors de portee de
+# {% trans %} : les titres etaient traduits et les options restaient en
+# francais. Voir apps/websites/electricite_wizard_views.py.
+
+msgid "Alarme"
+msgstr "Alarm"
+
+msgid "Appartement"
+msgstr "Flat"
+
+msgid "Autre problème"
+msgstr "Another problem"
+
+msgid "Baie informatique"
+msgstr "Network cabinet"
+
+msgid "Batterie de stockage"
+msgstr "Storage battery"
+
+msgid "Bureau"
+msgstr "Office"
+
+msgid "Caméra"
+msgstr "Camera"
+
+msgid "Chambre"
+msgstr "Bedroom"
+
+msgid "Construction"
+msgstr "New build"
+
+msgid "Cuisine"
+msgstr "Kitchen"
+
+msgid "Disjoncteur qui saute"
+msgstr "Breaker keeps tripping"
+
+msgid "Détecteurs"
+msgstr "Detectors"
+
+msgid "Extension"
+msgstr "Extension"
+
+msgid "Garage"
+msgstr "Garage"
+
+msgid "Interphone"
+msgstr "Intercom"
+
+msgid "Jardin"
+msgstr "Garden"
+
+msgid "Local technique"
+msgstr "Utility room"
+
+msgid "Luxe"
+msgstr "Luxury"
+
+msgid "Maison"
+msgstr "House"
+
+msgid "Panneaux photovoltaïques"
+msgstr "Solar panels"
+
+msgid "Plus de courant dans tout le logement"
+msgstr "No power anywhere in the home"
+
+msgid "Plus de courant dans une pièce"
+msgstr "No power in one room"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Prise qui ne fonctionne plus"
+msgstr "Socket no longer working"
+
+msgid "RJ45"
+msgstr "RJ45"
+
+msgid "Salle de bain"
+msgstr "Bathroom"
+
+msgid "Salon"
+msgstr "Living room"
+
+msgid "Spots"
+msgstr "Spotlights"
+
+msgid "Tableau électrique problématique"
+msgstr "Problem with the consumer unit"
+
+msgid "Terrasse"
+msgstr "Terrace"
+
+msgid "Visiophone"
+msgstr "Video intercom"
+
+msgid "Volets roulants"
+msgstr "Roller shutters"
+
+msgid "Éclairage LED"
+msgstr "LED lighting"

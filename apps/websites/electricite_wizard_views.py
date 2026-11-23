@@ -16,6 +16,7 @@ from django.http import Http404, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _, override
 
 from apps.btp.guided_quote_pdf import generate_guided_quote_pdf
 from apps.btp.models import (
@@ -30,42 +31,110 @@ from .btp_public_views import _notify_erp
 from .models import Website
 from .public_views import _base_context, _get_ip
 
+# ─── LES LIBELLÉS QUE LE VISITEUR LIT ───────────────────────────────────────
+#
+# **LE DÉFAUT CORRIGÉ.** Les sept gabarits du configurateur chargent `i18n`
+# et portent une centaine de `{% trans %}` : les titres, les boutons, les
+# intitulés de champs étaient donc bien traduits. Mais les CHOIX — c'est-à-
+# dire tout ce que le visiteur lit et clique réellement — étaient rendus par
+# `{{ label }}`, et ces libellés arrivaient du contexte en chaînes de
+# caractères ordinaires. Le configurateur s'affichait ainsi avec des titres
+# portugais et des options françaises.
+#
+# C'est le piège habituel de la traduction côté gabarit : `{% trans %}` ne
+# peut traduire qu'un littéral écrit DANS le gabarit. Une valeur qui vient
+# du contexte le traverse intacte, et rien ne le signale — la page s'affiche,
+# simplement pas dans la bonne langue.
+#
+# **`gettext_lazy` et non `gettext`.** Ces listes sont évaluées à l'import du
+# module, donc une fois pour toute la durée du processus, bien avant qu'on
+# sache quelle langue le visiteur demande. `gettext` figerait la langue
+# active au démarrage de gunicorn — en pratique le français, pour tout le
+# monde et jusqu'au redémarrage. Le paresseux ne se résout qu'au moment du
+# rendu.
+#
+# **ATTENTION SI VOUS AJOUTEZ UN LIBELLÉ ICI :** il ne sera traduit que
+# lorsqu'il figurera dans les cinq catalogues de `locale/`. Enveloppé mais
+# absent du catalogue, `gettext_lazy` rend le français sans broncher.
+
 ROOM_CHOICES = [
-    ('salon', 'Salon'), ('cuisine', 'Cuisine'), ('chambre', 'Chambre'),
-    ('salle_de_bain', 'Salle de bain'), ('garage', 'Garage'),
-    ('terrasse', 'Terrasse'), ('jardin', 'Jardin'), ('local_technique', 'Local technique'),
+    ('salon', _('Salon')), ('cuisine', _('Cuisine')), ('chambre', _('Chambre')),
+    ('salle_de_bain', _('Salle de bain')), ('garage', _('Garage')),
+    ('terrasse', _('Terrasse')), ('jardin', _('Jardin')),
+    ('local_technique', _('Local technique')),
 ]
 
 EQUIPMENT_CHOICES = [
-    ('prises', 'Prises', 'prise_interrupteur'),
-    ('interrupteurs', 'Interrupteurs', 'prise_interrupteur'),
-    ('rj45', 'RJ45', 'reseau'),
-    ('baie_informatique', 'Baie informatique', 'reseau'),
-    ('camera', 'Caméra', 'alarme'),
-    ('alarme', 'Alarme', 'alarme'),
-    ('domotique', 'Domotique', 'domotique'),
-    ('volets_roulants', 'Volets roulants', 'domotique'),
-    ('eclairage_led', 'Éclairage LED', 'eclairage'),
-    ('spots', 'Spots', 'eclairage'),
-    ('detecteurs', 'Détecteurs', 'alarme'),
-    ('interphone', 'Interphone', 'reseau'),
-    ('visiophone', 'Visiophone', 'reseau'),
-    ('borne_ve', 'Borne de recharge VE', 'borne_recharge'),
-    ('panneaux_photovoltaiques', 'Panneaux photovoltaïques', 'autre'),
-    ('batterie', 'Batterie de stockage', 'autre'),
+    ('prises', _('Prises'), 'prise_interrupteur'),
+    ('interrupteurs', _('Interrupteurs'), 'prise_interrupteur'),
+    ('rj45', _('RJ45'), 'reseau'),
+    ('baie_informatique', _('Baie informatique'), 'reseau'),
+    ('camera', _('Caméra'), 'alarme'),
+    ('alarme', _('Alarme'), 'alarme'),
+    ('domotique', _('Domotique'), 'domotique'),
+    ('volets_roulants', _('Volets roulants'), 'domotique'),
+    ('eclairage_led', _('Éclairage LED'), 'eclairage'),
+    ('spots', _('Spots'), 'eclairage'),
+    ('detecteurs', _('Détecteurs'), 'alarme'),
+    ('interphone', _('Interphone'), 'reseau'),
+    ('visiophone', _('Visiophone'), 'reseau'),
+    ('borne_ve', _('Borne de recharge VE'), 'borne_recharge'),
+    ('panneaux_photovoltaiques', _('Panneaux photovoltaïques'), 'autre'),
+    ('batterie', _('Batterie de stockage'), 'autre'),
 ]
-EQUIPMENT_CATEGORY_MAP = {key: category for key, _, category in EQUIPMENT_CHOICES}
+EQUIPMENT_CATEGORY_MAP = {key: category for key, _l, category in EQUIPMENT_CHOICES}
+
+# Le libellé par clé, pour le code qui a besoin du texte et non de la liste.
+# Une seule source : deux dictionnaires écrits séparément finiraient par ne
+# plus dire la même chose.
+LIBELLE_EQUIPEMENT = {key: libelle for key, libelle, _c in EQUIPMENT_CHOICES}
 
 QUALITY_MULTIPLIERS = {'standard': 1.0, 'premium': 1.25, 'luxe': 1.6}
 
 BUILDING_TYPE_CHOICES = [
-    ('house', 'Maison'), ('apartment', 'Appartement'), ('commercial', 'Commerce'),
-    ('workshop', 'Industrie'), ('office', 'Bureau'), ('building', 'Entrepôt'),
-    ('other', 'Local technique'),
+    ('house', _('Maison')), ('apartment', _('Appartement')),
+    ('commercial', _('Commerce')), ('workshop', _('Industrie')),
+    ('office', _('Bureau')), ('building', _('Entrepôt')),
+    ('other', _('Local technique')),
 ]
 PROJECT_TYPE_CHOICES = [
-    ('installation_neuve', 'Construction'), ('renovation', 'Rénovation'),
-    ('travaux', 'Extension'), ('depannage', 'Dépannage'), ('mise_normes', 'Maintenance'),
+    ('installation_neuve', _('Construction')), ('renovation', _('Rénovation')),
+    ('travaux', _('Extension')), ('depannage', _('Dépannage')),
+    ('mise_normes', _('Maintenance')),
+]
+
+# LES GAMMES SONT REDITES ICI, et c'est un choix.
+#
+# `GuidedQuoteRequest.QUALITY_LEVEL_CHOICES` porte les mêmes clés avec des
+# libellés français non traduits. Les envelopper SUR LE MODÈLE obligerait à
+# une migration — Django voit un changement de `choices` — pour un effet nul
+# en base, et changerait du même coup l'affichage dans l'ERP, qui n'est pas
+# le sujet ici.
+#
+# Le risque de cette duplication est qu'elle divorce du modèle sans que
+# personne ne le voie. `test_configurateur_traduit.py` compare donc les clés
+# des deux listes et échoue si elles divergent.
+GAMMES_CHOICES = [
+    ('standard', _('Standard')),
+    ('premium', _('Premium')),
+    ('luxe', _('Luxe')),
+]
+
+# REMONTÉES AU NIVEAU DU MODULE depuis le corps de `wizard_step2`, où elles
+# étaient reconstruites à chaque requête. Deux raisons :
+#
+# 1. `gettext_lazy` dans un corps de fonction fonctionnerait, mais la liste
+#    serait recréée à chaque affichage pour un contenu immuable.
+# 2. Surtout, un libellé écrit au milieu d'une vue échappe au regard : ces
+#    six-là étaient les seuls du configurateur à n'être nulle part ailleurs,
+#    et c'est précisément pour cela qu'on ne les voyait pas.
+PANNES_CHOICES = [
+    ('no_power_all', _('Plus de courant dans tout le logement')),
+    ('no_power_room', _('Plus de courant dans une pièce')),
+    ('breaker', _('Disjoncteur qui saute')),
+    ('dead_outlet', _('Prise qui ne fonctionne plus')),
+    ('panel_issue', _('Tableau électrique problématique')),
+    ('other', _('Autre problème')),
 ]
 
 
@@ -105,7 +174,7 @@ def _wizard_context(site):
         'equipment_choices': EQUIPMENT_CHOICES,
         'building_type_choices': BUILDING_TYPE_CHOICES,
         'project_type_choices': PROJECT_TYPE_CHOICES,
-        'quality_choices': GuidedQuoteRequest.QUALITY_LEVEL_CHOICES,
+        'quality_choices': GAMMES_CHOICES,
     })
     return ctx
 
@@ -141,7 +210,7 @@ def wizard_step2(request, site_slug):
         else:
             answers.update({
                 'surface': request.POST.get('surface', ''),
-                'rooms': {key: request.POST.get(f'room_{key}', '0') for key, _ in ROOM_CHOICES},
+                'rooms': {key: request.POST.get(f'room_{key}', '0') for key, _libelle in ROOM_CHOICES},
                 'equipments': request.POST.getlist('equipments'),
                 'comments': request.POST.get('comments', ''),
             })
@@ -153,15 +222,7 @@ def wizard_step2(request, site_slug):
     ctx = _wizard_context(site)
     ctx['request_type'] = request_type
     ctx['building_type'] = request.session.get('elec_building_type', '')
-    problem_type_choices = [
-        ('no_power_all', 'Plus de courant dans tout le logement'),
-        ('no_power_room', 'Plus de courant dans une pièce'),
-        ('breaker', 'Disjoncteur qui saute'),
-        ('dead_outlet', 'Prise qui ne fonctionne plus'),
-        ('panel_issue', 'Tableau électrique problématique'),
-        ('other', 'Autre problème'),
-    ]
-    ctx['problem_type_choices'] = problem_type_choices
+    ctx['problem_type_choices'] = PANNES_CHOICES
     tpl = 'step2_depannage.html' if request_type == 'depannage' else 'step2_chantier.html'
     return render(request, f'websites/public/electricite/wizard/{tpl}', ctx)
 
@@ -297,9 +358,28 @@ def _calculate_electricite_estimate(company, quote_request):
             add('forfait', 'Majoration urgence', name_filter='urgent')
         add('main_oeuvre', "Main-d'œuvre estimée (1h)")
     else:
+        # CE QUI EST ENREGISTRÉ RESTE EN FRANÇAIS, et c'est délibéré.
+        #
+        # `add()` écrit ces libellés dans des `GuidedQuoteEstimateItem`, donc
+        # en base : ils deviennent les lignes du devis que l'exploitant lit
+        # dans l'ERP et qui partent dans le PDF. Depuis que
+        # `EQUIPMENT_CHOICES` porte des libellés traduits paresseusement, la
+        # simple conversion en chaîne les résoudrait dans la langue du
+        # VISITEUR — un devis en portugais ou en allemand dans un ERP tenu
+        # en français, selon qui a rempli le formulaire ce jour-là.
+        #
+        # `override` fixe donc la langue du texte stocké. La traduction sert
+        # à l'écran du visiteur ; l'enregistrement sert à l'entreprise, et
+        # les deux n'ont pas le même lecteur.
+        #
+        # `settings.LANGUAGE_CODE` plutôt que « fr » en dur : si
+        # l'installation change de langue de référence, les devis suivent.
+        from django.conf import settings as reglages
+
         for eq_key in answers.get('equipments', []):
             category = EQUIPMENT_CATEGORY_MAP.get(eq_key, 'autre')
-            label = dict((k, l) for k, l, _ in EQUIPMENT_CHOICES).get(eq_key, eq_key)
+            with override(reglages.LANGUAGE_CODE):
+                label = str(LIBELLE_EQUIPEMENT.get(eq_key, eq_key))
             add(category, label)
 
         rooms = answers.get('rooms', {}) or {}
