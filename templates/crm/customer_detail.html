@@ -115,7 +115,36 @@
             <span class="orion-badge warning text-dark"><i class="bi bi-clock me-1"></i>{% trans "En attente d'activation" %}</span>
             {% endif %}
           </div>
-          <p class="small text-muted mb-0">{{ portal_account.email }}</p>
+          <p class="small text-muted mb-2">{{ portal_account.email }}</p>
+
+          {% comment %} RENVOYER LES IDENTIFIANTS, ET POURQUOI CE BOUTON EXISTE.
+
+             Le code provisoire n'est montre a PERSONNE -- c'est tout
+             l'interet du dispositif, puisqu'un code affiche a l'ecran serait
+             recopie et transmis par message. Mais trois situations laissent
+             alors un client dehors : un serveur de courriel indisponible au
+             moment de la creation, une adresse saisie de travers, et le
+             courriel simplement perdu ou supprime.
+
+             Sans ce bouton, la seule issue serait une requete en base.
+
+             C'EST LA MEME ROUTE QUE LA CREATION. `create_portal_account_for_customer`
+             est idempotente : compte absent, elle le cree et envoie ; compte
+             present, elle renvoie un nouveau code. Une seconde route ferait
+             deux chemins a maintenir pour un seul geste. {% endcomment %}
+          {% if is_hr_admin %}
+          <form method="post" action="{% url 'portals:customer_portal_account_create' customer.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="orion-btn sm">
+              <i class="bi bi-arrow-repeat me-1"></i>{% trans "Renvoyer les identifiants" %}
+            </button>
+          </form>
+          <p class="small text-muted mb-0" style="margin-top:8px">
+            {% blocktrans %}Un nouveau code provisoire sera envoyé, et l'ancien cessera de
+            valoir. Le code n'est jamais affiché ici : il n'existe que dans le courriel de
+            son destinataire.{% endblocktrans %}
+          </p>
+          {% endif %}
         {% elif not customer.email %}
           <p class="small text-muted mb-0">{% trans "Ajoutez d'abord un email au client pour pouvoir créer son accès à l'espace client." %}</p>
         {% elif is_hr_admin %}

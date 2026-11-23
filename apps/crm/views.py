@@ -52,6 +52,16 @@ def customer_detail(request, pk):
     quotes = customer.quotes.all().order_by('-created_at')[:5] if hasattr(customer, 'quotes') else []
     invoices = customer.invoices.all().order_by('-created_at')[:5] if hasattr(customer, 'invoices') else []
 
+    portal_account = None
+    if customer.email:
+        from apps.portals.models import ClientPortalAccount
+        portal_account = ClientPortalAccount.objects.filter(
+            company=company, email__iexact=customer.email,
+        ).first()
+    is_hr_admin = request.user.is_superuser or (
+        hasattr(request.user, 'profile') and request.user.profile.role in ('admin', 'superadmin')
+    )
+
     return render(request, 'crm/customer_detail.html', {
         'page_title': customer.name,
         'customer': customer,
@@ -60,6 +70,8 @@ def customer_detail(request, pk):
         'quotes': quotes,
         'invoices': invoices,
         'active_tab': request.GET.get('tab', 'info'),
+        'portal_account': portal_account,
+        'is_hr_admin': is_hr_admin,
     })
 
 
